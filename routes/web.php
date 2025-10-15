@@ -5,6 +5,7 @@ use App\Livewire\Auth\Verify2FA;
 use App\Livewire\Auth\SelectTenant;
 use App\Livewire\Auth\Enable2FA;
 use App\Livewire\Tenant\Dashboard as TenantDashboard;
+use App\Http\Controllers\WorldController;
 
 Route::view('/', 'welcome');
 
@@ -35,5 +36,14 @@ Route::view('dashboard', 'dashboard')
 Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
+
+// Rutas API para Laravel World (accesibles desde cualquier tenant)
+Route::prefix('api/world')->group(function () {
+    Route::get('/countries', [WorldController::class, 'getCountries'])->name('api.world.countries');
+    Route::get('/countries/search', [WorldController::class, 'searchCountries'])->name('api.world.countries.search');
+    Route::get('/countries/{countryCode}/complete', [WorldController::class, 'getCountryComplete'])->name('api.world.countries.complete');
+    Route::get('/countries/{countryId}/states', [WorldController::class, 'getStates'])->name('api.world.states');
+    Route::get('/states/{stateId}/cities', [WorldController::class, 'getCities'])->name('api.world.cities');
+});
 
 require __DIR__.'/auth.php';

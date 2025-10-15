@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('detalle_ventas', function (Blueprint $table) {
+        Schema::create('sale_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('venta_id')->constrained();
-            $table->foreignId('producto_id')->constrained();
-            $table->decimal('cantidad', 10, 2);
-            $table->decimal('precio_unitario', 10, 2);
-            $table->decimal('descuento', 10, 2)->default(0);
+            $table->foreignId('sale_id')->constrained('sales');
+            $table->foreignId('product_id')->constrained('products');
+            $table->decimal('quantity', 10, 2);
+            $table->decimal('unit_price', 10, 2);
+            $table->decimal('discount', 10, 2)->default(0);
             $table->decimal('subtotal', 10, 2);
             $table->timestamps();
         });
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('detalle_ventas');
+        Schema::dropIfExists('sale_details');
     }
 };

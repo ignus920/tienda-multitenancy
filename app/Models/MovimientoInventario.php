@@ -11,19 +11,25 @@ class MovimientoInventario extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'inventory_movements';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'producto_id',
-        'tipo',
-        'cantidad',
-        'motivo',
-        'fecha',
-        'usuario_id',
-        'observaciones',
+        'product_id',
+        'type',
+        'quantity',
+        'reason',
+        'date',
         'user_id',
+        'notes',
     ];
 
     /**
@@ -35,26 +41,20 @@ class MovimientoInventario extends Model
     {
         return [
             'id' => 'integer',
-            'producto_id' => 'integer',
-            'cantidad' => 'decimal:2',
-            'fecha' => 'datetime',
-            'usuario_id' => 'integer',
+            'product_id' => 'integer',
+            'quantity' => 'decimal:2',
+            'date' => 'datetime',
             'user_id' => 'integer',
         ];
     }
 
     public function producto(): BelongsTo
     {
-        return $this->belongsTo(Producto::class);
+        return $this->belongsTo(Producto::class, 'product_id');
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function usuario(): BelongsTo
-    {
-        return $this->belongsTo(Usuario::class);
     }
 }

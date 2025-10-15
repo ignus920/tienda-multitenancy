@@ -13,17 +13,17 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('productos', function (Blueprint $table) {
+        Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo', 100)->unique();
-            $table->string('nombre', 255);
-            $table->text('descripcion')->nullable();
-            $table->decimal('precio', 10, 2);
-            $table->decimal('costo', 10, 2)->nullable();
+            $table->string('code', 100)->unique();
+            $table->string('name', 255);
+            $table->text('description')->nullable();
+            $table->decimal('price', 10, 2);
+            $table->decimal('cost', 10, 2)->nullable();
             $table->integer('stock')->default(0);
-            $table->integer('stock_minimo')->default(5);
-            $table->foreignId('categoria_id')->nullable()->constrained();
-            $table->boolean('activo')->default(true);
+            $table->integer('min_stock')->default(5);
+            $table->foreignId('category_id')->nullable()->constrained('categories');
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
 
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('productos');
+        Schema::dropIfExists('products');
     }
 };

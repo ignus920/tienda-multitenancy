@@ -13,20 +13,19 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('ventas', function (Blueprint $table) {
+        Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->string('numero', 50)->unique();
-            $table->dateTime('fecha');
-            $table->foreignId('cliente_id')->nullable()->constrained();
-            $table->foreignId('usuario_id')->constrained();
+            $table->string('number', 50)->unique();
+            $table->dateTime('date');
+            $table->foreignId('customer_id')->nullable()->constrained('customers');
+            $table->foreignId('user_id')->constrained('users');
             $table->decimal('subtotal', 10, 2);
-            $table->decimal('descuento', 10, 2)->default(0);
-            $table->decimal('impuesto', 10, 2)->default(0);
+            $table->decimal('discount', 10, 2)->default(0);
+            $table->decimal('tax', 10, 2)->default(0);
             $table->decimal('total', 10, 2);
-            $table->enum('estado', ["pendiente","pagada","anulada"])->default('pendiente');
-            $table->enum('tipo_pago', ["efectivo","tarjeta","transferencia"]);
-            $table->text('observaciones')->nullable();
-            $table->foreignId('user_id');
+            $table->enum('status', ["pending","paid","cancelled"])->default('pending');
+            $table->enum('payment_type', ["cash","card","transfer"]);
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
 
@@ -38,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ventas');
+        Schema::dropIfExists('sales');
     }
 };

@@ -12,20 +12,27 @@ class Producto extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'products';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'codigo',
-        'nombre',
-        'descripcion',
-        'precio',
-        'costo',
+        'code',
+        'name',
+        'description',
+        'price',
+        'cost',
         'stock',
-        'stock_minimo',
-        'categoria_id',
-        'activo',
+        'min_stock',
+        'category_id',
+        'active',
     ];
 
     /**
@@ -37,25 +44,25 @@ class Producto extends Model
     {
         return [
             'id' => 'integer',
-            'precio' => 'decimal:2',
-            'costo' => 'decimal:2',
-            'categoria_id' => 'integer',
-            'activo' => 'boolean',
+            'price' => 'decimal:2',
+            'cost' => 'decimal:2',
+            'category_id' => 'integer',
+            'active' => 'boolean',
         ];
     }
 
     public function categoria(): BelongsTo
     {
-        return $this->belongsTo(Categoria::class);
+        return $this->belongsTo(Categoria::class, 'category_id');
     }
 
     public function detalleVentas(): HasMany
     {
-        return $this->hasMany(DetalleVenta::class);
+        return $this->hasMany(DetalleVenta::class, 'product_id');
     }
 
     public function movimientoInventarios(): HasMany
     {
-        return $this->hasMany(MovimientoInventario::class);
+        return $this->hasMany(MovimientoInventario::class, 'product_id');
     }
 }

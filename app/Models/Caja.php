@@ -12,20 +12,26 @@ class Caja extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'cash_registers';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'nombre',
-        'saldo_inicial',
-        'saldo_actual',
-        'fecha_apertura',
-        'fecha_cierre',
-        'usuario_id',
-        'estado',
-        'observaciones',
+        'name',
+        'opening_balance',
+        'current_balance',
+        'opening_date',
+        'closing_date',
         'user_id',
+        'status',
+        'notes',
     ];
 
     /**
@@ -37,11 +43,10 @@ class Caja extends Model
     {
         return [
             'id' => 'integer',
-            'saldo_inicial' => 'decimal:2',
-            'saldo_actual' => 'decimal:2',
-            'fecha_apertura' => 'datetime',
-            'fecha_cierre' => 'datetime',
-            'usuario_id' => 'integer',
+            'opening_balance' => 'decimal:2',
+            'current_balance' => 'decimal:2',
+            'opening_date' => 'datetime',
+            'closing_date' => 'datetime',
             'user_id' => 'integer',
         ];
     }
@@ -51,13 +56,8 @@ class Caja extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function usuario(): BelongsTo
-    {
-        return $this->belongsTo(Usuario::class);
-    }
-
     public function movimientoCajas(): HasMany
     {
-        return $this->hasMany(MovimientoCaja::class);
+        return $this->hasMany(MovimientoCaja::class, 'cash_register_id');
     }
 }

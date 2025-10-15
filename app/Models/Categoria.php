@@ -11,14 +11,21 @@ class Categoria extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'categories';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'nombre',
-        'descripcion',
-        'activo',
+        'name',
+        'description',
+        'active',
     ];
 
     /**
@@ -30,12 +37,12 @@ class Categoria extends Model
     {
         return [
             'id' => 'integer',
-            'activo' => 'boolean',
+            'active' => 'boolean',
         ];
     }
 
     public function productos(): HasMany
     {
-        return $this->hasMany(Producto::class);
+        return $this->hasMany(Producto::class, 'category_id');
     }
 }

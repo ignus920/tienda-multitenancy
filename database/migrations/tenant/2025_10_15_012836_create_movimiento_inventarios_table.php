@@ -13,16 +13,15 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('movimiento_inventarios', function (Blueprint $table) {
+        Schema::create('inventory_movements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('producto_id')->constrained();
-            $table->enum('tipo', ["entrada","salida","ajuste"]);
-            $table->decimal('cantidad', 10, 2);
-            $table->string('motivo', 255);
-            $table->dateTime('fecha');
-            $table->foreignId('usuario_id')->constrained();
-            $table->text('observaciones')->nullable();
-            $table->foreignId('user_id');
+            $table->foreignId('product_id')->constrained('products');
+            $table->enum('type', ["inbound","outbound","adjustment"]);
+            $table->decimal('quantity', 10, 2);
+            $table->string('reason', 255);
+            $table->dateTime('date');
+            $table->foreignId('user_id')->constrained('users');
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
 
@@ -34,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('movimiento_inventarios');
+        Schema::dropIfExists('inventory_movements');
     }
 };

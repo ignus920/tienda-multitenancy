@@ -12,23 +12,29 @@ class Venta extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'sales';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'numero',
-        'fecha',
-        'cliente_id',
-        'usuario_id',
-        'subtotal',
-        'descuento',
-        'impuesto',
-        'total',
-        'estado',
-        'tipo_pago',
-        'observaciones',
+        'number',
+        'date',
+        'customer_id',
         'user_id',
+        'subtotal',
+        'discount',
+        'tax',
+        'total',
+        'status',
+        'payment_type',
+        'notes',
     ];
 
     /**
@@ -40,20 +46,19 @@ class Venta extends Model
     {
         return [
             'id' => 'integer',
-            'fecha' => 'datetime',
-            'cliente_id' => 'integer',
-            'usuario_id' => 'integer',
-            'subtotal' => 'decimal:2',
-            'descuento' => 'decimal:2',
-            'impuesto' => 'decimal:2',
-            'total' => 'decimal:2',
+            'date' => 'datetime',
+            'customer_id' => 'integer',
             'user_id' => 'integer',
+            'subtotal' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'tax' => 'decimal:2',
+            'total' => 'decimal:2',
         ];
     }
 
     public function cliente(): BelongsTo
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(Cliente::class, 'customer_id');
     }
 
     public function user(): BelongsTo
@@ -61,13 +66,8 @@ class Venta extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function usuario(): BelongsTo
-    {
-        return $this->belongsTo(Usuario::class);
-    }
-
     public function detalleVentas(): HasMany
     {
-        return $this->hasMany(DetalleVenta::class);
+        return $this->hasMany(DetalleVenta::class, 'sale_id');
     }
 }

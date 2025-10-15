@@ -13,17 +13,16 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('cajas', function (Blueprint $table) {
+        Schema::create('cash_registers', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 100);
-            $table->decimal('saldo_inicial', 10, 2)->default(0);
-            $table->decimal('saldo_actual', 10, 2)->default(0);
-            $table->dateTime('fecha_apertura');
-            $table->dateTime('fecha_cierre')->nullable();
-            $table->foreignId('usuario_id')->constrained();
-            $table->enum('estado', ["abierta","cerrada"])->default('abierta');
-            $table->text('observaciones')->nullable();
-            $table->foreignId('user_id');
+            $table->string('name', 100);
+            $table->decimal('opening_balance', 10, 2)->default(0);
+            $table->decimal('current_balance', 10, 2)->default(0);
+            $table->dateTime('opening_date');
+            $table->dateTime('closing_date')->nullable();
+            $table->foreignId('user_id')->constrained('users');
+            $table->enum('status', ["open","closed"])->default('open');
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
 
@@ -35,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cajas');
+        Schema::dropIfExists('cash_registers');
     }
 };

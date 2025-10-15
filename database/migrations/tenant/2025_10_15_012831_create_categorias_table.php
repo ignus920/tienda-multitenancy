@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('categorias', function (Blueprint $table) {
+        Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 100);
-            $table->text('descripcion')->nullable();
-            $table->boolean('activo')->default(true);
+            $table->string('name', 100);
+            $table->text('description')->nullable();
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
 
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categorias');
+        Schema::dropIfExists('categories');
     }
 };

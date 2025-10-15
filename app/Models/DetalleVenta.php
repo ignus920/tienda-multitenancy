@@ -11,16 +11,23 @@ class DetalleVenta extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'sale_details';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'venta_id',
-        'producto_id',
-        'cantidad',
-        'precio_unitario',
-        'descuento',
+        'sale_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+        'discount',
         'subtotal',
     ];
 
@@ -33,22 +40,22 @@ class DetalleVenta extends Model
     {
         return [
             'id' => 'integer',
-            'venta_id' => 'integer',
-            'producto_id' => 'integer',
-            'cantidad' => 'decimal:2',
-            'precio_unitario' => 'decimal:2',
-            'descuento' => 'decimal:2',
+            'sale_id' => 'integer',
+            'product_id' => 'integer',
+            'quantity' => 'decimal:2',
+            'unit_price' => 'decimal:2',
+            'discount' => 'decimal:2',
             'subtotal' => 'decimal:2',
         ];
     }
 
     public function venta(): BelongsTo
     {
-        return $this->belongsTo(Venta::class);
+        return $this->belongsTo(Venta::class, 'sale_id');
     }
 
     public function producto(): BelongsTo
     {
-        return $this->belongsTo(Producto::class);
+        return $this->belongsTo(Producto::class, 'product_id');
     }
 }
