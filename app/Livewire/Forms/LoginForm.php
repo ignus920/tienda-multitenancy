@@ -50,13 +50,23 @@ class LoginForm extends Form
             // Guardar el ID del usuario en sesión para verificar 2FA
             session(['2fa_user_id' => $user->id]);
 
-            // Enviar código 2FA
-            $twoFactorService = app(\App\Services\TwoFactorService::class);
-            $twoFactorService->sendCode($user, $user->two_factor_type);
+            // Solo enviar código si NO es TOTP (Google Authenticator)
+            if ($user->two_factor_type !== 'totp') {
+                $twoFactorService = app(\App\Services\TwoFactorService::class);
+                $twoFactorService->sendCode($user, $user->two_factor_type);
+            }
+
+            // Mensaje según el tipo de autenticación
+            $mensaje = match($user->two_factor_type) {
+                'email' => 'Código de verificación enviado. Por favor revise su correo electrónico.',
+                'whatsapp' => 'Código de verificación enviado. Por favor revise su WhatsApp.',
+                'totp' => 'Por favor ingrese el código de su aplicación Google Authenticator.',
+                default => 'Por favor ingrese el código de verificación.'
+            };
 
             // Lanzar excepción para redirigir a verificación 2FA
             throw ValidationException::withMessages([
-                'form.email' => 'Código de verificación enviado. Por favor revise su ' . ($user->two_factor_type === 'email' ? 'correo' : $user->two_factor_type) . '.',
+                'form.email' => $mensaje,
             ]);
         }
     }

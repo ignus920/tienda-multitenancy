@@ -1,8 +1,9 @@
-<div class="py-12">
-    <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 bg-white border-b border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Autenticación de Dos Factores</h2>
+<div>
+    <div>
+        <div>
+            <div>
+                <h2 class="text-lg font-medium text-gray-900 mb-1">Autenticación de Dos Factores</h2>
+                <p class="text-sm text-gray-600 mb-6">Agrega una capa extra de seguridad a tu cuenta.</p>
 
                 @if ($successMessage)
                     <div class="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
@@ -19,9 +20,6 @@
                 @if (!$twoFactorEnabled)
                     <!-- Habilitar 2FA -->
                     <div class="mb-6">
-                        <p class="text-gray-600 mb-4">
-                            La autenticación de dos factores agrega una capa extra de seguridad a su cuenta.
-                        </p>
 
                         <div class="space-y-4">
                             <div>
@@ -173,12 +171,6 @@
                         Deshabilitar Autenticación de Dos Factores
                     </button>
                 @endif
-
-                <div class="mt-6 text-center">
-                    <a href="{{ route('dashboard') }}" class="text-sm text-gray-600 hover:text-gray-800 underline">
-                        ← Volver al Panel
-                    </a>
-                </div>
             </div>
         </div>
     </div>
