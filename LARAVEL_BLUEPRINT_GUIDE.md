@@ -365,3 +365,7 @@ Dado que ya tienes las migraciones creadas, podrías usar Blueprint para:
 2. **Generar nuevos módulos** rápidamente
 3. **Crear factories y tests** automáticamente
 4. **Mantener consistencia** en el código
+
+
+
+grep "2025-10-24" /home/api.ticsia.com/public_html/storage/logs/laravel.log | tail -200
