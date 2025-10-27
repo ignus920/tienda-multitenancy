@@ -5,13 +5,13 @@
                 <h2 class="text-lg font-medium text-gray-900 mb-1">Autenticación de Dos Factores</h2>
                 <p class="text-sm text-gray-600 mb-6">Agrega una capa extra de seguridad a tu cuenta.</p>
 
-                @if ($successMessage)
+                @if (!empty($successMessage))
                     <div class="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
                         {{ $successMessage }}
                     </div>
                 @endif
 
-                @if ($errorMessage)
+                @if (!empty($errorMessage))
                     <div class="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
                         {{ $errorMessage }}
                     </div>
@@ -119,7 +119,7 @@
                         </div>
                     @endif
 
-                    @if ($successMessage && !$showQrCode && ($twoFactorType === 'email' || $twoFactorType === 'whatsapp'))
+                    @if (!empty($successMessage) && !$showQrCode && ($twoFactorType === 'email' || $twoFactorType === 'whatsapp'))
                         <!-- Formulario de verificación para Email/WhatsApp -->
                         <div class="border-t pt-6">
                             <div class="mb-4">

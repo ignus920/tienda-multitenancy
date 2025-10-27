@@ -1,10 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Livewire\Auth\Verify2FA;
-use App\Livewire\Auth\SelectTenant;
-use App\Livewire\Auth\Enable2FA;
-use App\Livewire\Tenant\Dashboard as TenantDashboard;
+use App\Auth\Livewire\Verify2FA;
+use App\Auth\Livewire\SelectTenant;
+use App\Auth\Livewire\Enable2FA;
+use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 
 Route::view('/', 'welcome');
@@ -20,7 +20,7 @@ Route::get('/select-tenant', SelectTenant::class)
 
 // Dashboard del tenant (requiere autenticación y tenant seleccionado)
 Route::get('/tenant/dashboard', TenantDashboard::class)
-    ->middleware(['auth', \App\Http\Middleware\SetTenantConnection::class])
+    ->middleware(['auth', \App\Auth\Middleware\SetTenantConnection::class])
     ->name('tenant.dashboard');
 
 // Configuración de 2FA (requiere autenticación)

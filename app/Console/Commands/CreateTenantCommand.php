@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\TenantManager;
-use App\Models\User;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\User;
 
 class CreateTenantCommand extends Command
 {

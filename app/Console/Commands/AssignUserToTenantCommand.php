@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\TenantManager;
-use App\Models\User;
-use App\Models\Tenant;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\User;
+use App\Models\Auth\Tenant;
 
 class AssignUserToTenantCommand extends Command
 {

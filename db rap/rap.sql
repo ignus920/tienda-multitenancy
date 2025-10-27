@@ -31,16 +31,16 @@ CREATE TABLE `cfg_positions` (
   `id` int NOT NULL,
   `name` varchar(50) NOT NULL,
   `status` tinyint NOT NULL DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `cfg_positions`
 --
 
-INSERT INTO `cfg_positions` (`id`, `name`, `status`, `createdAt`, `updatedAt`, `deletedAt`) VALUES
+INSERT INTO `cfg_positions` (`id`, `name`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'Propietario', 1, '2025-10-23 19:35:00', NULL, NULL),
 (2, 'Administrador POS', 1, '2025-10-23 19:35:01', NULL, NULL),
 (3, 'Vendedor', 1, '2025-10-24 00:36:59', NULL, NULL),
@@ -81,9 +81,9 @@ CREATE TABLE `cnf_cities` (
   `cod_ciudad` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `cod_departamento` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `departamento` varchar(100) DEFAULT NULL,
-  `createdAt` datetime DEFAULT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -96,9 +96,9 @@ CREATE TABLE `cnf_fiscal_responsabilities` (
   `id` int NOT NULL,
   `description` varchar(255) DEFAULT NULL,
   `integrationDataId` int DEFAULT NULL,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -112,9 +112,9 @@ CREATE TABLE `cnf_regime` (
   `name` varchar(255) NOT NULL,
   `status` tinyint DEFAULT '1',
   `description` varchar(255) DEFAULT NULL,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -128,9 +128,9 @@ CREATE TABLE `cnf_type_identifications` (
   `name` varchar(255) DEFAULT NULL,
   `acronym` varchar(255) DEFAULT NULL,
   `status` tinyint DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -143,16 +143,16 @@ CREATE TABLE `usr_permissions` (
   `id` int NOT NULL,
   `name` varchar(255) NOT NULL,
   `status` tinyint DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `usr_permissions`
 --
 
-INSERT INTO `usr_permissions` (`id`, `name`, `status`, `createdAt`, `updatedAt`, `deletedAt`) VALUES
+INSERT INTO `usr_permissions` (`id`, `name`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'Parametros', 1, '2025-10-24 20:13:34', NULL, NULL),
 (2, 'Usuarios', 1, '2025-10-24 20:13:34', NULL, NULL),
 (3, 'Ventas', 1, '2025-10-24 20:13:49', NULL, NULL),
@@ -182,9 +182,9 @@ CREATE TABLE `usr_permissions_profiles` (
   `show` tinyint NOT NULL,
   `profileId` int DEFAULT NULL,
   `permissionId` int DEFAULT NULL,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -198,16 +198,16 @@ CREATE TABLE `usr_profiles` (
   `name` varchar(255) NOT NULL,
   `alias` varchar(100) DEFAULT NULL,
   `status` tinyint DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `usr_profiles`
 --
 
-INSERT INTO `usr_profiles` (`id`, `name`, `alias`, `status`, `createdAt`, `updatedAt`, `deletedAt`) VALUES
+INSERT INTO `usr_profiles` (`id`, `name`, `alias`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'SuperUsuario', 'SuperUsuario', 1, '2025-10-24 20:05:30', NULL, NULL),
 (2, 'Administrador', 'Administrador', 1, '2025-10-24 20:05:30', NULL, NULL),
 (3, 'Administrador POS', 'Administrador POS', 1, '2025-10-24 20:06:04', NULL, NULL),
@@ -238,9 +238,9 @@ CREATE TABLE `usr_users` (
   `loginWarehouseId` int DEFAULT NULL,
   `tokenReset` varchar(255) DEFAULT NULL,
   `int_dataId` int DEFAULT NULL,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -266,9 +266,9 @@ CREATE TABLE `vnt_companies` (
   `regimeId` int DEFAULT NULL,
   `code_ciiu` varchar(255) DEFAULT NULL,
   `fiscalResponsabilityId` int DEFAULT NULL,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -290,9 +290,9 @@ CREATE TABLE `vnt_contacts` (
   `integrationDataId` int DEFAULT NULL,
   `warehouseId` int DEFAULT NULL,
   `positionId` int DEFAULT NULL COMMENT 'cargo del contacto',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime NOT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -319,16 +319,16 @@ CREATE TABLE `vnt_merchant_types` (
   `description` text,
   `version` varchar(100) DEFAULT NULL,
   `status` tinyint NOT NULL DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `vnt_merchant_types`
 --
 
-INSERT INTO `vnt_merchant_types` (`id`, `name`, `description`, `version`, `status`, `createdAt`, `updatedAt`, `deletedAt`) VALUES
+INSERT INTO `vnt_merchant_types` (`id`, `name`, `description`, `version`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'POS', 'Comercio B2C', '1', 1, '2025-10-24 00:22:56', NULL, NULL),
 (2, 'INSTITUCIONAL', 'Comercio B2B', '1', 1, '2025-10-24 00:22:56', NULL, NULL);
 
@@ -346,16 +346,16 @@ CREATE TABLE `vnt_moduls` (
   `migration` text,
   `dev_hours` int NOT NULL DEFAULT '1',
   `status` tinyint NOT NULL DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `vnt_moduls`
 --
 
-INSERT INTO `vnt_moduls` (`id`, `name`, `description`, `version`, `migration`, `dev_hours`, `status`, `createdAt`, `updatedAt`, `deletedAt`) VALUES
+INSERT INTO `vnt_moduls` (`id`, `name`, `description`, `version`, `migration`, `dev_hours`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'VENTAS', 'Cotizador, clientes, cotizaciones, informes de ventas, cartera y clientes', '1', NULL, 1, 1, '2025-10-24 00:25:07', NULL, NULL),
 (2, 'CAJA', 'Apertura, ingresos, egresos, arqueo, cierre, reporte movimiento, compronbante de  arqueo y cierre', '1', NULL, 1, 1, '2025-10-24 00:25:07', NULL, NULL),
 (3, 'INVENTARIO', 'Items, ajustes de inventario, motivos de movimiento, traslados de bodega, bodegas, informes de movimiento de inventario', '1', NULL, 1, 1, '2025-10-24 00:28:10', NULL, NULL),
@@ -377,16 +377,16 @@ CREATE TABLE `vnt_plains` (
   `warehoseQty` int NOT NULL DEFAULT '1',
   `usersQty` int NOT NULL DEFAULT '2',
   `storesQty` int NOT NULL DEFAULT '1',
-  `createAt` datetime NOT NULL,
-  `updateAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `vnt_plains`
 --
 
-INSERT INTO `vnt_plains` (`id`, `name`, `description`, `status`, `type`, `merchantTypeId`, `warehoseQty`, `usersQty`, `storesQty`, `createAt`, `updateAt`, `deletedAt`) VALUES
+INSERT INTO `vnt_plains` (`id`, `name`, `description`, `status`, `type`, `merchantTypeId`, `warehoseQty`, `usersQty`, `storesQty`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'A', 'Basico', 1, 'Saas', 1, 1, 2, 1, '2025-10-24 00:44:31', NULL, NULL),
 (2, 'B', 'Avanzado', 1, 'Saas', 1, 2, 4, 4, '2025-10-24 00:45:10', NULL, NULL),
 (3, 'C', 'Superior', 1, 'Saas', 1, 3, 8, 6, '2025-10-24 00:48:35', NULL, NULL);
@@ -402,9 +402,9 @@ CREATE TABLE `vnt_price_lists` (
   `title` varchar(10) NOT NULL,
   `value` float NOT NULL,
   `status` int NOT NULL,
-  `createAt` datetime NOT NULL,
-  `updateAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -435,9 +435,9 @@ CREATE TABLE `vnt_tenants` (
   `endTest` date DEFAULT NULL,
   `tenantCode` text,
   `status` tinyint NOT NULL DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -450,9 +450,9 @@ CREATE TABLE `vnt_terms` (
   `id` int NOT NULL,
   `name` varchar(50) NOT NULL,
   `days` int NOT NULL,
-  `createdAt` datetime NOT NULL DEFAULT (now()),
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL DEFAULT (now()),
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -476,9 +476,9 @@ CREATE TABLE `vnt_warehouses` (
   `status` tinyint DEFAULT '1',
   `integrationDataId` int DEFAULT NULL,
   `main` tinyint DEFAULT '1',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  `deletedAt` datetime DEFAULT NULL
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --

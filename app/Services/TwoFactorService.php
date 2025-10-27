@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\TwoFactorCode;
+use App\Models\Auth\User;
+use App\Models\Auth\TwoFactorCode;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
