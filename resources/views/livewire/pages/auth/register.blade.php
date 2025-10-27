@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use App\Models\Auth\User;
 use App\Services\TenantManager;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;

@@ -230,14 +230,14 @@ CREATE TABLE `usr_users` (
   `id` int NOT NULL,
   `login` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
-  `status` tinyint NOT NULL DEFAULT '1',
+  *`status` tinyint NOT NULL DEFAULT '1', user_tenants
   `registrationStatus` tinyint NOT NULL DEFAULT '0',
-  `dateLastLogin` datetime DEFAULT NULL,
-  `tenantId` int DEFAULT NULL,
-  `profileId` int DEFAULT NULL,
-  `loginWarehouseId` int DEFAULT NULL,
-  `tokenReset` varchar(255) DEFAULT NULL,
-  `int_dataId` int DEFAULT NULL,
+  `dateLastLogin` datetime DEFAULT NULL,user_tenants
+  `tenantId` int DEFAULT NULL,user_tenants
+  `profileId` int DEFAULT NULL,user_tenants
+  *`loginWarehouseId` int DEFAULT NULL,user_tenants
+  *`tokenReset` varchar(255) DEFAULT NULL,password_reset_tokens
+  *`int_dataId` int DEFAULT NULL,users
   `created_at` datetime NOT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL
@@ -246,7 +246,7 @@ CREATE TABLE `usr_users` (
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `vnt_companies`
+-- Estructura de tabla para la tabla `vnt_companies` tenants
 --
 
 CREATE TABLE `vnt_companies` (
