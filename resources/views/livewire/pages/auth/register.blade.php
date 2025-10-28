@@ -1,10 +1,11 @@
 <?php
 
 use App\Models\Auth\User;
-use App\Services\TenantManager;
+use App\Services\Tenant\TenantManager;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -43,6 +44,11 @@ new #[Layout('layouts.guest')] class extends Component
 
             session()->flash('status', '¡Cuenta creada exitosamente! Tu empresa ha sido configurada.');
         } catch (\Exception $e) {
+            Log::error('Error al crear tenant: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'company_name' => $this->company_name,
+                'trace' => $e->getTraceAsString()
+            ]);
             session()->flash('error', 'Error al crear la empresa: ' . $e->getMessage());
         }
 
