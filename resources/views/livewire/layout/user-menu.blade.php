@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Livewire\Actions\Logout;
+use App\Auth\Livewire\Logout;
 use Livewire\Volt\Component;
 
 new class extends Component
@@ -12,7 +12,7 @@ new class extends Component
     {
         $logout();
 
-        $this->redirect('/', navigate: true);
+        $this->redirect(route('login'), navigate: true);
     }
 }; ?>
 

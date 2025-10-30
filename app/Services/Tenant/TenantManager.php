@@ -20,8 +20,9 @@ class TenantManager
             // Generar ID único si no se proporciona
             $tenantId = $data['id'] ?? Str::uuid()->toString();
 
-            // Generar nombre de base de datos basado en el ID
-            $dbName = $data['db_name'] ?? 'tenant_' . str_replace('-', '_', $tenantId);
+            // Generar nombre de base de datos basado en el company_id
+            $companyPrefix = isset($data['company_id']) ? 'company_' . $data['company_id'] : $data['name'];
+            $dbName = $data['db_name'] ?? $companyPrefix . '_' . str_replace('-', '_', $tenantId);
 
             // Crear el tenant en la base central
             $tenant = Tenant::create([

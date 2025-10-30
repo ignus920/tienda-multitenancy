@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: mysql:3306
--- Tiempo de generación: 27-10-2025 a las 21:53:47
+-- Tiempo de generación: 28-10-2025 a las 22:08:51
 -- Versión del servidor: 8.0.43
 -- Versión de PHP: 8.2.27
 
@@ -34,6 +34,16 @@ CREATE TABLE `vnt_merchant_moduls` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
+-- Volcado de datos para la tabla `vnt_merchant_moduls`
+--
+
+INSERT INTO `vnt_merchant_moduls` (`id`, `merchantId`, `modulId`) VALUES
+(1, 1, 1),
+(2, 1, 2),
+(3, 1, 3),
+(4, 1, 4);
+
+--
 -- Índices para tablas volcadas
 --
 
@@ -53,7 +63,7 @@ ALTER TABLE `vnt_merchant_moduls`
 -- AUTO_INCREMENT de la tabla `vnt_merchant_moduls`
 --
 ALTER TABLE `vnt_merchant_moduls`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Restricciones para tablas volcadas
