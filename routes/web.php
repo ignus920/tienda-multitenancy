@@ -6,6 +6,8 @@ use App\Auth\Livewire\SelectTenant;
 use App\Auth\Livewire\Enable2FA;
 use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\TestController;
 
 Route::view('/', 'welcome');
 
@@ -45,5 +47,35 @@ Route::prefix('api/world')->group(function () {
     Route::get('/countries/{countryId}/states', [WorldController::class, 'getStates'])->name('api.world.states');
     Route::get('/states/{stateId}/cities', [WorldController::class, 'getCities'])->name('api.world.cities');
 });
+
+// Rutas API para productos (requiere tenant activo)
+Route::prefix('api/products')->middleware(\App\Auth\Middleware\SetTenantConnection::class)->group(function () {
+    // CRUD básico
+    Route::get('/', [ProductController::class, 'index']);
+    Route::post('/', [ProductController::class, 'store']);
+    Route::get('/{id}', [ProductController::class, 'show']);
+    Route::put('/{id}', [ProductController::class, 'update']);
+    Route::delete('/{id}', [ProductController::class, 'destroy']);
+
+    // Métodos adicionales
+    Route::post('/{id}/restore', [ProductController::class, 'restore']);
+    Route::delete('/{id}/force', [ProductController::class, 'forceDelete']);
+    Route::patch('/{id}/toggle-status', [ProductController::class, 'toggleStatus']);
+    Route::get('/list/trashed', [ProductController::class, 'trashed']);
+
+    // Estadísticas
+    Route::get('/stats/summary', [ProductController::class, 'stats']);
+});
+
+// Rutas de prueba para establecer tenant (SOLO PARA DESARROLLO)
+Route::prefix('api/test')->group(function () {
+    Route::get('/tenants', [TestController::class, 'listTenants']);
+    Route::post('/set-tenant', [TestController::class, 'setTenant']);
+    Route::get('/session', [TestController::class, 'sessionInfo']);
+});
+
+
+
+
 
 require __DIR__.'/auth.php';
