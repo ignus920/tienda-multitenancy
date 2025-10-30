@@ -83,7 +83,7 @@ return [
 	|--------------------------------------------------------------------------
 	*/
 
-	'connection' => env('WORLD_DB_CONNECTION', 'central'),
+	'connection' => env('WORLD_DB_CONNECTION', env('DB_CONNECTION')),
 
 	/*
 	|--------------------------------------------------------------------------
