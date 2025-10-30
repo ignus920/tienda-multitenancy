@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant' => \App\Http\Middleware\SetTenantConnection::class,
         ]);
+
+        // Excluir rutas de test del CSRF (SOLO PARA DESARROLLO)
+        $middleware->validateCsrfTokens(except: [
+            'api/test/*',
+            'api/products/*'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
