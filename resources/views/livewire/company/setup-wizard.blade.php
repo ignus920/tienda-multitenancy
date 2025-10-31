@@ -403,17 +403,12 @@ new class extends Component
                                 </div>
 
                                 <!-- País -->
-                                <div>
-                                    <label for="country" class="block text-sm font-medium text-gray-700">País *</label>
-                                    <select wire:model="country" id="country"
-                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                        <option value="">Seleccionar país</option>
-                                        @foreach($countries as $countryOption)
-                                            <option value="{{ $countryOption->name }}">{{ $countryOption->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('country') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                </div>
+                                <x-selects.country
+                                    wire:model="country"
+                                    name="country"
+                                    placeholder="Seleccionar país"
+                                    :error="$errors->first('country')"
+                                />
 
                                 <!-- Código Postal -->
                                 <div>
@@ -551,17 +546,14 @@ new class extends Component
                                 </div>
 
                                 <!-- País del Almacén -->
-                                <div>
-                                    <label for="warehouseCountry" class="block text-sm font-medium text-gray-700">País *</label>
-                                    <select wire:model="warehouseCountry" id="warehouseCountry"
-                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                        <option value="">Seleccionar país</option>
-                                        @foreach($countries as $countryOption)
-                                            <option value="{{ $countryOption->name }}">{{ $countryOption->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('warehouseCountry') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                </div>
+                                <x-selects.country
+                                    wire:model="warehouseCountry"
+                                    name="warehouseCountry"
+                                    id="warehouseCountry"
+                                    label="País"
+                                    placeholder="Seleccionar país"
+                                    :error="$errors->first('warehouseCountry')"
+                                />
 
                                 <!-- Código Postal del Almacén -->
                                 <div>

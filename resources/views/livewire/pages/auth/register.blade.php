@@ -349,16 +349,13 @@ new class extends Component
         </div>
 
         <!-- País -->
-        <div>
-            <x-input-label for="countryId" value="País" />
-            <select wire:model="countryId" id="countryId" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
-                <option value="">Selecciona el país</option>
-                @foreach($countries as $country)
-                    <option value="{{ $country->id }}">{{ $country->name }}</option>
-                @endforeach
-            </select>
-            <x-input-error :messages="$errors->get('countryId')" class="mt-2" />
-        </div>
+        <x-selects.country
+            wire:model="countryId"
+            label="País"
+            placeholder="Selecciona el país"
+            class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+            :error="$errors->first('countryId')"
+        />
 
         <!-- Tipo de Negocio -->
         <div>

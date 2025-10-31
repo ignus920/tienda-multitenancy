@@ -56,8 +56,8 @@ new class extends Component
     public int $apiDataId = 0;
     public int $countriId = 48; // País por defecto Colombia
 
-    // Colecciones para selects
-    public $cities = [];
+    // Colecciones para selects - YA NO NECESARIAS (usando componentes)
+    // public $cities = [];
 
     // Estado
     public string $successMessage = '';
@@ -67,10 +67,10 @@ new class extends Component
     public ?VntContact $contact = null;
     public ?VntWarehouse $warehouse = null;
 
-    // Datos para selects
-    public $typeIdentifications = [];
-    public $regimes = [];
-    public $fiscalResponsabilities = [];
+    // Datos para selects - YA NO NECESARIOS (usando componentes)
+    // public $typeIdentifications = [];
+    // public $regimes = [];
+    // public $fiscalResponsabilities = [];
 
     public function mount()
     {
@@ -86,22 +86,8 @@ new class extends Component
 
     protected function loadSelectData()
     {
-        // Cargar datos para los selects desde la base de datos central
-        $this->typeIdentifications = CnfTypeIdentification::where('status', 1)
-            ->orderBy('name')
-            ->get(['id', 'name', 'acronym']);
-
-        $this->regimes = CnfRegime::where('status', 1)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $this->fiscalResponsabilities = CnfFiscalResponsability::orderBy('description')
-            ->get(['id', 'description']);
-
-        // Cargar ciudades filtradas por país (Colombia = 48)
-        $this->cities = CnfCity::where('country_id', $this->countriId)
-            ->orderBy('name')
-            ->get(['id', 'name', 'state_id']);
+        // YA NO NECESARIO - Los componentes cargan automáticamente los datos
+        // Método mantenido para compatibilidad, pero puede eliminarse
     }
 
     protected function loadExistingData()
@@ -416,17 +402,10 @@ new class extends Component
 
                             <div class="space-y-6">
                                 <!-- Tipo de Identificación (Primero) -->
-                                <div>
-                                    <label for="typeIdentificationId" class="block text-sm font-medium text-gray-700">Tipo Identificación *</label>
-                                    <select wire:model.live="typeIdentificationId" id="typeIdentificationId"
-                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                        <option value="0">Seleccionar tipo</option>
-                                        @foreach($typeIdentifications as $type)
-                                            <option value="{{ $type->id }}">{{ $type->acronym }} - {{ $type->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('typeIdentificationId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                </div>
+                                <x-selects.type-identification
+                                    wire:model.live="typeIdentificationId"
+                                    :error="$errors->first('typeIdentificationId')"
+                                />
 
                                 <!-- NIT/Identificación con campo DV condicional -->
                                 @if($typeIdentificationId > 0)
@@ -514,29 +493,15 @@ new class extends Component
 
                                 <!-- Selects para configuraciones fiscales -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="regimeId" class="block text-sm font-medium text-gray-700">Régimen *</label>
-                                        <select wire:model="regimeId" id="regimeId"
-                                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                            <option value="0">Seleccionar régimen</option>
-                                            @foreach($regimes as $regime)
-                                                <option value="{{ $regime->id }}">{{ $regime->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('regimeId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                    </div>
+                                    <x-selects.regime
+                                        wire:model="regimeId"
+                                        :error="$errors->first('regimeId')"
+                                    />
 
-                                    <div>
-                                        <label for="fiscalResponsabilityId" class="block text-sm font-medium text-gray-700">Responsabilidad Fiscal *</label>
-                                        <select wire:model="fiscalResponsabilityId" id="fiscalResponsabilityId"
-                                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                            <option value="0">Seleccionar responsabilidad</option>
-                                            @foreach($fiscalResponsabilities as $responsibility)
-                                                <option value="{{ $responsibility->id }}">{{ $responsibility->description }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('fiscalResponsabilityId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                    </div>
+                                    <x-selects.fiscal-responsibility
+                                        wire:model="fiscalResponsabilityId"
+                                        :error="$errors->first('fiscalResponsabilityId')"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -592,17 +557,11 @@ new class extends Component
                                         </div>
 
                                         <!-- Ciudad -->
-                                        <div>
-                                            <label for="cityId" class="block text-sm font-medium text-gray-700">Ciudad *</label>
-                                            <select wire:model="cityId" id="cityId"
-                                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                                <option value="0">Seleccionar ciudad</option>
-                                                @foreach($cities as $city)
-                                                    <option value="{{ $city->id }}">{{ $city->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('cityId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                        </div>
+                                        <x-selects.city
+                                            wire:model="cityId"
+                                            :country-id="48"
+                                            :error="$errors->first('cityId')"
+                                        />
 
                                         <!-- Código Postal -->
                                         <div>
