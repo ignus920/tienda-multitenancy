@@ -3,14 +3,11 @@
 use App\Models\Central\VntCompany;
 use App\Models\Central\VntContact;
 use App\Models\Central\VntWarehouse;
-use App\Models\Central\CnfTypeIdentification;
-use App\Models\Central\CnfRegime;
-use App\Models\Central\CnfFiscalResponsability;
-use App\Models\Central\CnfCity;
 use App\Services\Company\CompanyDataValidator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Volt\Component;
+use Livewire\Attributes\On;
 
 new class extends Component
 {
@@ -77,6 +74,16 @@ new class extends Component
         $this->loadSelectData();
         $this->loadExistingData();
         $this->determineCurrentStep();
+    }
+
+    #[On('type-identification-changed')]
+    public function updateTypeIdentification($typeIdentificationId)
+    {
+        $this->typeIdentificationId = $typeIdentificationId;
+
+        // Limpiar campos cuando cambie el tipo
+        $this->identification = '';
+        $this->verification_digit = '';
     }
 
     public function layout()
@@ -402,10 +409,10 @@ new class extends Component
 
                             <div class="space-y-6">
                                 <!-- Tipo de Identificación (Primero) -->
-                                <x-selects.type-identification
-                                    wire:model.live="typeIdentificationId"
-                                    :error="$errors->first('typeIdentificationId')"
-                                />
+                                @livewire('selects.type-identification-select', [
+                                    'typeIdentificationId' => $typeIdentificationId,
+                                    'name' => 'typeIdentificationId'
+                                ])
 
                                 <!-- NIT/Identificación con campo DV condicional -->
                                 @if($typeIdentificationId > 0)
@@ -493,15 +500,19 @@ new class extends Component
 
                                 <!-- Selects para configuraciones fiscales -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <x-selects.regime
-                                        wire:model="regimeId"
-                                        :error="$errors->first('regimeId')"
-                                    />
+                                    @livewire('selects.regime-select', [
+                                        'regimeId' => $regimeId,
+                                        'name' => 'regimeId',
+                                        'label' => 'Régimen',
+                                        'placeholder' => 'Seleccionar régimen'
+                                    ])
 
-                                    <x-selects.fiscal-responsibility
-                                        wire:model="fiscalResponsabilityId"
-                                        :error="$errors->first('fiscalResponsabilityId')"
-                                    />
+                                    @livewire('selects.fiscal-responsibility-select', [
+                                        'fiscalResponsibilityId' => $fiscalResponsabilityId,
+                                        'name' => 'fiscalResponsabilityId',
+                                        'label' => 'Responsabilidad Fiscal',
+                                        'placeholder' => 'Seleccionar responsabilidad fiscal'
+                                    ])
                                 </div>
                             </div>
                         </div>
@@ -557,11 +568,11 @@ new class extends Component
                                         </div>
 
                                         <!-- Ciudad -->
-                                        <x-selects.city
-                                            wire:model="cityId"
-                                            :country-id="48"
-                                            :error="$errors->first('cityId')"
-                                        />
+                                        @livewire('selects.city-select', [
+                                            'cityId' => $cityId,
+                                            'countryId' => 48,
+                                            'name' => 'cityId'
+                                        ])
 
                                         <!-- Código Postal -->
                                         <div>
