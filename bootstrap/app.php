@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (){
               Route::middleware('web')
                 ->group(base_path('routes/tenants/customers.php'));
+
+            Route::middleware('web')
+                ->group(base_path('routes/tenants/items.php'));
         
         },
     )

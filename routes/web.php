@@ -8,6 +8,7 @@ use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TestController;
+use App\Http\Controllers\Inventory\InventoryController;
 
 Route::view('/', 'welcome');
 
@@ -79,3 +80,4 @@ Route::prefix('api/test')->group(function () {
 
 
 require __DIR__.'/auth.php';
+

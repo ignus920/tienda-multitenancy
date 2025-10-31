@@ -13,6 +13,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
     </head>
     <body class="font-sans antialiased"
           x-data="{
@@ -99,5 +100,6 @@
                 </div>
             </main>
         </div>
+        @livewireScripts
     </body>
 </html>
