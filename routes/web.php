@@ -8,6 +8,7 @@ use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TestController;
+use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
 
@@ -15,28 +16,33 @@ Route::view('/', 'welcome');
 Route::get('/verify-2fa', Verify2FA::class)
     ->name('verify.2fa');
 
-// Rutas de selección de tenant (requiere autenticación)
-Route::get('/select-tenant', SelectTenant::class)
+// Configuración de empresa (requiere autenticación)
+Volt::route('/company/setup', 'company.simple-setup')
     ->middleware(['auth'])
+    ->name('company.setup');
+
+// Rutas de selección de tenant (requiere autenticación y datos completos)
+Route::get('/select-tenant', SelectTenant::class)
+    ->middleware(['auth', 'company.complete'])
     ->name('tenant.select');
 
-// Dashboard del tenant (requiere autenticación y tenant seleccionado)
+// Dashboard del tenant (requiere autenticación, datos completos y tenant seleccionado)
 Route::get('/tenant/dashboard', TenantDashboard::class)
-    ->middleware(['auth', \App\Auth\Middleware\SetTenantConnection::class])
+    ->middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantConnection::class])
     ->name('tenant.dashboard');
 
-// Configuración de 2FA (requiere autenticación)
+// Configuración de 2FA (requiere autenticación y datos completos)
 Route::get('/settings/2fa', Enable2FA::class)
-    ->middleware(['auth'])
+    ->middleware(['auth', 'company.complete'])
     ->name('settings.2fa');
 
 // Dashboard original de Breeze (redirige a selección de tenant)
 Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'company.complete'])
     ->name('dashboard');
 
 Route::view('profile', 'profile')
-    ->middleware(['auth'])
+    ->middleware(['auth', 'company.complete'])
     ->name('profile');
 
 // Rutas API para Laravel World (accesibles desde cualquier tenant)

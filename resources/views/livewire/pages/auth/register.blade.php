@@ -16,10 +16,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
-use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.guest')] class extends Component
+new class extends Component
 {
     // Datos del contacto
     public string $firstName = '';
@@ -37,9 +36,7 @@ new #[Layout('layouts.guest')] class extends Component
     // Datos de aceptación
     public bool $accept_terms = false;
 
-    // Estados de carga y notificaciones
-    public bool $isLoading = false;
-    public string $loadingMessage = '';
+    // Estados de notificaciones
     public string $successMessage = '';
 
     // Colecciones
@@ -64,15 +61,90 @@ new #[Layout('layouts.guest')] class extends Component
             ->get();
     }
 
+    public function updatedEmail()
+    {
+        Log::info('=== updatedEmail ejecutándose ===', ['email' => $this->email]);
+
+        // Limpiar errores si el campo está vacío
+        if (empty($this->email)) {
+            Log::info('Email vacío, saltando validación');
+            return;
+        }
+
+        try {
+            // Validar email automáticamente cuando el usuario termine de escribir
+            $this->validateOnly('email', [
+                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email', 'unique:vnt_contacts,email']
+            ], [
+                'email.unique' => 'Este correo electrónico ya está registrado en el sistema.',
+            ]);
+            Log::info('Email validado correctamente');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::info('Error de validación capturado (esto es normal)', ['errors' => $e->errors()]);
+            throw $e; // Re-lanzar para que Livewire lo maneje
+        }
+    }
+
+    public function updatedPhoneContact()
+    {
+        // Limpiar errores si el campo está vacío
+        if (empty($this->phone_contact)) {
+            return;
+        }
+
+        // Validar teléfono automáticamente cuando el usuario termine de escribir
+        $this->validateOnly('phone_contact', [
+            'phone_contact' => ['required', 'string', 'max:20', 'unique:vnt_contacts,phone_contact']
+        ], [
+            'phone_contact.unique' => 'Este número de teléfono ya está registrado en el sistema.',
+        ]);
+    }
+
+    public function updatedBusinessName()
+    {
+        // Limpiar errores si el campo está vacío
+        if (empty($this->businessName)) {
+            return;
+        }
+
+        // Validar nombre del negocio automáticamente cuando el usuario termine de escribir
+        $this->validateOnly('businessName', [
+            'businessName' => ['required', 'string', 'max:255', 'unique:vnt_companies,businessName']
+        ], [
+            'businessName.unique' => 'Ya existe una empresa registrada con este nombre.',
+        ]);
+    }
+
+    /**
+     * Método de prueba para verificar que los mensajes funcionen
+     */
+    public function testMessages()
+    {
+        $this->isLoading = true;
+        $this->loadingMessage = 'Probando mensaje de carga...';
+
+        Log::info('Método testMessages ejecutado', [
+            'isLoading' => $this->isLoading,
+            'loadingMessage' => $this->loadingMessage
+        ]);
+    }
+
+    public function testSuccess()
+    {
+        $this->isLoading = false;
+        $this->successMessage = 'Mensaje de éxito funcionando correctamente!';
+
+        Log::info('Método testSuccess ejecutado', [
+            'isLoading' => $this->isLoading,
+            'successMessage' => $this->successMessage
+        ]);
+    }
+
     /**
      * Handle an incoming registration request.
      */
     public function register(): void
     {
-        // Activar estado de carga
-        $this->isLoading = true;
-        $this->loadingMessage = 'Iniciando proceso de registro...';
-
         // Aumentar tiempo de ejecución para creación de tenant
         set_time_limit(300); // 5 minutos
 
@@ -81,22 +153,30 @@ new #[Layout('layouts.guest')] class extends Component
         $validated = $this->validate([
             'firstName' => ['required', 'string', 'max:255'],
             'lastName' => ['required', 'string', 'max:255'],
-            'phone_contact' => ['required', 'string', 'max:20'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'phone_contact' => ['required', 'string', 'max:20', 'unique:vnt_contacts,phone_contact'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email', 'unique:vnt_contacts,email'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
-            'businessName' => ['required', 'string', 'max:255'],
+            'businessName' => ['required', 'string', 'max:255', 'unique:vnt_companies,businessName'],
             'countryId' => ['required', 'exists:countries,id'],
             'merchant_type_id' => ['required', 'exists:vnt_merchant_types,id'],
             'accept_terms' => ['required', 'accepted'],
+        ], [
+            'email.unique' => 'Este correo electrónico ya está registrado en el sistema.',
+            'phone_contact.unique' => 'Este número de teléfono ya está registrado en el sistema.',
+            'businessName.unique' => 'Ya existe una empresa registrada con este nombre.',
+            'accept_terms.accepted' => 'Debe aceptar los términos y condiciones para continuar.',
         ]);
 
         Log::info('✅ Validación exitosa');
 
         try {
-            $this->loadingMessage = 'Creando empresa...';
+            Log::info('💼 Creando empresa...');
+
             DB::beginTransaction();
+            Log::info('🗄️ Transacción iniciada');
 
             // 1. Crear la empresa (vnt_companies)
+            Log::info('🏢 Creando empresa en vnt_companies');
             $company = VntCompany::create([
                 'businessName' => $this->businessName,
                 'billingEmail' => $this->email,
@@ -106,9 +186,8 @@ new #[Layout('layouts.guest')] class extends Component
                 'created_at' => now(),
             ]);
 
-            $this->loadingMessage = 'Configurando contacto principal...';
-
             // 2. Crear el contacto (vnt_contacts)
+            Log::info('👤 Configurando contacto principal...');
             $contact = VntContact::create([
                 'firstName' => $this->firstName,
                 'lastName' => $this->lastName,
@@ -119,9 +198,8 @@ new #[Layout('layouts.guest')] class extends Component
                 'updatedAt' => now(),
             ]);
 
-            $this->loadingMessage = 'Configurando almacén principal...';
-
             // 3. Crear warehouse principal (solo campos básicos sin constraints)
+            Log::info('🏪 Configurando almacén principal...');
             $warehouse = VntWarehouse::create([
                 'companyId' => $company->id,
                 'name' => 'Principal',
@@ -129,9 +207,8 @@ new #[Layout('layouts.guest')] class extends Component
                 // Quitamos status y main que pueden tener constraints
             ]);
 
-            $this->loadingMessage = 'Creando cuenta de usuario...';
-
             // 4. Crear usuario
+            Log::info('👨‍💻 Creando cuenta de usuario...');
             $validated['password'] = Hash::make($validated['password']);
             $userData = [
                 'name' => $this->firstName . ' ' . $this->lastName,
@@ -141,16 +218,14 @@ new #[Layout('layouts.guest')] class extends Component
             $user = User::create($userData);
             event(new Registered($user));
 
-            $this->loadingMessage = 'Configurando plan de servicio...';
-
             // 5. Obtener plan por defecto para el tipo de comercio
+            Log::info('📋 Configurando plan de servicio...');
             $defaultPlain = VntPlain::where('merchantTypeId', $this->merchant_type_id)
                 ->where('status', 1)
                 ->first();
 
-            $this->loadingMessage = 'Creando base de datos del tenant... (Esto puede tomar unos minutos)';
-
             // 6. Crear el tenant con toda la información
+            Log::info('🗄️ Creando base de datos del tenant... (Esto puede tomar unos minutos)');
             $tenantManager = app(TenantManager::class);
             $tenant = $tenantManager->create([
                 'name' => $this->businessName,
@@ -162,9 +237,8 @@ new #[Layout('layouts.guest')] class extends Component
                 'end_test' => now()->addDays(30), // 30 días de prueba
             ], $user);
 
-            $this->loadingMessage = 'Configurando módulos del sistema...';
-
             // 7. Guardar relaciones de módulos
+            Log::info('🔧 Configurando módulos del sistema...');
             foreach ($this->modules as $module) {
                 VntMerchantModul::firstOrCreate([
                     'merchantId' => $this->merchant_type_id,
@@ -174,17 +248,13 @@ new #[Layout('layouts.guest')] class extends Component
 
             DB::commit();
 
-            // Finalizar carga con éxito
-            $this->isLoading = false;
+            // Finalizar con éxito
             $this->successMessage = '¡Registro completado exitosamente! Tu cuenta ha sido creada y tu base de datos está lista.';
 
             // TODO: Enviar token por email o WhatsApp aquí
 
             session()->flash('status', '¡Cuenta creada exitosamente! Se ha enviado un token de verificación.');
         } catch (\Exception $e) {
-            $this->isLoading = false;
-            $this->loadingMessage = '';
-
             DB::rollback();
             Log::error('Error al crear registro completo: ' . $e->getMessage(), [
                 'email' => $this->email,
@@ -199,27 +269,29 @@ new #[Layout('layouts.guest')] class extends Component
 
         Auth::login($user);
 
-        $this->redirect(route('tenant.select', absolute: false), navigate: true);
+        // Redirigir a completar datos de empresa en lugar del tenant select
+        $this->redirect(route('company.setup'), navigate: true);
     }
 }; ?>
 
 <div>
-    <!-- Notificaciones de progreso y éxito -->
-    @if($isLoading)
-        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm font-medium text-blue-800">{{ $loadingMessage }}</p>
-                </div>
+    <!-- Notificaciones de progreso y éxito usando wire:loading -->
+    <div wire:loading wire:target="register" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-blue-800">
+                    Procesando registro... Esto puede tomar unos minutos mientras creamos tu tenant.
+                    <br><span class="text-xs">Por favor no cierres esta ventana.</span>
+                </p>
             </div>
         </div>
-    @endif
+    </div>
 
     @if($successMessage)
         <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -235,6 +307,17 @@ new #[Layout('layouts.guest')] class extends Component
             </div>
         </div>
     @endif
+
+    <!-- Botones de prueba (TEMPORAL) -->
+    <!-- <div class="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
+        <p class="text-xs text-yellow-700 mb-2">Pruebas de mensajes (solo desarrollo):</p>
+        <button type="button" wire:click="testMessages" class="mr-2 px-2 py-1 bg-blue-500 text-white text-xs rounded">
+            Probar Loading
+        </button>
+        <button type="button" wire:click="testSuccess" class="px-2 py-1 bg-green-500 text-white text-xs rounded">
+            Probar Success
+        </button>
+    </div> -->
 
     <form wire:submit="register" class="space-y-4">
         <!-- Nombre y Apellido -->
@@ -254,14 +337,14 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Teléfono de Contacto -->
         <div>
             <x-input-label for="phone_contact" value="Número telefónico" />
-            <x-text-input wire:model="phone_contact" id="phone_contact" class="block mt-1 w-full" type="tel" required />
+            <x-text-input wire:model.lazy="phone_contact" id="phone_contact" class="block mt-1 w-full" type="tel" required />
             <x-input-error :messages="$errors->get('phone_contact')" class="mt-2" />
         </div>
 
         <!-- Nombre del Negocio -->
         <div>
             <x-input-label for="businessName" value="Nombre del negocio" />
-            <x-text-input wire:model="businessName" id="businessName" class="block mt-1 w-full" type="text" required />
+            <x-text-input wire:model.lazy="businessName" id="businessName" class="block mt-1 w-full" type="text" required />
             <x-input-error :messages="$errors->get('businessName')" class="mt-2" />
         </div>
 
@@ -292,7 +375,7 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Email -->
         <div>
             <x-input-label for="email" value="Email" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" required autocomplete="username" />
+            <x-text-input wire:model.lazy="email" id="email" class="block mt-1 w-full" type="email" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
@@ -324,16 +407,13 @@ new #[Layout('layouts.guest')] class extends Component
                 ¿Ya estás registrado?
             </a>
 
-            <x-primary-button class="ml-4" :disabled="$isLoading">
-                @if($isLoading)
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Procesando...
-                @else
-                    Registrarse
-                @endif
+            <x-primary-button class="ml-4" wire:loading.attr="disabled">
+                <svg wire:loading wire:target="register" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span wire:loading.remove wire:target="register">Registrarse</span>
+                <span wire:loading wire:target="register">Procesando registro...</span>
             </x-primary-button>
         </div>
     </form>
