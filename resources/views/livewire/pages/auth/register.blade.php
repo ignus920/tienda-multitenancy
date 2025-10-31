@@ -349,13 +349,13 @@ new class extends Component
         </div>
 
         <!-- País -->
-        <x-selects.country
-            wire:model="countryId"
-            label="País"
-            placeholder="Selecciona el país"
-            class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-            :error="$errors->first('countryId')"
-        />
+       @livewire('selects.country-select', [
+       'countryId' => $countryId,
+       'name' => 'countryId',
+       'label' => 'País',
+        'placeholder' => 'Selecciona el país',
+         'class' => 'block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm'
+    ])
 
         <!-- Tipo de Negocio -->
         <div>
