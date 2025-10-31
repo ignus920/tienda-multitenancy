@@ -83,6 +83,21 @@ return [
             ]) : [],
         ],
 
+        // 'company_1_b2c3a9df_44bf_4f62_8ff7_7fbfdbc5464e' => [
+        //    'driver' => 'mysql',
+        //    'host' => '192.168.1.205', // Cambia por la IP/host de tu BD
+        //    'port' => '3306', // Cambia si usas otro puerto
+        //    'database' => 'company_1_b2c3a9df_44bf_4f62_8ff7_7fbfdbc5464e', // ← CAMBIA ESTO
+        //    'password' => 'marsella', // ← CAMBIA ESTO
+        //    'username' => 'root', // ← CAMBIA ESTO
+        //    'charset' => 'utf8mb4',
+        //    'unix_socket' => '',
+        //    'collation' => 'utf8mb4_unicode_ci',
+        //    'prefix' => '',
+        //    'prefix_indexes' => true,
+        //    'strict' => true,
+        //    'engine' => null,
+        // ],
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
