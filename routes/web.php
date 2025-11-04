@@ -31,6 +31,17 @@ Route::get('/tenant/dashboard', TenantDashboard::class)
     ->middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantConnection::class])
     ->name('tenant.dashboard');
 
+
+    
+
+// Módulo de Clientes (requiere autenticación, datos completos y tenant seleccionado)
+Route::get('/tenant/customers', App\Livewire\Tenant\Customers\CustomerManager::class)
+    ->middleware('tenant')
+    ->name('tenant.customers');
+
+
+
+
 // Configuración de 2FA (requiere autenticación y datos completos)
 Route::get('/settings/2fa', Enable2FA::class)
     ->middleware(['auth', 'company.complete'])
@@ -72,6 +83,15 @@ Route::prefix('api/products')->middleware(\App\Auth\Middleware\SetTenantConnecti
     // Estadísticas
     Route::get('/stats/summary', [ProductController::class, 'stats']);
 });
+
+// CRUD de empresas (vnt_companies) - Base central
+Route::get('/companies-manager', App\Livewire\Central\Companies\CompaniesManager::class)
+    ->name('companies.manager');
+
+// Dashboard Super Administrador - Gestión global del sistema
+Route::get('/super-admin', App\Livewire\Central\SuperAdmin\GlobalDashboard::class)
+    ->middleware(['auth', 'super.admin'])
+    ->name('super.admin.dashboard');
 
 // Rutas de prueba para establecer tenant (SOLO PARA DESARROLLO)
 Route::prefix('api/test')->group(function () {

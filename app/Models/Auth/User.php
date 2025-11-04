@@ -8,7 +8,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
+use App\Models\Central\UsrProfile;
+use App\Models\Auth\Tenant;
 
 class User extends Authenticatable
 {
@@ -26,6 +29,8 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'profile_id',
+        'avatar',
         'two_factor_enabled',
         'two_factor_type',
         'two_factor_secret',
@@ -54,10 +59,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'profile_id' => 'integer',
             'two_factor_enabled' => 'boolean',
             'two_factor_failed_attempts' => 'integer',
             'two_factor_locked_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Relación con el perfil de usuario.
+     */
+    public function profile(): BelongsTo
+    {
+        return $this->belongsTo(UsrProfile::class, 'profile_id');
     }
 
     /**
@@ -138,5 +152,78 @@ class User extends Authenticatable
     public function hasAccessToTenant(string $tenantId): bool
     {
         return $this->activeTenants()->where('tenants.id', $tenantId)->exists();
+    }
+
+    /**
+     * Verifica si el usuario es Super Administrador.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->profile_id === 1 || $this->profile?->alias === 'super_admin';
+    }
+
+    /**
+     * Scope para obtener solo Super Administradores.
+     */
+    public function scopeSuperAdmins($query)
+    {
+        return $query->whereHas('profile', function ($q) {
+            $q->where('alias', 'super_admin');
+        });
+    }
+
+    /**
+     * Scope para obtener usuarios que NO son Super Administradores.
+     */
+    public function scopeNonSuperAdmins($query)
+    {
+        return $query->whereDoesntHave('profile', function ($q) {
+            $q->where('alias', 'super_admin');
+        });
+    }
+
+    /**
+     * Obtener la URL del avatar del usuario.
+     */
+    public function getAvatarUrl(): string
+    {
+        if ($this->avatar && file_exists(storage_path('app/public/' . $this->avatar))) {
+            return asset('storage/' . $this->avatar);
+        }
+
+        // Avatar por defecto usando iniciales
+        return $this->getDefaultAvatarUrl();
+    }
+
+    /**
+     * Obtener URL del avatar por defecto con iniciales.
+     */
+    public function getDefaultAvatarUrl(): string
+    {
+        $initials = $this->getInitials();
+        return "https://ui-avatars.com/api/?name=" . urlencode($initials) . "&color=7F9CF5&background=EBF4FF&size=128";
+    }
+
+    /**
+     * Obtener las iniciales del usuario.
+     */
+    public function getInitials(): string
+    {
+        $nameParts = explode(' ', trim($this->name));
+        $initials = '';
+
+        foreach ($nameParts as $part) {
+            $initials .= strtoupper(substr($part, 0, 1));
+        }
+
+        return substr($initials, 0, 2); // Máximo 2 iniciales
+    }
+
+    /**
+     * Verifica si el usuario tiene avatar personalizado.
+     */
+    public function hasCustomAvatar(): bool
+    {
+        return !empty($this->avatar) && file_exists(storage_path('app/public/' . $this->avatar));
     }
 }

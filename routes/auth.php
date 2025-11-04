@@ -34,6 +34,6 @@ Route::middleware('auth')->group(function () {
         Auth::guard('web')->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
-        return redirect('/');
+        return redirect()->route('login');
     })->name('logout');
 });

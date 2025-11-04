@@ -12,7 +12,7 @@ new class extends Component
     {
         $logout();
 
-        $this->redirect('/', navigate: true);
+        $this->redirect(route('login'), navigate: true);
     }
 }; ?>
 
@@ -145,7 +145,7 @@ new class extends Component
 
                 <!-- Tooltip -->
                 <div x-show="tooltip" x-transition class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Cerrar Sesión
+                    Cerrar Sesión  
                 </div>
             </button>
         </div>

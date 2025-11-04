@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +20,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \App\Console\Commands\MakeLivewireModuleCommand::class,
+            ]);
+        }
+
+        // Register Livewire components
+        Livewire::component('auth.enable2-f-a', \App\Auth\Livewire\Enable2FA::class);
     }
 }
