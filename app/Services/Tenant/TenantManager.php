@@ -7,6 +7,7 @@ use App\Models\Auth\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class TenantManager
@@ -17,8 +18,11 @@ class TenantManager
     public function create(array $data, ?User $owner = null): Tenant
     {
         try {
+            Log::info('🏗️ TenantManager::create iniciado', $data);
+
             // Generar ID único si no se proporciona
             $tenantId = $data['id'] ?? Str::uuid()->toString();
+            Log::info('🔑 Tenant ID generado', ['tenantId' => $tenantId]);
 
             // Generar nombre de base de datos basado en el company_id
             $companyPrefix = isset($data['company_id']) ? 'company_' . $data['company_id'] : $data['name'];
@@ -45,9 +49,6 @@ class TenantManager
 
             // Ejecutar migraciones del tenant
             $this->runMigrations($tenant);
-
-            // Instalar Spatie Permission en el tenant
-            $this->installSpatiePermission($tenant);
 
             // Si hay un propietario, asociarlo al tenant
             if ($owner) {
@@ -88,8 +89,11 @@ class TenantManager
      */
     protected function runMigrations(Tenant $tenant): void
     {
+        Log::info('🚀 Iniciando ejecución de migraciones', ['tenant_db' => $tenant->db_name]);
+
         // Guardar conexión actual
         $originalConnection = config('database.default');
+        Log::info('🔗 Conexión original guardada', ['original' => $originalConnection]);
 
         // Configurar conexión del tenant
         config([
@@ -113,11 +117,21 @@ class TenantManager
         DB::reconnect('tenant_migrations');
 
         try {
+            Log::info('📦 Ejecutando comando artisan migrate', [
+                'database' => 'tenant_migrations',
+                'path' => 'database/migrations/tenant'
+            ]);
+
             // Ejecutar migraciones
-            Artisan::call('migrate', [
+            $result = Artisan::call('migrate', [
                 '--database' => 'tenant_migrations',
                 '--path' => 'database/migrations/tenant',
                 '--force' => true,
+            ]);
+
+            Log::info('✅ Comando migrate ejecutado', [
+                'result' => $result,
+                'output' => Artisan::output()
             ]);
         } finally {
             // Restaurar conexión original
@@ -127,57 +141,6 @@ class TenantManager
         }
     }
 
-    /**
-     * Instala Spatie Permission en la base de datos del tenant.
-     */
-    protected function installSpatiePermission(Tenant $tenant): void
-    {
-        // Guardar conexión actual
-        $originalConnection = config('database.default');
-
-        // Configurar conexión del tenant
-        config([
-            'database.connections.tenant_migrations' => [
-                'driver' => 'mysql',
-                'host' => $tenant->db_host,
-                'port' => $tenant->db_port,
-                'database' => $tenant->db_name,
-                'username' => $tenant->db_user,
-                'password' => $tenant->db_password,
-                'charset' => 'utf8mb4',
-                'collation' => 'utf8mb4_unicode_ci',
-                'prefix' => '',
-                'strict' => true,
-            ],
-        ]);
-
-        // Cambiar a conexión del tenant
-        config(['database.default' => 'tenant_migrations']);
-        DB::purge('tenant_migrations');
-        DB::reconnect('tenant_migrations');
-
-        try {
-            // Crear roles básicos
-            $this->createDefaultRoles();
-        } finally {
-            // Restaurar conexión original
-            config(['database.default' => $originalConnection]);
-            DB::purge('tenant_migrations');
-            DB::reconnect($originalConnection);
-        }
-    }
-
-    /**
-     * Crea los roles por defecto en el tenant.
-     */
-    protected function createDefaultRoles(): void
-    {
-        $roleClass = config('permission.models.role');
-
-        $roleClass::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $roleClass::firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
-        $roleClass::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web']);
-    }
 
     /**
      * Asigna un usuario a un tenant.

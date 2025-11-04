@@ -20,6 +20,8 @@ use Livewire\Volt\Component;
 
 new class extends Component
 {
+    protected $listeners = ['country-changed' => 'updateCountry'];
+
     // Datos del contacto
     public string $firstName = '';
     public string $lastName = '';
@@ -59,6 +61,12 @@ new class extends Component
         $this->plains = VntPlain::where('status', 1)
             ->where('merchantTypeId', $this->merchant_type_id)
             ->get();
+    }
+
+    public function updateCountry($countryId)
+    {
+        $this->countryId = $countryId;
+        Log::info('País seleccionado', ['countryId' => $countryId]);
     }
 
     public function updatedEmail()
@@ -148,7 +156,15 @@ new class extends Component
         // Aumentar tiempo de ejecución para creación de tenant
         set_time_limit(300); // 5 minutos
 
-        Log::info('🚀 Iniciando proceso de registro', ['email' => $this->email]);
+        Log::info('🚀 Iniciando proceso de registro', [
+            'email' => $this->email,
+            'businessName' => $this->businessName,
+            'firstName' => $this->firstName,
+            'lastName' => $this->lastName,
+            'countryId' => $this->countryId,
+            'merchant_type_id' => $this->merchant_type_id,
+            'accept_terms' => $this->accept_terms
+        ]);
 
         $validated = $this->validate([
             'firstName' => ['required', 'string', 'max:255'],
@@ -157,7 +173,7 @@ new class extends Component
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email', 'unique:vnt_contacts,email'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
             'businessName' => ['required', 'string', 'max:255', 'unique:vnt_companies,businessName'],
-            'countryId' => ['required', 'exists:countries,id'],
+            'countryId' => ['required', 'exists:central.countries,id'],
             'merchant_type_id' => ['required', 'exists:vnt_merchant_types,id'],
             'accept_terms' => ['required', 'accepted'],
         ], [
@@ -167,7 +183,7 @@ new class extends Component
             'accept_terms.accepted' => 'Debe aceptar los términos y condiciones para continuar.',
         ]);
 
-        Log::info('✅ Validación exitosa');
+        Log::info('✅ Validación exitosa', ['validated_data' => $validated]);
 
         try {
             Log::info('💼 Creando empresa...');
