@@ -15,11 +15,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('🌱 Iniciando seeders del sistema...');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Ejecutar seeders para la base de datos central (rap)
+        $this->command->info('📊 Ejecutando seeders para base de datos central (rap)...');
+        $this->call([
+            CentralDatabaseSeeder::class,
         ]);
+
+        // Crear usuario de prueba local
+        // $this->command->info('👤 Creando usuario de prueba...');
+        // User::factory()->create([
+        //     'name' => 'Test User',
+        //     'email' => 'test@example.com',
+        // ]);
+
+        $this->command->info('✅ Todos los seeders completados exitosamente');
     }
 }
