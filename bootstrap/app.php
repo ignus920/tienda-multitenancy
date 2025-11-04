@@ -20,6 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant' => \App\Http\Middleware\SetTenantConnection::class,
             'company.complete' => \App\Http\Middleware\EnsureCompanyDataComplete::class,
+            'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+        ]);
+
+        // Aplicar middleware tenant a rutas de Livewire cuando sea necesario
+        $middleware->group('tenant', [
+            'auth',
+            'company.complete',
+            \App\Auth\Middleware\SetTenantConnection::class,
         ]);
 
         // Excluir rutas de test del CSRF (SOLO PARA DESARROLLO)

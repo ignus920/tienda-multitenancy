@@ -71,6 +71,12 @@ new class extends Component
 
     public function mount()
     {
+        // Si el usuario es Super Administrador, redirigir al dashboard
+        if (Auth::user()->isSuperAdmin()) {
+            $this->redirect(route('dashboard'));
+            return;
+        }
+
         $this->loadSelectData();
         $this->loadExistingData();
         $this->determineCurrentStep();
@@ -88,7 +94,7 @@ new class extends Component
 
     public function layout()
     {
-        return 'layouts.guest';
+        return 'layouts.app';
     }
 
     protected function loadSelectData()
