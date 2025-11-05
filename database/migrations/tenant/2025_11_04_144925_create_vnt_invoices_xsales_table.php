@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vnt_invoicesXsales', function (Blueprint $table) {
-            $table->id('id');
-            $table->integer('remissionId')->nullable();
-            $table->integer('quoteId')->nullable();
-            $table->integer('invoiceId')->nullable();
-        });
+        if (!Schema::hasTable('vnt_invoicesXsales')) {
+            Schema::create('vnt_invoicesXsales', function (Blueprint $table) {
+                $table->id('id');
+                $table->integer('remissionId')->nullable();
+                $table->integer('quoteId')->nullable();
+                $table->integer('invoiceId')->nullable();
+            });
+        }
     }
 
     public function down(): void

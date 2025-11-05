@@ -8,20 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vnt_detail_quotes', function (Blueprint $table) {
-            $table->id('id');
-            $table->integer('quantity');
-            $table->integer('tax');
-            $table->integer('value');
-            $table->dateTime('created_at');
-            $table->dateTime('updated_at')->nullable();
-            $table->integer('quoteId')->nullable();
-            $table->integer('itemId')->nullable();
-            $table->string('description', 255);
-            $table->integer('priceList');
-            $table->index('quoteId');
-            $table->index('itemId');
-        });
+        if (!Schema::hasTable('vnt_detail_quotes')) {
+            Schema::create('vnt_detail_quotes', function (Blueprint $table) {
+                $table->id('id');
+                $table->integer('quantity');
+                $table->integer('tax');
+                $table->integer('value');
+                $table->dateTime('created_at');
+                $table->dateTime('updated_at')->nullable();
+                $table->integer('quoteId')->nullable();
+                $table->integer('itemId')->nullable();
+                $table->string('description', 255);
+                $table->integer('priceList');
+                $table->index('quoteId');
+                $table->index('itemId');
+            });
+        }
     }
 
     public function down(): void

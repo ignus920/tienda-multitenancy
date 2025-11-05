@@ -1,5 +1,6 @@
 *.log
 *.qodo
+*.kiro
 *.claude
 .DS_Store
 .env

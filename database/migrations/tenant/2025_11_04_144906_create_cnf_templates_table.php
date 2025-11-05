@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('cnf_templates', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('quote', 1)->nullable()->default('N');
-            $table->string('remission', 1)->nullable()->default('N');
-            $table->text('text');
-            $table->integer('status')->default(1);
-            $table->dateTime('created_at');
-            $table->dateTime('updated_at');
-        });
+        if (!Schema::hasTable('cnf_templates')) {
+            Schema::create('cnf_templates', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('quote', 1)->nullable()->default('N');
+                $table->string('remission', 1)->nullable()->default('N');
+                $table->text('text');
+                $table->integer('status')->default(1);
+                $table->dateTime('created_at');
+                $table->dateTime('updated_at');
+            });
+        }
     }
 
     public function down(): void

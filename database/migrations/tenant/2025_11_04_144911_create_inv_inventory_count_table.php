@@ -8,23 +8,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inv_inventory_count', function (Blueprint $table) {
-            $table->id('id');
-            $table->integer('status')->default(0);
-            $table->dateTime('created_at');
-            $table->dateTime('updated_at')->nullable();
-            $table->dateTime('deleted_at')->nullable();
-            $table->integer('warehouseId')->nullable();
-            $table->integer('consecutive');
-            $table->integer('userId');
-            $table->integer('itemId')->nullable();
-            $table->integer('quantityDig');
-            $table->integer('quantityCal');
-            $table->integer('quantityInv');
-            $table->integer('quantityTotal');
-            $table->integer('unitMeasurementId')->nullable();
-            $table->index('itemId');
-        });
+        if (!Schema::hasTable('inv_inventory_count')) {
+            Schema::create('inv_inventory_count', function (Blueprint $table) {
+                $table->id('id');
+                $table->integer('status')->default(0);
+                $table->dateTime('created_at');
+                $table->dateTime('updated_at')->nullable();
+                $table->dateTime('deleted_at')->nullable();
+                $table->integer('warehouseId')->nullable();
+                $table->integer('consecutive');
+                $table->integer('userId');
+                $table->integer('itemId')->nullable();
+                $table->integer('quantityDig');
+                $table->integer('quantityCal');
+                $table->integer('quantityInv');
+                $table->integer('quantityTotal');
+                $table->integer('unitMeasurementId')->nullable();
+                $table->index('itemId');
+            });
+        }
     }
 
     public function down(): void
