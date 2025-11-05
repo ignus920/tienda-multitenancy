@@ -11,7 +11,7 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $connection = 'company_12_d7c764d8_7800_4cd4_a8b3_202b5071c0de';
+    protected $connection = 'tenant';
 
     protected $table = 'inv_categories';
 

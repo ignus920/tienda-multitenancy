@@ -148,11 +148,11 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        'tenant_acf863ad_997c_4aaf_9192_81080c7ff7b2' => [
+        'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7' => [
             'driver' => 'mysql',
             'host' => '192.168.1.205', // IP/host BD
             'port' => '3306', 
-            'database' => 'tenant_acf803ad_997c_4aaf_9192_81000c7ff7b2', 
+            'database' => 'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7', 
             'username' => 'root', 
             'password' => 'marsella', 
             'unix_socket' => '',
@@ -164,21 +164,6 @@ return [
             'engine' => null,
         ],
 
-        'company_1_b2c3a9df_44bf_4f62_8ff7_7fbfdbc5464e' => [
-            'driver' => 'mysql',
-            'host' => '192.168.1.205', // Cambia por la IP/host de tu BD
-            'port' => '3306', // Cambia si usas otro puerto
-            'database' => 'company_1_b2c3a9df_44bf_4f62_8ff7_7fbfdbc5464e', // ← CAMBIA ESTO
-            'username' => 'root', // ← CAMBIA ESTO
-            'password' => 'marsella', // ← CAMBIA ESTO
-            'unix_socket' => '',
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-        ],
 
     ],
 

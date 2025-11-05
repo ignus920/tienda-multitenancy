@@ -4,6 +4,9 @@ namespace App\Livewire\Tenant\Items;
 
 use Livewire\Component;
 use App\Models\Tenant\Items\Command  as CommandModel;
+use Livewire\Attributes\On;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\Tenant;
 
 class Command extends Component
 {
@@ -34,8 +37,32 @@ class Command extends Component
 
     public function getCommandsProperty()
     {
+        $this->ensureTenantConnection();
         // Cargar todas las comandas desde la base de datos
         return CommandModel::where('status', 1)->get(['id', 'name']);
+    }
+
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return redirect()->route('tenant.select');
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            return redirect()->route('tenant.select');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
     }
 
     public function render()

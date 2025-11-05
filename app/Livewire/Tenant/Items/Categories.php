@@ -7,6 +7,7 @@ use App\Models\Tenant\Items\Category;
 
 class Categories extends Component
 {
+    public $showcreateCategory = false;
     public $categoryId = '';
     public $name = 'categoryId';
     public $placeholder = 'Seleccione una categoría';
@@ -45,4 +46,6 @@ class Categories extends Component
             'showLabel' => $this->showLabel
         ]);
     }
+
+    
 }

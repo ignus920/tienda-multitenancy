@@ -4,6 +4,8 @@ namespace App\Livewire\Tenant\Items;
 
 use Livewire\Component;
 use App\Models\Tenant\Items\House as HouseModel;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\Tenant;
 
 class House extends Component
 {
@@ -32,8 +34,32 @@ class House extends Component
         $this->dispatch('house-changed', $this->houseId);
     }
 
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return redirect()->route('tenant.select');
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            return redirect()->route('tenant.select');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
+    }
+
     public function getHousesProperty()
     {
+        $this->ensureTenantConnection();
         // Cargar todas las casas desde la base de datos
         return HouseModel::where('status', 1)->get(['id', 'name']);
     }

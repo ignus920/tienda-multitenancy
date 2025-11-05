@@ -4,6 +4,7 @@
             <h3 class="text-lg font-medium">Items</h3>
             <div>
                 <input wire:model.debounce="search" type="text" placeholder="Buscar..." class="border rounded px-2 py-1 mr-2">
+                <button wire:click="createCategory" class="bg-indigo-600 text-white px-3 py-1 rounded">Nueva Categoria</button>.
                 <button wire:click="create" class="bg-indigo-600 text-white px-3 py-1 rounded">Nuevo Item</button>
             </div>
         </div>
@@ -154,4 +155,19 @@
             </div>
         </div>
     </div>
-</div>
+
+    <div x-data="{ open: @entangle('showcreateCategory') }" x-show="open" style="display:none;" class="fixed inset-0 z-40 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black opacity-50"></div>
+        <div class="bg-white rounded shadow p-6 z-50 w-full max-w-lg">
+            <h4 class="text-lg font-medium mb-4">{{ $category_id ? 'Editar Categoria' : 'Crear Categoria' }}</h4>
+
+            <form wire:submit.prevent="saveCategory">
+                <div class="mb-3">
+                    <label class="block text-sm">Nombre</label>
+                    <input wire:model="category_name" type="text" class="w-full border rounded px-2 py-1">
+                    @error('category_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+
+                </div>
+            </form>
+        </div>
+    </div>
