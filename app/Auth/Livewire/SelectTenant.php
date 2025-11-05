@@ -19,6 +19,11 @@ class SelectTenant extends Component
             return redirect()->route('login');
         }
 
+        // Si es Super Administrador, redirigir al dashboard global
+        if (Auth::user()->isSuperAdmin()) {
+            return redirect()->route('super.admin.dashboard');
+        }
+
         // Obtener tenants activos del usuario
         $this->tenants = Auth::user()->activeTenants()->get();
 

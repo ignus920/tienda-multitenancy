@@ -20,9 +20,9 @@ new class extends Component
     public string $verification_digit = '';
     public string $typePerson = '';
     public string $code_ciiu = '';
-    public int $typeIdentificationId = 0;
-    public int $regimeId = 0;
-    public int $fiscalResponsabilityId = 0;
+    public $typeIdentificationId = null;
+    public $regimeId = null;
+    public $fiscalResponsabilityId = null;
 
     // Campos para persona natural
     public string $firstName = '';
@@ -32,19 +32,19 @@ new class extends Component
     public string $businessName = '';
 
     // Datos del contacto (campos existentes)
-    public int $positionId = 0;
-    public int $warehouseId = 0;
+    public $positionId = null;
+    public $warehouseId = null;
 
     // Datos del warehouse (campos existentes)
+    public string $address = '';
     public string $postcode = '';
-    public int $cityId = 0;
-    public int $termId = 1;
+    public $cityId = null;
+    public $termId = null;
 
     // Campos para sucursales
     public bool $hasMultipleBranches = false;
     public string $branchName = '';
     public string $branchType = 'fija';
-    public string $address = '';
     public string $city = '';
     public string $billingFormat = '';
     public bool $isCredit = false;
@@ -71,6 +71,12 @@ new class extends Component
 
     public function mount()
     {
+        // Si el usuario es Super Administrador, redirigir al dashboard
+        if (Auth::user()->isSuperAdmin()) {
+            $this->redirect(route('dashboard'));
+            return;
+        }
+
         $this->loadSelectData();
         $this->loadExistingData();
         $this->determineCurrentStep();
@@ -86,9 +92,30 @@ new class extends Component
         $this->verification_digit = '';
     }
 
+    #[On('regime-changed')]
+    public function updateRegime($regimeId)
+    {
+        $this->regimeId = $regimeId;
+        Log::info('Régimen seleccionado', ['regimeId' => $regimeId]);
+    }
+
+    #[On('fiscal-responsibility-changed')]
+    public function updateFiscalResponsibility($fiscalResponsibilityId)
+    {
+        $this->fiscalResponsibilityId = $fiscalResponsibilityId;
+        Log::info('Responsabilidad fiscal seleccionada', ['fiscalResponsibilityId' => $fiscalResponsibilityId]);
+    }
+
+    #[On('city-changed')]
+    public function updateCity($cityId)
+    {
+        $this->cityId = $cityId;
+        Log::info('Ciudad seleccionada', ['cityId' => $cityId]);
+    }
+
     public function layout()
     {
-        return 'layouts.guest';
+        return 'layouts.app';
     }
 
     protected function loadSelectData()
@@ -205,27 +232,37 @@ new class extends Component
 
     protected function validateStep1()
     {
+        Log::info('🐛 DEBUG validateStep1 - Valores actuales:', [
+            'typeIdentificationId' => $this->typeIdentificationId,
+            'identification' => $this->identification,
+            'verification_digit' => $this->verification_digit,
+            'regimeId' => $this->regimeId,
+            'fiscalResponsibilityId' => $this->fiscalResponsibilityId,
+        ]);
+
         $rules = [
-            'typeIdentificationId' => ['required', 'integer', 'min:1'],
+            'typeIdentificationId' => ['required', 'numeric', 'min:1'],
             'identification' => ['required', 'string', 'max:15'],
-            'typePerson' => ['required', 'string'],
-            'code_ciiu' => ['required', 'string'],
-            'regimeId' => ['required', 'integer', 'min:1'],
-            'fiscalResponsabilityId' => ['required', 'integer', 'min:1'],
+            // 'typePerson' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
+            // 'code_ciiu' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
+            'regimeId' => ['required', 'numeric', 'min:1'],
+            'fiscalResponsabilityId' => ['required', 'numeric', 'min:1'],
         ];
+
+        Log::info('🐛 DEBUG - Reglas de validación:', $rules);
 
         // Si es NIT (id=2), también validar el dígito de verificación
         if ($this->typeIdentificationId == 2) {
             $rules['verification_digit'] = ['required', 'string', 'max:1'];
         }
 
-        // Validar campos según tipo de persona
-        if ($this->typePerson == 'Natural') {
-            $rules['firstName'] = ['required', 'string', 'max:100'];
-            $rules['lastName'] = ['required', 'string', 'max:100'];
-        } elseif ($this->typePerson == 'Juridica') {
-            $rules['businessName'] = ['required', 'string', 'max:255'];
-        }
+        // Validar campos según tipo de persona - COMENTADO TEMPORALMENTE
+        // if ($this->typePerson == 'Natural') {
+        //     $rules['firstName'] = ['required', 'string', 'max:100'];
+        //     $rules['lastName'] = ['required', 'string', 'max:100'];
+        // } elseif ($this->typePerson == 'Juridica') {
+        //     $rules['businessName'] = ['required', 'string', 'max:255'];
+        // }
 
         $this->validate($rules);
         $this->saveStep1();
@@ -233,10 +270,18 @@ new class extends Component
 
     protected function validateStep2()
     {
+        Log::info('🐛 DEBUG validateStep2 - Valores actuales:', [
+            'hasMultipleBranches' => $this->hasMultipleBranches,
+            'address' => $this->address,
+            'cityId' => $this->cityId,
+            'postcode' => $this->postcode,
+            'branchName' => $this->branchName,
+        ]);
+
         $rules = [
             'hasMultipleBranches' => ['required', 'boolean'],
             'address' => ['required', 'string', 'max:255'],
-            'cityId' => ['required', 'integer', 'min:1'],
+            'cityId' => ['required', 'numeric', 'min:1'],
             'postcode' => ['required', 'string', 'max:10'],
         ];
 

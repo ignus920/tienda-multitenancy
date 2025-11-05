@@ -16,6 +16,7 @@ new class extends Component
     }
 }; ?>
 
+@auth
 <div class="flex items-center gap-x-4 lg:gap-x-6" x-data="{ open: false }">
     <!-- Notifications -->
     <button type="button" class="relative -m-2.5 p-2.5 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
@@ -30,7 +31,7 @@ new class extends Component
     <div class="relative">
         <button type="button" class="-m-1.5 flex items-center p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors" @click="open = !open">
             <span class="sr-only">Abrir menu usuario</span>
-            <img class="h-8 w-8 rounded-full bg-gray-50 dark:bg-gray-700 ring-2 ring-gray-200 dark:ring-gray-600" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="{{ auth()->user()->name }}">
+            <img id="header-avatar-button" class="h-8 w-8 rounded-full bg-gray-50 dark:bg-gray-700 ring-2 ring-gray-200 dark:ring-gray-600 object-cover" src="{{ auth()->user()->getAvatarUrl() }}" alt="{{ auth()->user()->name }}">
             <span class="hidden lg:flex lg:items-center">
                 <span class="ml-3 text-sm font-semibold leading-6 text-gray-900 dark:text-white">{{ auth()->user()->name }}</span>
                 <svg class="ml-2 h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
@@ -44,8 +45,13 @@ new class extends Component
 
             <!-- User info -->
             <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ auth()->user()->name }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                <div class="flex items-center space-x-3">
+                    <img id="header-avatar-dropdown" class="h-10 w-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-600" src="{{ auth()->user()->getAvatarUrl() }}" alt="{{ auth()->user()->name }}">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Menu items -->
@@ -66,13 +72,26 @@ new class extends Component
 
                 <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
 
-                <button wire:click="logout" class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" @click="open = false">
-                    <svg class="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Cerrar Sesión
-                </button>
+                <form method="POST" action="{{ route('logout') }}" class="w-full">
+                    @csrf
+                    <button type="submit" class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" @click="open = false">
+                        <svg class="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Cerrar Sesión
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+@endauth
+
+@guest
+<div class="flex items-center gap-x-4 lg:gap-x-6">
+    <a href="{{ route('login') }}" class="text-sm font-semibold leading-6 text-gray-900 dark:text-white">
+        Iniciar Sesión
+    </a>
+</div>
+@endguest
+

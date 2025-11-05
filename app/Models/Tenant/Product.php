@@ -2,48 +2,28 @@
 
 namespace App\Models\Tenant;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    use HasFactory; // Removido SoftDeletes temporalmente
+    use HasFactory;
 
     protected $connection = 'tenant';
+    protected $table = 'products';
 
     protected $fillable = [
         'name',
         'description',
-        'price',
-        'stock',
-        'sku',
-        'is_active',
+        // Agregar campos según necesidad
     ];
 
-    protected $casts = [
-        'price' => 'decimal:2',
-        'stock' => 'integer',
-        'is_active' => 'boolean',
-    ];
-
-    protected $dates = [
-        'deleted_at',
-    ];
-
-    /**
-     * Scope para productos activos
-     */
-    public function scopeActive($query)
+    protected function casts(): array
     {
-        return $query->where('is_active', true);
-    }
-
-    /**
-     * Scope para productos con stock
-     */
-    public function scopeInStock($query)
-    {
-        return $query->where('stock', '>', 0);
+        return [
+            'id' => 'integer',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
     }
 }

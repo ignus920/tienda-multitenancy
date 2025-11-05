@@ -23,6 +23,12 @@ class EnsureCompanyDataComplete
         }
 
         $user = Auth::user();
+
+        // Los Super Administradores no necesitan completar datos de empresa
+        if ($user->isSuperAdmin()) {
+            return $next($request);
+        }
+
         $validator = app(CompanyDataValidator::class);
 
         // Verificar si los datos de la empresa están completos
