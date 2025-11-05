@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inv_unit_measurements', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('description', 255)->default(1);
-            $table->integer('status')->nullable()->default(1);
-            $table->integer('quantity')->default(0);
-            $table->dateTime('created_at')->useCurrent();
-            $table->dateTime('updated_at')->nullable();
-            $table->dateTime('deleted_at')->nullable();
-        });
+        if (!Schema::hasTable('inv_unit_measurements')) {
+            Schema::create('inv_unit_measurements', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('description', 255)->default(1);
+                $table->integer('status')->nullable()->default(1);
+                $table->integer('quantity')->default(0);
+                $table->dateTime('created_at')->useCurrent();
+                $table->dateTime('updated_at')->nullable();
+                $table->dateTime('deleted_at')->nullable();
+            });
+        }
     }
 
     public function down(): void

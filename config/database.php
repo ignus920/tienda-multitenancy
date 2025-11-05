@@ -83,11 +83,11 @@ return [
             ]) : [],
         ],
 
-        // 'company_1_b2c3a9df_44bf_4f62_8ff7_7fbfdbc5464e' => [
+        // 'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7' => [
         //    'driver' => 'mysql',
         //    'host' => '192.168.1.205', // Cambia por la IP/host de tu BD
         //    'port' => '3306', // Cambia si usas otro puerto
-        //    'database' => 'company_1_b2c3a9df_44bf_4f62_8ff7_7fbfdbc5464e', // ← CAMBIA ESTO
+        //    'database' => 'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7', // ← CAMBIA ESTO
         //    'password' => 'marsella', // ← CAMBIA ESTO
         //    'username' => 'root', // ← CAMBIA ESTO
         //    'charset' => 'utf8mb4',

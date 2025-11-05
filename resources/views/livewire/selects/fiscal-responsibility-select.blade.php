@@ -15,7 +15,9 @@
         wire:loading.attr="disabled">
         <option value="">{{ $placeholder }}</option>
         @foreach($fiscalResponsibilities as $fiscalResponsibility)
-            <option value="{{ $fiscalResponsibility->id }}">{{ $fiscalResponsibility->description }}</option>
+            <option value="{{ $fiscalResponsibility->id }}">
+                {{ $fiscalResponsibility->description }}
+            </option>
         @endforeach
     </select>
 

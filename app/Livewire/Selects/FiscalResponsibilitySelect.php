@@ -11,11 +11,11 @@ class FiscalResponsibilitySelect extends Component
     public $name = 'fiscalResponsibilityId';
     public $placeholder = 'Seleccionar responsabilidad fiscal';
     public $label = 'Responsabilidad Fiscal';
-    public $required = true;
+    public $required = false;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
 
-    public function mount($fiscalResponsibilityId = '', $name = 'fiscalResponsibilityId', $placeholder = 'Seleccionar responsabilidad fiscal', $label = 'Responsabilidad Fiscal', $required = true, $showLabel = true, $class = null)
+    public function mount($fiscalResponsibilityId = '', $name = 'fiscalResponsibilityId', $placeholder = 'Seleccionar responsabilidad fiscal', $label = 'Responsabilidad Fiscal', $required = false, $showLabel = true, $class = null)
     {
         $this->fiscalResponsibilityId = $fiscalResponsibilityId;
         $this->name = $name;
@@ -35,7 +35,8 @@ class FiscalResponsibilitySelect extends Component
 
     public function getFiscalResponsibilitiesProperty()
     {
-        return CnfFiscalResponsability::orderBy('description')->get(['id', 'description']);
+        return CnfFiscalResponsability::orderBy('description')
+            ->get(['id', 'description']);
     }
 
     public function render()
