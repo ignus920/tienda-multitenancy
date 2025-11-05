@@ -15,7 +15,9 @@
         wire:loading.attr="disabled">
         <option value="">{{ $placeholder }}</option>
         @foreach($regimes as $regime)
-            <option value="{{ $regime->id }}">{{ $regime->name }}</option>
+            <option value="{{ $regime->id }}">
+                {{ $regime->name }}
+            </option>
         @endforeach
     </select>
 

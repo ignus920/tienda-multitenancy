@@ -8,11 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('cnf_priceprofile', function (Blueprint $table) {
+        if (!Schema::hasTable('cnf_priceprofile')) {
+            Schema::create('cnf_priceprofile', function (Blueprint $table) {
             $table->id('id');
             $table->integer('price');
             $table->integer('profile');
-        });
+            });
+        }
     }
 
     public function down(): void

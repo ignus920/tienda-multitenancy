@@ -11,11 +11,11 @@ class RegimeSelect extends Component
     public $name = 'regimeId';
     public $placeholder = 'Seleccionar régimen';
     public $label = 'Régimen';
-    public $required = true;
+    public $required = false;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
 
-    public function mount($regimeId = '', $name = 'regimeId', $placeholder = 'Seleccionar régimen', $label = 'Régimen', $required = true, $showLabel = true, $class = null)
+    public function mount($regimeId = '', $name = 'regimeId', $placeholder = 'Seleccionar régimen', $label = 'Régimen', $required = false, $showLabel = true, $class = null)
     {
         $this->regimeId = $regimeId;
         $this->name = $name;
@@ -35,7 +35,9 @@ class RegimeSelect extends Component
 
     public function getRegimesProperty()
     {
-        return CnfRegime::orderBy('name')->get(['id', 'name']);
+        return CnfRegime::where('status', 1)
+            ->orderBy('name')
+            ->get(['id', 'name', 'description']);
     }
 
     public function render()

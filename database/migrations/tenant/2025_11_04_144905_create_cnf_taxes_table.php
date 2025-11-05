@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('cnf_taxes', function (Blueprint $table) {
+        if (!Schema::hasTable('cnf_taxes')) {
+            Schema::create('cnf_taxes', function (Blueprint $table) {
             $table->id('id');
             $table->string('name', 255);
             $table->decimal('percentage', 10, 2);
@@ -20,7 +21,8 @@ return new class extends Migration
             $table->integer('inventoryAccount');
             $table->integer('inventariablePurchaseAccount');
             $table->integer('categoryAccount');
-        });
+            });
+        }
     }
 
     public function down(): void

@@ -8,24 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inv_remissions', function (Blueprint $table) {
-            $table->id('id');
-            $table->integer('consecutive');
-            $table->string('status')->nullable()->default('REGISTRADO');
-            $table->dateTime('created_at');
-            $table->dateTime('updated_at')->nullable();
-            $table->dateTime('deleted_at')->nullable();
-            $table->integer('quoteId')->nullable();
-            $table->integer('warehouseId')->nullable();
-            $table->integer('deliveryTypeId')->nullable();
-            $table->integer('methodPaymentId');
-            $table->integer('userId');
-            $table->string('deliveryDate', 50);
-            $table->integer('expiration')->nullable();
-            $table->integer('modify')->nullable();
-            $table->index('quoteId');
-            $table->index('warehouseId');
-        });
+        if (!Schema::hasTable('inv_remissions')) {
+            Schema::create('inv_remissions', function (Blueprint $table) {
+                $table->id('id');
+                $table->integer('consecutive');
+                $table->string('status')->nullable()->default('REGISTRADO');
+                $table->dateTime('created_at');
+                $table->dateTime('updated_at')->nullable();
+                $table->dateTime('deleted_at')->nullable();
+                $table->integer('quoteId')->nullable();
+                $table->integer('warehouseId')->nullable();
+                $table->integer('deliveryTypeId')->nullable();
+                $table->integer('methodPaymentId');
+                $table->integer('userId');
+                $table->string('deliveryDate', 50);
+                $table->integer('expiration')->nullable();
+                $table->integer('modify')->nullable();
+                $table->index('quoteId');
+                $table->index('warehouseId');
+            });
+        }
     }
 
     public function down(): void

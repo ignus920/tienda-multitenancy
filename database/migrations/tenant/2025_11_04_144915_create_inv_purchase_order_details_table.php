@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inv_purchase_order_details', function (Blueprint $table) {
-            $table->id('id');
-            $table->integer('purchase_ordersId');
-            $table->integer('itemId')->nullable();
-            $table->integer('quantity_ordered')->nullable();
-            $table->integer('tax')->nullable();
-            $table->index('purchase_ordersId');
-            $table->index('itemId');
-        });
+        if (!Schema::hasTable('inv_purchase_order_details')) {
+            Schema::create('inv_purchase_order_details', function (Blueprint $table) {
+                $table->id('id');
+                $table->integer('purchase_ordersId');
+                $table->integer('itemId')->nullable();
+                $table->integer('quantity_ordered')->nullable();
+                $table->integer('tax')->nullable();
+                $table->index('purchase_ordersId');
+                $table->index('itemId');
+            });
+        }
     }
 
     public function down(): void

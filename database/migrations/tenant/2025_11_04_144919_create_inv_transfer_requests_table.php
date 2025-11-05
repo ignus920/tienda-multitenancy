@@ -8,18 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inv_transfer_requests', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('status')->nullable()->default('REGISTRADO');
-            $table->string('date', 255);
-            $table->dateTime('created_at');
-            $table->dateTime('updated_at')->nullable();
-            $table->dateTime('deleted_at')->nullable();
-            $table->integer('quoteId')->nullable();
-            $table->integer('warehouseId')->nullable()->default(0);
-            $table->string('observations', 255)->nullable();
-            $table->index('quoteId');
-        });
+        if (!Schema::hasTable('inv_transfer_requests')) {
+            Schema::create('inv_transfer_requests', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('status')->nullable()->default('REGISTRADO');
+                $table->string('date', 255);
+                $table->dateTime('created_at');
+                $table->dateTime('updated_at')->nullable();
+                $table->dateTime('deleted_at')->nullable();
+                $table->integer('quoteId')->nullable();
+                $table->integer('warehouseId')->nullable()->default(0);
+                $table->string('observations', 255)->nullable();
+                $table->index('quoteId');
+            });
+        }
     }
 
     public function down(): void
