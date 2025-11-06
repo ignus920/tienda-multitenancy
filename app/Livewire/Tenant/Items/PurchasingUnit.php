@@ -30,8 +30,8 @@ class PurchasingUnit extends Component
         }
     }
 
-    public function updatedUnitMeasurementId(){
-        $this->dispatch('unit-measurement-changed', $this->unitMeasurementId);
+    public function updatedPurchaseUnitId(){
+        $this->dispatch('purchase-unit-changed', $this->purchaseUnitId);
     }
 
     private function ensureTenantConnection()

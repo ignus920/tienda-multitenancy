@@ -1,6 +1,6 @@
 <div class="mb-4">
     @if($showLabel)
-        <label for="command_{{ $name }}" class="block text-sm font-medium text-gray-700">
+        <label for="command_{{ $name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ $label }}
         </label>
     @endif

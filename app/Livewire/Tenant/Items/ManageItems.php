@@ -16,11 +16,11 @@ class ManageItems extends Component
     use WithPagination;
 
     protected $listeners = [
-        'commandSelected' => 'onCommandSelected',
-        'brandSelected' => 'onBrandSelected',
-        'houseSelected' => 'onHouseSelected',
-        'purchaseUnitSelected' => 'onPurchaseUnitSelected',
-        'consumptionUnitSelected' => 'onConsumptionUnitSelected'
+        'command-changed' => 'onCommandSelected',
+        'brand-changed' => 'onBrandSelected',
+        'house-changed' => 'onHouseSelected',
+        'purchase-unit-changed' => 'onPurchaseUnitSelected',
+        'consumption-unit-changed' => 'onConsumptionUnitSelected'
     ];
 
     // Propiedades para el formulario
@@ -287,5 +287,38 @@ class ManageItems extends Component
     public function onConsumptionUnitSelected($value)
     {
         $this->consumption_unit = $value;
+    }
+
+    public function exportExcel()
+    {
+        // TODO: Implementar exportación a Excel
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Exportación a Excel - En desarrollo'
+        ]);
+        //dd('Exportación PDF ejecutada');
+    }
+
+    public function exportPdf()
+    {
+        // TODO: Implementar exportación a PDF
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Exportación a PDF - En desarrollo'
+        ]);
+    }
+
+    public function exportCsv()
+    {
+        // TODO: Implementar exportación a CSV
+        /*$this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Exportación a CSV - En desarrollo'
+        ]);*/
+        //$this->ensureTenantConnection();
+        //return Items::disk('invoices')->download('invoice.csv');
+        return response()->download( 
+            $this->item_id->file_path, 'items.cvs'
+        );
     }
 }

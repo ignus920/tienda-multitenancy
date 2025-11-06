@@ -30,8 +30,8 @@ class ConsumptionUnit extends Component
         }
     }
 
-    public function updatedUnitMeasurementId(){
-        $this->dispatch('unit-measurement-changed', $this->unitMeasurementId);
+    public function updatedConsumptionUnitId(){
+        $this->dispatch('consumption-unit-changed', $this->consumptionUnitId);
     }
 
     private function ensureTenantConnection()
