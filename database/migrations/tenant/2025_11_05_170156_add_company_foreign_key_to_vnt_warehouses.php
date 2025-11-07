@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-    Schema::table('vnt_warehouses', function (Blueprint $table) {
-
-            $table->unsignedBigInteger('companyId')->default(0)->change(); 
+        // Solo agregar la clave foránea si no existe
+        // La columna companyId ya es unsignedBigInteger
+        Schema::table('vnt_warehouses', function (Blueprint $table) {
             $table->foreign('companyId')
                   ->references('id')
                   ->on('vnt_companies')
                   ->onDelete('cascade'); 
-           });
+        });
     }
 
     /**

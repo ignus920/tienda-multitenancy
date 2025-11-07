@@ -4,18 +4,29 @@ namespace App\Livewire\Tenant\VntCompany;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Tenant\VntCompany;
-use App\Services\Tenant\TenantManager;
-use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\Log;
+use App\Livewire\Tenant\VntCompany\Services\CompanyService;
+use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
+use App\Livewire\Tenant\VntCompany\Services\CompanyQueryService;
+use App\Livewire\Tenant\VntCompany\Services\CompanyValidationService;
+use App\Livewire\Tenant\VntCompany\Services\ExportService;
 
 class VntCompanyForm extends Component
 {
     use WithPagination;
 
+    // Services
+    protected $companyService;
+    protected $warehouseService;
+    protected $queryService;
+    protected $validationService;
+    protected $exportService;
     protected $listeners = [
         'type-identification-changed' => 'updateTypeIdentification',
         'regime-changed' => 'updateRegime',
-        'fiscal-responsibility-changed' => 'updateFiscalResponsibility'
+        'fiscal-responsibility-changed' => 'updateFiscalResponsibility',
+        'city-changed' => 'updateWarehouseCity',
+        'position-changed' => 'updatePosition'
     ];
 
     public $search = '';
@@ -42,49 +53,67 @@ class VntCompanyForm extends Component
     public $code_ciiu = '';
     public $fiscalResponsabilityId = '';
     public $verification_digit = '';
+    
+    // Propiedades para contacto
+    public $business_phone = '';
+    public $personal_phone = '';
+    public $positionId = 1; // Posición por defecto
 
-     
+    // Propiedades para sucursales
+    public $warehouses = [];
+    public $warehouseName = '';
+    public $warehouseAddress = '';
+    public $warehousePostcode = '';
+    public $warehouseCityId = '';
+    public $warehouseIsMain = false;
+    public $canAddMoreWarehouses = false;
 
+    public function boot(
+        CompanyService $companyService,
+        WarehouseService $warehouseService,
+        CompanyQueryService $queryService,
+        CompanyValidationService $validationService,
+        ExportService $exportService
+    ) {
+        $this->companyService = $companyService;
+        $this->warehouseService = $warehouseService;
+        $this->queryService = $queryService;
+        $this->validationService = $validationService;
+        $this->exportService = $exportService;
+    }
 
+    /**
+     * Reglas de validación dinámicas
+     * 
+     * Las reglas se obtienen del CompanyValidationService y varían según:
+     * - Tipo de persona (Natural/Jurídica)
+     * - Tipo de identificación (NIT requiere selección manual de tipo de persona)
+     * - Modo edición (permite duplicados del mismo registro)
+     */
     protected function rules()
     {
-        // Reglas base aplicables siempre
-        $baseRules = [
-            'identification' => 'required|string|max:15|unique:vnt_companies,identification',
-            'typePerson' => 'required|string|in:Natural,Juridica',
-            'typeIdentificationId' => 'required|integer|exists:central.cnf_type_identifications,id',
-            'regimeId' => 'nullable|integer',
-            'status' => 'nullable|integer|in:0,1',
-            'billingEmail' => 'nullable|email|max:255',
-            'checkDigit' => 'nullable|integer|max:99',
-            'integrationDataId' => 'nullable|integer',
-            'code_ciiu' => 'nullable|string|max:255',
-            'fiscalResponsabilityId' => 'nullable|integer',
-            'verification_digit' => 'nullable|string|max:1',
-        ];
+        return $this->validationService->getValidationRules(
+            $this->typePerson, 
+            $this->editingId,
+            $this->typeIdentificationId ? (int) $this->typeIdentificationId : null,
+            true // Incluir reglas de warehouse y contacto
+        );
+    }
 
-        // Caso 1: Persona JURÍDICA
-        if ($this->typePerson === 'Juridica') {
-            return array_merge($baseRules, [
-                'businessName' => 'required|string|max:255',
-                'firstName' => 'nullable|string|max:255',
-                'lastName' => 'nullable|string|max:255',
-                'secondName' => 'nullable|string|max:255',
-                'secondLastName' => 'nullable|string|max:255',
-            ]);
-        }
+    /**
+     * Mensajes de validación personalizados
+     */
+    protected function messages()
+    {
+        return $this->validationService->getValidationMessages();
+    }
 
-        // Caso 2: Persona NATURAL
-        if ($this->typePerson === 'Natural') {
-            return array_merge($baseRules, [
-                'firstName' => 'required|string|max:255',
-                'lastName' => 'required|string|max:255',
-                'businessName' => 'nullable|string|max:255',
-                'secondName' => 'nullable|string|max:255',
-            ]);
-        }
-
-        return $baseRules;
+    /**
+     * Atributos personalizados para mensajes de validación
+     */
+    protected function validationAttributes()
+    {
+        return $this->validationService->getValidationAttributes();
     }
 
     protected $queryString = [
@@ -114,23 +143,24 @@ class VntCompanyForm extends Component
         $this->resetPage();
     }
 
-    public function render()
-    {
-        $this->ensureTenantConnection();
-        $items = VntCompany::query()
-            ->when($this->search, function ($query) {
-                $query->where('businessName', 'like', '%' . $this->search . '%')
-                    ->orWhere('identification', 'like', '%' . $this->search . '%')
-                    ->orWhere('firstName', 'like', '%' . $this->search . '%')
-                    ->orWhere('lastName', 'like', '%' . $this->search . '%');
-            })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate($this->perPage);
 
-        return view('livewire.tenant.vnt-company.vnt-company-form', [
-            'items' => $items
-        ]);
-    }
+    
+   public function getItemsProperty()
+   {
+     return $this->queryService->getPaginatedCompanies(
+        $this->search,
+        $this->perPage,
+        $this->sortField,
+        $this->sortDirection
+     ); 
+   }
+
+   public function render()
+   {
+     return view('livewire.tenant.vnt-company.vnt-company-form', [
+        'items' => $this->items // Se cachea automáticamente entre renders
+    ]);
+   }
 
     public function create()
     {
@@ -138,10 +168,12 @@ class VntCompanyForm extends Component
         $this->showModal = true;
     }
 
+
+
     public function edit($id)
     {
-        $this->ensureTenantConnection();
-        $company = VntCompany::findOrFail($id);
+        $company = $this->companyService->getCompanyWithWarehouses($id);
+        
         $this->editingId = $id;
         $this->typeIdentificationId = $company->typeIdentificationId;
         $this->identification = $company->identification;
@@ -155,77 +187,145 @@ class VntCompanyForm extends Component
         $this->fiscalResponsabilityId = $company->fiscalResponsabilityId;
         $this->code_ciiu = $company->code_ciiu;
         $this->checkDigit = $company->checkDigit;
-        $this->status = $company->status ?? 1; // Load existing status or default to active
+        $this->status = $company->status ?? 1;
+        
+        // Cargar sucursales usando el service
+        $this->warehouses = $this->warehouseService->prepareWarehousesForForm($company);
+        
+        // Si no hay sucursales, inicializar con una por defecto
+        if (empty($this->warehouses)) {
+            $this->initializeDefaultWarehouse();
+        } else {
+            // Evaluar permisos para la empresa existente
+            $this->evaluateWarehousePermissions();
+        }
+        
         $this->showModal = true;
     }
 
     public function save()
     {
-        //dd($this->all()); //
-        $this->ensureTenantConnection();
-        $this->validate();
-
-        $data = [
-            'typeIdentificationId' => $this->typeIdentificationId,
-            'identification' => $this->identification,
-            'firstName' => $this->firstName,
-            'secondName' => $this->secondName,
-            'lastName' => $this->lastName,
-            'secondLastName' => $this->secondLastName,
-            'businessName' => $this->businessName,
-            'billingEmail' => $this->billingEmail,
-            'typePerson' => $this->typePerson,
-            'checkDigit' =>  (int)$this->typeIdentificationId == 1 ?  null : $this->checkDigit,
-            'code_ciiu' =>  (int)$this->typeIdentificationId == 1 ? '0' : $this->code_ciiu,
-            'regimeId' =>  (int)$this->typeIdentificationId == 1 ?  2 : $this->regimeId,
-            'fiscalResponsabilityId' =>  (int)$this->typeIdentificationId == 1 ? 1 : $this->fiscalResponsabilityId,
-            'status' => $this->status,
-        ];
-
-        if ($this->editingId) {
-            $item = VntCompany::findOrFail($this->editingId);
-            $item->update($data);
-            session()->flash('message', 'Registro actualizado exitosamente.');
-        } else {
-            VntCompany::create($data);
-            session()->flash('message', 'Registro creado exitosamente.');
+        // Establecer typePerson automáticamente si no es NIT antes de validar
+        if ($this->typeIdentificationId && (int) $this->typeIdentificationId !== 2 && empty($this->typePerson)) {
+            $this->typePerson = 'Natural';
         }
+        
+        // Convertir strings vacíos a null para campos opcionales ANTES de validar
+        $this->regimeId = $this->regimeId === '' ? null : $this->regimeId;
+        $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
+        $this->warehouseCityId = $this->warehouseCityId === '' ? null : $this->warehouseCityId;
+        
+        // Validar usando las reglas del servicio
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->all();
+            $errorMessage = 'Por favor corrija los siguientes errores:<br>' . implode('<br>', $errors);
+            
+            session()->flash('error', $errorMessage);
+            $this->dispatch('show-validation-errors', ['errors' => $errors]);
+            return;
+        }
+        
+        $data = $this->getFormData();
+        
+        // DEBUG: Mostrar todos los valores del formulario
+        // dd([
+        //     'action' => $this->editingId ? 'update' : 'create',
+        //     'editingId' => $this->editingId,
+        //     'form_data' => $data,
+        //     'warehouses' => $this->warehouses,
+        //     'permissions' => [
+        //         'canAddMoreWarehouses' => $this->canAddMoreWarehouses,
+        //         'warehouseLimitsInfo' => $this->getWarehouseLimitsInfo()
+        //     ],
+        //     'all_component_properties' => [
+        //         'businessName' => $this->businessName,
+        //         'billingEmail' => $this->billingEmail,
+        //         'firstName' => $this->firstName,
+        //         'lastName' => $this->lastName,
+        //         'secondName' => $this->secondName,
+        //         'secondLastName' => $this->secondLastName,
+        //         'integrationDataId' => $this->integrationDataId,
+        //         'identification' => $this->identification,
+        //         'checkDigit' => $this->checkDigit,
+        //         'status' => $this->status,
+        //         'typePerson' => $this->typePerson,
+        //         'typeIdentificationId' => $this->typeIdentificationId,
+        //         'regimeId' => $this->regimeId,
+        //         'code_ciiu' => $this->code_ciiu,
+        //         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
+        //         'verification_digit' => $this->verification_digit,
+        //         'warehouseName' => $this->warehouseName,
+        //         'warehouseAddress' => $this->warehouseAddress,
+        //         'warehousePostcode' => $this->warehousePostcode,
+        //         'warehouseCityId' => $this->warehouseCityId,
+        //         'warehouseIsMain' => $this->warehouseIsMain,
+        //     ],
+        //     'validation_rules' => $this->rules(),
+        //     'timestamp' => now()->toDateTimeString()
+        // ]);
+        
+        // Preparar array de warehouses con los datos del formulario
+        $warehouses = [[
+            'name' => $this->warehouseName,
+            'address' => $this->warehouseAddress,
+            'postcode' => $this->warehousePostcode,
+            'cityId' => $this->warehouseCityId,
+            'main' => true, // Siempre es la sucursal principal
+        ]];
+        
+        try {
+            if ($this->editingId) {
+                $this->companyService->update($this->editingId, $data, $warehouses);
+                session()->flash('message', 'Registro actualizado exitosamente.');
+            } else {
+                $this->companyService->create($data, $warehouses);
+                session()->flash('message', 'Registro creado exitosamente.');
+            }
 
-        $this->resetForm();
-        $this->showModal = false;
+            $this->resetForm();
+            $this->showModal = false;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al guardar: ' . $e->getMessage());
+            return;
+        }
     }
 
     public function delete($id)
     {
-        $this->ensureTenantConnection();
-        VntCompany::findOrFail($id)->delete();
-        session()->flash('message', 'Registro eliminado exitosamente.');
+        try {
+            $this->companyService->delete($id);
+            session()->flash('message', 'Registro eliminado exitosamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al eliminar: ' . $e->getMessage());
+        }
     }
 
     public function exportExcel()
     {
-        // TODO: Implementar exportación a Excel
+        $result = $this->exportService->exportToExcel($this->search);
         $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Exportación a Excel - En desarrollo'
+            'type' => $result['success'] ? 'success' : 'info',
+            'message' => $result['message']
         ]);
     }
 
     public function exportPdf()
     {
-        // TODO: Implementar exportación a PDF
+        $result = $this->exportService->exportToPdf($this->search);
         $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Exportación a PDF - En desarrollo'
+            'type' => $result['success'] ? 'success' : 'info',
+            'message' => $result['message']
         ]);
     }
 
     public function exportCsv()
     {
-        // TODO: Implementar exportación a CSV
+        $result = $this->exportService->exportToCsv($this->search);
         $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Exportación a CSV - En desarrollo'
+            'type' => $result['success'] ? 'success' : 'info',
+            'message' => $result['message']
         ]);
     }
 
@@ -247,6 +347,19 @@ class VntCompanyForm extends Component
         $this->regimeId = '';
         $this->fiscalResponsabilityId = '';
         $this->verification_digit = '';
+        $this->business_phone = '';
+        $this->personal_phone = '';
+        $this->positionId = 1; // Posición por defecto
+        
+        // Reset warehouse fields e inicializar con una sucursal por defecto
+        $this->warehouses = [];
+        $this->initializeDefaultWarehouse();
+        $this->warehouseName = '';
+        $this->warehouseAddress = '';
+        $this->warehousePostcode = '';
+        $this->warehouseCityId = '';
+        $this->warehouseIsMain = false;
+        $this->canAddMoreWarehouses = false;
 
         $this->resetErrorBag();
     }
@@ -254,6 +367,18 @@ class VntCompanyForm extends Component
     public function updateTypeIdentification($typeIdentificationId)
     {
         $this->typeIdentificationId = $typeIdentificationId;
+        
+        // Lógica de negocio: establecer tipo de persona según tipo de identificación
+        if ((int) $typeIdentificationId === 2) {
+            // NIT: Permitir elegir entre Natural y Jurídica (no establecer automáticamente)
+            // El usuario debe elegir manualmente
+        } else {
+            // Cualquier otro tipo de identificación: Automáticamente Persona Natural
+            $this->typePerson = 'Natural';
+        }
+        
+        // Re-evaluar permisos de sucursales
+        $this->evaluateWarehousePermissions();
     }
 
     public function updateRegime($regimeId)
@@ -264,6 +389,37 @@ class VntCompanyForm extends Component
     public function updateFiscalResponsibility($fiscalResponsibilityId)
     {
         $this->fiscalResponsabilityId = $fiscalResponsibilityId;
+    }
+
+    public function updateWarehouseCity($cityId, $index = 0)
+    {
+        // Validar que cityId sea numérico
+        if (!is_numeric($cityId)) {
+            Log::warning('Invalid cityId received in updateWarehouseCity', [
+                'cityId' => $cityId,
+                'index' => $index
+            ]);
+            return;
+        }
+        
+        // Actualizar warehouseCityId directamente (usado en validación y guardado)
+        $this->warehouseCityId = (int) $cityId;
+        
+        // También actualizar en el array de warehouses si existe (para compatibilidad)
+        if (isset($this->warehouses[$index])) {
+            $this->warehouses[$index]['cityId'] = (int) $cityId;
+        }
+        
+        // Log para debugging
+        Log::info('City updated', [
+            'warehouseCityId' => $this->warehouseCityId,
+            'index' => $index
+        ]);
+    }
+
+    public function updatePosition($positionId)
+    {
+        $this->positionId = $positionId;
     }
 
     public function toggleStatus()
@@ -277,31 +433,124 @@ class VntCompanyForm extends Component
         $this->status = $value ? 1 : 0;
     }
 
-    public function validateSendAndEdit(){
-         
 
+
+    public function setMainWarehouse($index)
+    {
+        $this->warehouseService->setMainWarehouse($this->warehouses, $index);
     }
 
-    private function ensureTenantConnection()
+    /**
+     * Inicializar sucursal por defecto
+     */
+    private function initializeDefaultWarehouse(): void
     {
-        $tenantId = session('tenant_id');
+        if (empty($this->warehouses)) {
+            $defaultWarehouse = $this->warehouseService->createEmptyWarehouse(0);
+            $this->warehouses[] = $defaultWarehouse;
+        }
+        
+        // Evaluar permisos para agregar más sucursales
+        $this->evaluateWarehousePermissions();
+    }
 
-        if (!$tenantId) {
-            return redirect()->route('tenant.select');
+    /**
+     * Evaluar si se pueden agregar más sucursales
+     */
+    public function evaluateWarehousePermissions(): void
+    {
+        // Lógica de negocio para determinar si se pueden agregar más sucursales
+        $this->canAddMoreWarehouses = $this->warehouseService->canAddMoreWarehouses(
+            $this->typePerson ?? '',
+            $this->typeIdentificationId ? (int) $this->typeIdentificationId : null,
+            count($this->warehouses),
+            $this->editingId ? (int) $this->editingId : null
+        );
+    }
+
+    /**
+     * Método que se ejecuta cuando cambia el tipo de persona
+     */
+    public function updatedTypePerson(): void
+    {
+        $this->evaluateWarehousePermissions();
+    }
+
+    /**
+     * Método que se ejecuta cuando cambia el tipo de identificación
+     */
+    public function updatedTypeIdentificationId(): void
+    {
+        $this->evaluateWarehousePermissions();
+    }
+
+    /**
+     * Override del método addWarehouse para verificar permisos
+     */
+    public function addWarehouse()
+    {
+        if (!$this->canAddMoreWarehouses) {
+            session()->flash('error', 'No tiene permisos para agregar más sucursales.');
+            return;
         }
 
-        $tenant = Tenant::find($tenantId);
+        $newWarehouse = $this->warehouseService->createEmptyWarehouse(count($this->warehouses));
+        $this->warehouses[] = $newWarehouse;
+        
+        // Re-evaluar permisos después de agregar
+        $this->evaluateWarehousePermissions();
+    }
 
-        if (!$tenant) {
-            session()->forget('tenant_id');
-            return redirect()->route('tenant.select');
+    /**
+     * Override del método removeWarehouse para mantener al menos una sucursal
+     */
+    public function removeWarehouse($index)
+    {
+        if (count($this->warehouses) <= 1) {
+            session()->flash('error', 'Debe mantener al menos una sucursal.');
+            return;
         }
 
-        // Establecer conexión tenant
-        $tenantManager = app(TenantManager::class);
-        $tenantManager->setConnection($tenant);
+        $this->warehouseService->removeWarehouse($this->warehouses, $index);
+        
+        // Re-evaluar permisos después de remover
+        $this->evaluateWarehousePermissions();
+    }
 
-        // Inicializar tenancy
-        tenancy()->initialize($tenant);
+    /**
+     * Obtener información sobre los límites de sucursales
+     */
+    public function getWarehouseLimitsInfo(): array
+    {
+        return $this->warehouseService->getWarehouseLimitsInfo(
+            $this->typePerson ?? '', 
+            $this->typeIdentificationId ? (int) $this->typeIdentificationId : null
+        );
+    }
+
+    /**
+     * Obtener datos del formulario para enviar al service
+     */
+    private function getFormData(): array
+    {
+        return [
+            'typeIdentificationId' => $this->typeIdentificationId,
+            'identification' => $this->identification,
+            'firstName' => $this->firstName,
+            'secondName' => $this->secondName,
+            'lastName' => $this->lastName,
+            'secondLastName' => $this->secondLastName,
+            'businessName' => $this->businessName,
+            'billingEmail' => $this->billingEmail,
+            'typePerson' => $this->typePerson,
+            'checkDigit' => $this->checkDigit,
+            'code_ciiu' => $this->code_ciiu,
+            'regimeId' => $this->regimeId,
+            'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
+            'status' => $this->status,
+            'business_phone' => $this->business_phone,
+            'personal_phone' => $this->personal_phone,
+            'positionId' => $this->positionId,
+        ];
     }
 }
