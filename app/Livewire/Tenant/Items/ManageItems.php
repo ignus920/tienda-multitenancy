@@ -9,6 +9,7 @@ use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\Category;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use App\Services\Tenant\Inventory\CategoriesService; 
 
 class ManageItems extends Component
 {
@@ -20,7 +21,8 @@ class ManageItems extends Component
         'brand-changed' => 'onBrandSelected',
         'house-changed' => 'onHouseSelected',
         'purchase-unit-changed' => 'onPurchaseUnitSelected',
-        'consumption-unit-changed' => 'onConsumptionUnitSelected'
+        'consumption-unit-changed' => 'onConsumptionUnitSelected',
+        'category-created' => 'refreshCategories',
     ];
 
     // Propiedades para el formulario
@@ -45,6 +47,11 @@ class ManageItems extends Component
     public $confirmingItemDeletion = false;
     public $itemIdToDelete;
     public $perPage = 10;
+    
+    //Información para categorias
+    public $showCategoryInput = false;
+    public $newCategoryName = '';
+
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -320,5 +327,71 @@ class ManageItems extends Component
         return response()->download( 
             $this->item_id->file_path, 'items.cvs'
         );
+    }
+    //============CATEGORIAS========================//
+    public function toggleCategoryInput()
+    {
+        $this->showCategoryInput = ! $this->showCategoryInput;
+        if ($this->showCategoryInput) {
+            $this->resetValidation();
+            $this->newCategoryName = '';
+        }
+    }
+
+    public function saveCategory(){
+        $this->ensureTenantConnection();
+        try {
+            // Usar el servicio para crear la categoría
+            $categoryService = app(CategoriesService::class);
+            $category = $categoryService->createCategory([
+                'name' => $this->newCategoryName,
+                'status' => 1,
+            ]);
+
+            // Actualizar la lista de categorías y seleccionar la nueva
+            $this->category_id = $category->id;
+            
+            // Resetear el formulario de categoría
+            $this->showCategoryInput = false;
+            $this->newCategoryName = '';
+            
+            // Emitir evento para actualizar componentes
+            $this->dispatch('category-created', categoryId: $category->id);
+            
+            // Mostrar mensaje de éxito
+            session()->flash('category_message', 'Categoría creada exitosamente!');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Pasar los errores de validación al componente
+            $this->addError('newCategoryName', $e->validator->errors()->first('name'));
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al crear la categoría: ' . $e->getMessage());
+        }
+    }
+
+    // Método para refrescar categorías
+    public function refreshCategories($categoryId = null)
+    {
+        // Forzar la recarga de categorías en el próximo render
+        $this->dispatch('$refresh');
+        
+        if ($categoryId) {
+            $this->category_id = $categoryId;
+        }
+    }
+
+    // Método para verificar si una categoría existe
+    public function checkCategoryExists()
+    {
+        if ($this->newCategoryName) {
+            $categoryService = app(CategoriesService::class);
+            $exists = $categoryService->categoryExists($this->newCategoryName);
+            
+            if ($exists) {
+                $this->addError('newCategoryName', 'Esta categoría ya existe.');
+            } else {
+                $this->resetErrorBag('newCategoryName');
+            }
+        }
     }
 }

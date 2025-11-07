@@ -196,7 +196,7 @@ new class extends Component
         class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400"
     >
         <a href="{{url('/items/items')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
-        <a href="#" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
+        <a href="{{url('/inventory/categories')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
         <a href="#" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
     </div>
 </div>

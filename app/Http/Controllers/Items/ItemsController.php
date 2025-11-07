@@ -8,6 +8,6 @@ use Illuminate\Http\Request;
 class ItemsController extends Controller
 {
     public function homeItems(){
-        return view('items.items');
+        return view('inventory.items');
     }
 }

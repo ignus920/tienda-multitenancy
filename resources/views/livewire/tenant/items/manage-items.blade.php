@@ -237,18 +237,14 @@
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Categoría <span class="text-red-500">*</span>
-                            </label>
-                            <select wire:model="category_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">-- Seleccione --</option>
-                                @foreach($categories as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('category_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
-                        </div>
+                        @livewire('tenant.items.categories', [
+                            'categoryId' => $category_id,
+                            'name' => 'category_id',
+                            'label' => 'Categoría',
+                            'placeholder' => '-- Seleccione --',
+                            'required' => true,
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                        ])
 
                         <div class="mb-3">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre *</label>
