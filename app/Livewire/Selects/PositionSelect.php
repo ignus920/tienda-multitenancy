@@ -11,11 +11,11 @@ class PositionSelect extends Component
     public $name = 'positionId';
     public $placeholder = 'Seleccionar posición';
     public $label = 'Posición';
-    public $required = false;
+    public $required = true;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
 
-    public function mount($positionId = '', $name = 'positionId', $placeholder = 'Seleccionar posición', $label = 'Posición', $required = false, $showLabel = true, $class = null)
+    public function mount($positionId = '', $name = 'positionId', $placeholder = 'Seleccionar posición', $label = 'Posición', $required = true, $showLabel = true, $class = null)
     {
         $this->positionId = $positionId;
         $this->name = $name;

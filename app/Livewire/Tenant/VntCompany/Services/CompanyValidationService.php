@@ -43,6 +43,8 @@ class CompanyValidationService
             'typeIdentificationId.required' => 'Debe seleccionar el tipo de identificación.',
             'typeIdentificationId.exists' => 'El tipo de identificación seleccionado no es válido.',
             'billingEmail.email' => 'El email de facturación debe tener un formato válido.',
+            'verification_digit.required' => 'El dígito de verificación es obligatorio para NIT.',
+            'verification_digit.max' => 'El dígito de verificación debe ser de 1 carácter.',
             
             // Persona jurídica
             'businessName.required' => 'La razón social es obligatoria para personas jurídicas.',
@@ -191,6 +193,12 @@ class CompanyValidationService
             $typePersonRule = 'nullable|string|in:Natural,Juridica';
         }
 
+        // Determinar si verification_digit es requerido (solo para NIT)
+        $verificationDigitRule = 'nullable|string|max:1';
+        if ($typeIdentificationId && (int) $typeIdentificationId === 2) {
+            $verificationDigitRule = 'required|string|max:1';
+        }
+
         return [
             'identification' => $identificationRule,
             'typePerson' => $typePersonRule,
@@ -200,7 +208,7 @@ class CompanyValidationService
             'checkDigit' => 'nullable|integer|max:99',
             'integrationDataId' => 'nullable|integer',
             'code_ciiu' => 'nullable|string|max:255',
-            'verification_digit' => 'nullable|string|max:1',
+            'verification_digit' => $verificationDigitRule,
             'warehouses' => 'array',
             'warehouses.*.name' => 'required|string|max:255',
             'warehouses.*.address' => 'required|string|max:255',

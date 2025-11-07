@@ -178,7 +178,7 @@ class CompanyService
             $preparedData['typePerson'] = 'LEGAL_ENTITY';
             $preparedData['businessName'] = $data['businessName'] ?? null;
             $preparedData['firstName'] = $data['businessName'] ?? null;
-            $preparedData['checkDigit'] = $data['checkDigit'] ?? null;
+            $preparedData['checkDigit'] = (int)$data['checkDigit'] ?? null;
             $preparedData['code_ciiu'] = $data['code_ciiu'] ?? null;
             $preparedData['regimeId'] = $data['regimeId'] ?? null;
             $preparedData['fiscalResponsabilityId'] = $data['fiscalResponsabilityId'] ?? null;

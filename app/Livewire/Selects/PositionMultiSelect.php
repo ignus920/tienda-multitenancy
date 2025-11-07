@@ -19,7 +19,7 @@ class PositionMultiSelect extends Component
     public $search = '';
     public $isOpen = false;
 
-    public function mount($selectedPositions = [], $name = 'positions', $placeholder = 'Seleccionar posiciones', $label = 'Posiciones', $required = false, $showLabel = true, $class = null, $maxHeight = 'max-h-60', $searchable = true)
+    public function mount($selectedPositions = [], $name = 'positions', $placeholder = 'Seleccionar posiciones', $label = 'Posiciones', $required = true, $showLabel = true, $class = null, $maxHeight = 'max-h-60', $searchable = true)
     {
         $this->selectedPositions = is_array($selectedPositions) ? $selectedPositions : [];
         $this->name = $name;

@@ -313,7 +313,7 @@
                                 <label for="verification_digit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">DV *</label>
                                 <input wire:model="verification_digit" type="text" id="verification_digit" maxlength="1"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="5">
+                                    placeholder="0">
                                 @error('verification_digit') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <!-- Tipo de Persona -->
@@ -393,7 +393,7 @@
                             <!-- Régimen -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Régimen
+                                    Régimen <span class="text-red-500">*</span>
                                 </label>
                                 @livewire('selects.regime-select', [
                                 'regimeId' => $regimeId,
@@ -411,7 +411,7 @@
                             <!-- Responsabilidad Fiscal -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Responsabilidad Fiscal
+                                    Responsabilidad Fiscal <span class="text-red-500">*</span>
                                 </label>
                                 @livewire('selects.fiscal-responsibility-select', [
                                 'fiscalResponsibilityId' => $fiscalResponsabilityId,
@@ -517,7 +517,7 @@
                                 'name' => 'warehouseCityId',
                                 'placeholder' => 'Seleccionar ciudad',
                                 'label' => 'Ciudad de la Sucursal',
-                                'required' => false,
+                                'required' => true,
                                 'showLabel' => true,
                                 'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
                                 'index' => 0
@@ -531,7 +531,7 @@
                                 'name' => 'positionId',
                                 'placeholder' => 'Seleccionar posición',
                                 'label' => 'Posición/Cargo',
-                                'required' => false,
+                                'required' => true,
                                 'showLabel' => true,
                                 'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
                             ], key('position-select'))

@@ -187,6 +187,7 @@ class VntCompanyForm extends Component
         $this->fiscalResponsabilityId = $company->fiscalResponsabilityId;
         $this->code_ciiu = $company->code_ciiu;
         $this->checkDigit = $company->checkDigit;
+        $this->verification_digit = $company->checkDigit; // Cargar el DV desde checkDigit
         $this->status = $company->status ?? 1;
         
         // Cargar sucursales usando el service
@@ -210,10 +211,13 @@ class VntCompanyForm extends Component
             $this->typePerson = 'Natural';
         }
         
-        // Convertir strings vacíos a null para campos opcionales ANTES de validar
-        $this->regimeId = $this->regimeId === '' ? null : $this->regimeId;
-        $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
-        $this->warehouseCityId = $this->warehouseCityId === '' ? null : $this->warehouseCityId;
+        // Convertir strings vacíos a null solo para campos opcionales en Persona Natural
+        if ($this->typePerson === 'Natural') {
+            $this->regimeId = $this->regimeId === '' ? null : $this->regimeId;
+            $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
+        }
+        
+        // warehouseCityId y positionId ya NO se convierten a null (son requeridos)
         
         // Validar usando las reglas del servicio
         try {
@@ -533,6 +537,11 @@ class VntCompanyForm extends Component
      */
     private function getFormData(): array
     {
+        // Si es NIT, usar verification_digit como checkDigit
+        $checkDigit = ((int) $this->typeIdentificationId === 2) 
+            ? $this->verification_digit 
+            : $this->checkDigit;
+        
         return [
             'typeIdentificationId' => $this->typeIdentificationId,
             'identification' => $this->identification,
@@ -543,7 +552,7 @@ class VntCompanyForm extends Component
             'businessName' => $this->businessName,
             'billingEmail' => $this->billingEmail,
             'typePerson' => $this->typePerson,
-            'checkDigit' => $this->checkDigit,
+            'checkDigit' => $checkDigit,
             'code_ciiu' => $this->code_ciiu,
             'regimeId' => $this->regimeId,
             'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
