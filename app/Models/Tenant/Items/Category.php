@@ -15,6 +15,6 @@ class Category extends Model
 
     protected $table = 'inv_categories';
 
-    protected $fillable = ['id','name', 'status'];
+    protected $fillable = ['id','name', 'status', 'deleted_at'];
 
 }

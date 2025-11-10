@@ -38,6 +38,10 @@ class Categories extends Component
         if ($class) {
             $this->class = $class;
         }
+
+        if ($this->categoryId) {
+            $this->dispatch('category-changed', $this->categoryId);
+        }
     }
 
     public function updatedCategoryId(){
@@ -79,9 +83,9 @@ class Categories extends Component
     public function createCategory()
     {   
         
-        // $this->validate([
-        //     'newCategoryName' => 'required|min:2|max:255|unique:inv_categories,name'
-        // ]);
+         $this->validate([
+             'newCategoryName' => 'required'
+         ]);
         
         try {
 
@@ -119,11 +123,11 @@ class Categories extends Component
 
     public function render()
     {
+        $this->ensureTenantConnection(); // ← Agregar esto
         return view('livewire.tenant.items.categories',[
             'categories' => $this->categories,
             'showLabel' => $this->showLabel
         ]);
     }
 
-    
 }

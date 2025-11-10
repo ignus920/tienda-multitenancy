@@ -22,6 +22,7 @@ class ManageItems extends Component
         'house-changed' => 'onHouseSelected',
         'purchase-unit-changed' => 'onPurchaseUnitSelected',
         'consumption-unit-changed' => 'onConsumptionUnitSelected',
+        'category-changed' => 'onCategorySelected',
         'category-created' => 'refreshCategories',
     ];
 
@@ -62,15 +63,15 @@ class ManageItems extends Component
     ];
 
     protected $rules =[
-            'category_id' => 'required',
-            'name' => 'required|min:3',
-            'type' => 'required',
-            'internal_code' => 'nullable|string',
-            'brandId' => 'nullable|string',
-            'houseId' => 'nullable|string',
-            'purchase_unit' => 'nullable|string',
-            'consumption_unit' => 'nullable|string',
-        ];
+        'category_id' => 'required',
+        'name' => 'required|min:3',
+        'type' => 'required',
+        'internal_code' => 'nullable|string',
+        'brandId' => 'nullable|string',
+        'houseId' => 'nullable|string',
+        'purchase_unit' => 'nullable|string',
+        'consumption_unit' => 'nullable|string',
+    ];
     
 
     protected $queryString = [
@@ -168,18 +169,21 @@ class ManageItems extends Component
         $this->dispatch('initializeConsumptionUnit');
     }
 
-    public function edit(Items $item)
+    public function edit($idItem)
     {
         $this->ensureTenantConnection();
-
+        $item=Items::findOrfail($idItem);
         $this->item_id = $item->id;
-        $this->category_id = $item->category_id ?? $item->categoryId ?? null;
+        $this->category_id = $item->categoryId;
         $this->name = $item->name;
+        $this->internal_code = $item->internal_code;
         $this->sku = $item->sku ?? null;
         $this->description = $item->description;
         $this->type = $item->type;
-        $this->brandId = $item->brand;
-        $this->purchase_unit = $item->purchase_unit;
+        $this->commandId = $item->commandId;
+        $this->brandId = $item->brandId;
+        $this->houseId = $item->houseId;
+        $this->purchase_unit = $item->purchasing_unit;
         $this->consumption_unit = $item->consumption_unit;
         
         $this->showModal = true;
@@ -189,7 +193,6 @@ class ManageItems extends Component
     {
         $this->ensureTenantConnection();
         $this->validate();
-
         $itemData = [
             'categoryId' => $this->category_id,
             'name' => $this->name,
@@ -247,7 +250,7 @@ class ManageItems extends Component
         Items::find($this->itemIdToDelete)->delete();
         $this->confirmingItemDeletion = false;
         $this->reset(['itemIdToDelete']);
-        $this->dispatchBrowserEvent('notify', ['message' => 'Item eliminado correctamente']);
+        session()->flash('message', 'Item eliminado correctamente');
     }
 
     public function cancel()
@@ -269,6 +272,11 @@ class ManageItems extends Component
         ]);
         $this->showModal = false;
         $this->confirmingItemDeletion = false;
+    }
+
+    public function onCategorySelected($value)
+    {
+        $this->category_id = $value;
     }
 
     public function onCommandSelected($value)
@@ -377,6 +385,8 @@ class ManageItems extends Component
         
         if ($categoryId) {
             $this->category_id = $categoryId;
+            // También emitir el cambio para sincronizar
+            $this->dispatch('category-changed', $categoryId);
         }
     }
 

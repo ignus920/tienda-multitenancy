@@ -72,7 +72,7 @@ class CategoriesService
     public function updateCategory($id, array $data)
     {
         $validator = Validator::make($data, [
-            'name' => 'required|min:2|max:255|unique:inv_categories,name,' . $id,
+            'name' => 'required',
             'status' => 'sometimes|boolean',
         ]);
 
