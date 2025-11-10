@@ -54,6 +54,10 @@ class VntCompanyForm extends Component
     public $fiscalResponsabilityId = '';
     public $verification_digit = '';
     
+    // Real-time validation properties
+    public $identificationExists = false;
+    public $validatingIdentification = false;
+    
     // Propiedades para contacto
     public $business_phone = '';
     public $personal_phone = '';
@@ -217,19 +221,8 @@ class VntCompanyForm extends Component
             $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
         }
         
-        // warehouseCityId y positionId ya NO se convierten a null (son requeridos)
-        
-        // Validar usando las reglas del servicio
-        try {
-            $this->validate();
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $errors = $e->validator->errors()->all();
-            $errorMessage = 'Por favor corrija los siguientes errores:<br>' . implode('<br>', $errors);
-            
-            session()->flash('error', $errorMessage);
-            $this->dispatch('show-validation-errors', ['errors' => $errors]);
-            return;
-        }
+        // Validación simple usando Livewire nativo
+        $this->validate();
         
         $data = $this->getFormData();
         
@@ -355,6 +348,10 @@ class VntCompanyForm extends Component
         $this->personal_phone = '';
         $this->positionId = 1; // Posición por defecto
         
+        // Reset real-time validation properties
+        $this->identificationExists = false;
+        $this->validatingIdentification = false;
+        
         // Reset warehouse fields e inicializar con una sucursal por defecto
         $this->warehouses = [];
         $this->initializeDefaultWarehouse();
@@ -437,7 +434,56 @@ class VntCompanyForm extends Component
         $this->status = $value ? 1 : 0;
     }
 
+    /**
+     * Validar un campo específico en tiempo real
+     * Se ejecuta cuando el usuario sale del campo (blur)
+     */
+    public function updated($propertyName)
+    {
+        // Validar solo el campo que cambió
+        $this->validateOnly($propertyName);
+    }
 
+    /**
+     * Called when identification property is updated
+     * Triggers real-time validation with debounce
+     */
+    public function updatedIdentification($value): void
+    {
+        // Validate the field using existing validation
+        $this->validateOnly('identification');
+        
+        // Trigger uniqueness check
+        $this->validateIdentificationUniqueness();
+    }
+
+    /**
+     * Validate identification uniqueness in real-time
+     * Called when identification or typeIdentificationId changes
+     */
+    public function validateIdentificationUniqueness(): void
+    {
+        // Reset state
+        $this->identificationExists = false;
+        
+        // Skip validation if required fields are empty
+        if (empty($this->identification) || empty($this->typeIdentificationId)) {
+            return;
+        }
+        
+        // Set loading state
+        $this->validatingIdentification = true;
+        
+        // Check if combination exists
+        $this->identificationExists = $this->validationService->checkIdentificationExists(
+            (int) $this->typeIdentificationId,
+            $this->identification,
+            $this->editingId
+        );
+        
+        // Clear loading state
+        $this->validatingIdentification = false;
+    }
 
     public function setMainWarehouse($index)
     {
@@ -485,6 +531,11 @@ class VntCompanyForm extends Component
      */
     public function updatedTypeIdentificationId(): void
     {
+        // Re-validate identification with new type if identification is not empty
+        if (!empty($this->identification)) {
+            $this->validateIdentificationUniqueness();
+        }
+        
         $this->evaluateWarehousePermissions();
     }
 

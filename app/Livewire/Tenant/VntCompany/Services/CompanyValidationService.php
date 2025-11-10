@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Livewire\Tenant\VntCompany\Services;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\Tenant;
 
 class CompanyValidationService
 {
@@ -107,74 +109,6 @@ class CompanyValidationService
     }
 
     /**
-     * Validar datos específicos de persona natural
-     */
-    public function validateNaturalPerson(array $data): array
-    {
-        $errors = [];
-
-        if (empty($data['firstName'])) {
-            $errors['firstName'] = 'El primer nombre es obligatorio para personas naturales.';
-        }
-
-        if (empty($data['lastName'])) {
-            $errors['lastName'] = 'El apellido es obligatorio para personas naturales.';
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Validar datos específicos de persona jurídica
-     */
-    public function validateJuridicalPerson(array $data): array
-    {
-        $errors = [];
-
-        if (empty($data['businessName'])) {
-            $errors['businessName'] = 'La razón social es obligatoria para personas jurídicas.';
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Validar sucursales
-     */
-    public function validateWarehouses(array $warehouses): array
-    {
-        $errors = [];
-        $hasMainWarehouse = false;
-
-        foreach ($warehouses as $index => $warehouse) {
-            if (empty($warehouse['name'])) {
-                $errors["warehouses.{$index}.name"] = 'El nombre de la sucursal es obligatorio.';
-            }
-
-            if (empty($warehouse['address'])) {
-                $errors["warehouses.{$index}.address"] = 'La dirección de la sucursal es obligatoria.';
-            }
-
-            if (!empty($warehouse['postcode']) && strlen($warehouse['postcode']) > 10) {
-                $errors["warehouses.{$index}.postcode"] = 'El código postal no puede tener más de 10 caracteres.';
-            }
-
-            if ($warehouse['main']) {
-                if ($hasMainWarehouse) {
-                    $errors["warehouses.{$index}.main"] = 'Solo puede haber una sucursal principal.';
-                }
-                $hasMainWarehouse = true;
-            }
-        }
-
-        if (!empty($warehouses) && !$hasMainWarehouse) {
-            $errors['warehouses'] = 'Debe designar al menos una sucursal como principal.';
-        }
-
-        return $errors;
-    }
-
-    /**
      * Obtener reglas base de validación
      */
     private function getBaseRules(?int $editingId = null, ?int $typeIdentificationId = null): array
@@ -271,23 +205,51 @@ class CompanyValidationService
     }
 
     /**
-     * Validar datos completos del formulario
-     * Retorna array con 'valid' (bool) y 'errors' (array)
+     * Check if identification already exists for the given type
+     * 
+     * @param int $typeIdentificationId The type of identification
+     * @param string $identification The identification number
+     * @param int|null $excludeId Company ID to exclude (for edit mode)
+     * @return bool True if identification exists, false otherwise
      */
-    public function validateFormData(array $data, string $typePerson): array
-    {
-        $errors = [];
+    public function checkIdentificationExists(
+        int $typeIdentificationId, 
+        string $identification, 
+        ?int $excludeId = null
+    ): bool {
+        $this->ensureTenantConnection();
+        $query = \App\Models\Tenant\VntCompany::where('typeIdentificationId', $typeIdentificationId)
+            ->where('identification', $identification);
+        
+        // Exclude current record when editing
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+       // dd($query->exists());
+        return $query->exists();
+    }
 
-        // Validar según tipo de persona
-        if ($typePerson === 'Natural') {
-            $errors = array_merge($errors, $this->validateNaturalPerson($data));
-        } elseif ($typePerson === 'Juridica') {
-            $errors = array_merge($errors, $this->validateJuridicalPerson($data));
+    private function ensureTenantConnection(): void
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            throw new \Exception('No tenant selected');
         }
 
-        return [
-            'valid' => empty($errors),
-            'errors' => $errors
-        ];
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            throw new \Exception('Invalid tenant');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
     }
+
 }
