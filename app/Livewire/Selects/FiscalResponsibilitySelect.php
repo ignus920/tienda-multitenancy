@@ -11,7 +11,7 @@ class FiscalResponsibilitySelect extends Component
     public $name = 'fiscalResponsibilityId';
     public $placeholder = 'Seleccionar responsabilidad fiscal';
     public $label = 'Responsabilidad Fiscal';
-    public $required = false;
+    public $required = true;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
 

@@ -16,7 +16,9 @@ class CitySelect extends Component
     public $required = true;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
-    public function mount($cityId = '', $countryId = 48, $name = 'cityId', $placeholder = 'Seleccionar ciudad', $label = 'Ciudad', $required = true, $showLabel = true, $class = null)
+    public $index = null; // Índice del warehouse si aplica
+    
+    public function mount($cityId = '', $countryId = 48, $name = 'cityId', $placeholder = 'Seleccionar ciudad', $label = 'Ciudad', $required = true, $showLabel = true, $class = null, $index = null)
     {
         $this->cityId = $cityId;
         $this->countryId = $countryId;
@@ -25,6 +27,7 @@ class CitySelect extends Component
         $this->label = $label;
         $this->required = $required;
         $this->showLabel = $showLabel;
+        $this->index = $index;
         if ($class) {
             $this->class = $class;
         }
@@ -39,7 +42,12 @@ class CitySelect extends Component
 
     public function updatedCityId()
     {
-        $this->dispatch('city-changed', $this->cityId);
+        // Emitir evento con cityId e índice si está disponible
+        if ($this->index !== null) {
+            $this->dispatch('city-changed', cityId: $this->cityId, index: $this->index);
+        } else {
+            $this->dispatch('city-changed', $this->cityId);
+        }
     }
 
     public function getCitiesProperty()

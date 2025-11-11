@@ -81,13 +81,51 @@ class VntCompany extends Model
     ];
 
 
-    // --- Relaciones (Puedes agregar las relaciones Eloquent aquí) ---
+    // --- Relaciones ---
 
-    // Ejemplo de relación (Asumiendo que 'typeIdentificationId' es una FK)
-    /*
-    public function typeIdentification()
+    /**
+     * Relación con las sucursales (warehouses)
+     */
+    public function warehouses()
     {
-        return $this->belongsTo(TypeIdentification::class, 'typeIdentificationId');
+        return $this->hasMany(VntWarehouse::class, 'companyId');
     }
-    */
+
+    /**
+     * Sucursal principal
+     */
+    public function mainWarehouse()
+    {
+        return $this->hasOne(VntWarehouse::class, 'companyId')->where('main', 1);
+    }
+
+    /**
+     * Todos los contactos de la empresa a través de sus almacenes
+     */
+    public function contacts()
+    {
+        return $this->hasManyThrough(
+            VntContacts::class,
+            VntWarehouse::class,
+            'companyId', // Foreign key en vnt_warehouses
+            'warehouseId', // Foreign key en vnt_contacts
+            'id', // Local key en vnt_companies
+            'id' // Local key en vnt_warehouses
+        );
+    }
+
+    /**
+     * Contactos activos de la empresa
+     */
+    public function activeContacts()
+    {
+        return $this->hasManyThrough(
+            VntContacts::class,
+            VntWarehouse::class,
+            'companyId',
+            'warehouseId',
+            'id',
+            'id'
+        )->where('vnt_contacts.status', 1);
+    }
 }

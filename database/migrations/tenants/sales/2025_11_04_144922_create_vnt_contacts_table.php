@@ -20,14 +20,14 @@ return new class extends Migration
                 $table->string('personal_phone', 100)->nullable();
                 $table->integer('status')->nullable()->default(1);
                 $table->integer('api_data_id')->nullable();
-                $table->integer('warehouseId')->nullable();
-                $table->integer('positionId')->nullable();
+                $table->bigInteger('warehouseId')->nullable()->default(0);
+                $table->bigInteger('positionId')->nullable()->default(0);
                 $table->dateTime('created_at');
                 $table->dateTime('updated_at');
                 $table->dateTime('deleted_at')->nullable();
             });
         }
-    }
+    }   
 
     public function down(): void
     {
