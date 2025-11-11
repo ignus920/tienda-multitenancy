@@ -9,6 +9,15 @@ use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TestController;
 use Livewire\Volt\Volt;
+use App\Livewire\Company\UpdateCompany;
+use App\Auth\Middleware\SetTenantConnection;
+use App\Livewire\Tenant\Customers\CustomerManager;
+use App\Livewire\Tenant\Quoter\ProductQuoter;
+use App\Livewire\Tenant\Quoter\MobileProductQuoter;
+use App\Http\Controllers\QuoterController;
+
+
+
 
 Route::view('/', 'welcome');
 
@@ -17,7 +26,7 @@ Route::get('/verify-2fa', Verify2FA::class)
     ->name('verify.2fa');
 
 // Configuración de empresa (requiere autenticación)
-Volt::route('/company/setup', 'company.simple-setup')
+Route::get('/company/setup', UpdateCompany::class)
     ->middleware(['auth'])
     ->name('company.setup');
 
@@ -28,16 +37,33 @@ Route::get('/select-tenant', SelectTenant::class)
 
 // Dashboard del tenant (requiere autenticación, datos completos y tenant seleccionado)
 Route::get('/tenant/dashboard', TenantDashboard::class)
-    ->middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantConnection::class])
+    ->middleware(['auth', 'company.complete', SetTenantConnection::class])
     ->name('tenant.dashboard');
 
 
     
 
 // Módulo de Clientes (requiere autenticación, datos completos y tenant seleccionado)
-Route::get('/tenant/customers', App\Livewire\Tenant\Customers\CustomerManager::class)
+Route::get('/tenant/customers', CustomerManager::class)
     ->middleware('tenant')
     ->name('tenant.customers');
+
+    
+
+// Módulo de Cotizador - Detección automática de dispositivo
+Route::get('/tenant/quoter', [QuoterController::class, 'index'])
+    ->middleware('tenant')
+    ->name('tenant.quoter');
+
+// Ruta específica para desktop
+Route::get('/tenant/quoter/desktop', ProductQuoter::class)
+    ->middleware('tenant')
+    ->name('tenant.quoter.desktop');
+
+// Ruta específica para móvil
+Route::get('/tenant/quoter/mobile', MobileProductQuoter::class)
+    ->middleware('tenant')
+    ->name('tenant.quoter.mobile');
 
 
 

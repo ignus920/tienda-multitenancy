@@ -13,6 +13,9 @@
         <!-- Styles -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     </head>
     <body class="antialiased font-sans">
         <!-- Navbar Sticky -->
@@ -111,11 +114,15 @@
                             <p class="text-lg text-gray-600 dark:text-gray-300">Descubre lo que tenemos para ti</p>
                         </div>
                         <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
+
+
                             <!-- Formulario de Registro -->
                             <div class="bg-white rounded-lg shadow-lg p-6 dark:bg-zinc-900">
                                 <h3 class="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">Registro</h3>
-                                <livewire:pages.auth.register />
+                                @livewire('auth.register-company')
                             </div>
+
+                            
 
                             <!-- Información adicional -->
                             <div class="bg-white rounded-lg shadow-lg p-6 dark:bg-zinc-900">
@@ -264,5 +271,7 @@
                 updateNavbar();
             });
         </script>
+
+        @stack('scripts')
     </body>
 </html>

@@ -1,400 +1,3 @@
-<?php
-
-use App\Models\Central\VntCompany;
-use App\Models\Central\VntContact;
-use App\Models\Central\VntWarehouse;
-use App\Services\Company\CompanyDataValidator;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Livewire\Volt\Component;
-use Livewire\Attributes\On;
-
-new class extends Component
-{
-    // Control de pasos
-    public int $currentStep = 1;
-    public int $totalSteps = 2;
-
-    // Datos de la empresa (campos existentes)
-    public string $identification = '';
-    public string $verification_digit = '';
-    public string $typePerson = '';
-    public string $code_ciiu = '';
-    public $typeIdentificationId = null;
-    public $regimeId = null;
-    public $fiscalResponsabilityId = null;
-
-    // Campos para persona natural
-    public string $firstName = '';
-    public string $lastName = '';
-
-    // Campo para persona jurídica
-    public string $businessName = '';
-
-    // Datos del contacto (campos existentes)
-    public $positionId = null;
-    public $warehouseId = null;
-
-    // Datos del warehouse (campos existentes)
-    public string $address = '';
-    public string $postcode = '';
-    public $cityId = null;
-    public $termId = null;
-
-    // Campos para sucursales
-    public bool $hasMultipleBranches = false;
-    public string $branchName = '';
-    public string $branchType = 'fija';
-    public string $city = '';
-    public string $billingFormat = '';
-    public bool $isCredit = false;
-    public int $creditLimit = 0;
-    public bool $hasPriceList = false;
-    public int $apiDataId = 0;
-    public int $countriId = 48; // País por defecto Colombia
-
-    // Colecciones para selects - YA NO NECESARIAS (usando componentes)
-    // public $cities = [];
-
-    // Estado
-    public string $successMessage = '';
-
-    // Datos existentes
-    public ?VntCompany $company = null;
-    public ?VntContact $contact = null;
-    public ?VntWarehouse $warehouse = null;
-
-    // Datos para selects - YA NO NECESARIOS (usando componentes)
-    // public $typeIdentifications = [];
-    // public $regimes = [];
-    // public $fiscalResponsabilities = [];
-
-    public function mount()
-    {
-        // Si el usuario es Super Administrador, redirigir al dashboard
-        if (Auth::user()->isSuperAdmin()) {
-            $this->redirect(route('dashboard'));
-            return;
-        }
-
-        $this->loadSelectData();
-        $this->loadExistingData();
-        $this->determineCurrentStep();
-    }
-
-    #[On('type-identification-changed')]
-    public function updateTypeIdentification($typeIdentificationId)
-    {
-        $this->typeIdentificationId = $typeIdentificationId;
-
-        // Limpiar campos cuando cambie el tipo
-        $this->identification = '';
-        $this->verification_digit = '';
-    }
-
-    #[On('regime-changed')]
-    public function updateRegime($regimeId)
-    {
-        $this->regimeId = $regimeId;
-        Log::info('Régimen seleccionado', ['regimeId' => $regimeId]);
-    }
-
-    #[On('fiscal-responsibility-changed')]
-    public function updateFiscalResponsibility($fiscalResponsibilityId)
-    {
-        $this->fiscalResponsibilityId = $fiscalResponsibilityId;
-        Log::info('Responsabilidad fiscal seleccionada', ['fiscalResponsibilityId' => $fiscalResponsibilityId]);
-    }
-
-    #[On('city-changed')]
-    public function updateCity($cityId)
-    {
-        $this->cityId = $cityId;
-        Log::info('Ciudad seleccionada', ['cityId' => $cityId]);
-    }
-
-    public function layout()
-    {
-        return 'layouts.app';
-    }
-
-    protected function loadSelectData()
-    {
-        // YA NO NECESARIO - Los componentes cargan automáticamente los datos
-        // Método mantenido para compatibilidad, pero puede eliminarse
-    }
-
-    protected function loadExistingData()
-    {
-        $validator = app(CompanyDataValidator::class);
-        $user = Auth::user();
-
-        $this->company = $validator->getUserCompany($user);
-        $this->contact = VntContact::where('email', $user->email)->first();
-        $this->warehouse = $this->company ? VntWarehouse::where('companyId', $this->company->id)->first() : null;
-
-        // Cargar datos existentes en los campos
-        if ($this->company) {
-            $this->identification = $this->company->identification ?? '';
-            $this->verification_digit = $this->company->verification_digit ?? '';
-            $this->typePerson = $this->company->typePerson ?? '';
-            $this->code_ciiu = $this->company->code_ciiu ?? '';
-            $this->typeIdentificationId = $this->company->typeIdentificationId ?? 0;
-            $this->regimeId = $this->company->regimeId ?? 0;
-            $this->fiscalResponsabilityId = $this->company->fiscalResponsabilityId ?? 0;
-
-            // Cargar campos de persona
-            $this->firstName = $this->company->firstName ?? '';
-            $this->lastName = $this->company->lastName ?? '';
-            $this->businessName = $this->company->businessName ?? '';
-        }
-
-        if ($this->contact) {
-            $this->positionId = $this->contact->positionId ?? 0;
-            $this->warehouseId = $this->contact->warehouseId ?? 0;
-        }
-
-        if ($this->warehouse) {
-            $this->postcode = $this->warehouse->postcode ?? '';
-            $this->cityId = $this->warehouse->cityId ?? 0;
-            $this->termId = $this->warehouse->termId ?? 1;
-
-            // Cargar datos de sucursal
-            $this->branchName = $this->warehouse->name ?? '';
-            $this->branchType = $this->warehouse->branch_type ?? 'fija';
-            $this->address = $this->warehouse->address ?? '';
-            $this->city = $this->warehouse->city ?? '';
-            $this->billingFormat = $this->warehouse->billingFormat ?? '';
-            $this->isCredit = (bool) ($this->warehouse->is_credit ?? false);
-            $this->creditLimit = $this->warehouse->creditLimit ?? 0;
-            $this->hasPriceList = !($this->warehouse->pric_list ?? false);
-            $this->apiDataId = $this->warehouse->integrationDataId ?? 0;
-            $this->countriId = $this->warehouse->countri_id ?? 48;
-
-            // Determinar si tiene múltiples sucursales (lógica simple por ahora)
-            $this->hasMultipleBranches = $this->branchName !== 'Principal';
-        }
-    }
-
-    protected function determineCurrentStep()
-    {
-        // Verificar si los datos básicos de la empresa están completos (Paso 1)
-        if (!$this->company ||
-            empty($this->identification) ||
-            empty($this->typePerson) ||
-            empty($this->code_ciiu) ||
-            $this->typeIdentificationId == 0 ||
-            $this->regimeId == 0 ||
-            $this->fiscalResponsabilityId == 0) {
-            $this->currentStep = 1;
-            return;
-        }
-
-        // Verificar si los datos de ubicación están completos (Paso 2)
-        if (empty($this->address) ||
-            $this->cityId == 0 ||
-            empty($this->postcode)) {
-            $this->currentStep = 2;
-            return;
-        }
-
-        // Todos los datos están completos, redirigir al dashboard
-        $this->redirect(route('tenant.select'));
-    }
-
-    public function nextStep()
-    {
-        $this->validateCurrentStep();
-
-        if ($this->currentStep < $this->totalSteps) {
-            $this->currentStep++;
-        }
-    }
-
-    public function previousStep()
-    {
-        if ($this->currentStep > 1) {
-            $this->currentStep--;
-        }
-    }
-
-    protected function validateCurrentStep()
-    {
-        switch ($this->currentStep) {
-            case 1:
-                $this->validateStep1();
-                break;
-            case 2:
-                $this->validateStep2();
-                break;
-        }
-    }
-
-    protected function validateStep1()
-    {
-        Log::info('🐛 DEBUG validateStep1 - Valores actuales:', [
-            'typeIdentificationId' => $this->typeIdentificationId,
-            'identification' => $this->identification,
-            'verification_digit' => $this->verification_digit,
-            'regimeId' => $this->regimeId,
-            'fiscalResponsibilityId' => $this->fiscalResponsibilityId,
-        ]);
-
-        $rules = [
-            'typeIdentificationId' => ['required', 'numeric', 'min:1'],
-            'identification' => ['required', 'string', 'max:15'],
-            // 'typePerson' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
-            // 'code_ciiu' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
-            'regimeId' => ['required', 'numeric', 'min:1'],
-            'fiscalResponsabilityId' => ['required', 'numeric', 'min:1'],
-        ];
-
-        Log::info('🐛 DEBUG - Reglas de validación:', $rules);
-
-        // Si es NIT (id=2), también validar el dígito de verificación
-        if ($this->typeIdentificationId == 2) {
-            $rules['verification_digit'] = ['required', 'string', 'max:1'];
-        }
-
-        // Validar campos según tipo de persona - COMENTADO TEMPORALMENTE
-        // if ($this->typePerson == 'Natural') {
-        //     $rules['firstName'] = ['required', 'string', 'max:100'];
-        //     $rules['lastName'] = ['required', 'string', 'max:100'];
-        // } elseif ($this->typePerson == 'Juridica') {
-        //     $rules['businessName'] = ['required', 'string', 'max:255'];
-        // }
-
-        $this->validate($rules);
-        $this->saveStep1();
-    }
-
-    protected function validateStep2()
-    {
-        Log::info('🐛 DEBUG validateStep2 - Valores actuales:', [
-            'hasMultipleBranches' => $this->hasMultipleBranches,
-            'address' => $this->address,
-            'cityId' => $this->cityId,
-            'postcode' => $this->postcode,
-            'branchName' => $this->branchName,
-        ]);
-
-        $rules = [
-            'hasMultipleBranches' => ['required', 'boolean'],
-            'address' => ['required', 'string', 'max:255'],
-            'cityId' => ['required', 'numeric', 'min:1'],
-            'postcode' => ['required', 'string', 'max:10'],
-        ];
-
-        // Si tiene múltiples sucursales, validar nombre de sucursal
-        if ($this->hasMultipleBranches) {
-            $rules['branchName'] = ['required', 'string', 'max:255'];
-        } else {
-            // Si no tiene múltiples sucursales, automáticamente asignar "Principal"
-            $this->branchName = 'Principal';
-        }
-
-        $this->validate($rules);
-        $this->saveStep2();
-    }
-
-
-    protected function saveStep1()
-    {
-        if ($this->company) {
-            $updateData = [
-                'identification' => $this->identification,
-                'typePerson' => $this->typePerson,
-                'code_ciiu' => $this->code_ciiu,
-                'typeIdentificationId' => $this->typeIdentificationId,
-                'regimeId' => $this->regimeId,
-                'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
-            ];
-
-            // Solo actualizar verification_digit si es NIT
-            if ($this->typeIdentificationId == 2) {
-                $updateData['verification_digit'] = $this->verification_digit;
-            } else {
-                $updateData['verification_digit'] = null;
-            }
-
-            // Guardar campos según tipo de persona
-            if ($this->typePerson == 'Natural') {
-                $updateData['firstName'] = $this->firstName;
-                $updateData['lastName'] = $this->lastName;
-                $updateData['businessName'] = null; // Limpiar razón social
-            } elseif ($this->typePerson == 'Juridica') {
-                $updateData['businessName'] = $this->businessName;
-                $updateData['firstName'] = null; // Limpiar nombre
-                $updateData['lastName'] = null; // Limpiar apellido
-            }
-
-            $this->company->update($updateData);
-
-            Log::info('✅ Datos de empresa actualizados', ['company_id' => $this->company->id]);
-        }
-    }
-
-    protected function saveStep2()
-    {
-        if ($this->warehouse) {
-            $updateData = [
-                'name' => $this->branchName,
-                'address' => $this->address,
-                'postcode' => $this->postcode,
-                'countri_id' => $this->countriId,
-                'cityId' => $this->cityId,
-                'billingFormat' => 16, // Valor por defecto
-                'is_credit' => 0, // Valor por defecto
-                'termId' => 1, // Valor por defecto
-                'creditLimit' => '0', // Valor por defecto
-                'status' => 1,
-                'main' => 1, // Principal
-            ];
-
-            $this->warehouse->update($updateData);
-
-            Log::info('✅ Datos de warehouse/sucursal actualizados', ['warehouse_id' => $this->warehouse->id]);
-        }
-    }
-
-
-    public function finish()
-    {
-        $this->validateCurrentStep();
-
-        // Ya completamos todos los pasos necesarios, redirigir al dashboard
-        $this->successMessage = '¡Configuración completada exitosamente!';
-
-        Log::info('🎉 Configuración de empresa completada', ['user_id' => Auth::user()->id]);
-
-        // Redirigir al dashboard inmediatamente
-        $this->redirect(route('tenant.select'));
-    }
-
-    public function getProgressPercentage(): int
-    {
-        // Calcular progreso basado en los 2 pasos
-        $step1Complete = !empty($this->identification) &&
-                        !empty($this->typePerson) &&
-                        !empty($this->code_ciiu) &&
-                        $this->typeIdentificationId > 0 &&
-                        $this->regimeId > 0 &&
-                        $this->fiscalResponsabilityId > 0;
-
-        $step2Complete = !empty($this->address) &&
-                        $this->cityId > 0 &&
-                        !empty($this->postcode);
-
-        if ($step1Complete && $step2Complete) {
-            return 100;
-        } elseif ($step1Complete) {
-            return 50;
-        } else {
-            return 25;
-        }
-    }
-}; ?>
-
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
@@ -466,9 +69,9 @@ new class extends Component
                                         <div class="grid grid-cols-3 gap-4">
                                             <div class="col-span-2">
                                                 <label for="identification" class="block text-sm font-medium text-gray-700">NIT *</label>
-                                                <input wire:model="identification" type="text" id="identification" maxlength="15"
+                                                <input wire:model.live="identification" type="text" id="identification" maxlength="15"
                                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                                    placeholder="123456789">
+                                                    placeholder="123456789" required>
                                                 @error('identification') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                                             </div>
                                             <div>
@@ -483,8 +86,8 @@ new class extends Component
                                         <!-- Otros tipos de identificación -->
                                         <div>
                                             <label for="identification" class="block text-sm font-medium text-gray-700">Número de Identificación *</label>
-                                            <input wire:model="identification" type="text" id="identification" maxlength="15"
-                                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                            <input wire:model.live="identification" type="text" id="identification" maxlength="15"
+                                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
                                             @error('identification') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                                         </div>
                                     @endif
@@ -553,8 +156,8 @@ new class extends Component
                                     ])
 
                                     @livewire('selects.fiscal-responsibility-select', [
-                                        'fiscalResponsibilityId' => $fiscalResponsabilityId,
-                                        'name' => 'fiscalResponsabilityId',
+                                        'fiscalResponsibilityId' => $this->fiscalResponsibilityId,
+                                        'name' => 'fiscalResponsibilityId',
                                         'label' => 'Responsabilidad Fiscal',
                                         'placeholder' => 'Seleccionar responsabilidad fiscal'
                                     ])
@@ -696,6 +299,35 @@ new class extends Component
             setTimeout(() => {
                 window.location.href = url;
             }, 2000);
+        });
+
+        // Listener para SweetAlert de configuración completada
+        Livewire.on('show-completion-alert', (data) => {
+            console.log('🎉 SweetAlert event received:', data);
+            console.log('🔍 Swal available:', typeof Swal !== 'undefined');
+
+            if (typeof Swal === 'undefined') {
+                console.error('❌ SweetAlert2 no está disponible');
+                // Fallback: mostrar alert nativo y redirigir
+                alert('¡Configuración completada exitosamente!\n\nSerás redirigido al panel principal.');
+                window.location.href = data[0].redirectTo;
+                return;
+            }
+
+            Swal.fire({
+                title: data[0].title,
+                text: data[0].message,
+                icon: 'success',
+                showCancelButton: false,
+                confirmButtonColor: '#16a34a',
+                confirmButtonText: 'Ir al Panel',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = data[0].redirectTo;
+                }
+            });
         });
     });
 </script>
