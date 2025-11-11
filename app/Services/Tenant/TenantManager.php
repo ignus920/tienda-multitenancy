@@ -58,6 +58,10 @@ class TenantManager
     {
         Log::info('🏗️ Configurando base de datos física para tenant', ['tenant_id' => $tenant->id, 'db_name' => $tenant->db_name]);
 
+        // Aumentar tiempo de ejecución temporalmente para migraciones
+        $originalTimeLimit = ini_get('max_execution_time');
+        set_time_limit(300); // 5 minutos para las migraciones
+
         try {
             $this->createDatabase($tenant);
             $this->runMigrations($tenant);
@@ -82,6 +86,9 @@ class TenantManager
             }
 
             throw $e;
+        } finally {
+            // Restaurar límite de tiempo original
+            set_time_limit($originalTimeLimit ?: 30);
         }
     }
 
@@ -91,6 +98,10 @@ class TenantManager
      */
     public function create(array $data, ?User $owner = null): Tenant
     {
+        // Aumentar tiempo de ejecución temporalmente para migraciones
+        $originalTimeLimit = ini_get('max_execution_time');
+        set_time_limit(300); // 5 minutos para las migraciones
+
         try {
             Log::info('🏗️ Creando nuevo tenant', $data);
 
@@ -132,6 +143,9 @@ class TenantManager
                 }
             }
             throw $e;
+        } finally {
+            // Restaurar límite de tiempo original
+            set_time_limit($originalTimeLimit ?: 30);
         }
     }
 
@@ -188,6 +202,10 @@ class TenantManager
     DB::reconnect('tenant_migrations');
 
     try {
+        // Optimizaciones para acelerar las migraciones
+        DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 0');
+        DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 0');
+        DB::connection('tenant_migrations')->beginTransaction();
         // Consultar módulos activos desde la base de datos principal
         $modules = DB::connection('mysql')->table('vnt_merchant_moduls')
             ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
@@ -387,7 +405,23 @@ class TenantManager
             }
         }
 
+        // Commit de todas las migraciones y restaurar configuraciones
+        DB::connection('tenant_migrations')->commit();
+        DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
+        DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
+
+        Log::info('✅ Todas las migraciones completadas exitosamente');
+
     } catch (\Exception $e) {
+        // Rollback en caso de error
+        try {
+            DB::connection('tenant_migrations')->rollback();
+            DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
+            DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
+        } catch (\Exception $rollbackError) {
+            Log::warning('⚠️ Error durante rollback', ['error' => $rollbackError->getMessage()]);
+        }
+
         Log::error('❌ Error ejecutando migraciones', [
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
