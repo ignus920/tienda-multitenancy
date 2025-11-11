@@ -112,7 +112,14 @@ class WarehouseService
      */
     private function updateExistingWarehouse(array $warehouseData): void
     {
-        VntWarehouse::where('id', $warehouseData['id'])->update([
+        $warehouse = VntWarehouse::find($warehouseData['id']);
+        
+        if (!$warehouse) {
+            // Si no existe, no hacer nada (será creada como nueva)
+            return;
+        }
+        
+        $warehouse->update([
             'name' => $warehouseData['name'],
             'address' => $warehouseData['address'],
             'postcode' => $warehouseData['postcode'] ?? null,

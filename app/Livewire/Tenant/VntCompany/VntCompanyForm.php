@@ -71,6 +71,13 @@ class VntCompanyForm extends Component
     public $warehouseCityId = '';
     public $warehouseIsMain = false;
     public $canAddMoreWarehouses = false;
+    
+    // IDs para actualización (evitar duplicación)
+    public $mainWarehouseId = null;
+    public $mainContactId = null;
+    
+    // Control de visualización de campos
+    public $showNaturalPersonFields = false;
 
     public function boot(
         CompanyService $companyService,
@@ -176,7 +183,14 @@ class VntCompanyForm extends Component
 
     public function edit($id)
     {
-        $company = $this->companyService->getCompanyWithWarehouses($id);
+        $company = $this->companyService->getCompanyForEdit($id);
+        
+        // Log company loading for debugging
+        Log::info('Loading company for edit', [
+            'company_id' => $id,
+            'has_main_warehouse' => $company->mainWarehouse !== null,
+            'has_contacts' => $company->mainWarehouse?->contacts->isNotEmpty() ?? false
+        ]);
         
         $this->editingId = $id;
         $this->typeIdentificationId = $company->typeIdentificationId;
@@ -184,15 +198,71 @@ class VntCompanyForm extends Component
         $this->firstName = $company->firstName;
         $this->secondName = $company->secondName;
         $this->lastName = $company->lastName;
+        $this->secondLastName = $company->secondLastName;
         $this->businessName = $company->businessName;
         $this->billingEmail = $company->billingEmail;
-        $this->typePerson = $company->typePerson;
         $this->regimeId = $company->regimeId;
         $this->fiscalResponsabilityId = $company->fiscalResponsabilityId;
         $this->code_ciiu = $company->code_ciiu;
         $this->checkDigit = $company->checkDigit;
         $this->verification_digit = $company->checkDigit; // Cargar el DV desde checkDigit
         $this->status = $company->status ?? 1;
+        
+        // Log detallado de la carga de datos para verificación
+        Log::info('Company data loaded in edit()', [
+            'company_id' => $id,
+            'loaded_fields' => [
+                'typeIdentificationId' => $this->typeIdentificationId,
+                'identification' => $this->identification,
+                'firstName' => $this->firstName,
+                'secondName' => $this->secondName,
+                'lastName' => $this->lastName,
+                'secondLastName' => $this->secondLastName,
+                'businessName' => $this->businessName,
+                'billingEmail' => $this->billingEmail,
+                'regimeId' => $this->regimeId,
+                'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
+                'code_ciiu' => $this->code_ciiu,
+                'checkDigit' => $this->checkDigit,
+                'verification_digit' => $this->verification_digit,
+                'status' => $this->status,
+            ]
+        ]);
+        
+        // Determinar tipo de persona para la UI usando la nueva lógica
+        $this->typePerson = $this->determineTypePersonForUI($company);
+        
+        // Establecer showNaturalPersonFields basándose en el tipo determinado
+        $this->showNaturalPersonFields = ($this->typePerson === 'Natural');
+        
+        // Log informativo para debugging
+        Log::info('Type person determined for UI', [
+            'company_id' => $id,
+            'typeIdentificationId' => $company->typeIdentificationId,
+            'typePerson_db' => $company->typePerson,
+            'typePerson_ui' => $this->typePerson,
+            'showNaturalPersonFields' => $this->showNaturalPersonFields,
+            'has_natural_data' => $this->hasNaturalPersonData($company)
+        ]);
+        
+        // Load main warehouse data into form properties
+        $mainWarehouse = $company->mainWarehouse;
+        if ($mainWarehouse) {
+            $this->mainWarehouseId = $mainWarehouse->id;
+            $this->warehouseName = $mainWarehouse->name;
+            $this->warehouseAddress = $mainWarehouse->address;
+            $this->warehousePostcode = $mainWarehouse->postcode;
+            $this->warehouseCityId = $mainWarehouse->cityId;
+            
+            // Load contact data if exists
+            $mainContact = $mainWarehouse->contacts->first();
+            if ($mainContact) {
+                $this->mainContactId = $mainContact->id;
+                $this->business_phone = $mainContact->business_phone;
+                $this->personal_phone = $mainContact->personal_phone;
+                $this->positionId = $mainContact->positionId;
+            }
+        }
         
         // Cargar sucursales usando el service
         $this->warehouses = $this->warehouseService->prepareWarehousesForForm($company);
@@ -204,6 +274,15 @@ class VntCompanyForm extends Component
             // Evaluar permisos para la empresa existente
             $this->evaluateWarehousePermissions();
         }
+        
+        // Log final antes de mostrar el modal para verificar el estado
+        Log::info('Final state before showing modal', [
+            'company_id' => $id,
+            'typePerson' => $this->typePerson,
+            'typeIdentificationId' => $this->typeIdentificationId,
+            'showNaturalPersonFields' => $this->showNaturalPersonFields,
+            'verification_digit' => $this->verification_digit
+        ]);
         
         $this->showModal = true;
     }
@@ -265,6 +344,7 @@ class VntCompanyForm extends Component
         
         // Preparar array de warehouses con los datos del formulario
         $warehouses = [[
+            'id' => $this->mainWarehouseId,
             'name' => $this->warehouseName,
             'address' => $this->warehouseAddress,
             'postcode' => $this->warehousePostcode,
@@ -274,7 +354,7 @@ class VntCompanyForm extends Component
         
         try {
             if ($this->editingId) {
-                $this->companyService->update($this->editingId, $data, $warehouses);
+                $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
                 session()->flash('message', 'Registro actualizado exitosamente.');
             } else {
                 $this->companyService->create($data, $warehouses);
@@ -335,6 +415,7 @@ class VntCompanyForm extends Component
         $this->identification = '';
         $this->integrationDataId = '';
         $this->lastName = '';
+        $this->secondLastName = '';
         $this->checkDigit = '';
         $this->status = 1; // Default to active for new records
         $this->secondName = '';
@@ -361,6 +442,13 @@ class VntCompanyForm extends Component
         $this->warehouseCityId = '';
         $this->warehouseIsMain = false;
         $this->canAddMoreWarehouses = false;
+        
+        // Reset IDs
+        $this->mainWarehouseId = null;
+        $this->mainContactId = null;
+        
+        // Reset control de visualización
+        $this->showNaturalPersonFields = false;
 
         $this->resetErrorBag();
     }
@@ -581,6 +669,52 @@ class VntCompanyForm extends Component
             $this->typePerson ?? '', 
             $this->typeIdentificationId ? (int) $this->typeIdentificationId : null
         );
+    }
+
+    /**
+     * Determinar si una empresa tiene datos de persona natural
+     */
+    private function hasNaturalPersonData($company): bool
+    {
+        return !empty($company->firstName) || 
+               !empty($company->lastName) || 
+               !empty($company->secondName) || 
+               !empty($company->secondLastName);
+    }
+
+    /**
+     * Determinar el tipo de persona para la UI basándose en los datos de la empresa
+     * 
+     * Reglas de negocio simplificadas:
+     * 1. Si typeIdentificationId != 2: Siempre Persona Natural (PERSON_ENTITY)
+     * 2. Si typeIdentificationId == 2 (NIT):
+     *    - Si tiene datos de persona natural (firstName, lastName): Persona Natural con NIT
+     *    - Si NO tiene datos de persona natural: Persona Jurídica
+     * 
+     * @param object $company Instancia de VntCompany con todos sus datos
+     * @return string "Natural" o "Juridica"
+     */
+    private function determineTypePersonForUI($company): string
+    {
+        $typeIdentificationId = (int) $company->typeIdentificationId;
+        
+        //dd($company);
+        // Caso 1: No es NIT (typeIdentificationId != 2) → Siempre Persona Natural
+        if ($typeIdentificationId !== 2) {
+            return 'Natural';
+        }
+        
+        // Caso 2: Es NIT (typeIdentificationId == 2)
+        // Verificar si tiene datos de persona natural
+        $hasNaturalPersonData = !empty($company->businessName);
+        
+        // Si tiene datos de persona natural → Persona Natural con NIT
+        if (!$hasNaturalPersonData) {
+            return 'Natural';
+        }
+        
+        // Si NO tiene datos de persona natural → Persona Jurídica
+        return 'Juridica';
     }
 
     /**

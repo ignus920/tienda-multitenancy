@@ -131,7 +131,9 @@
                                 </div>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Identificación</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre Completo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sucursal</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Dirección</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Teléfono</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -143,13 +145,22 @@
                                 #{{ $item->id }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $item->businessName }}
+                                {{ $item->businessName ? $item->businessName :  trim($item->firstName . ' ' . $item->lastName)  }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $item->identification ?? 'Sin identificación' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                {{ trim($item->firstName . ' ' . $item->secondName . ' ' . $item->lastName) }}
+                                {{ $item->mainWarehouse->name ?? 'Sin sucursal' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                {{ $item->mainWarehouse->address ?? 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                {{ $item->mainWarehouse?->contacts->first()?->business_phone ?? 'N/A' }}
+                                <br>
+                                {{ $item->mainWarehouse?->contacts->first()?->business_phone ?? 'N/A' }}
+                               
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $item->created_at->format('d/m/Y H:i') }}
@@ -184,7 +195,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                 <div class="flex flex-col items-center">
                                     <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -355,8 +366,8 @@
                                 <select wire:model.live="typePerson" id="typePerson"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">Seleccionar tipo</option>
-                                    <option value="Natural">Persona Natural</option>
-                                    <option value="Juridica">Persona Jurídica</option>
+                                    <option value="Natural" {{ $typePerson === 'Natural' ? 'selected' : '' }}>Persona Natural</option>
+                                    <option value="Juridica" {{ $typePerson === 'Juridica' ? 'selected' : '' }}>Persona Jurídica</option>
                                 </select>
                                 @error('typePerson') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
@@ -397,7 +408,7 @@
 
                         <!-- Campos condicionales según tipo de persona -->
                         @if($typePerson)
-                        @if($typePerson == 'Natural')
+                        @if($typePerson == 'Natural' || $showNaturalPersonFields)
                         <!-- Persona Natural: Nombre y Apellido -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -433,7 +444,7 @@
                             </div>
                         </div>
 
-                        @elseif($typePerson == 'Juridica')
+                        @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
                         <!-- Persona Jurídica: Razón Social -->
                         <div>
                             <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>

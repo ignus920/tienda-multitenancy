@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\VntCompany\Services;
 use App\Models\Tenant\VntCompany;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\Log;
 
 class CompanyService
 {
@@ -37,7 +38,7 @@ class CompanyService
         $contactAdditionalData = [
             'business_phone' => $data['business_phone'] ?? null,
             'personal_phone' => $data['personal_phone'] ?? null,
-            'positionId' => $data['positionId'] ?? 1,
+            //'positionId' => $data['positionId'] ?? 1,
         ];
         
         // Crear contacto básico automáticamente usando los datos de la empresa
@@ -49,9 +50,15 @@ class CompanyService
     /**
      * Actualizar una empresa existente
      */
-    public function update(int $id, array $data, array $warehouses = []): VntCompany
+    public function update(int $id, array $data, array $warehouses = [], ?int $contactId = null): VntCompany
     {
         $this->ensureTenantConnection();
+        
+        Log::info('CompanyService::update - Start', [
+            'company_id' => $id,
+            'typeIdentificationId' => $data['typeIdentificationId'],
+            'typePerson' => $data['typePerson']
+        ]);
         
         $company = VntCompany::findOrFail($id);
         $companyData = $this->prepareCompanyData($data);
@@ -71,7 +78,7 @@ class CompanyService
         ];
         
         // Actualizar contacto básico con los nuevos datos de la empresa
-        $this->contactService->updateContactForCompany($company, $contactAdditionalData);
+        $this->contactService->updateContactForCompany($company, $contactAdditionalData, $contactId);
         
         return $company;
     }
@@ -95,6 +102,19 @@ class CompanyService
         $this->ensureTenantConnection();
         
         return VntCompany::with('warehouses')->findOrFail($id);
+    }
+
+    /**
+     * Obtener una empresa con todas las relaciones necesarias para edición
+     */
+    public function getCompanyForEdit(int $id): VntCompany
+    {
+        $this->ensureTenantConnection();
+        
+        return VntCompany::with([
+            'mainWarehouse.contacts',
+            'warehouses'
+        ])->findOrFail($id);
     }
 
     /**
@@ -124,67 +144,67 @@ class CompanyService
 
     /**
      * Preparar datos de la empresa aplicando reglas de negocio
+     * 
+     * Reglas:
+     * 1. Si typeIdentificationId != 2: Persona Natural (PERSON_ENTITY en BD)
+     * 2. Si typeIdentificationId == 2 Y typePerson == 'Natural': Persona Natural con NIT (LEGAL_ENTITY en BD)
+     * 3. Si typeIdentificationId == 2 Y typePerson == 'Juridica': Persona Jurídica (LEGAL_ENTITY en BD)
      */
     private function prepareCompanyData(array $data): array
     {
+        // Datos base comunes a todos los tipos
         $preparedData = [
             'typeIdentificationId' => $data['typeIdentificationId'],
             'identification' => $data['identification'],
             'businessName' => $data['businessName'] ?? null,
             'billingEmail' => $data['billingEmail'] ?? null,
-            'typePerson' => $data['typePerson'], // cambia dinamicamentes segun la persona
             'business_phone' => $data['business_phone'] ?? null,
             'personal_phone' => $data['business_phone'] ?? null,
             'status' => $data['status'] ?? 1,
         ];
 
-        // Aplicar reglas específicas según el tipo de identificación
         $typeIdentificationId = (int) $data['typeIdentificationId'];
-         $typePerson = $data['typePerson']; // para hacer la segunda validación de lo que se va a enviar
+        $typePerson = $data['typePerson'];
+        $isNIT = $typeIdentificationId === 2;
 
-         if($typePerson == 'Juridica'){
-           
-         }else{
-          
-         }
-        if ($typeIdentificationId != 2 && $typePerson == 'Natural') {
-            
-            // Persona natural - valores por defecto
-              $preparedData['typePerson'] = 'PERSON_ENTITY';
-              $preparedData['firstName'] = $data['firstName'] ?? null;
-              $preparedData['secondName'] = $data['secondName'] ?? null;
-              $preparedData['lastName'] = $data['lastName'] ?? null;
-              $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
-              $preparedData['checkDigit'] = null;
-              $preparedData['code_ciiu'] = '0';
-              $preparedData['regimeId'] = 2;
-              $preparedData['fiscalResponsabilityId'] = 1;
-
-        } else if($typeIdentificationId == 2 && $typePerson == 'Natural'){
-
-             // Persona con nit y valores naturales
-              $preparedData['typePerson'] = 'LEGAL_ENTITY';
-              $preparedData['firstName'] = $data['firstName'] ?? null;
-              $preparedData['secondName'] = $data['secondName'] ?? null;
-              $preparedData['lastName'] = $data['lastName'] ?? null;
-              $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
-              $preparedData['checkDigit'] = null;
-              $preparedData['code_ciiu'] = '0';
-              $preparedData['regimeId'] = 2;
-              $preparedData['fiscalResponsabilityId'] = 1;
-
-        }else{
-            // Persona jurídica - usar valores proporcionados
+        // Caso 1: Persona natural sin NIT (CC, CE, etc.)
+        // typePerson en DB: PERSON_ENTITY
+        if (!$isNIT && $typePerson === 'Natural') {
+            $preparedData['typePerson'] = 'PERSON_ENTITY';
+            $preparedData['firstName'] = $data['firstName'] ?? null;
+            $preparedData['secondName'] = $data['secondName'] ?? null;
+            $preparedData['lastName'] = $data['lastName'] ?? null;
+            $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
+            $preparedData['checkDigit'] = null;
+            $preparedData['code_ciiu'] = '0';
+            $preparedData['regimeId'] = 2;
+            $preparedData['fiscalResponsabilityId'] = 1;
+        }
+        // Caso 2: Persona natural con NIT
+        // typePerson en DB: LEGAL_ENTITY (por requerimientos tributarios)
+        elseif ($isNIT && $typePerson === 'Natural') {
+            $preparedData['typePerson'] = 'LEGAL_ENTITY';
+            $preparedData['firstName'] = $data['firstName'] ?? null;
+            $preparedData['secondName'] = $data['secondName'] ?? null;
+            $preparedData['lastName'] = $data['lastName'] ?? null;
+            $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
+            $preparedData['checkDigit'] = $data['checkDigit'] ?? null;
+            $preparedData['code_ciiu'] = '0';
+            $preparedData['regimeId'] = 2;
+            $preparedData['fiscalResponsabilityId'] = 1;
+        }
+        // Caso 3: Persona jurídica (siempre con NIT)
+        // typePerson en DB: LEGAL_ENTITY
+        else {
             $preparedData['typePerson'] = 'LEGAL_ENTITY';
             $preparedData['businessName'] = $data['businessName'] ?? null;
             $preparedData['firstName'] = $data['businessName'] ?? null;
-            $preparedData['checkDigit'] = (int)$data['checkDigit'] ?? null;
+            $preparedData['checkDigit'] = $data['checkDigit'] ?? null;
             $preparedData['code_ciiu'] = $data['code_ciiu'] ?? null;
             $preparedData['regimeId'] = $data['regimeId'] ?? null;
             $preparedData['fiscalResponsabilityId'] = $data['fiscalResponsabilityId'] ?? null;
         }
 
-        //dd($preparedData); // debugear
         return $preparedData;
     }
 

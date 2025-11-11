@@ -52,10 +52,15 @@ class ContactService
      * Actualizar contacto básico de una empresa
      * Actualiza el contacto existente con los nuevos datos de la empresa
      */
-    public function updateContactForCompany(VntCompany $company, array $additionalData = []): void
+    public function updateContactForCompany(VntCompany $company, array $additionalData = [], ?int $contactId = null): void
     {
-        // Obtener el primer contacto de la empresa (el contacto principal)
-        $contact = $company->contacts()->first();
+        // Buscar contacto específico por ID si se proporciona
+        if ($contactId) {
+            $contact = VntContacts::find($contactId);
+        } else {
+            // Fallback: buscar el primer contacto de la empresa
+            $contact = $company->contacts()->first();
+        }
         
         if (!$contact) {
             // Si no existe contacto, crear uno nuevo
@@ -63,7 +68,14 @@ class ContactService
             return;
         }
 
+        // Obtener el warehouse actual (puede haber cambiado)
+        $mainWarehouse = $company->mainWarehouse;
+        if (!$mainWarehouse) {
+            $mainWarehouse = $company->warehouses()->first();
+        }
+
         $contactData = [
+            'warehouseId' => $mainWarehouse->id, // Actualizar warehouseId
             'email' => $company->billingEmail,
             'status' => $company->status,
             'business_phone' => $additionalData['business_phone'] ?? $contact->business_phone,

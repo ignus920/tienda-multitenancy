@@ -23,6 +23,13 @@ class CompanyQueryService
 
         $this->ensureTenantConnection();
         return VntCompany::query()
+            ->with([
+                'mainWarehouse:id,companyId,name,address,postcode',
+                'mainWarehouse.contacts' => function($query) {
+                    $query->select('id', 'warehouseId', 'business_phone', 'personal_phone')
+                          ->limit(1);
+                }
+            ])
             ->when($search, function (Builder $query) use ($search) {
                 $this->applySearchFilters($query, $search);
             })
@@ -116,7 +123,17 @@ class CompanyQueryService
                 ->orWhere('identification', 'like', '%' . $search . '%')
                 ->orWhere('firstName', 'like', '%' . $search . '%')
                 ->orWhere('lastName', 'like', '%' . $search . '%')
-                ->orWhere('billingEmail', 'like', '%' . $search . '%');
+                ->orWhere('billingEmail', 'like', '%' . $search . '%')
+                // Búsqueda en warehouse
+                ->orWhereHas('mainWarehouse', function($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                      ->orWhere('address', 'like', '%' . $search . '%');
+                })
+                // Búsqueda en contacts
+                ->orWhereHas('mainWarehouse.contacts', function($q) use ($search) {
+                    $q->where('business_phone', 'like', '%' . $search . '%')
+                      ->orWhere('personal_phone', 'like', '%' . $search . '%');
+                });
         });
     }
 
