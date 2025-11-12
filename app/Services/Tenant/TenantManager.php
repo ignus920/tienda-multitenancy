@@ -518,9 +518,9 @@ class TenantManager
             'driver' => 'mysql',
             'host' => $tenant->db_host,
             'port' => $tenant->db_port,
-            'database' => $tenant->db_name,
-            'username' => $tenant->db_user,
-            'password' => $tenant->db_password,
+            'database' => 'desarrollo',
+            'username' => 'root',
+            'password' => 'marsella',
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
@@ -530,6 +530,10 @@ class TenantManager
 
         DB::purge('tenant');
         DB::reconnect('tenant');
+
+            //'database' => $tenant->db_name,
+            //'username' => $tenant->db_user,
+            //'password' => $tenant->db_password,
     }
 
     public function delete(Tenant $tenant, bool $deleteDatabase = false): void

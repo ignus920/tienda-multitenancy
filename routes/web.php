@@ -14,6 +14,8 @@ use App\Auth\Middleware\SetTenantConnection;
 use App\Livewire\Tenant\Customers\CustomerManager;
 use App\Livewire\Tenant\Quoter\ProductQuoter;
 use App\Livewire\Tenant\Quoter\MobileProductQuoter;
+use App\Livewire\Tenant\Quoter\QuoterMobile;
+use App\Livewire\Tenant\Quoter\QuoterDesktop;
 use App\Http\Controllers\QuoterController;
 
 
@@ -50,20 +52,36 @@ Route::get('/tenant/customers', CustomerManager::class)
 
     
 
+    
+
 // Módulo de Cotizador - Detección automática de dispositivo
 Route::get('/tenant/quoter', [QuoterController::class, 'index'])
     ->middleware('tenant')
     ->name('tenant.quoter');
 
+// Ruta para crear nueva cotización - Detección automática de dispositivo
+Route::get('/tenant/quoter/products', [QuoterController::class, 'products'])
+    ->middleware('tenant')
+    ->name('tenant.quoter.products');
+
 // Ruta específica para desktop
-Route::get('/tenant/quoter/desktop', ProductQuoter::class)
+Route::get('/tenant/quoter/desktop', [QuoterController::class, 'desktop'])
     ->middleware('tenant')
     ->name('tenant.quoter.desktop');
 
 // Ruta específica para móvil
-Route::get('/tenant/quoter/mobile', MobileProductQuoter::class)
+Route::get('/tenant/quoter/mobile', [QuoterController::class, 'mobile'])
     ->middleware('tenant')
     ->name('tenant.quoter.mobile');
+
+// Rutas para creación de cotizaciones (productos)
+Route::get('/tenant/quoter/products/desktop', ProductQuoter::class)
+    ->middleware('tenant')
+    ->name('tenant.quoter.products.desktop');
+
+Route::get('/tenant/quoter/products/mobile', MobileProductQuoter::class)
+    ->middleware('tenant')
+    ->name('tenant.quoter.products.mobile');
 
 
 
