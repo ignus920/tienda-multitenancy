@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Tenant\VntCompany\Services;
 
-use App\Models\Tenant\VntCompany;
+use App\Models\Tenant\Customer\VntCompany;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use App\Services\Tenant\TenantManager;
