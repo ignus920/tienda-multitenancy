@@ -69,7 +69,7 @@ class MobileProductQuoter extends Component
             ->orderBy('name', 'asc')
             ->paginate(20);
 
-        return view('livewire.tenant.quoter.mobile-product-quoter', [
+        return view('livewire.tenant.quoter.components.mobile-product-quoter', [
             'products' => $products
         ])->layout('layouts.app');
     }

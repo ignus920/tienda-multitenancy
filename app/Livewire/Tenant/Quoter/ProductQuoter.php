@@ -92,7 +92,7 @@ class ProductQuoter extends Component
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
-        return view('livewire.tenant.quoter.product-quoter', [
+        return view('livewire.tenant.quoter.components.product-quoter', [
             'products' => $products
         ])->layout('layouts.app');
     }
