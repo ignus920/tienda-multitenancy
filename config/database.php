@@ -148,6 +148,23 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7' => [
+            'driver' => 'mysql',
+            'host' => '192.168.1.205', // IP/host BD
+            'port' => '3306', 
+            'database' => 'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7', 
+            'username' => 'root', 
+            'password' => 'marsella', 
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+
     ],
 
     /*
