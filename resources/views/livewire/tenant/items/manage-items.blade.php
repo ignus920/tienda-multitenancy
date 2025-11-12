@@ -163,8 +163,7 @@
                                         </svg>
                                         Editar
                                     </button>
-                                    <button wire:click="delete({{ $it->id }})"
-                                        wire:confirm="¿Estás seguro de eliminar este registro?"
+                                    <button wire:click="confirmItemDeletion({{ $it->id }})"
                                         class="inline-flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -241,7 +240,7 @@
                             'categoryId' => $category_id,
                             'name' => 'category_id',
                             'label' => 'Categoría',
-                            'placeholder' => '-- Seleccione --',
+                            'placeholder' => 'Seleccione una categoria',
                             'required' => true,
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
                         ])
@@ -329,6 +328,29 @@
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
                                 rows="3">
                             </textarea>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Generico
+                            </label>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm transition-colors duration-200 {{ $generic ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium' }}">
+                                    NO
+                                </span>
+                                <!-- Toggle Switch -->
+                                <button type="button" 
+                                    wire:click="toggleGeneric" 
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $generic ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
+                                    role="switch" 
+                                    aria-checked="{{ $generic ? 'true' : 'false' }}"
+                                    aria-label="Toggle company status">
+                                    <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out {{ $generic ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                                </button>
+                                <span class="text-sm transition-colors duration-200 {{ $generic ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400' }}">
+                                    SI
+                                </span>
+                            </div>
                         </div>
 
                         <div class="flex justify-end space-x-2">

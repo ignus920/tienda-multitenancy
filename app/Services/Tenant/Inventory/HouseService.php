@@ -2,14 +2,11 @@
 
 namespace App\Services\Tenant\Inventory;
 
-use App\Models\Tenant\Items\Category;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
+use App\Models\Tenant\Items\House;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
-use Carbon\Carbon;
 
-class CategoriesService
+class HouseService
 {
     private function ensureTenantConnection()
     {
@@ -34,12 +31,12 @@ class CategoriesService
         tenancy()->initialize($tenant);
     }
 
-    public function createCategory(array $data){
+    public function createHouse(array $data){
 
         $this->ensureTenantConnection();
 
         // Crear la categoría
-        return Category::create([
+        return House::create([
             'name' => $data['name'],
             'status' => $data['status'] ?? 1,
             // Agregar otros campos si es necesario
@@ -48,27 +45,18 @@ class CategoriesService
 
     public function getActiveCategories()
     {
-        return Category::where('status', 1)
+        return House::where('status', 1)
             ->orderBy('name')
             ->get();
     }
 
-    public function categoryExists($name)
+    public function houseExists($name)
     {
-        return Category::where('name', $name)->exists();
-    }
-
-
-    public function deleteCategory($id)
-    {
-        $category = Category::findOrFail($id);
-        $category->delete();
-
-        return $category;
+        return House::where('name', $name)->exists();
     }
 
     public function getCategory($id)
     {
-        return Category::findOrFail($id);
+        return House::findOrFail($id);
     }
 }

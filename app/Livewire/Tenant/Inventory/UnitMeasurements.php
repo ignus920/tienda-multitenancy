@@ -4,37 +4,38 @@ namespace App\Livewire\Tenant\Inventory;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Tenant\Items\Category;
+use App\Models\Tenant\Items\UnitMeasurements as UnitMeasurementsModel;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Carbon\Carbon;
 
-class Categories extends Component
-{   
+class UnitMeasurements extends Component
+{
     use WithPagination;
-    
-    public $category_id,$name, $status, $created_at;
+
+    public $unit_id, $description, $status, $quantity, $created_at;
 
     //Propiedades para la tabla
     public $search = '';
-    public $sortField = 'name';
+    public $sortField = 'description';
     public $sortDirection = 'asc';
     public $showModal = false;
-    public $confirmingItemDeletion = false;
-    public $categorieIdToDelete;
+    public $confirmingUnitDeletion = false;
+    public $unitIdToDelete;
     public $perPage = 10;
 
     protected $rules =[
-        'name' => 'required|min:3',
+        'description' => 'required|min:3',
+        'quantity' => 'required|min:1',
     ];
 
     public function resetForm()
     {
-        $this->name = '';
+        $this->description = '';
+        $this->quantity = '';
         $this->status = '';
         $this->created_at = null;
     }
-
 
     private function ensureTenantConnection()
     {
@@ -78,16 +79,17 @@ class Categories extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types']);
+        $this->resetExcept(['units', 'types']);
         $this->showModal = true;
     }
 
     public function edit($id)
     {
         $this->ensureTenantConnection();
-        $category = Category::findOrFail($id);
-        $this->name = $category->name;
-        $this->category_id=$category->id;
+        $unit = UnitMeasurementsModel::findOrFail($id);
+        $this->description = $unit->description;
+        $this->quantity = $unit->quantity;
+        $this->unit_id=$unit->id;
         $this->showModal = true;
     }
 
@@ -95,10 +97,11 @@ class Categories extends Component
     {
         $this->resetValidation();
         $this->reset([
-            'name'
+            'description',
+            'quantity'
         ]);
         $this->showModal = false;
-        $this->confirmingItemDeletion = false;
+        $this->confirmingUnitDeletion = false;
     }
 
     public function save()
@@ -106,62 +109,63 @@ class Categories extends Component
         $this->ensureTenantConnection();
         $this->validate();
 
-        $categorieData = [
-            'name' => $this->name,
+        $unitData = [
+            'description' => $this->description,
+            'quantity' => $this->quantity,
         ];
 
-        if($this->category_id){
-            $category=Category::findOrFail($this->category_id);
-            $category->update($categorieData);
-            session()->flash('message', 'Categoría actualizada correctamente.');
+        if($this->unit_id){
+            $unit=UnitMeasurementsModel::findOrFail($this->unit_id);
+            $unit->update($unitData);
+            session()->flash('message', 'Unidad de medida actualizada correctamente.');
         }else{
-            Category::create($categorieData);
-            session()->flash('message', 'Categoría creada correctamente.');
+            UnitMeasurementsModel::create($unitData);
+            session()->flash('message', 'Unidad de medida creada correctamente.');
         }
 
         $this->resetValidation();
         $this->reset([
-            'name',
+            'description',
+            'quantity',
         ]);
         $this->showModal = false;
     }
 
-    public function confirmItemDeletion($id)
+    public function confirmUnitDeletion($id)
     {
-        $this->confirmingItemDeletion = true;
-        $this->categorieIdToDelete = $id;
+        $this->confirmingUnitDeletion = true;
+        $this->unitIdToDelete = $id;
     }
 
-    public function deleteItem()
+    public function deleteUnit()
     {
         $this->ensureTenantConnection();
 
-        $categorieData=[
+        $unitData=[
             'status'=>0,
             'deleted_at'=>Carbon::now(),
         ];
 
-        $category=Category::findOrFail($this->categorieIdToDelete);
+        $unit=UnitMeasurementsModel::findOrFail($this->unitIdToDelete);
         //$category->delete();
-        $category->update($categorieData);
-        $this->confirmingItemDeletion = false;
-        $this->reset(['categorieIdToDelete']);
-        session()->flash('message','Item eliminado correctamente');
+        $unit->update($unitData);
+        $this->confirmingUnitDeletion = false;
+        $this->reset(['unitIdToDelete']);
+        session()->flash('message','Unidad de medida eliminada correctamente');
     }
-
 
     public function render()
     {
         $this->ensureTenantConnection();
-        $categories= Category::query()
+        $units=UnitMeasurementsModel::query()
              ->where('status', 1)
             ->when($this->search, function($query){
-                $query->where('name', 'like', '%' . $this->search . '%');
+                $query->where('description', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
-        return view('livewire.tenant.inventory.categories',[
-            'categories' => $categories
+        return view('livewire.tenant.inventory.unit-measurements',[
+            'units' => $units
         ]);
     }
 }

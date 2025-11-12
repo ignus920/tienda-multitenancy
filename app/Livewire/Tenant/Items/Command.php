@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Items;
 
 use Livewire\Component;
 use App\Models\Tenant\Items\Command  as CommandModel;
+use App\Services\Tenant\Inventory\CommandsServices;
 use Livewire\Attributes\On;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
@@ -17,6 +18,11 @@ class Command extends Component
     public $required = true;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
+
+    public $newCommandName = '';
+    public $showCommandForm = false;
+
+    protected $listeners = ['refreshCommands' => '$refresh'];
 
     public function mount($commandId = '', $name = 'commandId', $placeholder = 'Seleccione una comanda', $label = 'Comanda', $required = true, $showLabel = true, $class = null)
     {
@@ -33,6 +39,15 @@ class Command extends Component
 
     public function updatedCommandId(){
         $this->dispatch('command-changed', $this->commandId);
+    }
+
+    public function toggleCommandForm()
+    {
+        $this->showCommandForm = !$this->showCommandForm;
+        if ($this->showCommandForm) {
+            $this->newCommandName = '';
+            $this->resetErrorBag();
+        }
     }
 
     public function getCommandsProperty()
@@ -63,6 +78,40 @@ class Command extends Component
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+    }
+
+    public function createCommand()
+    {   
+        
+         $this->validate([
+             'newCommandName' => 'required'
+         ]);
+        
+        try {
+
+            $commandService = app(CommandsServices::class);
+            $this->ensureTenantConnection();
+            $command = $commandService->createCommand([
+                'name' => $this->newCommandName,
+                'print_path' => 'http://127.0.0.1:8000/inventory/commands',
+                'status' => 1,
+            ]);
+
+            // Resetear el formulario
+            $this->showCommandForm = false;
+            $this->newCommandName = '';
+
+            // Emitir eventos
+            $this->dispatch('command-created', commandId: $command->id);
+            $this->dispatch('refreshCommands'); // Refrescar este componente
+            
+            // Opcional: Seleccionar automáticamente la nueva categoría
+            $this->commandId = $command->id;
+            $this->updatedCommandId();
+
+        } catch (\Exception $e) {
+            $this->addError('newCommandName', 'Error al crear la commanda: ' . $e->getMessage());
+        }
     }
 
     public function render()

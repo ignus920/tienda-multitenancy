@@ -197,7 +197,10 @@ new class extends Component
     >
         <a href="{{url('/items/items')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
         <a href="{{url('/inventory/categories')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
-        <a href="#" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
+        <a href="{{url('/inventory/commands')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
+        <a href="{{url('/inventory/brands')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
+        <a href="{{url('/inventory/houses')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Casas</a>
+        <a href="{{url('/inventory/units')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Unidades de Medida</a>
     </div>
 </div>
 

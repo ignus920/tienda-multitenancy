@@ -2,14 +2,13 @@
 
 namespace App\Services\Tenant\Inventory;
 
-use App\Models\Tenant\Items\Category;
+use App\Models\Tenant\Items\Brand;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
-use Carbon\Carbon;
 
-class CategoriesService
+class BrandsService
 {
     private function ensureTenantConnection()
     {
@@ -34,41 +33,26 @@ class CategoriesService
         tenancy()->initialize($tenant);
     }
 
-    public function createCategory(array $data){
+    public function createBrand(array $data){
 
         $this->ensureTenantConnection();
 
-        // Crear la categoría
-        return Category::create([
+        // Crear la marca
+        return Brand::create([
             'name' => $data['name'],
             'status' => $data['status'] ?? 1,
-            // Agregar otros campos si es necesario
         ]);
     }
 
-    public function getActiveCategories()
+    public function getActiveBrands()
     {
-        return Category::where('status', 1)
+        return Brand::where('status', 1)
             ->orderBy('name')
             ->get();
     }
 
-    public function categoryExists($name)
+    public function BrandExists($name)
     {
-        return Category::where('name', $name)->exists();
-    }
-
-
-    public function deleteCategory($id)
-    {
-        $category = Category::findOrFail($id);
-        $category->delete();
-
-        return $category;
-    }
-
-    public function getCategory($id)
-    {
-        return Category::findOrFail($id);
+        return Brand::where('name', $name)->exists();
     }
 }

@@ -84,7 +84,7 @@ class Categories extends Component
     {   
         
          $this->validate([
-             'newCategoryName' => 'required'
+            'newCategoryName' => 'required'
          ]);
         
         try {

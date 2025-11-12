@@ -4,7 +4,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros Categorías</h1>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros Casas</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
                 <button wire:click="create" 
@@ -133,24 +133,24 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @forelse ($categories as $ct)
+                        @forelse ($houses as $hs)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ $ct->id }}
+                                    {{ $hs->id }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    {{ $ct->name }}
+                                    {{ $hs->name }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
-                                        <button wire:click="edit({{ $ct->id }})"
+                                        <button wire:click="edit({{ $hs->id }})"
                                             class="inline-flex items-center px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs font-medium rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors">
                                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
                                             Editar
                                         </button>
-                                        <button wire:click="confirmItemDeletion({{ $ct->id }})"
+                                        <button wire:click="confirmHouseDeletion({{ $hs->id }})"
                                             class="inline-flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
                                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -178,14 +178,14 @@
             </div>
 
             <!-- Paginación -->
-            @if($categories->hasPages())
+            @if($houses->hasPages())
             <div class="bg-white dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
                 <div class="flex items-center justify-between">
                     <div class="text-sm text-gray-700 dark:text-gray-300">
-                        Mostrando {{ $items->firstItem() }} a {{ $items->lastItem() }} de {{ $items->total() }} resultados
+                        Mostrando {{ $houses->firstItem() }} a {{ $houses->lastItem() }} de {{ $houses->total() }} resultados
                     </div>
                     <div>
-                        {{ $items->links() }}
+                        {{ $houses->links() }}
                     </div>
                 </div>
             </div>
@@ -216,7 +216,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $category_id ? 'Editar Categoria' : 'Crear Categoría' }}
+                        {{ $house_id ? 'Editar Categoria' : 'Crear Categoría' }}
                     </h3>
                 </div>
 
@@ -231,7 +231,7 @@
                     </div>
                     <div class="flex justify-end space-x-2">
                         <button type="button" wire:click="cancel" class="px-3 py-1 border rounded">Cancelar</button>
-                        <button type="submit" class="px-3 py-1 bg-indigo-600 text-white rounded">{{ $category_id ? 'Actualizar' : 'Crear' }}</button>
+                        <button type="submit" class="px-3 py-1 bg-indigo-600 text-white rounded">{{ $house_id ? 'Actualizar' : 'Crear' }}</button>
                     </div>
                 </form>
             </div>
@@ -240,15 +240,16 @@
     @endif
 
     <!-- Delete confirmation (simple) -->
-    <div x-data="{ open: @entangle('confirmingItemDeletion') }" x-show="open" style="display:none;" class="fixed inset-0 z-50 flex items-center justify-center">
+    <div x-data="{ open: @entangle('confirmingHouseDeletion') }" x-show="open" style="display:none;" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="fixed inset-0 bg-black opacity-50"></div>
         <div class="bg-white rounded shadow p-6 z-50 w-full max-w-md">
             <h4 class="text-lg font-medium mb-4">Confirmar eliminación</h4>
-            <p class="mb-4">¿Deseas eliminar esta categoría?</p>
+            <p class="mb-4">¿Deseas eliminar esta casa?</p>
             <div class="flex justify-end space-x-2">
                 <button type="button" wire:click="cancel" class="px-3 py-1 border rounded">Cancelar</button>
-                <button type="button" wire:click="deleteItem" class="px-3 py-1 bg-red-600 text-white rounded">Eliminar</button>
+                <button type="button" wire:click="deleteHouse" class="px-3 py-1 bg-red-600 text-white rounded">Eliminar</button>
             </div>
         </div>
     </div>
 </div>
+

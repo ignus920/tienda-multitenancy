@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Tenant\Inventory;
 
+use App\Livewire\Tenant\Items\Brand as ItemsBrand;
 use Livewire\Component;
 use App\Models\Tenant\Items\Brand as BrandModel;
 use App\Services\Tenant\TenantManager;
@@ -18,7 +19,7 @@ class Brand extends Component
     public $sortDirection = 'asc';
     public $showModal = false;
     public $confirmingItemDeletion = false;
-    public $categorieIdToDelete;
+    public $brandIdToDelete;
     public $perPage = 10;
 
     protected $rules =[
@@ -74,7 +75,7 @@ class Brand extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types']);
+        $this->resetExcept(['brands', 'types']);
         $this->showModal = true;
     }
 
@@ -87,8 +88,75 @@ class Brand extends Component
         $this->showModal = true;
     }
 
+    public function cancel()
+    {
+        $this->resetValidation();
+        $this->reset([
+            'name'
+        ]);
+        $this->showModal = false;
+        $this->confirmingItemDeletion = false;
+    }
+
+    public function save()
+    {
+        $this->ensureTenantConnection();
+        $this->validate();
+
+        $brandData = [
+            'name' => $this->name,
+        ];
+
+        if($this->brand_id){
+            $brand=BrandModel::findOrFail($this->brand_id);
+            $brand->update($brandData);
+            session()->flash('message', 'Marca actualizada correctamente.');
+        }else{
+            BrandModel::create($brandData);
+            session()->flash('message', 'Marca creada correctamente.');
+        }
+
+        $this->resetValidation();
+        $this->reset([
+            'name',
+        ]);
+        $this->showModal = false;
+    }
+
+    public function confirmItemDeletion($id)
+    {
+        $this->confirmingItemDeletion = true;
+        $this->brandIdToDelete = $id;
+    }
+
+    public function deleteBrand()
+    {
+        $this->ensureTenantConnection();
+
+        $brandData=[
+            'status'=>0,
+            'deleted_at'=>Carbon::now(),
+        ];
+
+        $brand=BrandModel::findOrFail($this->brandIdToDelete);
+        $brand->update($brandData);
+        $this->confirmingItemDeletion = false;
+        $this->reset(['brandIdToDelete']);
+        session()->flash('message','Marca eliminada correctamente');
+    }
+
     public function render()
     {
-        return view('livewire.tenant.inventory.brand');
+        $this->ensureTenantConnection();
+        $brands=BrandModel::query()
+            ->where('status', 1)
+            ->when($this->search, function($query){
+                $query->where('name', 'like', '%' . $this->search . '%');
+            })
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate($this->perPage);
+        return view('livewire.tenant.inventory.brand',[
+            'brands' => $brands
+        ]);
     }
 }

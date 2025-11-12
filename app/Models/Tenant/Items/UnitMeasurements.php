@@ -15,6 +15,8 @@ class UnitMeasurements extends Model
 
     protected $fillable = [
         'description',
+        'quantity',
         'status',
+        'deleted_at',
     ];
 }

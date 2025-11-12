@@ -17,5 +17,8 @@ class Brand extends Model
     protected $fillable = [
         'name',
         'status',
+        'createdAt',
+        'updatedAt',
+        'deletedAt'
     ];
 }

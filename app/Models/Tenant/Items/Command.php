@@ -4,7 +4,6 @@ namespace App\Models\Tenant\Items;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Tenant\Items\Items;
 
 class Command extends Model
 {
@@ -18,6 +17,7 @@ class Command extends Model
         'name',
         'print_path',
         'status',
+        'deleted_at'
     ];
 
 }

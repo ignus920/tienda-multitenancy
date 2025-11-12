@@ -2,14 +2,13 @@
 
 namespace App\Services\Tenant\Inventory;
 
-use App\Models\Tenant\Items\Category;
+use App\Models\Tenant\Items\Command;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
-use Carbon\Carbon;
 
-class CategoriesService
+class CommandsServices
 {
     private function ensureTenantConnection()
     {
@@ -34,41 +33,27 @@ class CategoriesService
         tenancy()->initialize($tenant);
     }
 
-    public function createCategory(array $data){
+    public function createCommand(array $data){
 
         $this->ensureTenantConnection();
 
-        // Crear la categoría
-        return Category::create([
+        // Crear la comanda
+        return Command::create([
             'name' => $data['name'],
+            'print_path' => 'http://127.0.0.1:8000/inventory/commands',
             'status' => $data['status'] ?? 1,
-            // Agregar otros campos si es necesario
         ]);
     }
 
-    public function getActiveCategories()
+    public function getActiveCommands()
     {
-        return Category::where('status', 1)
+        return Command::where('status', 1)
             ->orderBy('name')
             ->get();
     }
 
-    public function categoryExists($name)
+    public function commandExists($name)
     {
-        return Category::where('name', $name)->exists();
-    }
-
-
-    public function deleteCategory($id)
-    {
-        $category = Category::findOrFail($id);
-        $category->delete();
-
-        return $category;
-    }
-
-    public function getCategory($id)
-    {
-        return Category::findOrFail($id);
+        return Command::where('name', $name)->exists();
     }
 }

@@ -4,24 +4,24 @@ namespace App\Livewire\Tenant\Inventory;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Tenant\Items\Category;
+use App\Models\Tenant\Items\House as HouseModel;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Carbon\Carbon;
 
-class Categories extends Component
-{   
+class House extends Component
+{
     use WithPagination;
     
-    public $category_id,$name, $status, $created_at;
+    public $house_id,$name, $status, $created_at;
 
     //Propiedades para la tabla
     public $search = '';
     public $sortField = 'name';
     public $sortDirection = 'asc';
     public $showModal = false;
-    public $confirmingItemDeletion = false;
-    public $categorieIdToDelete;
+    public $confirmingHouseDeletion = false;
+    public $houseIdToDelete;
     public $perPage = 10;
 
     protected $rules =[
@@ -34,7 +34,6 @@ class Categories extends Component
         $this->status = '';
         $this->created_at = null;
     }
-
 
     private function ensureTenantConnection()
     {
@@ -78,16 +77,16 @@ class Categories extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types']);
+        $this->resetExcept(['houses', 'types']);
         $this->showModal = true;
     }
 
     public function edit($id)
     {
         $this->ensureTenantConnection();
-        $category = Category::findOrFail($id);
-        $this->name = $category->name;
-        $this->category_id=$category->id;
+        $house = HouseModel::findOrFail($id);
+        $this->name = $house->name;
+        $this->house_id=$house->id;
         $this->showModal = true;
     }
 
@@ -98,7 +97,7 @@ class Categories extends Component
             'name'
         ]);
         $this->showModal = false;
-        $this->confirmingItemDeletion = false;
+        $this->confirmingHouseDeletion = false;
     }
 
     public function save()
@@ -106,17 +105,17 @@ class Categories extends Component
         $this->ensureTenantConnection();
         $this->validate();
 
-        $categorieData = [
+        $houseData = [
             'name' => $this->name,
         ];
 
-        if($this->category_id){
-            $category=Category::findOrFail($this->category_id);
-            $category->update($categorieData);
-            session()->flash('message', 'Categoría actualizada correctamente.');
+        if($this->house_id){
+            $house=HouseModel::findOrFail($this->house_id);
+            $house->update($houseData);
+            session()->flash('message', 'Casa actualizada correctamente.');
         }else{
-            Category::create($categorieData);
-            session()->flash('message', 'Categoría creada correctamente.');
+            HouseModel::create($houseData);
+            session()->flash('message', 'Casa creada correctamente.');
         }
 
         $this->resetValidation();
@@ -126,42 +125,41 @@ class Categories extends Component
         $this->showModal = false;
     }
 
-    public function confirmItemDeletion($id)
+    public function confirmHouseDeletion($id)
     {
-        $this->confirmingItemDeletion = true;
-        $this->categorieIdToDelete = $id;
+        $this->confirmingHouseDeletion = true;
+        $this->houseIdToDelete = $id;
     }
 
-    public function deleteItem()
+    public function deleteHouse()
     {
         $this->ensureTenantConnection();
 
-        $categorieData=[
+        $houseData=[
             'status'=>0,
             'deleted_at'=>Carbon::now(),
         ];
 
-        $category=Category::findOrFail($this->categorieIdToDelete);
+        $house=HouseModel::findOrFail($this->houseIdToDelete);
         //$category->delete();
-        $category->update($categorieData);
-        $this->confirmingItemDeletion = false;
-        $this->reset(['categorieIdToDelete']);
-        session()->flash('message','Item eliminado correctamente');
+        $house->update($houseData);
+        $this->confirmingHouseDeletion = false;
+        $this->reset(['houseIdToDelete']);
+        session()->flash('message','Casa eliminada correctamente');
     }
 
-
     public function render()
-    {
+    {   
         $this->ensureTenantConnection();
-        $categories= Category::query()
-             ->where('status', 1)
+        $houses=HouseModel::query()
+         ->where('status', 1)
             ->when($this->search, function($query){
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
-        return view('livewire.tenant.inventory.categories',[
-            'categories' => $categories
+        return view('livewire.tenant.inventory.house',[
+            'houses' => $houses
         ]);
     }
 }

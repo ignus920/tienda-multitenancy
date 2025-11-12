@@ -10,6 +10,10 @@ use App\Models\Tenant\Items\Category;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\Inventory\CategoriesService; 
+use App\Services\Tenant\Inventory\CommandsServices;
+use App\Services\Tenant\Inventory\BrandsService;
+use App\Services\Tenant\Inventory\HouseService;
+use Carbon\Carbon;
 
 class ManageItems extends Component
 {
@@ -18,7 +22,9 @@ class ManageItems extends Component
 
     protected $listeners = [
         'command-changed' => 'onCommandSelected',
+        'command-created' => 'refreshCommands',
         'brand-changed' => 'onBrandSelected',
+        'brand-created' => 'refreshBrands',
         'house-changed' => 'onHouseSelected',
         'purchase-unit-changed' => 'onPurchaseUnitSelected',
         'consumption-unit-changed' => 'onConsumptionUnitSelected',
@@ -39,6 +45,7 @@ class ManageItems extends Component
     public $houseId;
     public $purchase_unit;
     public $consumption_unit;
+    public $generic=1;
     
     // Propiedades para la tabla
     public $search = '';
@@ -52,6 +59,10 @@ class ManageItems extends Component
     //Información para categorias
     public $showCategoryInput = false;
     public $newCategoryName = '';
+
+    //Información para comandas
+    public $showCommandInput = false;
+    public $newCommandName = '';
 
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
@@ -154,7 +165,10 @@ class ManageItems extends Component
         ]);
     }
 
-    
+    public function toggleGeneric()
+    {
+        $this->generic = $this->generic ? 0 : 1;
+    }
 
     public function create()
     {
@@ -185,6 +199,7 @@ class ManageItems extends Component
         $this->houseId = $item->houseId;
         $this->purchase_unit = $item->purchasing_unit;
         $this->consumption_unit = $item->consumption_unit;
+        $this->generic = $item->generic ?? 1;
         
         $this->showModal = true;
     }
@@ -207,6 +222,7 @@ class ManageItems extends Component
             'purchasing_unit' => $this->purchase_unit,
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
+            'generic' => $this->generic,
         ];
 
         if ($this->item_id) {
@@ -247,7 +263,13 @@ class ManageItems extends Component
     {
         $this->ensureTenantConnection();
 
-        Items::find($this->itemIdToDelete)->delete();
+        $itemData=[
+            'status'=>0,
+            'deleted_at'=>Carbon::now(),
+        ];
+
+        $item=Items::findOrFail($this->itemIdToDelete);
+        $item->update($itemData);
         $this->confirmingItemDeletion = false;
         $this->reset(['itemIdToDelete']);
         session()->flash('message', 'Item eliminado correctamente');
@@ -350,30 +372,31 @@ class ManageItems extends Component
         $this->ensureTenantConnection();
         try {
             // Usar el servicio para crear la categoría
-            $categoryService = app(CategoriesService::class);
-            $category = $categoryService->createCategory([
-                'name' => $this->newCategoryName,
+            $commandService = app(CommandsServices::class);
+            $command = $commandService->createCommand([
+                'name' => $this->newCommandName,
+                'print_path' => 'http://127.0.0.1:8000/inventory/commands',
                 'status' => 1,
             ]);
 
             // Actualizar la lista de categorías y seleccionar la nueva
-            $this->category_id = $category->id;
+            $this->commandId = $command->id;
             
             // Resetear el formulario de categoría
-            $this->showCategoryInput = false;
-            $this->newCategoryName = '';
+            $this->showCommandInput = false;
+            $this->newCommandName = '';
             
             // Emitir evento para actualizar componentes
-            $this->dispatch('category-created', categoryId: $category->id);
+            $this->dispatch('command-created', commandId: $command->id);
             
             // Mostrar mensaje de éxito
-            session()->flash('category_message', 'Categoría creada exitosamente!');
+            session()->flash('command_message', 'Comanda creada exitosamente!');
             
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Pasar los errores de validación al componente
-            $this->addError('newCategoryName', $e->validator->errors()->first('name'));
+            $this->addError('newCommandName', $e->validator->errors()->first('name'));
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear la categoría: ' . $e->getMessage());
+            session()->flash('error', 'Error al crear la comanda: ' . $e->getMessage());
         }
     }
 
@@ -401,6 +424,75 @@ class ManageItems extends Component
                 $this->addError('newCategoryName', 'Esta categoría ya existe.');
             } else {
                 $this->resetErrorBag('newCategoryName');
+            }
+        }
+    }
+
+    //============COMANDAS========================//
+    public function toggleCommandInput()
+    {
+        $this->showCommandInput = ! $this->showCommandInput;
+        if ($this->showCommandInput) {
+            $this->resetValidation();
+            $this->newCommandName = '';
+        }
+    }
+
+    public function saveCommand(){
+        $this->ensureTenantConnection();
+        try {
+            // Usar el servicio para crear la categoría
+            $categoryService = app(CategoriesService::class);
+            $category = $categoryService->createCategory([
+                'name' => $this->newCommandName,
+                'status' => 1,
+            ]);
+
+            // Actualizar la lista de categorías y seleccionar la nueva
+            $this->category_id = $category->id;
+            
+            // Resetear el formulario de categoría
+            $this->showCommandInput = false;
+            $this->newCommandName = '';
+            
+            // Emitir evento para actualizar componentes
+            $this->dispatch('category-created', categoryId: $category->id);
+            
+            // Mostrar mensaje de éxito
+            session()->flash('category_message', 'Categoría creada exitosamente!');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Pasar los errores de validación al componente
+            $this->addError('newCommandName', $e->validator->errors()->first('name'));
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al crear la categoría: ' . $e->getMessage());
+        }
+    }
+
+    // Método para refrescar categorías
+    public function refreshCommands($commandId = null)
+    {
+        // Forzar la recarga de categorías en el próximo render
+        $this->dispatch('$refresh');
+        
+        if ($commandId) {
+            $this->commandId = $commandId;
+            // También emitir el cambio para sincronizar
+            $this->dispatch('command-changed', $commandId);
+        }
+    }
+
+    // Método para verificar si una categoría existe
+    public function checkCommandExists()
+    {
+        if ($this->newCommandName) {
+            $commandService = app(CommandsServices::class);
+            $exists = $commandService->commandExists($this->newCommandName);
+            
+            if ($exists) {
+                $this->addError('newCommandName', 'Esta comanda ya existe.');
+            } else {
+                $this->resetErrorBag('newCommandName');
             }
         }
     }

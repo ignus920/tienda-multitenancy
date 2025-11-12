@@ -16,5 +16,6 @@ class House extends Model
     protected $fillable = [
         'name',
         'status',
+        'deleted_at'
     ];
 }

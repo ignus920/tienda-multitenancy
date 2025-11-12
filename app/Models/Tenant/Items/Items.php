@@ -27,6 +27,8 @@ class Items extends Model
         'purchasing_unit',
         'consumption_unit',
         'status',
+        'generic',
+        'deleted_at',
     ];
 
     
