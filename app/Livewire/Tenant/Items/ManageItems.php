@@ -4,11 +4,13 @@ namespace App\Livewire\Tenant\Items;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Validation\Rule;
+//Modelos
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\Category;
-use App\Services\Tenant\TenantManager;
+use App\Models\Tenant\Items\Inv_values;
 use App\Models\Auth\Tenant;
+//Servicios
+use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Inventory\CategoriesService; 
 use App\Services\Tenant\Inventory\CommandsServices;
 use App\Services\Tenant\Inventory\BrandsService;
@@ -64,13 +66,27 @@ class ManageItems extends Component
     public $showCommandInput = false;
     public $newCommandName = '';
 
+    //Información precios
+    public $showValuesSection = false;
+    public $valueItem = 0;
+    public $typeValue;
+    public $labelValue;
+
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
         'COMBO' => 'Combo',
-        'COMPRA_NACIONAL' => 'Compra nacional',
+        'COMPRA NACIONAL' => 'Compra nacional',
         'IMPORTADO' => 'Importado',
         'PRODUCIDO' => 'Producido',
+    ];
+
+    public $labelsValues = [
+        'Costo Inicial' => 'Costo Inicial',
+        'Costo' => 'Costo',
+        'Precio Base' => 'Precio Base',
+        'Precio Regular' => 'Precio Regular',
+        'Precio Crédito' => 'Precio Crédito',
     ];
 
     protected $rules =[
@@ -223,6 +239,7 @@ class ManageItems extends Component
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
             'generic' => $this->generic,
+
         ];
 
         if ($this->item_id) {
@@ -230,7 +247,9 @@ class ManageItems extends Component
             $item->update($itemData);
             session()->flash('message', 'Item actualizado correctamente.');
         } else {
-            Items::create($itemData);
+            $newItem=Items::create($itemData);
+            $item_id=$newItem->id;
+            $this->SaveValueItem($item_id);
             session()->flash('message', 'Item creado correctamente.');
         }
 
@@ -294,6 +313,28 @@ class ManageItems extends Component
         ]);
         $this->showModal = false;
         $this->confirmingItemDeletion = false;
+    }
+
+    public function toggleValuesForm()
+    {
+        $this->showValuesSection=true;
+    }
+
+    public function SaveValueItem($idItem)
+    {
+        $this->ensureTenantConnection();
+        $this->validate();    
+
+        $itemValueData=[
+            'date' => Carbon::now(),
+            'values' => $this->valueItem,
+            'type' => $this->typeValue,
+            'itemId' => $idItem,
+            'warehouseId' => 1,
+            'label' => $this->labelValue
+        ];
+
+        Inv_values::create($itemValueData);
     }
 
     public function onCategorySelected($value)
