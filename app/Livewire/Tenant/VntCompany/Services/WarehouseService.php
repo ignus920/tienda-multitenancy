@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Tenant\VntCompany\Services;
 
-use App\Models\Tenant\VntCompany;
-use App\Models\Tenant\VntWarehouse;
+use App\Models\Tenant\Customer\VntCompany;
+use App\Models\Tenant\Customer\VntWarehouse;
 
 class WarehouseService
 {
@@ -230,5 +230,17 @@ class WarehouseService
             'main' => $warehouseData['main'] ? 1 : 0,
             'status' => 1,
         ]);
+    }
+
+    /**
+     * Toggle warehouse status
+     */
+    public function toggleWarehouseStatus(int $warehouseId): void
+    {
+        $warehouse = VntWarehouse::findOrFail($warehouseId);
+        
+        // Toggle warehouse status
+        $newStatus = $warehouse->status ? 0 : 1;
+        $warehouse->update(['status' => $newStatus]);
     }
 }

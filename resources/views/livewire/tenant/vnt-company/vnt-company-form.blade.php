@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-12xl mx-auto">
         <!-- Header -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -134,7 +134,8 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sucursal</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Dirección</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Teléfono</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Registro</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -159,14 +160,44 @@
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $item->mainWarehouse?->contacts->first()?->business_phone ?? 'N/A' }}
                                 <br>
-                                {{ $item->mainWarehouse?->contacts->first()?->business_phone ?? 'N/A' }}
-                               
+                                {{ $item->mainWarehouse?->contacts->first()?->personal_phone ?? 'N/A' }}
+
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $item->created_at->format('d/m/Y H:i') }}
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
+                                <!-- Estado Toggle -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <!-- Toggle Switch -->
+                                        <button type="button"
+                                            wire:click="toggleItemStatus({{ $item->id }})"
+                                            class="relative inline-flex h-4 w-8 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $item->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
+                                            role="switch"
+                                            aria-checked="{{ $item->status ? 'true' : 'false' }}"
+                                            aria-label="Toggle company status">
+                                            <span class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out {{ $item->status ? 'translate-x-4' : 'translate-x-1' }}"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div class="flex items-center justify-center gap-2">
+                                      <button wire:click="openWarehouseModal({{ $item->id }})"
+                                        class="inline-flex items-center px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                        Sucursales
+                                    </button>
+                                      <button wire:click="openContactModal({{ $item->id }})"
+                                        class="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                        Contactos
+                                    </button>
                                     <button wire:click="edit({{ $item->id }})"
                                         class="inline-flex items-center px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs font-medium rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,14 +212,6 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>
                                         Eliminar
-                                    </button>
-                                    <button wire:click="delete({{ $item->id }})"
-                                        wire:confirm="¿Estás seguro de eliminar este registro?"
-                                        class="inline-flex items-center px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                        </svg>
-                                        Sucursal
                                     </button>
                                 </div>
                             </td>
@@ -254,18 +277,18 @@
                 </div>
                 <!-- Alert de Errores de Validación -->
                 @if (session()->has('error'))
-                <div x-data="{ showAlert: true }" 
-                     x-show="showAlert"
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-90"
-                     x-transition:enter-end="opacity-100 transform scale-100"
-                     x-transition:leave="transition ease-in duration-200"
-                     x-transition:leave-start="opacity-100 transform scale-100"
-                     x-transition:leave-end="opacity-0 transform scale-90"
-                     class="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div x-data="{ showAlert: true }"
+                    x-show="showAlert"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 transform scale-90"
+                    x-transition:enter-end="opacity-100 transform scale-100"
+                    x-transition:leave="transition ease-in duration-200"
+                    x-transition:leave-start="opacity-100 transform scale-100"
+                    x-transition:leave-end="opacity-0 transform scale-90"
+                    class="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <div class="flex items-start">
                         <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                         </svg>
                         <div class="flex-1">
                             <h4 class="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
@@ -275,11 +298,11 @@
                                 {!! session('error') !!}
                             </div>
                         </div>
-                        <button type="button" 
-                                @click="showAlert = false" 
-                                class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors">
+                        <button type="button"
+                            @click="showAlert = false"
+                            class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                         </button>
                     </div>
@@ -289,18 +312,6 @@
                 <!-- Form -->
                 <form wire:submit="save" class="p-6 space-y-6">
                     <div class="space-y-6">
-                        <!-- Configuración avanzada -->
-                        @if($editingId)
-                        <div class="flex items-center justify-between">
-                          <button
-                             class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                              </svg>
-                              Configuración Avanzada
-                           </button>
-                        </div>
-                        @endif
                         <!-- Tipo de Identificación -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -332,25 +343,25 @@
                                                @error('identification') border-red-500 @enderror
                                                @if($identificationExists) border-red-500 @endif"
                                         placeholder="123456789" required>
-                                    
+
                                     @if($validatingIdentification)
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                            <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        </div>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
                                     @endif
                                 </div>
-                                
-                                @error('identification') 
-                                    <span class="text-red-500 text-sm">{{ $message }}</span> 
+
+                                @error('identification')
+                                <span class="text-red-500 text-sm">{{ $message }}</span>
                                 @enderror
-                                
+
                                 @if($identificationExists && !$errors->has('identification'))
-                                    <span class="text-red-500 text-sm">
-                                        Este número de identificación ya está registrado
-                                    </span>
+                                <span class="text-red-500 text-sm">
+                                    Este número de identificación ya está registrado
+                                </span>
                                 @endif
                             </div>
                             <div>
@@ -382,25 +393,25 @@
                                            @error('identification') border-red-500 @enderror
                                            @if($identificationExists) border-red-500 @endif"
                                     placeholder="Ingrese el número">
-                                
+
                                 @if($validatingIdentification)
-                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                        <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                    </div>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
                                 @endif
                             </div>
-                            
-                            @error('identification') 
-                                <span class="text-red-500 text-sm">{{ $message }}</span> 
+
+                            @error('identification')
+                            <span class="text-red-500 text-sm">{{ $message }}</span>
                             @enderror
-                            
+
                             @if($identificationExists && !$errors->has('identification'))
-                                <span class="text-red-500 text-sm">
-                                    Este número de identificación ya está registrado
-                                </span>
+                            <span class="text-red-500 text-sm">
+                                Este número de identificación ya está registrado
+                            </span>
                             @endif
                         </div>
                         @endif
@@ -455,45 +466,45 @@
                         </div>
 
                         <div>
-       <!-- Selects para configuraciones fiscales -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Régimen -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Régimen <span class="text-red-500">*</span>
-                                </label>
-                                @livewire('selects.regime-select', [
-                                'regimeId' => $regimeId,
-                                'name' => 'regimeId',
-                                'label' => '',
-                                'showLabel' => false,
-                                'placeholder' => 'Seleccionar régimen',
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                ])
-                                @error('regimeId')
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
+                            <!-- Selects para configuraciones fiscales -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Régimen -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Régimen <span class="text-red-500">*</span>
+                                    </label>
+                                    @livewire('selects.regime-select', [
+                                    'regimeId' => $regimeId,
+                                    'name' => 'regimeId',
+                                    'label' => '',
+                                    'showLabel' => false,
+                                    'placeholder' => 'Seleccionar régimen',
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                    ])
+                                    @error('regimeId')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <!-- Responsabilidad Fiscal -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Responsabilidad Fiscal <span class="text-red-500">*</span>
+                                    </label>
+                                    @livewire('selects.fiscal-responsibility-select', [
+                                    'fiscalResponsibilityId' => $fiscalResponsabilityId,
+                                    'name' => 'fiscalResponsibilityId',
+                                    'label' => '',
+                                    'showLabel' => false,
+                                    'placeholder' => 'Seleccionar responsabilidad fiscal',
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                    ])
+                                    @error('fiscalResponsabilityId')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
                             </div>
 
-                            <!-- Responsabilidad Fiscal -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Responsabilidad Fiscal <span class="text-red-500">*</span>
-                                </label>
-                                @livewire('selects.fiscal-responsibility-select', [
-                                'fiscalResponsibilityId' => $fiscalResponsabilityId,
-                                'name' => 'fiscalResponsibilityId',
-                                'label' => '',
-                                'showLabel' => false,
-                                'placeholder' => 'Seleccionar responsabilidad fiscal',
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                ])
-                                @error('fiscalResponsabilityId')
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-                                                         
                         </div>
                         @endif
                         @else()
@@ -579,15 +590,15 @@
                         <!-- Ciudad de la Sucursal -->
                         <div>
                             @livewire('selects.city-select', [
-                                'cityId' => $warehouseCityId ?? '',
-                                'countryId' => 48,
-                                'name' => 'warehouseCityId',
-                                'placeholder' => 'Seleccionar ciudad',
-                                'label' => 'Ciudad',
-                                'required' => true,
-                                'showLabel' => true,
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
-                                'index' => 0
+                            'cityId' => $warehouseCityId ?? '',
+                            'countryId' => 48,
+                            'name' => 'warehouseCityId',
+                            'placeholder' => 'Seleccionar ciudad',
+                            'label' => 'Ciudad',
+                            'required' => true,
+                            'showLabel' => true,
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                            'index' => 0
                             ], key('city-select-warehouse'))
                         </div>
 
@@ -632,29 +643,39 @@
                                 </span>
                             </div>
                         </div>
-                    <!-- Actions -->
-                    <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <button type="button"
-                            wire:click="$set('showModal', false)"
-                            class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors order-2 sm:order-1">
-                            Cancelar
-                        </button>
-                        <button type="submit"
-                            wire:loading.attr="disabled"
-                            class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
-                            <span wire:loading.remove>{{ $editingId ? 'Actualizar' : 'Crear' }}</span>
-                            <span wire:loading class="flex items-center">
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Guardando...
-                            </span>
-                        </button>
-                    </div>
+                        <!-- Actions -->
+                        <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button"
+                                wire:click="$set('showModal', false)"
+                                class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors order-2 sm:order-1">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                wire:loading.attr="disabled"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
+                                <span wire:loading.remove>{{ $editingId ? 'Actualizar' : 'Crear' }}</span>
+                                <span wire:loading class="flex items-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Guardando...
+                                </span>
+                            </button>
+                        </div>
                 </form>
             </div>
         </div>
     </div>
+    @endif
+
+    <!-- Warehouse Management Modal -->
+    @if($showWarehouseModal && $selectedCompanyId)
+    @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCompanyId], key('warehouse-modal-' . $selectedCompanyId))
+    @endif
+
+    <!-- Contact Management Modal -->
+    @if($showContactModal && $selectedCompanyIdForContacts)
+    @livewire('tenant.vnt-company.contact-management-modal', ['companyId' => $selectedCompanyIdForContacts], key('contact-modal-' . $selectedCompanyIdForContacts))
     @endif
 </div>

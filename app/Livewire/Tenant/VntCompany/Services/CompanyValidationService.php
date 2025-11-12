@@ -218,7 +218,7 @@ class CompanyValidationService
         ?int $excludeId = null
     ): bool {
         $this->ensureTenantConnection();
-        $query = \App\Models\Tenant\VntCompany::where('typeIdentificationId', $typeIdentificationId)
+        $query = \App\Models\Tenant\Customer\VntCompany::where('typeIdentificationId', $typeIdentificationId)
             ->where('identification', $identification);
         
         // Exclude current record when editing

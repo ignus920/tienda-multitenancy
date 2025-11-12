@@ -26,7 +26,9 @@ class VntCompanyForm extends Component
         'regime-changed' => 'updateRegime',
         'fiscal-responsibility-changed' => 'updateFiscalResponsibility',
         'city-changed' => 'updateWarehouseCity',
-        'position-changed' => 'updatePosition'
+        'position-changed' => 'updatePosition',
+        'warehouse-modal-closed' => 'handleWarehouseModalClosed',
+        'contact-modal-closed' => 'handleContactModalClosed'
     ];
 
     public $search = '';
@@ -35,6 +37,14 @@ class VntCompanyForm extends Component
     public $perPage = 10;
     public $sortField = 'id';
     public $sortDirection = 'desc';
+    
+    // Warehouse modal properties
+    public $showWarehouseModal = false;
+    public $selectedCompanyId = null;
+    
+    // Contact modal properties
+    public $showContactModal = false;
+    public $selectedCompanyIdForContacts = null;
 
     // Propiedades del formulario
     public $businessName = '';
@@ -379,6 +389,30 @@ class VntCompanyForm extends Component
         }
     }
 
+    public function handleWarehouseModalClosed()
+    {
+        $this->showWarehouseModal = false;
+        $this->selectedCompanyId = null;
+    }
+
+    public function openWarehouseModal($companyId)
+    {
+        $this->showWarehouseModal = true;
+        $this->selectedCompanyId = $companyId;
+    }
+
+    public function handleContactModalClosed()
+    {
+        $this->showContactModal = false;
+        $this->selectedCompanyIdForContacts = null;
+    }
+
+    public function openContactModal($companyId)
+    {
+        $this->showContactModal = true;
+        $this->selectedCompanyIdForContacts = $companyId;
+    }
+
     public function exportExcel()
     {
         $result = $this->exportService->exportToExcel($this->search);
@@ -520,6 +554,20 @@ class VntCompanyForm extends Component
     {
         // Convert boolean to integer for database storage
         $this->status = $value ? 1 : 0;
+    }
+
+    /**
+     * Toggle status for a specific company item in the table
+     * Updates status in vnt_companies, vnt_warehouses, and vnt_contacts
+     */
+    public function toggleItemStatus($companyId)
+    {
+        try {
+            $this->companyService->toggleCompanyStatus($companyId);
+            session()->flash('message', 'Estado actualizado exitosamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al actualizar el estado: ' . $e->getMessage());
+        }
     }
 
     /**

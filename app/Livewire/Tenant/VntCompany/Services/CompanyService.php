@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Tenant\VntCompany\Services;
 
-use App\Models\Tenant\VntCompany;
+use App\Models\Tenant\Customer\VntCompany;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Illuminate\Support\Facades\Log;
@@ -92,6 +92,37 @@ class CompanyService
         
         $company = VntCompany::findOrFail($id);
         return $company->delete();
+    }
+
+    /**
+     * Toggle company status and cascade to warehouses and contacts
+     */
+    public function toggleCompanyStatus(int $id): void
+    {
+        $this->ensureTenantConnection();
+        
+        $company = VntCompany::with(['warehouses.contacts'])->findOrFail($id);
+        
+        // Toggle company status
+        $newStatus = $company->status ? 0 : 1;
+        $company->update(['status' => $newStatus]);
+        
+        // Update all warehouses status
+        foreach ($company->warehouses as $warehouse) {
+            $warehouse->update(['status' => $newStatus]);
+            
+            // Update all contacts for this warehouse
+            foreach ($warehouse->contacts as $contact) {
+                $contact->update(['status' => $newStatus]);
+            }
+        }
+        
+        Log::info('Company status toggled', [
+            'company_id' => $id,
+            'new_status' => $newStatus,
+            'warehouses_updated' => $company->warehouses->count(),
+            'contacts_updated' => $company->warehouses->sum(fn($w) => $w->contacts->count())
+        ]);
     }
 
     /**

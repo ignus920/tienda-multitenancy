@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Tenant;
+namespace App\Models\Tenant\Customer;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -118,11 +118,13 @@ class VntWarehouse extends Model
         return $this->hasMany(VntContacts::class, 'warehouseId')->where('status', 1);
     }
 
-    // public function city()
-    // {
-    //     // Asumiendo una relación con un modelo City
-    //     return $this->belongsTo(City::class, 'cityId');
-    // }
+    /**
+     * Relación con la ciudad
+     */
+    public function city()
+    {
+        return $this->belongsTo(\App\Models\Central\CnfCity::class, 'cityId');
+    }
 
     // public function term()
     // {
