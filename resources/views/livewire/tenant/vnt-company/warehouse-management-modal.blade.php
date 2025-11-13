@@ -211,11 +211,6 @@
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                     {{ $warehouse->name }}
-                                    @if($warehouse->main)
-                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                        Principal
-                                    </span>
-                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                     {{ $warehouse->address }}
@@ -228,7 +223,12 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                                     <!-- Estado Toggle -->
-                                    <div class="flex items-center justify-center">
+                                    @if($warehouse->main)
+                                      <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                        Principal
+                                    </span>
+                                    @else
+                                     <div class="flex items-center justify-center">
                                         <button type="button"
                                             wire:click="toggleWarehouseStatus({{ $warehouse->id }})"
                                             class="relative inline-flex h-4 w-8 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $warehouse->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
@@ -238,6 +238,7 @@
                                             <span class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out {{ $warehouse->status ? 'translate-x-4' : 'translate-x-1' }}"></span>
                                         </button>
                                     </div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
@@ -249,14 +250,14 @@
                                             </svg>
                                             Editar
                                         </button>
-                                        <button wire:click="deleteWarehouse({{ $warehouse->id }})"
+                                        <!-- <button wire:click="deleteWarehouse({{ $warehouse->id }})"
                                             wire:confirm="¿Estás seguro de eliminar esta sucursal?"
                                             class="inline-flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
                                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                             </svg>
                                             Eliminar
-                                        </button>
+                                        </button> -->
                                         @else
                                         <span class="text-xs text-gray-500 dark:text-gray-400 italic">
                                             Editar desde formulario principal
@@ -280,6 +281,12 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button wire:click="closeModal" type="button"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Cancelar
+                    </button>
                 </div>
             </div>
         </div>

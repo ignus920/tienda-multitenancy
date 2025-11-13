@@ -13,7 +13,7 @@ class WarehouseService
     public function createWarehouses(VntCompany $company, array $warehouses): void
     {
         foreach ($warehouses as $warehouseData) {
-            if ($this->isValidWarehouseData($warehouseData)) {
+            // if ($this->isValidWarehouseData($warehouseData)) {
                 VntWarehouse::create([
                     'companyId' => $company->id,
                     'name' => $warehouseData['name'],
@@ -23,7 +23,7 @@ class WarehouseService
                     'main' => $warehouseData['main'] ? 1 : 0,
                     'status' => 1,
                 ]);
-            }
+            // }
         }
     }
 
@@ -37,7 +37,7 @@ class WarehouseService
         $company->warehouses()->whereNotIn('id', $existingIds)->delete();
 
         foreach ($warehouses as $warehouseData) {
-            if ($this->isValidWarehouseData($warehouseData)) {
+            // if ($this->isValidWarehouseData($warehouseData)) {
                 if (isset($warehouseData['id'])) {
                     // Actualizar sucursal existente
                     $this->updateExistingWarehouse($warehouseData);
@@ -45,7 +45,7 @@ class WarehouseService
                     // Crear nueva sucursal
                     $this->createNewWarehouse($company, $warehouseData);
                 }
-            }
+            // }
         }
     }
 

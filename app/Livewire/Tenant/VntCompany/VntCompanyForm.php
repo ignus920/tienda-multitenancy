@@ -10,6 +10,9 @@ use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyQueryService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyValidationService;
 use App\Livewire\Tenant\VntCompany\Services\ExportService;
+use App\Models\Central\CnfCity;
+
+use function Faker\Provider\pt_BR\check_digit;
 
 class VntCompanyForm extends Component
 {
@@ -28,7 +31,8 @@ class VntCompanyForm extends Component
         'city-changed' => 'updateWarehouseCity',
         'position-changed' => 'updatePosition',
         'warehouse-modal-closed' => 'handleWarehouseModalClosed',
-        'contact-modal-closed' => 'handleContactModalClosed'
+        'contact-modal-closed' => 'handleContactModalClosed',
+        'citySelected' => 'updateCityName'
     ];
 
     public $search = '';
@@ -81,6 +85,7 @@ class VntCompanyForm extends Component
     public $warehouseCityId = '';
     public $warehouseIsMain = false;
     public $canAddMoreWarehouses = false;
+    public $warehouseCityName = '';
     
     // IDs para actualización (evitar duplicación)
     public $mainWarehouseId = null;
@@ -214,8 +219,8 @@ class VntCompanyForm extends Component
         $this->regimeId = $company->regimeId;
         $this->fiscalResponsabilityId = $company->fiscalResponsabilityId;
         $this->code_ciiu = $company->code_ciiu;
-        $this->checkDigit = $company->checkDigit;
-        $this->verification_digit = $company->checkDigit; // Cargar el DV desde checkDigit
+        $this->checkDigit = (string)$company->checkDigit;
+        $this->verification_digit = (string)$company->checkDigit; // Cargar el DV desde checkDigit
         $this->status = $company->status ?? 1;
         
         // Log detallado de la carga de datos para verificación
@@ -354,14 +359,16 @@ class VntCompanyForm extends Component
         
         // Preparar array de warehouses con los datos del formulario
         $warehouses = [[
-            'id' => $this->mainWarehouseId,
-            'name' => $this->warehouseName,
+            'id' =>  $this->mainWarehouseId,
+            'name' => $this->editingId
+                      ? ($this->warehouseName ?? 'Principal')
+                      : 'Principal',
             'address' => $this->warehouseAddress,
             'postcode' => $this->warehousePostcode,
-            'cityId' => $this->warehouseCityId,
+            'cityId' => $this->warehouseCityId, 
             'main' => true, // Siempre es la sucursal principal
         ]];
-        
+        // dd($warehouses);
         try {
             if ($this->editingId) {
                 $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
@@ -527,15 +534,21 @@ class VntCompanyForm extends Component
         
         // Actualizar warehouseCityId directamente (usado en validación y guardado)
         $this->warehouseCityId = (int) $cityId;
-        
+        $city = \App\Models\Central\CnfCity::find($cityId);
+        $this->warehouseCityName = $city ? $city->name : ''; 
+       
+
+
         // También actualizar en el array de warehouses si existe (para compatibilidad)
         if (isset($this->warehouses[$index])) {
             $this->warehouses[$index]['cityId'] = (int) $cityId;
+             $this->warehouses[$index]['cityName'] = $this->warehouseCityName;
         }
         
         // Log para debugging
         Log::info('City updated', [
             'warehouseCityId' => $this->warehouseCityId,
+            'warehouseCityName' => $this->warehouseCityName,
             'index' => $index
         ]);
     }
@@ -785,7 +798,7 @@ class VntCompanyForm extends Component
             'businessName' => $this->businessName,
             'billingEmail' => $this->billingEmail,
             'typePerson' => $this->typePerson,
-            'checkDigit' => $checkDigit,
+            'checkDigit' => (string)$checkDigit,
             'code_ciiu' => $this->code_ciiu,
             'regimeId' => $this->regimeId,
             'fiscalResponsabilityId' => $this->fiscalResponsabilityId,

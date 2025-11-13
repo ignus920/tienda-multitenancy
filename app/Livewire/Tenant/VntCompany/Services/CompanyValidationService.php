@@ -58,7 +58,7 @@ class CompanyValidationService
             'lastName.required' => 'El apellido es obligatorio para personas naturales.',
             
             // Warehouse (campos individuales)
-            'warehouseName.required' => 'El nombre de la sucursal es obligatorio.',
+            // 'warehouseName.required' => 'El nombre de la sucursal es obligatorio.',
             'warehouseAddress.required' => 'La dirección de la sucursal es obligatoria.',
             'warehousePostcode.max' => 'El código postal no puede tener más de 10 caracteres.',
             
@@ -96,7 +96,7 @@ class CompanyValidationService
             'secondLastName' => 'segundo apellido',
             
             // Warehouse (campos individuales)
-            'warehouseName' => 'nombre de sucursal',
+            // 'warehouseName' => 'nombre de sucursal',
             'warehouseAddress' => 'dirección de sucursal',
             'warehousePostcode' => 'código postal',
             'warehouseCityId' => 'ciudad',
@@ -144,7 +144,7 @@ class CompanyValidationService
             'code_ciiu' => 'nullable|string|max:255',
             'verification_digit' => $verificationDigitRule,
             'warehouses' => 'array',
-            'warehouses.*.name' => 'required|string|max:255',
+            // 'warehouses.*.name' => 'required|string|max:255',
             'warehouses.*.address' => 'required|string|max:255',
             'warehouses.*.postcode' => 'nullable|string|max:10',
             'warehouses.*.cityId' => 'nullable|integer',
@@ -194,7 +194,7 @@ class CompanyValidationService
         
         // Agregar reglas para campos individuales de warehouse
         return array_merge($rules, [
-            'warehouseName' => 'required|string|max:255',
+            // 'warehouseName' => 'required|string|max:255',
             'warehouseAddress' => 'required|string|max:255',
             'warehousePostcode' => 'nullable|string|max:10',
             'warehouseCityId' => 'nullable|integer',
