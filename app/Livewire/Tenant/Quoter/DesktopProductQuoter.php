@@ -8,7 +8,7 @@ use App\Models\Tenant\InvItem;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 
-class ProductQuoter extends Component
+class DesktopProductQuoter extends Component
 {
     use WithPagination;
 

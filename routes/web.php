@@ -12,7 +12,7 @@ use Livewire\Volt\Volt;
 use App\Livewire\Company\UpdateCompany;
 use App\Auth\Middleware\SetTenantConnection;
 use App\Livewire\Tenant\Customers\CustomerManager;
-use App\Livewire\Tenant\Quoter\ProductQuoter;
+use App\Livewire\Tenant\Quoter\DesktopProductQuoter;
 use App\Livewire\Tenant\Quoter\MobileProductQuoter;
 use App\Livewire\Tenant\Quoter\QuoterMobile;
 use App\Livewire\Tenant\Quoter\QuoterDesktop;
@@ -75,7 +75,7 @@ Route::get('/tenant/quoter/mobile', [QuoterController::class, 'mobile'])
     ->name('tenant.quoter.mobile');
 
 // Rutas para creación de cotizaciones (productos)
-Route::get('/tenant/quoter/products/desktop', ProductQuoter::class)
+Route::get('/tenant/quoter/products/desktop', DesktopProductQuoter::class)
     ->middleware('tenant')
     ->name('tenant.quoter.products.desktop');
 
