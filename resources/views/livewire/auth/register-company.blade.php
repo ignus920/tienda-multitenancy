@@ -1,31 +1,4 @@
 <div>
-    <!-- El mensaje de carga ahora se maneja con SweetAlert -->
-
-    @if($successMessage)
-        <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-green-800">{{ $successMessage }}</p>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <button type="button" wire:click="clearForm" class="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors">
-                        Registrar otra empresa
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    <!-- Botones de prueba (TEMPORAL) - Solo se muestran si no hay mensaje de éxito -->
-
-
     <form wire:submit="register" class="space-y-4">
         <!-- Nombre y Apellido -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,13 +149,8 @@
         <x-input-error :messages="$errors->get('accept_terms')" class="mt-2" />
 
         <div class="flex items-center justify-between pt-12">
-            <x-primary-button class="ml-4" wire:loading.attr="disabled">
-                <svg wire:loading wire:target="register" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span wire:loading.remove wire:target="register">Registrarse</span>
-                <span wire:loading wire:target="register">Procesando registro...</span>
+            <x-primary-button class="ml-4" wire:loading.attr="disabled" onclick="showProcessingAlert()">
+                Registrarse
             </x-primary-button>
         </div>
     </form>
@@ -195,43 +163,44 @@ console.log('🔧 Script cargado - Inicializando listeners...');
 let loadingSwal = null;
 let loadingStartTime = null;
 
+// Función para mostrar el SweetAlert inmediatamente al hacer clic en registrar
+window.showProcessingAlert = function() {
+    console.log('⚡ Mostrando alerta de procesamiento inmediatamente...');
+
+    // Guardar el tiempo de inicio
+    loadingStartTime = Date.now();
+
+    // Cerrar cualquier SweetAlert existente primero
+    if (loadingSwal) {
+        loadingSwal.close();
+    }
+
+    loadingSwal = Swal.fire({
+        title: 'Procesando registro...',
+        html: `
+            <div class="text-center">
+                <div class="mb-4">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+                <p class="text-gray-600">Esto puede tomar unos minutos mientras creamos tu empresa.</p>
+                <p class="text-sm text-gray-500 mt-2">Por favor no cierres esta ventana.</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            console.log('🎯 SweetAlert de carga ABIERTO inmediatamente');
+            Swal.showLoading();
+        }
+    });
+};
+
+
+
 document.addEventListener('livewire:init', () => {
     console.log('✅ Livewire inicializado - Configurando listeners');
 
-    // Listener para mostrar loading cuando inicie el registro
-    Livewire.on('registration-started', () => {
-        console.log('⏳ EVENTO RECIBIDO: registration-started - Mostrando SweetAlert de carga...');
-
-        // Guardar el tiempo de inicio
-        loadingStartTime = Date.now();
-
-        // Cerrar cualquier SweetAlert existente primero
-        if (loadingSwal) {
-            loadingSwal.close();
-        }
-
-        loadingSwal = Swal.fire({
-            title: 'Procesando registro...',
-            html: `
-                <div class="text-center">
-                    <div class="mb-4">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                    <p class="text-gray-600">Esto puede tomar unos minutos mientras creamos tu tenant.</p>
-                    <p class="text-sm text-gray-500 mt-2">Por favor no cierres esta ventana.</p>
-                </div>
-            `,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                console.log('🎯 SweetAlert de carga ABIERTO correctamente');
-                Swal.showLoading();
-            }
-        });
-
-        console.log('✅ SweetAlert de carga configurado:', loadingSwal);
-    });
 
     // Listener para completar el registro
     Livewire.on('registration-complete', (event) => {
@@ -318,6 +287,19 @@ document.addEventListener('livewire:init', () => {
     });
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Función de prueba manual para loading
 window.testLoadingAlert = function() {
     console.log('🧪 Probando alerta de carga...');
@@ -339,6 +321,8 @@ window.testLoadingAlert = function() {
         }
     });
 };
+
+
 
 // Función de prueba manual para success
 window.testAlert = function() {
@@ -386,5 +370,6 @@ window.togglePasswordVisibility = function(fieldId) {
         eyeClosed.classList.add('hidden');
     }
 };
+
 </script>
 @endpush
