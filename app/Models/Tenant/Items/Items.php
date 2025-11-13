@@ -14,21 +14,22 @@ class Items extends Model
     protected $table = 'inv_items';
 
     protected $fillable = [
+        'api_data_id',
         'categoryId',
         'name',
         'internal_code',
         'sku',
         'description',
         'type',
+        'taxId',
         'commandId',
         'brandId',
         'houseId',
         'inventoriable',
         'purchasing_unit',
         'consumption_unit',
-        'status',
         'generic',
-        'deleted_at',
+        'status',
     ];
 
     public function brand()
