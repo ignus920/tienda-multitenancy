@@ -45,12 +45,7 @@ Route::get('/tenant/customers', CustomerManager::class)
     ->middleware('tenant')
     ->name('tenant.customers');
 
-    
-
-    
-
-
-
+     
 
 
 // Configuración de 2FA (requiere autenticación y datos completos)
