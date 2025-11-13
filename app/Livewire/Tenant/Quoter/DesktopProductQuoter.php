@@ -4,7 +4,7 @@ namespace App\Livewire\Tenant\Quoter;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Tenant\InvItem;
+use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 
@@ -81,7 +81,7 @@ class DesktopProductQuoter extends Component
     {
         $this->ensureTenantConnection();
 
-        $products = InvItem::query()
+        $products = Items::query()
             ->active()
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
@@ -101,7 +101,7 @@ class DesktopProductQuoter extends Component
     {
         $this->ensureTenantConnection();
 
-        $product = InvItem::findOrFail($productId);
+        $product = Items::findOrFail($productId);
 
         // Verificar si el producto ya está en el cotizador
         $existingIndex = $this->findProductInQuoter($productId);
