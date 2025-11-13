@@ -4,7 +4,7 @@ namespace App\Livewire\Tenant\Quoter;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Tenant\InvItem;
+use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 
@@ -92,7 +92,7 @@ class MobileProductQuoter extends Component
             'session_tenant_id' => session('tenant_id')
         ]);
 
-        $products = InvItem::query()
+        $products = Items::query()
             ->active()
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
@@ -118,7 +118,7 @@ class MobileProductQuoter extends Component
     {
         $this->ensureTenantConnection();
 
-        $product = InvItem::findOrFail($productId);
+        $product = Items::findOrFail($productId);
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
