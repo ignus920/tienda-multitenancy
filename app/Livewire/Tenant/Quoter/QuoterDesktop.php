@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Tenant\Quoter;
 
-use App\Models\Tenant\VntQuote;
+use App\Models\Tenant\Quoter\VntQuote;
 use Livewire\Component;
 use Livewire\WithPagination;
 
