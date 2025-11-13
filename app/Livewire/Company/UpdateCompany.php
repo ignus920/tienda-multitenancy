@@ -472,6 +472,7 @@ class UpdateCompany extends Component
         }
     }
 
+    #[On('finish-company-config')]
     public function finish()
     {
         try {
@@ -485,10 +486,14 @@ class UpdateCompany extends Component
             session()->flash('company_setup_completed', true);
             session()->flash('success', '¡Configuración de empresa completada exitosamente!');
 
-            Log::info('🔄 Ejecutando redirect...', ['route' => route('tenant.select')]);
+            // Emitir evento para mostrar SweetAlert de éxito
+            $this->dispatch('show-completion-alert', [
+                'title' => '¡Empresa Configurada!',
+                'message' => 'Tu empresa ha sido configurada exitosamente. Serás redirigido al panel de control.',
+                'redirectTo' => route('tenant.select')
+            ]);
 
-            // Redirigir inmediatamente sin navigate para evitar problemas
-            $this->redirect(route('tenant.select'));
+            Log::info('📢 Evento show-completion-alert emitido correctamente');
 
         } catch (\Exception $e) {
             Log::error('❌ Error en finish()', [
@@ -496,8 +501,12 @@ class UpdateCompany extends Component
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // En caso de error, mostrar mensaje y mantener en el formulario
-            session()->flash('error', 'Hubo un error al finalizar la configuración: ' . $e->getMessage());
+            // Emitir evento de error
+            $this->dispatch('show-completion-alert', [
+                'title' => 'Error',
+                'message' => 'Hubo un error al finalizar la configuración: ' . $e->getMessage(),
+                'redirectTo' => route('company.setup')
+            ]);
         }
     }
 

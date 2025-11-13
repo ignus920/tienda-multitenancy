@@ -38,25 +38,59 @@ class MobileProductQuoter extends Component
     {
         $tenantId = session('tenant_id');
 
+        \Illuminate\Support\Facades\Log::info('🔍 MobileProductQuoter - Verificando conexión tenant', [
+            'tenant_id_session' => $tenantId,
+            'current_connection' => config('database.default'),
+            'tenant_connection_config' => config('database.connections.tenant')
+        ]);
+
         if (!$tenantId) {
+            \Illuminate\Support\Facades\Log::warning('❌ No hay tenant_id en session, redirigiendo');
             return redirect()->route('tenant.select');
         }
 
         $tenant = Tenant::find($tenantId);
 
         if (!$tenant) {
+            \Illuminate\Support\Facades\Log::warning('❌ Tenant no encontrado', ['tenant_id' => $tenantId]);
             session()->forget('tenant_id');
             return redirect()->route('tenant.select');
         }
 
-        $tenantManager = app(TenantManager::class);
-        $tenantManager->setConnection($tenant);
+        \Illuminate\Support\Facades\Log::info('✅ Tenant encontrado', [
+            'tenant_id' => $tenant->id,
+            'tenant_db_name' => $tenant->database_name
+        ]);
+
+        // Solo usar tenancy() para inicializar - esto debería configurar automáticamente la conexión
         tenancy()->initialize($tenant);
+
+        // Verificar que la conexión esté configurada correctamente
+        $currentDbName = \Illuminate\Support\Facades\DB::connection('tenant')->getDatabaseName();
+        \Illuminate\Support\Facades\Log::info('🔗 Conexión tenant configurada', [
+            'database_name' => $currentDbName,
+            'expected_db' => $tenant->database_name
+        ]);
+
+        if ($currentDbName !== $tenant->database_name) {
+            \Illuminate\Support\Facades\Log::error('❌ Conexión tenant incorrecta!', [
+                'current_db' => $currentDbName,
+                'expected_db' => $tenant->database_name
+            ]);
+        }
     }
 
     public function render()
     {
         $this->ensureTenantConnection();
+
+        // Verificar conexión antes de consultar productos
+        $currentDbName = \Illuminate\Support\Facades\DB::connection('tenant')->getDatabaseName();
+        \Illuminate\Support\Facades\Log::info('🛒 MobileProductQuoter - Consultando productos', [
+            'current_db' => $currentDbName,
+            'search_term' => $this->search,
+            'session_tenant_id' => session('tenant_id')
+        ]);
 
         $products = InvItem::query()
             ->active()
@@ -68,6 +102,12 @@ class MobileProductQuoter extends Component
             })
             ->orderBy('name', 'asc')
             ->paginate(20);
+
+        \Illuminate\Support\Facades\Log::info('📦 Productos encontrados', [
+            'count' => $products->count(),
+            'total' => $products->total(),
+            'first_product' => $products->count() > 0 ? $products->first()->name : 'N/A'
+        ]);
 
         return view('livewire.tenant.quoter.components.mobile-product-quoter', [
             'products' => $products
