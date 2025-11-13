@@ -78,7 +78,8 @@
                                                 <label for="verification_digit" class="block text-sm font-medium text-gray-700">DV *</label>
                                                 <input wire:model="verification_digit" type="text" id="verification_digit" maxlength="1"
                                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                                    placeholder="5">
+                                                    placeholder="5" pattern="[0-9]" inputmode="numeric"
+                                                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 1)">
                                                 @error('verification_digit') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                                             </div>
                                         </div>
@@ -252,40 +253,39 @@
                         </button>
 
                         <!-- Botón Siguiente/Finalizar -->
-                        <button type="submit" wire:loading.attr="disabled"
-                            class="relative inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-80 disabled:cursor-not-allowed min-w-[120px] overflow-hidden">
+                        @if($currentStep == $totalSteps)
+                            <button type="button" wire:loading.attr="disabled" onclick="showFinalizingAlert()"
+                                class="relative inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-80 disabled:cursor-not-allowed min-w-[120px] overflow-hidden">
+                                Finalizar
+                                <svg class="ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </button>
+                        @else
+                            <button type="submit" wire:loading.attr="disabled"
+                                class="relative inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-80 disabled:cursor-not-allowed min-w-[120px] overflow-hidden">
 
-                            <!-- Contenido normal del botón -->
-                            <span wire:loading.remove class="flex items-center transition-opacity duration-200">
-                                @if($currentStep == $totalSteps)
-                                    Finalizar
-                                    <svg class="ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                @else
+                                <!-- Contenido normal del botón -->
+                                <span wire:loading.remove class="flex items-center transition-opacity duration-200">
                                     Siguiente
                                     <svg class="ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                     </svg>
-                                @endif
-                            </span>
+                                </span>
 
-                            <!-- Estado de carga -->
-                            <span wire:loading class="flex items-center">
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                @if($currentStep == $totalSteps)
-                                    Finalizando...
-                                @else
+                                <!-- Estado de carga -->
+                                <span wire:loading class="flex items-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
                                     Guardando...
-                                @endif
-                            </span>
+                                </span>
 
-                            <!-- Overlay sutil durante carga -->
-                            <div wire:loading class="absolute inset-0 bg-indigo-700 opacity-20 rounded-lg"></div>
-                        </button>
+                                <!-- Overlay sutil durante carga -->
+                                <div wire:loading class="absolute inset-0 bg-indigo-700 opacity-20 rounded-lg"></div>
+                            </button>
+                        @endif
                     </div>
                 </div>
             </form>
@@ -306,6 +306,13 @@
             console.log('🎉 SweetAlert event received:', data);
             console.log('🔍 Swal available:', typeof Swal !== 'undefined');
 
+            // Cerrar el SweetAlert de carga si existe
+            if (companyConfigLoadingSwal) {
+                console.log('🔄 Cerrando SweetAlert de configuración...');
+                companyConfigLoadingSwal.close();
+                companyConfigLoadingSwal = null;
+            }
+
             if (typeof Swal === 'undefined') {
                 console.error('❌ SweetAlert2 no está disponible');
                 // Fallback: mostrar alert nativo y redirigir
@@ -314,20 +321,62 @@
                 return;
             }
 
+            // Mostrar SweetAlert de éxito
             Swal.fire({
                 title: data[0].title,
                 text: data[0].message,
                 icon: 'success',
                 showCancelButton: false,
                 confirmButtonColor: '#16a34a',
-                confirmButtonText: 'Ir al Panel',
+                confirmButtonText: 'Ir al Dashboard',
                 allowOutsideClick: false,
                 allowEscapeKey: false
             }).then((result) => {
                 if (result.isConfirmed) {
+                    console.log('🔄 Redirigiendo al dashboard...');
                     window.location.href = data[0].redirectTo;
                 }
             });
         });
+
+        // Listener para ejecutar finish cuando se despacha el evento (igual que registration-complete)
+        Livewire.on('finish-company-config', () => {
+            console.log('📧 Evento finish-company-config recibido, ejecutando método finish...');
+            // Aquí no ejecutamos nada más, solo enviamos al backend el evento para que ejecute finish
+            // El backend debería responder con 'show-completion-alert'
+        });
     });
+
+    // Variable global para el SweetAlert de carga
+    let companyConfigLoadingSwal = null;
+
+    // Función para mostrar SweetAlert al finalizar configuración de empresa
+    window.showFinalizingAlert = function() {
+        console.log('⚡ Mostrando alerta de configuración de empresa...');
+
+        // Mostrar SweetAlert de carga inmediatamente
+        companyConfigLoadingSwal = Swal.fire({
+            title: 'Configurando empresa...',
+            html: `
+                <div class="text-center">
+                    <div class="mb-4">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                    <p class="text-gray-600">Por favor espere mientras se configura su empresa</p>
+                    <p class="text-sm text-gray-500 mt-2">Este proceso puede tomar unos minutos.</p>
+                    <p class="text-sm text-gray-500">No cierre esta ventana.</p>
+                </div>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                console.log('🎯 SweetAlert de configuración ABIERTO');
+                Swal.showLoading();
+            }
+        });
+
+        // Ejecutar el método finish de Livewire usando dispatch (igual que en register)
+        Livewire.dispatch('finish-company-config');
+    };
 </script>
