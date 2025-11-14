@@ -236,7 +236,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $command_id ? 'Editar Categoria' : 'Crear Categoría' }}
+                        {{ $command_id ? 'Editar Comanda' : 'Crear Comanda' }}
                     </h3>
                 </div>
 

@@ -7,7 +7,7 @@ use Livewire\WithPagination;
 //Modelos
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\Category;
-use App\Models\Tenant\Items\Inv_values;
+use App\Models\Tenant\Items\InvValues;
 use App\Models\Auth\Tenant;
 //Servicios
 use App\Services\Tenant\TenantManager;
@@ -16,6 +16,7 @@ use App\Services\Tenant\Inventory\CommandsServices;
 use App\Services\Tenant\Inventory\BrandsService;
 use App\Services\Tenant\Inventory\HouseService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class ManageItems extends Component
 {
@@ -48,6 +49,7 @@ class ManageItems extends Component
     public $purchase_unit;
     public $consumption_unit;
     public $generic=1;
+    public $inv_values = [];
     
     // Propiedades para la tabla
     public $search = '';
@@ -55,7 +57,6 @@ class ManageItems extends Component
     public $sortDirection = 'asc';
     public $showModal = false;
     public $confirmingItemDeletion = false;
-    public $itemIdToDelete;
     public $perPage = 10;
     
     //Información para categorias
@@ -94,10 +95,10 @@ class ManageItems extends Component
         'name' => 'required|min:3',
         'type' => 'required',
         'internal_code' => 'nullable|string',
-        'brandId' => 'nullable|string',
-        'houseId' => 'nullable|string',
-        'purchase_unit' => 'nullable|string',
-        'consumption_unit' => 'nullable|string',
+        'brandId' => 'nullable|integer',
+        'houseId' => 'nullable|integer',
+        'purchase_unit' => 'nullable|integer',
+        'consumption_unit' => 'nullable|integer',
     ];
     
 
@@ -161,11 +162,35 @@ class ManageItems extends Component
         tenancy()->initialize($tenant);
     }
 
+    public function edit($idItem)
+    {
+        $this->ensureTenantConnection();
+        $item = Items::with('invValues')->findOrFail($idItem);
+        $this->item_id = $item->id;
+        $this->category_id = $item->categoryId;
+        $this->name = $item->name;
+        $this->internal_code = $item->internal_code;
+        $this->sku = $item->sku ?? null;
+        $this->description = $item->description;
+        $this->type = $item->type;
+        $this->commandId = $item->commandId;
+        $this->brandId = $item->brandId;
+        $this->houseId = $item->houseId;
+        $this->purchase_unit = $item->purchasing_unit;
+        $this->consumption_unit = $item->consumption_unit;
+        $this->generic = $item->generic ?? 1;
+
+        $this->inv_values = $item->invValues;
+
+        $this->showModal = true;
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
 
         $items = Items::query()
+            ->with('brand')
             ->when($this->search, function($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                       ->orWhere('sku', 'like', '%' . $this->search . '%')
@@ -199,31 +224,17 @@ class ManageItems extends Component
         $this->dispatch('initializeConsumptionUnit');
     }
 
-    public function edit($idItem)
-    {
-        $this->ensureTenantConnection();
-        $item=Items::findOrfail($idItem);
-        $this->item_id = $item->id;
-        $this->category_id = $item->categoryId;
-        $this->name = $item->name;
-        $this->internal_code = $item->internal_code;
-        $this->sku = $item->sku ?? null;
-        $this->description = $item->description;
-        $this->type = $item->type;
-        $this->commandId = $item->commandId;
-        $this->brandId = $item->brandId;
-        $this->houseId = $item->houseId;
-        $this->purchase_unit = $item->purchasing_unit;
-        $this->consumption_unit = $item->consumption_unit;
-        $this->generic = $item->generic ?? 1;
-        
-        $this->showModal = true;
-    }
+    
 
     public function save()
     {
         $this->ensureTenantConnection();
         $this->validate();
+        // try {
+        //     $this->validate();
+        // } catch (\Illuminate\Validation\ValidationException $e) {
+        //     dd('Errores de validación:', $e->errors());
+        // }
         $itemData = [
             'categoryId' => $this->category_id,
             'name' => $this->name,
@@ -241,7 +252,7 @@ class ManageItems extends Component
             'generic' => $this->generic,
 
         ];
-
+        
         if ($this->item_id) {
             $item = Items::findOrFail($this->item_id);
             $item->update($itemData);
@@ -249,7 +260,7 @@ class ManageItems extends Component
         } else {
             $newItem=Items::create($itemData);
             $item_id=$newItem->id;
-            $this->SaveValueItem($item_id);
+            //$this->SaveValueItem($item_id);
             session()->flash('message', 'Item creado correctamente.');
         }
 
@@ -272,26 +283,18 @@ class ManageItems extends Component
         $this->showModal = false;
     }
 
-    public function confirmItemDeletion($id)
-    {
-        $this->confirmingItemDeletion = true;
-        $this->itemIdToDelete = $id;
-    }
 
-    public function deleteItem()
+    public function toggleItemStatus($id)
     {
         $this->ensureTenantConnection();
+        $item=Items::findOrFail($id);
 
-        $itemData=[
-            'status'=>0,
-            'deleted_at'=>Carbon::now(),
-        ];
-
-        $item=Items::findOrFail($this->itemIdToDelete);
-        $item->update($itemData);
-        $this->confirmingItemDeletion = false;
-        $this->reset(['itemIdToDelete']);
-        session()->flash('message', 'Item eliminado correctamente');
+        $newStatus = $item->status ? 0 : 1;
+        $item->update([
+            'status'=>$newStatus, 
+        ]);
+        
+        session()->flash('message', 'Estado actualizado correctamente');
     }
 
     public function cancel()
@@ -309,7 +312,8 @@ class ManageItems extends Component
             'houseId',
             'commandId',
             'purchase_unit',
-            'consumption_unit'
+            'consumption_unit',
+            'inv_values'
         ]);
         $this->showModal = false;
         $this->confirmingItemDeletion = false;
@@ -334,7 +338,7 @@ class ManageItems extends Component
             'label' => $this->labelValue
         ];
 
-        Inv_values::create($itemValueData);
+        InvValues::create($itemValueData);
     }
 
     public function onCategorySelected($value)

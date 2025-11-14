@@ -28,6 +28,9 @@ class PurchasingUnit extends Component
         if ($class) {
             $this->class = $class;
         }
+
+        $this->purchaseUnitId = $purchaseUnitId ?: 35;
+        $this->dispatch('purchase-unit-changed', $this->purchaseUnitId);
     }
 
     public function updatedPurchaseUnitId(){

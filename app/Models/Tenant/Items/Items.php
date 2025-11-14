@@ -4,6 +4,7 @@ namespace App\Models\Tenant\Items;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenant\Items\Brand;
 use App\Models\Central\CnfTaxes;
 
 class Items extends Model
@@ -49,6 +50,11 @@ class Items extends Model
 
     public function tax(){
         return $this->belongsTo(CnfTaxes::class, 'taxId', 'id');
+    }
+
+    public function invValues()
+    {
+        return $this->hasMany(InvValues::class, 'itemId', 'id');
     }
 
     protected function casts(): array

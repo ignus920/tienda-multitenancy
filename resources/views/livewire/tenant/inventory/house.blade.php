@@ -216,7 +216,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $house_id ? 'Editar Categoria' : 'Crear Categoría' }}
+                        {{ $house_id ? 'Editar Casa' : 'Crear Casa' }}
                     </h3>
                 </div>
 
@@ -226,7 +226,7 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre *</label>
                         <input wire:model="name" type="text" id="name"
                             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Ingrese nombre de la categoría">
+                            placeholder="Ingrese nombre de la casa">
                         @error('name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                     </div>
                     <div class="flex justify-end space-x-2">

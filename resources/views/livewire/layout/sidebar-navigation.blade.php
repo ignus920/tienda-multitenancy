@@ -146,63 +146,47 @@ new class extends Component
         </div>
 
         <!-- Inventario (menú con subitems) -->
-<div 
-    x-data="{ tooltip: false, open: false }"
-    class="w-full"
->
-    <!-- Botón principal -->
-    <div 
-        class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
-        :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
-        @mouseenter="tooltip = sidebarCollapsed"
-        @mouseleave="tooltip = false"
-        @click="open = !open"
-    >
-        <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                d="M13 7h6l2 4m-8-4v8m0-8V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9h2m8 0H9m4 0h2m4 0h2v-4m0 0h-5m3.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Zm-10 0a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"/>
-        </svg>
+        <div x-data="{ tooltip: false, open: false }" class="w-full">
+            <!-- Botón principal -->
+            <div 
+                class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+                @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="tooltip = false"
+                @click="open = !open">
+                <svg class="h-5 w-5 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                        d="M13 7h6l2 4m-8-4v8m0-8V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9h2m8 0H9m4 0h2m4 0h2v-4m0 0h-5m3.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Zm-10 0a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"/>
+                </svg>
 
-        <span 
-            x-show="!sidebarCollapsed"
-            class="ml-3 flex-1"
-            x-transition
-        >
-            Inventario
-        </span>
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>
+                    Inventario
+                </span>
 
-        <!-- Icono desplegable -->
-        <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
-            class="w-4 h-4 ml-auto transition-transform duration-200"
-            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
-        </svg>
+                <!-- Icono desplegable -->
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
 
-        <!-- Tooltip (solo cuando está colapsado) -->
-        <div 
-            x-show="tooltip" 
-            x-transition 
-            class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap"
-        >
-            Inventario
+                <!-- Tooltip (solo cuando está colapsado) -->
+                <div x-show="tooltip" x-transition class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                    Inventario
+                </div>
+            </div>
+
+            <!-- Submenú -->
+            <div x-show="open && !sidebarCollapsed" x-transition class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <a href="{{url('/items/items')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
+                <a href="{{url('/inventory/categories')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
+                <a href="{{url('/inventory/commands')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
+                <a href="{{url('/inventory/brands')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
+                <a href="{{url('/inventory/houses')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Casas</a>
+                <a href="{{url('/inventory/units')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Unidades de Medida</a>
+            </div>
         </div>
-    </div>
-
-    <!-- Submenú -->
-    <div 
-        x-show="open && !sidebarCollapsed" 
-        x-transition 
-        class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400"
-    >
-        <a href="{{url('/items/items')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
-        <a href="{{url('/inventory/categories')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
-        <a href="{{url('/inventory/commands')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
-        <a href="{{url('/inventory/brands')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
-        <a href="{{url('/inventory/houses')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Casas</a>
-        <a href="{{url('/inventory/units')}}" class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Unidades de Medida</a>
-    </div>
-</div>
 
         <!-- Spacer -->
         <div class="flex-1"></div>
