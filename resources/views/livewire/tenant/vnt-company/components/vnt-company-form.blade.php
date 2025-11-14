@@ -676,11 +676,11 @@
 
     <!-- Warehouse Management Modal -->
     @if($showWarehouseModal && $selectedCompanyId)
-    @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCompanyId], key('warehouse-modal-' . $selectedCompanyId))
+    @livewire('tenant.vnt-company.components.warehouse-management-modal', ['companyId' => $selectedCompanyId], key('warehouse-modal-' . $selectedCompanyId))
     @endif
 
     <!-- Contact Management Modal -->
     @if($showContactModal && $selectedCompanyIdForContacts)
-    @livewire('tenant.vnt-company.contact-management-modal', ['companyId' => $selectedCompanyIdForContacts], key('contact-modal-' . $selectedCompanyIdForContacts))
+    @livewire('tenant.vnt-company.components.contact-management-modal', ['companyId' => $selectedCompanyIdForContacts], key('contact-modal-' . $selectedCompanyIdForContacts))
     @endif
 </div>

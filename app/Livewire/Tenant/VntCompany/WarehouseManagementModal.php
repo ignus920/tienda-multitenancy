@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tenant\VntCompany;
+namespace App\Livewire\Tenant\components\VntCompany;
 
 use Livewire\Component;
 use App\Models\Tenant\Customer\VntCompany;
@@ -40,7 +40,7 @@ class WarehouseManagementModal extends Component
     {
         $this->ensureTenantConnection();
         $warehouses = $this->getWarehouses();
-        return view('livewire.tenant.vnt-company.warehouse-management-modal', [
+        return view('livewire.tenant.vnt-company.components.warehouse-management-modal', [
             'warehouses' => $warehouses
         ]);
     }

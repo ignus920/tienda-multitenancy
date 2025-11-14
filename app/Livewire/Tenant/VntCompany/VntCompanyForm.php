@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tenant\VntCompany;
+namespace App\Livewire\Tenant\components\VntCompany;
 
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -183,8 +183,10 @@ class VntCompanyForm extends Component
 
    public function render()
    {
-     return view('livewire.tenant.vnt-company.vnt-company-form', [
-        'items' => $this->items // Se cachea automáticamente entre renders
+     return view('livewire.tenant.vnt-company.components.vnt-company-form', [
+        'items' => $this->items, // Se cachea automáticamente entre renders
+        'sortField' => $this->sortField,
+        'sortDirection' => $this->sortDirection
     ]);
    }
 

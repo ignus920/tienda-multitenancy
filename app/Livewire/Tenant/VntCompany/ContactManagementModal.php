@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tenant\VntCompany;
+namespace App\Livewire\Tenant\components\VntCompany;
 
 use Livewire\Component;
 use App\Models\Tenant\Customer\VntCompany;
@@ -58,7 +58,7 @@ class ContactManagementModal extends Component
         $warehouses = $this->contactService->getCompanyWarehouses($this->companyId);
         $positions = $this->contactService->getAvailablePositions();
         
-        return view('livewire.tenant.vnt-company.contact-management-modal', [
+        return view('livewire.tenant.vnt-company.components.contact-management-modal', [
             'contacts' => $contacts,
             'warehouses' => $warehouses,
             'positions' => $positions
