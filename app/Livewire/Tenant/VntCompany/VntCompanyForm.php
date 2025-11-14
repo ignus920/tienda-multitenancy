@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tenant\components\VntCompany;
+namespace App\Livewire\Tenant\VntCompany;
 
 use Livewire\Component;
 use Livewire\WithPagination;
