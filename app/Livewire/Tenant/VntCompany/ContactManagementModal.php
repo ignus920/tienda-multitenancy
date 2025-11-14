@@ -32,11 +32,6 @@ class ContactManagementModal extends Component
         'positionId' => '',
     ];
     
-    // Data collections
-    public $contacts = [];
-    public $warehouses = [];
-    public $positions = [];
-    
     // Messages
     public $successMessage = '';
     public $errorMessage = '';
@@ -52,19 +47,21 @@ class ContactManagementModal extends Component
     {
         $this->companyId = $companyId;
         $this->loadCompanyData();
-        $this->loadWarehouses();
-        $this->loadPositions();
     }
     
     public function render()
     {
         $this->ensureTenantConnection();
-        $this->loadContacts();
         
-        return view('livewire.tenant.vnt-company.contact-management-modal', [
-            'contacts' => $this->contacts,
-            'warehouses' => $this->warehouses,
-            'positions' => $this->positions
+        // Load data fresh on every render without storing in properties
+        $contacts = $this->contactService->getContactsByCompany($this->companyId);
+        $warehouses = $this->contactService->getCompanyWarehouses($this->companyId);
+        $positions = $this->contactService->getAvailablePositions();
+        
+        return view('livewire.tenant.vnt-company.components.contact-management-modal', [
+            'contacts' => $contacts,
+            'warehouses' => $warehouses,
+            'positions' => $positions
         ]);
     }
     
@@ -75,35 +72,7 @@ class ContactManagementModal extends Component
         $this->companyName = $company->businessName ?: trim($company->firstName . ' ' . $company->lastName);
     }
     
-    /**
-     * Cargar contactos de la empresa con eager loading
-     * Requirements: 1.3, 6.5
-     */
-    public function loadContacts()
-    {
-        $this->ensureTenantConnection();
-        $this->contacts = $this->contactService->getContactsByCompany($this->companyId);
-    }
-    
-    /**
-     * Cargar sucursales de la empresa filtrando por companyId
-     * Requirements: 7.4
-     */
-    public function loadWarehouses()
-    {
-        $this->ensureTenantConnection();
-        $this->warehouses = $this->contactService->getCompanyWarehouses($this->companyId);
-    }
-    
-    /**
-     * Cargar cargos disponibles
-     * Requirements: 1.4
-     */
-    public function loadPositions()
-    {
-        $this->ensureTenantConnection();
-        $this->positions = $this->contactService->getAvailablePositions();
-    }
+
     
     /**
      * Cerrar modal y dispatch evento
@@ -133,8 +102,8 @@ class ContactManagementModal extends Component
     public function editContact($contactId)
     {
         try {
+
             $this->ensureTenantConnection();
-            
             $contact = \App\Models\Tenant\Customer\VntContacts::with(['warehouse', 'position'])
                 ->findOrFail($contactId);
             
@@ -179,11 +148,11 @@ class ContactManagementModal extends Component
     public function saveContact()
     {
         try {
-            $this->ensureTenantConnection();
-            
             // Validar datos del formulario
             $this->validate($this->rules(), $this->messages());
             
+            $this->ensureTenantConnection();
+
             // Preparar datos para el servicio
             $data = array_merge($this->contactForm, [
                 'companyId' => $this->companyId
@@ -211,11 +180,10 @@ class ContactManagementModal extends Component
                 ]);
             }
             
-            // Limpiar formulario y recargar contactos
+            // Limpiar formulario - los contactos se recargarán automáticamente en render()
             $this->formMode = null;
             $this->editingContactId = null;
             $this->resetContactForm();
-            $this->loadContacts();
             
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Re-lanzar excepciones de validación para que Livewire las maneje
@@ -241,7 +209,6 @@ class ContactManagementModal extends Component
     public function deleteContact($contactId)
     {
         try {
-            $this->ensureTenantConnection();
             
             // Validar que el contacto pertenece a la empresa
             $contact = \App\Models\Tenant\Customer\VntContacts::with('warehouse')
@@ -261,9 +228,6 @@ class ContactManagementModal extends Component
                 'contactId' => $contactId,
                 'companyId' => $this->companyId
             ]);
-            
-            // Recargar contactos
-            $this->loadContacts();
             
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al eliminar el contacto: ' . $e->getMessage();
@@ -285,30 +249,22 @@ class ContactManagementModal extends Component
     {
         try {
             $this->ensureTenantConnection();
-            
             // Validar que el contacto pertenece a la empresa
             $contact = \App\Models\Tenant\Customer\VntContacts::with('warehouse')
                 ->findOrFail($contactId);
-            
             if ($contact->warehouse->companyId != $this->companyId) {
                 $this->errorMessage = 'El contacto no pertenece a esta empresa';
                 return;
             }
-            
             // Toggle status
             $updatedContact = $this->contactService->toggleContactStatus($contactId);
-            
             $statusText = $updatedContact->status === 1 ? 'activado' : 'desactivado';
             $this->successMessage = "Contacto {$statusText} exitosamente";
-            
             Log::info('Contact status toggled successfully', [
                 'contactId' => $contactId,
                 'companyId' => $this->companyId,
                 'newStatus' => $updatedContact->status
             ]);
-            
-            // Recargar contactos
-            $this->loadContacts();
             
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al cambiar el estado del contacto: ' . $e->getMessage();
@@ -407,18 +363,14 @@ class ContactManagementModal extends Component
         if (!$tenantId) {
             throw new \Exception('No tenant selected');
         }
-
         $tenant = Tenant::find($tenantId);
-
         if (!$tenant) {
             session()->forget('tenant_id');
             throw new \Exception('Invalid tenant');
         }
-
         // Establecer conexión tenant
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
-
         // Inicializar tenancy
         tenancy()->initialize($tenant);
     }

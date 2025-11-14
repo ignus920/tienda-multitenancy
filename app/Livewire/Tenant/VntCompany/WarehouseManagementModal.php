@@ -20,7 +20,8 @@ class WarehouseManagementModal extends Component
         'name' => '',
         'address' => '',
         'cityId' => '',
-        'postcode' => ''
+        'postcode' => '',
+        'branch_type' => 'FIJA'
     ];
     
     public $successMessage = '';
@@ -40,7 +41,7 @@ class WarehouseManagementModal extends Component
     {
         $this->ensureTenantConnection();
         $warehouses = $this->getWarehouses();
-        return view('livewire.tenant.vnt-company.warehouse-management-modal', [
+        return view('livewire.tenant.vnt-company.components.warehouse-management-modal', [
             'warehouses' => $warehouses
         ]);
     }
@@ -69,7 +70,8 @@ class WarehouseManagementModal extends Component
             'name' => '',
             'address' => '',
             'cityId' => '',
-            'postcode' => ''
+            'postcode' => '',
+            'branch_type' => 'FIJA'
         ];
         $this->resetErrorBag();
         $this->successMessage = '';
@@ -93,7 +95,8 @@ class WarehouseManagementModal extends Component
             'name' => $warehouse->name,
             'address' => $warehouse->address,
             'cityId' => $warehouse->cityId,
-            'postcode' => $warehouse->postcode ?? ''
+            'postcode' => $warehouse->postcode ?? '',
+            'branch_type' => $warehouse->branch_type ?? 'FIJA'
         ];
         $this->resetErrorBag();
         $this->successMessage = '';
@@ -107,6 +110,7 @@ class WarehouseManagementModal extends Component
             'warehouseForm.address' => 'required|string|max:500',
             'warehouseForm.cityId' => 'required|exists:cities,id',
             'warehouseForm.postcode' => 'nullable|string|max:20',
+            'warehouseForm.branch_type' => 'required|in:FIJA,DESPACHO',
         ], [
             'warehouseForm.name.required' => 'El nombre es obligatorio',
             'warehouseForm.name.max' => 'El nombre no puede exceder 255 caracteres',
@@ -115,6 +119,8 @@ class WarehouseManagementModal extends Component
             'warehouseForm.cityId.required' => 'La ciudad es obligatoria',
             'warehouseForm.cityId.exists' => 'La ciudad seleccionada no es válida',
             'warehouseForm.postcode.max' => 'El código postal no puede exceder 20 caracteres',
+            'warehouseForm.branch_type.required' => 'El tipo de sucursal es obligatorio',
+            'warehouseForm.branch_type.in' => 'El tipo de sucursal debe ser FIJA o DESPACHO',
         ]);
         
         try {
@@ -126,6 +132,7 @@ class WarehouseManagementModal extends Component
                     'address' => $this->warehouseForm['address'],
                     'cityId' => $this->warehouseForm['cityId'],
                     'postcode' => $this->warehouseForm['postcode'],
+                    'branch_type' => $this->warehouseForm['branch_type'],
                     'main' => 0,
                     'status' => 1
                 ]);
@@ -146,6 +153,7 @@ class WarehouseManagementModal extends Component
                     'address' => $this->warehouseForm['address'],
                     'cityId' => $this->warehouseForm['cityId'],
                     'postcode' => $this->warehouseForm['postcode'],
+                    'branch_type' => $this->warehouseForm['branch_type'],
                     'main' => 0
                 ]);
                 
@@ -199,7 +207,8 @@ class WarehouseManagementModal extends Component
             'name' => '',
             'address' => '',
             'cityId' => '',
-            'postcode' => ''
+            'postcode' => '',
+            'branch_type' => 'FIJA'
         ];
         $this->resetErrorBag();
     }

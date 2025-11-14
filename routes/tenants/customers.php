@@ -7,7 +7,7 @@ use App\Http\Controllers\Customers\CompanyController;
 
 
 Route::get('/customers', function () {
-    return view('customers.customers');
+    return view('livewire.tenant.vnt-company.customers');
 })->name('customers.customers');
 
 

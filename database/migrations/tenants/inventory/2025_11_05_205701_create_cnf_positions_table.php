@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('cfg_positions')) {
-            Schema::create('cfg_positions', function (Blueprint $table) {
+        if (!Schema::hasTable('cnf_positions')) {
+            Schema::create('cnf_positions', function (Blueprint $table) {
                 $table->integer('id', true);
                 $table->string('name', 50);
                 $table->tinyInteger('status')->default(1);
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cfg_positions');
+        Schema::dropIfExists('cnf_positions');
     }
 };

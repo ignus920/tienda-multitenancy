@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class CfgPosition extends Model
+class CnfPosition extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -15,7 +15,7 @@ class CfgPosition extends Model
      *
      * @var string
      */
-    protected $table = 'cfg_positions';
+    protected $table = 'cnf_positions';
 
     /**
      * The primary key for the model.
