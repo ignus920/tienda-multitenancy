@@ -18,6 +18,8 @@ class VntWarehouse extends Model
      protected $connection = 'tenant';
      protected $table = 'vnt_warehouses'; 
 
+     public const BRANCH_TYPE_FIJA = 'FIJA';
+     public const BRANCH_TYPE_DESPACHO = 'DESPACHO';
     /**
      * The primary key for the model.
      *
@@ -124,6 +126,29 @@ class VntWarehouse extends Model
     public function city()
     {
         return $this->belongsTo(\App\Models\Central\CnfCity::class, 'cityId');
+    }
+
+    public function scopeDespacho($query)
+    {
+        return $query->where('branch_type', self::BRANCH_TYPE_DESPACHO);
+    }
+    
+    // --- Métodos de Conveniencia ---
+
+    /**
+     * Verifica si la sucursal es de tipo FIJA.
+     */
+    public function isFija(): bool
+    {
+        return $this->branch_type === self::BRANCH_TYPE_FIJA;
+    }
+
+    /**
+     * Verifica si la sucursal es de tipo DESPACHO.
+     */
+    public function isDespacho(): bool
+    {
+        return $this->branch_type === self::BRANCH_TYPE_DESPACHO;
     }
 
     // public function term()

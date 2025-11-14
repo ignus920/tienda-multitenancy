@@ -107,7 +107,7 @@ class VntContacts extends Model
      */
     public function position()
     {
-        return $this->belongsTo(CfgPosition::class, 'positionId');
+        return $this->belongsTo(CnfPosition::class, 'positionId');
     }
 
     /**

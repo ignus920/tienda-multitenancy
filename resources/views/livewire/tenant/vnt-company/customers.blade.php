@@ -4,7 +4,6 @@
             {{ __('Clientes') }}
         </h2>
     </x-slot>
-
     <!-- Livewire Component -->
     <livewire:tenant.vnt-company.vnt-company-form />
 </x-app-layout>

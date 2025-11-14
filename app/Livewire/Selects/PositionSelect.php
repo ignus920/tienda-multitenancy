@@ -3,7 +3,7 @@
 namespace App\Livewire\Selects;
 
 use Livewire\Component;
-use App\Models\Tenant\CfgPosition;
+use App\Models\Tenant\CnfPosition;
 
 class PositionSelect extends Component
 {
@@ -36,7 +36,7 @@ class PositionSelect extends Component
 
     public function getPositionsProperty()
     {
-        return CfgPosition::active()->orderBy('name')->get(['id', 'name']);
+        return CnfPosition::active()->orderBy('name')->get(['id', 'name']);
     }
 
     public function render()

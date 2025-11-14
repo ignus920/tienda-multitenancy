@@ -3,7 +3,7 @@
 namespace App\Livewire\Selects;
 
 use Livewire\Component;
-use App\Models\Tenant\CfgPosition;
+use App\Models\Tenant\CnfPosition;
 
 class PositionMultiSelect extends Component
 {
@@ -79,7 +79,7 @@ class PositionMultiSelect extends Component
 
     public function getPositionsProperty()
     {
-        $query = CfgPosition::active()->orderBy('name');
+        $query = CnfPosition::active()->orderBy('name');
         
         if ($this->searchable && !empty($this->search)) {
             $query->where('name', 'like', '%' . $this->search . '%');
@@ -94,7 +94,7 @@ class PositionMultiSelect extends Component
             return collect();
         }
 
-        return CfgPosition::whereIn('id', $this->selectedPositions)
+        return CnfPosition::whereIn('id', $this->selectedPositions)
             ->orderBy('name')
             ->get(['id', 'name']);
     }

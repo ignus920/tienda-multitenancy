@@ -5,7 +5,7 @@ namespace App\Livewire\Tenant\VntCompany\Services;
 use App\Models\Tenant\Customer\VntContacts;
 use App\Models\Tenant\Customer\VntCompany;
 use App\Models\Tenant\Customer\VntWarehouse;
-use App\Models\Tenant\Customer\CfgPosition;
+use App\Models\Tenant\Customer\CnfPosition;
 
 class ContactService
 {
@@ -239,7 +239,7 @@ class ContactService
      */
     public function getAvailablePositions(): \Illuminate\Database\Eloquent\Collection
     {
-        return CfgPosition::where('status', 1)
+        return CnfPosition::where('status', 1)
             ->orderBy('name')
             ->get();
     }

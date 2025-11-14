@@ -43,6 +43,7 @@ class VntCompanyForm extends Component
     public $sortDirection = 'desc';
     
     // Warehouse modal properties
+    public $reusable = false;
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
     

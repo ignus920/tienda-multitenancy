@@ -24,7 +24,7 @@ return new class extends Migration
                 $table->integer('status')->nullable()->default(1);
                 $table->integer('api_data_id')->nullable();
                 $table->integer('main')->nullable()->default(1);
-                $table->string('branch_type')->nullable()->default('FIJA');
+                $table->enum('branch_type', ['FIJA', 'DESPACHO'])->default('FIJA');
                 $table->dateTime('created_at');
                 $table->dateTime('updated_at')->nullable();
                 $table->dateTime('deleted_at')->nullable();
