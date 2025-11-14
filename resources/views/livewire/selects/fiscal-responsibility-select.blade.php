@@ -13,7 +13,7 @@
         @if($required) required @endif
         class="{{ $class }}"
         wire:loading.attr="disabled">
-        <option value="">{{ $placeholder }}</option>
+        <option value="">Ninguna</option>
         @foreach($fiscalResponsibilities as $fiscalResponsibility)
             <option value="{{ $fiscalResponsibility->id }}">
                 {{ $fiscalResponsibility->description }}
