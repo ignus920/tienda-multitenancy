@@ -11,7 +11,7 @@ class CfgPosition extends Model
     use HasFactory, SoftDeletes;
 
     protected $connection = 'central';
-    protected $table = 'cfg_positions';
+    protected $table = 'cnf_positions';
 
     protected $fillable = [
         'name',

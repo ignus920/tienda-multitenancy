@@ -415,6 +415,20 @@ class UpdateCompany extends Component
 
             Log::info('✅ Datos de warehouse/sucursal actualizados', ['warehouse_id' => $this->warehouse->id]);
 
+            // Actualizar contacto con posición de Administrador
+            if ($this->contact) {
+                $this->contact->update([
+                    'positionId' => 2, // Administrador
+                    'warehouseId' => $this->warehouse->id
+                ]);
+
+                Log::info('✅ Contacto actualizado con posición Administrador y warehouse', [
+                    'contact_id' => $this->contact->id,
+                    'positionId' => 2,
+                    'warehouseId' => $this->warehouse->id
+                ]);
+            }
+
             // Configurar base de datos del tenant si aún no está configurada
             $this->setupTenantDatabaseIfNeeded();
         }
