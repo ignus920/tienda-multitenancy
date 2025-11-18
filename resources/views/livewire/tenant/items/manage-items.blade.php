@@ -407,7 +407,7 @@
                                     type="button"
                                     wire:click="toggleValuesForm"
                                     class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150"
-                                    title="Agregar nueva categoría">
+                                    title="Agregar nuevo valor">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                     </svg>
@@ -432,7 +432,7 @@
                                         <option value="costo">Costo</option>
                                         <option value="precio">Precio</option>
                                     </select>
-                                    @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                    @error('typeValue') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Etiqueta</label>
@@ -442,18 +442,50 @@
                                             <option value="{{ $k }}">{{ $v }}</option>
                                         @endforeach
                                     </select>
-                                    @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                    @error('labelValue') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                                 </div>
                                 <div>
-
+                                    <button
+                                        type="button"
+                                        wire:click="SaveValueItem"
+                                        wire:loading.attr="disabled"
+                                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                                        <span wire:loading.remove>Agregar</span>
+                                        <span wire:loading>Guardando...</span>
+                                    </button>
                                 </div>
+                                <!-- Mensajes -->
+                                @if ($messageValues)
+                                <div x-data="{ showAlert: true }" 
+                                    x-show="showAlert"
+                                    x-transition:enter="transition ease-out duration-300"
+                                    x-transition:enter-start="opacity-0 transform scale-90"
+                                    x-transition:enter-end="opacity-100 transform scale-100"
+                                    class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                    <div class="flex items-start">
+                                        <svg class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div class="flex-1">
+                                            <p class="text-sm text-green-700 dark:text-green-400">{{ $messageValues }}</p>
+                                        </div>
+                                        <button type="button" 
+                                                @click="showAlert = false" 
+                                                class="ml-3 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                @endif
                             </div>
                         @endif
                         
                         <!----Tabla Valores----->
                         @if ($item_id)
                         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                            @livewire('tenant.items.inv-values')
+                            @livewire('tenant.items.inv-values', ['ItemId' => $item_id])
                         </div>
                         
                         @endif
@@ -467,7 +499,6 @@
                                 wire:loading.attr="disabled"
                                 class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
                                 <span>{{ $item_id ? 'Actualizar' : 'Crear' }}</span>
-                                
                             </button>
                         </div>
                     </div>

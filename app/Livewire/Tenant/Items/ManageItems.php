@@ -15,6 +15,7 @@ use App\Services\Tenant\Inventory\CategoriesService;
 use App\Services\Tenant\Inventory\CommandsServices;
 use App\Services\Tenant\Inventory\BrandsService;
 use App\Services\Tenant\Inventory\HouseService;
+use App\Livewire\Tenant\Items\Services\InvValuesService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +34,7 @@ class ManageItems extends Component
         'consumption-unit-changed' => 'onConsumptionUnitSelected',
         'category-changed' => 'onCategorySelected',
         'category-created' => 'refreshCategories',
+        //'invValuesItem-created' => 'refreshValuesItems',
     ];
 
     // Propiedades para el formulario
@@ -72,6 +74,7 @@ class ManageItems extends Component
     public $valueItem = 0;
     public $typeValue;
     public $labelValue;
+    public $messageValues = '';
 
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
@@ -179,8 +182,6 @@ class ManageItems extends Component
         $this->purchase_unit = $item->purchasing_unit;
         $this->consumption_unit = $item->consumption_unit;
         $this->generic = $item->generic ?? 1;
-
-        $this->inv_values = $item->invValues;
 
         $this->showModal = true;
     }
@@ -317,28 +318,6 @@ class ManageItems extends Component
         ]);
         $this->showModal = false;
         $this->confirmingItemDeletion = false;
-    }
-
-    public function toggleValuesForm()
-    {
-        $this->showValuesSection=true;
-    }
-
-    public function SaveValueItem($idItem)
-    {
-        $this->ensureTenantConnection();
-        $this->validate();    
-
-        $itemValueData=[
-            'date' => Carbon::now(),
-            'values' => $this->valueItem,
-            'type' => $this->typeValue,
-            'itemId' => $idItem,
-            'warehouseId' => 1,
-            'label' => $this->labelValue
-        ];
-
-        InvValues::create($itemValueData);
     }
 
     public function onCategorySelected($value)
@@ -539,6 +518,50 @@ class ManageItems extends Component
             } else {
                 $this->resetErrorBag('newCommandName');
             }
+        }
+    }
+
+    //============VALORES ITEMS========================//
+    public function toggleValuesForm()
+    {
+        $this->showValuesSection=true;
+        $this->messageValues = '';
+    }
+
+    public function SaveValueItem()
+    {
+        $this->ensureTenantConnection();
+        
+        // Validar solo los campos del formulario de valores
+        $this->validate([
+            'valueItem' => 'required|numeric',
+            'typeValue' => 'required|string',
+            'labelValue' => 'required|string',
+        ]);
+
+        try {
+            $invValueService = app(InvValuesService::class);
+            
+            $invValueService->createValueItem([
+                'date' => Carbon::now(),
+                'values' => $this->valueItem,
+                'type' => $this->typeValue,
+                'itemId' => $this->item_id, // Usar la propiedad del componente
+                'warehouseId' => 1,
+                'label' => $this->labelValue
+            ]);
+
+            // Resetear y ocultar el formulario
+            $this->reset(['valueItem', 'typeValue', 'labelValue']);
+            $this->showValuesSection = false;
+
+            $this->messageValues = 'Valor agregado exitosamente';
+
+            // Refrescar para mostrar el nuevo valor
+            $this->dispatch('refreshValues');
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al crear el valor: ' . $e->getMessage());
         }
     }
 }
