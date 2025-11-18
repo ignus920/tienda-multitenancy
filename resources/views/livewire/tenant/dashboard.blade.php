@@ -107,18 +107,19 @@
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         @foreach($enabledFeatures as $key => $feature)
                             @php
-                                // Usar los datos que vienen del Dashboard (color e icon ya están calculados)
-                                $bgColor = $feature['color'] ?? 'gray';
-                                $iconPath = $feature['icon'] ?? 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
+                                $colors = [
+                                    'ventas' => ['bg' => 'indigo', 'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'],
+                                    'clientes' => ['bg' => 'green', 'icon' => 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'],
+                                    'productos' => ['bg' => 'yellow', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
+                                    'caja' => ['bg' => 'purple', 'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'],
+                                    'inventario' => ['bg' => 'blue', 'icon' => 'M5 8h14M5 8a2 2 0 110-4h1.586a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H15a2 2 0 110 4M5 8v10a2 2 0 002 2h8a2 2 0 002-2V8m-9 4h4'],
+                                    'reportes' => ['bg' => 'red', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']
+                                ];
+                                $color = $colors[$key] ?? ['bg' => 'gray', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'];
+                                $bgColor = $color['bg'];
+                                $iconPath = $color['icon'];
 
-                                // Manejo seguro de rutas
-                                if ($feature['route'] === '#' || empty($feature['route'])) {
-                                    $href = '#';
-                                } elseif (str_starts_with($feature['route'], 'http') || str_starts_with($feature['route'], '/')) {
-                                    $href = $feature['route'];
-                                } else {
-                                    $href = route($feature['route']);
-                                }
+                                $href = str_starts_with($feature['route'], 'http') || str_starts_with($feature['route'], '/') ? $feature['route'] : route($feature['route']);
                             @endphp
 
                             <a href="{{ $href }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 ease-in-out">

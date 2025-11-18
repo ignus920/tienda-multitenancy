@@ -84,6 +84,17 @@
                                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M8,12V14H16V12H8M8,16V18H13V16H8Z"/>
                                 </svg>
                             </button>
+
+                            @if($this->canPrint())
+                                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition-colors"
+                                                wire:click=""
+                                                title="Imprimir cotización">
+                                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
+                                            </svg>
+                                            Imprimir
+                                        </button>
+                                    @endif
                         </div>
             </div>
         </div>
@@ -193,6 +204,23 @@
                                     <button class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs transition-colors">
                                         Editar
                                     </button>
+
+                                    {{-- DEBUG: Mostrar estado del permiso temporalmente --}}
+                                    <span class="text-xs text-red-500 border border-red-300 px-1 rounded">
+                                        Print: {{ $this->canPrint() ? 'SI' : 'NO' }} (Límite: {{ $this->getPrintCopiesLimit() }})
+                                    </span>
+
+                                    @if($this->canPrint())
+                                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition-colors"
+                                                wire:click="printQuote({{ $quote->id }})"
+                                                title="Imprimir cotización">
+                                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
+                                            </svg>
+                                            Imprimir
+                                        </button>
+                                    @endif
+
                                     <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs transition-colors"
                                             wire:click="eliminar({{ $quote->id }})"
                                             onclick="return confirm('¿Está seguro de eliminar esta cotización?')">

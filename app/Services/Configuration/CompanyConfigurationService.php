@@ -129,7 +129,7 @@ class CompanyConfigurationService
             return DB::connection('tenant')->table('cnf_company_options')
                 ->where('company_id', $companyId)
                 ->where('option_id', $optionId)
-                ->where('value', 1)
+                ->where('value', '!=', 0)  // Cambio: cualquier valor diferente de 0
                 ->whereNull('deleted_at')
                 ->exists();
         });
@@ -148,12 +148,36 @@ class CompanyConfigurationService
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($companyId) {
             return DB::connection('tenant')->table('cnf_company_options')
                 ->where('company_id', $companyId)
-                ->where('value', 1)
+                ->where('value', '!=', 0)  // Cambio: cualquier valor diferente de 0
                 ->whereNull('deleted_at')
                 ->pluck('option_id')
                 ->toArray();
         });
     }
+
+    /**
+     * Obtiene el valor específico de una opción
+     *
+     * @param int $companyId
+     * @param int $optionId
+     * @return int|null Retorna el valor de la opción o null si no existe
+     */
+    public function getOptionValue(int $companyId, int $optionId): ?int
+    {
+        $cacheKey = $this->getCacheKey('option_value', $companyId, 0, $optionId);
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($companyId, $optionId) {
+            $result = DB::connection('tenant')->table('cnf_company_options')
+                ->where('company_id', $companyId)
+                ->where('option_id', $optionId)
+                ->whereNull('deleted_at')
+                ->value('value');
+
+            return $result !== null ? (int) $result : null;
+        });
+    }
+
+    
 
     /**
      * Verifica múltiples opciones de una vez
