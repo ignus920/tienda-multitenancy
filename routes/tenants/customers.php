@@ -11,20 +11,22 @@ Route::get('/customers', function () {
 })->name('customers.customers');
 
 
-Route::prefix('api/customers')->middleware(\App\Auth\Middleware\SetTenantConnection::class)->group(function () {
-// CRUD básico
-Route::get('/', [CompanyController::class, 'index']);
-Route::post('/', [CompanyController::class, 'store']);
-Route::get('/{id}', [CompanyController::class, 'show']);
-Route::put('/{id}', [CompanyController::class, 'update']);
-Route::delete('/{id}', [CompanyController::class, 'destroy']);
+// Routes to Api
 
-// Métodos adicionales
-Route::post('/{id}/restore', [CompanyController::class, 'restore']);
-Route::delete('/{id}/force', [CompanyController::class, 'forceDelete']);
-Route::patch('/{id}/toggle-status', [CompanyController::class, 'toggleStatus']);
-Route::get('/list/trashed', [CompanyController::class, 'trashed']);
+// Route::prefix('api/customers')->middleware(\App\Auth\Middleware\SetTenantConnection::class)->group(function () {
+// // CRUD básico
+// Route::get('/', [CompanyController::class, 'index']);
+// Route::post('/', [CompanyController::class, 'store']);
+// Route::get('/{id}', [CompanyController::class, 'show']);
+// Route::put('/{id}', [CompanyController::class, 'update']);
+// Route::delete('/{id}', [CompanyController::class, 'destroy']);
 
-});
+// // Métodos adicionales
+// Route::post('/{id}/restore', [CompanyController::class, 'restore']);
+// Route::delete('/{id}/force', [CompanyController::class, 'forceDelete']);
+// Route::patch('/{id}/toggle-status', [CompanyController::class, 'toggleStatus']);
+// Route::get('/list/trashed', [CompanyController::class, 'trashed']);
+
+// });
 
 
