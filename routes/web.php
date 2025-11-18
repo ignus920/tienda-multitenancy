@@ -111,7 +111,7 @@ Route::prefix('api/test')->group(function () {
 
 // Ejemplo de formulario configurable (SOLO PARA DESARROLLO/DEMO)
 Route::get('/ejemplo-configuracion', App\Livewire\Examples\ConfigurableFormExample::class)
-    ->middleware(['auth', 'company.complete'])
+    ->middleware(['auth', 'company.complete', App\Auth\Middleware\SetTenantConnection::class])
     ->name('ejemplo.configuracion');
 
 

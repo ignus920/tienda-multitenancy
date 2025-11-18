@@ -46,14 +46,6 @@ trait HasCompanyConfiguration
                 $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
             }
 
-            // DEBUG: Log información de la empresa encontrada
-            \Log::info("🔍 DEBUG initializeCompanyConfiguration", [
-                'user_id' => $user->id,
-                'company_found' => $company ? $company->id : 'NO',
-                'company_name' => $company->businessName ?? 'N/A',
-                'currentCompanyId' => $this->currentCompanyId,
-                'currentPlainId' => $this->currentPlainId
-            ]);
         }
 
         // Precargar configuraciones comunes
@@ -83,7 +75,43 @@ trait HasCompanyConfiguration
     }
 
     /**
-     * Obtiene valor de configuración
+     * Verifica si una opción específica está habilitada (método principal)
+     */
+    protected function isOptionEnabled(int $optionId): bool
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return false;
+        }
+
+        return $this->configService->isOptionEnabled($this->currentCompanyId, $optionId);
+    }
+
+    /**
+     * Verifica múltiples opciones de una vez
+     */
+    protected function areOptionsEnabled(array $optionIds): array
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return array_fill_keys($optionIds, false);
+        }
+
+        return $this->configService->areOptionsEnabled($this->currentCompanyId, $optionIds);
+    }
+
+    /**
+     * Obtiene todas las opciones habilitadas para la empresa actual
+     */
+    protected function getEnabledOptions(): array
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return [];
+        }
+
+        return $this->configService->getEnabledOptions($this->currentCompanyId);
+    }
+
+    /**
+     * Obtiene valor de configuración (método legacy mantenido por compatibilidad)
      */
     protected function getConfigValue(string $modulName, string $optionName, $default = null)
     {
@@ -118,12 +146,7 @@ trait HasCompanyConfiguration
                 $modulName
             );
 
-            // DEBUG: Log de la configuración obtenida
-            \Log::info("🔍 DEBUG getModuleConfig para {$modulName}", [
-                'companyId' => $this->currentCompanyId,
-                'plainId' => $this->currentPlainId,
-                'config' => $this->cachedConfig[$cacheKey]
-            ]);
+            
         }
 
         return $this->cachedConfig[$cacheKey];
@@ -175,6 +198,72 @@ trait HasCompanyConfiguration
         // Implementar según como determines el plan del usuario
 
         return 2; // Por defecto institucional - CAMBIAR según tu lógica
+    }
+
+    /**
+     * Métodos de conveniencia para opciones específicas comunes
+     */
+
+    /**
+     * Verifica si se permiten múltiples usuarios
+     */
+    protected function allowsMultipleUsers(): bool
+    {
+        return $this->isOptionEnabled(1); // Asumiendo que option_id 1 = múltiples usuarios
+    }
+
+    /**
+     * Verifica si está habilitada la funcionalidad de reportes avanzados
+     */
+    protected function hasAdvancedReports(): bool
+    {
+        return $this->isOptionEnabled(2); // Asumiendo que option_id 2 = reportes avanzados
+    }
+
+    /**
+     * Verifica si está habilitada la funcionalidad de inventario
+     */
+    protected function hasInventoryFeature(): bool
+    {
+        return $this->isOptionEnabled(3); // Asumiendo que option_id 3 = inventario
+    }
+
+    /**
+     * Obtiene el límite de usuarios permitidos
+     */
+    protected function getUserLimit(): int
+    {
+        if ($this->isOptionEnabled(1)) { // Si permite múltiples usuarios
+            return $this->isOptionEnabled(5) ? 10 : 5; // Ejemplo: option_id 5 = plan premium
+        }
+
+        return 1; // Solo un usuario por defecto
+    }
+
+    /**
+     * Verifica si tiene acceso a funcionalidades premium
+     */
+    protected function hasPremiumFeatures(): bool
+    {
+        $premiumOptions = [5, 6, 7, 8]; // IDs de opciones premium
+        $enabledOptions = $this->areOptionsEnabled($premiumOptions);
+
+        return in_array(true, $enabledOptions); // Al menos una opción premium habilitada
+    }
+
+    /**
+     * Genera array de configuración para frontend (JavaScript)
+     */
+    protected function getConfigForFrontend(): array
+    {
+        return [
+            'allowsMultipleUsers' => $this->allowsMultipleUsers(),
+            'hasAdvancedReports' => $this->hasAdvancedReports(),
+            'hasInventoryFeature' => $this->hasInventoryFeature(),
+            'hasPremiumFeatures' => $this->hasPremiumFeatures(),
+            'userLimit' => $this->getUserLimit(),
+            'enabledOptions' => $this->getEnabledOptions(),
+        ];
     }
 
     /**
