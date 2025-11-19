@@ -118,5 +118,26 @@ Route::get('/ejemplo-configuracion', App\Livewire\Examples\ConfigurableFormExamp
 
 
 
+// Rutas para gestión de permisos y roles (Catálogo de permisos)
+Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->group(function () {
+    Route::get('/catalog', [App\Http\Controllers\Auth\PermissionController::class, 'getCatalog'])
+        ->name('api.permissions.catalog');
+
+    Route::post('/assign', [App\Http\Controllers\Auth\PermissionController::class, 'assignPermissionToProfile'])
+        ->name('api.permissions.assign');
+
+    Route::post('/assign-multiple', [App\Http\Controllers\Auth\PermissionController::class, 'assignMultiplePermissions'])
+        ->name('api.permissions.assign.multiple');
+
+    Route::delete('/remove', [App\Http\Controllers\Auth\PermissionController::class, 'removePermissionFromProfile'])
+        ->name('api.permissions.remove');
+
+    Route::get('/profile/{profileId}', [App\Http\Controllers\Auth\PermissionController::class, 'getProfilePermissions'])
+        ->name('api.permissions.profile');
+
+    Route::post('/clone', [App\Http\Controllers\Auth\PermissionController::class, 'cloneProfilePermissions'])
+        ->name('api.permissions.clone');
+});
+
 require __DIR__.'/auth.php';
 
