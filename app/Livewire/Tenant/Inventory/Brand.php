@@ -123,6 +123,19 @@ class Brand extends Component
         $this->showModal = false;
     }
 
+    public function toggleBrandStatus($id)
+    {
+        $this->ensureTenantConnection();
+        $item=BrandModel::findOrFail($id);
+
+        $newStatus = $item->status ? 0 : 1;
+        $item->update([
+            'status'=>$newStatus, 
+        ]);
+        
+        session()->flash('message', 'Estado actualizado correctamente');
+    }
+
     public function confirmItemDeletion($id)
     {
         $this->confirmingItemDeletion = true;
@@ -149,7 +162,7 @@ class Brand extends Component
     {
         $this->ensureTenantConnection();
         $brands=BrandModel::query()
-            ->where('status', 1)
+            //->where('status', 1)
             ->when($this->search, function($query){
                 $query->where('name', 'like', '%' . $this->search . '%');
             })

@@ -131,6 +131,19 @@ class UnitMeasurements extends Component
         $this->showModal = false;
     }
 
+    public function toggleUnitStatus($id)
+    {
+        $this->ensureTenantConnection();
+        $item=UnitMeasurementsModel::findOrFail($id);
+
+        $newStatus = $item->status ? 0 : 1;
+        $item->update([
+            'status'=>$newStatus, 
+        ]);
+        
+        session()->flash('message', 'Estado actualizado correctamente');
+    }
+
     public function confirmUnitDeletion($id)
     {
         $this->confirmingUnitDeletion = true;
@@ -158,7 +171,7 @@ class UnitMeasurements extends Component
     {
         $this->ensureTenantConnection();
         $units=UnitMeasurementsModel::query()
-             ->where('status', 1)
+            // ->where('status', 1)
             ->when($this->search, function($query){
                 $query->where('description', 'like', '%' . $this->search . '%');
             })

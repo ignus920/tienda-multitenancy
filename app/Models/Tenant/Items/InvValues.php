@@ -5,7 +5,7 @@ namespace App\Models\Tenant\Items;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Inv_values extends Model
+class InvValues extends Model
 {
     use HasFactory;
 
@@ -24,4 +24,9 @@ class Inv_values extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public function item()
+    {
+        return $this->belongsTo(Items::class, 'itemId', 'id');
+    }
 }

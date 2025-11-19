@@ -132,6 +132,19 @@ class Command extends Component
         $this->showModal = false;
     }
 
+    public function toggleCommandStatus($id)
+    {
+        $this->ensureTenantConnection();
+        $item=CommandModel::findOrFail($id);
+
+        $newStatus = $item->status ? 0 : 1;
+        $item->update([
+            'status'=>$newStatus, 
+        ]);
+        
+        session()->flash('message', 'Estado actualizado correctamente');
+    }
+
     public function confirmCommandDeletion($id)
     {
         $this->confirmingCommandDeletion = true;
@@ -159,7 +172,7 @@ class Command extends Component
     {
         $this->ensureTenantConnection();
         $commands=CommandModel::query()
-            ->where('status', 1)
+            //->where('status', 1)
             ->when($this->search, function($query){
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('print_path', 'like', '%' . $this->search . '%');

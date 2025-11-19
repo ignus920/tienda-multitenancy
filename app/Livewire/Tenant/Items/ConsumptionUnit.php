@@ -28,6 +28,9 @@ class ConsumptionUnit extends Component
         if ($class) {
             $this->class = $class;
         }
+
+        $this->consumptionUnitId = $consumptionUnitId ?: 35;
+        $this->dispatch('consumption-unit-changed', $this->consumptionUnitId);
     }
 
     public function updatedConsumptionUnitId(){

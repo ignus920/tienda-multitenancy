@@ -33,15 +33,42 @@
                             disabled
                         >
                         <label for="{{ Str::slug($field) }}" class="ml-3 block text-sm font-medium text-gray-900">
-                            ✅ <strong>{{ ucfirst($field) }}</strong>
+                            ✅ <strong>{{ $field }}</strong> - Configuración habilitada
                         </label>
                         <span class="ml-auto text-xs text-gray-500 bg-green-100 px-2 py-1 rounded">
-                            Habilitado
+                            Activa
                         </span>
                     </div>
                 </div>
             @endforeach
         </div>
+
+        {{-- Mostrar campos deshabilitados --}}
+        @if(!empty($disabledFields))
+            <div class="mt-6">
+                <h4 class="text-lg font-semibold mb-3 text-gray-700">Funciones Deshabilitadas</h4>
+                <div class="space-y-2">
+                    @foreach($disabledFields as $field)
+                        <div class="form-group">
+                            <div class="flex items-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                <input
+                                    type="checkbox"
+                                    id="{{ Str::slug($field) }}_disabled"
+                                    class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                                    disabled
+                                >
+                                <label for="{{ Str::slug($field) }}_disabled" class="ml-3 block text-sm font-medium text-gray-700">
+                                    ❌ <strong>{{ $field }}</strong> - Función deshabilitada
+                                </label>
+                                <span class="ml-auto text-xs text-red-700 bg-red-100 px-2 py-1 rounded">
+                                    Inactiva
+                                </span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     @else
         <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
             <div class="flex">
