@@ -333,7 +333,7 @@ class ContactManagementModal extends Component
             'contactForm.business_phone' => 'nullable|string|max:20',
             'contactForm.personal_phone' => 'nullable|string|max:20',
             'contactForm.warehouseId' => 'required|exists:vnt_warehouses,id',
-            'contactForm.positionId' => 'required|exists:cfg_positions,id',
+            'contactForm.positionId' => 'required|exists:cnf_positions,id',
         ];
     }
     

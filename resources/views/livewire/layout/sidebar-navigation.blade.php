@@ -110,7 +110,7 @@ new class extends Component
               </svg>
 
                 <span x-show="!sidebarCollapsed" x-transition class="ml-3 flex-1">
-                    Gestión de contactos
+                    Gestión de personas
                 </span>
 
                 <!-- Flecha -->
@@ -122,7 +122,7 @@ new class extends Component
 
                 <!-- Tooltip (cuando está colapsado) -->
                 <div x-show="tooltip" x-transition class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Gestión de contactos
+                    Gestión de personas
                 </div>
             </div>
 
@@ -237,6 +237,22 @@ new class extends Component
                 <a href="{{url('/inventory/brands')}}" wire:navigate class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
                 <a href="{{url('/inventory/houses')}}" wire:navigate class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Casas</a>
                 <a href="{{url('/inventory/units')}}" wire:navigate class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Unidades de Medida</a>
+            </div>
+
+            <!-- Submenú desplegable (para sidebar colapsado) -->
+           <div
+             x-show="sidebarCollapsed && tooltip"
+             x-transition
+             class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 py-1 whitespace-nowrap"
+             @mouseenter="tooltip = true"
+             @mouseleave="tooltip = false"
+            >
+             <a href="{{url('/inventory/categories')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Categorías</a>
+             <a href="{{url('/items/items')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Ítems</a>
+             <a href="{{url('/inventory/brands')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Marcas</a>
+             <a href="{{url('/inventory/commands')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Comandas</a>
+             <a href="{{url('/inventory/units')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Unidades de Medida</a>
+             <a href="{{url('/inventory/houses')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Casas</a>
             </div>
         </div>
 

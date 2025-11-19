@@ -200,7 +200,7 @@ class CompanyValidationService
             'warehouseCityId' => 'nullable|integer',
             'business_phone' => 'nullable|string|max:100',
             'personal_phone' => 'nullable|string|max:100',
-            'positionId' => 'nullable|integer|exists:cfg_positions,id',
+            'positionId' => 'nullable|integer|exists:cnf_positions,id',
         ]);
     }
 

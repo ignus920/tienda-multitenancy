@@ -3,7 +3,8 @@
 namespace App\Livewire\Selects;
 
 use Livewire\Component;
-use App\Models\Tenant\CnfPosition;
+use App\Models\Tenant\Customer\CnfPosition as TenantPosition;
+use App\Models\Central\CnfPosition as CentralCnfPosition;
 
 class PositionSelect extends Component
 {
@@ -29,14 +30,22 @@ class PositionSelect extends Component
         }
     }
 
-    public function updatedPositionId()
+    public function updatedPositionId($value)
     {
-        $this->dispatch('position-changed', $this->positionId);
+        // Emit event to parent component with the new position ID
+        $this->dispatch('position-changed', positionId: $value);
+        
+        // Also dispatch a generic event that can be caught by parent
+        $this->dispatch('positionUpdated', positionId: $value);
     }
 
     public function getPositionsProperty()
     {
-        return CnfPosition::active()->orderBy('name')->get(['id', 'name']);
+        if (tenant()) {
+            return TenantPosition::active()->orderBy('name')->get(['id', 'name']);
+
+        }
+        return CentralCnfPosition::active()->orderBy('name')->get(['id', 'name']);
     }
 
     public function render()
