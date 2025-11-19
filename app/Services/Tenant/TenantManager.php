@@ -518,9 +518,12 @@ class TenantManager
             'driver' => 'mysql',
             'host' => $tenant->db_host,
             'port' => $tenant->db_port,
-            'database' => 'desarrollo',
+            'database' => $tenant->db_name,
             'username' => $tenant->db_user,
             'password' => $tenant->db_password,
+            'username' => $tenant->db_user,
+            'password' => $tenant->db_password,
+
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',

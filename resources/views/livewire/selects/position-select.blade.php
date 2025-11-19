@@ -12,7 +12,7 @@
             name="{{ $name }}"
             id="position_{{ $name }}"
             @if($required) required @endif
-            class="{{ $class }}">
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 {{ $class }}">
             <option value="">{{ $placeholder }}</option>
             @foreach($positions as $position)
                 <option value="{{ $position->id }}">{{ $position->name }}</option>
@@ -21,6 +21,6 @@
     </div>
 
     @error($name)
-        <span class="text-red-500 text-sm">{{ $message }}</span>
+        <span class="text-red-500 dark:text-red-400 text-sm">{{ $message }}</span>
     @enderror
 </div>
