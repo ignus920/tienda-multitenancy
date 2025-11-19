@@ -8,7 +8,9 @@ use Livewire\WithPagination;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\Category;
 use App\Models\Tenant\Items\InvValues;
+use App\Models\Auth\UserTenant;
 use App\Models\Auth\Tenant;
+use App\Models\Central\VntWarehouse;
 //Servicios
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Inventory\CategoriesService; 
@@ -52,6 +54,7 @@ class ManageItems extends Component
     public $consumption_unit;
     public $generic=1;
     public $inv_values = [];
+    public $warehouses = [];
     
     // Propiedades para la tabla
     public $search = '';
@@ -189,6 +192,7 @@ class ManageItems extends Component
     public function render()
     {
         $this->ensureTenantConnection();
+        $this->loadWarehouses();
 
         $items = Items::query()
             ->with('brand')
@@ -381,6 +385,38 @@ class ManageItems extends Component
         return response()->download( 
             $this->item_id->file_path, 'items.cvs'
         );
+    }
+
+    private function loadWarehouses(): void
+    {
+        $sessionTenant = $this->getTenantId();
+        
+        // 1. Obtener los IDs de las bodegas que cumplen el criterio
+        $warehouseIds = UserTenant::query()
+            ->select('vc.warehouseId')
+            ->join('users as u', 'u.id', '=', 'user_tenants.user_id')
+            ->join('vnt_contacts as vc', 'vc.id', '=', 'u.contact_id')
+            ->where('user_tenants.tenant_id', $sessionTenant)
+            ->pluck('warehouseId') // Obtener solo los IDs de las bodegas
+            ->unique(); // Evitar IDs duplicados
+
+        // 2. Cargar las bodegas usando los IDs obtenidos
+        $this->warehouses = VntWarehouse::query()
+            ->whereIn('id', $warehouseIds) // Usamos el array de IDs
+            ->where('vnt_warehouses.status', true)
+            ->with('company')
+            ->orderBy('vnt_warehouses.name')
+            ->get();
+    }
+
+    private function getTenantId()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            throw new \Exception('No tenant selected');
+        }
+        return $tenantId;
     }
     //============CATEGORIAS========================//
     public function toggleCategoryInput()
