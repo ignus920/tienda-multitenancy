@@ -55,6 +55,7 @@ class ManageItems extends Component
     public $generic=1;
     public $inv_values = [];
     public $warehouses = [];
+    public $warehouseIdValue;
     
     // Propiedades para la tabla
     public $search = '';
@@ -78,6 +79,7 @@ class ManageItems extends Component
     public $typeValue;
     public $labelValue;
     public $messageValues = '';
+    public $temporaryErrorMessage;
 
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
@@ -235,11 +237,7 @@ class ManageItems extends Component
     {
         $this->ensureTenantConnection();
         $this->validate();
-        // try {
-        //     $this->validate();
-        // } catch (\Illuminate\Validation\ValidationException $e) {
-        //     dd('Errores de validación:', $e->errors());
-        // }
+
         $itemData = [
             'categoryId' => $this->category_id,
             'name' => $this->name,
@@ -265,7 +263,7 @@ class ManageItems extends Component
         } else {
             $newItem=Items::create($itemData);
             $item_id=$newItem->id;
-            //$this->SaveValueItem($item_id);
+            
             session()->flash('message', 'Item creado correctamente.');
         }
 
@@ -286,6 +284,7 @@ class ManageItems extends Component
             'consumption_unit'
         ]);
         $this->showModal = false;
+        $this->edit($item_id);
     }
 
 
@@ -567,37 +566,50 @@ class ManageItems extends Component
     public function SaveValueItem()
     {
         $this->ensureTenantConnection();
-        
-        // Validar solo los campos del formulario de valores
-        $this->validate([
-            'valueItem' => 'required|numeric',
-            'typeValue' => 'required|string',
-            'labelValue' => 'required|string',
-        ]);
-
-        try {
-            $invValueService = app(InvValuesService::class);
+        $exitsValue = InvValues::where('itemId', $this->item_id)->where('label', $this->labelValue)->exists();
+        if ($exitsValue) {
+            $this->temporaryErrorMessage = 'Este Item ya tiene registrado un costo inicial.';
             
-            $invValueService->createValueItem([
-                'date' => Carbon::now(),
-                'values' => $this->valueItem,
-                'type' => $this->typeValue,
-                'itemId' => $this->item_id, // Usar la propiedad del componente
-                'warehouseId' => 1,
-                'label' => $this->labelValue
+        } else {
+            $this->temporaryErrorMessage = null;
+            $this->resetErrorBag('labelValue');
+            // Validar solo los campos del formulario de valores
+            $this->validate([
+                'valueItem' => 'required|numeric',
+                'typeValue' => 'required|string',
+                'labelValue' => 'required|string',
             ]);
-
-            // Resetear y ocultar el formulario
-            $this->reset(['valueItem', 'typeValue', 'labelValue']);
-            $this->showValuesSection = false;
-
-            $this->messageValues = 'Valor agregado exitosamente';
-
-            // Refrescar para mostrar el nuevo valor
-            $this->dispatch('refreshValues');
-
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear el valor: ' . $e->getMessage());
+    
+            try {
+                $invValueService = app(InvValuesService::class);
+                
+                $invValueService->createValueItem([
+                    'date' => Carbon::now(),
+                    'values' => $this->valueItem,
+                    'type' => $this->typeValue,
+                    'itemId' => $this->item_id, // Usar la propiedad del componente
+                    'warehouseId' => $this->warehouseIdValue ?? 0,
+                    'label' => $this->labelValue
+                ]);
+    
+                // Resetear y ocultar el formulario
+                $this->reset(['valueItem', 'typeValue', 'labelValue']);
+                $this->showValuesSection = false;
+    
+                $this->messageValues = 'Valor agregado exitosamente';
+    
+                // Refrescar para mostrar el nuevo valor
+                $this->dispatch('refreshValues');
+    
+            } catch (\Exception $e) {
+                session()->flash('error', 'Error al crear el valor: ' . $e->getMessage());
+            }
         }
+    }
+
+    // Método para limpiar el mensaje temporal
+    public function clearTemporaryMessage()
+    {
+        $this->temporaryErrorMessage = null;
     }
 }
