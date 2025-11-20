@@ -8,7 +8,7 @@
 
     <div class="relative">
         <select
-            wire:model="positionId"
+            wire:model.live="positionId"
             name="{{ $name }}"
             id="position_{{ $name }}"
             @if($required) required @endif
