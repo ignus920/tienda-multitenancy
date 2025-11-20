@@ -6,6 +6,7 @@ use Livewire\Component;
 //Modelos
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
+use App\Models\Tenant\PettyCash\VntDetailPettyCash;
 //Servicios
 use Illuminate\Support\Facades\Auth;
 use App\Services\Tenant\TenantManager;
@@ -23,6 +24,9 @@ class PettyCash extends Component
     public $sortField = 'consecutive';
     public $sortDirection = 'asc';
     public $perPage = 10;
+
+    //Messages
+    public $errorMessage = '';
 
     protected $rules =[
         'base' => 'required|integer',
@@ -58,34 +62,76 @@ class PettyCash extends Component
     }
 
     public function save(){
+
+        try{
+            $this->ensureTenantConnection();
+    
+            $exists=$this->PettyCashExits(6);
+    
+            if ($exists) {
+                $this->addError('base', 'No se puede registrar, hay cajas abiertas');
+            }else{
+                $this->resetErrorBag('base');
+                $this->validate();
+            
+                // Determine the next consecutive number for the given warehouse
+                $lastConsecutive = PettyCashModel::where('warehouseId', 6)->max('consecutive');
+            
+                $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
+            
+                $pettyCashData = [
+                    'base' => $this->base,
+                    'consecutive' => $newConsecutive, // Use the calculated consecutive
+                    'status' => 1,
+                    'created_at' => Carbon::now(),
+                    'userIdOpen' => Auth::id(),
+                    'warehouseId' => 6,//$this->warehouseId, // Use the dynamic warehouseId
+                    'cashier' => Auth::id(),
+                ];
+            
+                $newPettyCashId=PettyCashModel::create($pettyCashData);
+                $pettyCash_id=$newPettyCashId->id;
+                $this->saveDetailPettyCash($pettyCash_id);
+                session()->flash('message', 'Registro realizado exitosamente.');
+            
+                $this->resetValidation();
+                $this->reset([
+                    'base',
+                    ''
+                ]);
+            
+                $this->showModal = false;
+            }
+        }catch(\Exception $e){
+            session()->flash('error', 'El registro realizó correctamente.'. $e->getMessage());
+        }
+    }
+
+    public function PettyCashExits($warehouseId){
         $this->ensureTenantConnection();
-        $this->validate();
 
-        // Determine the next consecutive number for the given warehouse
-        $lastConsecutive = PettyCashModel::where('warehouseId', 6)
-                                        ->max('consecutive');
+        return PettyCashModel::where('status', 1)->where('warehouseId', $warehouseId)->exists();
+    }
 
-        $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
-
-        $pettyCashData = [
-            'base' => $this->base,
-            'consecutive' => $newConsecutive, // Use the calculated consecutive
-            'status' => 1,
-            'created_at' => Carbon::now(),
-            'userIdOpen' => Auth::id(),
-            'warehouseId' => 6,//$this->warehouseId, // Use the dynamic warehouseId
-            'cashier' => 6,
-        ];
-
-        PettyCashModel::create($pettyCashData);
-        session()->flash('message', 'Caja creada correctamente.');
-
-        $this->resetValidation();
-        $this->reset([
-            'base'
-        ]);
-
-        $this->showModal = false;
+    public function saveDetailPettyCash($pettyCash_id){
+        try{
+            $this->ensureTenantConnection();
+            
+            
+            $dataDetailPettyCash = [
+                'status' => 1,
+                'value' => $this->base,
+                'created_at' => Carbon::now(),
+                'pettyCashId' => $pettyCash_id,
+                'reasonPettyCashId' => 5,
+                'methodPaymentId' => 1,
+                'observations' => 'Apertura de caja'
+            ];
+    
+            VntDetailPettyCash::create($dataDetailPettyCash);
+        }catch(\Exception $e){
+            session()->flash('error', 'Error al registrar el detalle: ' . $e->getMessage());
+        }
     }
 
     public function render()
