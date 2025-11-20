@@ -357,32 +357,6 @@
 
             <!-- Content -->
             <div class="p-6">
-                <!-- Flash Messages -->
-                @if($successMessage)
-                <div x-data="{ showAlert: true }" 
-                     x-show="showAlert"
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-90"
-                     x-transition:enter-end="opacity-100 transform scale-100"
-                     class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <div class="flex items-start">
-                        <svg class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <div class="flex-1">
-                            <p class="text-sm text-green-700 dark:text-green-400">{{ $successMessage }}</p>
-                        </div>
-                        <button type="button" 
-                                @click="showAlert = false" 
-                                class="ml-3 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                @endif
-
                 @if($errorMessage)
                 <div x-data="{ showAlert: true }" 
                      x-show="showAlert"

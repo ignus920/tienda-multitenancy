@@ -16,12 +16,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Services\UserExportService;
 
-
 class UserRapForm extends Component
 {
     use WithPagination;
     
-    protected $listeners = ['positionUpdated' => 'handlePositionUpdate'];
+    protected $listeners = ['positionUpdated'];
     
     protected UserExportService $exportService;
     // Table properties
@@ -45,7 +44,7 @@ class UserRapForm extends Component
     public $password = '';
     public $password_confirmation = '';
     public $phone = '';
-    public $positionId = 1;
+    public $positionId = null;
     public $status = 1;
     public $profile_id = null;
 
@@ -85,7 +84,7 @@ class UserRapForm extends Component
     /**
      * Handle position update from PositionSelect component
      */
-    public function handlePositionUpdate($positionId): void
+    public function positionUpdated($positionId): void
     {
         $this->positionId = $positionId;
     }
@@ -128,9 +127,15 @@ $this->warehouses = VntWarehouse::query()
     /**
      * Open modal in create mode
      */
-    public function create(): void
+  public function create(): void
     {
+        $this->successMessage = '';
         $this->resetForm();
+        
+        // Limpiar validaciones al abrir el formulario
+        $this->resetErrorBag();
+        $this->resetValidation();
+        
         $this->showModal = true;
     }
 
@@ -139,6 +144,10 @@ $this->warehouses = VntWarehouse::query()
      */
     public function edit(int $userId): void
     {
+        // Limpiar validaciones antes de cargar datos
+        $this->resetErrorBag();
+        $this->resetValidation();
+        
         $user = User::with('contact')->findOrFail($userId);
         
         $this->editingId = $userId;
@@ -157,7 +166,7 @@ $this->warehouses = VntWarehouse::query()
             $this->lastName = $user->contact->lastName;
             $this->secondLastName = $user->contact->secondLastName;
             $this->warehouseId = $user->contact->warehouseId;
-            $this->positionId = $user->contact->positionId ?? 1;
+            $this->positionId = $user->contact->positionId;
         }
         
         $this->showModal = true;
@@ -177,7 +186,7 @@ $this->warehouses = VntWarehouse::query()
     /**
      * Reset all form fields
      */
-    private function resetForm(): void
+  private function resetForm(): void
     {
         $this->editingId = null;
         $this->firstName = '';
@@ -190,10 +199,7 @@ $this->warehouses = VntWarehouse::query()
         $this->phone = '';
         $this->profile_id = null;
         $this->warehouseId = null;
-        $this->positionId = 1;
-        $this->avatar = null;
-        $this->two_factor_enabled = false;
-        $this->two_factor_type = null;
+        $this->positionId = null; // Cambiar de 1 a null para limpiar completamente
     }
 
     /**
@@ -212,7 +218,12 @@ $this->warehouses = VntWarehouse::query()
                 'max:255',
                 Rule::unique('users', 'email')->ignore($this->editingId)
             ],
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'required',
+                'string',
+                'regex:/^3[0-9]{9}$/',
+                'digits:10'
+            ],
             'profile_id' => 'required|exists:usr_profiles,id',
             'warehouseId' => 'required|exists:vnt_warehouses,id',
             'positionId' => 'required|exists:cnf_positions,id',
@@ -250,7 +261,9 @@ $this->warehouses = VntWarehouse::query()
             'email.email' => 'El email debe ser válido',
             'email.max' => 'El email no debe superar 255 caracteres',
             'email.unique' => 'Este email ya está registrado',
-            'phone.string' => 'El teléfono debe ser texto',
+            'phone.regex' => 'El número debe ser un celular colombiano válido que inicie con 3 (ej: 3123456789).',
+            'phone.digits' => 'El número de celular debe tener exactamente 10 dígitos.',
+            'phone.required' => 'El número de celular es obligatorio',
             'phone.max' => 'El teléfono no debe superar 20 caracteres',
             'password.required' => 'La contraseña es obligatoria',
             'password.string' => 'La contraseña debe ser texto',
@@ -276,6 +289,7 @@ $this->warehouses = VntWarehouse::query()
     private function validateForm(): void
     {
         $this->validate();
+        $this->validate($this->rules(), $this->messages());
     }
 
     /**
@@ -378,9 +392,9 @@ $this->warehouses = VntWarehouse::query()
             ]);
 
             DB::commit();
-
-            $this->successMessage = 'Usuario creado exitosamente';
             $this->closeModal();
+            $this->successMessage = 'Usuario creado exitosamente';
+          
             
         } catch (\Exception $e) {
             DB::rollBack();
@@ -435,9 +449,9 @@ $this->warehouses = VntWarehouse::query()
             ]);
 
             DB::commit();
-
-            $this->successMessage = 'Usuario actualizado exitosamente';
             $this->closeModal();
+            $this->successMessage = 'Usuario actualizado exitosamente';
+          
             
         } catch (\Exception $e) {
             DB::rollBack();

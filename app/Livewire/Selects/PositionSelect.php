@@ -16,9 +16,9 @@ class PositionSelect extends Component
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
 
-    public function mount($positionId = '', $name = 'positionId', $placeholder = 'Seleccionar posición', $label = 'Posición', $required = true, $showLabel = true, $class = null)
+    public function mount($positionId = null, $name = 'positionId', $placeholder = 'Seleccionar posición', $label = 'Posición', $required = true, $showLabel = true, $class = null)
     {
-        $this->positionId = $positionId;
+        $this->positionId = $positionId ?? '';
         $this->name = $name;
         $this->placeholder = $placeholder;
         $this->label = $label;
@@ -33,9 +33,6 @@ class PositionSelect extends Component
     public function updatedPositionId($value)
     {
         // Emit event to parent component with the new position ID
-        $this->dispatch('position-changed', positionId: $value);
-        
-        // Also dispatch a generic event that can be caught by parent
         $this->dispatch('positionUpdated', positionId: $value);
     }
 
