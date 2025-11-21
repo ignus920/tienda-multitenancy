@@ -23,7 +23,7 @@ class UserRapForm extends Component
 {
     use WithPagination, HasCompanyConfiguration;
     
-    protected $listeners = ['positionUpdated'];
+    protected $listeners = ['positionUpdated', 'refresh-users' => 'refreshUsers'];
     
     protected UserExportService $exportService;
     // Table properties
@@ -95,6 +95,15 @@ class UserRapForm extends Component
     }
 
     /**
+     * Refresh users list after status toggle
+     */
+    public function refreshUsers(): void
+    {
+        // This method is called via dispatch to force re-render
+        // Livewire will automatically re-query the users property
+    }
+
+    /**
      * Load profiles from database
      */
     private function loadProfiles(): void
@@ -138,13 +147,14 @@ class UserRapForm extends Component
             return;
         }
 
-        $this->successMessage = '';
-        $this->errorMessage = '';
+        // Limpiar completamente el estado antes de abrir
         $this->resetForm();
-        
-        // Limpiar validaciones al abrir el formulario
         $this->resetErrorBag();
         $this->resetValidation();
+        
+        $this->successMessage = '';
+        $this->errorMessage = '';
+        $this->editingId = null;
         
         $this->showModal = true;
     }
@@ -154,9 +164,12 @@ class UserRapForm extends Component
      */
     public function edit(int $userId): void
     {
-        // Limpiar validaciones antes de cargar datos
+        // Limpiar completamente el estado anterior
+        $this->resetForm();
         $this->resetErrorBag();
         $this->resetValidation();
+        $this->successMessage = '';
+        $this->errorMessage = '';
         
         $user = User::with('contact')->findOrFail($userId);
         
@@ -166,7 +179,7 @@ class UserRapForm extends Component
         $this->email = $user->email;
         $this->phone = $user->phone;
         $this->profile_id = $user->profile_id;
-        $this->two_factor_enabled = $user->two_factor_enabled;
+        $this->two_factor_enabled = $user->two_factor_enabled ?? false;
         $this->two_factor_type = $user->two_factor_type;
         
         // Load contact data if exists
@@ -191,12 +204,16 @@ class UserRapForm extends Component
         $this->resetForm();
         $this->successMessage = '';
         $this->errorMessage = '';
+        
+        // Limpiar validaciones completamente
+        $this->resetErrorBag();
+        $this->resetValidation();
     }
 
     /**
      * Reset all form fields
      */
-  private function resetForm(): void
+    private function resetForm(): void
     {
         $this->editingId = null;
         $this->firstName = '';
@@ -209,7 +226,10 @@ class UserRapForm extends Component
         $this->phone = '';
         $this->profile_id = null;
         $this->warehouseId = null;
-        $this->positionId = null; // Cambiar de 1 a null para limpiar completamente
+        $this->positionId = null;
+        $this->avatar = null;
+        $this->two_factor_enabled = false;
+        $this->two_factor_type = null;
     }
 
     /**
@@ -309,6 +329,7 @@ class UserRapForm extends Component
         try {
             // Clear previous error message
             $this->errorMessage = '';
+            $this->successMessage = '';
             
             // Validate all inputs
             $this->validateForm();
@@ -566,6 +587,12 @@ class UserRapForm extends Component
             // 6. Calcular nuevo estado (toggle)
             $newStatus = !$user->contact->status;
             
+            if ($this->canCreateOrUpdateUsers(true, $newStatus)) {
+                DB::rollBack();
+                $this->errorMessage = 'No tienes permisos para crear usuarios';
+                return;
+            }
+            
             // 7. Actualizar vnt_contacts
             $user->contact->update(['status' => $newStatus]);
             
@@ -580,6 +607,9 @@ class UserRapForm extends Component
             
             // Clear any error messages
             $this->errorMessage = '';
+            
+            // 11. Forzar re-render de la tabla para actualizar el switch
+            $this->dispatch('refresh-users');
             
         } catch (\Exception $e) {
             // Rollback y manejo de error

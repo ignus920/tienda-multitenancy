@@ -246,30 +246,30 @@
                                 @endif
                             </td>
 
-                              <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                     <!-- Estado Toggle -->
-                                <div class="flex items-center justify-center">
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <!-- Estado Toggle -->
+                                <div class="flex items-center justify-center gap-2">
                                     <!-- Toggle Switch -->
                                     <button type="button"
                                         wire:click="toggleItemStatus({{ $user->id }})"
-                                        wire.loading.attr="disabled"
-                                        class="relative inline-flex h-4 w-8 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $user->contact && $user->contact->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
+                                        wire:target="toggleItemStatus({{ $user->id }})"
+                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $user->contact && $user->contact->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
                                         role="switch"
                                         aria-checked="{{ $user->contact && $user->contact->status ? 'true' : 'false' }}"
                                         aria-label="Toggle user status for {{ $user->name }}">
-                                        <span class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out {{ $user->contact && $user->contact->status ? 'translate-x-4' : 'translate-x-1' }}"></span>
+                                        <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out {{ $user->contact && $user->contact->status ? 'translate-x-5' : 'translate-x-1' }}"></span>
                                     </button>
                                     <!-- Estado de carga -->
-                                    <div wire:loading wire:target="toggleItemStatus({{ $user->id }})" class="ml-2">
-                                        <svg class="animate-spin h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <div wire:loading wire:target="toggleItemStatus({{ $user->id }})" class="ml-1">
+                                        <svg class="animate-spin h-4 w-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
                                     </div>
                                 </div>
-
-                                </div>
-                              </td>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div class="flex items-center justify-center gap-2">
                                     <!-- Edit Button -->
@@ -356,6 +356,7 @@
 
             <!-- Content -->
             <div class="p-6">
+                <!-- Error Message Alert -->
                 @if($errorMessage)
                 <div x-data="{ showAlert: true }" 
                      x-show="showAlert"
@@ -372,7 +373,38 @@
                         </div>
                         <button type="button" 
                                 @click="showAlert = false" 
-                                class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors">
+                                class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors flex-shrink-0">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Validation Errors Summary -->
+                @if($errors->any())
+                <div x-data="{ showAlert: true }" 
+                     x-show="showAlert"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform scale-90"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-red-700 dark:text-red-400 mb-2">Por favor corrija los siguientes errores:</p>
+                            <ul class="list-disc list-inside space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li class="text-sm text-red-700 dark:text-red-400">{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        <button type="button" 
+                                @click="showAlert = false" 
+                                class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors flex-shrink-0">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                             </svg>
