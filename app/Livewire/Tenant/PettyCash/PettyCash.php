@@ -3,17 +3,26 @@
 namespace App\Livewire\Tenant\PettyCash;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 //Modelos
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
 use App\Models\Tenant\PettyCash\VntDetailPettyCash;
+use App\Models\Auth\User;
 //Servicios
+use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Tenant\TenantManager;
 use Carbon\Carbon;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+
 class PettyCash extends Component
 {
+    use WithPagination, HasCompanyConfiguration;
+
     public $pettyCash_id;
     public $base;
     //public $warehouseId; // Added for dynamic warehouse selection
@@ -22,7 +31,7 @@ class PettyCash extends Component
     public $showModal = false;
     public $search = '';
     public $sortField = 'consecutive';
-    public $sortDirection = 'asc';
+    public $sortDirection = 'desc';
     public $perPage = 10;
 
     //Messages
@@ -138,6 +147,7 @@ class PettyCash extends Component
     {   
         $this->ensureTenantConnection();
         $petty_cashes=PettyCashModel::query()
+            ->with('opener')
             ->when($this->search, function($query){
                 $query->where('consecutive', 'like', '%' . $this->search . '%')
                         ->orWhere('cashier', 'like', '%' . $this->search . '%');

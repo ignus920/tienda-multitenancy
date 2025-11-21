@@ -4,6 +4,7 @@ namespace App\Models\Tenant\PettyCash;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Auth\User;
 
 class PettyCash extends Model
 {
@@ -25,4 +26,8 @@ class PettyCash extends Model
         'warehouseId',
         'cashier'
     ];
+
+    public function opener(){
+        return $this->belongsTo(User::class, 'userIdOpen');
+    }
 }
