@@ -64,18 +64,12 @@ class InvValues extends Component
         try{
             $invValueService=app(InvValuesService::class);
             $this->ensureTenantConnection();
-            dd([
-                'type' => $this->type,
-                'values' => $this->values,
-                'itemId' => $this->ItemId,
-                'warehouseId' => $this->warehouseId,
-                'label' => $this->label,
-            ]);
+
             $invValues = $invValueService->createValueItem([
                 'type' => $this->type,
                 'values' => $this->values,
                 'itemId' => $this->ItemId,
-                'warehouseId' => $this->warehouseId,
+                'warehouseId' => $this->warehouseId ?? 0,
                 'label' => $this->label,
             ]);
 

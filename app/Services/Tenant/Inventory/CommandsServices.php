@@ -40,7 +40,7 @@ class CommandsServices
         // Crear la comanda
         return Command::create([
             'name' => $data['name'],
-            'print_path' => 'http://127.0.0.1:8000/inventory/commands',
+            'print_path' => $data['print_path'],
             'status' => $data['status'] ?? 1,
         ]);
     }

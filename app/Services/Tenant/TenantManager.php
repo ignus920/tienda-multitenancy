@@ -533,7 +533,7 @@ class TenantManager
 
         DB::purge('tenant');
         DB::reconnect('tenant');
-
+        
             //'database' => $tenant->db_name,
             //'username' => $tenant->db_user,
             //'password' => $tenant->db_password,
