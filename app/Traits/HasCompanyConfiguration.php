@@ -46,14 +46,6 @@ trait HasCompanyConfiguration
                 $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
             }
 
-            // DEBUG: Log información de la empresa encontrada
-            \Log::info("🔍 DEBUG initializeCompanyConfiguration", [
-                'user_id' => $user->id,
-                'company_found' => $company ? $company->id : 'NO',
-                'company_name' => $company->businessName ?? 'N/A',
-                'currentCompanyId' => $this->currentCompanyId,
-                'currentPlainId' => $this->currentPlainId
-            ]);
         }
 
         // Precargar configuraciones comunes
@@ -83,7 +75,55 @@ trait HasCompanyConfiguration
     }
 
     /**
-     * Obtiene valor de configuración
+     * Verifica si una opción específica está habilitada (método principal)
+     */
+    protected function isOptionEnabled(int $optionId): bool
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return false;
+        }
+
+        return $this->configService->isOptionEnabled($this->currentCompanyId, $optionId);
+    }
+
+    /**
+     * Verifica múltiples opciones de una vez
+     */
+    protected function areOptionsEnabled(array $optionIds): array
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return array_fill_keys($optionIds, false);
+        }
+
+        return $this->configService->areOptionsEnabled($this->currentCompanyId, $optionIds);
+    }
+
+    /**
+     * Obtiene todas las opciones habilitadas para la empresa actual
+     */
+    protected function getEnabledOptions(): array
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return [];
+        }
+
+        return $this->configService->getEnabledOptions($this->currentCompanyId);
+    }
+
+    /**
+     * Obtiene el valor específico de una opción
+     */
+    protected function getOptionValue(int $optionId): ?int
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            return null;
+        }
+
+        return $this->configService->getOptionValue($this->currentCompanyId, $optionId);
+    }
+
+    /**
+     * Obtiene valor de configuración (método legacy mantenido por compatibilidad)
      */
     protected function getConfigValue(string $modulName, string $optionName, $default = null)
     {
@@ -118,12 +158,7 @@ trait HasCompanyConfiguration
                 $modulName
             );
 
-            // DEBUG: Log de la configuración obtenida
-            \Log::info("🔍 DEBUG getModuleConfig para {$modulName}", [
-                'companyId' => $this->currentCompanyId,
-                'plainId' => $this->currentPlainId,
-                'config' => $this->cachedConfig[$cacheKey]
-            ]);
+            
         }
 
         return $this->cachedConfig[$cacheKey];
@@ -175,6 +210,17 @@ trait HasCompanyConfiguration
         // Implementar según como determines el plan del usuario
 
         return 2; // Por defecto institucional - CAMBIAR según tu lógica
+    }
+
+    /**
+     * Genera array de configuración para frontend (JavaScript)
+     * Método genérico que devuelve todas las opciones habilitadas
+     */
+    protected function getConfigForFrontend(): array
+    {
+        return [
+            'enabledOptions' => $this->getEnabledOptions(),
+        ];
     }
 
     /**

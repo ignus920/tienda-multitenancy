@@ -20,7 +20,7 @@ return new class extends Migration
         Schema::table('vnt_contacts', function (Blueprint $table) {
             $table->foreign('positionId')
                 ->references('id')
-                ->on('cfg_positions')
+                ->on('cnf_positions')
                 ->onDelete('restrict');
         });
     }

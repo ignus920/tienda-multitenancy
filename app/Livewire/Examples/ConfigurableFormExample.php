@@ -41,17 +41,37 @@ class ConfigurableFormExample extends Component
      */
     public function getVisibleFields(): array
     {
-        // Usar las opciones reales de tu base de datos para VENTAS
-        $allFields = ['cotiza', 'imprime', 'impuestos', 'clientes y proveedores', 'vendedores'];
+        // Obtener todas las opciones para esta empresa
+        $moduleConfig = $this->getModuleConfig($this->moduleName);
         $visibleFields = [];
 
-        foreach ($allFields as $field) {
-            if ($this->shouldShowField($this->moduleName, $field)) {
-                $visibleFields[] = $field;
+        foreach ($moduleConfig as $option) {
+            // Solo agregar si value = 1 (habilitado)
+            if ($option->value == 1) {
+                $visibleFields[] = "opcion_" . $option->opcion; // ej: opcion_1, opcion_2, etc.
             }
         }
 
         return $visibleFields;
+    }
+
+    /**
+     * Ejemplo: Obtener campos deshabilitados según configuración
+     */
+    public function getDisabledFields(): array
+    {
+        // Obtener todas las opciones para esta empresa
+        $moduleConfig = $this->getModuleConfig($this->moduleName);
+        $disabledFields = [];
+
+        foreach ($moduleConfig as $option) {
+            // Solo agregar si value = 0 (deshabilitado)
+            if ($option->value == 0) {
+                $disabledFields[] = "opcion_" . $option->opcion; // ej: opcion_1, opcion_2, etc.
+            }
+        }
+
+        return $disabledFields;
     }
 
     /**
@@ -110,9 +130,21 @@ class ConfigurableFormExample extends Component
 
     public function render()
     {
+        $moduleConfig = $this->getModuleConfig($this->moduleName);
+
+        // DEBUG: Log de toda la configuración
+        \Log::info("🔍 DEBUG render() - Configuración completa", [
+            'moduleName' => $this->moduleName,
+            'total_opciones' => count($moduleConfig),
+            'todas_las_opciones' => $moduleConfig,
+            'visible_fields' => $this->getVisibleFields(),
+            'disabled_fields' => $this->getDisabledFields(),
+        ]);
+
         return view('livewire.examples.configurable-form-example', [
             'visibleFields' => $this->getVisibleFields(),
-            'moduleConfig' => $this->getModuleConfig($this->moduleName),
+            'disabledFields' => $this->getDisabledFields(),
+            'moduleConfig' => $moduleConfig,
         ]);
     }
 }

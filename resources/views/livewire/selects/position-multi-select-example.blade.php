@@ -69,7 +69,7 @@
     {
         return [
             'employeePositions' => 'required|array|min:1',
-            'employeePositions.*' => 'exists:cfg_positions,id'
+            'employeePositions.*' => 'exists:cnf_positions,id'
         ];
     }
 --}}
