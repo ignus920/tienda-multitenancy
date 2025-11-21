@@ -15,10 +15,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Services\UserExportService;
+use App\Traits\HasCompanyConfiguration;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\Tenant;
 
 class UserRapForm extends Component
 {
-    use WithPagination;
+    use WithPagination, HasCompanyConfiguration;
     
     protected $listeners = ['positionUpdated'];
     
@@ -77,6 +80,8 @@ class UserRapForm extends Component
      */
     public function mount(): void
     {
+
+        
         $this->loadProfiles();
         $this->loadWarehouses();
     }
@@ -105,31 +110,36 @@ class UserRapForm extends Component
     private function loadWarehouses(): void
     {
        $sessionTenant = $this->getTenantId();
+       // 1. Obtener los IDs de las bodegas que cumplen el criterio
+       $warehouseIds = UserTenant::query()
+         ->select('vc.warehouseId')
+         ->join('users as u', 'u.id', '=', 'user_tenants.user_id')
+         ->join('vnt_contacts as vc', 'vc.id', '=', 'u.contact_id')
+         ->where('user_tenants.tenant_id', $sessionTenant)
+         ->pluck('warehouseId') // Obtener solo los IDs de las bodegas
+         ->unique(); // Evitar IDs duplicados
 
-// 1. Obtener los IDs de las bodegas que cumplen el criterio
-      $warehouseIds = UserTenant::query()
-    ->select('vc.warehouseId')
-    ->join('users as u', 'u.id', '=', 'user_tenants.user_id')
-    ->join('vnt_contacts as vc', 'vc.id', '=', 'u.contact_id')
-    ->where('user_tenants.tenant_id', $sessionTenant)
-    ->pluck('warehouseId') // Obtener solo los IDs de las bodegas
-    ->unique(); // Evitar IDs duplicados
-
-// 2. Cargar las bodegas usando los IDs obtenidos
-$this->warehouses = VntWarehouse::query()
-    ->whereIn('id', $warehouseIds) // Usamos el array de IDs
-    ->where('vnt_warehouses.status', true)
-    ->with('company')
-    ->orderBy('vnt_warehouses.name')
-    ->get();
-    }
+    // 2. Cargar las bodegas usando los IDs obtenidos
+       $this->warehouses = VntWarehouse::query()
+        ->whereIn('id', $warehouseIds) // Usamos el array de IDs
+        ->where('vnt_warehouses.status', true)
+        ->with('company')
+        ->orderBy('vnt_warehouses.name')
+        ->get();
+       }
 
     /**
      * Open modal in create mode
      */
-  public function create(): void
+    public function create(): void
     {
+        if ($this->canCreateOrUpdateUsers()) {
+            $this->errorMessage = 'No tienes permisos para crear usuarios';
+            return;
+        }
+
         $this->successMessage = '';
+        $this->errorMessage = '';
         $this->resetForm();
         
         // Limpiar validaciones al abrir el formulario
@@ -288,7 +298,6 @@ $this->warehouses = VntWarehouse::query()
      */
     private function validateForm(): void
     {
-        $this->validate();
         $this->validate($this->rules(), $this->messages());
     }
 
@@ -298,6 +307,9 @@ $this->warehouses = VntWarehouse::query()
     public function save(): void
     {
         try {
+            // Clear previous error message
+            $this->errorMessage = '';
+            
             // Validate all inputs
             $this->validateForm();
             
@@ -308,15 +320,16 @@ $this->warehouses = VntWarehouse::query()
                 $this->updateUserWithContact($user);
             } else {
                 // Create mode
-
                 $this->createUserWithContact();
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Validation errors are automatically handled by Livewire
-            // Just set error message for user feedback
-            $this->errorMessage = 'Por favor corrija los errores en el formulario';
-            throw $e;
+            // The modal stays open so user can see and fix errors
+            Log::info('Validation error in save method', [
+                'errors' => $e->errors(),
+            ]);
+            // Don't throw - let Livewire handle validation display
         } catch (\Exception $e) {
             // Other errors are handled in create/update methods
             // This catch is for any unexpected errors
@@ -350,7 +363,6 @@ $this->warehouses = VntWarehouse::query()
     private function createUserWithContact(): void
     {
         try {
-
             $sessionTenant = $this->getTenantId();
             DB::beginTransaction();
 
@@ -392,9 +404,13 @@ $this->warehouses = VntWarehouse::query()
             ]);
 
             DB::commit();
-            $this->closeModal();
+            
+            // Set success message before closing
             $this->successMessage = 'Usuario creado exitosamente';
-          
+            $this->errorMessage = '';
+            
+            // Close modal after successful creation
+            $this->closeModal();
             
         } catch (\Exception $e) {
             DB::rollBack();
@@ -449,9 +465,13 @@ $this->warehouses = VntWarehouse::query()
             ]);
 
             DB::commit();
-            $this->closeModal();
+            
+            // Set success message before closing
             $this->successMessage = 'Usuario actualizado exitosamente';
-          
+            $this->errorMessage = '';
+            
+            // Close modal after successful update
+            $this->closeModal();
             
         } catch (\Exception $e) {
             DB::rollBack();
@@ -564,7 +584,7 @@ $this->warehouses = VntWarehouse::query()
         } catch (\Exception $e) {
             // Rollback y manejo de error
             DB::rollBack();
-            $this->errorMessage = 'Error al actualizar el estado';
+            $this->errorMessage = 'Error al actualizar el estado: ' . $e->getMessage();
             
             Log::error('Toggle status failed', [
                 'user_id' => $userId,
@@ -692,5 +712,73 @@ $this->warehouses = VntWarehouse::query()
             throw new \Exception('No tenant selected');
         }
         return $tenantId;
+    }
+
+    private function canCreateOrUpdateUsers(bool $update = false, $toggle = false): bool
+    {
+
+        $this->ensureTenantConnection();        
+        $this->initializeCompanyConfiguration();
+
+        // DEBUG: Limpiar caché para testing
+        $this->clearConfigurationCache();
+        $result = $this->isOptionEnabled(1);
+        $value = $this->getOptionValue(1);
+        
+
+        $filteredUsers = $this->users->filter(function($user) {
+            return $user->contact && $user->contact->status == 1;
+         });
+         $count = $filteredUsers->count();
+
+        // DEBUG: Log detallado de verificación
+        Log::info('🔍 canCreateOrUpdateUsers() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 1,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(10) y getOptionValue(10)',
+            'update' => $update,
+            'count' => $count,
+            'toggle' => $toggle
+        ]);
+        // validation create
+        if(!$update){
+           return (int)$value <= (int)$count;
+        }
+        // validation update positive
+        if(!$toggle){
+            return (int)$value < (int)$count;
+        }
+        // validation update negative
+        if($toggle){
+            return (int)$value == (int)$count;
+        }
+         return false;
+    }
+
+    
+    private function ensureTenantConnection(): void
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            throw new \Exception('No tenant selected');
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            throw new \Exception('Invalid tenant');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
     }
 }
