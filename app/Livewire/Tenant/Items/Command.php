@@ -20,6 +20,7 @@ class Command extends Component
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
 
     public $newCommandName = '';
+    public $newPrintPathName = '';
     public $showCommandForm = false;
 
     protected $listeners = ['refreshCommands' => '$refresh'];
@@ -93,7 +94,7 @@ class Command extends Component
             $this->ensureTenantConnection();
             $command = $commandService->createCommand([
                 'name' => $this->newCommandName,
-                'print_path' => 'http://127.0.0.1:8000/inventory/commands',
+                'print_path' => $this->newPrintPathName,
                 'status' => 1,
             ]);
 
