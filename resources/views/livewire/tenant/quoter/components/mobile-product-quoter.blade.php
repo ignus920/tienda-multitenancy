@@ -136,6 +136,60 @@
                         </button>
                     </div>
 
+                    <!-- Búsqueda de clientes -->
+                    <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+                        @if($selectedCustomer)
+                            <!-- Cliente seleccionado -->
+                            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-green-800 dark:text-green-200 text-sm">
+                                            {{ $selectedCustomer['businessName'] ?: $selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName'] }}
+                                        </h4>
+                                        <p class="text-xs text-green-600 dark:text-green-300">
+                                            Identificación: {{ $selectedCustomer['identification'] }}
+                                        </p>
+                                        @if($selectedCustomer['billingEmail'])
+                                            <p class="text-xs text-green-600 dark:text-green-300">{{ $selectedCustomer['billingEmail'] }}</p>
+                                        @endif
+                                    </div>
+                                    <button wire:click="clearCustomer" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 ml-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            <!-- Formulario de búsqueda -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Buscar Cliente</label>
+                                <div class="flex gap-2">
+                                    <input wire:model="customerSearch"
+                                           type="text"
+                                           placeholder="NIT o cédula..."
+                                           class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <button wire:click="searchCustomer"
+                                            wire:loading.attr="disabled"
+                                            wire:target="searchCustomer"
+                                            class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+
+                                        <!-- Icono de búsqueda normal -->
+                                        <svg wire:loading.remove wire:target="searchCustomer" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+
+                                        <!-- Icono de loading con animación -->
+                                        <svg wire:loading wire:target="searchCustomer" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
                     <!-- Contenido del carrito -->
                     <div class="flex-1 overflow-y-auto px-4 py-4">
                         @if(empty($quoterItems))

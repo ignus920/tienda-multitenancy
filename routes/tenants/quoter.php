@@ -1,8 +1,7 @@
 <?php
 
 use App\Http\Controllers\Quoter\QuoterController;
-use App\Livewire\Tenant\Quoter\DesktopProductQuoter;
-use App\Livewire\Tenant\Quoter\MobileProductQuoter;
+use App\Livewire\Tenant\Quoter\ProductQuoter;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,11 +34,13 @@ Route::get('/tenant/quoter/mobile', [QuoterController::class, 'mobile'])
     ->name('tenant.quoter.mobile');
 
 // Componente Livewire para cotizador desktop
-Route::get('/tenant/quoter/products/desktop', DesktopProductQuoter::class)
+Route::get('/tenant/quoter/products/desktop', ProductQuoter::class)
     ->middleware(['auth', 'verified', 'tenant'])
-    ->name('tenant.quoter.products.desktop');
+    ->name('tenant.quoter.products.desktop')
+    ->defaults('viewType', 'desktop');
 
 // Componente Livewire para cotizador mobile
-Route::get('/tenant/quoter/products/mobile', MobileProductQuoter::class)
+Route::get('/tenant/quoter/products/mobile', ProductQuoter::class)
     ->middleware(['auth', 'verified', 'tenant'])
-    ->name('tenant.quoter.products.mobile');
+    ->name('tenant.quoter.products.mobile')
+    ->defaults('viewType', 'mobile');
