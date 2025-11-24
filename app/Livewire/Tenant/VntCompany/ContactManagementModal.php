@@ -36,6 +36,11 @@ class ContactManagementModal extends Component
     public $successMessage = '';
     public $errorMessage = '';
     
+    // Email validation
+    public $emailError = '';
+    public $emailExists = false;
+    public $isCheckingEmail = false;
+    
     protected $contactService;
     
     public function boot(ContactService $contactService)
@@ -93,6 +98,7 @@ class ContactManagementModal extends Component
         $this->editingContactId = null;
         $this->resetContactForm();
         $this->clearMessages();
+        $this->clearEmailValidation();
     }
     
     /**
@@ -130,6 +136,7 @@ class ContactManagementModal extends Component
             ];
             
             $this->clearMessages();
+            $this->clearEmailValidation();
             
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al cargar el contacto: ' . $e->getMessage();
@@ -142,12 +149,57 @@ class ContactManagementModal extends Component
     }
     
     /**
+     * Validar email en tiempo real
+     */
+    public function validateEmailRealtime($email)
+    {
+        $this->isCheckingEmail = true;
+        $this->emailError = '';
+        $this->emailExists = false;
+        
+        if (empty(trim($email))) {
+            $this->isCheckingEmail = false;
+            return;
+        }
+        
+        try {
+            $this->ensureTenantConnection();
+            
+            $existingContact = \App\Models\Tenant\Customer\VntContacts::whereHas('warehouse')
+            ->where('email', $email)
+            ->when($this->formMode === 'edit', function ($query) {
+                $query->where('id', '!=', $this->editingContactId);
+            })
+            ->first();
+            
+            if ($existingContact) {
+                $this->emailExists = true;
+                $this->emailError = 'Este email ya existe en los contactos de esta empresa';
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error validating email', [
+                'email' => $email,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        $this->isCheckingEmail = false;
+    }
+    
+    /**
      * Guardar contacto (crear o actualizar)
      * Requirements: 2.5, 2.6, 2.7, 3.3, 3.4, 3.5, 3.6
      */
     public function saveContact()
     {
         try {
+            // Validar que no haya error de email duplicado
+            if ($this->emailExists) {
+                $this->errorMessage = 'No se puede guardar el contacto: ' . $this->emailError;
+                return;
+            }
+            
             // Validar datos del formulario
             $this->validate($this->rules(), $this->messages());
             
@@ -288,6 +340,7 @@ class ContactManagementModal extends Component
         $this->editingContactId = null;
         $this->resetContactForm();
         $this->clearMessages();
+        $this->clearEmailValidation();
         $this->resetValidation();
     }
     
@@ -317,6 +370,16 @@ class ContactManagementModal extends Component
     {
         $this->successMessage = '';
         $this->errorMessage = '';
+    }
+    
+    /**
+     * Limpiar validación de email
+     */
+    private function clearEmailValidation()
+    {
+        $this->emailError = '';
+        $this->emailExists = false;
+        $this->isCheckingEmail = false;
     }
     
     /**
