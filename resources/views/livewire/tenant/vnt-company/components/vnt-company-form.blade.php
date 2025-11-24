@@ -572,12 +572,19 @@
                         </div>
                         @endif
                         <!-- Email de Facturación -->
-                        <div>
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
-                            <input wire:model="billingEmail" type="email" id="billingEmail"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                 @error('billingEmail') border-red-500 @enderror
+                                 @if($emailExists) border-red-500 @endif"
                                 placeholder="Ingrese el email de facturación" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+
+                            @if($emailExists && !$errors->has('billingEmail'))
+                            <span class="text-red-500 text-sm">
+                                Este email ya está registrado
+                            </span>
+                            @endif
                         </div>
 
                         <!-- Teléfono Empresarial -->
@@ -1077,6 +1084,7 @@
                             </button>
                             <button type="submit"
                                 wire:loading.attr="disabled"
+                                {{ $formHasErrors ? 'disabled' : '' }}
                                 class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
                                 <span wire:loading.remove>{{ $editingId ? 'Actualizar' : 'Crear' }}</span>
                                 <span wire:loading class="flex items-center">
