@@ -7,19 +7,28 @@ use Livewire\WithPagination;
 use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use App\Models\Tenant\Customer\VntCompany;
 
-class MobileProductQuoter extends Component
+class ProductQuoter extends Component
 {
     use WithPagination;
 
     public $search = '';
-    public $selectedCategory = '';
+    public $perPage = 12;
+    public $sortField = 'id';
+    public $sortDirection = 'desc';
+    public $selectedProducts = [];
     public $quoterItems = [];
     public $totalAmount = 0;
     public $showCartModal = false;
+    public $viewType = 'desktop'; // 'desktop' o 'mobile'
+    public $customerSearch = '';
+    public $selectedCustomer = null;
+    public $searchingCustomer = false;
 
     protected $queryString = [
         'search' => ['except' => ''],
+        'perPage' => ['except' => 12],
     ];
 
     public function updatingSearch()
@@ -27,8 +36,27 @@ class MobileProductQuoter extends Component
         $this->resetPage();
     }
 
+    public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortDirection = 'asc';
+        }
+
+        $this->sortField = $field;
+        $this->resetPage();
+    }
+
     public function mount()
     {
+        // Obtener viewType de la ruta o usar desktop por defecto
+        $this->viewType = request()->route('viewType', 'desktop');
         $this->ensureTenantConnection();
         $this->quoterItems = session('quoter_items', []);
         $this->calculateTotal();
@@ -38,59 +66,28 @@ class MobileProductQuoter extends Component
     {
         $tenantId = session('tenant_id');
 
-        \Illuminate\Support\Facades\Log::info('🔍 MobileProductQuoter - Verificando conexión tenant', [
-            'tenant_id_session' => $tenantId,
-            'current_connection' => config('database.default'),
-            'tenant_connection_config' => config('database.connections.tenant')
-        ]);
-
         if (!$tenantId) {
-            \Illuminate\Support\Facades\Log::warning('❌ No hay tenant_id en session, redirigiendo');
             return redirect()->route('tenant.select');
         }
 
         $tenant = Tenant::find($tenantId);
 
         if (!$tenant) {
-            \Illuminate\Support\Facades\Log::warning('❌ Tenant no encontrado', ['tenant_id' => $tenantId]);
             session()->forget('tenant_id');
             return redirect()->route('tenant.select');
         }
 
-        \Illuminate\Support\Facades\Log::info('✅ Tenant encontrado', [
-            'tenant_id' => $tenant->id,
-            'tenant_db_name' => $tenant->database_name
-        ]);
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
 
-        // Solo usar tenancy() para inicializar - esto debería configurar automáticamente la conexión
+        // Inicializar tenancy
         tenancy()->initialize($tenant);
-
-        // Verificar que la conexión esté configurada correctamente
-        $currentDbName = \Illuminate\Support\Facades\DB::connection('tenant')->getDatabaseName();
-        \Illuminate\Support\Facades\Log::info('🔗 Conexión tenant configurada', [
-            'database_name' => $currentDbName,
-            'expected_db' => $tenant->database_name
-        ]);
-
-        if ($currentDbName !== $tenant->database_name) {
-            \Illuminate\Support\Facades\Log::error('❌ Conexión tenant incorrecta!', [
-                'current_db' => $currentDbName,
-                'expected_db' => $tenant->database_name
-            ]);
-        }
     }
 
     public function render()
     {
         $this->ensureTenantConnection();
-
-        // Verificar conexión antes de consultar productos
-        $currentDbName = \Illuminate\Support\Facades\DB::connection('tenant')->getDatabaseName();
-        \Illuminate\Support\Facades\Log::info('🛒 MobileProductQuoter - Consultando productos', [
-            'current_db' => $currentDbName,
-            'search_term' => $this->search,
-            'session_tenant_id' => session('tenant_id')
-        ]);
 
         $products = Items::query()
             ->active()
@@ -100,16 +97,14 @@ class MobileProductQuoter extends Component
                       ->orWhere('sku', 'like', '%' . $this->search . '%')
                       ->orWhere('description', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('name', 'asc')
-            ->paginate(20);
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate($this->perPage);
 
-        \Illuminate\Support\Facades\Log::info('📦 Productos encontrados', [
-            'count' => $products->count(),
-            'total' => $products->total(),
-            'first_product' => $products->count() > 0 ? $products->first()->name : 'N/A'
-        ]);
+        $viewName = $this->viewType === 'mobile'
+            ? 'livewire.tenant.quoter.components.mobile-product-quoter'
+            : 'livewire.tenant.quoter.components.desktop-product-quoter';
 
-        return view('livewire.tenant.quoter.components.mobile-product-quoter', [
+        return view($viewName, [
             'products' => $products
         ])->layout('layouts.app');
     }
@@ -119,11 +114,15 @@ class MobileProductQuoter extends Component
         $this->ensureTenantConnection();
 
         $product = Items::findOrFail($productId);
+
+        // Verificar si el producto ya está en el cotizador
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
+            // Si ya existe, incrementar la cantidad
             $this->quoterItems[$existingIndex]['quantity']++;
         } else {
+            // Si no existe, agregarlo
             $this->quoterItems[] = [
                 'id' => $product->id,
                 'name' => $product->display_name,
@@ -134,12 +133,14 @@ class MobileProductQuoter extends Component
             ];
         }
 
+        // Guardar en sesión
         session(['quoter_items' => $this->quoterItems]);
+
         $this->calculateTotal();
 
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Producto agregado'
+            'message' => 'Producto agregado al cotizador'
         ]);
     }
 
@@ -158,9 +159,14 @@ class MobileProductQuoter extends Component
     public function removeFromQuoter($index)
     {
         unset($this->quoterItems[$index]);
-        $this->quoterItems = array_values($this->quoterItems);
+        $this->quoterItems = array_values($this->quoterItems); // Reindexar array
         session(['quoter_items' => $this->quoterItems]);
         $this->calculateTotal();
+
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Producto removido del cotizador'
+        ]);
     }
 
     public function clearQuoter()
@@ -169,6 +175,11 @@ class MobileProductQuoter extends Component
         session()->forget('quoter_items');
         $this->calculateTotal();
         $this->showCartModal = false;
+
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Cotizador limpiado'
+        ]);
     }
 
     public function saveQuote()
@@ -176,14 +187,15 @@ class MobileProductQuoter extends Component
         if (empty($this->quoterItems)) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'No hay productos en el carrito'
+                'message' => 'No hay productos en el cotizador'
             ]);
             return;
         }
 
+        // TODO: Implementar guardado de cotización
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Cotización guardada exitosamente'
+            'message' => 'Cotización guardada exitosamente - En desarrollo'
         ]);
 
         $this->showCartModal = false;
@@ -192,6 +204,62 @@ class MobileProductQuoter extends Component
     public function toggleCartModal()
     {
         $this->showCartModal = !$this->showCartModal;
+    }
+
+    public function searchCustomer()
+    {
+        $this->searchingCustomer = true;
+        $this->ensureTenantConnection();
+
+        if (empty($this->customerSearch)) {
+            $this->searchingCustomer = false;
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'Por favor ingrese un NIT o cédula'
+            ]);
+            return;
+        }
+
+        // Simular un pequeño delay para mostrar la animación
+        usleep(500000); // 0.5 segundos
+
+        // Buscar cliente por NIT o cédula
+        $customer = VntCompany::where('identification', $this->customerSearch)
+            ->first();
+
+        if ($customer) {
+            // Almacenar solo los datos necesarios en lugar del objeto completo
+            $this->selectedCustomer = [
+                'id' => $customer->id,
+                'businessName' => $customer->businessName,
+                'firstName' => $customer->firstName,
+                'lastName' => $customer->lastName,
+                'identification' => $customer->identification,
+                'billingEmail' => $customer->billingEmail,
+            ];
+
+            // Determinar el nombre a mostrar
+            $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cliente encontrado: ' . $customerName
+            ]);
+        } else {
+            $this->selectedCustomer = null;
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se encontró ningún cliente con ese NIT o cédula'
+            ]);
+        }
+
+        $this->searchingCustomer = false;
+    }
+
+    public function clearCustomer()
+    {
+        $this->selectedCustomer = null;
+        $this->customerSearch = '';
     }
 
     private function findProductInQuoter($productId)

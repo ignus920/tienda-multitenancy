@@ -8,16 +8,20 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class QuoterDesktop extends Component
+class Quoter extends Component
 {
     use WithPagination, HasCompanyConfiguration;
 
     public $search = '';
+    public $viewType = 'desktop'; // 'desktop' o 'mobile'
 
     protected $paginationTheme = 'bootstrap';
 
-    public function mount()
+    public function mount($viewType = null)
     {
+        // Obtener viewType desde parámetro, ruta o usar desktop por defecto
+        $this->viewType = $viewType ?? request()->route('viewType', 'desktop');
+
         // Inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
 
@@ -25,7 +29,8 @@ class QuoterDesktop extends Component
         $this->clearConfigurationCache();
 
         // DEBUG: Log para verificar inicialización
-        Log::info('🔍 QuoterDesktop mount() ejecutado', [
+        Log::info('🔍 Quoter mount() ejecutado', [
+            'viewType' => $this->viewType,
             'currentCompanyId' => $this->currentCompanyId,
             'currentPlainId' => $this->currentPlainId,
             'configService_exists' => $this->configService ? 'YES' : 'NO'
@@ -103,7 +108,11 @@ class QuoterDesktop extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('livewire.tenant.quoter.components.quoter-desktop', [
+        $viewName = $this->viewType === 'mobile'
+            ? 'livewire.tenant.quoter.components.quoter-mobile'
+            : 'livewire.tenant.quoter.components.quoter-desktop';
+
+        return view($viewName, [
             'quotes' => $quotes
         ]);
     }
