@@ -26,6 +26,12 @@ class ProductQuoter extends Component
     public $selectedCustomer = null;
     public $searchingCustomer = false;
     public $showCreateCustomerForm = false;
+    public $showCreateCustomerButton = false;
+
+    protected $listeners = [
+        'customer-created' => 'onCustomerCreated',
+        'vnt-company-saved' => 'onCustomerCreated'
+    ];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -248,10 +254,10 @@ class ProductQuoter extends Component
             ]);
         } else {
             $this->selectedCustomer = null;
-            $this->showCreateCustomerForm = true;
+            $this->showCreateCustomerButton = true;
             $this->dispatch('show-toast', [
                 'type' => 'info',
-                'message' => 'Cliente no encontrado. Puedes crear uno nuevo usando el formulario'
+                'message' => 'Cliente no encontrado. Puedes crear uno nuevo'
             ]);
         }
 
@@ -263,11 +269,59 @@ class ProductQuoter extends Component
         $this->selectedCustomer = null;
         $this->customerSearch = '';
         $this->showCreateCustomerForm = false;
+        $this->showCreateCustomerButton = false;
+    }
+
+    public function showCreateCustomerForm()
+    {
+        $this->showCreateCustomerForm = true;
+        $this->showCreateCustomerButton = false;
     }
 
     public function hideCreateCustomerForm()
     {
         $this->showCreateCustomerForm = false;
+        $this->showCreateCustomerButton = true;
+    }
+
+    public function cancelCreateCustomer()
+    {
+        $this->showCreateCustomerButton = false;
+        $this->showCreateCustomerForm = false;
+        $this->customerSearch = '';
+    }
+
+    public function onCustomerCreated($customerId)
+    {
+        $this->ensureTenantConnection();
+
+        // Buscar el cliente recién creado
+        $customer = VntCompany::find($customerId);
+
+        if ($customer) {
+            // Seleccionar el cliente recién creado
+            $this->selectedCustomer = [
+                'id' => $customer->id,
+                'businessName' => $customer->businessName,
+                'firstName' => $customer->firstName,
+                'lastName' => $customer->lastName,
+                'identification' => $customer->identification,
+                'billingEmail' => $customer->billingEmail,
+            ];
+
+            // Limpiar estados del formulario de creación
+            $this->showCreateCustomerForm = false;
+            $this->showCreateCustomerButton = false;
+            $this->customerSearch = '';
+
+            // Determinar el nombre a mostrar
+            $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cliente creado y seleccionado: ' . $customerName
+            ]);
+        }
     }
 
     private function findProductInQuoter($productId)
