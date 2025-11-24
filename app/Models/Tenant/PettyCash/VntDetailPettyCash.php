@@ -4,6 +4,7 @@ namespace App\Models\Tenant\PettyCash;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\ModelS\Tenant\MethodPayments\VntMethodPayMents;
 
 class VntDetailPettyCash extends Model
 {
@@ -24,4 +25,8 @@ class VntDetailPettyCash extends Model
         'invoiceId',
         'observations'
     ];
+
+    public function methodPayments(){
+        return $this->belongsTo(VntMethodPayMents::class, 'methodPaymentId', 'id');
+    }
 }

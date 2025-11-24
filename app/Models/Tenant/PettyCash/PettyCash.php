@@ -27,7 +27,4 @@ class PettyCash extends Model
         'cashier'
     ];
 
-    public function opener(){
-        return $this->belongsTo(User::class, 'userIdOpen');
-    }
 }

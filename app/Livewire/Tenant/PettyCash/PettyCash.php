@@ -8,7 +8,6 @@ use Livewire\WithPagination;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
 use App\Models\Tenant\PettyCash\VntDetailPettyCash;
-use App\Models\Auth\User;
 //Servicios
 use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +24,7 @@ class PettyCash extends Component
 
     public $pettyCash_id;
     public $base;
+    public $showDetail = false;
     //public $warehouseId; // Added for dynamic warehouse selection
 
     //Propiedades para la tabla
@@ -71,7 +71,6 @@ class PettyCash extends Component
     }
 
     public function save(){
-
         try{
             $this->ensureTenantConnection();
     
@@ -104,10 +103,7 @@ class PettyCash extends Component
                 session()->flash('message', 'Registro realizado exitosamente.');
             
                 $this->resetValidation();
-                $this->reset([
-                    'base',
-                    ''
-                ]);
+                $this->resetForm();
             
                 $this->showModal = false;
             }
@@ -143,14 +139,21 @@ class PettyCash extends Component
         }
     }
 
+    public function viewDetail($pettyCash_id){
+        $this->pettyCash_id=$pettyCash_id;
+        $this->showDetail=true;
+    }
+
+
     public function render()
     {   
         $this->ensureTenantConnection();
-        $petty_cashes=PettyCashModel::query()
-            ->with('opener')
-            ->when($this->search, function($query){
-                $query->where('consecutive', 'like', '%' . $this->search . '%')
-                        ->orWhere('cashier', 'like', '%' . $this->search . '%');
+        $petty_cashes = PettyCashModel::query()
+            ->select('vnt_petty_cash.*', 'u.name')
+            ->join('rap.users as u', 'u.id', '=', 'vnt_petty_cash.userIdOpen')
+            ->when($this->search, function ($query) {
+                $query->where('vnt_petty_cash.consecutive', 'like', '%' . $this->search . '%')
+                    ->orWhere('u.name', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
@@ -158,6 +161,13 @@ class PettyCash extends Component
         return view('livewire.tenant.petty-cash.petty-cash', [
             'boxes'=>$petty_cashes
         ]);
+    }
+
+    public function cancel()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->showModal = false;
     }
 
     private function ensureTenantConnection()
@@ -181,5 +191,9 @@ class PettyCash extends Component
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+    }
+
+    private function resetForm(){
+        $this->base='';
     }
 }
