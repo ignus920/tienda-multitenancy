@@ -25,6 +25,7 @@ class ProductQuoter extends Component
     public $customerSearch = '';
     public $selectedCustomer = null;
     public $searchingCustomer = false;
+    public $showCreateCustomerForm = false;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -247,9 +248,10 @@ class ProductQuoter extends Component
             ]);
         } else {
             $this->selectedCustomer = null;
+            $this->showCreateCustomerForm = true;
             $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'No se encontró ningún cliente con ese NIT o cédula'
+                'type' => 'info',
+                'message' => 'Cliente no encontrado. Puedes crear uno nuevo usando el formulario'
             ]);
         }
 
@@ -260,6 +262,12 @@ class ProductQuoter extends Component
     {
         $this->selectedCustomer = null;
         $this->customerSearch = '';
+        $this->showCreateCustomerForm = false;
+    }
+
+    public function hideCreateCustomerForm()
+    {
+        $this->showCreateCustomerForm = false;
     }
 
     private function findProductInQuoter($productId)
