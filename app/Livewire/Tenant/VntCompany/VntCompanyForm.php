@@ -391,11 +391,20 @@ class VntCompanyForm extends Component
         // dd($warehouses);
         try {
             if ($this->editingId) {
-                $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
+                $company = $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
                 session()->flash('message', 'Registro actualizado exitosamente.');
+
+                // Disparar evento para componentes que escuchan
+                $this->dispatch('customer-updated', $this->editingId);
             } else {
-                $this->companyService->create($data, $warehouses);
+                $company = $this->companyService->create($data, $warehouses);
                 session()->flash('message', 'Registro creado exitosamente.');
+
+                // Disparar evento para componentes que escuchan
+                if ($company && isset($company->id)) {
+                    $this->dispatch('customer-created', $company->id);
+                    $this->dispatch('vnt-company-saved', $company->id);
+                }
             }
 
             $this->resetForm();

@@ -160,6 +160,21 @@
                                     </button>
                                 </div>
                             </div>
+                        @elseif($showCreateCustomerButton)
+                            <!-- Formulario para crear cliente -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Crear Cliente</label>
+                                    <button wire:click="cancelCreateCustomer" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-2">
+                                    <livewire:tenant.vnt-company.vnt-company-form :reusable="true" />
+                                </div>
+                            </div>
                         @else
                             <!-- Formulario de búsqueda -->
                             <div class="space-y-2">
@@ -190,22 +205,6 @@
                         @endif
                     </div>
 
-                    <!-- Formulario para crear cliente cuando no se encuentra -->
-                    @if($showCreateCustomerForm)
-                        <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Crear Cliente</h3>
-                                <button wire:click="hideCreateCustomerForm" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-                                <livewire:tenant.vnt-company.vnt-company-form :reusable="true" />
-                            </div>
-                        </div>
-                    @endif
 
                     <!-- Contenido del carrito -->
                     <div class="flex-1 overflow-y-auto px-4 py-4">
