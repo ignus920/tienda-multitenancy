@@ -94,6 +94,9 @@ class VntCompanyForm extends Component
     
     // Control de visualización de campos
     public $showNaturalPersonFields = false;
+    
+    // Propiedad para rastrear errores de validación
+    public $formHasErrors = false;
 
     public function boot(
         CompanyService $companyService,
@@ -321,6 +324,17 @@ class VntCompanyForm extends Component
             $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
         }
         
+        // Validar que identification y email no existan antes de proceder
+        if ($this->identificationExists) {
+            $this->addError('identification', 'Este número de identificación ya está registrado.');
+            return;
+        }
+        
+        if ($this->emailExists) {
+            $this->addError('billingEmail', 'Este email de facturación ya está registrado.');
+            return;
+        }
+        
         // Validación simple usando Livewire nativo
         $this->validate();
         
@@ -496,6 +510,9 @@ class VntCompanyForm extends Component
         
         // Reset control de visualización
         $this->showNaturalPersonFields = false;
+        
+        // Reset form validation state
+        $this->formHasErrors = false;
 
         $this->resetErrorBag();
         $this->resetValidation();
@@ -602,10 +619,17 @@ class VntCompanyForm extends Component
         // Validar solo el campo que cambió
         $this->validateOnly($propertyName);
         
-        // Siempre re-validar la identificación después de cualquier cambio
-        // para mantener el estado de identificationExists actualizado
-        if (!empty($this->identification) && !empty($this->typeIdentificationId)) {
+        // Actualizar el estado de errores del formulario
+        $this->formHasErrors = $this->getErrorBag()->isNotEmpty();
+        
+        // Validar unicidad de identification si cambió
+        if ($propertyName === 'identification' && !empty($this->identification) && !empty($this->typeIdentificationId)) {
             $this->validateIdentificationUniqueness();
+        }
+        
+        // Validar unicidad de email si cambió
+        if ($propertyName === 'billingEmail' && !empty($this->billingEmail)) {
+            $this->validateEmailUniqueness();
         }
     }
 
@@ -674,21 +698,33 @@ class VntCompanyForm extends Component
 
      public function validateEmailUniqueness(): void
     {
-        // Reset state
-        $this->validatingEmail = false;
         // Skip validation if required fields are empty
         if (empty($this->billingEmail)) {
+            $this->emailExists = false;
+            $this->validatingEmail = false;
             return;
         }
+        
         // Set loading state
         $this->validatingEmail = true;
-        // Check if combination exists
-        $this->emailExists = $this->validationService->checkEmailExists(
-            $this->billingEmail,
-            $this->editingId
-        );
-        // Clear loading state
-        $this->validatingEmail = false;
+        
+        try {
+            // Check if combination exists
+            $this->emailExists = $this->validationService->checkEmailExists(
+                $this->billingEmail,
+                $this->editingId
+            );
+        } catch (\Exception $e) {
+            // Log error but don't break the form
+            Log::error('Error validating email uniqueness', [
+                'error' => $e->getMessage(),
+                'billingEmail' => $this->billingEmail
+            ]);
+            $this->emailExists = false;
+        } finally {
+            // Always clear loading state
+            $this->validatingEmail = false;
+        }
     }
 
     public function setMainWarehouse($index)

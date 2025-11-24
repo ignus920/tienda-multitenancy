@@ -1084,6 +1084,7 @@
                             </button>
                             <button type="submit"
                                 wire:loading.attr="disabled"
+                                {{ $formHasErrors ? 'disabled' : '' }}
                                 class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
                                 <span wire:loading.remove>{{ $editingId ? 'Actualizar' : 'Crear' }}</span>
                                 <span wire:loading class="flex items-center">
