@@ -205,11 +205,18 @@
                                                 Editar
                                             </button>
                                             <button wire:click="openWarehouseModal({{ $it->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                                 </svg>
                                                 Ubicaciones
+                                            </button>
+                                            <button wire:click="openValuesModal({{ $it->id }})"
+                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                                </svg>
+                                                Valores
                                             </button>
                                         </div>
                                     </div>
@@ -315,10 +322,21 @@
 
                         <div class="mb-3">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
-                            <select wire:model="type" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select wire:model="type" {{ $disabled ? 'disabled' : '' }} class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="">-- Seleccione --</option>
                                 @foreach($types as $k => $v)
                                     <option value="{{ $k }}">{{ $v }}</option>
+                                @endforeach
+                            </select>
+                            @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impuesto</label>
+                            <select wire:model="tax" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">-- Seleccione --</option>
+                                @foreach($this->taxes as $tax)
+                                    <option value="{{ $tax->id }}">{{ $tax->name }}</option>
                                 @endforeach
                             </select>
                             @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
@@ -542,4 +560,7 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Values -->
+    
 </div>
