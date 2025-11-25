@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Tenant\PettyCash;
 
-use App\Livewire\Tenant\DetailPettyCash\Services\DetailPettyCashServices as ServicesDetailPettyCashServices;
 use Livewire\Component;
 use Livewire\WithPagination;
 //Modelos
@@ -64,18 +63,18 @@ class DetailPettyCash extends Component
 
     public function mount($pettyCash_id){
         // Inicializar configuración de empresa
-        $this->initializeCompanyConfiguration();
+        //$this->initializeCompanyConfiguration();
 
         // DEBUG: Limpiar caché para testing
         $this->clearConfigurationCache();
 
         // DEBUG: Log para verificar inicialización
-        Log::info('🔍 QuoterDesktop mount() ejecutado', [
+        Log::info('🔍 DetailPettyCash mount() ejecutado', [
             'currentCompanyId' => $this->currentCompanyId,
             'currentPlainId' => $this->currentPlainId,
             'configService_exists' => $this->configService ? 'YES' : 'NO'
         ]);
-
+        
         $this->pettyCash_id = $pettyCash_id;
         $this->loadDetailsData();
     }
@@ -93,6 +92,7 @@ class DetailPettyCash extends Component
 
     public function canDoMovement(): bool
     {
+        $this->initializeCompanyConfiguration();
         $result = $this->isOptionEnabled(18);
         $value = $this->getOptionValue(18);
 
@@ -107,8 +107,41 @@ class DetailPettyCash extends Component
         return $result;
     }
 
+    public function canDoIncome(): bool
+    {
+        $this->initializeCompanyConfiguration();
+        $result = $this->isOptionEnabled(15);
+        $value = $this->getOptionValue(15); 
+        Log::info('🔍 canDoIncome() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 15,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(15) y getOptionValue(15)'
+        ]);
+        return $result;
+    }
+
+    public function canDoEgress(): bool
+    {
+        $this->initializeCompanyConfiguration();
+        $result = $this->isOptionEnabled(16);
+        $value = $this->getOptionValue(16);
+        Log::info('🔍 canDoIncome() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 15,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(15) y getOptionValue(15)'
+        ]);
+        return $result; 
+    }
+
     public function createMovement(){
         $this->showModalMovement=true;
+        //dd($this->canDoIncome());
     }
 
     public function getReasonsProperty()
@@ -166,6 +199,7 @@ class DetailPettyCash extends Component
 
         }catch(\Exception $e){
             session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
+            $this->resetForm();
         }
     }
 

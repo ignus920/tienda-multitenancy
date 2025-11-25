@@ -9,12 +9,11 @@ use App\Models\Auth\Tenant;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
 use App\Models\Tenant\PettyCash\VntDetailPettyCash;
 //Servicios
-use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Tenant\TenantManager;
+use App\Traits\HasCompanyConfiguration;
 use Carbon\Carbon;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -47,6 +46,22 @@ class PettyCash extends Component
         'perPage' => ['except' => 10],
     ];
 
+    public function mount(){
+        $this->ensureTenantConnection();
+        // Inicializar configuración de empresa
+        $this->initializeCompanyConfiguration();
+
+        // DEBUG: Limpiar caché para testing
+        $this->clearConfigurationCache();
+
+        // DEBUG: Log para verificar inicialización
+        Log::info('🔍 PettyCash mount() ejecutado', [
+            'currentCompanyId' => $this->currentCompanyId,
+            'currentPlainId' => $this->currentPlainId,
+            'configService_exists' => $this->configService ? 'YES' : 'NO'
+        ]);
+    }
+
     public function sortBy($field)
     {
         if ($this->sortField === $field) {
@@ -57,16 +72,10 @@ class PettyCash extends Component
 
         $this->sortField = $field;
         $this->resetPage();
-        /*$this->sortDirection = $this->sortField === $field 
-            ? $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc'
-            : 'asc';
-
-        $this->sortField = $field;*/
     }
     
     public function create()
     {
-        //$this->resetExcept(['categories', 'types']); // No reseteamos las listas de opciones
         $this->showModal = true;
     }
 
@@ -83,7 +92,7 @@ class PettyCash extends Component
                 $this->validate();
             
                 // Determine the next consecutive number for the given warehouse
-                $lastConsecutive = PettyCashModel::where('warehouseId', 6)->max('consecutive');
+                $lastConsecutive = PettyCashModel::where('warehouseId', 6)->where('user')->max('consecutive');
             
                 $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
             
@@ -161,6 +170,21 @@ class PettyCash extends Component
         return view('livewire.tenant.petty-cash.petty-cash', [
             'boxes'=>$petty_cashes
         ]);
+    }
+
+    public function canOpenPettyCash(): bool{
+        $result = $this->isOptionEnabled(17);
+        $value = $this->getOptionValue(17);
+
+        Log::info('🔍 canOpenPettyCash() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 17,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(17) y getOptionValue(17)'
+        ]);
+        return $result;
     }
 
     public function cancel()

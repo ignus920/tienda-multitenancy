@@ -7,6 +7,7 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros Caja</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
+                @if($this->canOpenPettyCash()) 
                 <button wire:click="create" 
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,6 +15,7 @@
                     </svg>
                     Crear Nuevo
                 </button>
+                @endif
             </div>
         </div>
 
