@@ -42,24 +42,59 @@ class CitySelect extends Component
         $this->countryId = $countryId;
         $this->cityId = '';
         $this->search = '';
+        $this->dispatch('validate-city');
+    }
+
+    #[On('validate-city')]
+    public function validateCity()
+    {
+        $this->validate([
+            'cityId' => 'required',
+        ]);
+        // Notificar al padre que el hijo pasó la validación
+        $this->dispatch('city-valid', index: $this->index, cityId: $this->cityId);
     }
 
     // Método para seleccionar una ciudad de la lista
     public function selectCity($id)
     {
+        \Illuminate\Support\Facades\Log::info('CitySelect: selectCity called', [
+            'id' => $id,
+            'index' => $this->index,
+            'name' => $this->name
+        ]);
+        
         $this->cityId = $id;
         $this->search = ''; // Opcional: limpiar búsqueda al seleccionar
         
         // El hook updatedCityId se disparará automáticamente al cambiar la propiedad
+
+          if ($this->index !== null) {
+            $this->dispatch('city-changed', cityId: $this->cityId, index: $this->index);
+        } else {
+            $this->dispatch('city-changed', $this->cityId);
+        }
+        // y se encargará de notificar al padre
     }
 
     public function updatedCityId()
     {
+        \Illuminate\Support\Facades\Log::info('CitySelect: updatedCityId hook triggered', [
+            'cityId' => $this->cityId,
+            'index' => $this->index,
+            'name' => $this->name
+        ]);
+        
         if ($this->index !== null) {
             $this->dispatch('city-changed', cityId: $this->cityId, index: $this->index);
         } else {
             $this->dispatch('city-changed', $this->cityId);
         }
+        
+        \Illuminate\Support\Facades\Log::info('CitySelect: city-changed event dispatched', [
+            'cityId' => $this->cityId,
+            'index' => $this->index
+        ]);
     }
 
     // Propiedad computada para obtener el nombre de la ciudad seleccionada (para mostrar en el input cerrado)

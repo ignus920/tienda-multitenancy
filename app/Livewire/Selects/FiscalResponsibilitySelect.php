@@ -40,7 +40,7 @@ class FiscalResponsibilitySelect extends Component
 
     public function getFiscalResponsibilitiesProperty()
     {
-        return CnfFiscalResponsability::orderBy('description')
+        return CnfFiscalResponsability::orderBy('id')
             ->get(['id', 'description']);
     }
 
