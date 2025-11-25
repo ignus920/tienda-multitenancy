@@ -32,7 +32,7 @@ class DetailPettyCash extends Component
     public $search = '';
     public $sortField = 'invoiceId';
     public $sortDirection = 'desc';
-    public $perPage = 10;
+    public $perPage = 6;
 
     protected $rules =[
         'typeMovement' => 'required',
@@ -45,10 +45,20 @@ class DetailPettyCash extends Component
 
     protected $listeners = ['refreshDetail' => '$refresh'];
 
-    public $typeMovements=[
-        'i'=>'INGRESO',
-        'e'=>'EGRESO',
-    ];
+    public function getTypeMovementsProperty()
+    {
+        $movements = [];
+
+        if ($this->canDoIncome()) {
+            $movements['i'] = 'INGRESO';
+        }
+
+        if ($this->canDoEgress()) {
+            $movements['e'] = 'EGRESO';
+        }
+
+        return $movements;
+    }
 
     public function getValuesDetail()
     {
@@ -128,13 +138,13 @@ class DetailPettyCash extends Component
         $this->initializeCompanyConfiguration();
         $result = $this->isOptionEnabled(16);
         $value = $this->getOptionValue(16);
-        Log::info('🔍 canDoIncome() verificación', [
+        Log::info('🔍 canDoEgress() verificación', [
             'companyId' => $this->currentCompanyId,
-            'option_id' => 15,
+            'option_id' => 16,
             'result' => $result ? 'TRUE' : 'FALSE',
             'option_value' => $value,
             'configService_exists' => $this->configService ? 'YES' : 'NO',
-            'method_called' => 'isOptionEnabled(15) y getOptionValue(15)'
+            'method_called' => 'isOptionEnabled(16) y getOptionValue(16)'
         ]);
         return $result; 
     }
@@ -147,8 +157,14 @@ class DetailPettyCash extends Component
     public function getReasonsProperty()
     {
         $this->ensureTenantConnection();
+        
+        if (empty($this->typeMovement)) {
+            return collect(); // Return empty if no type is selected
+        }
 
-        return VntReasonsPettyCash::where('id', '!=', 5)->get();
+        return VntReasonsPettyCash::where('id', '!=', 5)
+            ->where('type', $this->typeMovement)
+            ->get();
     }
 
     public function getMethodPaymentProperty()
@@ -234,4 +250,11 @@ class DetailPettyCash extends Component
         $this->valueDetail='';
         $this->observations='';
     }
+
+    public function cancel()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->showModalMovement = false;
+    } 
 }

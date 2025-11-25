@@ -8,6 +8,7 @@ use Livewire\WithPagination;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
 use App\Models\Tenant\PettyCash\VntDetailPettyCash;
+use App\Models\Tenant\PettyCash\VntReconciliations;
 //Servicios
 use Illuminate\Support\Facades\Auth;
 use App\Services\Tenant\TenantManager;
@@ -24,7 +25,11 @@ class PettyCash extends Component
     public $pettyCash_id;
     public $base;
     public $showDetail = false;
+    public $showModalSalesFinish = false;
     //public $warehouseId; // Added for dynamic warehouse selection
+    public $paymentCounts = [];
+    public $paymentValues = [];
+    public $observations = '';
 
     //Propiedades para la tabla
     public $showModal = false;
@@ -153,6 +158,27 @@ class PettyCash extends Component
         $this->showDetail=true;
     }
 
+    public function openSalesFinishModal(){
+        $this->showModalSalesFinish=true;
+        // Inicializar arrays si están vacíos
+        if (empty($this->paymentCounts)) {
+            $methods = ['EFECTIVO', 'TRANSFERENCIA', 'CONTRA_ENTREGA', 'TARJETA_CREDITO', 'TARJETA_DEBITO', 'NEQUI', 'DAVIPLATA'];
+            foreach ($methods as $method) {
+                $this->paymentCounts[$method] = 0;
+                $this->paymentValues[$method] = 0;
+            }
+        }
+    }
+
+    public function closeCashBox()
+    {
+        // Lógica para cerrar la caja
+        // Aquí procesas $this->paymentCounts, $this->paymentValues y $this->observations
+
+        //$this->showModalSalesFinish = false;
+        //$this->reset(['paymentCounts', 'paymentValues', 'observations']);
+        dd($this->paymentCounts);
+    }
 
     public function render()
     {   

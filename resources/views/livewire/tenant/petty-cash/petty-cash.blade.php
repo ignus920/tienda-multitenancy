@@ -148,11 +148,13 @@
                                                     <div class="py-1" role="menu" aria-orientation="vertical">
                                                         <button wire:click="viewDetail({{ $bx->id }})"
                                                             class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                                            </svg>
-                                                            Ver Detalle
+                                                            <x-heroicon-o-eye class="w-6 h-6" />
+                                                             Ver Detalle
+                                                        </button>
+                                                        <button wire:click="openSalesFinishModal({{ $bx->id }})"
+                                                            class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
+                                                            <x-heroicon-o-lock-closed class="w-6 h-6" />
+                                                             Arqueo/Cerrar
                                                         </button>
                                                     </div>
                                                 </div>
@@ -216,6 +218,59 @@
     <!-- Modal -->
     @if($showModal)
     <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+        x-data="{ show: true }"
+        x-show="show"
+        x-transition:enter="ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0">
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+            <!-- Header -->
+            <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Crear Caja
+                </h3>
+            </div>
+            <!-- Form -->
+            <form wire:submit.prevent="save" class="p-6 space-y-6">
+                    <div class="space-y-6">
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Base *</label>
+                            <input wire:model="base" type="number" id="base"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Ingrese el monto de la base">
+                            @error('base') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" wire:click="cancel" 
+                                class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors order-2 sm:order-1">
+                                Cancelar
+                            </button>
+                            <button type="submit" 
+                                wire:loading.attr="disabled"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
+                                <span>Crear</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal Arqueo / Cierre -->
+    @if ($showModalSalesFinish)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
             x-data="{ show: true }"
             x-show="show"
             x-transition:enter="ease-out duration-300"
@@ -225,47 +280,132 @@
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0">
             <div class="relative min-h-screen flex items-center justify-center p-4">
-                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                    <!-- Header -->
-                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                <!-- Header -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                    <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            Crear Caja
+                            Cierre de caja
                         </h3>
+                        <button type="button" 
+                            wire:click="$set('showModalSalesFinish', false)"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contenido -->
+                <div class="p-6">
+                    <!-- Título -->
+                    <div class="text-center mb-8">
+                        <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Arqueo o cierre de caja</h4>
                     </div>
 
-                    <!-- Form -->
-                    <form wire:submit.prevent="save" class="p-6 space-y-6">
-                        <div class="space-y-6">
-                            <div class="mb-3">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Base *</label>
-                                <input wire:model="base" type="number" id="base"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ingrese el monto de la base">
-                                @error('base') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                    <!-- Tabla de formas de pago -->
+                    <div class="mb-8">
+                        <!-- Encabezados de la tabla -->
+                        <div class="grid grid-cols-12 gap-4 mb-4 px-4">
+                            <div class="col-span-6">
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Forma de pago</span>
                             </div>
-
-                            <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <button type="button" wire:click="cancel" 
-                                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors order-2 sm:order-1">
-                                    Cancelar
-                                </button>
-                                <button type="submit" 
-                                    wire:loading.attr="disabled"
-                                    class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
-                                    <span>Crear</span>
-                                </button>
+                            <div class="col-span-6 text-center">
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Conteo</span>
                             </div>
                         </div>
-                    </form>
+
+                        <!-- Lista de formas de pago -->
+                        <div class="space-y-2">
+                            @php
+                                $paymentMethods = [
+                                    'EFECTIVO' => 'Efectivo',
+                                    'TRANSFERENCIA' => 'Transferencia',
+                                    'CONTRA_ENTREGA' => 'Contra Entrega',
+                                    'TARJETA_CREDITO' => 'Tarjeta de Crédito',
+                                    'TARJETA_DEBITO' => 'Tarjeta Débito',
+                                    'NEQUI' => 'Nequi',
+                                    'DAVIPLATA' => 'Daviplata'
+                                ];
+                            @endphp
+
+                            @foreach($paymentMethods as $key => $method)
+                            <div class="grid grid-cols-12 gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="col-span-6">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $method }}</span>
+                                </div>
+                                <div class="col-span-6">
+                                    <input type="number" 
+                                        wire:model.live="paymentCounts.{{ $key }}"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        placeholder="0"
+                                        min="0">
+                                </div>
+                            </div>
+                            @endforeach
+
+                            <!-- Total -->
+                            <div class="grid grid-cols-12 gap-4 items-center p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg mt-4">
+                                <div class="col-span-6">
+                                    <span class="text-sm font-bold text-indigo-900 dark:text-indigo-100">TOTAL</span>
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <span class="text-sm font-bold text-indigo-900 dark:text-indigo-100">
+                                        {{ array_sum($paymentCounts) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Línea divisoria -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-6"></div>
+
+                    <!-- Observaciones -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Observaciones (Opcional)
+                        </label>
+                        <textarea 
+                            wire:model="observations"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Ingresa cualquier observación adicional sobre el cierre de caja..."></textarea>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" 
+                            wire:click="$set('showModalSalesFinish', false)"
+                            class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                            wire:click="closeCashBox"
+                            wire:loading.attr="disabled"
+                            class="inline-flex items-center justify-center px-6 py-3 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                            <span wire:loading.remove>Confirmar Cierre</span>
+                            <span wire:loading class="flex items-center">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
-    </div>
+        </div>
+        </div>
     @endif
+
 </div>
 
