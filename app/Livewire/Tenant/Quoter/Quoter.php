@@ -57,38 +57,56 @@ class Quoter extends Component
     }
 
     /**
+     * Redirige al cotizador para editar una cotización existente
+     * Este método se ejecuta cuando el usuario hace clic en el botón "Editar"
+     *
+     * @param int $id ID de la cotización a editar
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function editarCotizacion($id)
+    {
+        // Determinar la ruta correcta según el tipo de vista (móvil o escritorio)
+        $routeName = $this->viewType === 'mobile'
+            ? 'tenant.quoter.products.mobile.edit'    // Ruta para vista móvil
+            : 'tenant.quoter.products.desktop.edit';  // Ruta para vista escritorio
+
+        // Redirigir al cotizador con el ID de la cotización para cargarla y editarla
+        return redirect()->route($routeName, ['quoteId' => $id]);
+    }
+
+    /**
      * Verifica si puede imprimir (opción 3)
      */
-    public function canPrint(): bool
-    {
-        $result = $this->isOptionEnabled(3);
-        $value = $this->getOptionValue(3);
+    // public function canPrint(): bool
+    // {
+    //     $result = $this->isOptionEnabled(3);
+    //     $value = $this->getOptionValue(3);
 
-        // DEBUG: Log detallado de verificación
-        Log::info('🔍 canPrint() verificación', [
-            'companyId' => $this->currentCompanyId,
-            'option_id' => 3,
-            'result' => $result ? 'TRUE' : 'FALSE',
-            'option_value' => $value,
-            'configService_exists' => $this->configService ? 'YES' : 'NO',
-            'method_called' => 'isOptionEnabled(3) y getOptionValue(3)'
-        ]);
+    //     // DEBUG: Log detallado de verificación
+    //     Log::info('🔍 canPrint() verificación', [
+    //         'companyId' => $this->currentCompanyId,
+    //         'option_id' => 3,
+    //         'result' => $result ? 'TRUE' : 'FALSE',
+    //         'option_value' => $value,
+    //         'configService_exists' => $this->configService ? 'YES' : 'NO',
+    //         'method_called' => 'isOptionEnabled(3) y getOptionValue(3)'
+    //     ]);
 
-        return $result;
-    }
+    //     return $result;
+    // }
 
     /**
      * Obtiene el límite de copias para imprimir
      */
-    public function getPrintCopiesLimit(): int
-    {
-        $value = $this->getOptionValue(3);
+    // public function getPrintCopiesLimit(): int
+    // {
+    //     $value = $this->getOptionValue(3);
 
-        // Si value = 0: no puede imprimir
-        // Si value = 1: puede imprimir 1 copia
-        // Si value = 5: puede imprimir 5 copias
-        return $value ?? 0;
-    }
+    //     // Si value = 0: no puede imprimir
+    //     // Si value = 1: puede imprimir 1 copia
+    //     // Si value = 5: puede imprimir 5 copias
+    //     return $value ?? 0;
+    // }
 
     /**
      * Método para imprimir cotización

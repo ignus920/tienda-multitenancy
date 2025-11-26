@@ -8,6 +8,8 @@ use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Customer\VntCompany;
+use App\Models\Tenant\Quoter\VntQuote;
+use App\Models\Tenant\Quoter\VntDetailQuote;
 
 class ProductQuoter extends Component
 {
@@ -27,6 +29,8 @@ class ProductQuoter extends Component
     public $searchingCustomer = false;
     public $showCreateCustomerForm = false;
     public $showCreateCustomerButton = false;
+    public $editingQuoteId = null;
+    public $isEditing = false;
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -60,12 +64,19 @@ class ProductQuoter extends Component
         $this->resetPage();
     }
 
-    public function mount()
+    public function mount($quoteId = null)
     {
         // Obtener viewType de la ruta o usar desktop por defecto
         $this->viewType = request()->route('viewType', 'desktop');
         $this->ensureTenantConnection();
-        $this->quoterItems = session('quoter_items', []);
+
+        // Si se pasa un quoteId, estamos editando
+        if ($quoteId) {
+            $this->loadQuoteForEditing($quoteId);
+        } else {
+            $this->quoterItems = session('quoter_items', []);
+        }
+
         $this->calculateTotal();
     }
 
@@ -98,6 +109,7 @@ class ProductQuoter extends Component
 
         $products = Items::query()
             ->active()
+            ->with('principalImage')
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                       ->orWhere('internal_code', 'like', '%' . $this->search . '%')
@@ -116,38 +128,49 @@ class ProductQuoter extends Component
         ])->layout('layouts.app');
     }
 
-    public function addToQuoter($productId)
+    public function addToQuoter($productId, $selectedPrice, $priceLabel)
     {
-        $this->ensureTenantConnection();
-
-        $product = Items::findOrFail($productId);
-
-        // Verificar si el producto ya está en el cotizador
+        // Verificar si el producto ya está en el cotizador (sin consulta DB)
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
             // Si ya existe, incrementar la cantidad
             $this->quoterItems[$existingIndex]['quantity']++;
         } else {
-            // Si no existe, agregarlo
+            // Obtener el producto solo cuando es necesario
+            $this->ensureTenantConnection();
+            $product = Items::find($productId);
+
+            if (!$product) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Producto no encontrado'
+                ]);
+                return;
+            }
+
+            // Si no existe, agregarlo con el precio seleccionado
             $this->quoterItems[] = [
                 'id' => $product->id,
                 'name' => $product->display_name,
                 'sku' => $product->sku,
-                'price' => $product->price,
+                'price' => $selectedPrice,
+                'price_label' => $priceLabel,
                 'quantity' => 1,
                 'description' => $product->description,
             ];
         }
 
-        // Guardar en sesión
+        // Optimización: Solo guardar en sesión si realmente cambió
         session(['quoter_items' => $this->quoterItems]);
 
+        // Calcular total de forma más eficiente
         $this->calculateTotal();
 
+        // Toast más rápido sin información innecesaria
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Producto agregado al cotizador'
+            'message' => 'Agregado al carrito'
         ]);
     }
 
@@ -189,6 +212,9 @@ class ProductQuoter extends Component
         ]);
     }
 
+
+    
+    // funcion para guardar una cotizacion 
     public function saveQuote()
     {
         if (empty($this->quoterItems)) {
@@ -199,14 +225,83 @@ class ProductQuoter extends Component
             return;
         }
 
-        // TODO: Implementar guardado de cotización
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Cotización guardada exitosamente - En desarrollo'
-        ]);
+        if (!$this->selectedCustomer) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe seleccionar un cliente para la cotización'
+            ]);
+            return;
+        }
 
-        $this->showCartModal = false;
+        $this->ensureTenantConnection();
+
+        try {
+            // Obtener el siguiente consecutivo
+            $lastQuote = VntQuote::orderBy('consecutive', 'desc')->first();
+            $nextConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
+
+            // Crear la cotización
+            $quote = VntQuote::create([
+                'consecutive' => $nextConsecutive,
+                'status' => 'REGISTRADO',
+                'typeQuote' => 'POS',
+                'customerId' => $this->selectedCustomer['id'],
+                'warehouseId' => session('warehouse_id', 1), // Si tienes warehouse en sesión
+                'userId' => auth()->id(),
+                'observations' => 'Cliente: ' . ($this->selectedCustomer['businessName'] ?: $this->selectedCustomer['firstName'] . ' ' . $this->selectedCustomer['lastName']),
+                'branchId' => session('branch_id', 1) // Si tienes branch en sesión
+            ]);
+
+            // Crear los detalles de la cotización
+            foreach ($this->quoterItems as $item) {
+                VntDetailQuote::create([
+                    'quantity' => $item['quantity'],
+                    'tax' => 0, // Puedes ajustar esto según tus necesidades
+                    'value' => $item['price'],
+                    'quoteId' => $quote->id,
+                    'itemId' => $item['id'],
+                    'description' => $item['name'],
+                    'priceList' => $item['price'] // O el ID de la lista de precios si lo tienes
+                ]);
+            }
+
+            // Limpiar el cotizador y campos del formulario
+            $this->quoterItems = [];
+            $this->selectedCustomer = null;              // Limpiar cliente seleccionado
+            $this->customerSearch = '';                  // Limpiar campo de búsqueda de cliente
+            $this->showCreateCustomerForm = false;      // Ocultar formulario de creación
+            $this->showCreateCustomerButton = false;    // Ocultar botón de creación
+            session()->forget('quoter_items');
+            $this->calculateTotal();
+            $this->showCartModal = false;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cotización #' . $nextConsecutive . ' guardada exitosamente'
+            ]);
+
+            // Redirigir a la página de cotizaciones según el tipo de vista
+            $routeName = $this->viewType === 'mobile'
+                ? 'tenant.quoter.mobile'
+                : 'tenant.quoter.desktop';
+
+            return redirect()->route($routeName);
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al guardar la cotización: ' . $e->getMessage()
+            ]);
+        }
     }
+
+
+
+
+
+
+
+
 
     public function toggleCartModal()
     {
@@ -354,5 +449,177 @@ class ProductQuoter extends Component
             }
         }
         return 0;
+    }
+
+    public function increaseQuantity($productId)
+    {
+        $this->ensureTenantConnection();
+
+        // Verificar si el producto ya está en el cotizador
+        $existingIndex = $this->findProductInQuoter($productId);
+
+        if ($existingIndex !== false) {
+            // Si ya existe, incrementar la cantidad
+            $this->quoterItems[$existingIndex]['quantity']++;
+
+            // Guardar en sesión
+            session(['quoter_items' => $this->quoterItems]);
+            $this->calculateTotal();
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cantidad aumentada'
+            ]);
+        }
+    }
+
+    public function loadQuoteForEditing($quoteId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $quote = VntQuote::with('detalles')->findOrFail($quoteId);
+
+            $this->editingQuoteId = $quoteId;
+            $this->isEditing = true;
+
+            // Cargar información del cliente
+            if ($quote->customerId) {
+                $customer = VntCompany::find($quote->customerId);
+                if ($customer) {
+                    $this->selectedCustomer = [
+                        'id' => $customer->id,
+                        'businessName' => $customer->businessName,
+                        'firstName' => $customer->firstName,
+                        'lastName' => $customer->lastName,
+                        'identification' => $customer->identification,
+                        'billingEmail' => $customer->billingEmail,
+                    ];
+                }
+            }
+
+            // Cargar productos de la cotización
+            $this->quoterItems = [];
+            foreach ($quote->detalles as $detalle) {
+                $product = Items::find($detalle->itemId);
+                if ($product) {
+                    $this->quoterItems[] = [
+                        'id' => $product->id,
+                        'name' => $product->display_name,
+                        'sku' => $product->sku,
+                        'price' => $detalle->value,
+                        'price_label' => 'Precio seleccionado', // Podrías mejorarlo para detectar el label correcto
+                        'quantity' => $detalle->quantity,
+                        'description' => $product->description,
+                    ];
+                }
+            }
+
+            // Guardar en sesión
+            session(['quoter_items' => $this->quoterItems]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cotización #' . $quote->consecutive . ' cargada para edición'
+            ]);
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al cargar la cotización: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function updateQuote()
+    {
+        if (!$this->isEditing || !$this->editingQuoteId) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No hay cotización en modo edición'
+            ]);
+            return;
+        }
+
+        if (empty($this->quoterItems)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No hay productos en el cotizador'
+            ]);
+            return;
+        }
+
+        if (!$this->selectedCustomer) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe seleccionar un cliente para la cotización'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        try {
+            $quote = VntQuote::findOrFail($this->editingQuoteId);
+
+            // Actualizar la cotización
+            $quote->update([
+                'customerId' => $this->selectedCustomer['id'],
+                'observations' => 'Cliente: ' . ($this->selectedCustomer['businessName'] ?: $this->selectedCustomer['firstName'] . ' ' . $this->selectedCustomer['lastName']),
+            ]);
+
+            // Eliminar detalles existentes
+            VntDetailQuote::where('quoteId', $quote->id)->delete();
+
+            // Crear los nuevos detalles
+            foreach ($this->quoterItems as $item) {
+                VntDetailQuote::create([
+                    'quantity' => $item['quantity'],
+                    'tax' => 0,
+                    'value' => $item['price'],
+                    'quoteId' => $quote->id,
+                    'itemId' => $item['id'],
+                    'description' => $item['name'],
+                    'priceList' => $item['price']
+                ]);
+            }
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cotización #' . $quote->consecutive . ' actualizada exitosamente'
+            ]);
+
+            // Opcional: limpiar después de actualizar
+            // $this->clearQuoter();
+            // $this->isEditing = false;
+            // $this->editingQuoteId = null;
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al actualizar la cotización: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function cancelEditing()
+    {
+        // Limpiar estados de edición
+        $this->isEditing = false;
+        $this->editingQuoteId = null;
+
+        // Limpiar todos los campos del formulario
+        $this->selectedCustomer = null;              // Limpiar cliente seleccionado
+        $this->customerSearch = '';                  // Limpiar campo de búsqueda de cliente
+        $this->showCreateCustomerForm = false;      // Ocultar formulario de creación
+        $this->showCreateCustomerButton = false;    // Ocultar botón de creación
+
+        // Limpiar cotizador
+        $this->clearQuoter();
+
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Edición cancelada'
+        ]);
     }
 }
