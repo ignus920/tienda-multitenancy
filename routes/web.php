@@ -141,3 +141,7 @@ Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->grou
 
 require __DIR__.'/auth.php';
 
+// Incluir rutas del módulo de parámetros del tenant
+require __DIR__.'/tenants/parameters.php';
+
+

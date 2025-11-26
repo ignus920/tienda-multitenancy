@@ -1,0 +1,31 @@
+                <!-- Precios -->
+                @php
+                    $allPrices = $product->all_prices;
+                @endphp
+                
+                @if(!empty($allPrices))
+                    <div class="mb-2 space-y-1">
+                        @foreach($allPrices as $label => $price)
+                            <div class="text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">{{ $label }}:</span>
+                                <span class="font-bold text-gray-900 dark:text-white">${{ number_format($price) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="font-bold text-lg text-gray-400 dark:text-gray-500 mb-1">
+                        Sin precio
+                    </div>
+                @endif
+
+                <!-- Nombre -->
+                <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    {{ $product->display_name }}
+                </div>
+
+                <!-- SKU (con altura fija para mantener estructura) -->
+                <div class="text-xs text-gray-500 dark:text-gray-500 mb-3 h-4 flex items-center justify-center">
+                    @if($product->sku && trim($product->sku) !== '')
+                        SKU: {{ $product->sku }}
+                    @endif
+                </div>

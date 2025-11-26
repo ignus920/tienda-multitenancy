@@ -97,7 +97,7 @@ new class extends Component
             </div>
         </a>
 
-                <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
+        <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
         <div x-data="{ tooltip: false }" class="w-full relative"
              @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
             <!-- Botón principal -->
@@ -164,8 +164,79 @@ new class extends Component
             </div>
         </a>
 
+        <!-- Parámetros (menú con subitems) -->
+        <div
+            x-data="{ tooltip: false, open: false }"
+            class="w-full">
+            <!-- Botón principal -->
+            <div
+                class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+                @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="tooltip = false"
+                @click="open = !open">
+                
+                <!-- Icono de Parámetros (sliders/ajustes) -->
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+
+                <span
+                    x-show="!sidebarCollapsed"
+                    class="ml-3 flex-1"
+                    x-transition>
+                    Parámetros
+                </span>
+
+                <!-- Icono desplegable -->
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
+
+                <!-- Tooltip (solo cuando está colapsado) -->
+                <div
+                    x-show="tooltip"
+                    x-transition
+                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                    Parámetros
+                </div>
+            </div>
+
+            <!-- Submenú -->
+            <div
+                x-show="open && !sidebarCollapsed"
+                x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate 
+                   class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.pricelists') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Listas de Precios
+                </a>
+                <a href="#" class="block rounded-md px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">
+                    Impuestos
+                </a>
+            </div>
+
+            <!-- Submenú desplegable (para sidebar colapsado) -->
+            <div
+                x-show="sidebarCollapsed && tooltip"
+                x-transition
+                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 py-1 whitespace-nowrap"
+                @mouseenter="tooltip = true"
+                @mouseleave="tooltip = false">
+                <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Listas de Precios</a>
+                <a href="#" class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Impuestos</a>
+            </div>
+        </div>
+
+
+
+        
+
         <!-- Configuración -->
-        <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+        <!-- <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
             x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed"
@@ -178,13 +249,13 @@ new class extends Component
 
             <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4" class="ml-3">
                 Configuración
-            </span>
+            </span> -->
 
             <!-- Tooltip -->
-            <div x-show="tooltip" x-transition class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+            <!-- <div x-show="tooltip" x-transition class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
                 Configuración
             </div>
-        </div>
+        </div> -->
 
         <!-- Inventario (menú con subitems) -->
         <div

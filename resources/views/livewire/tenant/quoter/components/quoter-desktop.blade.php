@@ -85,16 +85,7 @@
                                 </svg>
                             </button>
 
-                            @if($this->canPrint())
-                                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition-colors"
-                                                wire:click=""
-                                                title="Imprimir cotización">
-                                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
-                                            </svg>
-                                            Imprimir
-                                        </button>
-                                    @endif
+                           
                         </div>
             </div>
         </div>
@@ -199,39 +190,60 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
                                 {{ $quote->created_at->format('d/m/Y H:i') }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <div class="flex justify-center items-center space-x-2">
-                                    <button class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs transition-colors">
-                                        Editar
+
+                            <!---Botones de accion--->
+                              <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <!-- Menú de tres puntos con Alpine.js -->
+                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
+                                    <button @click="open = !open"
+                                        class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                        </svg>
                                     </button>
 
-                                    {{-- DEBUG: Mostrar estado del permiso temporalmente --}}
-                                    <span class="text-xs text-red-500 border border-red-300 px-1 rounded">
-                                        Print: {{ $this->canPrint() ? 'SI' : 'NO' }} (Límite: {{ $this->getPrintCopiesLimit() }})
-                                    </span>
-
-                                    @if($this->canPrint())
-                                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition-colors"
-                                                wire:click="printQuote({{ $quote->id }})"
-                                                title="Imprimir cotización">
-                                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
-                                            </svg>
-                                            Imprimir
-                                        </button>
-                                    @endif
-
-                                    <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs transition-colors"
-                                            wire:click="eliminar({{ $quote->id }})"
-                                            onclick="return confirm('¿Está seguro de eliminar esta cotización?')">
-                                        Eliminar
-                                    </button>
-                                    <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs transition-colors"
-                                            wire:click="nuevaCotizacion">
-                                        + Sucursal
-                                    </button>
+                                    <!-- Menú desplegable -->
+                                    <div x-show="open"
+                                        x-transition:enter="transition ease-out duration-100"
+                                        x-transition:enter-start="transform opacity-0 scale-95"
+                                        x-transition:enter-end="transform opacity-100 scale-100"
+                                        x-transition:leave="transition ease-in duration-75"
+                                        x-transition:leave-start="transform opacity-100 scale-100"
+                                        x-transition:leave-end="transform opacity-0 scale-95"
+                                        @click="open = false"
+                                        class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
+                                        style="display: none;">
+                                        <div class="py-1" role="menu" aria-orientation="vertical">
+                                            <button wire:click="editarCotizacion({{ $quote->id }})"
+                                                class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                                Editar
+                                            </button>
+                                            <button wire:click="openWarehouseModal()"
+                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                </svg>
+                                                Sucursales
+                                            </button>
+                                            <button wire:click="openContactModal()"
+                                                class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                </svg>
+                                                Contactos
+                                            </button>
+                                          
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
+                            
+
+
+
                         </tr>
                     @empty
                         <tr>
