@@ -41,6 +41,8 @@ class PettyCash extends Component
     //Messages
     public $errorMessage = '';
 
+    protected $listeners = ['refreshPettyCash' => '$refresh'];
+
     protected $rules =[
         'base' => 'required|integer',
         //'warehouseId' => 'required|integer', // Added validation for warehouseId
@@ -158,25 +160,59 @@ class PettyCash extends Component
         $this->showDetail=true;
     }
 
-    public function openSalesFinishModal(){
+    public function openSalesFinishModal($pettyCash_id){
         $this->showModalSalesFinish=true;
         // Inicializar arrays si están vacíos
         if (empty($this->paymentCounts)) {
-            $methods = ['EFECTIVO', 'TRANSFERENCIA', 'CONTRA_ENTREGA', 'TARJETA_CREDITO', 'TARJETA_DEBITO', 'NEQUI', 'DAVIPLATA'];
+            $methods = ['1', '2', '3', '4', '10', '11', '12'];
             foreach ($methods as $method) {
                 $this->paymentCounts[$method] = 0;
                 $this->paymentValues[$method] = 0;
             }
         }
+        $this->pettyCash_id=$pettyCash_id;
     }
 
-    public function closeCashBox()
+    public function closePettyCash()
     {
-        // Lógica para cerrar la caja
-        // Aquí procesas $this->paymentCounts, $this->paymentValues y $this->observations
+        $this->ensureTenantConnection();
+        $dataPettyCash=[
+            'status' => 0, 
+            'dateClose' => Carbon::now(),
+            'userIdClose' => Auth::id(),
+            'updated_at' => Carbon::now(),
+        ];
 
-        //$this->showModalSalesFinish = false;
-        //$this->reset(['paymentCounts', 'paymentValues', 'observations']);
+        $dataReconciliations=[
+            'reconciliation' => 1,
+            'observations' => $this->observations,
+            'created_at' => Carbon::now(),
+            'pettyCashId' => $this->pettyCash_id,
+            'userId' => Auth::id()
+        ];
+
+        try{
+            //Cambio estado Caja
+            $pettyCashClose=PettyCashModel::findOrFail($this->pettyCash_id);
+            $pettyCashClose->update($dataPettyCash);
+            
+            //Registro del cierre
+            $close=VntReconciliations::create($dataReconciliations);
+            
+            //$this->showModalSalesFinish = false;
+            //$this->reset(['paymentCounts', 'paymentValues', 'observations']);
+            $this->saveDetailReconciliations($close->id);
+            session()->flash('message', 'Registro realizado exitosamente');
+
+            $this->dispatch('refreshPettyCash');
+
+        } catch (\Exception $e) {
+            Log::error($e);
+            session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
+        }
+    }
+
+    public function saveDetailReconciliations($reconciliationId){
         dd($this->paymentCounts);
     }
 

@@ -151,11 +151,13 @@
                                                             <x-heroicon-o-eye class="w-6 h-6" />
                                                              Ver Detalle
                                                         </button>
-                                                        <button wire:click="openSalesFinishModal({{ $bx->id }})"
-                                                            class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
-                                                            <x-heroicon-o-lock-closed class="w-6 h-6" />
-                                                             Arqueo/Cerrar
-                                                        </button>
+                                                        @if ($bx->status==1)
+                                                            <button wire:click="openSalesFinishModal({{ $bx->id }})"
+                                                                class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
+                                                                <x-heroicon-o-lock-closed class="w-6 h-6" />
+                                                                Arqueo/Cerrar
+                                                            </button>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
@@ -280,15 +282,15 @@
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0">
             <div class="relative min-h-screen flex items-center justify-center p-4">
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            x-transition:enter="ease-out duration-300"
-            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave="ease-in duration-200"
-            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                <!-- Header -->
-                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                    <!-- Header -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                             Cierre de caja
@@ -301,10 +303,9 @@
                             </svg>
                         </button>
                     </div>
-                </div>
-
-                <!-- Contenido -->
-                <div class="p-6">
+                    </div>
+                    <!-- Contenido -->
+                    <div class="p-6">
                     <!-- Título -->
                     <div class="text-center mb-8">
                         <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Arqueo o cierre de caja</h4>
@@ -326,13 +327,13 @@
                         <div class="space-y-2">
                             @php
                                 $paymentMethods = [
-                                    'EFECTIVO' => 'Efectivo',
-                                    'TRANSFERENCIA' => 'Transferencia',
-                                    'CONTRA_ENTREGA' => 'Contra Entrega',
-                                    'TARJETA_CREDITO' => 'Tarjeta de Crédito',
-                                    'TARJETA_DEBITO' => 'Tarjeta Débito',
-                                    'NEQUI' => 'Nequi',
-                                    'DAVIPLATA' => 'Daviplata'
+                                    '1' => 'Efectivo',
+                                    '2' => 'Transferencia',
+                                    '3' => 'Contra Entrega',
+                                    '4' => 'Tarjeta de Crédito',
+                                    '10' => 'Tarjeta Débito',
+                                    '11' => 'Nequi',
+                                    '12' => 'Daviplata'
                                 ];
                             @endphp
 
@@ -383,27 +384,24 @@
                     <!-- Botones de acción -->
                     <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button type="button" 
-                            wire:click="$set('showModalSalesFinish', false)"
+                            wire:click="close"
                             class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors">
                             Cancelar
                         </button>
                         <button type="button"
-                            wire:click="closeCashBox"
-                            wire:loading.attr="disabled"
-                            class="inline-flex items-center justify-center px-6 py-3 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
-                            <span wire:loading.remove>Confirmar Cierre</span>
-                            <span wire:loading class="flex items-center">
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Procesando...
-                            </span>
+                            wire:click="closePettyCash()"
+                            class="inline-flex items-center justify-center px-6 py-3 bg-[#6958a7] hover:bg-[#564889] dark:bg-[#6958a7] dark:hover:bg-[#564889] disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                            <span>Cerrar Caja</span>
                         </button>
+                        <button type="button"
+                            wire:click="arqueoPettyCash"
+                            class="inline-flex items-center justify-center px-6 py-3 bg-[#9f94c7] hover:bg-[#8476b7] dark:bg-[#9f94c7] dark:hover:bg-[#8476b7] disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                            <span>Arqueo Caja</span>
+                        </button>
+                    </div>
                     </div>
                 </div>
             </div>
-        </div>
         </div>
     @endif
 

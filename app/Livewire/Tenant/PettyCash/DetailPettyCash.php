@@ -21,6 +21,7 @@ class DetailPettyCash extends Component
     use WithPagination, HasCompanyConfiguration;
 
     public $pettyCash_id;
+    public $detailMovement;
     public $typeMovement;
     public $reasonMovement;
     public $methodPayMovement;
@@ -62,7 +63,7 @@ class DetailPettyCash extends Component
 
     public function getValuesDetail()
     {
-        return VntDetailPettyCash::where('pettyCashId', $this->pettyCash_id)
+        return VntDetailPettyCash::where('pettyCashId', $this->pettyCash_id)->where('status', 1)
             ->with('methodPayments')
             ->when($this->search, function($query){
                 $query->where('invoiceId', 'like', '%' . $this->search . '%')
@@ -171,7 +172,7 @@ class DetailPettyCash extends Component
     {
         $this->ensureTenantConnection();
 
-        return VntMethodPayMents::where('status', 1)->get();
+        return VntMethodPayMents::where('status', 1)->where('type', 2)->get();
     }
 
     public function render()
@@ -212,6 +213,29 @@ class DetailPettyCash extends Component
             session()->flash('message', 'Registro realizado exitosamente');
 
             $this->dispatch('refreshDetail');
+
+        }catch(\Exception $e){
+            session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
+            $this->resetForm();
+        }
+    }
+
+    public function deleteMovement($detailMovement){
+        $this->ensureTenantConnection();
+        $typeMovement=VntDetailPettyCash::find($detailMovement)->reasonsPettyCash;
+        $movement=VntDetailPettyCash::findOrFail($detailMovement);
+        try{
+            if($typeMovement->type == "i"){
+                $income=VntDetailPettyCash::selectRaw('SUM(value) AS sumIncomes')->
+                                            where('pettyCashId', $this->pettyCash_id)
+                                            ->where('status',1)
+                                            ->whereIn('reasonPettyCashId', [1,2,5,6])
+                                            ->value('sumValues');
+                dd($income);
+            }elseif($typeMovement->type == "e"){
+                $movement->update(['status' => 0]);
+                session()->flash('message', 'Registro eliminado exitosamente');
+            }
 
         }catch(\Exception $e){
             session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
