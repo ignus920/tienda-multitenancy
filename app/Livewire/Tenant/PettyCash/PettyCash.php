@@ -9,6 +9,7 @@ use App\Models\Auth\Tenant;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
 use App\Models\Tenant\PettyCash\VntDetailPettyCash;
 use App\Models\Tenant\PettyCash\VntReconciliations;
+use App\Models\Tenant\PettyCash\VntDetailReconciliations;
 //Servicios
 use Illuminate\Support\Facades\Auth;
 use App\Services\Tenant\TenantManager;
@@ -212,8 +213,52 @@ class PettyCash extends Component
         }
     }
 
-    public function saveDetailReconciliations($reconciliationId){
-        dd($this->paymentCounts);
+    public function saveDetailReconciliations($reconciliationId)
+    {
+        $this->ensureTenantConnection();
+
+        // 1. Get all movements for the current petty cash
+        $movements = VntDetailPettyCash::with('reasonsPettyCash')
+            ->where('pettyCashId', $this->pettyCash_id)
+            ->where('status', 1)
+            ->get();
+
+        // 2. Calculate system totals per payment method
+        $systemValues = [];
+        foreach ($movements as $movement) {
+            $methodId = $movement->methodPaymentId;
+
+            if (!isset($systemValues[$methodId])) {
+                $systemValues[$methodId] = 0;
+            }
+
+            if ($movement->reasonsPettyCash->type === 'i') {
+                $systemValues[$methodId] += $movement->value;
+            } elseif ($movement->reasonsPettyCash->type === 'e') {
+                $systemValues[$methodId] -= $movement->value;
+            }
+        }
+
+        // 3. Define the payment methods available for reconciliation
+        $paymentMethods = ['1', '2', '3', '4', '10', '11', '12'];
+
+        // 4. Iterate and save reconciliation details
+        foreach ($paymentMethods as $methodId) {
+            $userCount = $this->paymentCounts[$methodId] ?? 0;
+            $systemTotal = $systemValues[$methodId] ?? 0;
+
+            // Only create a record if there's a user count or a system total to record
+            if ($userCount > 0 || $systemTotal != 0) {
+                VntDetailReconciliations::create([
+                    'reconciliationId' => $reconciliationId,
+                    'methodPaymentId' => $methodId,
+                    'value' => $userCount,
+                    'valueSystem' => $systemTotal,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 
     public function render()

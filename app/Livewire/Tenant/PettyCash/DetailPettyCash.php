@@ -28,6 +28,7 @@ class DetailPettyCash extends Component
     public $valueDetail;
     public $observations;
 
+
     //Propiedades para la tabla
     public $showModalMovement = false;
     public $search = '';
@@ -64,11 +65,11 @@ class DetailPettyCash extends Component
     public function getValuesDetail()
     {
         return VntDetailPettyCash::where('pettyCashId', $this->pettyCash_id)->where('status', 1)
-            ->with('methodPayments')
+            ->with('methodPayments','reasonsPettyCash')
             ->when($this->search, function($query){
                 $query->where('invoiceId', 'like', '%' . $this->search . '%')
                     ->orWhere('id', 'like', '%' . $this->search . '%');
-            })->orderBy($this->sortField, $this->sortDirection)
+            })->orderBy('created_at', $this->sortDirection)
             ->paginate($this->perPage);
     }
 
@@ -175,6 +176,57 @@ class DetailPettyCash extends Component
         return VntMethodPayMents::where('status', 1)->where('type', 2)->get();
     }
 
+    public function incomes(){
+        $this->ensureTenantConnection();
+
+        return VntDetailPettyCash::selectRaw('SUM(value) AS sumIncomes')->
+                                            where('pettyCashId', $this->pettyCash_id)
+                                            ->where('status',1)
+                                            ->whereIn('reasonPettyCashId', [1,2,6])
+                                            ->value('sumIncomes');
+    }
+
+    public function egrees(){
+        $this->ensureTenantConnection();
+
+        return VntDetailPettyCash::selectRaw('SUM(value) AS sumEgress')
+                                            ->where('pettyCashId', $this->pettyCash_id)
+                                            ->where('status',1)
+                                            ->whereIn('reasonPettyCashId', [3,4])
+                                            ->value('sumEgress');
+    }
+
+    public function basePettyCash(){
+        $this->ensureTenantConnection();
+
+        return VntDetailPettyCash::selectRaw('SUM(value) AS sumBase')->
+                                            where('pettyCashId', $this->pettyCash_id)
+                                            ->where('status',1)
+                                            ->where('reasonPettyCashId', 5)
+                                            ->value('sumBase');
+    }
+
+    public function getResumenProperty(){
+        //Base
+        $resumBase = $this->basePettyCash();
+
+        //Ingresos
+        $sumIncomes = $this->incomes();
+
+        //Egresos
+        $sumEgresos = $this->egrees();
+
+        //Total
+        $total= $resumBase + $sumIncomes - $sumEgresos;
+
+        return [
+            'resumBase' => $resumBase,
+            'ingresos' => $sumIncomes,
+            'egresos' => $sumEgresos,
+            'total' => $total
+        ];
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
@@ -226,12 +278,21 @@ class DetailPettyCash extends Component
         $movement=VntDetailPettyCash::findOrFail($detailMovement);
         try{
             if($typeMovement->type == "i"){
-                $income=VntDetailPettyCash::selectRaw('SUM(value) AS sumIncomes')->
-                                            where('pettyCashId', $this->pettyCash_id)
-                                            ->where('status',1)
-                                            ->whereIn('reasonPettyCashId', [1,2,5,6])
-                                            ->value('sumValues');
-                dd($income);
+                //Ingresos
+                $income=$this->incomes();
+                //Egresos
+                $egress=$this->egrees();
+                //Base 
+                $base=$this->basePettyCash();
+
+                $disponible=$income+$base-$egress;
+                
+                if($disponible>=$movement->value){
+                    $movement->update(['status' => 0]);
+                    session()->flash('message', 'Registro eliminado exitosamente');
+                }else{
+                    session()->flash('warning', 'Disponible insuficiente para borrar el movimiento');
+                }
             }elseif($typeMovement->type == "e"){
                 $movement->update(['status' => 0]);
                 session()->flash('message', 'Registro eliminado exitosamente');

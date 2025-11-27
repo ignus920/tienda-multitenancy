@@ -199,7 +199,7 @@
             <!--CARD DERECHO-->
             <div class="lg:col-span-7 xl:col-span-8">
                 @if($showDetail)
-                    @livewire('tenant.petty-cash.detail-petty-cash',['pettyCash_id'=>$pettyCash_id])
+                    @livewire('tenant.petty-cash.detail-petty-cash',['pettyCash_id'=>$pettyCash_id], key($pettyCash_id))
                 @else
                     <!-- Placeholder cuando no hay detalle seleccionado -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-full flex items-center justify-center p-12">
