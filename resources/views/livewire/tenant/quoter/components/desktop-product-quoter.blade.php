@@ -63,7 +63,7 @@ $header = 'Seleccionar productos';
                 $isSelected = $quantity > 0;
                 @endphp
                 <div @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
-                     class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all duration-200
+                    class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all duration-200
                                 hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-gray-900/30 hover:-translate-y-1 hover:border-indigo-300 dark:hover:border-indigo-500
                                 {{ $isSelected ? 'ring-2 ring-indigo-500 shadow-lg border-indigo-300 dark:border-indigo-500 cursor-pointer' : '' }}">
 
@@ -77,15 +77,15 @@ $header = 'Seleccionar productos';
                     <!-- Imagen del producto -->
                     <div class="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2">
                         @if($product->principalImage)
-                            <img class="w-full h-full object-cover rounded-lg"
-                                 src="{{ $product->principalImage->getImageUrl() }}"
-                                 alt="{{ $product->display_name }}">
+                        <img class="w-full h-full object-cover rounded-lg"
+                            src="{{ $product->principalImage->getImageUrl() }}"
+                            alt="{{ $product->display_name }}">
                         @else
-                            <div class="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
-                                <span class="text-2xl font-bold text-gray-400 dark:text-gray-500">
-                                    {{ strtoupper(substr($product->name, 0, 1)) }}
-                                </span>
-                            </div>
+                        <div class="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                            <span class="text-2xl font-bold text-gray-400 dark:text-gray-500">
+                                {{ strtoupper(substr($product->name, 0, 1)) }}
+                            </span>
+                        </div>
                         @endif
                     </div>
 
@@ -114,20 +114,16 @@ $header = 'Seleccionar productos';
                             <div class="mb-2 grid grid-cols-2 gap-1">
                                 @foreach($allPrices as $label => $price)
                                 @php
-                                    $isDisabled = $isSelected;
+                                $isDisabled = $isSelected;
                                 @endphp
                                 <button
                                     title="{{ $label }}"
                                     wire:click="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                     wire:loading.attr="disabled"
                                     wire:target="addToQuoter"
-                                    @click.stop
+                                    x-on:click.stop
                                     @if($isDisabled) disabled @endif
-                                    class="px-2 py-1 text-center rounded border transition-colors min-h-[28px] flex items-center justify-center
-                                        {{ $isDisabled
-                                            ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                            : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer'
-                                        }}">
+                                    class="px-2 py-1 text-center rounded border transition-colors min-h-[28px] flex items-center justify-center {{ $isDisabled ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed': 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer'}}">
 
                                     <!-- Contenido normal -->
                                     <div wire:loading.remove wire:target="addToQuoter" class="font-bold text-xs {{ $isDisabled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white' }}">
@@ -137,9 +133,10 @@ $header = 'Seleccionar productos';
                                     <!-- Spinner de carga -->
                                     <svg wire:loading wire:target="addToQuoter" class="w-3 h-3 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2-647z"></path>
                                     </svg>
                                 </button>
+
                                 @endforeach
                             </div>
                             @else
@@ -183,11 +180,11 @@ $header = 'Seleccionar productos';
         </div>
 
         <!-- Sidebar del cotizador -->
-        <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+        <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-screen">
             <!-- Header del cotizador -->
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Productos</h2>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $this->quoterCount }} Productos seleccionados</h2>
                     @if(!empty($quoterItems))
                     <button wire:click="clearQuoter"
                         class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium">
@@ -195,9 +192,7 @@ $header = 'Seleccionar productos';
                     </button>
                     @endif
                 </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {{ $this->quoterCount }} productos seleccionados
-                </div>
+
 
                 <!-- Búsqueda de clientes -->
                 <div class="mt-4">
@@ -239,36 +234,49 @@ $header = 'Seleccionar productos';
                     <!-- Formulario de búsqueda -->
                     <div class="space-y-2">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Buscar Cliente</label>
-                        <div class="flex gap-2">
-                            <input wire:model="customerSearch"
+                        <div x-data="{ searching: false }" class="flex gap-2">
+
+                            <!-- Input de búsqueda -->
+                            <input
+                                wire:model.defer="customerSearch"
                                 type="text"
                                 placeholder="NIT o cédula..."
-                                class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <button wire:click="searchCustomer"
-                                wire:loading.attr="disabled"
-                                wire:target="searchCustomer"
-                                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                class="flex-1 px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
 
-                                <!-- Icono de búsqueda normal -->
-                                <svg wire:loading.remove wire:target="searchCustomer" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            <!-- Botón con respuesta instantánea -->
+                            <button
+                                @click="
+            searching = true;
+            $wire.searchCustomer().then(() => searching = false)
+        "
+                                :class="searching ? 'opacity-50 cursor-wait' : ''"
+                                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+
+                                <!-- Ícono normal -->
+                                <svg x-show="!searching" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
 
-                                <!-- Icono de loading con animación -->
-                                <svg wire:loading wire:target="searchCustomer" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                <!-- Ícono loading instantáneo (no espera Livewire) -->
+                                <svg x-show="searching" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10"
+                                        stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
                             </button>
+
                         </div>
+
                     </div>
                     @endif
                 </div>
 
             </div>
 
-            <!-- Lista de productos en el cotizador -->
-            <div class="flex-1 overflow-y-auto">
+            <!-- Lista de productos en el cotizador con scroll interno -->
+            <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-700" style="max-height: calc(100vh - 400px);">
                 @if(empty($quoterItems))
                 <div class="flex flex-col items-center justify-center h-full p-6 text-center">
                     <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
@@ -282,7 +290,7 @@ $header = 'Seleccionar productos';
                     </p>
                 </div>
                 @else
-                <div class="p-4 space-y-3">
+                <div class="p-4 space-y-3 pb-4">
                     @foreach($quoterItems as $index => $item)
                     <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                         <div class="flex items-center justify-between mb-2">
@@ -298,22 +306,29 @@ $header = 'Seleccionar productos';
                             <button wire:click="removeFromQuoter({{ $index }})"
                                 class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
                             </button>
                         </div>
 
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
-                                <button wire:click="updateQuantity({{ $index }}, {{ $item['quantity'] - 1 }})"
-                                    class="w-7 h-7 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                    -
-                                </button>
-                                <span class="w-8 text-center text-sm font-medium text-gray-900 dark:text-white">{{ $item['quantity'] }}</span>
-                                <button wire:click="updateQuantity({{ $index }}, {{ $item['quantity'] + 1 }})"
-                                    class="w-7 h-7 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                    +
-                                </button>
+                            <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
+                            <input
+                                id="quantity-{{ $index }}"
+                                type="number"
+                                wire:model.lazy="quoterItems.{{ $index }}.quantity"
+                                wire:change="validateQuantity({{ $index }})"
+                                min="1"
+                                max="999999"
+                                step="1"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                value="{{ $item['quantity'] }}"
+                                onwheel="this.blur()"
+                                autocomplete="off">
+
                             </div>
                             <div class="text-sm font-medium text-gray-900 dark:text-white">
                                 ${{ number_format($item['price'] * $item['quantity']) }}
@@ -325,97 +340,126 @@ $header = 'Seleccionar productos';
                 @endif
             </div>
 
-            <!-- Footer del cotizador -->
+            <!-- Footer del cotizador - Fijo en la parte inferior -->
             @if(!empty($quoterItems))
-            <div class="border-t border-gray-200 dark:border-gray-700 p-6">
+            <div class="border-t border-gray-200 dark:border-gray-700 p-6 flex-shrink-0 bg-white dark:bg-gray-800 sticky bottom-0">
                 <div class="space-y-4">
+                    <!-- Observaciones - Acordeón -->
+                    <div x-data="{ open: @entangle('showObservations') }" class="w-full">
+
+                        <button
+                            @click="open = !open"
+                            class="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+
+                            <span class="text-sm font-bold text-gray-900 dark:text-white flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Observaciones:
+                            </span>
+
+                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-400 transform transition-transform"
+                                :class="{ 'rotate-180': open }"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <div x-show="open" x-transition class="mt-3">
+                            <textarea
+                                wire:model="observaciones"
+                                rows="4"
+                                placeholder="Escribe observaciones adicionales..."
+                                class="block w-full p-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                     </textarea>
+                        </div>
+
+                    </div>
+
+
                     <!-- Total -->
                     <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
                         <span>Total:</span>
                         <span>${{ number_format($totalAmount) }}</span>
                     </div>
 
+
                     @if($isEditing)
-                        <!-- Botones para edición -->
-                        <div class="space-y-2">
-                            <!-- Botón Actualizar Cotización con estado de carga -->
-                            <button wire:click="updateQuote"
-                                    wire:loading.attr="disabled"
-                                    wire:target="updateQuote"
-                                    class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                    <!-- Botones para edición -->
+                    <div class="flex gap-2">
+                        <button wire:click="updateQuote"
+                            wire:loading.attr="disabled"
+                            wire:target="updateQuote"
+                            class="flex-1  bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap">
 
-                                <!-- Ícono normal (se oculta durante la carga) -->
-                                <svg wire:loading.remove wire:target="updateQuote" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
+                            <svg wire:loading.remove wire:target="updateQuote" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
 
-                                <!-- Ícono de carga (se muestra durante la carga) -->
-                                <svg wire:loading wire:target="updateQuote" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                            <svg wire:loading wire:target="updateQuote" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
 
-                                <!-- Texto del botón (cambia durante la carga) -->
-                                <span wire:loading.remove wire:target="updateQuote">Actualizar Cotización</span>
-                                <span wire:loading wire:target="updateQuote">Actualizando...</span>
-                            </button>
+                            <span wire:loading.remove wire:target="updateQuote">Actualizar Cotización</span>
+                            <span wire:loading wire:target="updateQuote">Actualizando...</span>
+                        </button>
 
-                            <!-- Botón Cancelar Edición con estado de carga -->
-                            <button wire:click="cancelEditing"
-                                    wire:loading.attr="disabled"
-                                    wire:target="cancelEditing"
-                                    class="w-full bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button wire:click="cancelEditing"
+                            wire:loading.attr="disabled"
+                            wire:target="cancelEditing"
+                            class="flex-1 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap">
 
-                                <!-- Ícono normal (se oculta durante la carga) -->
-                                <svg wire:loading.remove wire:target="cancelEditing" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
+                            <svg wire:loading.remove wire:target="cancelEditing" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
 
-                                <!-- Ícono de carga (se muestra durante la carga) -->
-                                <svg wire:loading wire:target="cancelEditing" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                            <svg wire:loading wire:target="cancelEditing" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
 
-                                <!-- Texto del botón (cambia durante la carga) -->
-                                <span wire:loading.remove wire:target="cancelEditing">Cancelar Edición</span>
-                                <span wire:loading wire:target="cancelEditing">Cancelando...</span>
-                            </button>
-                        </div>
+                            <span wire:loading.remove wire:target="cancelEditing">Cancelar</span>
+                            <span wire:loading wire:target="cancelEditing">Cancelando...</span>
+                        </button>
+                    </div>
+
                     @else
-                        <!-- Botón crear nueva cotización -->
-                        @if(!$selectedCustomer)
-                            <!-- Botón deshabilitado cuando no hay cliente -->
-                            <button disabled
-                                    class="w-full bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 font-medium py-3 px-4 rounded-lg cursor-not-allowed flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.802-.833-2.572 0L4.242 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                                </svg>
-                                Seleccione un Cliente
-                            </button>
-                        @else
-                            <!-- Botón activo con estado de carga -->
-                            <button wire:click="saveQuote"
-                                    wire:loading.attr="disabled"
-                                    wire:target="saveQuote"
-                                    class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                    <!-- Botón crear nueva cotización -->
+                    @if(!$selectedCustomer)
+                    <!-- Botón deshabilitado cuando no hay cliente -->
+                    <button disabled
+                        class="w-full bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 font-medium py-3 px-4 rounded-lg cursor-not-allowed flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.802-.833-2.572 0L4.242 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        Seleccione un Cliente
+                    </button>
+                    @else
+                    <!-- Botón activo con estado de carga -->
+                    <button wire:click="saveQuote"
+                        wire:loading.attr="disabled"
+                        wire:target="saveQuote"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
 
-                                <!-- Ícono normal (se oculta durante la carga) -->
-                                <svg wire:loading.remove wire:target="saveQuote" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                                </svg>
+                        <!-- Ícono normal (se oculta durante la carga) -->
+                        <svg wire:loading.remove wire:target="saveQuote" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
 
-                                <!-- Ícono de carga (se muestra durante la carga) -->
-                                <svg wire:loading wire:target="saveQuote" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                        <!-- Ícono de carga (se muestra durante la carga) -->
+                        <svg wire:loading wire:target="saveQuote" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
 
-                                <!-- Texto del botón (cambia durante la carga) -->
-                                <span wire:loading.remove wire:target="saveQuote">Crear Cotización</span>
-                                <span wire:loading wire:target="saveQuote">Guardando...</span>
-                            </button>
-                        @endif
+                        <!-- Texto del botón (cambia durante la carga) -->
+                        <span wire:loading.remove wire:target="saveQuote">Crear Cotización</span>
+                        <span wire:loading wire:target="saveQuote">Guardando...</span>
+                    </button>
+                    @endif
                     @endif
                 </div>
             </div>
