@@ -26,11 +26,13 @@ class ProductQuoter extends Component
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $customerSearch = '';
     public $selectedCustomer = null;
+    public $observaciones = null;
     public $searchingCustomer = false;
     public $showCreateCustomerForm = false;
     public $showCreateCustomerButton = false;
     public $editingQuoteId = null;
     public $isEditing = false;
+    public $showObservations = false;
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -213,6 +215,9 @@ class ProductQuoter extends Component
     }
 
 
+
+
+
     
     // funcion para guardar una cotizacion 
     public function saveQuote()
@@ -248,7 +253,7 @@ class ProductQuoter extends Component
                 'customerId' => $this->selectedCustomer['id'],
                 'warehouseId' => session('warehouse_id', 1), // Si tienes warehouse en sesión
                 'userId' => auth()->id(),
-                'observations' => 'Cliente: ' . ($this->selectedCustomer['businessName'] ?: $this->selectedCustomer['firstName'] . ' ' . $this->selectedCustomer['lastName']),
+                'observations' => $this->observaciones,
                 'branchId' => session('branch_id', 1) // Si tienes branch en sesión
             ]);
 
@@ -296,6 +301,37 @@ class ProductQuoter extends Component
     }
 
 
+//funcion para validar la cantidad ingresada
+public function validateQuantity($index)
+{
+    // Verificar que el índice exista
+    if (!isset($this->quoterItems[$index])) {
+        return;
+    }
+
+    // Obtener la cantidad asegurando que nunca sea null ni vacío
+    $quantity = trim((string) ($this->quoterItems[$index]['quantity'] ?? ''));
+
+    // Si está vacío, no es numérico o es menor que 1, lo dejamos en 1
+    if ($quantity === '' || !ctype_digit($quantity) || intval($quantity) < 1) {
+        $this->quoterItems[$index]['quantity'] = 1;
+    } else {
+        // Convertimos a entero limpio
+        $this->quoterItems[$index]['quantity'] = intval($quantity);
+    }
+
+    // Actualizar sesión
+    session(['quoter_items' => $this->quoterItems]);
+
+    // Recalcular total si existe el método
+    $this->calculateTotal ?? false ? $this->calculateTotal() : null;
+
+    // Notificación opcional
+    $this->dispatch('show-toast', [
+        'type' => 'info',
+        'message' => 'Cantidad actualizada'
+    ]);
+}
 
 
 
@@ -308,56 +344,52 @@ class ProductQuoter extends Component
         $this->showCartModal = !$this->showCartModal;
     }
 
+
+    //funcion para buscar cliente
     public function searchCustomer()
-    {
-        $this->searchingCustomer = true;
-        $this->ensureTenantConnection();
+{
+    $this->searchingCustomer = true;
+    $this->ensureTenantConnection();
 
-        if (empty($this->customerSearch)) {
-            $this->searchingCustomer = false;
-            $this->dispatch('show-toast', [
-                'type' => 'warning',
-                'message' => 'Por favor ingrese un NIT o cédula'
-            ]);
-            return;
-        }
-
-        // Simular un pequeño delay para mostrar la animación
-        usleep(500000); // 0.5 segundos
-
-        // Buscar cliente por NIT o cédula
-        $customer = VntCompany::where('identification', $this->customerSearch)
-            ->first();
-
-        if ($customer) {
-            // Almacenar solo los datos necesarios en lugar del objeto completo
-            $this->selectedCustomer = [
-                'id' => $customer->id,
-                'businessName' => $customer->businessName,
-                'firstName' => $customer->firstName,
-                'lastName' => $customer->lastName,
-                'identification' => $customer->identification,
-                'billingEmail' => $customer->billingEmail,
-            ];
-
-            // Determinar el nombre a mostrar
-            $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
-
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Cliente encontrado: ' . $customerName
-            ]);
-        } else {
-            $this->selectedCustomer = null;
-            $this->showCreateCustomerButton = true;
-            $this->dispatch('show-toast', [
-                'type' => 'info',
-                'message' => 'Cliente no encontrado. Puedes crear uno nuevo'
-            ]);
-        }
-
+    if (empty($this->customerSearch)) {
         $this->searchingCustomer = false;
+        $this->dispatch('show-toast', [
+            'type' => 'warning',
+            'message' => 'Por favor ingrese un NIT o cédula'
+        ]);
+        return;
     }
+
+    $customer = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
+        ->where('identification', $this->customerSearch)
+        ->first();
+
+    if ($customer) {
+        $this->selectedCustomer = $customer->toArray();
+
+        $name = $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName);
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Cliente encontrado: ' . $name
+        ]);
+    } else {
+        $this->selectedCustomer = null;
+        $this->showCreateCustomerButton = true;
+
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Cliente no encontrado. Puedes crear uno nuevo'
+        ]);
+    }
+
+    $this->searchingCustomer = false;
+}
+
+
+
+
+
 
     public function clearCustomer()
     {
@@ -483,6 +515,12 @@ class ProductQuoter extends Component
             $this->editingQuoteId = $quoteId;
             $this->isEditing = true;
 
+            // Cargar observaciones de la cotización
+            $this->observaciones = $quote->observations;
+
+            // Inicializar estado del acordeón de observaciones
+            $this->showObservations = !empty($quote->observations);
+
             // Cargar información del cliente
             if ($quote->customerId) {
                 $customer = VntCompany::find($quote->customerId);
@@ -565,7 +603,7 @@ class ProductQuoter extends Component
             // Actualizar la cotización
             $quote->update([
                 'customerId' => $this->selectedCustomer['id'],
-                'observations' => 'Cliente: ' . ($this->selectedCustomer['businessName'] ?: $this->selectedCustomer['firstName'] . ' ' . $this->selectedCustomer['lastName']),
+                'observations' => $this->observaciones,
             ]);
 
             // Eliminar detalles existentes
@@ -611,6 +649,7 @@ class ProductQuoter extends Component
         // Limpiar todos los campos del formulario
         $this->selectedCustomer = null;              // Limpiar cliente seleccionado
         $this->customerSearch = '';                  // Limpiar campo de búsqueda de cliente
+        $this->observaciones = null;                 // Limpiar observaciones
         $this->showCreateCustomerForm = false;      // Ocultar formulario de creación
         $this->showCreateCustomerButton = false;    // Ocultar botón de creación
 

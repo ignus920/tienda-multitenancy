@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Quoter\QuoterController;
+use App\Http\Controllers\Quoter\QuoterPrintController;
 use App\Livewire\Tenant\Quoter\ProductQuoter;
 
 /*
@@ -56,3 +57,9 @@ Route::get('/tenant/quoter/products/mobile/edit/{quoteId}', ProductQuoter::class
     ->middleware(['auth', 'verified', 'tenant'])
     ->name('tenant.quoter.products.mobile.edit')         // Nombre de la ruta para vista móvil
     ->defaults('viewType', 'mobile');                    // Establece vista como móvil por defecto
+
+// Ruta para servir archivos temporales de impresión
+Route::get('/quoter/print/temp/{file}', [QuoterPrintController::class, 'showTempPrint'])
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('quoter.print.temp')
+    ->where('file', '^quote_\d+_\d+\.html$');           // Validación de formato de archivo

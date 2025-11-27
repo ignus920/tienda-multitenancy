@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Livewire\Tenant\Quoter;
-
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\Tenant;
 use App\Models\Tenant\Quoter\VntQuote;
 use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Log;
@@ -14,13 +15,17 @@ class Quoter extends Component
 
     public $search = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
+    public $perPage = 10; // Registros por página
 
-    protected $paginationTheme = 'bootstrap';
+    protected $paginationTheme = 'tailwind';
 
     public function mount($viewType = null)
     {
         // Obtener viewType desde parámetro, ruta o usar desktop por defecto
         $this->viewType = $viewType ?? request()->route('viewType', 'desktop');
+
+        // Establecer conexión tenant antes de cualquier consulta
+        $this->ensureTenantConnection();
 
         // Inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
@@ -38,6 +43,11 @@ class Quoter extends Component
     }
 
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPerPage()
     {
         $this->resetPage();
     }
@@ -75,56 +85,299 @@ class Quoter extends Component
     }
 
     /**
-     * Verifica si puede imprimir (opción 3)
+     * Redirige directamente al carrito de compras (ProductQuoter) para editar una cotización
+     * Este método se usa ÚNICAMENTE en vista móvil para ir directo al carrito
+     *
+     * @param int $id ID de la cotización a editar
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function irAlCarrito($id)
+    {
+        // Solo funciona en vista móvil
+        if ($this->viewType !== 'mobile') {
+            return $this->editarCotizacion($id);
+        }
+
+        // Redirigir directamente al carrito móvil con la cotización cargada
+        return redirect()->route('tenant.quoter.products.mobile.edit', ['quoteId' => $id]);
+    }
+
+    /**
+     * Verifica tipo de impresion (opción 3)
      */
     // public function canPrint(): bool
-    // {
+    //  {
     //     $result = $this->isOptionEnabled(3);
-    //     $value = $this->getOptionValue(3);
+    //      $value = $this->getOptionValue(3);
 
-    //     // DEBUG: Log detallado de verificación
-    //     Log::info('🔍 canPrint() verificación', [
-    //         'companyId' => $this->currentCompanyId,
-    //         'option_id' => 3,
-    //         'result' => $result ? 'TRUE' : 'FALSE',
+    //      //DEBUG: Log detallado de verificación
+    //      Log::info('🔍 canPrint() verificación', [
+    //          'companyId' => $this->currentCompanyId,
+    //          'option_id' => 3,
+    //          'result' => $result ? 'TRUE' : 'FALSE',
     //         'option_value' => $value,
     //         'configService_exists' => $this->configService ? 'YES' : 'NO',
     //         'method_called' => 'isOptionEnabled(3) y getOptionValue(3)'
     //     ]);
-
     //     return $result;
-    // }
+    //  }
 
     /**
-     * Obtiene el límite de copias para imprimir
+     * Obtiene el tipo de impresion
      */
-    // public function getPrintCopiesLimit(): int
-    // {
-    //     $value = $this->getOptionValue(3);
+    public function getPrintCopiesLimit(): int
+    {
+        Log::info('🔍 getPrintCopiesLimit() - Inicio del debug', [
+            'companyId' => $this->currentCompanyId ?? 'NULL',
+            'configService_exists' => isset($this->configService) ? 'YES' : 'NO',
+            'method' => 'getPrintCopiesLimit()'
+        ]);
 
-    //     // Si value = 0: no puede imprimir
-    //     // Si value = 1: puede imprimir 1 copia
-    //     // Si value = 5: puede imprimir 5 copias
-    //     return $value ?? 0;
-    // }
+        // SOLUCIÓN: Re-inicializar configuración si se perdió el estado
+        if (!$this->configService || !$this->currentCompanyId) {
+            Log::warning('🔄 Estado perdido - Re-inicializando configuración...');
+            $this->initializeCompanyConfiguration();
+
+            Log::info('🔄 Estado después de re-inicialización', [
+                'companyId' => $this->currentCompanyId ?? 'NULL',
+                'configService_exists' => isset($this->configService) ? 'YES' : 'NO'
+            ]);
+        }
+
+        try {
+            $value = $this->getOptionValue(3);
+
+            Log::info('📊 getPrintCopiesLimit() - Valor obtenido', [
+                'raw_value' => $value,
+                'value_type' => gettype($value),
+                'is_null' => $value === null ? 'YES' : 'NO',
+                'final_return' => $value ?? 0
+            ]);
+
+            $finalValue = $value ?? 0;
+
+            Log::info('✅ getPrintCopiesLimit() - Resultado final', [
+                'final_value' => $finalValue,
+                'format_description' => $finalValue == 0 ? 'POS (térmica 80mm)' : 'Carta (institucional)',
+                'option_3_explanation' => '0=POS, 1=Institucional'
+            ]);
+
+            return $finalValue;
+
+        } catch (\Exception $e) {
+            Log::error('❌ getPrintCopiesLimit() - Error al obtener valor', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return 0; // Default a POS en caso de error
+        }
+     }
+
+
+
+     
 
     /**
      * Método para imprimir cotización
+     * Determina el formato según la configuración:
+     * - Valor 0: POS Simple (Tirilla 80mm)
+     * - Valor 1: POS Institucional (Carta)
      */
     public function printQuote($id)
     {
-        session()->flash('message', 'Cotización #' . $id . ' enviada a imprimir.');
+        // Debug: Log para verificar que el método se está llamando
+        Log::info('🖨️ printQuote llamado', ['quote_id' => $id]);
+
+        $this->ensureTenantConnection();
+
+        try {
+            Log::info('🔄 Iniciando carga de cotización...');
+
+            // Cargar la cotización paso a paso para debug
+            Log::info('🔄 Cargando cotización básica...');
+            $quote = VntQuote::findOrFail($id);
+            Log::info('📄 Cotización básica cargada', ['consecutive' => $quote->consecutive]);
+
+            Log::info('🔄 Cargando detalles...');
+            try {
+                $quote->load('detalles');
+                Log::info('📋 Detalles cargados', ['count' => $quote->detalles->count()]);
+            } catch (\Exception $detailError) {
+                Log::error('❌ Error cargando detalles', ['error' => $detailError->getMessage()]);
+                throw $detailError;
+            }
+
+            Log::info('🔄 Cargando cliente...');
+            try {
+                $quote->load('customer');
+                Log::info('👤 Cliente cargado', ['customer_id' => $quote->customerId]);
+            } catch (\Exception $customerError) {
+                Log::error('❌ Error cargando cliente', ['error' => $customerError->getMessage()]);
+                // Continuar sin cliente para debug
+                $quote->customer = null;
+            }
+
+            Log::info('🔄 Cargando items de los detalles...');
+            try {
+                $quote->load('detalles.item');
+                Log::info('📦 Items cargados');
+
+                // Debug: verificar si hay items null
+                $nullItems = $quote->detalles->whereNull('item')->count();
+                if ($nullItems > 0) {
+                    Log::warning('⚠️ Hay items null', ['null_count' => $nullItems]);
+                }
+            } catch (\Exception $itemError) {
+                Log::error('❌ Error cargando items', ['error' => $itemError->getMessage()]);
+            }
+
+            // Obtener información de la empresa
+            $company = $this->getCompanyInfo();
+            Log::info('🏢 Empresa cargada', ['company' => $company->businessName ?? 'N/A']);
+
+            // Determinar el formato de impresión según configuración
+            $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
+            Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
+
+            // Datos para la vista
+            $data = [
+                'quote' => $quote,
+                'customer' => $quote->customer,
+                'company' => $company,
+                'showQR' => true, // Opcional: mostrar código QR
+                'defaultObservations' => 'Observaciones por defecto'
+            ];
+            Log::info('📝 Datos preparados para la vista');
+
+            // Seleccionar la vista según el formato
+            $viewName = ($printFormat === 1)
+                ? 'livewire.tenant.quoter.print.print-carta'
+                : 'livewire.tenant.quoter.print.print-pos';
+            Log::info('🎨 Vista seleccionada', ['viewName' => $viewName]);
+
+            // Generar el HTML y redirigir a nueva ventana para impresión
+            Log::info('🔄 Iniciando generación de HTML...');
+
+            try {
+                $html = view($viewName, $data)->render();
+                Log::info('✅ HTML generado exitosamente', ['length' => strlen($html)]);
+            } catch (\Exception $viewError) {
+                Log::error('❌ Error generando vista', ['error' => $viewError->getMessage()]);
+                throw $viewError;
+            }
+
+            // Guardar temporalmente el HTML para la impresión
+            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
+            $tempPath = storage_path('app/temp/' . $tempFileName);
+            Log::info('📁 Archivo temporal', ['fileName' => $tempFileName, 'path' => $tempPath]);
+
+            // Crear directorio si no existe
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+                Log::info('📂 Directorio temp creado');
+            }
+
+            file_put_contents($tempPath, $html);
+            Log::info('💾 Archivo guardado', ['size' => filesize($tempPath) . ' bytes']);
+
+            // Generar la URL del archivo
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+            Log::info('🔗 URL generada', ['url' => $printUrl]);
+
+            // Dispatch evento para abrir ventana de impresión
+            $this->dispatch('open-print-window', [
+                'url' => $printUrl,
+                'format' => $printFormat === 1 ? 'carta' : 'pos'
+            ]);
+            Log::info('🚀 Evento dispatch enviado');
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cotización #' . $quote->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
+            ]);
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al preparar impresión: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Obtener información de la empresa para los documentos
+     */
+    private function getCompanyInfo()
+    {
+        Log::info('🏢 getCompanyInfo llamado');
+
+        // Temporal: datos simplificados para testing
+        $companyData = [
+            'businessName' => 'EMPRESA DE PRUEBA',
+            'firstName' => 'Admin',
+            'lastName' => 'Sistema',
+            'identification' => '123456789',
+            'billingAddress' => 'Dirección de prueba',
+            'phone' => '1234567890',
+            'billingEmail' => 'test@empresa.com'
+        ];
+
+        Log::info('🏢 Datos empresa preparados', $companyData);
+
+        return (object) $companyData;
+    }
+
+
+      private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return redirect()->route('tenant.select');
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            return redirect()->route('tenant.select');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
     }
 
     public function render()
     {
-        $quotes = VntQuote::with('detalles')
+        // Asegurar conexión tenant activa
+        $this->ensureTenantConnection();
+
+        // Cargar cotizaciones con sus relaciones
+        $quotes = VntQuote::with(['customer', 'warehouse.contacts', 'branch', 'detalles'])
             ->when($this->search, function ($query) {
                 $query->where('consecutive', 'like', '%' . $this->search . '%')
-                    ->orWhere('customerId', 'like', '%' . $this->search . '%');
+                    ->orWhere('status', 'like', '%' . $this->search . '%')
+                    ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
+                    ->orWhere('observations', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('customer', function ($q) {
+                        $q->where('businessName', 'like', '%' . $this->search . '%')
+                          ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                          ->orWhere('lastName', 'like', '%' . $this->search . '%')
+                          ->orWhere('identification', 'like', '%' . $this->search . '%')
+                          ->orWhere('billingEmail', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('warehouse', function ($q) {
+                        $q->where('name', 'like', '%' . $this->search . '%')
+                          ->orWhere('address', 'like', '%' . $this->search . '%');
+                    });
             })
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate($this->perPage);
 
         $viewName = $this->viewType === 'mobile'
             ? 'livewire.tenant.quoter.components.quoter-mobile'
