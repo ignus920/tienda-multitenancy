@@ -6,24 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        if (!Schema::hasTable('inv_seriales')) {
-            Schema::create('inv_seriales', function (Blueprint $table) {
+        Schema::create('inv_locations', function (Blueprint $table) {
             $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-            $table->unsignedInteger('itemId');
-            $table->foreign('itemId')->references('id')->on('inv_items');
-            $table->dateTime('date')->useCurrent(); // datetime, default CURRENT_TIMESTAMP
-            $table->string('serial', 100)->nullable();
+            $table->string('name', 100)->default(0);
             $table->tinyInteger('status')->default(1); // tinyint, default 1
             $table->timestamps();        // created_at, updated_at
             $table->softDeletes();       // deleted_at
         });
-        }
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::dropIfExists('inv_seriales');
+        Schema::dropIfExists('inv_locations');
     }
 };

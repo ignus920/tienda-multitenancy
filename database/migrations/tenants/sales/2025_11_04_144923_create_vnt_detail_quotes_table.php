@@ -14,14 +14,14 @@ return new class extends Migration
                 $table->integer('quantity');
                 $table->integer('tax');
                 $table->integer('value');
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
                 $table->integer('quoteId')->nullable();
                 $table->integer('itemId')->nullable();
                 $table->string('description', 255);
                 $table->integer('priceList');
                 $table->index('quoteId');
                 $table->index('itemId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

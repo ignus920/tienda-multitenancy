@@ -26,9 +26,8 @@ return new class extends Migration
                 $table->integer('regimeId')->nullable();
                 $table->string('code_ciiu', 255)->nullable();
                 $table->integer('fiscalResponsabilityId')->nullable();
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

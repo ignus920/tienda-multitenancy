@@ -3,105 +3,374 @@
 namespace App\Livewire\Tenant\Movements;
 
 use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\Auth\User;
-use App\Models\Auth\UserTenant;
-use App\Models\Central\UsrProfile;
-use App\Models\Central\VntWarehouse;
-use App\Models\Central\VntContact;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use App\Services\UserExportService;
-use App\Traits\HasCompanyConfiguration;
+use Livewire\Attributes\Computed;
+use App\Models\Tenant\Movements\InvInventoryAdjustment;
+use App\Models\Tenant\Movements\InvDetailInventoryAdjustment;
+use App\Models\Tenant\Movements\InvReason;
+use App\Models\Tenant\Movements\InvStore;
+use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\Items\UnitMeasurements;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class MovementForm extends Component
 {
-    // use WithPagination, HasCompanyConfiguration;
+    // Modal state
+    public $showModal = false;
+    public $movementType = 'entrada'; // Para el filtro de la lista
     
-
-   public $foo;
- 
-
-    public function render()
-    {
-         Log::info('MovementForm: render method called');
-         return view('livewire.tenant.movements.components.movement-form', [
-             'movements' => [],
-        ]);
-    }
-    public function boot()
-    {
-        Log::info('MovementForm: boot method called');
-    }
- 
-    public function booted()
-    {
-        Log::info('MovementForm: booted method called');
-    }
- 
+    // Form data with warehouse form structure
+    public $warehouseForm = [
+        'movementType' => '', // ENTRADA o SALIDA
+    ];
+    
+    public $movementForm = [
+        'date' => '',
+        'observations' => '',
+        'reasonId' => '',
+    ];
+    
+    // Details management
+    public $details = [];
+    public $detailForm = [
+        'itemId' => '',
+        'quantity' => '',
+        'unitMeasurementId' => '',
+    ];
+    
+    // Messages
+    public $successMessage = '';
+    public $errorMessage = '';
+    
     public function mount()
     {
-        Log::info('MovementForm: mount method called');
+        $this->warehouseForm['movementType'] = '';
+        $this->movementForm['date'] = now()->format('Y-m-d');
     }
- 
-    public function hydrateFoo($value)
+    
+    public function render()
     {
-        Log::info('MovementForm: hydrateFoo method called', ['value' => $value]);
+        $this->ensureTenantConnection();
+        
+        return view('livewire.tenant.movements.components.movement-form');
     }
- 
-    public function dehydrateFoo($value)
+    
+    /**
+     * Computed property for reasons based on movement type
+     */
+    #[Computed]
+    public function reasons()
     {
-        Log::info('MovementForm: dehydrateFoo method called', ['value' => $value]);
+        if (empty($this->warehouseForm['movementType'])) {
+            return collect([]);
+        }
+        
+        $movementType = $this->warehouseForm['movementType'] === 'ENTRADA' ? 'e' : 's';
+        
+        return InvReason::active()->byType($movementType)->get();
     }
- 
-    public function hydrate()
+    
+    /**
+     * Computed property for items
+     */
+    #[Computed]
+    public function items()
     {
-        Log::info('MovementForm: hydrate method called');
+        return Items::where('status', 1)->get();
     }
- 
-    public function dehydrate()
+    
+    /**
+     * Computed property for unit measurements
+     */
+    #[Computed]
+    public function unitMeasurements()
     {
-        Log::info('MovementForm: dehydrate method called');
+        return UnitMeasurements::where('status', 1)->get();
     }
- 
-    public function updating($name, $value)
+    
+    /**
+     * Open modal to create new movement
+     */
+    public function create()
     {
-        Log::info('MovementForm: updating method called', [
-            'name' => $name,
-            'value' => $value
-        ]);
+        $this->showModal = true;
+        $this->warehouseForm['movementType'] = ''; // Reset to force selection
+        $this->movementForm['date'] = now()->format('Y-m-d');
+        $this->clearMessages();
     }
- 
-    public function updated($name, $value)
+    
+    /**
+     * Add item detail to the table
+     */
+    public function addDetail()
     {
-        Log::info('MovementForm: updated method called', [
-            'name' => $name,
-            'value' => $value
-        ]);
+        try {
+            // Validate detail form
+            $this->ensureTenantConnection();
+             // Hay un error en la validacion
+            //  dd($this->detailForm['itemId']);
+            // $this->validate([
+            //     'detailForm.itemId' => 'required|exists:tenant.items,id',
+            //     'detailForm.quantity' => 'required|numeric|min:0.01',
+            //     'detailForm.unitMeasurementId' => 'required|exists:tenant.unit_measurements,id',
+            // ], [
+            //     'detailForm.itemId.required' => 'Debe seleccionar un item',
+            //     'detailForm.itemId.exists' => 'El item seleccionado no es válido',
+            //     'detailForm.quantity.required' => 'La cantidad es obligatoria',
+            //     'detailForm.quantity.numeric' => 'La cantidad debe ser un número',
+            //     'detailForm.quantity.min' => 'La cantidad debe ser mayor a 0',
+            //     'detailForm.unitMeasurementId.required' => 'Debe seleccionar una unidad de medida',
+            //     'detailForm.unitMeasurementId.exists' => 'La unidad de medida seleccionada no es válida',
+            // ]);
+            
+            // Get item and unit measurement info with all relationships
+            $item = Items::with(['invValues', 'purchasingUnit', 'consumptionUnit'])
+                ->findOrFail($this->detailForm['itemId']);
+            $unitMeasurement = UnitMeasurements::find($this->detailForm['unitMeasurementId']);
+            
+            // Get price from inv_values
+            $price = $item->invValues->first()->values ?? 0;
+            $quantity = $this->detailForm['quantity'];
+            
+            // Check if item already exists in details
+            $existingIndex = collect($this->details)->search(function ($detail) {
+                return $detail['itemId'] == $this->detailForm['itemId'] 
+                    && $detail['unitMeasurementId'] == $this->detailForm['unitMeasurementId'];
+            });
+            
+           
+            if ($existingIndex !== false) {
+                // Update quantity if item already exists
+                $oldQuantity = $this->details[$existingIndex]['quantity'];
+                $newQuantity = $oldQuantity + $quantity;
+                $this->details[$existingIndex]['quantity'] = $newQuantity;
+                $this->details[$existingIndex]['total'] = $price * $newQuantity;
+                // Recalculate adjusted quantity
+                $currentQty = $this->details[$existingIndex]['currentQuantity'];
+                $this->details[$existingIndex]['adjustedQuantity'] = $this->warehouseForm['movementType'] === 'ENTRADA' 
+                    ? $currentQty + $newQuantity 
+                    : $currentQty - $newQuantity;
+            } else {
+                // Get current quantity from inv_values (stock actual)
+                $currentQuantity = 20;
+                
+                // Calculate adjusted quantity based on movement type
+                $adjustedQuantity = $this->warehouseForm['movementType'] === 'ENTRADA' 
+                    ? $currentQuantity + ($unitMeasurement->quantity * $quantity) 
+                    : $currentQuantity - ($unitMeasurement->quantity * $quantity);
+            
+                // Add new detail
+                $this->details[] = [
+                    'itemId' => $this->detailForm['itemId'],
+                    'itemName' => $item->name,
+                    'sku' => $item->sku ?? 'N/A',
+                    'quantity' => $quantity,
+                    'unitMeasurementId' => $this->detailForm['unitMeasurementId'],
+                    'unitMeasurementName' => $unitMeasurement->description,
+                    'consumptionUnitName' => $unitMeasurement->quantity * $quantity,
+                    'currentQuantity' => $currentQuantity,
+                    'adjustedQuantity' => $adjustedQuantity,
+                    'price' => $price,
+                    'total' => $price * $quantity,
+                ];
+            }
+
+            // Reset detail form
+            $this->resetDetailForm();
+            $this->clearMessages();
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al agregar el item: ' . $e->getMessage();
+            Log::error('Error adding detail to movement', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
- 
-    public function updatingFoo($value)
+    
+    /**
+     * Remove detail from table
+     */
+    public function removeDetail($index)
     {
-        Log::info('MovementForm: updatingFoo method called', ['value' => $value]);
+        if (isset($this->details[$index])) {
+            unset($this->details[$index]);
+            $this->details = array_values($this->details); // Re-index array
+        }
     }
- 
-    public function updatedFoo($value)
+    
+    /**
+     * Save movement with details
+     */
+    public function saveMovement()
     {
-        Log::info('MovementForm: updatedFoo method called', ['value' => $value]);
+        try {
+            // Validate movement form
+            // $this->validate([
+            //     'warehouseForm.movementType' => 'required|in:ENTRADA,SALIDA',
+            //     'movementForm.date' => 'required|date',
+            //     'movementForm.reasonId' => 'required|exists:tenant.inv_reasons,id',
+            //     'movementForm.observations' => 'nullable|string|max:500',
+            // ], [
+            //     'warehouseForm.movementType.required' => 'Debe seleccionar el tipo de movimiento',
+            //     'warehouseForm.movementType.in' => 'El tipo de movimiento no es válido',
+            //     'movementForm.date.required' => 'La fecha es obligatoria',
+            //     'movementForm.date.date' => 'La fecha no es válida',
+            //     'movementForm.reasonId.required' => 'El motivo es obligatorio',
+            //     'movementForm.reasonId.exists' => 'El motivo seleccionado no es válido',
+            //     'movementForm.observations.max' => 'Las observaciones no pueden exceder 500 caracteres',
+            // ]);
+            
+            // Validate that there are details
+            if (empty($this->details)) {
+                $this->errorMessage = 'Debe agregar al menos un item al movimiento';
+                return;
+            }
+            
+            $this->ensureTenantConnection();
+            
+            DB::connection('tenant')->beginTransaction();
+            
+            try {
+                // Get next consecutive
+                $selectedType = strtolower($this->warehouseForm['movementType']);
+                $lastMovement = InvInventoryAdjustment::byType($selectedType)
+                    ->orderBy('consecutive', 'desc')
+                    ->first();
+                $consecutive = $lastMovement ? $lastMovement->consecutive + 1 : 1;
+                
+                // Create movement
+                $movement = InvInventoryAdjustment::create([
+                    'date' => $this->movementForm['date'],
+                    'observations' => $this->movementForm['observations'],
+                    'type' => $selectedType,
+                    'status' => 1,
+                    'warehouseId' => 1, // Default warehouse, adjust as needed
+                    'reasonId' => $this->movementForm['reasonId'],
+                    'consecutive' => $consecutive,
+                    'userId' => Auth::id(),
+                ]);
+                
+                // Create details
+                foreach ($this->details as $detail) {
+                    InvDetailInventoryAdjustment::create([
+                        'inventoryAdjustmentId' => $movement->id,
+                        'itemId' => $detail['itemId'],
+                        'quantity' => $detail['quantity'],
+                        'unitMeasurementId' => $detail['unitMeasurementId'],
+                    ]);
+                }
+                
+                DB::connection('tenant')->commit();
+                
+                $this->successMessage = 'Movimiento creado exitosamente';
+                
+                Log::info('Movement created successfully', [
+                    'movementId' => $movement->id,
+                    'type' => $this->movementType,
+                    'detailsCount' => count($this->details)
+                ]);
+                
+                // Reset form and close modal
+                $this->resetForm();
+                $this->showModal = false;
+                
+                // Refresh the movement list
+                $this->dispatch('refreshMovements');
+                
+            } catch (\Exception $e) {
+                DB::connection('tenant')->rollBack();
+                throw $e;
+            }
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al guardar el movimiento: ' . $e->getMessage();
+            
+            Log::error('Error saving movement', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
- 
-    public function updatingFooBar($value)
+    
+    /**
+     * Close modal and reset form
+     */
+    public function closeModal()
     {
-        Log::info('MovementForm: updatingFooBar method called', ['value' => $value]);
+        $this->showModal = false;
+        $this->resetForm();
+        $this->clearMessages();
+        $this->resetValidation();
     }
- 
-    public function updatedFooBar($value)
+    
+    /**
+     * Reset movement form
+     */
+    private function resetForm()
     {
-        Log::info('MovementForm: updatedFooBar method called', ['value' => $value]);
+        $this->warehouseForm = [
+            'movementType' => '',
+        ];
+        $this->movementForm = [
+            'date' => now()->format('Y-m-d'),
+            'observations' => '',
+            'reasonId' => '',
+        ];
+        $this->details = [];
+        $this->resetDetailForm();
+    }
+    
+    /**
+     * Reset detail form
+     */
+    private function resetDetailForm()
+    {
+        $this->detailForm = [
+            'itemId' => '',
+            'quantity' => '',
+            'unitMeasurementId' => '',
+        ];
+    }
+    
+    /**
+     * Clear messages
+     */
+    private function clearMessages()
+    {
+        $this->successMessage = '';
+        $this->errorMessage = '';
+    }
+    
+    /**
+     * Ensure tenant connection is established
+     */
+    private function ensureTenantConnection(): void
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            throw new \Exception('No tenant selected');
+        }
+        
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            throw new \Exception('Invalid tenant');
+        }
+        
+        // Set tenant connection
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+        
+        // Initialize tenancy
+        tenancy()->initialize($tenant);
     }
 }

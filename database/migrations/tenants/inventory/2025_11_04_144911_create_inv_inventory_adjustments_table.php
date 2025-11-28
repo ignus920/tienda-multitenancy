@@ -10,20 +10,19 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_inventory_adjustments')) {
             Schema::create('inv_inventory_adjustments', function (Blueprint $table) {
-                $table->id('id');
+                $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
                 $table->dateTime('date');
                 $table->text('observations');
                 $table->string('type', 255);
                 $table->integer('status')->nullable()->default(1);
                 $table->string('api_data_id', 255)->nullable();
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('warehouseId')->nullable()->default(1);
                 $table->integer('reasonId')->nullable();
                 $table->integer('consecutive');
                 $table->integer('userId');
                 $table->index('reasonId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }
