@@ -205,9 +205,35 @@ class PettyCash extends Component
             $this->saveDetailReconciliations($close->id);
             session()->flash('message', 'Registro realizado exitosamente');
 
+            $this->showModalSalesFinish = false;
             $this->dispatch('refreshPettyCash');
 
         } catch (\Exception $e) {
+            Log::error($e);
+            session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
+        }
+    }
+
+    public function arqueoPettyCash(){
+        $this->ensureTenantConnection();
+        $dataReconciliations=[
+            'reconciliation' => 0,
+            'observations' => $this->observations,
+            'created_at' => Carbon::now(),
+            'pettyCashId' => $this->pettyCash_id,
+            'userId' => Auth::id()
+        ];
+
+        try{
+            $arqueo=VntReconciliations::create($dataReconciliations);
+            $this->saveDetailReconciliations($arqueo->id);
+
+            session()->flash('message', 'Registro realizado exitosamente');
+
+            $this->showModalSalesFinish = false;
+            $this->dispatch('refreshPettyCash');
+
+        }catch (\Exception $e) {
             Log::error($e);
             session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
         }
@@ -221,6 +247,7 @@ class PettyCash extends Component
         $movements = VntDetailPettyCash::with('reasonsPettyCash')
             ->where('pettyCashId', $this->pettyCash_id)
             ->where('status', 1)
+            ->whereNotIn('reasonPettyCashId', [5])
             ->get();
 
         // 2. Calculate system totals per payment method
@@ -240,7 +267,7 @@ class PettyCash extends Component
         }
 
         // 3. Define the payment methods available for reconciliation
-        $paymentMethods = ['1', '2', '3', '4', '10', '11', '12'];
+        $paymentMethods = ['1', '2', '4', '10', '11', '12'];
 
         // 4. Iterate and save reconciliation details
         foreach ($paymentMethods as $methodId) {
@@ -326,5 +353,6 @@ class PettyCash extends Component
 
     private function resetForm(){
         $this->base='';
+        $systemValues = [];
     }
 }

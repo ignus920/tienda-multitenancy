@@ -27,7 +27,7 @@ class DetailPettyCash extends Component
     public $methodPayMovement;
     public $valueDetail;
     public $observations;
-
+    public $itsOk;
 
     //Propiedades para la tabla
     public $showModalMovement = false;
@@ -66,6 +66,7 @@ class DetailPettyCash extends Component
     {
         return VntDetailPettyCash::where('pettyCashId', $this->pettyCash_id)->where('status', 1)
             ->with('methodPayments','reasonsPettyCash')
+            ->whereNotIn('reasonPettyCashId', [5])
             ->when($this->search, function($query){
                 $query->where('invoiceId', 'like', '%' . $this->search . '%')
                     ->orWhere('id', 'like', '%' . $this->search . '%');
@@ -149,6 +150,22 @@ class DetailPettyCash extends Component
             'method_called' => 'isOptionEnabled(16) y getOptionValue(16)'
         ]);
         return $result; 
+    }
+
+    public function canUseBase(): bool
+    {
+        $this->initializeCompanyConfiguration();
+        $result = $this->isOptionEnabled(71);
+        $value = $this->getOptionValue(71);
+        Log::info('🔍 canUseBase() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 16,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(71) y getOptionValue(71)'
+        ]);
+        return $result;
     }
 
     public function createMovement(){
@@ -248,26 +265,72 @@ class DetailPettyCash extends Component
             $this->validate();
 
             $detailPettyCashService = app(DetailPettyCashServices::class);
+            if($this->typeMovement=='e'){
+                if($this->canUseBase()){
+                    //Base
+                    $resumBase = $this->basePettyCash();
 
-            $detailPettyCashService->createMovement([
-                'status' => 1,
-                'value' => $this->valueDetail,
-                'created_at' => Carbon::now(),
-                'pettyCashId' => $this->pettyCash_id,
-                'reasonPettyCashId' => $this->reasonMovement,
-                'methodPaymentId' => $this->methodPayMovement,
-                'observations' => $this->observations
-            ]);
+                    //Ingresos
+                    $sumIncomes = $this->incomes();
+
+                    $disponible = $resumBase + $sumIncomes;
+
+                    if($disponible>=$this->valueDetail){
+                        $detailPettyCashService->createMovement([
+                            'status' => 1,
+                            'value' => $this->valueDetail,
+                            'created_at' => Carbon::now(),
+                            'pettyCashId' => $this->pettyCash_id,
+                            'reasonPettyCashId' => $this->reasonMovement,
+                            'methodPaymentId' => $this->methodPayMovement,
+                            'observations' => $this->observations
+                        ]);
+                        $this->itsOk=true;
+                    }else{
+                        $this->itsOk=false;
+                    }
+                }else{
+                    //Ingresos
+                    $sumIncomes = $this->incomes();
+                    if($sumIncomes>=$this->valueDetail){
+                        $detailPettyCashService->createMovement([
+                            'status' => 1,
+                            'value' => $this->valueDetail,
+                            'created_at' => Carbon::now(),
+                            'pettyCashId' => $this->pettyCash_id,
+                            'reasonPettyCashId' => $this->reasonMovement,
+                            'methodPaymentId' => $this->methodPayMovement,
+                            'observations' => $this->observations
+                        ]);
+                        $this->itsOk=true;
+                    }else{
+                        $this->itsOk=false;
+                    }
+                }
+            }else{
+                $detailPettyCashService->createMovement([
+                    'status' => 1,
+                    'value' => $this->valueDetail,
+                    'created_at' => Carbon::now(),
+                    'pettyCashId' => $this->pettyCash_id,
+                    'reasonPettyCashId' => $this->reasonMovement,
+                    'methodPaymentId' => $this->methodPayMovement,
+                    'observations' => $this->observations
+                ]);
+                $this->itsOk=true;
+            }
 
             $this->resetForm();
             $this->showModalMovement=false;
 
-            session()->flash('message', 'Registro realizado exitosamente');
-
-            $this->dispatch('refreshDetail');
+            if($this->itsOk){
+                $this->dispatch('show-toast', message: 'Registro realizado exitosamente', type: 'success');
+            }else{
+                $this->dispatch('show-toast', message: 'Disponible insuficiente para realizar un egreso', type: 'warning');
+            }
 
         }catch(\Exception $e){
-            session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
+            $this->dispatch('show-toast', message: 'Error no se realizó correctamente: ' . $e->getMessage(), type: 'error');
             $this->resetForm();
         }
     }
@@ -285,21 +348,25 @@ class DetailPettyCash extends Component
                 //Base 
                 $base=$this->basePettyCash();
 
-                $disponible=$income+$base-$egress;
+                if($this->canUseBase()){
+                    $disponible=$income+$base-$egress;
+                }else{
+                    $disponible=$income-$egress;
+                }
                 
                 if($disponible>=$movement->value){
                     $movement->update(['status' => 0]);
-                    session()->flash('message', 'Registro eliminado exitosamente');
+                    $this->dispatch('show-toast', message: 'Registro eliminado exitosamente', type: 'success');
                 }else{
-                    session()->flash('warning', 'Disponible insuficiente para borrar el movimiento');
+                    $this->dispatch('show-toast', message: 'Disponible insuficiente para realizar un egreso', type: 'warning');
                 }
             }elseif($typeMovement->type == "e"){
                 $movement->update(['status' => 0]);
-                session()->flash('message', 'Registro eliminado exitosamente');
+                $this->dispatch('show-toast', message: 'Registro eliminado exitosamente', type: 'success');
             }
 
         }catch(\Exception $e){
-            session()->flash('error', 'Error no se realizó correctamente' . $e->getMessage());
+            $this->dispatch('show-toast', message: 'Error no se realizó correctamente: ' . $e->getMessage(), type: 'error');
             $this->resetForm();
         }
     }
