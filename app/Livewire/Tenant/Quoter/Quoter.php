@@ -133,17 +133,6 @@ class Quoter extends Component
             'method' => 'getPrintCopiesLimit()'
         ]);
 
-        // SOLUCIÓN: Re-inicializar configuración si se perdió el estado
-        if (!$this->configService || !$this->currentCompanyId) {
-            Log::warning('🔄 Estado perdido - Re-inicializando configuración...');
-            $this->initializeCompanyConfiguration();
-
-            Log::info('🔄 Estado después de re-inicialización', [
-                'companyId' => $this->currentCompanyId ?? 'NULL',
-                'configService_exists' => isset($this->configService) ? 'YES' : 'NO'
-            ]);
-        }
-
         try {
             $value = $this->getOptionValue(3);
 
