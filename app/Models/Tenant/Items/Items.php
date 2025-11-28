@@ -38,12 +38,20 @@ class Items extends Model
     ];
 
     /**
-     * Inicializar configuración cuando se carga el modelo
+     * Variable estática para controlar si la configuración ya fue inicializada
+     */
+    private static $configurationInitialized = false;
+
+    /**
+     * Inicializar configuración cuando se carga el modelo (solo una vez por request)
      */
     protected static function booted()
     {
         static::retrieved(function ($item) {
-            $item->initializeCompanyConfiguration();
+            if (!self::$configurationInitialized) {
+                $item->initializeCompanyConfiguration();
+                self::$configurationInitialized = true;
+            }
         });
     }
 

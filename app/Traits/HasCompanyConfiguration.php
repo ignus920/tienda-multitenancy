@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Services\Configuration\CompanyConfigurationService;
 use App\Services\Company\CompanyDataValidator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 trait HasCompanyConfiguration
 {
@@ -29,18 +30,28 @@ trait HasCompanyConfiguration
     protected ?int $currentPlainId = null;
 
     /**
+     * Flag para controlar si ya fue inicializado
+     */
+    private bool $isConfigurationInitialized = false;
+
+    /**
      * Inicializa la configuración de la empresa
      */
     protected function initializeCompanyConfiguration(): void
     {
-        \Log::info('🔧 initializeCompanyConfiguration() - INICIO');
+        if ($this->isConfigurationInitialized) {
+            Log::info('🔧 initializeCompanyConfiguration() - YA INICIALIZADO, saltando...');
+            return;
+        }
+
+        Log::info('🔧 initializeCompanyConfiguration() - INICIO');
 
         $this->configService = app(CompanyConfigurationService::class);
-        \Log::info('🔧 ConfigService creado', ['service_exists' => $this->configService ? 'YES' : 'NO']);
+        Log::info('🔧 ConfigService creado', ['service_exists' => $this->configService ? 'YES' : 'NO']);
 
         // Obtener datos de la empresa actual usando el mismo validador que UpdateCompany
         $user = Auth::user();
-        \Log::info('🔧 Usuario obtenido', [
+        Log::info('🔧 Usuario obtenido', [
             'user_exists' => $user ? 'YES' : 'NO',
             'user_id' => $user->id ?? 'NULL',
             'user_email' => $user->email ?? 'NULL'
@@ -48,10 +59,10 @@ trait HasCompanyConfiguration
 
         if ($user) {
             $validator = app(CompanyDataValidator::class);
-            \Log::info('🔧 Validator creado');
+            Log::info('🔧 Validator creado');
 
             $company = $validator->getUserCompany($user);
-            \Log::info('🔧 Empresa obtenida', [
+            Log::info('🔧 Empresa obtenida', [
                 'company_exists' => $company ? 'YES' : 'NO',
                 'company_id' => $company->id ?? 'NULL',
                 'company_name' => $company->businessName ?? 'NULL'
@@ -61,34 +72,36 @@ trait HasCompanyConfiguration
                 $this->currentCompanyId = $company->id;
                 $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
 
-                \Log::info('🔧 IDs asignados', [
+                Log::info('🔧 IDs asignados', [
                     'currentCompanyId' => $this->currentCompanyId,
                     'currentPlainId' => $this->currentPlainId
                 ]);
             } else {
-                \Log::warning('🔧 No se encontró empresa para el usuario');
+                Log::warning('🔧 No se encontró empresa para el usuario');
             }
 
         } else {
-            \Log::warning('🔧 No hay usuario autenticado');
+            Log::warning('🔧 No hay usuario autenticado');
         }
 
         // Precargar configuraciones comunes
         if ($this->currentCompanyId && $this->currentPlainId) {
-            \Log::info('🔧 Precargando configuraciones');
+            Log::info('🔧 Precargando configuraciones');
             $this->configService->preloadCommonConfigurations(
                 $this->currentCompanyId,
                 $this->currentPlainId
             );
-            \Log::info('🔧 Configuraciones precargadas exitosamente');
+            Log::info('🔧 Configuraciones precargadas exitosamente');
         } else {
-            \Log::warning('🔧 No se pueden precargar configuraciones - faltan IDs', [
+            Log::warning('🔧 No se pueden precargar configuraciones - faltan IDs', [
                 'currentCompanyId' => $this->currentCompanyId,
                 'currentPlainId' => $this->currentPlainId
             ]);
         }
 
-        \Log::info('🔧 initializeCompanyConfiguration() - FIN', [
+        $this->isConfigurationInitialized = true;
+
+        Log::info('🔧 initializeCompanyConfiguration() - FIN', [
             'final_companyId' => $this->currentCompanyId,
             'final_plainId' => $this->currentPlainId,
             'final_configService' => $this->configService ? 'YES' : 'NO'
@@ -100,6 +113,8 @@ trait HasCompanyConfiguration
      */
     protected function shouldShowField(string $modulName, string $optionName): bool
     {
+        $this->ensureConfigurationInitialized();
+
         if (!$this->configService || !$this->currentCompanyId || !$this->currentPlainId) {
             return false;
         }
@@ -113,10 +128,29 @@ trait HasCompanyConfiguration
     }
 
     /**
+     * Verifica y asegura que la configuración esté inicializada
+     */
+    private function ensureConfigurationInitialized(): void
+    {
+        if (!$this->configService || !$this->currentCompanyId) {
+            Log::warning('🔄 Estado perdido - Re-inicializando configuración...');
+            $this->isConfigurationInitialized = false; // Resetear flag
+            $this->initializeCompanyConfiguration();
+
+            Log::info('🔄 Estado después de re-inicialización', [
+                'companyId' => $this->currentCompanyId ?? 'NULL',
+                'configService_exists' => isset($this->configService) ? 'YES' : 'NO'
+            ]);
+        }
+    }
+
+    /**
      * Verifica si una opción específica está habilitada (método principal)
      */
     protected function isOptionEnabled(int $optionId): bool
     {
+        $this->ensureConfigurationInitialized();
+
         if (!$this->configService || !$this->currentCompanyId) {
             return false;
         }
@@ -153,6 +187,8 @@ trait HasCompanyConfiguration
      */
     protected function getOptionValue(int $optionId): ?int
     {
+        $this->ensureConfigurationInitialized();
+
         if (!$this->configService || !$this->currentCompanyId) {
             return null;
         }
