@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/tenants/items.php'));
 
              Route::middleware('web')
+                ->group(base_path('routes/tenants/petty_cash.php'));
+
+             Route::middleware('web')
                 ->group(base_path('routes/tenants/quoter.php'));
 
              Route::middleware('web')
