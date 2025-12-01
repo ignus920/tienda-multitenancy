@@ -6,5 +6,5 @@
     </x-slot>
 
     <!-- Livewire Component -->
-    <livewire:tenant.quoter.quoter-mobile />
+    <livewire:tenant.quoter.quoter viewType="mobile" />
 </x-app-layout>

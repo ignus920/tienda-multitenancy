@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Quoter\QuoterController;
-use App\Livewire\Tenant\Quoter\DesktopProductQuoter;
-use App\Livewire\Tenant\Quoter\MobileProductQuoter;
+use App\Http\Controllers\Quoter\QuoterPrintController;
+use App\Livewire\Tenant\Quoter\ProductQuoter;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,11 +35,31 @@ Route::get('/tenant/quoter/mobile', [QuoterController::class, 'mobile'])
     ->name('tenant.quoter.mobile');
 
 // Componente Livewire para cotizador desktop
-Route::get('/tenant/quoter/products/desktop', DesktopProductQuoter::class)
+Route::get('/tenant/quoter/products/desktop', ProductQuoter::class)
     ->middleware(['auth', 'verified', 'tenant'])
-    ->name('tenant.quoter.products.desktop');
+    ->name('tenant.quoter.products.desktop')
+    ->defaults('viewType', 'desktop');
 
 // Componente Livewire para cotizador mobile
-Route::get('/tenant/quoter/products/mobile', MobileProductQuoter::class)
+Route::get('/tenant/quoter/products/mobile', ProductQuoter::class)
     ->middleware(['auth', 'verified', 'tenant'])
-    ->name('tenant.quoter.products.mobile');
+    ->name('tenant.quoter.products.mobile')
+    ->defaults('viewType', 'mobile');
+
+// Rutas para editar cotizaciones existentes
+// Estas rutas cargan el ProductQuoter con un ID de cotización específico para editarla
+Route::get('/tenant/quoter/products/desktop/edit/{quoteId}', ProductQuoter::class)
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('tenant.quoter.products.desktop.edit')        // Nombre de la ruta para vista escritorio
+    ->defaults('viewType', 'desktop');                   // Establece vista como escritorio por defecto
+
+Route::get('/tenant/quoter/products/mobile/edit/{quoteId}', ProductQuoter::class)
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('tenant.quoter.products.mobile.edit')         // Nombre de la ruta para vista móvil
+    ->defaults('viewType', 'mobile');                    // Establece vista como móvil por defecto
+
+// Ruta para servir archivos temporales de impresión
+Route::get('/quoter/print/temp/{file}', [QuoterPrintController::class, 'showTempPrint'])
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('quoter.print.temp')
+    ->where('file', '^quote_\d+_\d+\.html$');           // Validación de formato de archivo

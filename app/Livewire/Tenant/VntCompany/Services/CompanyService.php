@@ -26,8 +26,6 @@ class CompanyService
         $this->ensureTenantConnection();
         
         // dd($data, $warehouses);
-
-
         $companyData = $this->prepareCompanyData($data);
         $company = VntCompany::create($companyData);
         

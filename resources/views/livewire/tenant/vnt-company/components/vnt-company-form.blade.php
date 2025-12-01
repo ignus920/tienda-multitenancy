@@ -572,12 +572,19 @@
                         </div>
                         @endif
                         <!-- Email de Facturación -->
-                        <div>
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
-                            <input wire:model="billingEmail" type="email" id="billingEmail"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                 @error('billingEmail') border-red-500 @enderror
+                                 @if($emailExists) border-red-500 @endif"
                                 placeholder="Ingrese el email de facturación" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+
+                            @if($emailExists && !$errors->has('billingEmail'))
+                            <span class="text-red-500 text-sm">
+                                Este email ya está registrado
+                            </span>
+                            @endif
                         </div>
 
                         <!-- Teléfono Empresarial -->
@@ -630,6 +637,10 @@
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
                             'index' => 0
                             ], key('city-select-warehouse'))
+
+                            @error('warehouseCityId')
+                               <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                               @enderror
                         </div>
 
                         <!-- Código Postal -->
@@ -697,7 +708,7 @@
      </button>
       <!-- Modal -->
     @if($showModal)
-    <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+   <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
         x-data="{ show: true }"
         x-show="show"
         x-transition:enter="ease-out duration-300"
@@ -990,12 +1001,19 @@
                         </div>
                         @endif
                         <!-- Email de Facturación -->
-                        <div>
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
-                            <input wire:model="billingEmail" type="email" id="billingEmail"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                 @error('billingEmail') border-red-500 @enderror
+                                 @if($emailExists) border-red-500 @endif"
                                 placeholder="Ingrese el email de facturación" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+
+                            @if($emailExists && !$errors->has('billingEmail'))
+                            <span class="text-red-500 text-sm">
+                                Este email ya está registrado
+                            </span>
+                            @endif
                         </div>
 
                         <!-- Teléfono Empresarial -->

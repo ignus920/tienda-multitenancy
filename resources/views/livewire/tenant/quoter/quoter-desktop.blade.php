@@ -6,5 +6,5 @@
     </x-slot>
 
     <!-- Livewire Component -->
-    <livewire:tenant.quoter.quoter-desktop />
+    <livewire:tenant.quoter.quoter viewType="desktop" />
 </x-app-layout>
