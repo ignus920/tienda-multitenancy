@@ -113,14 +113,18 @@ new class extends Component
         </a>
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
-        <div x-data="{ tooltip: false }" class="w-full relative" @mouseenter="tooltip = sidebarCollapsed"
+        <div
+            x-data="{ tooltip: false, open: {{ ($contactsOpen || request()->routeIs('customers.*') || request()->routeIs('users.*')) ? 'true' : 'false' }} }"
+            class="w-full relative"
+            @mouseenter="tooltip = sidebarCollapsed"
             @mouseleave="tooltip = false">
             <!-- Botón principal -->
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
-                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" wire:click="toggleContacts">
+            <div
+                class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+                @click="open = !open">
                 <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor"
-                        d="M5 19V5v4.475V9zm3-6h3.525q.425 0 .713-.288t.287-.712t-.288-.712t-.712-.288H8q-.425 0-.712.288T7 12t.288.713T8 13m0 4h3.525q.425 0 .713-.288t.287-.712t-.288-.712t-.712-.288H8q-.425 0-.712.288T7 16t.288.713T8 17m0-8h8q.425 0 .713-.288T17 8t-.288-.712T16 7H8q-.425 0-.712.288T7 8t.288.713T8 9M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v4.45q0 .425-.288.713T20 10.45t-.712-.287T19 9.45V5H5v14h4q.425 0 .713.288T10 20t-.288.713T9 21zm12-5q-1.05 0-1.775-.725T14.5 13.5t.725-1.775T17 11t1.775.725t.725 1.775t-.725 1.775T17 16m0 1q.975 0 1.938.188t1.862.562q.575.225.888.738T22 19.6v.4q0 .425-.288.713T21 21h-8q-.425 0-.712-.288T12 20v-.4q0-.6.313-1.112t.887-.738q.9-.375 1.863-.562T17 17" />
+                    <path fill="currentColor" d="M5 19V5v4.475V9zm3-6h3.525q.425 0 .713-.288t.287-.712t-.288-.712t-.712-.288H8q-.425 0-.712.288T7 12t.288.713T8 13m0 4h3.525q.425 0 .713-.288t.287-.712t-.288-.712t-.712-.288H8q-.425 0-.712.288T7 16t.288.713T8 17m0-8h8q.425 0 .713-.288T17 8t-.288-.712T16 7H8q-.425 0-.712.288T7 8t.288.713T8 9M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v4.45q0 .425-.288.713T20 10.45t-.712-.287T19 9.45V5H5v14h4q.425 0 .713.288T10 20t-.288.713T9 21zm12-5q-1.05 0-1.775-.725T14.5 13.5t.725-1.775T17 11t1.775.725t.725 1.775t-.725 1.775T17 16m0 1q.975 0 1.938.188t1.862.562q.575.225.888.738T22 19.6v.4q0 .425-.288.713T21 21h-8q-.425 0-.712-.288T12 20v-.4q0-.6.313-1.112t.887-.738q.9-.375 1.863-.562T17 17" />
                 </svg>
 
                 <span x-show="!sidebarCollapsed" x-transition class="ml-3 flex-1">
@@ -128,35 +132,40 @@ new class extends Component
                 </span>
 
                 <!-- Flecha -->
-                <svg x-show="!sidebarCollapsed"
-                    class="w-4 h-4 ml-auto transition-transform duration-200 {{ ($contactsOpen || request()->routeIs('customers.*') || request()->routeIs('users.*')) ? 'rotate-90' : '' }}"
+                <svg
+                    x-show="!sidebarCollapsed"
+                    :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200"
                     fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
 
                 <!-- Tooltip (cuando está colapsado) -->
-                <div x-show="tooltip" x-transition
+                <div
+                    x-show="tooltip"
+                    x-transition
                     class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
                     Gestión de personas
                 </div>
             </div>
 
             <!-- Submenú -->
-            <div x-show="!sidebarCollapsed" x-transition
-                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400 {{ ($contactsOpen || request()->routeIs('customers.*') || request()->routeIs('users.*')) ? '' : 'hidden' }}">
-                <!-- Item por defecto: recarga (ruta) -->
+            <div
+                x-show="open && !sidebarCollapsed"
+                x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                 <a href="{{ route('customers.customers') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('customers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión Clientes
                 </a>
 
-                <!-- Usuarios: navegar a users.users sin recarga -->
                 <a href="{{ route('users.users') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('users.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión Usuarios
                 </a>
             </div>
         </div>
+
 
         <!-- Perfil -->
         <a href="{{ route('profile') }}" wire:navigate
@@ -187,9 +196,12 @@ new class extends Component
         <!-- Parámetros (menú con subitems) -->
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
-                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
-                @mouseleave="tooltip = false" @click="open = !open">
+            <div
+                class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+                @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="tooltip = false"
+                @click="open = !open">
 
                 <!-- Icono de Parámetros (sliders/ajustes) -->
                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -317,21 +329,18 @@ new class extends Component
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
-            <div x-show="sidebarCollapsed && tooltip" x-transition
+            <div
+                x-show="sidebarCollapsed && tooltip"
+                x-transition
                 class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 py-1 whitespace-nowrap"
-                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
-                <a href="{{url('/inventory/categories')}}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Categorías</a>
-                <a href="{{url('/items/items')}}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Ítems</a>
-                <a href="{{url('/inventory/brands')}}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Marcas</a>
-                <a href="{{url('/inventory/commands')}}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Comandas</a>
-                <a href="{{url('/inventory/units')}}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Unidades de Medida</a>
-                <a href="{{url('/inventory/houses')}}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Casas</a>
+                @mouseenter="tooltip = true"
+                @mouseleave="tooltip = false">
+                <a href="{{url('/inventory/categories')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Categorías</a>
+                <a href="{{url('/items/items')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Ítems</a>
+                <a href="{{url('/inventory/brands')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Marcas</a>
+                <a href="{{url('/inventory/commands')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Comandas</a>
+                <a href="{{url('/inventory/units')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Unidades de Medida</a>
+                <a href="{{url('/inventory/houses')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Casas</a>
             </div>
         </div>
 

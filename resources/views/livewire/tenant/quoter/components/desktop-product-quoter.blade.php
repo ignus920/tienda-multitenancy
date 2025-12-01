@@ -36,13 +36,21 @@ $header = 'Seleccionar productos';
                             </div>
                         </div>
 
+
+                        <!-- Filtro de Categorías -->
+                        <div class="flex items-center gap-3">
+                            <!-- Filtro de Categorías -->
+                            <select wire:model.live="selectedCategory"
+                                class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Todas las categorías</option>
+                                @foreach($this->getCategories() as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>  
+                        </div>
+
                         <!-- Controles -->
                         <div class="flex items-center gap-3">
-                            <!-- Filtro Todos -->
-                            <button class="px-4 py-2 bg-yellow-400 text-yellow-900 rounded-lg font-medium text-sm">
-                                Todos
-                            </button>
-
                             <!-- Registros por página -->
                             <select wire:model.live="perPage"
                                 class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -196,40 +204,77 @@ $header = 'Seleccionar productos';
 
                 <!-- Búsqueda de clientes -->
                 <div class="mt-4">
-                    @if($selectedCustomer)
+                    @if($selectedCustomer && !$showCreateCustomerForm)
                     <!-- Cliente seleccionado -->
-                    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                    <div wire:key="customer-selected-box"
+                        x-data="{ show: true }"
+                        x-show="show"
+                        x-transition.opacity
+                        class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
                                 <h4 class="font-semibold text-green-800 dark:text-green-200 text-sm">
                                     {{ $selectedCustomer['businessName'] ?: $selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName'] }}
                                 </h4>
+
                                 <p class="text-xs text-green-600 dark:text-green-300">
                                     Identificación: {{ $selectedCustomer['identification'] }}
                                 </p>
                             </div>
-                            <button wire:click="clearCustomer" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 ml-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                            <div class="flex items-center ml-2">
+                                <!-- Botón Editar -->
+                                <button
+                                    wire:click="editCustomer"
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 mr-2"
+                                    title="Editar cliente">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+
+                                <!-- Botón Limpiar -->
+                                <button
+                                    x-on:click="show = false"
+                                    wire:click="clearCustomer"
+                                    class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+                                    title="Limpiar cliente">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    @elseif($showCreateCustomerButton)
-                    <!-- Formulario para crear cliente -->
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Crear Cliente</label>
-                            <button wire:click="cancelCreateCustomer" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-                            <livewire:tenant.vnt-company.vnt-company-form :reusable="true" />
-                        </div>
-                    </div>
+                    @elseif($showCreateCustomerButton || $showCreateCustomerForm)
+                    <!-- Formulario para crear/editar cliente -->
+                    
+                        @if (!$editingCustomerId)
+    <div class="flex items-center justify-between">
+        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Crear Cliente</label>
+        <button
+            x-on:click="show = false"
+            wire:click="clearCustomer"
+            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 ml-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+@endif
+
+@if (!$editingCustomerId)
+    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-2">
+@endif
+        <livewire:tenant.vnt-company.vnt-company-form
+            :reusable="true"
+            :companyId="$editingCustomerId"
+            key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
+@if (!$editingCustomerId)
+    </div>
+@endif
+
+                   
                     @else
                     <!-- Formulario de búsqueda -->
                     <div class="space-y-2">
@@ -245,10 +290,7 @@ $header = 'Seleccionar productos';
 
                             <!-- Botón con respuesta instantánea -->
                             <button
-                                @click="
-            searching = true;
-            $wire.searchCustomer().then(() => searching = false)
-        "
+                                @click="searching = true; $wire.searchCustomer().then(() => searching = false)"
                                 :class="searching ? 'opacity-50 cursor-wait' : ''"
                                 class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
 
@@ -313,21 +355,21 @@ $header = 'Seleccionar productos';
 
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
-                            <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
-                            <input
-                                id="quantity-{{ $index }}"
-                                type="number"
-                                wire:model.lazy="quoterItems.{{ $index }}.quantity"
-                                wire:change="validateQuantity({{ $index }})"
-                                min="1"
-                                max="999999"
-                                step="1"
-                                inputmode="numeric"
-                                pattern="[0-9]*"
-                                class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                value="{{ $item['quantity'] }}"
-                                onwheel="this.blur()"
-                                autocomplete="off">
+                                <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
+                                <input
+                                    id="quantity-{{ $index }}"
+                                    type="number"
+                                    wire:model.lazy="quoterItems.{{ $index }}.quantity"
+                                    wire:change="validateQuantity({{ $index }})"
+                                    min="1"
+                                    max="999999"
+                                    step="1"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                    class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value="{{ $item['quantity'] }}"
+                                    onwheel="this.blur()"
+                                    autocomplete="off">
 
                             </div>
                             <div class="text-sm font-medium text-gray-900 dark:text-white">

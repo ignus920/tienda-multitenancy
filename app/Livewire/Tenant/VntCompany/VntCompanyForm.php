@@ -43,6 +43,7 @@ class VntCompanyForm extends Component
     
     // Warehouse modal properties
     public $reusable = false;
+    public $companyId = null; // ID del cliente a editar (cuando se usa de forma reutilizable)
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
     
