@@ -535,6 +535,18 @@ class VntCompanyForm extends Component
         $this->resetValidation();
     }
 
+    public function cancelForm()
+    {
+        // Cerrar el modal
+        $this->showModal = false;
+
+        // Resetear el formulario
+        $this->resetForm();
+
+        // Emitir evento para notificar al componente padre que se canceló
+        $this->dispatch('customer-form-cancelled');
+    }
+
     public function updateTypeIdentification($typeIdentificationId)
     {
         $this->typeIdentificationId = $typeIdentificationId;

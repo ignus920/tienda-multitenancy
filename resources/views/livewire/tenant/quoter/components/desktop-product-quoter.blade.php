@@ -44,9 +44,9 @@ $header = 'Seleccionar productos';
                                 class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="">Todas las categorías</option>
                                 @foreach($this->getCategories() as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
-                            </select>  
+                            </select>
                         </div>
 
                         <!-- Controles -->
@@ -204,13 +204,13 @@ $header = 'Seleccionar productos';
 
                 <!-- Búsqueda de clientes -->
                 <div class="mt-4">
-                    @if($selectedCustomer && !$showCreateCustomerForm)
+                    @if($selectedCustomer)
                     <!-- Cliente seleccionado -->
                     <div wire:key="customer-selected-box"
                         x-data="{ show: true }"
                         x-show="show"
                         x-transition.opacity
-                        class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                        class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
                                 <h4 class="font-semibold text-green-800 dark:text-green-200 text-sm">
@@ -225,10 +225,20 @@ $header = 'Seleccionar productos';
                                 <!-- Botón Editar -->
                                 <button
                                     wire:click="editCustomer"
+                                    wire:loading.attr="disabled"
+                                    wire:loading.class="opacity-50 cursor-wait"
                                     class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 mr-2"
                                     title="Editar cliente">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                                    <!-- Ícono normal -->
+                                    <svg wire:loading.remove wire:target="editCustomer" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+
+                                    <!-- Ícono de loading -->
+                                    <svg wire:loading wire:target="editCustomer" class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
                                 </button>
 
@@ -238,44 +248,48 @@ $header = 'Seleccionar productos';
                                     wire:click="clearCustomer"
                                     class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
                                     title="Limpiar cliente">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
                                 </button>
                             </div>
                         </div>
                     </div>
-                    @elseif($showCreateCustomerButton || $showCreateCustomerForm)
+                    @endif
+
+                    @if($showCreateCustomerButton || $showCreateCustomerForm)
                     <!-- Formulario para crear/editar cliente -->
-                    
+
+                    @if (!$editingCustomerId)
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Crear Cliente</label>
+                        <button
+                            x-on:click="show = false"
+                            wire:click="clearCustomer"
+                            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 ml-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    @endif
+
+                    @if (!$editingCustomerId)
+                    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-2">
+                        @endif
+                        <livewire:tenant.vnt-company.vnt-company-form
+                            :reusable="true"
+                            :companyId="$editingCustomerId"
+                            key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
                         @if (!$editingCustomerId)
-    <div class="flex items-center justify-between">
-        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Crear Cliente</label>
-        <button
-            x-on:click="show = false"
-            wire:click="clearCustomer"
-            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 ml-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
-    </div>
-@endif
+                    </div>
+                    @endif
 
-@if (!$editingCustomerId)
-    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-@endif
-        <livewire:tenant.vnt-company.vnt-company-form
-            :reusable="true"
-            :companyId="$editingCustomerId"
-            key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
-@if (!$editingCustomerId)
-    </div>
-@endif
 
-                   
-                    @else
+                    @endif
+
+                    @if(!$selectedCustomer && !$showCreateCustomerForm && !$showCreateCustomerButton)
                     <!-- Formulario de búsqueda -->
                     <div class="space-y-2">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Buscar Cliente</label>
@@ -305,7 +319,7 @@ $header = 'Seleccionar productos';
                                     <circle class="opacity-25" cx="12" cy="12" r="10"
                                         stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor"
-                                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
                             </button>
 

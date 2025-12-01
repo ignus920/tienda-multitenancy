@@ -41,7 +41,9 @@ class ProductQuoter extends Component
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
-        'vnt-company-saved' => 'onCustomerCreated'
+        'vnt-company-saved' => 'onCustomerCreated',
+        'customer-updated' => 'onCustomerUpdated',
+        'customer-form-cancelled' => 'cancelCreateCustomer'
     ];
 
     protected $queryString = [
@@ -503,6 +505,41 @@ public function validateQuantity($index)
                 'type' => 'success',
                 'message' => 'Cliente creado y seleccionado: ' . $customerName
             ]);
+        }
+    }
+
+    public function onCustomerUpdated($customerId)
+    {
+        $this->ensureTenantConnection();
+
+        // Verificar si es el cliente que está actualmente seleccionado
+        if ($this->selectedCustomer && $this->selectedCustomer['id'] == $customerId) {
+            // Buscar el cliente actualizado
+            $customer = VntCompany::find($customerId);
+
+            if ($customer) {
+                // Actualizar los datos del cliente seleccionado
+                $this->selectedCustomer = [
+                    'id' => $customer->id,
+                    'businessName' => $customer->businessName,
+                    'firstName' => $customer->firstName,
+                    'lastName' => $customer->lastName,
+                    'identification' => $customer->identification,
+                    'billingEmail' => $customer->billingEmail,
+                ];
+
+                // Limpiar estados del formulario de edición
+                $this->showCreateCustomerForm = false;
+                $this->editingCustomerId = null;
+
+                // Determinar el nombre a mostrar
+                $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Cliente actualizado: ' . $customerName
+                ]);
+            }
         }
     }
 
