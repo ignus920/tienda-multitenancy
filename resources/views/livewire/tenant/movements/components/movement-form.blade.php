@@ -92,7 +92,7 @@
                             <!-- Bodegas -->
                             @if($showSelectStore)
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bodega *</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bodega  <span class="text-red-500">*</span></label>
                                 <select wire:model.live="selectedStoreId"
                                     {{ !empty($selectedStoreId) ? 'disabled' : '' }}
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 {{ !empty($selectedStoreId) ? 'opacity-75 cursor-not-allowed' : '' }}">
@@ -139,7 +139,7 @@
                                     Motivo <span class="text-red-500">*</span>
                                 </label>
                                 <select wire:model.live="movementForm.reasonId"
-                                    {{ empty($warehouseForm['movementType']) || !empty($movementForm['reasonId']) ? 'disabled' : '' }}
+                                    {{ empty($selectedStoreId) || empty($warehouseForm['movementType']) || !empty($movementForm['reasonId']) ? 'disabled' : '' }}
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
                                     <option value="">{{ empty($warehouseForm['movementType']) ? 'Primero seleccione el tipo' : 'Seleccionar motivo' }}</option>
                                     @foreach($this->reasons as $reason)
@@ -259,6 +259,127 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal de Detalles del Movimiento -->
+    @if($showDetailsModal && !empty($movementDetails))
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Detalles del Movimiento #{{ $movementDetails['consecutive'] }}
+                </h3>
+                <button wire:click="closeDetailsModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Información del Movimiento -->
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Fecha</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ $movementDetails['date'] }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Tipo</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ $movementDetails['type'] }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Bodega</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ $movementDetails['store_name'] }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Usuario</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ $movementDetails['user_name'] }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Razón</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ $movementDetails['reason_name'] }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Estado</p>
+                        @if($movementDetails['status'] === 1)
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                Registrado
+                            </span>
+                        @else
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                Anulado
+                            </span>
+                        @endif
+                    </div>
+                </div>
+                @if(!empty($movementDetails['observations']))
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Observaciones</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                        {{ $movementDetails['observations'] }}
+                    </p>
+                </div>
+                @endif
+            </div>
+
+            <!-- Tabla de Items -->
+            <div class="px-6 py-4">
+                <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Items del Movimiento</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Producto</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Cantidad</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            @forelse($movementDetails['details'] as $detail)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                                        {{ $detail['item_name'] }}
+                                    </td>
+                                    <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                                        {{ $detail['quantity'] }}
+                                    </td>
+                                    <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                                        {{ $detail['unit_name'] }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        No hay items en este movimiento
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 flex justify-end">
+                <button wire:click="closeDetailsModal"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm font-medium">
+                    Cerrar
+                </button>
             </div>
         </div>
     </div>

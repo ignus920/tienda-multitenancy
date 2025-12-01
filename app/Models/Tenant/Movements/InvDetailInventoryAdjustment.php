@@ -50,7 +50,7 @@ class InvDetailInventoryAdjustment extends Model
      */
     public function item()
     {
-        return $this->belongsTo(Items::class, 'itemId', 'id');
+        return $this->belongsTo(\App\Models\Tenant\Items\Items::class, 'itemId', 'id');
     }
 
     /**
@@ -58,7 +58,7 @@ class InvDetailInventoryAdjustment extends Model
      */
     public function unitMeasurement()
     {
-        return $this->belongsTo(UnitMeasurements::class, 'unitMeasurementId', 'id');
+        return $this->belongsTo(\App\Models\Tenant\Items\UnitMeasurements::class, 'unitMeasurementId', 'id');
     }
 
     // Scopes

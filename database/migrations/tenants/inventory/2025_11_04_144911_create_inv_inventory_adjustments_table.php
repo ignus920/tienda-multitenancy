@@ -16,7 +16,7 @@ return new class extends Migration
                 $table->string('type', 255);
                 $table->integer('status')->nullable()->default(1);
                 $table->string('api_data_id', 255)->nullable();
-                $table->integer('warehouseId')->nullable()->default(1);
+                $table->integer('storeId')->nullable()->default(1);
                 $table->integer('reasonId')->nullable();
                 $table->integer('consecutive');
                 $table->integer('userId');

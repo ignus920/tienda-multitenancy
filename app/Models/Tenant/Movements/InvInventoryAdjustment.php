@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Auth\User;
+use App\Models\Central\VntWarehouse;
 
 class InvInventoryAdjustment extends Model
 {
@@ -21,7 +22,7 @@ class InvInventoryAdjustment extends Model
         'type',
         'status',
         'api_data_id',
-        'warehouseId',
+        'storeId',
         'reasonId',
         'consecutive',
         'userId',
@@ -66,15 +67,15 @@ class InvInventoryAdjustment extends Model
      */
     public function warehouse()
     {
-        return $this->belongsTo(InvStore::class, 'warehouseId', 'id');
+        return $this->belongsTo(InvStore::class, 'storeId', 'id');
     }
 
     /**
-     * Get the user who created this adjustment
+     * Get the warehouse/store details including warehouseId
      */
-    public function user()
+    public function store()
     {
-        return $this->belongsTo(User::class, 'userId', 'id');
+        return $this->belongsTo(InvStore::class, 'storeId', 'id');
     }
 
     // Scopes
@@ -106,9 +107,9 @@ class InvInventoryAdjustment extends Model
     /**
      * Scope to filter by warehouse
      */
-    public function scopeByWarehouse($query, $warehouseId)
+    public function scopeByStore($query, $storeId)
     {
-        return $query->where('warehouseId', $warehouseId);
+        return $query->where('storeId', $storeId);
     }
 
     /**
@@ -127,5 +128,32 @@ class InvInventoryAdjustment extends Model
     public function getFormattedConsecutiveAttribute()
     {
         return str_pad($this->consecutive, 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Get the user from central database
+     */
+    public function getUserAttribute()
+    {
+        if (!$this->userId) {
+            return null;
+        }
+        return User::on('central')->find($this->userId);
+    }
+
+    /**
+     * Get the warehouse name from central database
+     */
+    public function getWarehouseNameAttribute()
+    {
+        // Get the store to get the warehouseId
+        $store = $this->store;
+        if (!$store || !$store->warehouseId) {
+            return null;
+        }
+        
+        // Get the warehouse from central database
+        $warehouse = VntWarehouse::on('central')->find($store->warehouseId);
+        return $warehouse ? $warehouse->name : null;
     }
 }

@@ -5,8 +5,12 @@ namespace App\Livewire\Tenant\Movements\Components;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Movements\InvInventoryAdjustment;
+use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\UnitMeasurements;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MovementList extends Component
 {
@@ -54,6 +58,8 @@ class MovementList extends Component
         $this->ensureTenantConnection();
         return InvInventoryAdjustment::query()
             ->byType($this->type)
+            ->withCount('details') // Conteo de items diferentes
+            ->withSum('details', 'quantity') // Suma total de cantidades
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('consecutive', 'like', '%' . $this->search . '%')
@@ -62,6 +68,85 @@ class MovementList extends Component
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
+    }
+
+    public function openDetailsModal($movementId)
+    {
+        // Emit event to parent component to show details
+        $this->dispatch('showMovementDetails', movementId: $movementId);
+    }
+
+    public function annulMovement($movementId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            
+            \Illuminate\Support\Facades\DB::connection('tenant')->beginTransaction();
+            
+            $movement = InvInventoryAdjustment::with('details')->find($movementId);
+            
+            if (!$movement) {
+                $this->dispatch('notify', type: 'error', message: 'Movimiento no encontrado');
+                return;
+            }
+
+            if ($movement->status === 0) {
+                $this->dispatch('notify', type: 'warning', message: 'Este movimiento ya está anulado');
+                return;
+            }
+
+            // Revertir el inventario según el tipo de movimiento
+            foreach ($movement->details as $detail) {
+                $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $detail->itemId)
+                    ->where('storeId', $movement->storeId)
+                    ->first();
+                
+                if (!$itemStore) {
+                    \Illuminate\Support\Facades\DB::connection('tenant')->rollBack();
+                    $this->dispatch('notify', type: 'error', message: 'No se encontró el registro de inventario para el item');
+                    return;
+                }
+
+                // Obtener la unidad de medida para calcular la cantidad en unidad de consumo
+                $unitMeasurement = \App\Models\Tenant\Items\UnitMeasurements::find($detail->unitMeasurementId);
+                $quantityInConsumptionUnit = $detail->quantity * ($unitMeasurement ? $unitMeasurement->quantity : 1);
+
+                // Si es ENTRADA, al anular debemos RESTAR del inventario
+                // Si es SALIDA, al anular debemos SUMAR al inventario
+                if ($movement->type === 'entrada') {
+                    // Verificar que hay suficiente stock para restar
+                    if ($itemStore->stock_items_store < $quantityInConsumptionUnit) {
+                        \Illuminate\Support\Facades\DB::connection('tenant')->rollBack();
+                        $this->dispatch('notify', type: 'error', message: 'No hay suficiente stock para anular este movimiento de entrada');
+                        return;
+                    }
+                    
+                    // Restar del inventario (revertir la entrada)
+                    $itemStore->stock_items_store -= $quantityInConsumptionUnit;
+                } else {
+                    // Sumar al inventario (revertir la salida)
+                    $itemStore->stock_items_store += $quantityInConsumptionUnit;
+                }
+                
+                $itemStore->save();
+            }
+
+            // Marcar el movimiento como anulado
+            $movement->update(['status' => 0]);
+            
+            \Illuminate\Support\Facades\DB::connection('tenant')->commit();
+            
+            $this->dispatch('notify', type: 'success', message: 'Movimiento anulado correctamente y el inventario ha sido actualizado');
+            $this->resetPage();
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::connection('tenant')->rollBack();
+            \Illuminate\Support\Facades\Log::error('Error al anular movimiento', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('notify', type: 'error', message: 'Error al anular el movimiento: ' . $e->getMessage());
+        }
     }
 
     public function render()

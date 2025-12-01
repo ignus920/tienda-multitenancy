@@ -21,6 +21,8 @@ class MovementForm extends Component
 {
     // Modal state
     public $showModal = false;
+    public $showDetailsModal = false;
+    public $movementDetails = []; // Store movement details as array instead of model
     public $movementType = 'entrada'; // Para el filtro de la lista
     public $warehouseId = null; // ID of the warehouse from central
     public $selectedStoreId = null; // ID of the selected store (bodega)
@@ -48,10 +50,59 @@ class MovementForm extends Component
     public $successMessage = '';
     public $errorMessage = '';
     
+    protected $listeners = ['showMovementDetails'];
+
     public function mount()
     {
         $this->warehouseForm['movementType'] = '';
         $this->movementForm['date'] = now()->format('Y-m-d');
+    }
+
+    /**
+     * Show movement details modal
+     */
+    public function showMovementDetails($movementId)
+    {
+        $this->ensureTenantConnection();
+        $movement = InvInventoryAdjustment::with([
+            'details.item',
+            'details.unitMeasurement',
+            'store',
+            'reason'
+        ])->find($movementId);
+        
+        if ($movement) {
+            // Convert model to array to avoid serialization issues
+            $this->movementDetails = [
+                'id' => $movement->id,
+                'consecutive' => $movement->formatted_consecutive,
+                'date' => $movement->date->format('d/m/Y H:i'),
+                'type' => $movement->type === 'entrada' ? 'Entrada' : 'Salida',
+                'store_name' => $movement->store->name ?? 'N/A',
+                'reason_name' => $movement->reason->name ?? 'N/A',
+                'user_name' => $movement->user->name ?? 'N/A',
+                'status' => $movement->status,
+                'observations' => $movement->observations,
+                'details' => $movement->details->map(function ($detail) {
+                    return [
+                        'item_name' => $detail->item->name ?? 'N/A',
+                        'quantity' => number_format($detail->quantity, 2),
+                        'unit_name' => $detail->unitMeasurement->description ?? 'N/A',
+                    ];
+                })->toArray()
+            ];
+            
+            $this->showDetailsModal = true;
+        }
+    }
+
+    /**
+     * Close details modal
+     */
+    public function closeDetailsModal()
+    {
+        $this->showDetailsModal = false;
+        $this->movementDetails = [];
     }
     
     public function render()
@@ -315,9 +366,19 @@ class MovementForm extends Component
             DB::connection('tenant')->beginTransaction();
             
             try {
-                // Get next consecutive
+                // Get next consecutive by warehouse, store and type
                 $selectedType = strtolower($this->warehouseForm['movementType']);
+                
+                // Get the store to access warehouseId
+                $store = InvStore::find($this->selectedStoreId);
+                $warehouseId = $store ? $store->warehouseId : null;
+                
+                // Query for last consecutive filtering by warehouse (through store relationship), store, and type
                 $lastMovement = InvInventoryAdjustment::byType($selectedType)
+                    ->byStore($this->selectedStoreId)
+                    ->whereHas('store', function($query) use ($warehouseId) {
+                        $query->where('warehouseId', $warehouseId);
+                    })
                     ->orderBy('consecutive', 'desc')
                     ->first();
                 $consecutive = $lastMovement ? $lastMovement->consecutive + 1 : 1;
@@ -341,15 +402,16 @@ class MovementForm extends Component
                     'observations' => $this->movementForm['observations'],
                     'type' => $selectedType,
                     'status' => 1,
-                    'warehouseId' => $this->selectedStoreId,
+                    'storeId' => $this->selectedStoreId,
                     'reasonId' => $this->movementForm['reasonId'],
                     'consecutive' => $consecutive,
-                    'userId' => Auth::id(),
+                    'userId' => Auth::id()
                 ]);
                 
                 // Create details
-                // dd($this->details);
+                // 
                 foreach ($this->details as $detail) {
+                    // dd($this->details);
                     InvDetailInventoryAdjustment::create([
                         'inventoryAdjustmentId' => $movement->id,
                         'itemId' => $detail['itemId'],
