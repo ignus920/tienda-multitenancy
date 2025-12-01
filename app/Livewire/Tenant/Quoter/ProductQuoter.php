@@ -10,6 +10,8 @@ use App\Models\Auth\Tenant;
 use App\Models\Tenant\Customer\VntCompany;
 use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Quoter\VntDetailQuote;
+use \App\Models\Tenant\Items\Category;
+use Illuminate\Support\Facades\Log;
 
 class ProductQuoter extends Component
 {
@@ -30,9 +32,12 @@ class ProductQuoter extends Component
     public $searchingCustomer = false;
     public $showCreateCustomerForm = false;
     public $showCreateCustomerButton = false;
+    public $editingCustomerId = null;
     public $editingQuoteId = null;
     public $isEditing = false;
     public $showObservations = false;
+     // Nueva propiedad para la categoría seleccionada
+    public $selectedCategory = '';
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -105,6 +110,8 @@ class ProductQuoter extends Component
         tenancy()->initialize($tenant);
     }
 
+
+    //funcion para renderizar los productos en la vista
     public function render()
     {
         $this->ensureTenantConnection();
@@ -118,6 +125,9 @@ class ProductQuoter extends Component
                       ->orWhere('sku', 'like', '%' . $this->search . '%')
                       ->orWhere('description', 'like', '%' . $this->search . '%');
             })
+             ->when($this->selectedCategory, function ($query) {
+             $query->where('categoryId', $this->selectedCategory);
+            })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
@@ -128,6 +138,12 @@ class ProductQuoter extends Component
         return view($viewName, [
             'products' => $products
         ])->layout('layouts.app');
+    }
+
+     // Método para obtener las categorías
+    public function getCategories()
+    {
+        return Category::where('status', 1)->get();
     }
 
     public function addToQuoter($productId, $selectedPrice, $priceLabel)
@@ -201,8 +217,17 @@ class ProductQuoter extends Component
         ]);
     }
 
+
+
+
+
+    //funcion lipiar cotizacion completa con cliente y carrito de compras
     public function clearQuoter()
     {
+        $this->selectedCustomer = null;
+        $this->customerSearch = '';
+        $this->showCreateCustomerForm = false;
+        $this->showCreateCustomerButton = false;
         $this->quoterItems = [];
         session()->forget('quoter_items');
         $this->calculateTotal();
@@ -338,7 +363,7 @@ public function validateQuantity($index)
 
 
 
-
+    //metodo cerrar modal de carrito
     public function toggleCartModal()
     {
         $this->showCartModal = !$this->showCartModal;
@@ -397,6 +422,33 @@ public function validateQuantity($index)
         $this->customerSearch = '';
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
+        $this->editingCustomerId = null;
+    }
+
+    /**
+     * Editar el cliente actualmente seleccionado
+     */
+    public function editCustomer()
+    {
+        Log::info('🔧 editCustomer() llamado', [
+            'selectedCustomer' => $this->selectedCustomer,
+            'showCreateCustomerForm_antes' => $this->showCreateCustomerForm,
+            'editingCustomerId_antes' => $this->editingCustomerId
+        ]);
+
+        if ($this->selectedCustomer) {
+            $this->editingCustomerId = $this->selectedCustomer['id'];
+            $this->showCreateCustomerForm = true;
+            $this->showCreateCustomerButton = false;
+
+            Log::info('✅ Cliente configurado para edición', [
+                'editingCustomerId' => $this->editingCustomerId,
+                'showCreateCustomerForm' => $this->showCreateCustomerForm,
+                'showCreateCustomerButton' => $this->showCreateCustomerButton
+            ]);
+        } else {
+            Log::warning('⚠️ No hay cliente seleccionado para editar');
+        }
     }
 
     public function showCreateCustomerForm()
@@ -409,6 +461,7 @@ public function validateQuantity($index)
     {
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = true;
+        $this->editingCustomerId = null;
     }
 
     public function cancelCreateCustomer()
@@ -416,6 +469,7 @@ public function validateQuantity($index)
         $this->showCreateCustomerButton = false;
         $this->showCreateCustomerForm = false;
         $this->customerSearch = '';
+        $this->editingCustomerId = null;
     }
 
     public function onCustomerCreated($customerId)
@@ -436,10 +490,11 @@ public function validateQuantity($index)
                 'billingEmail' => $customer->billingEmail,
             ];
 
-            // Limpiar estados del formulario de creación
+            // Limpiar estados del formulario de creación/edición
             $this->showCreateCustomerForm = false;
             $this->showCreateCustomerButton = false;
             $this->customerSearch = '';
+            $this->editingCustomerId = null;
 
             // Determinar el nombre a mostrar
             $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;

@@ -1,3 +1,4 @@
+
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 ">
     <div class="max-w-md mx-auto">
         <!-- Header -->
@@ -278,80 +279,4 @@
     </div>
 </div>
 
-<!-- JavaScript para manejo de impresión en móvil -->
-<script>
-document.addEventListener('livewire:init', function () {
-    console.log('📱 Livewire móvil inicializado - configurando eventos');
 
-    // Escuchar evento para abrir ventana de impresión
-    Livewire.on('open-print-window', function (eventData) {
-        console.log('🎯 Evento móvil recibido', eventData);
-
-        // Procesar datos (compatible con array o objeto)
-        const printData = Array.isArray(eventData) ? eventData[0] : eventData;
-
-        const url = printData.url;
-        const format = printData.format;
-
-        console.log('📱 URL móvil a abrir:', url);
-
-        // En móvil, detectar si es un dispositivo móvil real
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        if (isMobile) {
-            // En dispositivos móviles reales, abrir en la misma ventana
-            // ya que las ventanas popup no funcionan bien
-            window.location.href = url + '?mobile=1';
-        } else {
-            // En desktop con vista móvil, usar ventana popup
-            let windowFeatures;
-            if (format === 'pos') {
-                // Ventana más pequeña para formato POS (80mm)
-                windowFeatures = 'width=400,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
-            } else {
-                // Ventana más grande para formato carta
-                windowFeatures = 'width=800,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
-            }
-
-            // Abrir ventana de impresión
-            const printWindow = window.open(url, 'print_window', windowFeatures);
-
-            if (printWindow) {
-                // Centrar la ventana
-                const screenX = window.screenX || window.screenLeft;
-                const screenY = window.screenY || window.screenTop;
-                const outerWidth = window.outerWidth;
-                const outerHeight = window.outerHeight;
-
-                const left = screenX + (outerWidth - (format === 'pos' ? 400 : 800)) / 2;
-                const top = screenY + (outerHeight - 600) / 2;
-
-                printWindow.moveTo(left, top);
-
-                // Auto-imprimir después de que cargue el contenido
-                printWindow.addEventListener('load', function() {
-                    // Pequeño delay para asegurar que el contenido esté completamente renderizado
-                    setTimeout(function() {
-                        printWindow.print();
-
-                        // Opcional: cerrar ventana después de imprimir
-                        printWindow.addEventListener('afterprint', function() {
-                            setTimeout(function() {
-                                printWindow.close();
-                            }, 500);
-                        });
-                    }, 500);
-                });
-
-                // Manejar el caso de que la ventana no se pueda abrir (bloqueador de popups)
-                printWindow.addEventListener('error', function() {
-                    alert('No se pudo abrir la ventana de impresión. Por favor, verifica que no esté bloqueada por tu navegador.');
-                });
-            } else {
-                // Fallback si la ventana no se puede abrir
-                alert('No se pudo abrir la ventana de impresión. Por favor, verifica la configuración de popups de tu navegador.');
-            }
-        }
-    });
-});
-</script>
