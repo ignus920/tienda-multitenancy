@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('vnt_contacts', function (Blueprint $table) {
             $table->foreign(['warehouseId'], 'vnt_contacts_ibfk_1')->references(['id'])->on('vnt_warehouses')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['positionId'], 'vnt_contacts_ibfk_2')->references(['id'])->on('cfg_positions')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['positionId'], 'vnt_contacts_ibfk_2')->references(['id'])->on('cnf_positions')->onUpdate('no action')->onDelete('no action');
         });
     }
 

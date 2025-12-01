@@ -13,6 +13,10 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
+
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     </head>
     <body class="font-sans antialiased"
           x-data="{
@@ -93,11 +97,12 @@
             </div>
 
             <!-- Page content -->
-            <main class="flex-1 py-8">
-                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    {{ $slot }}
-                </div>
+            <main class="flex-1">
+            {{ $slot }}
             </main>
         </div>
+
+        @livewireScripts
+        @stack('scripts')
     </body>
 </html>

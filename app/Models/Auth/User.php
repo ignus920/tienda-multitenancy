@@ -36,6 +36,9 @@ class User extends Authenticatable
         'two_factor_secret',
         'two_factor_failed_attempts',
         'two_factor_locked_until',
+        'whatsapp_token',
+        'whatsapp_token_expires_at',
+        'contact_id',
     ];
 
     /**
@@ -63,6 +66,7 @@ class User extends Authenticatable
             'two_factor_enabled' => 'boolean',
             'two_factor_failed_attempts' => 'integer',
             'two_factor_locked_until' => 'datetime',
+            'whatsapp_token_expires_at' => 'datetime',
         ];
     }
 
@@ -217,6 +221,14 @@ class User extends Authenticatable
         }
 
         return substr($initials, 0, 2); // Máximo 2 iniciales
+    }
+
+    /**
+     * Relación con el contacto (vnt_contacts).
+     */
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Central\VntContact::class, 'contact_id');
     }
 
     /**

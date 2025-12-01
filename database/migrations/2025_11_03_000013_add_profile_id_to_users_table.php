@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->unsignedInteger('profile_id')->default(7)->after('email'); // Default: Cliente (ID 7)
+            $table->unsignedInteger('profile_id')->default(1)->after('email'); // Default: Super Administrador (ID 1)
 
             // Foreign key constraint
             $table->foreign('profile_id')->references('id')->on('usr_profiles');

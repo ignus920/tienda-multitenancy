@@ -13,7 +13,18 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (){
               Route::middleware('web')
                 ->group(base_path('routes/tenants/customers.php'));
-        
+
+             Route::middleware('web')
+                ->group(base_path('routes/tenants/items.php'));
+
+             Route::middleware('web')
+                ->group(base_path('routes/tenants/petty_cash.php'));
+
+             Route::middleware('web')
+                ->group(base_path('routes/tenants/quoter.php'));
+
+             Route::middleware('web')
+                ->group(base_path('routes/tenants/users.php'));         
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -34,7 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/test/*',
             'api/products/*',
-            'api/customers/*'
+            'api/customers/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -7,8 +7,14 @@ use App\Auth\Livewire\Enable2FA;
 use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\TestController;
-use Livewire\Volt\Volt;
+// use App\Http\Controllers\TestController;
+// use Livewire\Volt\Volt;
+use App\Livewire\Company\UpdateCompany;
+use App\Auth\Middleware\SetTenantConnection;
+use App\Livewire\Tenant\Customers\CustomerManager;
+
+
+
 
 Route::view('/', 'welcome');
 
@@ -17,7 +23,7 @@ Route::get('/verify-2fa', Verify2FA::class)
     ->name('verify.2fa');
 
 // Configuración de empresa (requiere autenticación)
-Volt::route('/company/setup', 'company.simple-setup')
+Route::get('/company/setup', UpdateCompany::class)
     ->middleware(['auth'])
     ->name('company.setup');
 
@@ -28,18 +34,18 @@ Route::get('/select-tenant', SelectTenant::class)
 
 // Dashboard del tenant (requiere autenticación, datos completos y tenant seleccionado)
 Route::get('/tenant/dashboard', TenantDashboard::class)
-    ->middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantConnection::class])
+    ->middleware(['auth', 'company.complete', SetTenantConnection::class])
     ->name('tenant.dashboard');
 
 
     
 
 // Módulo de Clientes (requiere autenticación, datos completos y tenant seleccionado)
-Route::get('/tenant/customers', App\Livewire\Tenant\Customers\CustomerManager::class)
+Route::get('/tenant/customers', CustomerManager::class)
     ->middleware('tenant')
     ->name('tenant.customers');
 
-
+     
 
 
 // Configuración de 2FA (requiere autenticación y datos completos)
@@ -94,14 +100,51 @@ Route::get('/super-admin', App\Livewire\Central\SuperAdmin\GlobalDashboard::clas
     ->name('super.admin.dashboard');
 
 // Rutas de prueba para establecer tenant (SOLO PARA DESARROLLO)
-Route::prefix('api/test')->group(function () {
-    Route::get('/tenants', [TestController::class, 'listTenants']);
-    Route::post('/set-tenant', [TestController::class, 'setTenant']);
-    Route::get('/session', [TestController::class, 'sessionInfo']);
+// Route::prefix('api/test')->group(function () {
+//     Route::get('/tenants', [TestController::class, 'listTenants']);
+//     Route::post('/set-tenant', [TestController::class, 'setTenant']);
+//     Route::get('/session', [TestController::class, 'sessionInfo']);
+// });
+
+
+
+
+// Ejemplo de formulario configurable (SOLO PARA DESARROLLO/DEMO)
+// Route::get('/ejemplo-configuracion', App\Livewire\Examples\ConfigurableFormExample::class)
+//     ->middleware(['auth', 'company.complete', App\Auth\Middleware\SetTenantConnection::class])
+//     ->name('ejemplo.configuracion');
+
+
+
+
+
+
+
+
+// Rutas para gestión de permisos y roles (Catálogo de permisos)
+Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->group(function () {
+    Route::get('/catalog', [App\Http\Controllers\Auth\PermissionController::class, 'getCatalog'])
+        ->name('api.permissions.catalog');
+
+    Route::post('/assign', [App\Http\Controllers\Auth\PermissionController::class, 'assignPermissionToProfile'])
+        ->name('api.permissions.assign');
+
+    Route::post('/assign-multiple', [App\Http\Controllers\Auth\PermissionController::class, 'assignMultiplePermissions'])
+        ->name('api.permissions.assign.multiple');
+
+    Route::delete('/remove', [App\Http\Controllers\Auth\PermissionController::class, 'removePermissionFromProfile'])
+        ->name('api.permissions.remove');
+
+    Route::get('/profile/{profileId}', [App\Http\Controllers\Auth\PermissionController::class, 'getProfilePermissions'])
+        ->name('api.permissions.profile');
+
+    Route::post('/clone', [App\Http\Controllers\Auth\PermissionController::class, 'cloneProfilePermissions'])
+        ->name('api.permissions.clone');
 });
 
-
-
-
-
 require __DIR__.'/auth.php';
+
+// Incluir rutas del módulo de parámetros del tenant
+require __DIR__.'/tenants/parameters.php';
+
+

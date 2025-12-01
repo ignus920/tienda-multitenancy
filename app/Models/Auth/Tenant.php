@@ -30,14 +30,18 @@ class Tenant extends Model implements TenantWithDatabase
         'db_password',
         'db_host',
         'db_port',
+        'merchant_type_id',
         'is_active',
         'settings',
+        'database_setup',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'settings' => 'array',
         'db_port' => 'integer',
+        'merchant_type_id' => 'integer',
+        'database_setup' => 'boolean',
     ];
 
     public function getTenantKeyName(): string
@@ -63,10 +67,13 @@ class Tenant extends Model implements TenantWithDatabase
             'db_password',
             'db_host',
             'db_port',
+            'merchant_type_id',
             'is_active',
             'settings',
         ];
     }
+
+    
 
     public function run(callable $callback)
     {

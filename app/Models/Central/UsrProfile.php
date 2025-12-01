@@ -35,6 +35,20 @@ class UsrProfile extends Model
         return $this->hasMany(\App\Models\Auth\User::class, 'profile_id');
     }
 
+    // Relación con permisos a través de la tabla pivot
+    public function permissions()
+    {
+        return $this->belongsToMany(UsrPermission::class, 'usr_permissions_profiles', 'profileId', 'permissionId')
+            ->withPivot(['creater', 'deleter', 'editer', 'show', 'created_at', 'updated_at', 'deleted_at'])
+            ->withTimestamps();
+    }
+
+    // Relación directa con los permisos asignados
+    public function permissionProfiles()
+    {
+        return $this->hasMany(UsrPermissionProfile::class, 'profileId');
+    }
+
     // Scopes útiles
     public function scopeActive($query)
     {
