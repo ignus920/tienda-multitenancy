@@ -45,6 +45,7 @@ class CompanyValidationService
             'typeIdentificationId.required' => 'Debe seleccionar el tipo de identificación.',
             'typeIdentificationId.exists' => 'El tipo de identificación seleccionado no es válido.',
             'billingEmail.email' => 'El email de facturación debe tener un formato válido.',
+            'billingEmail.unique' => 'Este email de facturación ya está registrado.',
             'verification_digit.required' => 'El dígito de verificación es obligatorio para NIT.',
             'verification_digit.max' => 'El dígito de verificación debe ser de 1 carácter.',
             
@@ -55,7 +56,7 @@ class CompanyValidationService
             
             // Persona natural
             'firstName.required' => 'El primer nombre es obligatorio para personas naturales.',
-            'lastName.required' => 'El apellido es obligatorio para personas naturales.',
+            'lastName.required' => 'El segundo nombre es obligatorio para personas naturales.',
             
             // Warehouse (campos individuales)
             // 'warehouseName.required' => 'El nombre de la sucursal es obligatorio.',
@@ -133,12 +134,18 @@ class CompanyValidationService
             $verificationDigitRule = 'required|string|max:1';
         }
 
+        // Regla de email único
+        $emailRule = 'nullable|email|max:255|unique:vnt_companies,billingEmail';
+        if ($editingId) {
+            $emailRule .= ',' . $editingId;
+        }
+
         return [
             'identification' => $identificationRule,
             'typePerson' => $typePersonRule,
             'typeIdentificationId' => 'required|integer|exists:central.cnf_type_identifications,id',
             'status' => 'nullable|integer|in:0,1',
-            'billingEmail' => 'nullable|email|max:255',
+            'billingEmail' => $emailRule,
             'checkDigit' => 'nullable|integer|max:99',
             'integrationDataId' => 'nullable|integer',
             'code_ciiu' => 'nullable|string|max:255',
@@ -173,8 +180,8 @@ class CompanyValidationService
     {
         return array_merge($baseRules, [
             'firstName' => 'required|string|max:255',
-            'lastName' => 'required|string|max:255',
-            'secondName' => 'nullable|string|max:255',
+            'lastName' => 'nullable|string|max:255',
+            'secondName' => 'required|string|max:255',
             'secondLastName' => 'nullable|string|max:255',
             'fiscalResponsabilityId' => 'nullable|integer',
             'regimeId' => 'nullable|integer',
@@ -220,13 +227,35 @@ class CompanyValidationService
         $this->ensureTenantConnection();
         $query = \App\Models\Tenant\Customer\VntCompany::where('typeIdentificationId', $typeIdentificationId)
             ->where('identification', $identification);
-        
         // Exclude current record when editing
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
        // dd($query->exists());
         return $query->exists();
+    }
+
+
+     public function checkEmailExists(
+        string $email, 
+        ?int $excludeId = null
+    ): bool {
+        $this->ensureTenantConnection();
+        
+        // Verificar en vnt_companies (billingEmail)
+        // $companyQuery = \App\Models\Tenant\Customer\VntCompany::where('billingEmail', $email);
+        // if ($excludeId) {
+        //     $companyQuery->where('id', '!=', $excludeId);
+        // }
+        
+        // if ($companyQuery->exists()) {
+        //     return true;
+        // }
+        
+        // Verificar en vnt_contacts (email)
+        $contactQuery = \App\Models\Tenant\Customer\VntContacts::where('email', $email);
+        
+        return $contactQuery->exists();
     }
 
     private function ensureTenantConnection(): void

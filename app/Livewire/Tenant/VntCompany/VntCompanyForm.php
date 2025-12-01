@@ -5,14 +5,13 @@ namespace App\Livewire\Tenant\VntCompany;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 use App\Livewire\Tenant\VntCompany\Services\CompanyService;
 use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyQueryService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyValidationService;
 use App\Livewire\Tenant\VntCompany\Services\ExportService;
-use App\Models\Central\CnfCity;
 
-use function Faker\Provider\pt_BR\check_digit;
 
 class VntCompanyForm extends Component
 {
@@ -30,7 +29,7 @@ class VntCompanyForm extends Component
         'fiscal-responsibility-changed' => 'updateFiscalResponsibility',
         'city-changed' => 'updateWarehouseCity',
         'position-changed' => 'updatePosition',
-        'warehouse-modal-closed' => 'handleWarehouseModalClosed',
+        'warehouse-modal-closed' => 'handleWarehouseModalClosed', 
         'contact-modal-closed' => 'handleContactModalClosed',
         'citySelected' => 'updateCityName'
     ];
@@ -44,6 +43,7 @@ class VntCompanyForm extends Component
     
     // Warehouse modal properties
     public $reusable = false;
+    public $companyId = null; // ID del cliente a editar (cuando se usa de forma reutilizable)
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
     
@@ -72,6 +72,8 @@ class VntCompanyForm extends Component
     // Real-time validation properties
     public $identificationExists = false;
     public $validatingIdentification = false;
+    public $emailExists = false;
+    public $validatingEmail = false;
     
     // Propiedades para contacto
     public $business_phone = '';
@@ -94,6 +96,9 @@ class VntCompanyForm extends Component
     
     // Control de visualización de campos
     public $showNaturalPersonFields = false;
+    
+    // Propiedad para rastrear errores de validación
+    public $formHasErrors = false;
 
     public function boot(
         CompanyService $companyService,
@@ -193,6 +198,7 @@ class VntCompanyForm extends Component
 
     public function create()
     {
+        $this->clearUniqueValidationErrors();
         $this->resetForm();
         $this->showModal = true;
     }
@@ -201,6 +207,8 @@ class VntCompanyForm extends Component
 
     public function edit($id)
     {
+        
+         $this->clearUniqueValidationErrors(); 
         $company = $this->companyService->getCompanyForEdit($id);
         
         // Log company loading for debugging
@@ -318,6 +326,23 @@ class VntCompanyForm extends Component
             $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
         }
         
+        // Validar que identification y email no existan antes de proceder
+        if ($this->identificationExists) {
+            $this->addError('identification', 'Este número de identificación ya está registrado.');
+            return;
+        }
+        
+        if ($this->emailExists) {
+            $this->addError('billingEmail', 'Este email de facturación ya está registrado.');
+            return;
+        }
+
+          if (!$this->cityValidate(0)) {
+              $this->addError('warehouseName', 'La ciudad seleccionada no es válida.');
+            return; // Si la validación de ciudad falla, detener el guardado
+        }
+        
+        
         // Validación simple usando Livewire nativo
         $this->validate();
         
@@ -374,11 +399,20 @@ class VntCompanyForm extends Component
         // dd($warehouses);
         try {
             if ($this->editingId) {
-                $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
+                $company = $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
                 session()->flash('message', 'Registro actualizado exitosamente.');
+
+                // Disparar evento para componentes que escuchan
+                $this->dispatch('customer-updated', $this->editingId);
             } else {
-                $this->companyService->create($data, $warehouses);
+                $company = $this->companyService->create($data, $warehouses);
                 session()->flash('message', 'Registro creado exitosamente.');
+
+                // Disparar evento para componentes que escuchan
+                if ($company && isset($company->id)) {
+                    $this->dispatch('customer-created', $company->id);
+                    $this->dispatch('vnt-company-saved', $company->id);
+                }
             }
 
             $this->resetForm();
@@ -493,8 +527,24 @@ class VntCompanyForm extends Component
         
         // Reset control de visualización
         $this->showNaturalPersonFields = false;
+        
+        // Reset form validation state
+        $this->formHasErrors = false;
 
         $this->resetErrorBag();
+        $this->resetValidation();
+    }
+
+    public function cancelForm()
+    {
+        // Cerrar el modal
+        $this->showModal = false;
+
+        // Resetear el formulario
+        $this->resetForm();
+
+        // Emitir evento para notificar al componente padre que se canceló
+        $this->dispatch('customer-form-cancelled');
     }
 
     public function updateTypeIdentification($typeIdentificationId)
@@ -526,6 +576,14 @@ class VntCompanyForm extends Component
 
     public function updateWarehouseCity($cityId, $index = 0)
     {
+        // Log para ver qué parámetros están llegando
+        Log::info('updateWarehouseCity called', [
+            'cityId' => $cityId,
+            'cityId_type' => gettype($cityId),
+            'index' => $index,
+            'index_type' => gettype($index)
+        ]);
+        
         // Validar que cityId sea numérico
         if (!is_numeric($cityId)) {
             Log::warning('Invalid cityId received in updateWarehouseCity', [
@@ -541,7 +599,6 @@ class VntCompanyForm extends Component
         $this->warehouseCityName = $city ? $city->name : ''; 
        
 
-
         // También actualizar en el array de warehouses si existe (para compatibilidad)
         if (isset($this->warehouses[$index])) {
             $this->warehouses[$index]['cityId'] = (int) $cityId;
@@ -549,7 +606,7 @@ class VntCompanyForm extends Component
         }
         
         // Log para debugging
-        Log::info('City updated', [
+        Log::info('City updated successfully', [
             'warehouseCityId' => $this->warehouseCityId,
             'warehouseCityName' => $this->warehouseCityName,
             'index' => $index
@@ -589,11 +646,27 @@ class VntCompanyForm extends Component
     /**
      * Validar un campo específico en tiempo real
      * Se ejecuta cuando el usuario sale del campo (blur)
+     * 
+     * IMPORTANTE: Después de validar cualquier campo, siempre re-validar
+     * la identificación para mantener el estado de identificationExists
      */
     public function updated($propertyName)
     {
         // Validar solo el campo que cambió
         $this->validateOnly($propertyName);
+        
+        // Actualizar el estado de errores del formulario
+        $this->formHasErrors = $this->getErrorBag()->isNotEmpty();
+        
+        // Validar unicidad de identification si cambió
+        if ($propertyName === 'identification' && !empty($this->identification) && !empty($this->typeIdentificationId)) {
+            $this->validateIdentificationUniqueness();
+        }
+        
+        // Validar unicidad de email si cambió
+        if ($propertyName === 'billingEmail' && !empty($this->billingEmail)) {
+            $this->validateEmailUniqueness();
+        }
     }
 
     /**
@@ -609,32 +682,85 @@ class VntCompanyForm extends Component
         $this->validateIdentificationUniqueness();
     }
 
+    public function updatedBillingEmail(): void
+    {
+        $this->validateOnly('billingEmail');
+        $this->validateEmailUniqueness();
+        
+        // Re-validar identificación después de cambiar email
+        if (!empty($this->identification) && !empty($this->typeIdentificationId)) {
+            $this->validateIdentificationUniqueness();
+        }
+    }
     /**
      * Validate identification uniqueness in real-time
      * Called when identification or typeIdentificationId changes
+     * 
+     * IMPORTANTE: Este método SIEMPRE debe ejecutarse después de cualquier
+     * validación para mantener el estado de identificationExists actualizado
      */
     public function validateIdentificationUniqueness(): void
     {
-        // Reset state
-        $this->identificationExists = false;
-        
         // Skip validation if required fields are empty
         if (empty($this->identification) || empty($this->typeIdentificationId)) {
+            $this->identificationExists = false;
+            $this->validatingIdentification = false;
             return;
         }
         
         // Set loading state
         $this->validatingIdentification = true;
         
-        // Check if combination exists
-        $this->identificationExists = $this->validationService->checkIdentificationExists(
-            (int) $this->typeIdentificationId,
-            $this->identification,
-            $this->editingId
-        );
+        try {
+            // Check if combination exists
+            $this->identificationExists = $this->validationService->checkIdentificationExists(
+                (int) $this->typeIdentificationId,
+                $this->identification,
+                $this->editingId
+            );
+        } catch (\Exception $e) {
+            // Log error but don't break the form
+            Log::error('Error validating identification uniqueness', [
+                'error' => $e->getMessage(),
+                'identification' => $this->identification,
+                'typeIdentificationId' => $this->typeIdentificationId
+            ]);
+            $this->identificationExists = false;
+        } finally {
+            // Always clear loading state
+            $this->validatingIdentification = false;
+        }
+    }
+
+     public function validateEmailUniqueness(): void
+    {
+        // Skip validation if required fields are empty
+        if (empty($this->billingEmail)) {
+            $this->emailExists = false;
+            $this->validatingEmail = false;
+            return;
+        }
         
-        // Clear loading state
-        $this->validatingIdentification = false;
+        // Set loading state
+        $this->validatingEmail = true;
+        
+        try {
+            // Check if combination exists
+            $this->emailExists = $this->validationService->checkEmailExists(
+                $this->billingEmail,
+                $this->editingId
+            );
+        } catch (\Exception $e) {
+            // Log error but don't break the form
+            Log::error('Error validating email uniqueness', [
+                'error' => $e->getMessage(),
+                'billingEmail' => $this->billingEmail
+            ]);
+            $this->emailExists = false;
+        } finally {
+            // Always clear loading state
+            $this->validatingEmail = false;
+        }
     }
 
     public function setMainWarehouse($index)
@@ -680,16 +806,19 @@ class VntCompanyForm extends Component
 
     /**
      * Método que se ejecuta cuando cambia el tipo de identificación
+     * 
+     * IMPORTANTE: Siempre re-validar la identificación cuando cambia el tipo
      */
     public function updatedTypeIdentificationId(): void
     {
-        // Re-validate identification with new type if identification is not empty
-        if (!empty($this->identification)) {
-            $this->validateIdentificationUniqueness();
-        }
+        // Siempre re-validar la identificación cuando cambia el tipo
+        // porque la combinación typeIdentificationId + identification debe ser única
+        $this->validateIdentificationUniqueness();
         
         $this->evaluateWarehousePermissions();
     }
+
+
 
     /**
      * Override del método addWarehouse para verificar permisos
@@ -781,9 +910,52 @@ class VntCompanyForm extends Component
         return 'Juridica';
     }
 
+
+     public function clearUniqueValidationErrors()
+    {
+      // Limpiar errores específicos de unicidad
+      $this->resetErrorBag(['billingEmail', 'identification']);
+      // También resetear las banderas de existencia
+      $this->identificationExists = false;
+      $this->emailExists = false;
+    }
+
+
     /**
      * Obtener datos del formulario para enviar al service
      */
+
+      #[On('city-valid')]
+       public function cityValidate($index, $cityId = null): bool
+       {
+          if ($index != 0) {
+            return false;
+          }
+          
+          // Si cityId viene del evento, usarlo directamente
+          $cityIdToValidate = $cityId ?? $this->warehouseCityId;
+          
+          // Validar que se haya seleccionado una ciudad válida
+          if (empty($cityIdToValidate) || !is_numeric($cityIdToValidate)) {
+              $this->addError('warehouseCityId', 'Debe seleccionar una ciudad válida para la sucursal principal.');
+            return false;
+          }
+          
+          // Obtener el nombre de la ciudad para validar que existe
+          $city = \App\Models\Central\CnfCity::find($cityIdToValidate);
+          if (!$city) {
+              $this->addError('warehouseCityId', 'La ciudad seleccionada no es válida.');
+            return false;
+          }
+          
+          // Actualizar las propiedades si vienen del evento
+          if ($cityId !== null) {
+              $this->warehouseCityId = (int) $cityId;
+              $this->warehouseCityName = $city->name;
+          }
+          
+          return true;
+        }
     private function getFormData(): array
     {
         // Si es NIT, usar verification_digit como checkDigit

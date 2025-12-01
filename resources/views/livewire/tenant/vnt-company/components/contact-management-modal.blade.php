@@ -167,11 +167,46 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Email
                             </label>
-                            <input wire:model.defer="contactForm.email" type="email"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ej: juan.perez@empresa.com">
+                            <div class="relative">
+                                <input wire:model.live.debounce-500ms="contactForm.email" 
+                                       @input="$wire.validateEmailRealtime($event.target.value)"
+                                       type="email"
+                                       class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors
+                                       {{ $emailExists ? 'border-red-500 dark:border-red-500 focus:ring-red-500' : ($contactForm['email'] && !$emailExists && !$isCheckingEmail ? 'border-green-500 dark:border-green-500 focus:ring-green-500' : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500') }}"
+                                       placeholder="Ej: juan.perez@empresa.com">
+                                
+                                <!-- Loading indicator -->
+                                @if($isCheckingEmail)
+                                <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                                @elseif($emailExists)
+                                <!-- Error indicator -->
+                                <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18.364 5.364l-12.728 12.728a1 1 0 01-1.414 0l-5.656-5.656a1 1 0 011.414-1.414L4.222 12.808l12.02-12.02a1 1 0 011.414 1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                @elseif($contactForm['email'] && !$isCheckingEmail)
+                                <!-- Success indicator -->
+                                <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                @endif
+                            </div>
+                            
+                            <!-- Email error message -->
+                            @if($emailError)
+                            <span class="text-red-500 text-sm block mt-1">{{ $emailError }}</span>
+                            @endif
+                            
                             @error('contactForm.email') 
-                                <span class="text-red-500 text-sm">{{ $message }}</span> 
+                                <span class="text-red-500 text-sm block mt-1">{{ $message }}</span> 
                             @enderror
                         </div>
 
@@ -243,7 +278,9 @@
                             Cancelar
                         </button>
                         <button wire:click="saveContact" type="button"
-                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg transition-colors">
+                            {{ $emailExists ? 'disabled' : '' }}
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg transition-colors {{ $emailExists ? 'opacity-50 cursor-not-allowed' : '' }}"
+                            title="{{ $emailExists ? 'Corrige el email duplicado antes de guardar' : '' }}">
                             {{ $formMode === 'create' ? 'Crear' : 'Actualizar' }}
                         </button>
                     </div>

@@ -202,7 +202,7 @@ class ManageItems extends Component
         $this->loadWarehouses();
 
         $items = Items::query()
-            ->with('brand')
+            ->with(['brand', 'principalImage'])
             ->when($this->search, function($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                       ->orWhere('sku', 'like', '%' . $this->search . '%')

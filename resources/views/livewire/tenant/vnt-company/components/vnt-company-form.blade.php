@@ -14,7 +14,7 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    Crear Nuevo
+                    Crear Nuevo Cliente
                 </button>
             </div>
         </div>
@@ -572,12 +572,19 @@
                         </div>
                         @endif
                         <!-- Email de Facturación -->
-                        <div>
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
-                            <input wire:model="billingEmail" type="email" id="billingEmail"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                 @error('billingEmail') border-red-500 @enderror
+                                 @if($emailExists) border-red-500 @endif"
                                 placeholder="Ingrese el email de facturación" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+
+                            @if($emailExists && !$errors->has('billingEmail'))
+                            <span class="text-red-500 text-sm">
+                                Este email ya está registrado
+                            </span>
+                            @endif
                         </div>
 
                         <!-- Teléfono Empresarial -->
@@ -630,6 +637,10 @@
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
                             'index' => 0
                             ], key('city-select-warehouse'))
+
+                            @error('warehouseCityId')
+                               <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                               @enderror
                         </div>
 
                         <!-- Código Postal -->
@@ -653,7 +664,7 @@
                         <!-- Actions -->
                         <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <button type="button"
-                                wire:click="$set('showModal', false)"
+                                wire:click="cancelForm"
                                 class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors order-2 sm:order-1">
                                 Cancelar
                             </button>
@@ -688,16 +699,22 @@
 </div>
 @else
   <div>
-     <button wire:click="create"
-       class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-       Crear Nuevo
-     </button>
+     @if($companyId)
+        <!-- Si hay un companyId, automáticamente abrir en modo edición sin botón -->
+        <div wire:init="edit({{ $companyId }})"></div>
+     @else
+        <!-- Si no hay companyId, mostrar botón crear -->
+        <button wire:click="create"
+          class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+           </svg>
+          Crear Nuevo
+        </button>
+     @endif
       <!-- Modal -->
     @if($showModal)
-    <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+   <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
         x-data="{ show: true }"
         x-show="show"
         x-transition:enter="ease-out duration-300"
@@ -990,12 +1007,19 @@
                         </div>
                         @endif
                         <!-- Email de Facturación -->
-                        <div>
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
-                            <input wire:model="billingEmail" type="email" id="billingEmail"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                 @error('billingEmail') border-red-500 @enderror
+                                 @if($emailExists) border-red-500 @endif"
                                 placeholder="Ingrese el email de facturación" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+
+                            @if($emailExists && !$errors->has('billingEmail'))
+                            <span class="text-red-500 text-sm">
+                                Este email ya está registrado
+                            </span>
+                            @endif
                         </div>
 
                         <!-- Teléfono Empresarial -->
@@ -1071,7 +1095,7 @@
                         <!-- Actions -->
                         <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <button type="button"
-                                wire:click="$set('showModal', false)"
+                                wire:click="cancelForm"
                                 class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors order-2 sm:order-1">
                                 Cancelar
                             </button>
