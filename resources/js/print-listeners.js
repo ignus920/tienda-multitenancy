@@ -3,14 +3,14 @@
 // 🖨️ FUNCIÓN GLOBAL DE IMPRESIÓN
 // -----------------------------
 window.openPrintWindow = function(eventData) {
-    // console.log('🖨️ openPrintWindow ejecutada:', eventData);
+    console.log('🖨️ openPrintWindow ejecutada:', eventData);
 
     const data = Array.isArray(eventData) ? eventData[0] : eventData;
 
     const url = data.url;
     const format = data.format;
 
-    // console.log('🔗 URL a imprimir:', url, '📄 Formato:', format);
+    console.log('🔗 URL a imprimir:', url, '📄 Formato:', format);
 
     // Tamaño de ventana según formato
     const features =
