@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\VntCompany;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 use App\Livewire\Tenant\VntCompany\Services\CompanyService;
 use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyQueryService;
@@ -42,6 +43,7 @@ class VntCompanyForm extends Component
     
     // Warehouse modal properties
     public $reusable = false;
+    public $companyId = null; // ID del cliente a editar (cuando se usa de forma reutilizable)
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
     
@@ -334,6 +336,12 @@ class VntCompanyForm extends Component
             $this->addError('billingEmail', 'Este email de facturación ya está registrado.');
             return;
         }
+
+          if (!$this->cityValidate(0)) {
+              $this->addError('warehouseName', 'La ciudad seleccionada no es válida.');
+            return; // Si la validación de ciudad falla, detener el guardado
+        }
+        
         
         // Validación simple usando Livewire nativo
         $this->validate();
@@ -527,6 +535,18 @@ class VntCompanyForm extends Component
         $this->resetValidation();
     }
 
+    public function cancelForm()
+    {
+        // Cerrar el modal
+        $this->showModal = false;
+
+        // Resetear el formulario
+        $this->resetForm();
+
+        // Emitir evento para notificar al componente padre que se canceló
+        $this->dispatch('customer-form-cancelled');
+    }
+
     public function updateTypeIdentification($typeIdentificationId)
     {
         $this->typeIdentificationId = $typeIdentificationId;
@@ -556,6 +576,14 @@ class VntCompanyForm extends Component
 
     public function updateWarehouseCity($cityId, $index = 0)
     {
+        // Log para ver qué parámetros están llegando
+        Log::info('updateWarehouseCity called', [
+            'cityId' => $cityId,
+            'cityId_type' => gettype($cityId),
+            'index' => $index,
+            'index_type' => gettype($index)
+        ]);
+        
         // Validar que cityId sea numérico
         if (!is_numeric($cityId)) {
             Log::warning('Invalid cityId received in updateWarehouseCity', [
@@ -571,7 +599,6 @@ class VntCompanyForm extends Component
         $this->warehouseCityName = $city ? $city->name : ''; 
        
 
-
         // También actualizar en el array de warehouses si existe (para compatibilidad)
         if (isset($this->warehouses[$index])) {
             $this->warehouses[$index]['cityId'] = (int) $cityId;
@@ -579,7 +606,7 @@ class VntCompanyForm extends Component
         }
         
         // Log para debugging
-        Log::info('City updated', [
+        Log::info('City updated successfully', [
             'warehouseCityId' => $this->warehouseCityId,
             'warehouseCityName' => $this->warehouseCityName,
             'index' => $index
@@ -898,7 +925,37 @@ class VntCompanyForm extends Component
      * Obtener datos del formulario para enviar al service
      */
 
-
+      #[On('city-valid')]
+       public function cityValidate($index, $cityId = null): bool
+       {
+          if ($index != 0) {
+            return false;
+          }
+          
+          // Si cityId viene del evento, usarlo directamente
+          $cityIdToValidate = $cityId ?? $this->warehouseCityId;
+          
+          // Validar que se haya seleccionado una ciudad válida
+          if (empty($cityIdToValidate) || !is_numeric($cityIdToValidate)) {
+              $this->addError('warehouseCityId', 'Debe seleccionar una ciudad válida para la sucursal principal.');
+            return false;
+          }
+          
+          // Obtener el nombre de la ciudad para validar que existe
+          $city = \App\Models\Central\CnfCity::find($cityIdToValidate);
+          if (!$city) {
+              $this->addError('warehouseCityId', 'La ciudad seleccionada no es válida.');
+            return false;
+          }
+          
+          // Actualizar las propiedades si vienen del evento
+          if ($cityId !== null) {
+              $this->warehouseCityId = (int) $cityId;
+              $this->warehouseCityName = $city->name;
+          }
+          
+          return true;
+        }
     private function getFormData(): array
     {
         // Si es NIT, usar verification_digit como checkDigit
