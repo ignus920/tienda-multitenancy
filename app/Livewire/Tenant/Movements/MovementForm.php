@@ -10,6 +10,7 @@ use App\Models\Tenant\Movements\InvReason;
 use App\Models\Tenant\Movements\InvStore;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\UnitMeasurements;
+use App\Models\Tenant\Items\InvItemsStore;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,9 @@ class MovementForm extends Component
     // Modal state
     public $showModal = false;
     public $movementType = 'entrada'; // Para el filtro de la lista
+    public $warehouseId = null; // ID of the warehouse from central
+    public $selectedStoreId = null; // ID of the selected store (bodega)
+    public $showSelectStore = false;
     
     // Form data with warehouse form structure
     public $warehouseForm = [
@@ -32,7 +36,6 @@ class MovementForm extends Component
         'observations' => '',
         'reasonId' => '',
     ];
-    
     // Details management
     public $details = [];
     public $detailForm = [
@@ -69,7 +72,6 @@ class MovementForm extends Component
         }
         
         $movementType = $this->warehouseForm['movementType'] === 'ENTRADA' ? 'e' : 's';
-        
         return InvReason::active()->byType($movementType)->get();
     }
     
@@ -90,7 +92,6 @@ class MovementForm extends Component
     {
         return UnitMeasurements::where('status', 1)->get();
     }
-    
     /**
      * Open modal to create new movement
      */
@@ -102,6 +103,65 @@ class MovementForm extends Component
         $this->clearMessages();
     }
     
+    /**
+     * Computed property to get warehouse name
+     */
+    #[Computed]
+    public function warehouseMovement()
+    {
+        $this->ensureTenantConnection();
+        
+        // Get warehouse from user's contact
+        $user = Auth::user();
+        
+        if (!$user || !$user->contact_id) {
+            return 'Sin bodega asignada';
+        }
+        // Load contact with warehouse relationship
+        $contact = \App\Models\Central\VntContact::with('warehouse')
+            ->find($user->contact_id);
+        
+        if (!$contact || !$contact->warehouseId) {
+            return 'Sin bodega asignada';
+        }
+        $warehouse = $contact->warehouse;
+        
+        // Set the warehouse ID for use in stores
+        if ($warehouse && $warehouse->status) {
+            $this->warehouseId = $warehouse->id;
+            
+            // Check stores count to determine if select should be shown
+            $warehouseStores = InvStore::where('warehouseId', $this->warehouseId)->where('status', 1)->get();
+            
+            if ($warehouseStores->count() == 1) {
+                $this->showSelectStore = false;
+                $this->selectedStoreId = $warehouseStores->first()->id;
+            } elseif ($warehouseStores->count() > 1) {
+                $this->showSelectStore = true;
+            } else {
+                $this->showSelectStore = false;
+                $this->selectedStoreId = null;
+            }
+
+            return $warehouse->name;
+        }
+        
+        return 'Sin bodega asignada';
+    }
+
+    /**
+     * Computed property for stores based on warehouse
+     */
+    #[Computed]
+    public function stores()
+    {
+        if (!$this->warehouseId) {
+            return collect([]);
+        }
+        
+        $this->ensureTenantConnection();
+        return InvStore::where('warehouseId', $this->warehouseId)->where('status', 1)->get();
+    }
     /**
      * Add item detail to the table
      */
@@ -137,13 +197,14 @@ class MovementForm extends Component
             
             // Check if item already exists in details
             $existingIndex = collect($this->details)->search(function ($detail) {
-                return $detail['itemId'] == $this->detailForm['itemId'] 
-                    && $detail['unitMeasurementId'] == $this->detailForm['unitMeasurementId'];
+                return $detail['itemId'] == $this->detailForm['itemId'];
             });
             
            
             if ($existingIndex !== false) {
                 // Update quantity if item already exists
+
+
                 $oldQuantity = $this->details[$existingIndex]['quantity'];
                 $newQuantity = $oldQuantity + $quantity;
                 $this->details[$existingIndex]['quantity'] = $newQuantity;
@@ -154,14 +215,31 @@ class MovementForm extends Component
                     ? $currentQty + $newQuantity 
                     : $currentQty - $newQuantity;
             } else {
-                // Get current quantity from inv_values (stock actual)
-                $currentQuantity = 20;
+                // Get current quantity from inv_items_store
+                $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
+                    ->where('storeId', $this->selectedStoreId)
+                    ->first();
+                
+                // dd($itemStore->stock_items_store);
+                $currentQuantity = $itemStore ? $itemStore->stock_items_store : 0;
                 
                 // Calculate adjusted quantity based on movement type
                 $adjustedQuantity = $this->warehouseForm['movementType'] === 'ENTRADA' 
                     ? $currentQuantity + ($unitMeasurement->quantity * $quantity) 
                     : $currentQuantity - ($unitMeasurement->quantity * $quantity);
             
+
+                 // for exit             
+                if($adjustedQuantity < 0){
+                    $this->errorMessage = 'La bodega no tiene stock suficiente para realizar el movimiento';
+                    return;
+                }
+
+                // // for entry movement
+                // if( floatval($adjustedQuantity) > floatval($itemStore->stock_max)){
+                //     $this->errorMessage = 'La bodega no tiene stock suficiente para realizar el movimiento';
+                //     return;
+                // }
                 // Add new detail
                 $this->details[] = [
                     'itemId' => $this->detailForm['itemId'],
@@ -244,19 +322,33 @@ class MovementForm extends Component
                     ->first();
                 $consecutive = $lastMovement ? $lastMovement->consecutive + 1 : 1;
                 
+
+            //    dd([
+            //         'date'        => $this->movementForm['date'],
+            //         'observations'=> $this->movementForm['observations'],
+            //         'type'        => $selectedType,
+            //         'status'      => 1,
+            //         'warehouseId' => $this->warehouseId,
+            //         'reasonId'    => $this->movementForm['reasonId'],
+            //         'consecutive' => $consecutive,
+            //         'storeId'    => $this->selectedStoreId,
+            //         'userId'      => Auth::id(),
+            //     ]);
                 // Create movement
+             
                 $movement = InvInventoryAdjustment::create([
                     'date' => $this->movementForm['date'],
                     'observations' => $this->movementForm['observations'],
                     'type' => $selectedType,
                     'status' => 1,
-                    'warehouseId' => 1, // Default warehouse, adjust as needed
+                    'warehouseId' => $this->selectedStoreId,
                     'reasonId' => $this->movementForm['reasonId'],
                     'consecutive' => $consecutive,
                     'userId' => Auth::id(),
                 ]);
                 
                 // Create details
+                // dd($this->details);
                 foreach ($this->details as $detail) {
                     InvDetailInventoryAdjustment::create([
                         'inventoryAdjustmentId' => $movement->id,
@@ -264,6 +356,23 @@ class MovementForm extends Component
                         'quantity' => $detail['quantity'],
                         'unitMeasurementId' => $detail['unitMeasurementId'],
                     ]);
+
+                    // Update or create stock
+                    $itemStore = InvItemsStore::where('itemId', $detail['itemId'])
+                        ->where('storeId', $this->selectedStoreId)
+                        ->first();
+                    
+                    if ($itemStore) {
+                        $itemStore->stock_items_store = $detail['adjustedQuantity'];
+                        $itemStore->save();
+                    } else {
+                        // Create new item store record if it doesn't exist
+                        InvItemsStore::create([
+                            'itemId' => $detail['itemId'],
+                            'storeId' => $this->selectedStoreId,
+                            'stock_items_store' => $detail['adjustedQuantity'],
+                        ]);
+                    }
                 }
                 
                 DB::connection('tenant')->commit();
@@ -272,7 +381,7 @@ class MovementForm extends Component
                 
                 Log::info('Movement created successfully', [
                     'movementId' => $movement->id,
-                    'type' => $this->movementType,
+                    'type' => $this->warehouseForm['movementType'],
                     'detailsCount' => count($this->details)
                 ]);
                 
@@ -280,8 +389,8 @@ class MovementForm extends Component
                 $this->resetForm();
                 $this->showModal = false;
                 
-                // Refresh the movement list
-                $this->dispatch('refreshMovements');
+                // Refresh the movement list with the movement type
+                $this->dispatch('refreshMovements', type: $selectedType);
                 
             } catch (\Exception $e) {
                 DB::connection('tenant')->rollBack();
@@ -324,6 +433,7 @@ class MovementForm extends Component
             'observations' => '',
             'reasonId' => '',
         ];
+        $this->selectedStoreId = null;
         $this->details = [];
         $this->resetDetailForm();
     }

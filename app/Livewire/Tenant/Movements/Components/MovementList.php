@@ -18,7 +18,7 @@ class MovementList extends Component
     public $sortField = 'date';
     public $sortDirection = 'desc';
 
-    protected $listeners = ['refreshMovements' => '$refresh'];
+    protected $listeners = ['refreshMovements' => 'refreshList'];
 
     public function updatingSearch()
     {
@@ -40,22 +40,24 @@ class MovementList extends Component
         }
     }
 
+    public function refreshList($type = null)
+    {
+        // If a type is provided and it matches current type, refresh the list
+        if ($type && $type === $this->type) {
+            $this->resetPage();
+        }
+        $this->dispatch('$refresh');
+    }
+
     public function getMovementsProperty()
     {
         $this->ensureTenantConnection();
         return InvInventoryAdjustment::query()
-            ->with(['warehouse', 'reason', 'user'])
             ->byType($this->type)
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('consecutive', 'like', '%' . $this->search . '%')
-                        ->orWhere('observations', 'like', '%' . $this->search . '%')
-                        ->orWhereHas('warehouse', function ($wq) {
-                            $wq->where('name', 'like', '%' . $this->search . '%');
-                        })
-                        ->orWhereHas('reason', function ($rq) {
-                            $rq->where('name', 'like', '%' . $this->search . '%');
-                        });
+                        ->orWhere('observations', 'like', '%' . $this->search . '%');
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection)
