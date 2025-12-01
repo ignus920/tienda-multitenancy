@@ -12,16 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vnt_contacts', function (Blueprint $table) {
-            // Cambiar positionId a int (con signo) para que coincida con cfg_positions.id
+            // Cambiar positionId a int (con signo) para que coincida con cnf_positions.id
+            // No se agrega la clave foránea porque cnf_positions está en el módulo inventory
             $table->integer('positionId')->nullable()->default(1)->change();
-        });
-
-        // Ahora agregar la clave foránea para positionId
-        Schema::table('vnt_contacts', function (Blueprint $table) {
-            $table->foreign('positionId')
-                ->references('id')
-                ->on('cnf_positions')
-                ->onDelete('restrict');
         });
     }
 
@@ -31,7 +24,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('vnt_contacts', function (Blueprint $table) {
-            $table->dropForeign(['positionId']);
             // Revertir a unsignedInteger
             $table->unsignedInteger('positionId')->nullable()->default(1)->change();
         });

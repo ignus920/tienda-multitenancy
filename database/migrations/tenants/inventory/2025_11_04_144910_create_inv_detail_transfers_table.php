@@ -12,14 +12,13 @@ return new class extends Migration
             Schema::create('inv_detail_transfers', function (Blueprint $table) {
                 $table->id('id');
                 $table->integer('quantity')->nullable()->default(0);
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('transferId')->nullable();
                 $table->integer('itemId')->nullable();
                 $table->integer('amount_received')->nullable();
                 $table->index('transferId');
                 $table->index('itemId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

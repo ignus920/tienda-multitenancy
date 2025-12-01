@@ -15,9 +15,6 @@ return new class extends Migration
                 $table->text('observations');
                 $table->string('status')->default('REGISTRADO');
                 $table->integer('api_data_id')->nullable();
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable()->useCurrent();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('warehouseFromId')->nullable();
                 $table->integer('warehouseToId')->nullable();
                 $table->integer('consecutive');
@@ -25,6 +22,8 @@ return new class extends Migration
                 $table->string('packing', 100)->nullable();
                 $table->index('warehouseFromId');
                 $table->index('warehouseToId');
+                $table->timestamps();  // created_at, updated_at
+                $table->softDeletes(); // deleted_at
             });
         }
     }

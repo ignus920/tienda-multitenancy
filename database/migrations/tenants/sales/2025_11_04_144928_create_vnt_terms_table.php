@@ -13,9 +13,8 @@ return new class extends Migration
                 $table->id('id');
                 $table->string('name', 50);
                 $table->integer('days');
-                $table->dateTime('created_at')->nullable();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

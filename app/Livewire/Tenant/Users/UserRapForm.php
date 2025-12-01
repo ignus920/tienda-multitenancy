@@ -80,8 +80,7 @@ class UserRapForm extends Component
      */
     public function mount(): void
     {
-
-        
+ 
         $this->loadProfiles();
         $this->loadWarehouses();
     }
@@ -119,23 +118,23 @@ class UserRapForm extends Component
     private function loadWarehouses(): void
     {
        $sessionTenant = $this->getTenantId();
-       // 1. Obtener los IDs de las bodegas que cumplen el criterio
-       $warehouseIds = UserTenant::query()
-         ->select('vc.warehouseId')
-         ->join('users as u', 'u.id', '=', 'user_tenants.user_id')
-         ->join('vnt_contacts as vc', 'vc.id', '=', 'u.contact_id')
-         ->where('user_tenants.tenant_id', $sessionTenant)
-         ->pluck('warehouseId') // Obtener solo los IDs de las bodegas
-         ->unique(); // Evitar IDs duplicados
-
-    // 2. Cargar las bodegas usando los IDs obtenidos
-       $this->warehouses = VntWarehouse::query()
-        ->whereIn('id', $warehouseIds) // Usamos el array de IDs
-        ->where('vnt_warehouses.status', true)
-        ->with('company')
-        ->orderBy('vnt_warehouses.name')
-        ->get();
+       
+       // Obtener el tenant desde la base de datos usando el ID de sesión
+       $tenant = Tenant::find($sessionTenant);
+       
+       if (!$tenant || !$tenant->company_id) {
+           $this->warehouses = collect([]);
+           return;
        }
+       // Traer todos los almacenes que coincidan con ese company_id
+       $this->warehouses = VntWarehouse::where('companyId', $tenant->company_id)
+           ->where('status', true)
+           ->with('company')
+           ->orderBy('name')
+           ->get();
+       }
+
+    
 
     /**
      * Open modal in create mode

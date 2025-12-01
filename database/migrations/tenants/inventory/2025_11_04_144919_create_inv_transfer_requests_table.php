@@ -13,13 +13,12 @@ return new class extends Migration
                 $table->id('id');
                 $table->string('status')->nullable()->default('REGISTRADO');
                 $table->string('date', 255);
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('quoteId')->nullable();
                 $table->integer('warehouseId')->nullable()->default(0);
                 $table->string('observations', 255)->nullable();
                 $table->index('quoteId');
+                $table->timestamps();   // created_at, updated_at
+                $table->softDeletes();  // deleted_at
             });
         }
     }

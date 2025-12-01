@@ -10,13 +10,12 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_applications')) {
             Schema::create('inv_applications', function (Blueprint $table) {
-                $table->id('id');
+                $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
                 $table->string('name', 100)->default(1);
                 $table->text('icon_path')->nullable();
                 $table->integer('status')->default(1);
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

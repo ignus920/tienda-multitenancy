@@ -25,9 +25,8 @@ return new class extends Migration
                 $table->integer('api_data_id')->nullable();
                 $table->integer('main')->nullable()->default(1);
                 $table->enum('branch_type', ['FIJA', 'DESPACHO'])->default('FIJA');
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

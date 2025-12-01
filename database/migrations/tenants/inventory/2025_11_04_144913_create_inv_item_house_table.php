@@ -10,13 +10,12 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_item_house')) {
             Schema::create('inv_item_house', function (Blueprint $table) {
-                $table->id('id');
-                $table->string('name', 255)->default(100);
-                $table->integer('status')->default(1);
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
-            });
+            $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+            $table->string('name', 100)->default(100);  // varchar(100), not nullable
+            $table->tinyInteger('status')->default(1); // tinyint, default 1
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
+        });
         }
     }
 
