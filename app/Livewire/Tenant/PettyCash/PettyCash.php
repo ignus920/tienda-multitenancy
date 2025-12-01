@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\Tenant\TenantManager;
 use App\Traits\HasCompanyConfiguration;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\PDF;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -227,7 +228,7 @@ class PettyCash extends Component
         try{
             $arqueo=VntReconciliations::create($dataReconciliations);
             $this->saveDetailReconciliations($arqueo->id);
-
+            $this->ticketPettyCash($arqueo->id);
             session()->flash('message', 'Registro realizado exitosamente');
 
             $this->showModalSalesFinish = false;
@@ -286,6 +287,78 @@ class PettyCash extends Component
                 ]);
             }
         }
+    }
+
+    public function ticketPettyCash($pettyCash_id){
+        $this->ensureTenantConnection();  
+    
+        // Obtener los datos
+        $detailPettyCash = VntDetailReconciliations::with('reconciliation', 'methodPayments')->where('reconciliationId', $pettyCash_id)->get();
+            // DEBUG: Ver qué datos estamos obteniendo
+            Log::info('Datos obtenidos de VntDetailReconciliations:', [
+                'count' => $detailPettyCash->count(),
+                'first_item' => $detailPettyCash->first() ? $detailPettyCash->first()->toArray() : null,
+                'method_payments' => $detailPettyCash->first() ? $detailPettyCash->first()->methodPayments : null
+            ]);
+        // Convertir a array y limpiar los datos
+        $cleanedDetails = $this->cleanUtf8Data($detailPettyCash->toArray());
+        
+        $data = [
+            'details' => $cleanedDetails, // Usar los datos limpios
+            'pettyCashId' => $pettyCash_id,
+            'date' => now()->format('d/m/Y'),
+            'time' => now()->format('H:i:s')
+        ];
+
+        // Forzar encabezados UTF-8 en la respuesta
+        $pdf = PDF::loadView('livewire.tenant.petty-cash.petty-cash-pdf', $data)
+            ->setPaper('a4', 'portrait')
+            ->setOption('defaultFont', 'Arial')
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('encoding', 'UTF-8')
+            ->setOption('fontHeightRatio', 0.7); // Ajustar ratio de fuente si es necesario
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'pettyCash_' . $pettyCash_id . '_' . now()->format('Ymd_His') . '.pdf');
+    }
+
+    private function cleanUtf8Data($data)
+    {
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                $data[$key] = $this->cleanUtf8Data($value);
+            }
+            return $data;
+        } elseif (is_object($data)) {
+            // Si es un objeto, convertirlo a array
+            $dataArray = $data->toArray();
+            return $this->cleanUtf8Data($dataArray);
+        } elseif (is_string($data)) {
+            // Limpiar la cadena UTF-8
+            $cleaned = mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+            // Remover caracteres inválidos
+            $cleaned = preg_replace('/[^\x{0000}-\x{007F}]/u', '', $cleaned);
+            // Otra alternativa más agresiva
+            $cleaned = iconv('UTF-8', 'UTF-8//IGNORE//TRANSLIT', $data);
+            return $cleaned;
+        }
+        return $data;
+    }
+
+    private function cleanString($string)
+    {
+        // Primero intentar con iconv
+        $string = iconv('UTF-8', 'UTF-8//IGNORE', $string);
+
+        // Si aún hay problemas, usar regex para eliminar caracteres no UTF-8 válidos
+        $string = preg_replace('/[^\x{0000}-\x{007F}\x{00A0}-\x{00FF}]/u', '', $string);
+
+        // Convertir entidades HTML si es necesario
+        $string = html_entity_decode($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return $string;
     }
 
     public function render()
