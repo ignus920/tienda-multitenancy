@@ -4,10 +4,12 @@ namespace App\Livewire\Tenant\Quoter;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Quoter\VntQuote;
+use App\Models\Central\VntWarehouse;
 use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
+
 
 class Quoter extends Component
 {
@@ -16,6 +18,8 @@ class Quoter extends Component
     public $search = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
+
+
 
     protected $paginationTheme = 'tailwind';
 
@@ -40,6 +44,20 @@ class Quoter extends Component
             'currentPlainId' => $this->currentPlainId,
             'configService_exists' => $this->configService ? 'YES' : 'NO'
         ]);
+    }
+
+    /**
+     * Método que se ejecuta cuando el componente se hidrata (después de navegación)
+     */
+    public function hydrate()
+    {
+        Log::info('💧 Quoter hydrate() ejecutado - Re-estableciendo conexiones');
+
+        // Re-establecer conexión tenant
+        $this->ensureTenantConnection();
+
+        // Re-inicializar configuración de empresa
+        $this->initializeCompanyConfiguration();
     }
 
     public function updatingSearch()
@@ -178,7 +196,9 @@ class Quoter extends Component
         // Debug: Log para verificar que el método se está llamando
         Log::info('🖨️ printQuote llamado', ['quote_id' => $id]);
 
+        // Asegurar que todas las conexiones estén establecidas
         $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
 
         try {
             Log::info('🔄 Iniciando carga de cotización...');
@@ -207,6 +227,9 @@ class Quoter extends Component
                 $quote->customer = null;
             }
 
+            // Nota: No cargamos warehouse aquí porque se consultará directamente desde central en getCompanyInfo()
+            Log::info('🔄 WarehouseId de la cotización: ' . $quote->warehouseId);
+
             Log::info('🔄 Cargando items de los detalles...');
             try {
                 $quote->load('detalles.item');
@@ -222,7 +245,7 @@ class Quoter extends Component
             }
 
             // Obtener información de la empresa
-            $company = $this->getCompanyInfo();
+            $company = $this->getCompanyInfo($quote);
             Log::info('🏢 Empresa cargada', ['company' => $company->businessName ?? 'N/A']);
 
             // Determinar el formato de impresión según configuración
@@ -297,20 +320,68 @@ class Quoter extends Component
     /**
      * Obtener información de la empresa para los documentos
      */
-    private function getCompanyInfo()
+    private function getCompanyInfo($quote = null)
     {
         Log::info('🏢 getCompanyInfo llamado');
 
-        // Temporal: datos simplificados para testing
-        $companyData = [
-            'businessName' => 'EMPRESA DE PRUEBA',
-            'firstName' => 'Admin',
-            'lastName' => 'Sistema',
-            'identification' => '123456789',
-            'billingAddress' => 'Dirección de prueba',
-            'phone' => '1234567890',
-            'billingEmail' => 'test@empresa.com'
-        ];
+        // Intentar obtener información del warehouse desde la base central
+        if ($quote && $quote->warehouseId) {
+            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $quote->warehouseId]);
+
+            try {
+                // Consultar directamente desde la base central usando el modelo VntWarehouse
+                $warehouse = VntWarehouse::find($quote->warehouseId);
+
+                if ($warehouse) {
+                    Log::info('🏢 Warehouse encontrado en central', [
+                        'id' => $warehouse->id,
+                        'name' => $warehouse->name,
+                        'address' => $warehouse->address
+                    ]);
+
+                    $companyData = [
+                        'businessName' => $warehouse->name ?? 'EMPRESA DE PRUEBA',
+                        'firstName' => 'Admin',
+                        'lastName' => 'Sistema',
+                        'identification' => '123456789',
+                        'billingAddress' => $warehouse->address ?? 'Dirección de prueba',
+                        'phone' => '1234567890',
+                        'billingEmail' => 'test@empresa.com'
+                    ];
+
+                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
+                } else {
+                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $quote->warehouseId);
+                    throw new \Exception('Warehouse no encontrado');
+                }
+            } catch (\Exception $e) {
+                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
+
+                // Datos por defecto si hay error
+                $companyData = [
+                    'businessName' => 'EMPRESA DE PRUEBA',
+                    'firstName' => 'Admin',
+                    'lastName' => 'Sistema',
+                    'identification' => '123456789',
+                    'billingAddress' => 'Dirección de prueba',
+                    'phone' => '1234567890',
+                    'billingEmail' => 'test@empresa.com'
+                ];
+            }
+        } else {
+            Log::warning('⚠️ No se encontró warehouseId en la cotización, usando datos por defecto');
+
+            // Datos por defecto si no hay warehouse
+            $companyData = [
+                'businessName' => 'EMPRESA DE PRUEBA',
+                'firstName' => 'Admin',
+                'lastName' => 'Sistema',
+                'identification' => '123456789',
+                'billingAddress' => 'Dirección de prueba',
+                'phone' => '1234567890',
+                'billingEmail' => 'test@empresa.com'
+            ];
+        }
 
         Log::info('🏢 Datos empresa preparados', $companyData);
 

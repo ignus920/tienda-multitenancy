@@ -1,5 +1,5 @@
 <!-- Wrapper con padding y background -->
-<div class="p-6 bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors">
+<div x-data="quoterDesktop()" class="p-6 bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors">
     <!-- Header Card -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex justify-between items-center">
@@ -260,14 +260,22 @@
                                                 </svg>
                                                 Editar
                                             </button>
-                                            <button wire:click="printQuote({{ $quote->id }})"
+                                            <button wire:key="print-quote-desktop-{{ $quote->id }}"
+                                                wire:click="printQuote({{ $quote->id }})"
+                                                onclick="@if(!$errors->any()) $wire.printQuote({{ $quote->id }}) @endif"
                                                 class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                                                 </svg>
                                                 Imprimir
                                             </button>
-                                           
+                                            <button wire:click="openContactModal()"
+                                                class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                </svg>
+                                                Contactos
+                                            </button>
                                           
                                         </div>
                                     </div>
