@@ -83,6 +83,7 @@ class ManageItems extends Component
     public $labelValue;
     public $messageValues = '';
     public $temporaryErrorMessage;
+    public $showValuesModal = false;
 
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
@@ -307,6 +308,10 @@ class ManageItems extends Component
         ]);
         
         session()->flash('message', 'Estado actualizado correctamente');
+    }
+
+    public function openValuesModal(){
+        $showValuesModal=true;
     }
 
     public function cancel()
