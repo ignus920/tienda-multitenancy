@@ -13,9 +13,6 @@ return new class extends Migration
                 $table->id('id');
                 $table->integer('consecutive');
                 $table->string('status')->nullable()->default('REGISTRADO');
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('quoteId')->nullable();
                 $table->integer('warehouseId')->nullable();
                 $table->integer('deliveryTypeId')->nullable();
@@ -26,6 +23,8 @@ return new class extends Migration
                 $table->integer('modify')->nullable();
                 $table->index('quoteId');
                 $table->index('warehouseId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

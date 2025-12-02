@@ -18,9 +18,8 @@ return new class extends Migration
                 $table->decimal('total', 10, 2);
                 $table->text('observations');
                 $table->dateTime('expected_date');
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

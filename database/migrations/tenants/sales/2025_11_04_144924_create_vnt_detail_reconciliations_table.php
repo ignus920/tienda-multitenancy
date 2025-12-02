@@ -13,13 +13,12 @@ return new class extends Migration
                 $table->id('id');
                 $table->integer('value');
                 $table->integer('valueSystem');
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('methodPaymentId')->nullable();
                 $table->integer('reconciliationId');
                 $table->index('methodPaymentId');
                 $table->index('reconciliationId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

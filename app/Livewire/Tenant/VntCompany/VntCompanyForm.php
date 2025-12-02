@@ -43,6 +43,7 @@ class VntCompanyForm extends Component
     
     // Warehouse modal properties
     public $reusable = false;
+    public $companyId = null; // ID del cliente a editar (cuando se usa de forma reutilizable)
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
     
@@ -532,6 +533,18 @@ class VntCompanyForm extends Component
 
         $this->resetErrorBag();
         $this->resetValidation();
+    }
+
+    public function cancelForm()
+    {
+        // Cerrar el modal
+        $this->showModal = false;
+
+        // Resetear el formulario
+        $this->resetForm();
+
+        // Emitir evento para notificar al componente padre que se canceló
+        $this->dispatch('customer-form-cancelled');
     }
 
     public function updateTypeIdentification($typeIdentificationId)

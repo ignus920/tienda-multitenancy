@@ -14,9 +14,8 @@ return new class extends Migration
                 $table->string('name', 100)->default('name');
                 $table->integer('application');
                 $table->integer('status');
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

@@ -10,16 +10,15 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_seriales')) {
             Schema::create('inv_seriales', function (Blueprint $table) {
-                $table->id('id');
-                $table->integer('itemId')->nullable();
-                $table->dateTime('date')->useCurrent();
-                $table->string('serial', 100)->nullable();
-                $table->integer('status')->nullable()->default(1);
-                $table->dateTime('created_at')->useCurrent();
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
-                $table->index('itemId');
-            });
+            $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+            $table->unsignedInteger('itemId');
+            $table->foreign('itemId')->references('id')->on('inv_items');
+            $table->dateTime('date')->useCurrent(); // datetime, default CURRENT_TIMESTAMP
+            $table->string('serial', 100)->nullable();
+            $table->tinyInteger('status')->default(1); // tinyint, default 1
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
+        });
         }
     }
 

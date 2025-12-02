@@ -17,9 +17,6 @@ return new class extends Migration
                 $table->integer('api_data_id')->nullable();
                 $table->integer('api_data_id_pay')->nullable();
                 $table->integer('partialPayment')->nullable();
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('quoteId')->nullable();
                 $table->integer('warehouseId')->nullable();
                 $table->integer('remission');
@@ -30,6 +27,8 @@ return new class extends Migration
                 $table->integer('retentionIva')->nullable();
                 $table->integer('creditNote')->nullable()->default(0);
                 $table->string('orderNumber', 255)->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

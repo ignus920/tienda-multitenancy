@@ -24,7 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/tenants/quoter.php'));
 
              Route::middleware('web')
-                ->group(base_path('routes/tenants/users.php'));         
+                ->group(base_path('routes/tenants/users.php'));      
+        
+             Route::middleware('web')
+                ->group(base_path('routes/tenants/movements.php')); 
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

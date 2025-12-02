@@ -4,6 +4,7 @@ namespace App\Helpers;
 
 use App\Services\PermissionCatalogService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 
 class PermissionHelper
 {
@@ -146,23 +147,98 @@ class PermissionHelper
 
     /**
      * Genera directivas de Blade para verificar permisos
+     *
+     * IMPORTANTE: Estas directivas deben ser registradas en un ServiceProvider
+     * (generalmente AppServiceProvider) llamando a:
+     * PermissionHelper::registerBladeDirectives();
+     *
+     * Una vez registradas, se pueden usar en las vistas Blade:
+     *
+     * @userCan('Usuarios', 'show')
+     *     <!-- Contenido visible solo si puede VER usuarios -->
+     * @enduserCan
+     *
+     * @userCan('Ventas', 'create')
+     *     <!-- Contenido visible solo si puede CREAR ventas -->
+     * @enduserCan
+     *
+     * @userCanAny(['Usuarios', 'Parametros'], 'show')
+     *     <!-- Contenido visible si puede ver CUALQUIERA de estos módulos -->
+     * @enduserCanAny
+     *
+     * @userCanAll(['Usuarios', 'Parametros'], 'edit')
+     *     <!-- Contenido visible solo si puede editar TODOS estos módulos -->
+     * @enduserCanAll
+     *
+     * @isSuperAdmin
+     *     <!-- Contenido visible solo para super administradores -->
+     * @endisSuperAdmin
+     *
+     * Acciones disponibles: 'show', 'create', 'edit', 'delete'
+     * Nombres de permisos: según tabla usr_permissions (ej: 'Usuarios', 'Ventas', 'Inventario', etc.)
      */
     public static function registerBladeDirectives(): void
     {
-        \Blade::if('userCan', function ($permission, $action = 'show') {
+        Blade::if('userCan', function ($permission, $action = 'show') {
             return self::userCan($permission, $action);
         });
 
-        \Blade::if('isSuperAdmin', function () {
+        Blade::if('isSuperAdmin', function () {
             return self::isSuperAdmin();
         });
 
-        \Blade::if('userCanAny', function ($permissions, $action = 'show') {
+        Blade::if('userCanAny', function ($permissions, $action = 'show') {
             return self::userCanAny($permissions, $action);
         });
 
-        \Blade::if('userCanAll', function ($permissions, $action = 'show') {
+        Blade::if('userCanAll', function ($permissions, $action = 'show') {
             return self::userCanAll($permissions, $action);
         });
     }
 }
+
+/*
+ * EJEMPLOS DE USO DEL PERMISSIONHELPER:
+ *
+ * 1. En controladores/componentes Livewire:
+ *    if (PermissionHelper::userCan('Usuarios', 'create')) {
+ *        // Lógica para crear usuarios
+ *    }
+ *
+ * 2. En vistas Blade (método directo):
+ *    @if(PermissionHelper::userCan('Ventas', 'show'))
+ *        <!-- Mostrar módulo de ventas -->
+ *    @endif
+ *
+ * 3. En vistas Blade (con directivas registradas):
+ *    @userCan('Inventario', 'edit')
+ *        <!-- Mostrar botón editar inventario -->
+ *    @enduserCan
+ *
+ * 4. Para verificar múltiples permisos:
+ *    @userCanAny(['Usuarios', 'Parametros'])
+ *        <!-- Mostrar si tiene acceso a cualquiera -->
+ *    @enduserCanAny
+ *
+ * PERMISOS DISPONIBLES (según base de datos):
+ * - Parametros
+ * - Usuarios
+ * - Ventas
+ * - Inventario
+ * - Facturacion
+ * - Administracion de Items
+ * - Caja
+ * - Compras
+ * - Mercadeo
+ * - Cartera
+ * - Informes de ventas
+ * - Informes de inventario
+ * - Informes de Caja
+ * - Informes de Cartera
+ *
+ * ACCIONES DISPONIBLES:
+ * - 'show' (ver/consultar)
+ * - 'create' (crear)
+ * - 'edit' (editar)
+ * - 'delete' (eliminar)
+ */

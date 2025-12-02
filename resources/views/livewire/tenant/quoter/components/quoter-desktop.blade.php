@@ -267,13 +267,7 @@
                                                 </svg>
                                                 Imprimir
                                             </button>
-                                            <button wire:click="openContactModal()"
-                                                class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                                </svg>
-                                                Contactos
-                                            </button>
+                                           
                                           
                                         </div>
                                     </div>
@@ -334,73 +328,3 @@
     </div>
 </div>
 
-<!-- JavaScript para manejo de impresión -->
-<script>
-document.addEventListener('livewire:init', function () {
-    console.log('🔧 Livewire inicializado - configurando eventos');
-
-    // Escuchar evento para abrir ventana de impresión
-    Livewire.on('open-print-window', function (eventData) {
-        console.log('🎯 Evento Livewire.on recibido', eventData);
-
-        // Procesar datos (compatible con array o objeto)
-        const printData = Array.isArray(eventData) ? eventData[0] : eventData;
-
-        const url = printData.url;
-        const format = printData.format;
-
-        console.log('🔗 URL a abrir:', url);
-
-        // Configurar las dimensiones de la ventana según el formato
-        let windowFeatures;
-        if (format === 'pos') {
-            // Ventana más pequeña para formato POS (80mm)
-            windowFeatures = 'width=400,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
-        } else {
-            // Ventana más grande para formato carta
-            windowFeatures = 'width=800,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
-        }
-
-        // Abrir ventana de impresión
-        console.log('🔧 Intentando abrir ventana con:', windowFeatures);
-        const printWindow = window.open(url, 'print_window', windowFeatures);
-
-        if (printWindow) {
-            console.log('✅ Ventana abierta exitosamente');
-            // Centrar la ventana
-            const screenX = window.screenX || window.screenLeft;
-            const screenY = window.screenY || window.screenTop;
-            const outerWidth = window.outerWidth;
-            const outerHeight = window.outerHeight;
-
-            const left = screenX + (outerWidth - (format === 'pos' ? 400 : 800)) / 2;
-            const top = screenY + (outerHeight - 600) / 2;
-
-            printWindow.moveTo(left, top);
-
-            // Auto-imprimir después de que cargue el contenido
-            printWindow.addEventListener('load', function() {
-                // Pequeño delay para asegurar que el contenido esté completamente renderizado
-                setTimeout(function() {
-                    printWindow.print();
-
-                    // Opcional: cerrar ventana después de imprimir
-                    printWindow.addEventListener('afterprint', function() {
-                        setTimeout(function() {
-                            printWindow.close();
-                        }, 500);
-                    });
-                }, 500);
-            });
-
-            // Manejar el caso de que la ventana no se pueda abrir (bloqueador de popups)
-            printWindow.addEventListener('error', function() {
-                alert('No se pudo abrir la ventana de impresión. Por favor, verifica que no esté bloqueada por tu navegador.');
-            });
-        } else {
-            // Fallback si la ventana no se puede abrir
-            alert('No se pudo abrir la ventana de impresión. Por favor, verifica la configuración de popups de tu navegador.');
-        }
-    });
-});
-</script>
