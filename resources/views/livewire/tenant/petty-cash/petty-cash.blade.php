@@ -74,15 +74,6 @@
                                         <option value="100">100</option>
                                     </select>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <button wire:click="ticketPettyCash(13)" title="Exportar a PDF"
-                                        class="inline-flex items-center justify-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                                        </svg>
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -95,7 +86,7 @@
                                     <th wire:click="sortBy('name')"
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none">
                                         <div class="flex items-center gap-1">
-                                            Consecutivo
+                                            #
                                             @if($sortField === 'consecutive')
                                             @if($sortDirection === 'desc')
                                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">

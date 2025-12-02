@@ -84,6 +84,7 @@
 
         .report-info {
             margin-bottom: 20px;
+            text-align: center;
         }
 
         .table {
@@ -172,8 +173,11 @@
         </div>
 
         <div class="report-info">
-            <div><strong>CAJA # {{ $pettyCashId ?? 'N/A' }}</strong></div>
-            <div><strong>Cierre:</strong> {{ $date ?? 'N/A' }} {{ $time ?? '' }}</div>
+            <div><strong>Empresa: {{$infoCashier['company_name']}}</strong></div><br>
+            <div><strong>Sucursal: {{$infoCashier['warehouse_name']}}</strong></div><br>
+            <div><strong>Cajero: {{$infoCashier['user_name']}}</strong></div><br>
+            <div><strong>Cierre:</strong> {{ $date ?? 'N/A' }} {{ $time ?? '' }}</div><br>
+            <div><strong>CAJA # {{ $pettyCash[0]['consecutive'] ?? 'N/A' }}</strong></div>
         </div>
 
         <table class="table">
