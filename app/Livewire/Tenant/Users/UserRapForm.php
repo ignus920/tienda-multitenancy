@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Auth\User;
 use App\Models\Auth\UserTenant;
 use App\Models\Central\UsrProfile;
+use App\Models\Central\UsrPermissionProfile;
 use App\Models\Central\VntWarehouse;
 use App\Models\Central\VntContact;
 use Illuminate\Validation\Rule;
@@ -60,8 +61,9 @@ class UserRapForm extends Component
     public $two_factor_type = null;
 
     // Data collection properties
-    public $profiles = [];
-    public $warehouses = [];
+    public $profiles = []; // Lista de perfiles disponibles para asignar al usuario
+    public $warehouses = []; // Lista de sucursales disponibles según la compañía
+    public $profilePermissions = []; // Permisos del perfil seleccionado para mostrar al usuario
 
     // Message properties
     public $successMessage = '';
@@ -118,10 +120,10 @@ class UserRapForm extends Component
     private function loadWarehouses(): void
     {
        $sessionTenant = $this->getTenantId();
-       
+
        // Obtener el tenant desde la base de datos usando el ID de sesión
        $tenant = Tenant::find($sessionTenant);
-       
+
        if (!$tenant || !$tenant->company_id) {
            $this->warehouses = collect([]);
            return;
@@ -133,6 +135,59 @@ class UserRapForm extends Component
            ->orderBy('name')
            ->get();
        }
+
+
+       
+    /**
+     * Cargar permisos del perfil seleccionado
+     * Obtiene todos los permisos asociados al perfil con sus respectivos niveles de acceso
+     */
+    public function loadProfilePermissions($profileId = null): void
+    {
+        if (!$profileId) {
+            $this->profilePermissions = [];
+            return;
+        }
+
+        try {
+            $profile = UsrProfile::with(['permissions' => function($query) {
+                $query->active();
+            }])->find($profileId);
+
+            if (!$profile) {
+                $this->profilePermissions = [];
+                return;
+            }
+
+            $this->profilePermissions = $profile->permissions->map(function($permission) {
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'ver' => (bool)($permission->pivot->show ?? false),
+                    'crear' => (bool)($permission->pivot->creater ?? false),
+                    'editar' => (bool)($permission->pivot->editer ?? false),
+                    'eliminar' => (bool)($permission->pivot->deleter ?? false),
+                ];
+            })->toArray();
+
+        } catch (\Exception $e) {
+            Log::error('Error loading profile permissions', [
+                'profile_id' => $profileId,
+                'error' => $e->getMessage()
+            ]);
+            $this->profilePermissions = [];
+        }
+    }
+
+    /**
+     * Manejar el cambio de selección de perfil
+     * Se ejecuta automáticamente cuando el usuario selecciona un perfil
+     */
+    public function updatedProfileId($profileId): void
+    {
+        $this->loadProfilePermissions($profileId);
+    }
+
 
     
 
@@ -180,7 +235,7 @@ class UserRapForm extends Component
         $this->profile_id = $user->profile_id;
         $this->two_factor_enabled = $user->two_factor_enabled ?? false;
         $this->two_factor_type = $user->two_factor_type;
-        
+
         // Load contact data if exists
         if ($user->contact) {
             $this->firstName = $user->contact->firstName;
@@ -190,7 +245,12 @@ class UserRapForm extends Component
             $this->warehouseId = $user->contact->warehouseId;
             $this->positionId = $user->contact->positionId;
         }
-        
+
+        // Cargar permisos del perfil si existe
+        if ($this->profile_id) {
+            $this->loadProfilePermissions($this->profile_id);
+        }
+
         $this->showModal = true;
     }
 
@@ -229,6 +289,7 @@ class UserRapForm extends Component
         $this->avatar = null;
         $this->two_factor_enabled = false;
         $this->two_factor_type = null;
+        $this->profilePermissions = []; // Limpiar permisos cuando se resetea el formulario
     }
 
     /**
