@@ -20,6 +20,7 @@ use App\Traits\HasCompanyConfiguration;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 
+
 class UserRapForm extends Component
 {
     use WithPagination, HasCompanyConfiguration;
@@ -716,6 +717,15 @@ class UserRapForm extends Component
                 'user_id' => $userId,
             ]);
         }
+    }
+
+    /**
+     * Open change password modal for a specific user
+     */
+    public function changePassword(int $userId): void
+    {
+        // Simple: solo disparar el evento al modal
+        $this->dispatch('openChangePasswordModal', $userId);
     }
 
     /**
