@@ -1,6 +1,7 @@
 <?php
 
 use App\Auth\Livewire\Logout;
+use App\Helpers\PermissionHelper;
 use Livewire\Volt\Component;
 
 new class extends Component
@@ -86,6 +87,40 @@ new class extends Component
             </div>
         </a>
 
+
+
+            <!-- Ventas -->
+        @if(PermissionHelper::userCan('Ventas', 'show'))
+        <a href="{{ route('tenant.quoter.products') }}" wire:navigate
+            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
+            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
+
+            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5v6m4-6v6m4-6v6" />
+            </svg>
+
+            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
+                class="ml-3">
+                Ventas
+            </span>
+
+            <!-- Tooltip -->
+            <div x-show="tooltip" x-transition
+                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                Ventas
+            </div>
+        </a>
+        @endif
+
+
+        
+
         <!-- Empresas -->
         <a href="{{ route('tenant.select') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -113,6 +148,7 @@ new class extends Component
         </a>
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
+        @if(PermissionHelper::userCanAny(['Usuarios'], 'show'))
         <div
             x-data="{ tooltip: false, open: {{ ($contactsOpen || request()->routeIs('customers.*') || request()->routeIs('users.*')) ? 'true' : 'false' }} }"
             class="w-full relative"
@@ -165,6 +201,7 @@ new class extends Component
                 </a>
             </div>
         </div>
+        @endif
 
 
         <!-- Perfil -->
@@ -194,6 +231,7 @@ new class extends Component
         </a>
 
         <!-- Parámetros (menú con subitems) -->
+        @if(PermissionHelper::userCan('Parametros', 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div
@@ -248,6 +286,7 @@ new class extends Component
                 <a href="#" class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Impuestos</a>
             </div>
         </div>
+        @endif
 
 
 

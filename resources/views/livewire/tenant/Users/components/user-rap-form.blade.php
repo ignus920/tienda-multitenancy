@@ -1,12 +1,14 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
     <div class="max-w-12xl mx-auto">
         <!-- Header -->
+        @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'show'))
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Usuarios</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Administración de usuarios del sistema</p>
                 </div>
+                @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'create'))
                 <button wire:click="create"
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,6 +16,7 @@
                     </svg>
                     Crear Nuevo
                 </button>
+                @endif
             </div>
         </div>
 
@@ -272,7 +275,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div class="flex items-center justify-center gap-2">
-                                    <!-- Edit Button -->
+                                    <!-- Edit Button - Solo visible si puede editar -->
+                                    @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'edit'))
                                     <button wire:click="edit({{ $user->id }})"
                                         class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
                                         title="Editar">
@@ -280,6 +284,9 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </button>
+                                    @endif
+
+                                    
                                 </div>
                             </td>
                         </tr>
@@ -532,15 +539,15 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Perfil <span class="text-red-500">*</span>
                             </label>
-                            <select wire:model.defer="profile_id"
+                            <select wire:model.live="profile_id"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('profile_id') border-red-500 @enderror">
                                 <option value="">Seleccionar perfil</option>
                                 @foreach($profiles as $profile)
                                     <option value="{{ $profile->id }}">{{ $profile->name }}</option>
                                 @endforeach
                             </select>
-                            @error('profile_id') 
-                                <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> 
+                            @error('profile_id')
+                                <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -563,6 +570,79 @@
                             @enderror
                         </div>
                     </div>
+
+                    <!-- Permisos del Perfil -->
+                    @if(count($profilePermissions) > 0)
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Permisos del Perfil</h3>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr class="border-b border-gray-200 dark:border-gray-600">
+                                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Módulo
+                                            </th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Ver
+                                            </th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Crear
+                                            </th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Editar
+                                            </th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Eliminar
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
+                                        @foreach($profilePermissions as $permission)
+                                        <tr>
+                                            <td class="py-3 px-3 text-sm text-gray-900 dark:text-white font-medium">
+                                                {{ $permission['name'] }}
+                                            </td>
+                                            <td class="py-3 px-3 text-center">
+                                                <div class="flex justify-center">
+                                                    <input type="checkbox"
+                                                           @if($permission['ver']) checked @endif
+                                                           disabled
+                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-3 text-center">
+                                                <div class="flex justify-center">
+                                                    <input type="checkbox"
+                                                           @if($permission['crear']) checked @endif
+                                                           disabled
+                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-3 text-center">
+                                                <div class="flex justify-center">
+                                                    <input type="checkbox"
+                                                           @if($permission['editar']) checked @endif
+                                                           disabled
+                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-3 text-center">
+                                                <div class="flex justify-center">
+                                                    <input type="checkbox"
+                                                           @if($permission['eliminar']) checked @endif
+                                                           disabled
+                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     <!-- Action Buttons -->
                     <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -591,5 +671,6 @@
     </div>
 </div>
         @endif
+        @endif {{-- Cierre del permiso 'show' para todo el módulo de Usuarios --}}
     </div>
 </div>
