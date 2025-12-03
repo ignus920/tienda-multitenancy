@@ -94,13 +94,27 @@ class ManageItems extends Component
         'PRODUCIDO' => 'Producido',
     ];
 
-    public $labelsValues = [
-        'Costo Inicial' => 'Costo Inicial',
-        'Costo' => 'Costo',
-        'Precio Base' => 'Precio Base',
-        'Precio Regular' => 'Precio Regular',
-        'Precio Crédito' => 'Precio Crédito',
+    public $allLabelsValues = [
+        'costo' => [
+            'Costo Inicial' => 'Costo Inicial',
+            'Costo' => 'Costo',
+        ],
+        'precio' => [
+            'Precio Base' => 'Precio Base',
+            'Precio Regular' => 'Precio Regular',
+            'Precio Crédito' => 'Precio Crédito',
+        ],
     ];
+
+    public function getLabelsValuesProperty()
+    {
+        return $this->allLabelsValues[$this->typeValue] ?? [];
+    }
+
+    public function updatedTypeValue($value)
+    {
+        $this->labelValue = null; // Reset labelValue when typeValue changes
+    }
 
     protected $rules =[
         'category_id' => 'required',
@@ -226,7 +240,7 @@ class ManageItems extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types']); // No reseteamos las listas de opciones
+        $this->resetExcept(['categories', 'types', 'allLabelsValues']); // No reseteamos las listas de opciones
         $this->showModal = true;
         
         // Emitir eventos para inicializar los componentes hijos
@@ -311,7 +325,7 @@ class ManageItems extends Component
     }
 
     public function openValuesModal(){
-        $showValuesModal=true;
+        $this->showValuesModal=true;
     }
 
     public function cancel()

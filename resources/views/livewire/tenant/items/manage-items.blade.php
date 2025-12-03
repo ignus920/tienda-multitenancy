@@ -233,17 +233,11 @@
                                         <div class="py-1" role="menu" aria-orientation="vertical">
                                             <button wire:click="edit({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="size-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                                </svg>
+                                                <x-heroicon-o-pencil-square class="w-6 h-6" />
 
                                                 Editar
                                             </button>
-                                            <button wire:click="openWarehouseModal({{ $it->id }})"
+                                            {{-- <button wire:click="openWarehouseModal({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -253,8 +247,8 @@
                                                     </path>
                                                 </svg>
                                                 Ubicaciones
-                                            </button>
-                                            <button wire:click="openValuesModal({{ $it->id }})"
+                                            </button> --}}
+                                            {{-- <button wire:click="openValuesModal({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                                     stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -262,7 +256,7 @@
                                                         d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                                 </svg>
                                                 Valores
-                                            </button>
+                                            </button> --}}
                                         </div>
                                     </div>
                                 </div>
@@ -514,7 +508,7 @@
                             <div class="mb-4">
                                 <label
                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
-                                <select wire:model="typeValue"
+                                <select wire:model.live="typeValue"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
                                     <option value="costo">Costo</option>
@@ -529,8 +523,8 @@
                                 <select wire:model="labelValue"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
-                                    @foreach($labelsValues as $k => $v)
-                                    <option value="{{ $k }}">{{ $v }}</option>
+                                    @foreach($this->labelsValues as $key => $value)
+                                    <option value="{{ $key }}">{{ $value }}</option>
                                     @endforeach
                                 </select>
                                 @error('labelValue') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
@@ -538,7 +532,7 @@
                             <!--Sucursal / Si aplica-->
                             <div class="mb-4">
                                 <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Etiqueta</label>
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sucursal</label>
                                 <select wire:model="warehouseIdValue"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
