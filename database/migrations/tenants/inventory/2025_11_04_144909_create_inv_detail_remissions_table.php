@@ -17,10 +17,10 @@ return new class extends Migration
                 $table->integer('invoiceId')->nullable();
                 $table->integer('itemId')->nullable();
                 $table->integer('remissionId')->nullable();
-                $table->dateTime('created_at')->nullable()->useCurrent();
-                $table->dateTime('updated_at')->nullable();
                 $table->index('remissionId');
                 $table->index('itemId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

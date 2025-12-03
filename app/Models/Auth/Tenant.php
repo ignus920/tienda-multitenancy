@@ -31,6 +31,7 @@ class Tenant extends Model implements TenantWithDatabase
         'db_host',
         'db_port',
         'merchant_type_id',
+        'company_id',
         'is_active',
         'settings',
         'database_setup',

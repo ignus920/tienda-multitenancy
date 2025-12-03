@@ -12,12 +12,11 @@ return new class extends Migration
             Schema::create('vnt_invoice_payments', function (Blueprint $table) {
                 $table->id('id');
                 $table->decimal('value', 10, 2);
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->integer('invoiceId')->nullable();
                 $table->integer('methodPaymentId')->nullable();
                 $table->index('invoiceId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

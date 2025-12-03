@@ -14,6 +14,8 @@ return new class extends Migration
                 $table->integer('remissionId')->nullable();
                 $table->integer('quoteId')->nullable();
                 $table->integer('invoiceId')->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

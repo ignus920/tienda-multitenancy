@@ -15,11 +15,10 @@ return new class extends Migration
                 $table->string('date', 255);
                 $table->integer('storeId')->nullable();
                 $table->integer('itemId')->nullable();
-                $table->dateTime('created_at');
-                $table->dateTime('updated_at')->nullable();
-                $table->dateTime('deleted_at')->nullable();
                 $table->index('itemId');
                 $table->index('storeId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

@@ -241,11 +241,11 @@ $header = 'Seleccionar productos';
                                     wire:click="editCustomer"
                                     wire:loading.attr="disabled"
                                     wire:loading.class="opacity-50 cursor-wait"
-                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 mr-2"
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 mr-4"
                                     title="Editar cliente">
 
                                     <!-- Ícono normal -->
-                                    <svg wire:loading.remove wire:target="editCustomer" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg wire:loading.remove wire:target="editCustomer" class="w-7 h-7 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
 
@@ -364,12 +364,15 @@ $header = 'Seleccionar productos';
 
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex-1">
-                                    <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ $item['name'] }}</h4>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">${{ number_format($item['price']) }} c/u</p>
-                                </div>
+                                <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ $item['name'] }}</h4>
+                                @if(isset($item['price_label']))
+                                <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
+                                @endif
+                            
+                            </div>
 
                                 <button wire:click="removeFromQuoter({{ $index }})" class="text-red-500 hover:text-red-700">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
@@ -378,6 +381,25 @@ $header = 'Seleccionar productos';
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
                                     <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
+                                    <input
+                                        id="quantity-{{ $index }}"
+                                        type="number"
+                                        wire:model.lazy="quoterItems.{{ $index }}.quantity"
+                                        wire:change="validateQuantity({{ $index }})"
+                                        min="1"
+                                        max="9999"
+                                        step="1"
+                                        inputmode="numeric"
+                                        pattern="[0-9]*"
+                                        class="w-16 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        value="{{ $item['quantity'] }}"
+                                        onwheel="this.blur()"
+                                        autocomplete="off">
+                                </div>
+
+
+                                <div class="flex items-center space-x-2">
+                                    <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Desc:</label>
                                     <input
                                         id="quantity-{{ $index }}"
                                         type="number"

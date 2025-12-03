@@ -17,6 +17,8 @@ return new class extends Migration
                 $table->integer('tax')->nullable();
                 $table->index('purchase_ordersId');
                 $table->index('itemId');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
             });
         }
     }

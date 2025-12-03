@@ -73,13 +73,25 @@ class ImageGallery extends Model
 
     /**
      * Obtener la URL completa de la imagen
-     * 
+     *
      * @return string URL de la imagen
      */
     public function getImageUrl()
     {
-        if ($this->img_path && Storage::disk('public')->exists($this->img_path)) {
-            return Storage::disk('public')->url($this->img_path);
+        if ($this->img_path) {
+            // Limpiar URLs malformadas (fix para problema http:https://)
+            $cleanPath = $this->cleanMalformedUrl($this->img_path);
+
+            // Si ya es una URL completa, devolverla directamente
+            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+                return $cleanPath;
+            }
+
+            // Si es un path local y existe, generar URL
+            if (Storage::disk('public')->exists($cleanPath)) {
+                $url = Storage::disk('public')->url($cleanPath);
+                return $this->cleanMalformedUrl($url);
+            }
         }
 
         // Retornar imagen placeholder si no existe
@@ -88,22 +100,32 @@ class ImageGallery extends Model
 
     /**
      * Obtener la URL del thumbnail
-     * 
+     *
      * @return string URL del thumbnail
      */
     public function getThumbnailUrl()
     {
         if ($this->img_path) {
+            // Limpiar URLs malformadas (fix para problema http:https://)
+            $cleanPath = $this->cleanMalformedUrl($this->img_path);
+
+            // Si ya es una URL completa, devolverla directamente
+            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+                return $cleanPath;
+            }
+
             // Generar ruta del thumbnail
             $thumbnailPath = $this->getThumbnailPath();
 
-            if (Storage::disk('public')->exists($thumbnailPath)) {
-                return Storage::disk('public')->url($thumbnailPath);
+            if ($thumbnailPath && Storage::disk('public')->exists($thumbnailPath)) {
+                $url = Storage::disk('public')->url($thumbnailPath);
+                return $this->cleanMalformedUrl($url);
             }
 
             // Si no existe thumbnail, retornar imagen original
-            if (Storage::disk('public')->exists($this->img_path)) {
-                return Storage::disk('public')->url($this->img_path);
+            if (Storage::disk('public')->exists($cleanPath)) {
+                $url = Storage::disk('public')->url($cleanPath);
+                return $this->cleanMalformedUrl($url);
             }
         }
 
@@ -181,5 +203,30 @@ class ImageGallery extends Model
 
         // Eliminar registro de la base de datos
         $this->delete();
+    }
+
+    /**
+     * Limpiar URLs malformadas que contengan http:https:// o https:http://
+     *
+     * @param string $url URL a limpiar
+     * @return string URL limpia
+     */
+    private function cleanMalformedUrl($url)
+    {
+        if (!$url) {
+            return $url;
+        }
+
+        // Remover duplicaciones de protocolo
+        $url = preg_replace('/^https?:https?:\/\//', 'https://', $url);
+        $url = preg_replace('/^https?:http:\/\//', 'https://', $url);
+        $url = preg_replace('/^http:https:\/\//', 'https://', $url);
+
+        // Asegurar que use https en producción
+        if (str_contains($url, 'erp.dosil.com.co')) {
+            $url = str_replace('http:', 'https:', $url);
+        }
+
+        return $url;
     }
 }
