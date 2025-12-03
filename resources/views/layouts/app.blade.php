@@ -47,7 +47,7 @@
         </div>
 
         <!-- Desktop sidebar -->
-        <div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300"
+        <div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300 z-30"
              :class="sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'">
             <div class="flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900 shadow-xl border-r border-gray-200 dark:border-gray-700">
                 <livewire:layout.sidebar-navigation />
