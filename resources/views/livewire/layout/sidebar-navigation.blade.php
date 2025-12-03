@@ -360,7 +360,7 @@ new class extends Component
                 <a href="{{url('/inventory/houses')}}" wire:navigate class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Casas</a>
                 <a href="{{url('/inventory/units')}}" wire:navigate class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Unidades de Medida</a>
                 <a href="{{ route('movements.movements') }}" wire:navigate
-                   class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('customers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                   class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('movements.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión movimientos
                 </a>
             </div>
@@ -380,7 +380,7 @@ new class extends Component
              <a href="{{url('/inventory/units')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Unidades de Medida</a>
              <a href="{{url('/inventory/houses')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Casas</a>
              <a href="{{ route('movements.movements') }}" wire:navigate
-                class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('customers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('movements.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión movimientos
              </a>
 
