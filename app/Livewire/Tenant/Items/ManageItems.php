@@ -11,6 +11,7 @@ use App\Models\Tenant\Items\InvValues;
 use App\Models\Auth\UserTenant;
 use App\Models\Auth\Tenant;
 use App\Models\Central\VntWarehouse;
+use App\Models\Central\CnfTaxes;
 //Servicios
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Inventory\CategoriesService; 
@@ -56,6 +57,8 @@ class ManageItems extends Component
     public $inv_values = [];
     public $warehouses = [];
     public $warehouseIdValue;
+    public $tax;
+    public $disabled = false;
     
     // Propiedades para la tabla
     public $search = '';
@@ -80,6 +83,7 @@ class ManageItems extends Component
     public $labelValue;
     public $messageValues = '';
     public $temporaryErrorMessage;
+    public $showValuesModal = false;
 
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
@@ -90,13 +94,27 @@ class ManageItems extends Component
         'PRODUCIDO' => 'Producido',
     ];
 
-    public $labelsValues = [
-        'Costo Inicial' => 'Costo Inicial',
-        'Costo' => 'Costo',
-        'Precio Base' => 'Precio Base',
-        'Precio Regular' => 'Precio Regular',
-        'Precio Crédito' => 'Precio Crédito',
+    public $allLabelsValues = [
+        'costo' => [
+            'Costo Inicial' => 'Costo Inicial',
+            'Costo' => 'Costo',
+        ],
+        'precio' => [
+            'Precio Base' => 'Precio Base',
+            'Precio Regular' => 'Precio Regular',
+            'Precio Crédito' => 'Precio Crédito',
+        ],
     ];
+
+    public function getLabelsValuesProperty()
+    {
+        return $this->allLabelsValues[$this->typeValue] ?? [];
+    }
+
+    public function updatedTypeValue($value)
+    {
+        $this->labelValue = null; // Reset labelValue when typeValue changes
+    }
 
     protected $rules =[
         'category_id' => 'required',
@@ -187,6 +205,8 @@ class ManageItems extends Component
         $this->purchase_unit = $item->purchasing_unit;
         $this->consumption_unit = $item->consumption_unit;
         $this->generic = $item->generic ?? 1;
+        $this->tax = $item->taxId;
+        $this->disabled = true;
 
         $this->showModal = true;
     }
@@ -220,7 +240,7 @@ class ManageItems extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types']); // No reseteamos las listas de opciones
+        $this->resetExcept(['categories', 'types', 'allLabelsValues']); // No reseteamos las listas de opciones
         $this->showModal = true;
         
         // Emitir eventos para inicializar los componentes hijos
@@ -230,8 +250,6 @@ class ManageItems extends Component
         $this->dispatch('initializePurchaseUnit');
         $this->dispatch('initializeConsumptionUnit');
     }
-
-    
 
     public function save()
     {
@@ -253,38 +271,43 @@ class ManageItems extends Component
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
             'generic' => $this->generic,
-
+            'taxId' => $this->tax,
         ];
         
-        if ($this->item_id) {
-            $item = Items::findOrFail($this->item_id);
-            $item->update($itemData);
-            session()->flash('message', 'Item actualizado correctamente.');
-        } else {
-            $newItem=Items::create($itemData);
-            $item_id=$newItem->id;
-            
-            session()->flash('message', 'Item creado correctamente.');
-        }
+        try{
+            if ($this->item_id) {
+                $item = Items::findOrFail($this->item_id);
+                $item->update($itemData);
+                session()->flash('message', 'Item actualizado correctamente.');
+                $this->showModal = false;
+            } else {
+                $newItem=Items::create($itemData);
+                $item_id=$newItem->id;
+                session()->flash('message', 'Item creado correctamente.');
+            }
 
-        // Mantener la paginación y filtros, limpiar solo el formulario
-        $this->resetValidation();
-        $this->reset([
-            'item_id',
-            'category_id',
-            'name',
-            'internal_code',
-            'sku',
-            'description',
-            'type',
-            'brandId',
-            'houseId',
-            'commandId',
-            'purchase_unit',
-            'consumption_unit'
-        ]);
-        $this->showModal = false;
-        $this->edit($item_id);
+            // Mantener la paginación y filtros, limpiar solo el formulario
+            $this->resetValidation();
+            $this->reset([
+                'item_id',
+                'category_id',
+                'name',
+                'internal_code',
+                'sku',
+                'description',
+                'type',
+                'brandId',
+                'houseId',
+                'commandId',
+                'purchase_unit',
+                'consumption_unit'
+            ]);
+            $this->edit($item_id);
+            $this->disabled = false;
+        }catch(\Exception $e){
+            session()->flash('error', 'Error al guardar: ' . $e->getMessage());
+            return;
+        }
     }
 
 
@@ -299,6 +322,10 @@ class ManageItems extends Component
         ]);
         
         session()->flash('message', 'Estado actualizado correctamente');
+    }
+
+    public function openValuesModal(){
+        $this->showValuesModal=true;
     }
 
     public function cancel()
@@ -386,6 +413,12 @@ class ManageItems extends Component
         );
     }
 
+    public function getTaxesProperty(){
+        $this->ensureTenantConnection();
+    
+        return CnfTaxes::all();
+    }
+
     private function loadWarehouses(): void
     {
         $sessionTenant = $this->getTenantId();
@@ -417,6 +450,7 @@ class ManageItems extends Component
         }
         return $tenantId;
     }
+
     //============CATEGORIAS========================//
     public function toggleCategoryInput()
     {
