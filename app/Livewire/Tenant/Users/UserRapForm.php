@@ -70,6 +70,12 @@ class UserRapForm extends Component
     public $successMessage = '';
     public $errorMessage = '';
 
+    // Change Password Modal properties
+    public $showChangePasswordModal = false;
+    public $userToChangePassword = null;
+    public $newPassword = '';
+    public $confirmPassword = '';
+
     /**
      * Boot method to inject dependencies
      */
@@ -722,10 +728,72 @@ class UserRapForm extends Component
     /**
      * Open change password modal for a specific user
      */
-    public function changePassword(int $userId): void
+    /**
+     * Open the change password modal
+     */
+    public function openChangePasswordModal(int $userId): void
     {
-        // Simple: solo disparar el evento al modal
-        $this->dispatch('openChangePasswordModal', $userId);
+        try {
+            $this->userToChangePassword = User::findOrFail($userId);
+            $this->resetChangePasswordForm();
+            $this->showChangePasswordModal = true;
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error: Usuario no encontrado';
+        }
+    }
+
+    /**
+     * Close the change password modal
+     */
+    public function closeChangePasswordModal(): void
+    {
+        $this->showChangePasswordModal = false;
+        $this->resetChangePasswordForm();
+    }
+
+    /**
+     * Reset the change password form
+     */
+    public function resetChangePasswordForm(): void
+    {
+        $this->newPassword = '';
+        $this->confirmPassword = '';
+        $this->resetValidation(['newPassword', 'confirmPassword']);
+    }
+
+    /**
+     * Change user password
+     */
+    public function changePassword(): void
+    {
+        $this->validate([
+            'newPassword' => 'required|min:8',
+            'confirmPassword' => 'required|same:newPassword',
+        ], [
+            'newPassword.required' => 'La nueva contraseña es requerida.',
+            'newPassword.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'confirmPassword.required' => 'La confirmación de contraseña es requerida.',
+            'confirmPassword.same' => 'Las contraseñas no coinciden.',
+        ]);
+
+        try {
+            $this->userToChangePassword->update([
+                'password' => Hash::make($this->newPassword)
+            ]);
+
+            $this->successMessage = 'Contraseña actualizada exitosamente para ' . $this->userToChangePassword->name;
+            $this->closeChangePasswordModal();
+
+            // Clear messages after a delay
+            $this->dispatch('$nextTick', fn() =>
+                $this->dispatch('$nextTick', fn() =>
+                    $this->dispatch('clearMessages')
+                )
+            );
+
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al cambiar la contraseña: ' . $e->getMessage();
+        }
     }
 
     /**

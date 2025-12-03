@@ -308,10 +308,10 @@
 
                                             <!-- Cambiar Contraseña -->
                                             @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'edit'))
-                                            <button wire:click="changePassword({{ $user->id }})"
+                                            <button wire:click="openChangePasswordModal({{ $user->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 112 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z"></path>
                                                 </svg>
                                                 Cambiar Contraseña
                                             </button>
@@ -702,6 +702,112 @@
     </div>
 </div>
         @endif
+
+        <!-- Modal de Cambiar Contraseña -->
+        @if($showChangePasswordModal)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+            x-data="{ show: true }"
+            x-show="show"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @keydown.escape.window="$wire.closeChangePasswordModal()">
+
+            <div class="relative min-h-screen flex items-center justify-center p-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
+                    x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+
+                    <!-- Header -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 112 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z"></path>
+                                </svg>
+                                Cambiar Contraseña
+                            </h3>
+                            @if($userToChangePassword)
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                Usuario: <span class="font-medium text-gray-900 dark:text-white">{{ $userToChangePassword->name }}</span>
+                            </p>
+                            @endif
+                        </div>
+                        <button wire:click="closeChangePasswordModal"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-6">
+                        <form wire:submit.prevent="changePassword">
+                            <div class="space-y-4">
+                                <!-- Nueva Contraseña -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Nueva Contraseña <span class="text-red-500">*</span>
+                                    </label>
+                                    <input wire:model.defer="newPassword" type="password"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('newPassword') border-red-500 @enderror"
+                                        placeholder="Ingresa la nueva contraseña">
+                                    @error('newPassword')
+                                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <!-- Confirmar Contraseña -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Confirmar Contraseña <span class="text-red-500">*</span>
+                                    </label>
+                                    <input wire:model.defer="confirmPassword" type="password"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('confirmPassword') border-red-500 @enderror"
+                                        placeholder="Confirma la nueva contraseña">
+                                    @error('confirmPassword')
+                                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex justify-end gap-2 mt-6">
+                                <button wire:click="closeChangePasswordModal" type="button"
+                                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    Cancelar
+                                </button>
+                                <button type="submit"
+                                    wire:loading.attr="disabled"
+                                    wire:target="changePassword"
+                                    class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                                    <span wire:loading.remove wire:target="changePassword">
+                                        Cambiar Contraseña
+                                    </span>
+                                    <span wire:loading wire:target="changePassword" class="flex items-center">
+                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Cambiando...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         @endif {{-- Cierre del permiso 'show' para todo el módulo de Usuarios --}}
     </div>
 </div>
