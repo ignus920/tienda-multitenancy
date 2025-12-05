@@ -22,7 +22,7 @@ class FiscalResponsibilitySelect extends Component
             'asignando_a_propiedad' => 'fiscalResponsibilityId'
         ]);
 
-        $this->fiscalResponsibilityId  = $fiscalResponsibilityId ;
+        $this->fiscalResponsibilityId = $fiscalResponsibilityId;
         $this->name = $name;
         $this->placeholder = $placeholder;
         $this->label = $label;
@@ -30,6 +30,11 @@ class FiscalResponsibilitySelect extends Component
         $this->showLabel = $showLabel;
         if ($class) {
             $this->class = $class;
+        }
+        
+        // Emit event if fiscalResponsibilityId has a value on mount
+        if (!empty($this->fiscalResponsibilityId)) {
+            $this->dispatch('fiscal-responsibility-changed', $this->fiscalResponsibilityId);
         }
     }
 

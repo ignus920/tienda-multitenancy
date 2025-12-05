@@ -23,4 +23,4 @@
     @error($name)
         <span class="text-red-500 dark:text-red-400 text-sm">{{ $message }}</span>
     @enderror
-</div>
+</div>  
