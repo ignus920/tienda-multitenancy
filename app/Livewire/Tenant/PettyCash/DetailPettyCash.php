@@ -276,7 +276,7 @@ class DetailPettyCash extends Component
                     $sumIncomes = $this->incomes();
 
                     $disponible = $resumBase + $sumIncomes;
-
+                    
                     if($disponible>=$this->valueDetail){
                         $detailPettyCashService->createMovement([
                             'status' => 1,
@@ -294,6 +294,7 @@ class DetailPettyCash extends Component
                 }else{
                     //Ingresos
                     $sumIncomes = $this->incomes();
+
                     if($sumIncomes>=$this->valueDetail){
                         $detailPettyCashService->createMovement([
                             'status' => 1,
@@ -326,9 +327,9 @@ class DetailPettyCash extends Component
             $this->showModalMovement=false;
 
             if($this->itsOk){
-                $this->dispatch('show-toast', message: 'Registro realizado exitosamente', type: 'success');
+                session()->flash('message', 'Registro realizado exitosamente');
             }else{
-                $this->dispatch('show-toast', message: 'Disponible insuficiente para realizar un egreso', type: 'warning');
+                session()->flash('warning', 'Disponible insuficiente para realizar un egreso');
             }
 
         }catch(\Exception $e){

@@ -94,7 +94,7 @@ class PettyCash extends Component
         try{
             $this->ensureTenantConnection();
     
-            $exists=$this->PettyCashExits(6);
+            $exists=$this->PettyCashExits($this->getwarehouse());
     
             if ($exists) {
                 $this->addError('base', 'No se puede registrar, hay cajas abiertas');
@@ -103,7 +103,7 @@ class PettyCash extends Component
                 $this->validate();
             
                 // Determine the next consecutive number for the given warehouse
-                $lastConsecutive = PettyCashModel::where('warehouseId', 6)->where('user')->max('consecutive');
+                $lastConsecutive = PettyCashModel::where('warehouseId', $this->getwarehouse())->where('userIdOpen')->max('consecutive');
             
                 $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
             
@@ -113,7 +113,7 @@ class PettyCash extends Component
                     'status' => 1,
                     'created_at' => Carbon::now(),
                     'userIdOpen' => Auth::id(),
-                    'warehouseId' => 6,//$this->warehouseId, // Use the dynamic warehouseId
+                    'warehouseId' => $this->getwarehouse(),//$this->warehouseId, // Use the dynamic warehouseId
                     'cashier' => Auth::id(),
                 ];
             
@@ -128,7 +128,9 @@ class PettyCash extends Component
                 $this->showModal = false;
             }
         }catch(\Exception $e){
+            Log::error($e);
             session()->flash('error', 'El registro realizó correctamente.'. $e->getMessage());
+            
         }
     }
 
@@ -408,6 +410,19 @@ class PettyCash extends Component
 
         // Para depurar, puedes descomentar la siguiente línea:
         // dd($data);
+        return $data;
+    }
+
+    public function getwarehouse(){
+        $this->ensureTenantConnection();
+
+        $centralDbName = config('database.connections.central.database');
+
+        $data=DB::table("{$centralDbName}.users", 'u')
+                    ->select('w.id')
+                    ->join("{$centralDbName}.vnt_contacts as c", 'u.contact_id', '=', 'c.id')
+                    ->join("{$centralDbName}.vnt_warehouses as w", 'c.warehouseId', '=', 'w.id')
+                    ->where('u.id', Auth::id());
         return $data;
     }
 
