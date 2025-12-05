@@ -248,7 +248,7 @@
                                                 </svg>
                                                 Ubicaciones
                                             </button> --}}
-                                            {{-- <button wire:click="openValuesModal({{ $it->id }})"
+                                            <button wire:click="openValuesModal({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                                     stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -256,7 +256,7 @@
                                                         d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                                 </svg>
                                                 Valores
-                                            </button> --}}
+                                            </button> 
                                         </div>
                                     </div>
                                 </div>
@@ -350,47 +350,62 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código
                                     interno</label>
-                                <input wire:model="internal_code" type="text" id="internal_code"
+                                <input wire:model.live.debounce.400ms="internal_code" type="text" id="internal_code"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="Ingrese el código interno">
                                 @error('internal_code') <span class="text-red-600 text-sm">{{ $message }}</span>
                                 @enderror
+
+                                @if($internal_codeExists && !$errors->has('internal_code'))
+                                <span class="text-red-500 text-sm">
+                                    Este código interno ya está registrado
+                                </span>
+                                @endif
                             </div>
                             <div>
                                 <label
                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SKU</label>
-                                <input wire:model="sku" type="text" id="sku"
+                                <input wire:model.live.debounce.400ms="sku" type="text" id="sku"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="Ingrese el sku">
                                 @error('sku') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+
+                                @if($internal_codeExists && !$errors->has('internal_code'))
+                                <span class="text-red-500 text-sm">
+                                    Este SKU ya está registrado
+                                </span>
+                                @endif
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
-                            <select wire:model="type" {{ $disabled ? 'disabled' : '' }}
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">-- Seleccione --</option>
-                                @foreach($types as $k => $v)
-                                <option value="{{ $k }}">{{ $v }}</option>
-                                @endforeach
-                            </select>
-                            @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                        <div class="mb-3 grid grid-cols-2 gap-2">
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
+                                <select wire:model="type" {{ $disabled ? 'disabled' : '' }}
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    @foreach($types as $k => $v)
+                                    <option value="{{ $k }}">{{ $v }}</option>
+                                    @endforeach
+                                </select>
+                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impuesto</label>
+                                <select wire:model="tax"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    @foreach($this->taxes as $tax)
+                                    <option value="{{ $tax->id }}">{{ $tax->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label
-                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impuesto</label>
-                            <select wire:model="tax"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">-- Seleccione --</option>
-                                @foreach($this->taxes as $tax)
-                                <option value="{{ $tax->id }}">{{ $tax->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
-                        </div>
-
+                        @if($showCommand)
                         @livewire('tenant.items.command', [
                         'commandId' => $commandId,
                         'name' => 'commandId',
@@ -400,7 +415,7 @@
                         dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                         focus:ring-indigo-500 focus:border-indigo-500'
                         ])
-
+                        @endif
 
                         @livewire('tenant.items.brand',[
                         'brandId' => $brandId,
@@ -442,6 +457,33 @@
                             dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                             focus:ring-indigo-500 focus:border-indigo-500'
                             ])
+                        </div>
+
+                        <div class="mb-3 grid grid-cols-2 gap-2">
+                            @if($this->manageSerials())
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maneja
+                                    Serial</label>
+                                <select wire:model="handles_serial"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="1">SI</option>
+                                    <option value="0">NO</option>
+                                </select>
+                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            @endif
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maneja
+                                    Inventario</label>
+                                <select wire:model="inventoriable"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="1">SI</option>
+                                    <option value="0">NO</option>
+                                </select>
+                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
                         </div>
 
                         <div class="mb-3">

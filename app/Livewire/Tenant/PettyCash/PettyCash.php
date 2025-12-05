@@ -404,7 +404,7 @@ class PettyCash extends Component
 
             // Condiciones
             ->where('uXt.tenant_id', '8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a')
-            ->where('uXt.user_id', 8)
+            ->where('uXt.user_id', Auth::id())
             ->where('r.id', 13)
             ->first();
 
