@@ -422,7 +422,6 @@ class UserRapForm extends Component
             // Other errors are handled in create/update methods
             // This catch is for any unexpected errors
             $this->errorMessage = 'Error inesperado: ' . $e->getMessage();
-            
             Log::error('Unexpected error in save method', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),

@@ -8,7 +8,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
-        "blade-ui-kit/blade-heroicons": "^2.6",
+        "blade-ui-kit/blade-heroicons": "2.6",
         "firebase/php-jwt": "*",
         "jenssegers/agent": "^2.6",
         "laravel-shift/blueprint": "^2.12",
