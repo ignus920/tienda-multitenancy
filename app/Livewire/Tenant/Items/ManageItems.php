@@ -16,16 +16,17 @@ use App\Models\Central\CnfTaxes;
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Inventory\CategoriesService; 
 use App\Services\Tenant\Inventory\CommandsServices;
-use App\Services\Tenant\Inventory\BrandsService;
-use App\Services\Tenant\Inventory\HouseService;
 use App\Livewire\Tenant\Items\Services\InvValuesService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Traits\HasCompanyConfiguration;
 
 class ManageItems extends Component
 {
 
-    use WithPagination;
+    use WithPagination, HasCompanyConfiguration;
 
     protected $listeners = [
         'command-changed' => 'onCommandSelected',
@@ -60,6 +61,8 @@ class ManageItems extends Component
     public $warehouseIdValue;
     public $tax;
     public $disabled = false;
+    public $handles_serial;
+    public $inventoriable;
     
     // Propiedades para la tabla
     public $search = '';
@@ -86,6 +89,12 @@ class ManageItems extends Component
     public $temporaryErrorMessage;
     public $showValuesModal = false;
 
+    //Campos de validación
+    public $internal_codeExists = false;
+    public $validatingInternal_code = false;
+    public $skuExists = false;
+    public $validatingSku = false;
+    public $showCommand = false;
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -164,6 +173,16 @@ class ManageItems extends Component
     public function mount()
     {
         $this->ensureTenantConnection();
+        $this->validateMerchantType();
+         // DEBUG: Limpiar caché para testing
+        $this->clearConfigurationCache();
+
+        // DEBUG: Log para verificar inicialización
+        Log::info('🔍 DetailPettyCash mount() ejecutado', [
+            'currentCompanyId' => $this->currentCompanyId,
+            'currentPlainId' => $this->currentPlainId,
+            'configService_exists' => $this->configService ? 'YES' : 'NO'
+        ]);
     }
 
     private function ensureTenantConnection()
@@ -189,8 +208,25 @@ class ManageItems extends Component
         tenancy()->initialize($tenant);
     }
 
+    public function manageSerials(){
+        $this->initializeCompanyConfiguration();
+        $result = $this->isOptionEnabled(32);
+        $value = $this->getOptionValue(32);
+
+        Log::info('🔍 manageSerials() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 32,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(32) y getOptionValue(32)'
+        ]);
+        return $result;
+    }
+
     public function edit($idItem)
     {
+        $this->clearValidationErrors();
         $this->ensureTenantConnection();
         $item = Items::with('invValues')->findOrFail($idItem);
         $this->item_id = $item->id;
@@ -207,6 +243,8 @@ class ManageItems extends Component
         $this->consumption_unit = $item->consumption_unit;
         $this->generic = $item->generic ?? 1;
         $this->tax = $item->taxId;
+        $this->handles_serial = $item->handles_serial;
+        $this->inventoriable = $item->inventoriable;
         $this->disabled = true;
 
         $this->showModal = true;
@@ -241,7 +279,7 @@ class ManageItems extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types', 'allLabelsValues']); // No reseteamos las listas de opciones
+        $this->resetExcept(['categories', 'types', 'allLabelsValues', 'showCommand']); // No reseteamos las listas de opciones
         $this->showModal = true;
         
         // Emitir eventos para inicializar los componentes hijos
@@ -250,12 +288,27 @@ class ManageItems extends Component
         $this->dispatch('initializeHouse');
         $this->dispatch('initializePurchaseUnit');
         $this->dispatch('initializeConsumptionUnit');
+
+        $this->clearValidationErrors();
+        $this->resetForm();
     }
 
     public function save()
     {
         $this->ensureTenantConnection();
         $this->validate();
+
+        if($this->internal_codeExists){
+            $this->addError('internal_code', 'Este código interno ya está registrado.');
+            return;
+        }
+
+        if($this->skuExists){
+            $this->addError('sku', 'Este SKU ya está registrado.');
+            return;
+        }
+
+        
 
         $itemData = [
             'categoryId' => $this->category_id,
@@ -267,14 +320,14 @@ class ManageItems extends Component
             'commandId' => $this->commandId,
             'brandId' => $this->brandId,
             'houseId' => $this->houseId,
-            'inventoriable' => 1,
+            'inventoriable' => $this->inventoriable,
             'purchasing_unit' => $this->purchase_unit,
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
             'generic' => $this->generic,
             'taxId' => $this->tax,
+            'handles_serial' => $this->handles_serial,
         ];
-        
         try{
             if ($this->item_id) {
                 $item = Items::findOrFail($this->item_id);
@@ -289,20 +342,7 @@ class ManageItems extends Component
 
             // Mantener la paginación y filtros, limpiar solo el formulario
             $this->resetValidation();
-            $this->reset([
-                'item_id',
-                'category_id',
-                'name',
-                'internal_code',
-                'sku',
-                'description',
-                'type',
-                'brandId',
-                'houseId',
-                'commandId',
-                'purchase_unit',
-                'consumption_unit'
-            ]);
+            $this->resetForm();
             $this->edit($item_id);
             $this->disabled = false;
         }catch(\Exception $e){
@@ -337,21 +377,7 @@ class ManageItems extends Component
     public function cancel()
     {
         $this->resetValidation();
-        $this->reset([
-            'item_id',
-            'category_id',
-            'name',
-            'internal_code',
-            'sku',
-            'description',
-            'type',
-            'brandId',
-            'houseId',
-            'commandId',
-            'purchase_unit',
-            'consumption_unit',
-            'inv_values'
-        ]);
+        $this->resetForm();
         $this->showModal = false;
         $this->confirmingItemDeletion = false;
     }
@@ -651,5 +677,130 @@ class ManageItems extends Component
     public function clearTemporaryMessage()
     {
         $this->temporaryErrorMessage = null;
+    }
+
+    public function updatedInternalCode($value){
+        $this->validateInternalCodeExits();
+    }
+
+    public function updatedSku($value){
+        $this->validateSkuExits();
+    }
+
+    public function validateInternalCodeExits(): void{
+        if(empty($this->internal_code)){
+            $this->internal_codeExists = false;
+            $this->validatingInternal_code = false;
+            return;
+        }
+
+        $this->validatingInternal_code = true;
+
+        try{
+            $this->ensureTenantConnection();
+            $query=Items::where('internal_code', $this->internal_code);
+
+            if($this->item_id){
+                $query->where('id', '!=', $this->item_id);
+            }
+            $this->internal_codeExists=$query->exists();
+
+        }
+        catch(\Exception $e){
+            // Log error but don't break the form
+            Log::error('Error validating internal_code exists', [
+                'error' => $e->getMessage(),
+                'internal_code' => $this->internal_code
+            ]);
+            $this->internal_codeExists = false;
+        }finally{
+            $this->validatingInternal_code = false;
+        }
+    }
+
+    public function validateSkuExits(): void{
+        if(empty($this->sku)){
+            $this->skuExists = false;
+            $this->validatingSku = false;
+            return;
+        }
+
+        $this->validatingSku = true;
+        try{
+            $this->ensureTenantConnection();
+            $query=Items::where('sku', $this->sku);
+
+            if($this->item_id){
+                $query->where('id', '!=', $this->item_id);
+            }
+            $this->skuExists=$query->exists();
+
+        }catch(\Exception $e){
+            // Log error but don't break the form
+            Log::error('Error validating sku exists', [
+                'error' => $e->getMessage(),
+                'sku' => $this->sku
+            ]);
+            $this->skuExists = false;
+        }finally{
+            $this->validatingSku = false;
+        }
+    }
+
+    public function resetForm(){
+        $this->item_id = '';
+        $this->category_id = '';
+        $this->name = '';
+        $this->internal_code = '';
+        $this->sku = '';
+        $this->description = '';
+        $this->type = '';
+        $this->commandId = '';
+        $this->brandId = '';
+        $this->houseId = '';
+        $this->purchase_unit = '';
+        $this->consumption_unit = '';
+        $this->generic=1;
+        $this->inv_values = [];
+        $this->warehouses = [];
+        $this->warehouseIdValue = '';
+        $this->tax = '';
+        $this->disabled = false;
+        $this->showCategoryInput = false;
+        $this->newCategoryName = '';
+        $this->showCommandInput = false;
+        $this->newCommandName = '';
+        $this->showValuesSection = false;
+        $this->valueItem = 0;
+        $this->typeValue;
+        $this->labelValue;
+        $this->messageValues = '';
+        $this->temporaryErrorMessage;
+        $this->showValuesModal = false;
+        $this->internal_codeExists = false;
+        $this->validatingInternal_code = false;
+        $this->skuExists = false;
+        $this->validatingSku = false;
+    }
+
+    public function clearValidationErrors(){
+        $this->resetErrorBag(['internal_code', 'sku']);
+        $this->internal_codeExists = false;
+        $this->skuExists = false;
+    }
+
+    public function validateMerchantType(){
+        $this->ensureTenantConnection();
+
+        $centralDbName = config('database.connections.central.database');
+        $userId = Auth::id(); // Get the authenticated user's ID
+
+        $exists = DB::table("{$centralDbName}.users", 'u')
+            ->join("{$centralDbName}.usr_profile_merchant as upm", 'upm.profile_id', '=', 'u.profile_id')
+            ->where('u.id', $userId)
+            ->where('upm.merchant_type_id', 5)
+            ->exists(); // Check if any record exists
+        
+        $this->showCommand = $exists; // Set showCommand based on the existence check
     }
 }

@@ -231,7 +231,7 @@ class CompanyValidationService
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
-       // dd($query->exists());
+        // dd($query->exists());
         return $query->exists();
     }
 

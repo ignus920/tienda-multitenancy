@@ -35,6 +35,7 @@ class Items extends Model
         'consumption_unit',
         'generic',
         'status',
+        'handles_serial',
     ];
 
     /**
