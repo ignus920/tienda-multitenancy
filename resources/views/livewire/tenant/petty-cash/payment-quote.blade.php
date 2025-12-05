@@ -1,317 +1,239 @@
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-    <div class="max-w-6xl mx-auto">
+<div class="fixed inset-0 bg-gray-900 flex items-center justify-center"
+     x-data="paymentKeyboard()"
+     x-init="init()">
+
+    <!-- Modal Principal -->
+    <div class="w-[95vw] h-[90vh] bg-white rounded-lg shadow-2xl overflow-hidden">
+
         <!-- Header -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="bg-gray-800 text-white p-6">
+            <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Procesar Pago de Cotización</h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">{{ $quoteCustumer }} - {{ $quoteNumber }}</p>
+                    <h1 class="text-2xl font-bold">CAJA REGISTRADORA</h1>
+                    <p class="text-gray-300">{{ $quoteCustumer }} - {{ $quoteNumber }}</p>
                 </div>
                 <div class="text-right">
                     @if($activePettyCash)
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            Caja {{ $activePettyCash['consecutive'] }} Abierta
-                        </span>
-                    @else
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                            </svg>
-                            No hay caja abierta
+                        <span class="bg-green-500 px-3 py-1 rounded text-sm">
+                            ✓ Caja {{ $activePettyCash['consecutive'] }} Abierta
                         </span>
                     @endif
                 </div>
             </div>
         </div>
 
-        <!-- Mensajes -->
-        @if (session()->has('success'))
-            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-6">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    {{ session('success') }}
-                </div>
-            </div>
-        @endif
+        <!-- Contenido Principal -->
+        <div class="flex h-[calc(100%-120px)]">
 
-        @if (session()->has('error'))
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-6">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    {{ session('error') }}
-                </div>
-            </div>
-        @endif
+            <!-- Panel Izquierdo - Resumen -->
+            <div class="w-1/3 bg-gray-100 p-6 border-r-2 border-gray-300">
+                <div class="space-y-6">
 
-        @if (session()->has('warning'))
-            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-6">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                    {{ session('warning') }}
-                </div>
-            </div>
-        @endif
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Panel izquierdo - Información de la cotización -->
-            <div class="lg:col-span-4">
-                <!-- Resumen de Cotización -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Resumen de Cotización</h3>
-
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600 dark:text-gray-400">Subtotal:</span>
-                                <span class="font-medium text-gray-900 dark:text-white">${{ number_format($quoteSubtotal, 0, ',', '.') }}</span>
-                            </div>
-
-                            <div class="flex justify-between">
-                                <span class="text-gray-600 dark:text-gray-400">Impuestos:</span>
-                                <span class="font-medium text-gray-900 dark:text-white">${{ number_format($quoteTaxes, 0, ',', '.') }}</span>
-                            </div>
-
-                            <hr class="border-gray-200 dark:border-gray-700">
-
-                            <div class="flex justify-between text-lg font-bold">
-                                <span class="text-gray-900 dark:text-white">Total:</span>
-                                <span class="text-indigo-600 dark:text-indigo-400">${{ number_format($quoteTotal, 0, ',', '.') }}</span>
+                    <!-- Total de la Venta -->
+                    <div class="bg-white rounded-lg p-6 shadow">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800">TOTAL VENTA</h3>
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-green-600">
+                                ${{ number_format($quoteTotal, 0, ',', '.') }}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Anticipos -->
-                @if(!empty($advances))
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Anticipos Registrados</h3>
-
-                        <div class="space-y-2">
-                            @foreach($advances as $advance)
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $advance['method_name'] }}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">{{ $advance['date'] }}</span>
-                                </div>
-                                <span class="text-green-600 dark:text-green-400 font-medium">${{ number_format($advance['value'], 0, ',', '.') }}</span>
+                    <!-- Estado del Pago -->
+                    <div class="bg-white rounded-lg p-6 shadow">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800">ESTADO</h3>
+                        <div class="space-y-3 text-lg">
+                            <div class="flex justify-between">
+                                <span>Pagado:</span>
+                                <span class="font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</span>
                             </div>
-                            @endforeach
-
-                            <hr class="border-gray-200 dark:border-gray-700">
-
-                            <div class="flex justify-between font-semibold">
-                                <span class="text-gray-900 dark:text-white">Total Anticipos:</span>
-                                <span class="text-green-600 dark:text-green-400">${{ number_format($totalAdvances, 0, ',', '.') }}</span>
+                            <div class="flex justify-between border-t pt-3">
+                                <span>Falta:</span>
+                                <span class="font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Instrucciones -->
+                    <div class="bg-blue-50 rounded-lg p-4 text-sm">
+                        <div class="font-semibold text-blue-800 mb-2">INSTRUCCIONES:</div>
+                        <div class="space-y-1 text-blue-700">
+                            <div>• <strong>TAB:</strong> Mover dinero al siguiente método</div>
+                            <div>• <strong>↑ ↓ ← →:</strong> Solo navegar entre métodos</div>
+                            <div>• <strong>MANUAL:</strong> Escribir combinaciones</div>
+                            <div>• <strong>ENTER:</strong> Confirmar pago</div>
+                        </div>
+                    </div>
+
                 </div>
-                @endif
+            </div>
 
-                <!-- Calculadora de Saldos -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estado de Pago</h3>
+            <!-- Panel Derecho - Métodos de Pago -->
+            <div class="flex-1 p-6">
+                <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">FORMA DE PAGO</h2>
 
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600 dark:text-gray-400">Total Factura:</span>
-                                <span class="font-medium text-gray-900 dark:text-white">${{ number_format($quoteTotal, 0, ',', '.') }}</span>
-                            </div>
+                <!-- Tabla de Métodos de Pago -->
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
 
-                            <div class="flex justify-between">
-                                <span class="text-gray-600 dark:text-gray-400">Anticipos:</span>
-                                <span class="font-medium text-green-600 dark:text-green-400">-${{ number_format($totalAdvances, 0, ',', '.') }}</span>
-                            </div>
+                    <!-- Header de la Tabla -->
+                    <div class="bg-gray-800 text-white p-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-xl font-bold text-center">MÉTODO</div>
+                            <div class="text-xl font-bold text-center">VALOR</div>
+                        </div>
+                    </div>
 
-                            <div class="flex justify-between">
-                                <span class="text-gray-600 dark:text-gray-400">Pagado Ahora:</span>
-                                <span class="font-medium text-blue-600 dark:text-blue-400">-${{ number_format(array_sum($paymentValues), 0, ',', '.') }}</span>
-                            </div>
+                    <!-- Filas de Métodos de Pago -->
+                    <div class="divide-y divide-gray-200">
+                        @foreach($paymentMethods as $key => $method)
+                        <div wire:click="selectMethod('{{ $key }}')"
+                             class="grid grid-cols-2 gap-4 p-6 cursor-pointer transition-all hover:bg-gray-50
+                                @if($currentMethod === $key) bg-yellow-100 border-l-4 border-yellow-500 @endif
+                                @if($method['value'] > 0 && $currentMethod !== $key) bg-blue-50 border-l-4 border-blue-400 @endif">
 
-                            <hr class="border-gray-200 dark:border-gray-700">
-
-                            <div class="flex justify-between text-lg font-bold">
-                                @if($remainingBalance > 0)
-                                    <span class="text-gray-900 dark:text-white">Saldo Pendiente:</span>
-                                    <span class="text-red-600 dark:text-red-400">${{ number_format($remainingBalance, 0, ',', '.') }}</span>
-                                @elseif($remainingBalance < 0)
-                                    <span class="text-gray-900 dark:text-white">Exceso de Pago:</span>
-                                    <span class="text-orange-600 dark:text-orange-400">${{ number_format(abs($remainingBalance), 0, ',', '.') }}</span>
-                                @else
-                                    <span class="text-gray-900 dark:text-white">Estado:</span>
-                                    <span class="text-green-600 dark:text-green-400">PAGADO COMPLETO</span>
+                            <!-- Nombre del Método -->
+                            <div class="text-2xl font-semibold text-gray-800 flex items-center">
+                                @if($currentMethod === $key)
+                                    <span class="mr-3 text-yellow-500">▶</span>
+                                @elseif($method['value'] > 0)
+                                    <span class="mr-3 text-blue-500">●</span>
                                 @endif
+                                {{ $method['name'] }}
+                            </div>
+
+                            <!-- Input de Valor -->
+                            <div class="flex items-center justify-center">
+                                <input type="number"
+                                       wire:model.live="paymentMethods.{{ $key }}.value"
+                                       wire:change="autoDistributePayments()"
+                                       x-data="{
+                                           navigate(direction) {
+                                               const methods = ['efectivo', 'nequi', 'daviplata', 'tarjeta'];
+                                               const current = methods.indexOf('{{ $key }}');
+                                               let next;
+                                               if (direction === 'down' || direction === 'right') {
+                                                   next = current + 1 >= methods.length ? 0 : current + 1;
+                                               } else {
+                                                   next = current - 1 < 0 ? methods.length - 1 : current - 1;
+                                               }
+                                               const nextInput = document.getElementById('input_' + methods[next]);
+                                               if (nextInput) {
+                                                   $wire.selectMethod(methods[next]);
+                                                   setTimeout(() => { nextInput.focus(); nextInput.select(); }, 50);
+                                               }
+                                           }
+                                       }"
+                                       id="input_{{ $key }}"
+                                       @focus="$wire.selectMethod('{{ $key }}'); if($el.value == '0') { $el.value = ''; $wire.set('paymentMethods.{{ $key }}.value', '') }"
+                                       @click="$wire.selectMethod('{{ $key }}'); if($el.value == '0') { $el.value = ''; $wire.set('paymentMethods.{{ $key }}.value', '') }"
+                                       @keydown.arrow-down.prevent="navigate('down')"
+                                       @keydown.arrow-up.prevent="navigate('up')"
+                                       @keydown.arrow-right.prevent="navigate('right')"
+                                       @keydown.arrow-left.prevent="navigate('left')"
+                                       @keydown.tab.prevent="
+                                           $wire.payTotalWithCurrentMethod().then(() => {
+                                               setTimeout(() => {
+                                                   const methods = ['efectivo', 'nequi', 'daviplata', 'tarjeta'];
+                                                   const current = methods.indexOf('{{ $key }}');
+                                                   const next = current + 1 >= methods.length ? 0 : current + 1;
+                                                   const nextInput = document.getElementById('input_' + methods[next]);
+                                                   if (nextInput) {
+                                                       nextInput.focus();
+                                                       nextInput.select();
+                                                   }
+                                               }, 100);
+                                           })
+                                       "
+                                       @keydown.enter.prevent="$wire.confirmPayment()"
+                                       class="w-full text-3xl font-bold text-center border-2 rounded-lg p-3
+                                              @if($currentMethod === $key) border-yellow-500 bg-yellow-50 @elseif($method['value'] > 0) border-blue-400 bg-blue-50 @else border-gray-300 @endif
+                                              focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                       placeholder=""
+                                       min="0"
+                                       step="1">
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Total Pagado -->
+                    <div class="bg-gray-100 p-4 border-t-2 border-gray-300">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-xl font-bold text-center">TOTAL PAGADO:</div>
+                            <div class="text-3xl font-bold text-center text-green-600">
+                                ${{ number_format($totalPaid, 0, ',', '.') }}
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Panel derecho - Métodos de pago -->
-            <div class="lg:col-span-8">
-                <!-- Métodos de Pago Disponibles -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Métodos de Pago</h3>
+                <!-- Botones de Acción -->
+                <div class="mt-8 flex gap-4 justify-center">
+                    <!-- <button wire:click="payTotalWithCurrentMethod()"
+                            class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold rounded-lg transition shadow-lg">
+                        PAGAR TODO CON {{ strtoupper($paymentMethods[$currentMethod]['name']) }}
+                    </button> -->
 
-                            @if($remainingBalance > 0)
-                            <div class="flex gap-2">
-                                <button wire:click="payTotalWithCash"
-                                    class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition">
-                                    Pagar Todo en Efectivo
-                                </button>
+                    @if($canProceedToPayment)
+                    <button wire:click="confirmPayment()"
+                            class="px-6 py-2  bg-green-600 hover:bg-green-700 text-white text-base font-medium rounded-md transition">
+                        CONFIRMAR PAGO
+                    </button>
+                    @endif
 
-                                @if(!empty($selectedPaymentMethods))
-                                <button wire:click="distributeEqually"
-                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition">
-                                    Distribuir Equitativamente
-                                </button>
-                                @endif
-                            </div>
-                            @endif
-                        </div>
-
-                        <!-- Grid de métodos de pago -->
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            @foreach($availablePaymentMethods as $method)
-                            <button wire:click="togglePaymentMethod({{ $method['id'] }})"
-                                class="p-4 rounded-lg border-2 transition-all duration-200 text-left
-                                    @if(in_array($method['id'], $selectedPaymentMethods))
-                                        border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20
-                                    @else
-                                        border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600
-                                    @endif
-                                ">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <div class="font-medium text-gray-900 dark:text-white text-sm">
-                                            {{ $method['name'] }}
-                                        </div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            {{ $method['description'] }}
-                                        </div>
-                                    </div>
-
-                                    @if(in_array($method['id'], $selectedPaymentMethods))
-                                        <svg class="w-5 h-5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    @endif
-                                </div>
-                            </button>
-                            @endforeach
-                        </div>
-
-                        <!-- Inputs de valores para métodos seleccionados -->
-                        @if($showPaymentMethods && !empty($selectedPaymentMethods))
-                        <div class="mt-6 space-y-4">
-                            <h4 class="text-md font-medium text-gray-900 dark:text-white">Valores por Método de Pago</h4>
-
-                            @foreach($selectedPaymentMethods as $methodId)
-                            <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                <div class="flex-1">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        {{ $this->getSelectedMethodName($methodId) }}
-                                    </label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
-                                        <input type="number"
-                                            wire:model.live="paymentValues.{{ $methodId }}"
-                                            min="0"
-                                            step="0.01"
-                                            class="block w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-white text-right"
-                                            placeholder="0.00">
-                                    </div>
-                                </div>
-
-                                <button wire:click="togglePaymentMethod({{ $methodId }})"
-                                    class="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-                    </div>
+                    <button onclick="window.history.back()"
+                            class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white text-base font-medium rounded-md transition">
+                        CANCELAR
+                    </button>
                 </div>
 
-                <!-- Observaciones y decisiones finales -->
-                @if($canProceedToPayment)
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Finalizar Pago</h3>
-
-                        <!-- Observaciones -->
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Observaciones (opcional)
-                            </label>
-                            <textarea wire:model="observations" rows="3"
-                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                                placeholder="Ingrese observaciones sobre este pago..."></textarea>
-                        </div>
-
-                        <!-- Decisión de crédito si queda saldo -->
-                        @if($remainingBalance > 0)
-                        <div class="mb-6">
-                            <div class="flex items-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                                <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                                </svg>
-                                <div class="flex-1">
-                                    <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                                        Queda un saldo pendiente de ${{ number_format($remainingBalance, 0, ',', '.') }}
-                                    </p>
-                                    <div class="mt-2">
-                                        <label class="flex items-center">
-                                            <input type="checkbox" wire:model="willBeCredit"
-                                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                                            <span class="ml-2 text-sm text-yellow-700 dark:text-yellow-300">
-                                                Sí, dejar el saldo pendiente a crédito
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Botones de acción -->
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button wire:click="confirmPayment"
-                                class="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                Confirmar Pago
-                            </button>
-
-                            <button wire:click="resetPayment"
-                                class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                </svg>
-                                Reiniciar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                @endif
             </div>
         </div>
+
     </div>
+
+    <!-- JavaScript simplificado -->
+    <script>
+        function paymentKeyboard() {
+            return {
+                init() {
+                    // Enfocar el primer input al cargar
+                    setTimeout(() => {
+                        const firstInput = document.getElementById('input_efectivo');
+                        if (firstInput) {
+                            firstInput.focus();
+                            firstInput.select();
+                        }
+                    }, 100);
+                }
+            }
+        }
+
+        // Escuchar eventos de Livewire para alerts
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('showAlert', (message) => {
+                alert(message);
+            });
+        });
+    </script>
+
+    <!-- Mensajes Flash -->
+    @if (session()->has('success'))
+        <div class="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if (session()->has('warning'))
+        <div class="fixed top-4 right-4 bg-yellow-500 text-white px-6 py-4 rounded-lg shadow-lg z-50">
+            {{ session('warning') }}
+        </div>
+    @endif
+
 </div>
