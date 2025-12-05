@@ -3,33 +3,28 @@
     {{-- <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6"> --}}
         {{-- <div class="max-w-12xl mx-auto"> --}}
             <!-- Mensaje -->
-
-
-            <div x-data="{show: false, message: '', type: '', showToast(payload) {this.message = payload.message;
-                this.type = payload.type; this.show = true; let delay = 4000; if (this.type === 'error') {delay = 6000;}
-                setTimeout(() => {this.show = false; $wire.dispatch('refreshDetail');}, delay);}}" x-init="
-                $wire.on('show-toast', (payload) => showToast(payload));" x-show="show"
-                class="px-4 py-3 rounded-lg mb-6 flex items-center gap-3" :class="{
-                    'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300': type === 'success',
-                    'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300': type === 'error',
-                    'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300': type === 'warning'
-                }">
-                <div class="shrink-0">
-                    <!-- Icono de Éxito -->
-                    <div x-show="type === 'success'">
-                        <x-heroicon-o-check-circle class="w-5 h-5" />
-                    </div>
-                    <!-- Icono de Advertencia -->
-                    <div x-show="type === 'warning'">
-                        <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
-                    </div>
-                    <!-- Icono de Error -->
-                    <div x-show="type === 'error'">
-                        <x-heroicon-o-x-mark class="w-5 h-5" />
-                    </div>
+            @if (session()->has('message'))
+            <div
+                class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-6">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    {{ session('message') }}
                 </div>
-                <p x-text="message" class="flex-1"></p>
             </div>
+            @endif
+
+            @if (session()->has('warning'))
+            <div
+                class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-6">
+                <div class="flex items-center">
+                    <x-heroicon-o-exclamation-triangle class="w-6 h-6" />
+                    {{ session('warning') }}
+                </div>
+            </div>
+            @endif
 
             <!-- DataTable Card -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
