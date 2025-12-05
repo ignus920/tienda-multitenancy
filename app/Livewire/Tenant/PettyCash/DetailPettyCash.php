@@ -15,6 +15,8 @@ use App\Livewire\Tenant\PettyCash\Services\DetailPettyCashServices;
 use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\PettyCashDetailExport;
 
 class DetailPettyCash extends Component
 {
@@ -371,6 +373,10 @@ class DetailPettyCash extends Component
         }
     }
 
+    public function exportExcel(){
+        $fileName = 'DetalleCaja_' . $this->pettyCash_id . '_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new PettyCashDetailExport($this->pettyCash_id, $this->search), $fileName);
+    }
 
     private function ensureTenantConnection(): void
     {

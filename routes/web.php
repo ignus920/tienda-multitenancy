@@ -142,9 +142,13 @@ Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->grou
         ->name('api.permissions.clone');
 });
 
+
+
 require __DIR__.'/auth.php';
 
 // Incluir rutas del módulo de parámetros del tenant
 require __DIR__.'/tenants/parameters.php';
+// Incluir rutas del módulo de pagos de cotizacion 
+require __DIR__.'/tenants/payments.php';
 
 

@@ -340,7 +340,7 @@ $header = 'Seleccionar productos';
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                         </svg>
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Elige los platos o bebidas</h3>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Agregar items</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                         Selecciona productos de la lista para agregarlos a tu cotización
                     </p>
@@ -385,7 +385,7 @@ $header = 'Seleccionar productos';
 
                             </div>
 
-                            <div class="flex items-center space-x-2">
+                            <!-- <div class="flex items-center space-x-2">
                                 <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Desc:</label>
                                 <input
                                     id="quantity-{{ $index }}"
@@ -402,7 +402,7 @@ $header = 'Seleccionar productos';
                                     onwheel="this.blur()"
                                     autocomplete="off">
 
-                            </div>
+                            </div> -->
 
                             <div class="text-sm font-medium text-gray-900 dark:text-white">
                                 ${{ number_format($item['price'] * $item['quantity']) }}

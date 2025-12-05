@@ -398,7 +398,7 @@ $header = 'Seleccionar productos';
                                 </div>
 
 
-                                <div class="flex items-center space-x-2">
+                                <!-- <div class="flex items-center space-x-2">
                                     <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Desc:</label>
                                     <input
                                         id="quantity-{{ $index }}"
@@ -414,7 +414,7 @@ $header = 'Seleccionar productos';
                                         value="{{ $item['quantity'] }}"
                                         onwheel="this.blur()"
                                         autocomplete="off">
-                                </div>
+                                </div> -->
 
                                 <div class="text-sm font-bold text-gray-900 dark:text-white">
                                     ${{ number_format($item['price'] * $item['quantity']) }}

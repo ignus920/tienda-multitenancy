@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "blade-ui-kit/blade-heroicons": "^2.6",
         "firebase/php-jwt": "*",
         "jenssegers/agent": "^2.6",
@@ -15,6 +16,7 @@
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6.4",
         "livewire/volt": "^1.7.0",
+        "maatwebsite/excel": "^3.1",
         "nnjeim/world": "^1.1",
         "pragmarx/google2fa-laravel": "^2.3",
         "spatie/laravel-permission": "^6.21",
