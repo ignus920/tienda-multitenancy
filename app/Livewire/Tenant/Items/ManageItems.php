@@ -37,6 +37,7 @@ class ManageItems extends Component
         'consumption-unit-changed' => 'onConsumptionUnitSelected',
         'category-changed' => 'onCategorySelected',
         'category-created' => 'refreshCategories',
+        'closeValuesModal' => 'closeValuesModal',
         //'invValuesItem-created' => 'refreshValuesItems',
     ];
 
@@ -217,7 +218,7 @@ class ManageItems extends Component
         $this->loadWarehouses();
 
         $items = Items::query()
-            ->with(['brand', 'principalImage'])
+            ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
             ->when($this->search, function($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                       ->orWhere('sku', 'like', '%' . $this->search . '%')
@@ -324,8 +325,13 @@ class ManageItems extends Component
         session()->flash('message', 'Estado actualizado correctamente');
     }
 
-    public function openValuesModal(){
-        $this->showValuesModal=true;
+    public function openValuesModal($itemId){
+        $this->item_id = $itemId;
+        $this->showValuesModal = true;
+    }
+
+    public function closeValuesModal(){
+        $this->showValuesModal = false;
     }
 
     public function cancel()
