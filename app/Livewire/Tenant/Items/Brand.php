@@ -8,6 +8,7 @@ use App\Services\Tenant\Inventory\BrandsService;
 use Livewire\Attributes\On;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Livewire\Attributes\Computed;
 
 class Brand extends Component
 {
@@ -18,6 +19,8 @@ class Brand extends Component
     public $required = true;
     public $showLabel = true;
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500';
+    public $index = null;
+    public $search = '';
 
     public $newBrandName = '';
     public $showBrandForm = false;
@@ -37,8 +40,59 @@ class Brand extends Component
         }
     }
 
-    public function updatedBrandId(){
-        $this->dispatch('brand-changed', $this->brandId);
+    public function updatedBrandId()
+    {
+        \Illuminate\Support\Facades\Log::info('BrandSelect: updatedBrandId hook triggered', [
+            'brandId' => $this->brandId,
+            'index' => $this->index,
+            'name' => $this->name
+        ]);
+        if ($this->index !== null) {
+            $this->dispatch('brand-changed', brandId: $this->brandId, index: $this->index);
+        } else {
+            $this->dispatch('brand-changed', $this->brandId);
+        }
+
+        \Illuminate\Support\Facades\Log::info('BrandSelect: brand-changed event dispatched', [
+            'brandId' => $this->brandId,
+            'index' => $this->index
+        ]);
+    }
+
+    #[On('validate-brand')]
+    public function validateBrand()
+    {
+        $this->validate([
+            'brandId' => 'required',
+        ]);
+        // Notificar al padre que el hijo pasó la validación
+        $this->dispatch('brand-valid', index: $this->index, brandId: $this->brandId);
+    }
+
+    public function selectBrand($id)
+    {
+        \Illuminate\Support\Facades\Log::info('BrandSelect: selectBrand called', [
+            'id' => $id,
+            'index' => $this->index,
+            'name' => $this->name
+        ]);
+
+        $this->brandId = $id;
+        $this->search = '';
+
+        if ($this->index !== null) {
+            $this->dispatch('brand-changed', brandId: $this->brandId, index: $this->index);
+        } else {
+            $this->dispatch('brand-changed', $this->brandId);
+        }
+    }
+
+    #[Computed]
+    public function selectedBrandName()
+    {
+        $this->ensureTenantConnection();
+        if (!$this->brandId) return null;
+        return BrandModel::find($this->brandId)?->name;
     }
 
     public function toggleBrandForm()
@@ -73,20 +127,13 @@ class Brand extends Component
         tenancy()->initialize($tenant);
     }
 
-    public function getBrandsProperty()
-    {
-        $this->ensureTenantConnection();
-        // Cargar todas las marcas desde la base de datos
-        return BrandModel::where('status', 1)->get(['id', 'name']);
-    }
-
     public function createBrand()
-    {   
-        
-         $this->validate([
-             'newBrandName' => 'required'
-         ]);
-        
+    {
+
+        $this->validate([
+            'newBrandName' => 'required'
+        ]);
+
         try {
 
             $brandService = app(BrandsService::class);
@@ -103,23 +150,35 @@ class Brand extends Component
             // Emitir eventos
             $this->dispatch('brand-created', brandId: $brand->id);
             $this->dispatch('refreshBrands'); // Refrescar este componente
-            
+
             // Opcional: Seleccionar automáticamente la nueva categoría
             $this->brandId = $brand->id;
             $this->updatedBrand();
-
         } catch (\Exception $e) {
             $this->addError('newBrandName', 'Error al crear la marca: ' . $e->getMessage());
         }
     }
 
+    #[Computed]
+    public function brands()
+    {
+        $this->ensureTenantConnection();
+        $query = BrandModel::where('status', 1);
+
+        if (!empty($this->search)) {
+            $query->where('name', 'like', '%' . $this->search . '%');
+        }
+
+        return $query->select('id', 'name')
+            ->orderBy('name')
+            ->limit(50)
+            ->get();
+    }
+
     public function render()
     {
-        return view('livewire.tenant.items.brand',[
-            'brands' => $this->brands,
+        return view('livewire.tenant.items.brand', [
             'showLabel' => $this->showLabel
         ]);
     }
-
-
 }

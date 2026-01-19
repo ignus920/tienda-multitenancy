@@ -8,6 +8,7 @@ use App\Services\Tenant\Inventory\CommandsServices;
 use Livewire\Attributes\On;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Livewire\WithPagination;
 
 class Command extends Component
 {
@@ -38,7 +39,8 @@ class Command extends Component
         }
     }
 
-    public function updatedCommandId(){
+    public function updatedCommandId()
+    {
         $this->dispatch('command-changed', $this->commandId);
     }
 
@@ -82,12 +84,12 @@ class Command extends Component
     }
 
     public function createCommand()
-    {   
-        
-         $this->validate([
-             'newCommandName' => 'required'
-         ]);
-        
+    {
+
+        $this->validate([
+            'newCommandName' => 'required'
+        ]);
+
         try {
 
             $commandService = app(CommandsServices::class);
@@ -105,11 +107,10 @@ class Command extends Component
             // Emitir eventos
             $this->dispatch('command-created', commandId: $command->id);
             $this->dispatch('refreshCommands'); // Refrescar este componente
-            
+
             // Opcional: Seleccionar automáticamente la nueva categoría
             $this->commandId = $command->id;
             $this->updatedCommandId();
-
         } catch (\Exception $e) {
             $this->addError('newCommandName', 'Error al crear la commanda: ' . $e->getMessage());
         }
