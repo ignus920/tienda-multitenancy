@@ -12,6 +12,7 @@ use Livewire\Volt\Volt;
 use App\Livewire\Company\UpdateCompany;
 use App\Auth\Middleware\SetTenantConnection;
 use App\Livewire\Tenant\Customers\CustomerManager;
+use App\Livewire\Tenant\Warehouses\WarehouseManager;
 
 
 
@@ -44,6 +45,11 @@ Route::get('/tenant/dashboard', TenantDashboard::class)
 Route::get('/tenant/customers', CustomerManager::class)
     ->middleware('tenant')
     ->name('tenant.customers');
+
+// Módulo de Sucursales (requiere autenticación, datos completos y tenant seleccionado)
+Route::get('/tenant/warehouses', WarehouseManager::class)
+    ->middleware('tenant')
+    ->name('tenant.warehouses');
 
      
 
