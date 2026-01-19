@@ -12,16 +12,18 @@ return new class extends Migration
             Schema::create('inv_transfers', function (Blueprint $table) {
                 $table->id('id');
                 $table->dateTime('date')->useCurrent();
-                $table->text('observations');
-                $table->string('status')->default('REGISTRADO');
+                $table->text('observations')->nullable();
+                $table->enum('status', ['REGISTRADO', 'ENTREGADO', 'ANULADO', 'EN TRANSITO'])->default('REGISTRADO');
                 $table->integer('api_data_id')->nullable();
-                $table->integer('warehouseFromId')->nullable();
-                $table->integer('warehouseToId')->nullable();
+                $table->unsignedBigInteger('storeFromId')->comment('ID del warehouse de origen (tabla central)');
+                $table->unsignedBigInteger('storeToId')->comment('ID del warehouse de destino (tabla central)');
                 $table->integer('consecutive');
-                $table->integer('userId');
-                $table->string('packing', 100)->nullable();
-                $table->index('warehouseFromId');
-                $table->index('warehouseToId');
+                $table->unsignedBigInteger('userId')->comment('ID del usuario (tabla central)');
+                $table->tinyInteger('packing')->default(0)->comment('0=No empacado, 1=Empacado');
+                $table->index('storeFromId');
+                $table->index('storeToId');
+                $table->index('userId');
+                $table->index('consecutive');
                 $table->timestamps();  // created_at, updated_at
                 $table->softDeletes(); // deleted_at
             });

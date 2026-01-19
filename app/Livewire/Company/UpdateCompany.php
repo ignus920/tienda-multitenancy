@@ -221,7 +221,7 @@ class UpdateCompany extends Component
             empty($this->code_ciiu) ||
             $this->typeIdentificationId == 0 ||
             $this->regimeId == 0 ||
-            $this->fiscalResponsibilityId == 0) {
+            !isset($this->fiscalResponsibilityId)) { // Cambiado para permitir 0 como valor válido
             $this->currentStep = 1;
             return;
         }
@@ -287,7 +287,7 @@ class UpdateCompany extends Component
             // 'typePerson' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
             // 'code_ciiu' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
             'regimeId' => ['required', 'numeric', 'min:1'],
-            'fiscalResponsibilityId' => ['required', 'numeric', 'min:1'],
+            'fiscalResponsibilityId' => ['required', 'numeric', 'min:0'], // Cambiado a min:0 para permitir "Ninguna" (id=0 o id=1)
         ];
 
         Log::info('🐛 DEBUG - Reglas de validación:', $rules);
@@ -532,7 +532,7 @@ class UpdateCompany extends Component
                         !empty($this->code_ciiu) &&
                         $this->typeIdentificationId > 0 &&
                         $this->regimeId > 0 &&
-                        $this->fiscalResponsibilityId  > 0;
+                        isset($this->fiscalResponsibilityId); // Cambiado para permitir 0 como valor válido
 
         $step2Complete = !empty($this->address) &&
                         $this->cityId > 0 &&

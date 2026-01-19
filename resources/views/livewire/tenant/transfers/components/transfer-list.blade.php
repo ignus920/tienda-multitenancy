@@ -63,16 +63,13 @@
                         </button>
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Bodega
+                        Sucursal Origen
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Sucursal
+                        Sucursal Destino
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Usuario
-                    </th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Razón
                     </th>
                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Cant. Items
@@ -86,62 +83,78 @@
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                @forelse($movements as $movement)
+                @forelse($transfers as $transfer)
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                #{{ $movement->formatted_consecutive }}
+                                #{{ str_pad($transfer->consecutive, 6, '0', STR_PAD_LEFT) }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900 dark:text-white">
-                                {{ $movement->date->format('d/m/Y') }}
+                                {{ $transfer->date->format('d/m/Y') }}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $movement->date->format('H:i') }}
+                                {{ $transfer->date->format('H:i') }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900 dark:text-white">
-                                {{ $movement->warehouse->name ?? 'N/A' }}
+                                {{ $transfer->warehouseFrom->name ?? 'N/A' }}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $transfer->warehouseFrom->company->name ?? '' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900 dark:text-white">
-                                {{ $movement->warehouse_name ?? 'N/A' }}
+                                {{ $transfer->warehouseTo->name ?? 'N/A' }}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $transfer->warehouseTo->company->name ?? '' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900 dark:text-white">
-                                {{ $movement->user->name ?? 'N/A' }}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 dark:text-white">
-                                {{ $movement->reason->name ?? 'N/A' }}
+                                {{ $transfer->user->name ?? 'N/A' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="flex flex-col gap-1">
-                                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                    </svg>
-                                    {{ $movement->details_count ?? 0 }} items
-                                </span>
-                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                    Cant: {{ number_format($movement->details_sum_quantity ?? 0, 2) }}
-                                </span>
-                            </div>
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                {{ $transfer->details_count ?? 0 }} items
+                            </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            @if($movement->status === 1)
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                    Registrado
+                            @if($transfer->status === 'REGISTRADO')
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Activa
                                 </span>
-                            @else
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                                    Anulado
+                            @elseif($transfer->status === 'ANULADO')
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Anulada
+                                </span>
+                            @elseif($transfer->status === 'ENTREGADO')
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Entregada
+                                </span>
+                            @elseif($transfer->status === 'EN TRANSITO')
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    En tránsito
                                 </span>
                             @endif
                         </td>
@@ -168,7 +181,7 @@
                                         style="display: none;">
                                         <div class="py-1" role="menu" aria-orientation="vertical">
                                             <!-- Ver Detalles -->
-                                            <button wire:click="openDetailsModal({{ $movement->id }})"
+                                            <button wire:click="openDetailsModal({{ $transfer->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
                                                 role="menuitem">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,13 +197,13 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-6 py-12 text-center">
+                        <td colspan="8" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center justify-center">
                                 <svg class="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                 </svg>
                                 <p class="text-gray-500 dark:text-gray-400 text-sm">
-                                    No se encontraron movimientos de {{ $type === 'entrada' ? 'entrada' : 'salida' }}
+                                    No se encontraron transferencias
                                 </p>
                             </div>
                         </td>
@@ -201,19 +214,19 @@
     </div>
 
     <!-- Pagination -->
-    @if($movements->hasPages())
+    @if($transfers->hasPages())
         <div class="mt-4">
-            {{ $movements->links() }}
+            {{ $transfers->links() }}
         </div>
     @endif
 
     <!-- Modal de Confirmación para Anular -->
     <div x-data="{ 
         showConfirm: false, 
-        movementId: null, 
+        transferId: null, 
         consecutive: '' 
     }"
-        @confirm-annul.window="showConfirm = true; movementId = $event.detail.movementId; consecutive = $event.detail.consecutive"
+        @confirm-annul.window="showConfirm = true; transferId = $event.detail.transferId; consecutive = $event.detail.consecutive"
         x-show="showConfirm"
         x-cloak
         class="fixed inset-0 z-50 overflow-y-auto"
@@ -243,14 +256,14 @@
                 <!-- Content -->
                 <div class="text-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Anular Movimiento
+                        Anular Transferencia
                     </h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                        ¿Está seguro de que desea anular el movimiento 
+                        ¿Está seguro de que desea anular la transferencia 
                         <span class="font-semibold text-gray-900 dark:text-white" x-text="'#' + consecutive"></span>?
                     </p>
                     <p class="text-sm text-red-600 dark:text-red-400 font-medium">
-                        Esta acción no se puede deshacer.
+                        Esta acción revertirá los cambios en el inventario y no se puede deshacer.
                     </p>
                 </div>
                 
@@ -260,7 +273,7 @@
                         class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
                         Cancelar
                     </button>
-                    <button @click="$wire.annulMovement(movementId); showConfirm = false"
+                    <button @click="$wire.annulTransfer(transferId); showConfirm = false"
                         class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
                         Sí, Anular
                     </button>
