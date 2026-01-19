@@ -62,6 +62,11 @@ class Items extends Model
         return $this->belongsTo(Brand::class, 'brandId', 'id');
     }
 
+    public function house()
+    {
+        return $this->belongsTo(House::class, 'houseId', 'id');
+    }
+
     public function purchasingUnit()
     {
         return $this->belongsTo(UnitMeasurements::class, 'purchasing_unit', 'id');
@@ -72,7 +77,8 @@ class Items extends Model
         return $this->belongsTo(UnitMeasurements::class, 'consumption_unit', 'id');
     }
 
-    public function tax(){
+    public function tax()
+    {
         return $this->belongsTo(CnfTaxes::class, 'taxId', 'id');
     }
 
@@ -80,15 +86,10 @@ class Items extends Model
     {
         return $this->hasMany(InvValues::class, 'itemId', 'id');
     }
-
-    /**
-     * Relación con el stock de items por bodega
-     */
     public function invItemsStore()
     {
         return $this->hasMany(InvItemsStore::class, 'itemId', 'id');
     }
-
     /**
      * Relación con la galería de imágenes
      * Un item puede tener múltiples imágenes
@@ -104,7 +105,7 @@ class Items extends Model
     public function activeImages()
     {
         return $this->hasMany(ImageGallery::class, 'itemId', 'id')
-                    ->whereNull('deleted_at');
+            ->whereNull('deleted_at');
     }
 
     /**
@@ -113,8 +114,8 @@ class Items extends Model
     public function principalImage()
     {
         return $this->hasOne(ImageGallery::class, 'itemId', 'id')
-                    ->where('type', 'PRINCIPAL')
-                    ->whereNull('deleted_at');
+            ->where('type', 'PRINCIPAL')
+            ->whereNull('deleted_at');
     }
 
     /**
@@ -125,7 +126,7 @@ class Items extends Model
     public function getPrincipalImageUrl()
     {
         $principalImage = $this->principalImage;
-        
+
         if ($principalImage) {
             return $principalImage->getImageUrl();
         }
@@ -141,7 +142,7 @@ class Items extends Model
     public function getPrincipalThumbnailUrl()
     {
         $principalImage = $this->principalImage;
-        
+
         if ($principalImage) {
             return $principalImage->getThumbnailUrl();
         }
@@ -155,9 +156,9 @@ class Items extends Model
     public function getGalleryImages()
     {
         return $this->imageGallery()
-                    ->where('type', 'GALERIA')
-                    ->whereNull('deleted_at')
-                    ->get();
+            ->where('type', 'GALERIA')
+            ->whereNull('deleted_at')
+            ->get();
     }
 
     /**
@@ -168,9 +169,9 @@ class Items extends Model
     public function getGalleryImagesCount()
     {
         return $this->imageGallery()
-                    ->where('type', 'GALERIA')
-                    ->whereNull('deleted_at')
-                    ->count();
+            ->where('type', 'GALERIA')
+            ->whereNull('deleted_at')
+            ->count();
     }
 
 
@@ -345,7 +346,7 @@ class Items extends Model
             ->get();
 
         $prices = [];
-        
+
         // Agrupar por label y tomar solo el primero (más reciente) de cada grupo
         foreach ($priceRecords->groupBy('label') as $label => $records) {
             $prices[$label] = $records->first()->values;
