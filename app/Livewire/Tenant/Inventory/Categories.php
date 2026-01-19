@@ -5,17 +5,18 @@ namespace App\Livewire\Tenant\Inventory;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Items\Category;
+use App\Services\Tenant\Inventory\CategoriesService;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Carbon\Carbon;
 
 class Categories extends Component
-{   
+{
     use WithPagination;
-    
-    public $category_id,$name, $status, $created_at;
 
-    //Propiedades para la tabla
+    public $category_id, $name, $status, $created_at;
+
+    // Propiedades para la tabla
     public $search = '';
     public $sortField = 'name';
     public $sortDirection = 'asc';
@@ -23,6 +24,12 @@ class Categories extends Component
     public $confirmingItemDeletion = false;
     public $categorieIdToDelete;
     public $perPage = 10;
+
+    // Propiedades para sincronización
+    public $showSyncStatus = false;
+    public $syncing = false;
+
+    protected $categoriesService;
 
     protected $rules =[
         'name' => 'required|min:3',
@@ -74,6 +81,22 @@ class Categories extends Component
     public function mount()
     {
         $this->ensureTenantConnection();
+        $this->initializeService();
+    }
+
+    private function initializeService()
+    {
+        if (!$this->categoriesService) {
+            $this->categoriesService = new CategoriesService();
+        }
+    }
+
+    private function getService(): CategoriesService
+    {
+        if (!$this->categoriesService) {
+            $this->initializeService();
+        }
+        return $this->categoriesService;
     }
 
     public function create()
@@ -110,18 +133,29 @@ class Categories extends Component
             'name' => $this->name,
         ];
 
-        if($this->category_id){
-            $category=Category::findOrFail($this->category_id);
-            $category->update($categorieData);
-            session()->flash('message', 'Categoría actualizada correctamente.');
-        }else{
-            Category::create($categorieData);
-            session()->flash('message', 'Categoría creada correctamente.');
+        try {
+            $service = $this->getService();
+
+            if ($this->category_id) {
+                $category = Category::findOrFail($this->category_id);
+                $service->updateCategory($category, $categorieData);
+                session()->flash('message', 'Categoría actualizada correctamente.');
+            } else {
+                $service->createCategory($categorieData);
+                session()->flash('message', 'Categoría creada correctamente.');
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('❌ Error en Livewire save', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            session()->flash('error', 'Error al procesar la categoría: ' . $e->getMessage());
         }
 
         $this->resetValidation();
         $this->reset([
             'name',
+            'category_id'
         ]);
         $this->showModal = false;
     }
