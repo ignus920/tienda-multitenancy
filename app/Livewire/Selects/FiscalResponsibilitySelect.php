@@ -22,7 +22,8 @@ class FiscalResponsibilitySelect extends Component
             'asignando_a_propiedad' => 'fiscalResponsibilityId'
         ]);
 
-        $this->fiscalResponsibilityId = $fiscalResponsibilityId;
+        // Convertir valores vacíos o null a string vacío para el select
+        $this->fiscalResponsibilityId = $fiscalResponsibilityId === 0 || $fiscalResponsibilityId === null ? '' : $fiscalResponsibilityId;
         $this->name = $name;
         $this->placeholder = $placeholder;
         $this->label = $label;
@@ -40,7 +41,9 @@ class FiscalResponsibilitySelect extends Component
 
     public function updatedFiscalResponsibilityId()
     {
-        $this->dispatch('fiscal-responsibility-changed', $this->fiscalResponsibilityId );
+        // Convertir string vacío a 0 para la validación del componente padre
+        $value = $this->fiscalResponsibilityId === '' ? 0 : $this->fiscalResponsibilityId;
+        $this->dispatch('fiscal-responsibility-changed', $value);
     }
 
     public function getFiscalResponsibilitiesProperty()

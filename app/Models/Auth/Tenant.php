@@ -32,6 +32,10 @@ class Tenant extends Model implements TenantWithDatabase
         'db_port',
         'merchant_type_id',
         'company_id',
+        'plain_id',
+        'afiliation_date',
+        'renovation_date',
+        'end_test',
         'is_active',
         'settings',
         'database_setup',
@@ -43,6 +47,10 @@ class Tenant extends Model implements TenantWithDatabase
         'db_port' => 'integer',
         'merchant_type_id' => 'integer',
         'database_setup' => 'boolean',
+        'plain_id' => 'integer',
+        'afiliation_date' => 'datetime',
+        'renovation_date' => 'datetime',
+        'end_test' => 'datetime',
     ];
 
     public function getTenantKeyName(): string

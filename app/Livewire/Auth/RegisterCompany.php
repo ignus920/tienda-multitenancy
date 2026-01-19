@@ -135,31 +135,19 @@ class RegisterCompany extends Component
      */
     public function register(): void
     {
-        // Iniciar proceso de registro - Mostrar SweetAlert de carga
-        Log::info('🚀 Iniciando registro - Emitiendo evento registration-started');
-        $this->dispatch('registration-started');
-
-        // Pequeño delay para asegurar que el SweetAlert se muestre
-        sleep(1);
-
-        $this->isRegistering = true;
-        $this->progressPercentage = 10;
-        $this->currentStep = 'Validando información...';
-
         // Aumentar tiempo de ejecución para creación de tenant
         set_time_limit(300); // 5 minutos
 
+        Log::info('🚀 Iniciando registro');
         Log::info('🔍 Validando información del registro');
+        
+        $this->isRegistering = true;
         $validated = $this->validateRegistration();
 
         try {
             DB::beginTransaction();
 
-            // Paso 1: Crear empresa
-            $this->progressPercentage = 25;
-            $this->currentStep = 'Configurando empresa...';
-            sleep(1); // Simular procesamiento para mostrar progreso
-
+            Log::info('📝 Creando empresa');
             // 1. Crear la empresa
             $company = VntCompany::create([
                 'businessName' => $this->businessName,
@@ -170,10 +158,7 @@ class RegisterCompany extends Component
                 'created_at' => now(),
             ]);
 
-            // Paso 2: Crear contacto
-            $this->progressPercentage = 40;
-            $this->currentStep = 'Creando perfil de usuario...';
-
+            Log::info('👤 Creando contacto');
             $contact = VntContact::create([
                 'firstName' => $this->firstName,
                 'lastName' => $this->lastName,
@@ -185,6 +170,7 @@ class RegisterCompany extends Component
             ]);
 
             // 3. Crear warehouse principal
+            Log::info('🏢 Creando warehouse principal');
             $warehouse = VntWarehouse::create([
                 'companyId' => $company->id,
                 'name' => 'Principal',
@@ -192,9 +178,7 @@ class RegisterCompany extends Component
             ]);
 
             // Paso 3: Crear usuario
-            $this->progressPercentage = 55;
-            $this->currentStep = 'Configurando cuenta de acceso...';
-
+            Log::info('🔐 Creando usuario');
             $validated['password'] = Hash::make($validated['password']);
             $userData = [
                 'name' => $this->firstName . ' ' . $this->lastName,
@@ -208,9 +192,7 @@ class RegisterCompany extends Component
             event(new Registered($user));
 
             // Paso 4: Generar códigos de verificación
-            $this->progressPercentage = 70;
-            $this->currentStep = 'Enviando código de verificación...';
-
+            Log::info('📧 Generando código de verificación');
             $whatsappToken = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
             $user->update([
                 'whatsapp_token' => $whatsappToken,
