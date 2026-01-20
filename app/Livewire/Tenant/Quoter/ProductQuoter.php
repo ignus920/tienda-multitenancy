@@ -54,6 +54,12 @@ class ProductQuoter extends Component
         'perPage' => ['except' => 12],
     ];
 
+    public function boot()
+    {
+        // Establecer conexión tenant lo más pronto posible (antes de la hidratación de modelos)
+        $this->ensureTenantConnection();
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
