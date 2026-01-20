@@ -147,7 +147,7 @@ class RegisterCompany extends Component
         try {
             DB::beginTransaction();
 
-            Log::info('📝 Creando empresa');
+            Log::info('📝 Creando empresa');    
             // 1. Crear la empresa
             $company = VntCompany::create([
                 'businessName' => $this->businessName,
