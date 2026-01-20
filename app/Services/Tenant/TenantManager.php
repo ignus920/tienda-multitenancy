@@ -38,6 +38,10 @@ class TenantManager
             'db_port' => $data['db_port'] ?? config('database.connections.mysql.port'),
             'is_active' => $data['is_active'] ?? true,
             'merchant_type_id' => $data['merchant_type_id'] ?? null,
+            'company_id' => $data['company_id'] ?? null,
+            'plain_id' => $data['plain_id'] ?? null,
+            'afiliation_date' => $data['afiliation_date'] ?? null,
+            'end_test' => $data['end_test'] ?? null,
             'settings' => $data['settings'] ?? [],
             'database_setup' => false, // Marcar que la BD no está configurada
         ]);
@@ -46,7 +50,7 @@ class TenantManager
             $this->assignUser($tenant, $owner, 'admin');
         }
 
-        Log::info('✅ Registro de tenant creado exitosamente', ['tenant_id' => $tenant->id, 'db_name' => $dbName]);
+        Log::info('✅ Registro de tenant creado exitosamente', ['tenant_id' => $tenant->id, 'db_name' => $dbName, 'company_id' => $tenant->company_id]);
         return $tenant;
     }
 
@@ -518,7 +522,7 @@ class TenantManager
             'driver' => 'mysql',
             'host' => $tenant->db_host,
             'port' => $tenant->db_port,
-            'database' => $tenant->db_name,
+            'database' => 'desarrollo',
             'username' => $tenant->db_user,
             'password' => $tenant->db_password,
             'username' => $tenant->db_user,
