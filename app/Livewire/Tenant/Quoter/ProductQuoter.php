@@ -9,9 +9,11 @@ use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Customer\VntCompany;
 use App\Models\Tenant\Quoter\VntQuote;
-use App\Models\Tenant\Quoter\VntDetailQuote;
-use \App\Models\Tenant\Items\Category;
+use App\Models\Tenant\Remissions\InvRemissions;
+use App\Models\Tenant\Remissions\InvDetailRemissions;
+use App\Models\Tenant\Items\Category;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProductQuoter extends Component
 {
@@ -38,6 +40,7 @@ class ProductQuoter extends Component
     public $showObservations = false;
      // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
+    public $customerResults = []; // Resultados de búsqueda de clientes
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -50,6 +53,12 @@ class ProductQuoter extends Component
         'search' => ['except' => ''],
         'perPage' => ['except' => 12],
     ];
+
+    public function boot()
+    {
+        // Establecer conexión tenant lo más pronto posible (antes de la hidratación de modelos)
+        $this->ensureTenantConnection();
+    }
 
     public function updatingSearch()
     {
@@ -87,6 +96,14 @@ class ProductQuoter extends Component
         }
 
         $this->calculateTotal();
+    }
+
+    /**
+     * Re-establecer conexión tenant en cada hidratación de Livewire
+     */
+    public function hydrate()
+    {
+        $this->ensureTenantConnection();
     }
 
     private function ensureTenantConnection()
@@ -145,6 +162,7 @@ class ProductQuoter extends Component
      // Método para obtener las categorías
     public function getCategories()
     {
+        $this->ensureTenantConnection();
         return Category::where('status', 1)->get();
     }
 
@@ -187,10 +205,10 @@ class ProductQuoter extends Component
         // Calcular total de forma más eficiente
         $this->calculateTotal();
 
-        // Toast más rápido sin información innecesaria
+        // Toast más rápido con el nombre del producto
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Agregado al carrito'
+            'message' => 'Producto agregado: ' . ($product->display_name ?? 'Producto')
         ]);
     }
 
@@ -329,35 +347,46 @@ class ProductQuoter extends Component
 
 
 //funcion para validar la cantidad ingresada
-public function validateQuantity($index)
+public function validateQuantity($index = null)
 {
-    // Verificar que el índice exista
-    if (!isset($this->quoterItems[$index])) {
-        return;
-    }
+    // Si no se pasa el índice, intentar obtenerlo de las propiedades (para Livewire binding)
+    // Pero como estamos usando wire:model.lazy="quoterItems.{{ $index }}.quantity", 
+    // Livewire ya actualiza el valor antes de llamar a este método.
 
-    // Obtener la cantidad asegurando que nunca sea null ni vacío
-    $quantity = trim((string) ($this->quoterItems[$index]['quantity'] ?? ''));
-
-    // Si está vacío, no es numérico o es menor que 1, lo dejamos en 1
-    if ($quantity === '' || !ctype_digit($quantity) || intval($quantity) < 1) {
-        $this->quoterItems[$index]['quantity'] = 1;
+    if ($index === null) {
+        // En caso de que se llame sin índice, validamos todos los items
+        foreach ($this->quoterItems as $idx => $item) {
+            $this->sanitizeItemQuantity($idx);
+        }
     } else {
-        // Convertimos a entero limpio
-        $this->quoterItems[$index]['quantity'] = intval($quantity);
+        if (!isset($this->quoterItems[$index])) {
+            return;
+        }
+        $this->sanitizeItemQuantity($index);
     }
 
     // Actualizar sesión
     session(['quoter_items' => $this->quoterItems]);
 
-    // Recalcular total si existe el método
-    $this->calculateTotal ?? false ? $this->calculateTotal() : null;
+    // Recalcular total
+    $this->calculateTotal();
 
     // Notificación opcional
     $this->dispatch('show-toast', [
         'type' => 'info',
-        'message' => 'Cantidad actualizada'
+        'message' => 'Contenido actualizado'
     ]);
+}
+
+private function sanitizeItemQuantity($index)
+{
+    $quantity = $this->quoterItems[$index]['quantity'];
+    
+    if ($quantity === '' || !is_numeric($quantity) || intval($quantity) < 1) {
+        $this->quoterItems[$index]['quantity'] = 1;
+    } else {
+        $this->quoterItems[$index]['quantity'] = intval($quantity);
+    }
 }
 
 
@@ -372,46 +401,66 @@ public function validateQuantity($index)
     }
 
 
-    //funcion para buscar cliente
+    // funcion para buscar cliente (Búsqueda predictiva)
+    public function updatedCustomerSearch($value)
+    {
+        if (strlen($value) < 2) {
+            $this->customerResults = [];
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
+            ->where(function($query) use ($value) {
+                $query->where('identification', 'like', '%' . $value . '%')
+                    ->orWhere('businessName', 'like', '%' . $value . '%')
+                    ->orWhere('firstName', 'like', '%' . $value . '%')
+                    ->orWhere('lastName', 'like', '%' . $value . '%');
+            })
+            ->limit(5)
+            ->get()
+            ->toArray();
+    }
+
+    public function selectCustomer($customerId)
+    {
+        $this->ensureTenantConnection();
+        $customer = VntCompany::find($customerId);
+
+        if ($customer) {
+            $this->selectedCustomer = $customer->toArray();
+            $this->customerResults = [];
+            $this->customerSearch = ''; // Opcional: limpiar búsqueda al seleccionar
+            $this->showCreateCustomerButton = false;
+
+            $name = $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName);
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cliente seleccionado: ' . $name
+            ]);
+        }
+    }
+
+    // Mantener searchCustomer por compatibilidad o si se presiona Enter, pero adaptado
     public function searchCustomer()
-{
-    $this->searchingCustomer = true;
-    $this->ensureTenantConnection();
+    {
+        if (empty($this->customerSearch)) return;
+        
+        $this->ensureTenantConnection();
+        $customer = VntCompany::where('identification', $this->customerSearch)->first();
 
-    if (empty($this->customerSearch)) {
-        $this->searchingCustomer = false;
-        $this->dispatch('show-toast', [
-            'type' => 'warning',
-            'message' => 'Por favor ingrese un NIT o cédula'
-        ]);
-        return;
+        if ($customer) {
+            $this->selectCustomer($customer->id);
+        } else {
+            $this->customerResults = [];
+            $this->showCreateCustomerButton = true;
+            $this->dispatch('show-toast', [
+                'type' => 'info',
+                'message' => 'Cliente no encontrado. Puedes crear uno nuevo'
+            ]);
+        }
     }
-
-    $customer = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
-        ->where('identification', $this->customerSearch)
-        ->first();
-
-    if ($customer) {
-        $this->selectedCustomer = $customer->toArray();
-
-        $name = $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName);
-
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Cliente encontrado: ' . $name
-        ]);
-    } else {
-        $this->selectedCustomer = null;
-        $this->showCreateCustomerButton = true;
-
-        $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Cliente no encontrado. Puedes crear uno nuevo'
-        ]);
-    }
-
-    $this->searchingCustomer = false;
-}
 
 
 
@@ -575,6 +624,19 @@ public function validateQuantity($index)
         return 0;
     }
 
+    public function getSelectedPriceInfo($productId)
+    {
+        foreach ($this->quoterItems as $item) {
+            if ($item['id'] == $productId) {
+                return [
+                    'price' => $item['price'],
+                    'label' => $item['price_label'] ?? 'Precio'
+                ];
+            }
+        }
+        return null;
+    }
+
     public function increaseQuantity($productId)
     {
         $this->ensureTenantConnection();
@@ -590,17 +652,43 @@ public function validateQuantity($index)
             session(['quoter_items' => $this->quoterItems]);
             $this->calculateTotal();
 
+            $productName = $this->quoterItems[$existingIndex]['name'] ?? 'Producto';
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Cantidad aumentada'
+                'message' => 'Cantidad aumentada: ' . $productName
             ]);
+        }
+    }
+
+    public function decreaseQuantity($productId)
+    {
+        $this->ensureTenantConnection();
+
+        // Verificar si el producto ya está en el cotizador
+        $existingIndex = $this->findProductInQuoter($productId);
+
+        if ($existingIndex !== false) {
+            // Si la cantidad es mayor a 1, disminuir
+            if ($this->quoterItems[$existingIndex]['quantity'] > 1) {
+                $this->quoterItems[$existingIndex]['quantity']--;
+                $this->calculateTotal();
+                session(['quoter_items' => $this->quoterItems]);
+                
+                $productName = $this->quoterItems[$existingIndex]['name'] ?? 'Producto';
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'Cantidad disminuida: ' . $productName
+                ]);
+            } else {
+                // Si la cantidad es 1, preguntar o remover (según diseño suele ser remover)
+                $this->removeFromQuoter($existingIndex);
+            }
         }
     }
 
     public function loadQuoteForEditing($quoteId)
     {
         $this->ensureTenantConnection();
-
         try {
             $quote = VntQuote::with('detalles')->findOrFail($quoteId);
 
@@ -728,6 +816,91 @@ public function validateQuantity($index)
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al actualizar la cotización: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function confirmOrder()
+    {
+        if (!$this->isEditing || !$this->editingQuoteId) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Primero debes cargar una cotización para confirmarla como pedido'
+            ]);
+            return;
+        }
+
+        if (empty($this->quoterItems)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No hay productos seleccionados'
+            ]);
+            return;
+        }
+
+        if (!$this->selectedCustomer) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes tener un cliente seleccionado'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $quote = VntQuote::findOrFail($this->editingQuoteId);
+
+            // Obtener siguiente consecutivo de remisiones
+            $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
+            $nextConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
+
+            // Crear Remisión
+            $remission = InvRemissions::create([
+                'consecutive' => $nextConsecutive,
+                'status' => 'REGISTRADO',
+                'quoteId' => $quote->id,
+                'warehouseId' => $quote->warehouseId ?: session('warehouse_id', 1),
+                'methodPaymentId' => 1, // Por defecto efectivo
+                'userId' => auth()->id(),
+                'deliveryDate' => now()->format('Y-m-d'),
+                'expiration' => 0,
+                'modify' => 0
+            ]);
+
+            // Crear detalles de la remisión
+            foreach ($this->quoterItems as $item) {
+                InvDetailRemissions::create([
+                    'quantity' => $item['quantity'],
+                    'tax' => 0,
+                    'value' => $item['price'],
+                    'remissionId' => $remission->id,
+                    'itemId' => $item['id'],
+                    'invoiceId' => null,
+                ]);
+            }
+
+            // Actualizar estado de la cotización
+            $quote->update(['status' => 'REMISIÓN']);
+
+            DB::connection('tenant')->commit();
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Pedido confirmado exitosamente! Remisión #' . $remission->consecutive
+            ]);
+
+            // Limpiar y salir del modo edición
+            $this->cancelEditing();
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('Error en confirmOrder: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al confirmar el pedido: ' . $e->getMessage()
             ]);
         }
     }
