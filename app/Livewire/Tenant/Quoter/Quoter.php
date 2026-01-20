@@ -281,11 +281,16 @@ class Quoter extends Component
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
 
+            // Determinar el título del documento (COTIZACIÓN o REMISIÓN)
+            $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
+            Log::info('📄 Título del documento:', ['title' => $documentTitle]);
+
             // Datos para la vista
             $data = [
                 'quote' => $quote,
                 'customer' => $quote->customer,
                 'company' => $company,
+                'documentTitle' => $documentTitle,
                 'showQR' => true, // Opcional: mostrar código QR
                 'defaultObservations' => 'Observaciones por defecto'
             ];
