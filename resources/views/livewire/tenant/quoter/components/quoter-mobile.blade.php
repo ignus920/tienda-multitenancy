@@ -171,6 +171,7 @@
                             </button>
 
                             <!-- Botón Ir al Carrito -->
+                            @if($quote->status !== 'REMISIÓN')
                             <button
                                 wire:click="irAlCarrito({{ $quote->id }})"
                                 wire:loading.attr="disabled"
@@ -194,6 +195,7 @@
                                     <span>Carrito</span>
                                 </div>
                             </button>
+                            @endif
 
                             <!-- Botón Imprimir -->
                             <button

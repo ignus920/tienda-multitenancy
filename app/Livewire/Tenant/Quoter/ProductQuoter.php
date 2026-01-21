@@ -36,7 +36,9 @@ class ProductQuoter extends Component
     public $showCreateCustomerButton = false;
     public $editingCustomerId = null;
     public $editingQuoteId = null;
+    public $editingRemissionId = null;
     public $isEditing = false;
+    public $isEditingRemission = false;
     public $showObservations = false;
      // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
@@ -82,15 +84,23 @@ class ProductQuoter extends Component
         $this->resetPage();
     }
 
-    public function mount($quoteId = null)
+    public function mount($quoteId = null, $remissionId = null)
     {
         // Obtener viewType de la ruta o usar desktop por defecto
         $this->viewType = request()->route('viewType', 'desktop');
         $this->ensureTenantConnection();
 
-        // Si se pasa un quoteId, estamos editando
+        // Intentar obtener remissionId de los parámetros de la ruta si no se pasó directamente
+        if (!$remissionId) {
+            $remissionId = request()->route('remissionId');
+        }
+
+        // Si se pasa un quoteId, estamos editando una cotización
         if ($quoteId) {
             $this->loadQuoteForEditing($quoteId);
+        } elseif ($remissionId) {
+            // Si se pasa un remissionId, estamos editando una remisión
+            $this->loadRemissionForEditing($remissionId);
         } else {
             $this->quoterItems = session('quoter_items', []);
         }
@@ -905,18 +915,140 @@ private function sanitizeItemQuantity($index)
         }
     }
 
+    public function loadRemissionForEditing($remissionId)
+    {
+        $this->ensureTenantConnection();
+        try {
+            $remission = InvRemissions::with(['details.item', 'quote.customer'])->findOrFail($remissionId);
+
+            $this->editingRemissionId = $remissionId;
+            $this->isEditingRemission = true;
+            $this->isEditing = false;
+
+            // Cargar observaciones
+            $this->observaciones = $remission->observations_return;
+
+            // Cargar información del cliente
+            if ($remission->quote && $remission->quote->customer) {
+                $customer = $remission->quote->customer;
+                $this->selectedCustomer = [
+                    'id' => $customer->id,
+                    'businessName' => $customer->businessName,
+                    'firstName' => $customer->firstName,
+                    'lastName' => $customer->lastName,
+                    'identification' => $customer->identification,
+                    'billingEmail' => $customer->billingEmail,
+                ];
+            }
+
+            // Cargar productos
+            $this->quoterItems = [];
+            foreach ($remission->details as $detalle) {
+                if ($detalle->item) {
+                    $this->quoterItems[] = [
+                        'id' => $detalle->item->id,
+                        'name' => $detalle->item->display_name,
+                        'sku' => $detalle->item->sku,
+                        'price' => $detalle->value,
+                        'price_label' => 'Precio remisión',
+                        'quantity' => $detalle->quantity,
+                        'description' => $detalle->item->description,
+                    ];
+                }
+            }
+
+            session(['quoter_items' => $this->quoterItems]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Remisión #' . $remission->consecutive . ' cargada para edición'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en loadRemissionForEditing: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al cargar la remisión: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function updateRemission()
+    {
+        if (!$this->isEditingRemission || !$this->editingRemissionId) {
+            return;
+        }
+
+        if (empty($this->quoterItems)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No hay productos en la remisión'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $remission = InvRemissions::findOrFail($this->editingRemissionId);
+
+            // Actualizar remisión
+            $remission->update([
+                'observations_return' => $this->observaciones
+            ]);
+
+            // Eliminar detalles existentes
+            InvDetailRemissions::where('remissionId', $remission->id)->delete();
+
+            // Crear nuevos detalles
+            foreach ($this->quoterItems as $item) {
+                InvDetailRemissions::create([
+                    'quantity' => $item['quantity'],
+                    'tax' => 0,
+                    'value' => $item['price'],
+                    'remissionId' => $remission->id,
+                    'itemId' => $item['id'],
+                    'invoiceId' => null,
+                ]);
+            }
+
+            DB::connection('tenant')->commit();
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Remisión #' . $remission->consecutive . ' actualizada exitosamente'
+            ]);
+
+            return redirect()->route('tenant.remissions');
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('Error en updateRemission: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al actualizar la remisión: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function cancelEditing()
     {
+        $redirectRoute = $this->isEditingRemission ? 'tenant.remissions' : 'tenant.quoter';
+
         // Limpiar estados de edición
         $this->isEditing = false;
+        $this->isEditingRemission = false;
         $this->editingQuoteId = null;
+        $this->editingRemissionId = null;
 
-        // Limpiar todos los campos del formulario
-        $this->selectedCustomer = null;              // Limpiar cliente seleccionado
-        $this->customerSearch = '';                  // Limpiar campo de búsqueda de cliente
-        $this->observaciones = null;                 // Limpiar observaciones
-        $this->showCreateCustomerForm = false;      // Ocultar formulario de creación
-        $this->showCreateCustomerButton = false;    // Ocultar botón de creación
+        // Limpiar campos
+        $this->selectedCustomer = null;
+        $this->customerSearch = '';
+        $this->observaciones = null;
+        $this->showCreateCustomerForm = false;
+        $this->showCreateCustomerButton = false;
 
         // Limpiar cotizador
         $this->clearQuoter();
@@ -925,5 +1057,7 @@ private function sanitizeItemQuantity($index)
             'type' => 'info',
             'message' => 'Edición cancelada'
         ]);
+
+        return redirect()->route($redirectRoute);
     }
 }
