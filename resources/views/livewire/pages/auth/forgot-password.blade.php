@@ -15,24 +15,32 @@ new #[Layout('layouts.guest')] class extends Component
     {
         $this->validate([
             'email' => ['required', 'string', 'email'],
+        ], [
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debes proporcionar un correo electrónico válido.',
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
+        // Enviar el enlace de restablecimiento de contraseña
         $status = Password::sendResetLink(
             $this->only('email')
         );
 
         if ($status != Password::RESET_LINK_SENT) {
-            $this->addError('email', __($status));
-
+            // Mensajes de error en español
+            $errorMessage = match($status) {
+                Password::INVALID_USER => 'No encontramos ningún usuario con ese correo electrónico.',
+                Password::INVALID_TOKEN => 'El token de restablecimiento es inválido.',
+                Password::THROTTLED => 'Por favor espera antes de volver a intentarlo.',
+                default => 'No pudimos enviar el enlace de restablecimiento. Por favor intenta nuevamente.'
+            };
+            
+            $this->addError('email', $errorMessage);
             return;
         }
 
         $this->reset('email');
 
-        session()->flash('status', __($status));
+        session()->flash('status', '¡Hemos enviado el enlace de restablecimiento de contraseña a tu correo electrónico!');
     }
 }; ?>
 

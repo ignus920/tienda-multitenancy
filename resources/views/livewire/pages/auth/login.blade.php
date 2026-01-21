@@ -49,6 +49,18 @@ new #[Layout('layouts.guest')] class extends Component
                 return;
             }
 
+           if ($user->whatsapp_token_expires_at !== null) {
+                auth()->logout();
+                 Session::invalidate();
+                 $this->dispatch('login-error', [
+                 'title' => 'Cuenta no verificada',
+                 'message' => 'Debes verificar tu cuenta antes de iniciar sesión. Revisa tu correo o WhatsApp para obtener el código de verificación.',
+                 'icon' => 'warning'
+               ]);
+                $this->redirect(route('verify-token'), navigate: true);
+                return;
+            }
+
             // Si llegamos aquí, no hay 2FA o ya fue validado
             Session::regenerate();
 
