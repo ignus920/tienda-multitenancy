@@ -10,6 +10,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Central\VntWarehouse;
 use Illuminate\Support\Facades\Log;
+use Jenssegers\Agent\Agent;
 
 class Remissions extends Component
 {
@@ -252,7 +253,12 @@ class Remissions extends Component
      */
     public function editarRemision($id)
     {
-        // Determinamos la ruta basada en el tipo de dispositivo (aquí asumimos desktop por ahora)
+        $agent = new Agent();
+
+        if ($agent->isMobile() || $agent->isTablet()) {
+            return redirect()->route('tenant.quoter.products.mobile.remission', ['remissionId' => $id]);
+        }
+
         return redirect()->route('tenant.quoter.products.desktop.remission', ['remissionId' => $id]);
     }
 
