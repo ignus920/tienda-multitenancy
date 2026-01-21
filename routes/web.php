@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Auth\Livewire\Verify2FA;
 use App\Auth\Livewire\SelectTenant;
 use App\Auth\Livewire\Enable2FA;
-use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
+use App\Livewire\Tenant\Dashboard\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TestController;
