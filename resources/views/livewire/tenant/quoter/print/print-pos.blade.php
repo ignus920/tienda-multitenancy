@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotización {{ $quote->consecutive }}</title>
+    <title>{{ $documentTitle }} {{ $quote->consecutive }}</title>
     <style>
         @page {
             size: 80mm 100%; /* Ancho fijo 80mm, alto automático */
@@ -245,7 +245,7 @@
 
     <!-- Quote Info -->
     <div class="quote-header">
-        <div class="bold large">COTIZACIÓN</div>
+        <div class="bold large">{{ $documentTitle }}</div>
         <div class="quote-number">No. {{ $quote->consecutive }}</div>
         <div class="small">FECHA: {{ $quote->created_at->format('Y-m-d H:i') }}</div>
     </div>

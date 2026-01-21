@@ -486,7 +486,6 @@ class UpdateCompany extends Component
         }
     }
 
-    #[On('finish-company-config')]
     public function finish()
     {
         try {

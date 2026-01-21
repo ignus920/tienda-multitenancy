@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Auth\Livewire\Verify2FA;
 use App\Auth\Livewire\SelectTenant;
 use App\Auth\Livewire\Enable2FA;
-use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
+use App\Livewire\Tenant\Dashboard\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TestController;
@@ -114,13 +114,6 @@ Route::get('/super-admin', App\Livewire\Central\SuperAdmin\GlobalDashboard::clas
 //     ->middleware(['auth', 'company.complete', App\Auth\Middleware\SetTenantConnection::class])
 //     ->name('ejemplo.configuracion');
 
-
-
-
-
-
-
-
 // Rutas para gestión de permisos y roles (Catálogo de permisos)
 Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->group(function () {
     Route::get('/catalog', [App\Http\Controllers\Auth\PermissionController::class, 'getCatalog'])
@@ -150,5 +143,12 @@ require __DIR__.'/auth.php';
 require __DIR__.'/tenants/parameters.php';
 // Incluir rutas del módulo de pagos de cotizacion 
 require __DIR__.'/tenants/payments.php';
+
+
+// Incluir rutas del módulo de remisiones 
+require __DIR__.'/tenants/remissions.php';
+
+
+
 
 

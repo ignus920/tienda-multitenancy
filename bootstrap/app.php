@@ -35,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'tenant' => \App\Http\Middleware\SetTenantConnection::class,
+            'tenant' => \App\Auth\Middleware\SetTenantConnection::class,
             'company.complete' => \App\Http\Middleware\EnsureCompanyDataComplete::class,
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         ]);

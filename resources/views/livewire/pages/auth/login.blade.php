@@ -31,6 +31,36 @@ new #[Layout('layouts.guest')] class extends Component
         try {
             $this->form->authenticate();
 
+            $user = auth()->user();
+
+            // Verificar acceso activo a tenants
+            $hasActiveAccess = \App\Models\Auth\UserTenant::where('user_id', $user->id)
+             ->where('is_active', true)
+             ->exists();
+
+            if (!$hasActiveAccess) {
+                auth()->logout();
+                Session::invalidate();
+                $this->dispatch('login-error', [
+                  'title' => 'Cuenta inactiva',
+                  'message' => 'No tienes acceso activo a ninguna empresa. Contacta al administrador.',
+                  'icon' => 'warning'
+                ]);
+                return;
+            }
+
+           if ($user->whatsapp_token_expires_at !== null) {
+                auth()->logout();
+                 Session::invalidate();
+                 $this->dispatch('login-error', [
+                 'title' => 'Cuenta no verificada',
+                 'message' => 'Debes verificar tu cuenta antes de iniciar sesión. Revisa tu correo o WhatsApp para obtener el código de verificación.',
+                 'icon' => 'warning'
+               ]);
+                $this->redirect(route('verify-token'), navigate: true);
+                return;
+            }
+
             // Si llegamos aquí, no hay 2FA o ya fue validado
             Session::regenerate();
 

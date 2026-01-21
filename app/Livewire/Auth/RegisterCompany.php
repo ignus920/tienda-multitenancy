@@ -4,8 +4,6 @@ namespace App\Livewire\Auth;
 
 use App\Models\Auth\User;
 use App\Models\Central\VntMerchantType;
-use App\Models\Central\VntModul;
-use App\Models\Central\VntMerchantModul;
 use App\Models\Central\VntCompany;
 use App\Models\Central\VntContact;
 use App\Models\Central\VntWarehouse;
@@ -17,7 +15,6 @@ use App\Http\Traits\HasCommonValidation;
 use App\Mail\WhatsAppTokenMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +24,7 @@ class RegisterCompany extends Component
 {
     use HasCommonValidation;
 
-    protected $listeners = ['country-changed' => 'updateCountry'];
+    protected $listeners = ['country-selected' => 'updateCountry'];
 
     // Datos del contacto
     public string $firstName = '';
@@ -110,22 +107,22 @@ class RegisterCompany extends Component
      */
     public function testMessages()
     {
-        $this->isLoading = true;
-        $this->loadingMessage = 'Probando mensaje de carga...';
+        $this->isRegistering = true;
+        $this->currentStep = 'Probando mensaje de carga...';
 
         Log::info('Método testMessages ejecutado', [
-            'isLoading' => $this->isLoading,
-            'loadingMessage' => $this->loadingMessage
+            'isRegistering' => $this->isRegistering,
+            'currentStep' => $this->currentStep
         ]);
     }
 
     public function testSuccess()
     {
-        $this->isLoading = false;
+        $this->isRegistering = false;
         $this->successMessage = 'Mensaje de éxito funcionando correctamente!';
 
         Log::info('Método testSuccess ejecutado', [
-            'isLoading' => $this->isLoading,
+            'isRegistering' => $this->isRegistering,
             'successMessage' => $this->successMessage
         ]);
     }
@@ -147,7 +144,7 @@ class RegisterCompany extends Component
         try {
             DB::beginTransaction();
 
-            Log::info('📝 Creando empresa');
+            Log::info('📝 Creando empresa');    
             // 1. Crear la empresa
             $company = VntCompany::create([
                 'businessName' => $this->businessName,
@@ -285,21 +282,14 @@ class RegisterCompany extends Component
 
         // Log::info('🎉 Registro completado exitosamente', ['user_id' => $user->id, 'email' => $user->email]);
 
-        // Auth::login($user); // Comentado: no hacer autologin automático
+        // NO hacer autologin automático - el usuario debe verificar primero
+        // Auth::login($user);
 
-        // Redirigir a verificación de token
-        // $this->redirect(route('verify-token'), navigate: true);
-
-        Log::info('🚀 Emitiendo evento registration-complete');
-        $this->dispatch('registration-complete', [
-            'title' => '¡Registro Exitoso!',
-            'message' => 'Tu cuenta ha sido creada. Revisa tu correo (o WhatsApp) para obtener tu código de verificación.',
-            'redirectUrl' => route('verify-token')
-        ]);
-        Log::info('✅ Evento registration-complete emitido correctamente');
-
-        // Limpiar el formulario después de un registro exitoso
-        $this->clearForm();
+        Log::info('✅ Registro completado - Redirigiendo a verificación de token');
+        session()->flash('status', '¡Cuenta creada exitosamente! Se ha enviado un código de verificación a tu correo y WhatsApp.');
+        
+        // Redirigir directamente a verificación de token
+        $this->redirect(route('verify-token'));
     }
 
     /**

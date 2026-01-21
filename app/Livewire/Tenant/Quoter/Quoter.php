@@ -9,6 +9,7 @@ use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Tenant\Remissions\InvRemissions;
 
 
 class Quoter extends Component
@@ -18,10 +19,19 @@ class Quoter extends Component
     public $search = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
+    public $showDetailModal = false;
+    public $selectedQuote = null;
+
 
 
 
     protected $paginationTheme = 'tailwind';
+
+    public function boot()
+    {
+        // Establecer conexión tenant lo más pronto posible (antes de la hidratación de modelos)
+        $this->ensureTenantConnection();
+    }
 
     public function mount($viewType = null)
     {
@@ -72,11 +82,15 @@ class Quoter extends Component
 
     public function nuevaCotizacion()
     {
+        // Limpiar el carrito de la sesión para que el cotizador empiece vacío
+        session()->forget('quoter_items');
+        
         return redirect('/tenant/quoter/products');
     }
 
     public function eliminar($id)
     {
+        $this->ensureTenantConnection();
         $quote = VntQuote::find($id);
         if ($quote) {
             $quote->delete();
@@ -145,6 +159,7 @@ class Quoter extends Component
      */
     public function getPrintCopiesLimit(): int
     {
+        $this->ensureTenantConnection();
         Log::info('🔍 getPrintCopiesLimit() - Inicio del debug', [
             'companyId' => $this->currentCompanyId ?? 'NULL',
             'configService_exists' => isset($this->configService) ? 'YES' : 'NO',
@@ -180,6 +195,20 @@ class Quoter extends Component
             return 0; // Default a POS en caso de error
         }
      }
+
+    public function viewDetails($id)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedQuote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])->find($id);
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetailModal()
+    {
+        $this->showDetailModal = false;
+        $this->selectedQuote = null;
+    }
+
 
 
 
@@ -252,11 +281,16 @@ class Quoter extends Component
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
 
+            // Determinar el título del documento (COTIZACIÓN o REMISIÓN)
+            $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
+            Log::info('📄 Título del documento:', ['title' => $documentTitle]);
+
             // Datos para la vista
             $data = [
                 'quote' => $quote,
                 'customer' => $quote->customer,
                 'company' => $company,
+                'documentTitle' => $documentTitle,
                 'showQR' => true, // Opcional: mostrar código QR
                 'defaultObservations' => 'Observaciones por defecto'
             ];
