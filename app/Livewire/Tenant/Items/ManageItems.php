@@ -140,25 +140,59 @@ class ManageItems extends Component
     }
 
     protected $rules = [
-        'category_id' => 'required',
-        'name' => 'required|min:3',
-        'type' => 'required',
-        'internal_code' => 'nullable|string',
-        'brandId' => 'nullable|integer',
-        'houseId' => 'nullable|integer',
-        'purchase_unit' => 'nullable|integer',
-        'consumption_unit' => 'nullable|integer',
+        'category_id' => 'required|integer|exists:tenant.inv_categories,id',
+        'name' => 'required|string|min:3|max:255',
+        'type' => 'required|string',
+        'internal_code' => 'required|string|max:100',
+        'brandId' => 'required|integer|min:1',
+        'houseId' => 'required|integer|min:1',
+        'purchase_unit' => 'required|integer|min:1',
+        'consumption_unit' => 'required|integer|min:1',
+        'tax' => 'required|integer|min:1',
+        'sku' => 'nullable|string|max:100',
+        'description' => 'nullable|string|max:1000',
+        'inventoriable' => 'nullable|boolean',
     ];
 
     protected $messages = [
         'category_id.required' => 'La categoría es obligatoria',
+        'category_id.exists' => 'La categoría seleccionada no es válida',
         'name.required' => 'El nombre del item es obligatorio',
         'name.min' => 'El nombre del item debe tener al menos 3 caracteres',
+        'name.max' => 'El nombre del item no puede exceder 255 caracteres',
         'type.required' => 'El tipo de item es obligatorio',
         'internal_code.required' => 'El código interno es obligatorio',
+        'internal_code.max' => 'El código interno no puede exceder 100 caracteres',
         'brandId.required' => 'La marca es obligatoria',
-
+        'brandId.min' => 'Debe seleccionar una marca válida',
+        'houseId.required' => 'La casa es obligatoria',
+        'houseId.min' => 'Debe seleccionar una casa válida',
+        'purchase_unit.required' => 'La unidad de compra es obligatoria',
+        'purchase_unit.min' => 'Debe seleccionar una unidad de compra válida',
+        'consumption_unit.required' => 'La unidad de consumo es obligatoria',
+        'consumption_unit.min' => 'Debe seleccionar una unidad de consumo válida',
+        'tax.required' => 'El impuesto es obligatorio',
+        'tax.min' => 'Debe seleccionar un impuesto válido',
+        'sku.max' => 'El SKU no puede exceder 100 caracteres',
+        'description.max' => 'La descripción no puede exceder 1000 caracteres',
     ];
+
+    /**
+     * Validación en tiempo real de campos individuales
+     */
+    public function updated($propertyName)
+    {
+        // Lista de campos que deben validarse en tiempo real
+        $fieldsToValidate = [
+            'category_id', 'name', 'type', 'internal_code', 
+            'brandId', 'houseId', 'purchase_unit', 
+            'consumption_unit', 'tax', 'sku', 'description'
+        ];
+
+        if (in_array($propertyName, $fieldsToValidate)) {
+            $this->validateOnly($propertyName);
+        }
+    }
 
 
     protected $queryString = [
@@ -340,16 +374,16 @@ class ManageItems extends Component
             'sku' => $this->sku,
             'description' => $this->description,
             'type' => $this->type,
-            'commandId' => $this->commandId ?: null,
-            'brandId' => $this->brandId,
-            'houseId' => $this->houseId,
+            'commandId' => $this->commandId && $this->commandId > 0 ? (int)$this->commandId : null,
+            'brandId' => (int)$this->brandId,
+            'houseId' => (int)$this->houseId,
             'inventoriable' => $this->inventoriable,
             'purchasing_unit' => $this->purchase_unit,
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
             'generic' => $this->generic,
-            'taxId' => $this->tax,
-            'handles_serial' => $this->handles_serial ?? 0,
+            'taxId' => (int)$this->tax,
+          
         ];
     
         try {
@@ -407,20 +441,29 @@ class ManageItems extends Component
                     }
 
                     $this->clearTemporaryMessage();
-                    session()->flash('message', 'Item actualizado correctamente.');
-
+                    
                     // Solo cerrar modal si no hay errores de sincronización
                     if (!session()->has('sync_warning') && !session()->has('sync_error')) {
+                        session()->flash('success', '✅ ¡Item actualizado exitosamente! El item "' . $item->name . '" ha sido actualizado correctamente.');
                         $this->showModal = false; // Close modal after update
+                        $this->resetValidation(); // Clear validation errors for next open
+                        $this->resetForm(); // Clear the form completely for next new item
+                    } else {
+                        session()->flash('message', 'Item actualizado correctamente.');
                     }
-                    $this->resetValidation(); // Clear validation errors for next open
-                    $this->resetForm(); // Clear the form completely for next new item
                 }
             } else { // New item
-                // Validar que los cinco tipos de precios estén registrados
-                $requiredPrices = ['Costo Inicial', 'Costo', 'Precio Base', 'Precio Regular', 'Precio Crédito'];
+                // Validar precios según si es inventoriable o no
+                if ($this->inventoriable == 1) {
+                    // Si es inventoriable, requiere todos los precios
+                    $requiredPrices = ['Costo Inicial', 'Costo', 'Precio Base', 'Precio Regular', 'Precio Crédito'];
+                } else {
+                    // Si NO es inventoriable, solo requiere Costo Inicial
+                    $requiredPrices = ['Costo Inicial'];
+                }
+                
                 $missingPrices = $this->validateRequiredPrices($requiredPrices);
-                //dd($missingPrices);
+                
                 if (!empty($missingPrices)) {
                     $this->messageValues = 'Debe registrar todos los precios requeridos: ' . implode(', ', $missingPrices);
                 } else {
@@ -462,12 +505,13 @@ class ManageItems extends Component
                         // NO cerrar modal para que el usuario vea el mensaje de error
                     }
 
-                    session()->flash('message', 'Item creado correctamente.');
-
                     // Solo proceder a editar si no hay errores de sincronización
                     if (!session()->has('sync_warning') && !session()->has('sync_error')) {
+                        session()->flash('success', '✅ ¡Item creado exitosamente! El item "' . $newItem->name . '" ha sido registrado correctamente.');
                         $this->resetValidation(); // Clear validation for current submission
                         $this->edit($item_id); // Load new item into the form (sets showModal=true, disabled=true)
+                    } else {
+                        session()->flash('message', 'Item creado correctamente.');
                     }
                 }
             }
