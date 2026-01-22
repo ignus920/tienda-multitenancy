@@ -44,6 +44,7 @@ class ManageItems extends Component
         'category-changed' => 'onCategorySelected',
         'category-created' => 'refreshCategories',
         'closeValuesModal' => 'closeValuesModal',
+        'closeLocationsModal' => 'closeLocationsModal',
         //'invValuesItem-created' => 'refreshValuesItems',
     ];
 
@@ -64,11 +65,16 @@ class ManageItems extends Component
     public $inv_values = [];
     public $warehouses = [];
     public $warehouseIdValue;
+    public $locationName;
     public $tax;
     public $disabled = false;
     public $handles_serial;
     public $inventoriable;
     public $tempValues = [];
+    
+    // Propiedades para modal de ubicaciones
+    public $showLocationsModal = false;
+    public $selectedItemId;
 
     // Propiedades para la tabla
     public $search = '';
@@ -101,6 +107,7 @@ class ManageItems extends Component
     public $skuExists = false;
     public $validatingSku = false;
     public $showCommand = false;
+    public $showSelectStore = false;
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -344,7 +351,7 @@ class ManageItems extends Component
             'taxId' => $this->tax,
             'handles_serial' => $this->handles_serial ?? 0,
         ];
-
+    
         try {
             if ($this->item_id) { // Existing item
                 $existsValue = InvValues::where('itemId', $this->item_id)->exists();
@@ -496,6 +503,19 @@ class ManageItems extends Component
         $this->showValuesModal = false;
     }
 
+    public function openLocationsModal($itemId)
+    {
+        $this->selectedItemId = $itemId;
+        $this->showLocationsModal = true;
+    }
+
+    public function closeLocationsModal()
+    {
+        $this->showLocationsModal = false;
+        $this->selectedItemId = null;
+        $this->locationName = '';
+    }
+
     public function cancel()
     {
         $this->ensureTenantConnection();
@@ -630,6 +650,7 @@ class ManageItems extends Component
             return;
         }
 
+        // Las bodegas están en la base de datos central (vnt_warehouses)
         // Traer todos los almacenes que coincidan con ese company_id
         $this->warehouses = VntWarehouse::where('companyId', $tenant->company_id)
             ->where('status', true)
@@ -931,6 +952,7 @@ class ManageItems extends Component
         $this->inv_values = [];
         $this->warehouses = [];
         $this->warehouseIdValue = '';
+        $this->locationName = '';
         $this->tax = '';
         $this->disabled = false;
         $this->tempValues = []; // Limpiar valores temporales

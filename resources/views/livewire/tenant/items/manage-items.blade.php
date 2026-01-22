@@ -231,10 +231,9 @@
                                             <button wire:click="edit({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
                                                 <x-heroicon-o-pencil-square class="w-6 h-6" />
-
                                                 Editar
                                             </button>
-                                            {{-- <button wire:click="openWarehouseModal({{ $it->id }})"
+                                            <button wire:click="openLocationsModal({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -244,16 +243,7 @@
                                                     </path>
                                                 </svg>
                                                 Ubicaciones
-                                            </button> --}}
-                                            {{-- <button wire:click="openValuesModal({{ $it->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="size-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                                </svg>
-                                                Valores
-                                            </button>  --}}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -738,9 +728,12 @@
     </div>
 
     <!-- Modal Values -->
-
-    <!-- Modal Ubicaciones -->
     @if($showValuesModal)
     @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key($item_id))
+    @endif
+
+    <!-- Modal Ubicaciones -->
+    @if($showLocationsModal)
+    @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
     @endif
 </div>

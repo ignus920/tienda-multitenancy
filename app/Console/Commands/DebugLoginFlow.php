@@ -183,8 +183,10 @@ class DebugLoginFlow extends Command
             $this->info("🏪 Información del Warehouse:");
             $this->line("   ID: {$warehouse->id}");
             $this->line("   Name: {$warehouse->name}");
-            $this->line("   Address: {$warehouse->address ?? 'NULL'}");
-            $this->line("   Company ID: {$warehouse->companyId ?? 'NULL'}");
+            $address = $warehouse->address ? $warehouse->address : 'NULL';
+            $this->line("   Address: {$address}");
+            $companyId = $warehouse->companyId ? $warehouse->companyId : 'NULL';
+            $this->line("   Company ID: {$companyId}");
         }
     }
 
