@@ -8,7 +8,7 @@ use App\Models\Tenant\Items\Brand;
 use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\ImageGallery;
 use App\Models\Tenant\Items\InvItemsStore;
-use App\Models\Central\CnfTaxes;
+use App\Models\Tenant\CnfTaxes;
 use App\Models\Tenant\Items\CnfPricelist;
 use App\Traits\HasCompanyConfiguration;
 
