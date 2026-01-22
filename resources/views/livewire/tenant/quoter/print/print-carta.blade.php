@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotización {{ $quote->consecutive }}</title>
+    <title>{{ $documentTitle }} {{ $quote->consecutive }}</title>
     <style>
         @page {
             size: letter;
@@ -247,7 +247,7 @@
             </div>
         </div>
         <div class="quote-info">
-            <div class="quote-title">COTIZACIÓN</div>
+            <div class="quote-title">{{ $documentTitle }}</div>
             <div><strong>No. {{ $quote->consecutive }}</strong></div>
             <div>Página 1 de 1</div>
         </div>

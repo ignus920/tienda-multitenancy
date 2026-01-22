@@ -37,13 +37,23 @@
         </div>
 
         <!-- País -->
-       @livewire('selects.country-select', [
-       'countryId' => $countryId,
-       'name' => 'countryId',
-       'label' => 'País',
-        'placeholder' => 'Selecciona el país',
-         'class' => 'block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm'
-    ])
+        <div>
+            @livewire('selects.generic-select', [
+                'selectedValue' => $countryId,
+                'items' => $countries,
+                'name' => 'countryId',
+                'label' => 'País',
+                'placeholder' => 'Selecciona el país',
+                'required' => true,
+                'showLabel' => true,
+                'class' => 'block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-left bg-white cursor-default sm:text-sm py-2 pl-3 pr-10 relative',
+                'eventName' => 'country-selected',
+                'displayField' => 'name',
+                'valueField' => 'id',
+                'searchFields' => ['name', 'iso2', 'iso3']
+            ])
+            <x-input-error :messages="$errors->get('countryId')" class="mt-2" />
+        </div>
 
         <!-- Tipo de Negocio -->
         <div>

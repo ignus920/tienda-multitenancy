@@ -44,13 +44,23 @@ class MovementForm extends Component
         'itemId' => '',
         'quantity' => '',
         'unitMeasurementId' => '',
+        'cost' => 0,
+        'supplierId' => ''
     ];
     
     // Messages
     public $successMessage = '';
     public $errorMessage = '';
     
-    protected $listeners = ['showMovementDetails'];
+    public $isProcessing = false;
+
+    protected $listeners = [
+        'showMovementDetails',
+        'storeSelected',
+        'reasonSelected',
+        'itemSelected',
+        'unitMeasurementSelected',
+        'supplierSelected'];
 
     public function mount()
     {
@@ -59,6 +69,47 @@ class MovementForm extends Component
         
         // Set default unit measurement to "UNIDAD"
         $this->setDefaultUnitMeasurement();
+    }
+
+    /**
+     * Handle item selection from GenericSelect component
+     * 
+     * @param mixed $value The selected item ID
+     * @return void
+     */
+    public function itemSelected($value)
+    {
+        $this->detailForm['itemId'] = $value ?? '';
+    }
+
+    /**
+     * Handle unit measurement selection from GenericSelect component
+     * 
+     * @param mixed $value The selected unit measurement ID
+     * @return void
+     */
+    public function unitMeasurementSelected($value)
+    {
+        $this->detailForm['unitMeasurementId'] = $value ?? '';
+    }
+
+    /**
+     * Handle supplier selection from GenericSelect component
+     * 
+     * @param mixed $value The selected supplier ID
+     * @return void
+     */
+    public function supplierSelected($value)
+    {
+        $this->detailForm['supplierId'] = $value ?? '';
+        
+        // Update supplier name for display in details table
+        if (!empty($value)) {
+            $supplier = collect($this->suppliers)->firstWhere('id', $value);
+            $this->detailForm['supplierName'] = $supplier['firstName'] ?? 'N/A';
+        } else {
+            $this->detailForm['supplierName'] = '';
+        }
     }
 
     /**
@@ -84,7 +135,8 @@ class MovementForm extends Component
             'details.item',
             'details.unitMeasurement',
             'store',
-            'reason'
+            'reason',
+            'supplierContact'
         ])->find($movementId);
         
         if ($movement) {
@@ -97,6 +149,7 @@ class MovementForm extends Component
                 'store_name' => $movement->store->name ?? 'N/A',
                 'reason_name' => $movement->reason->name ?? 'N/A',
                 'user_name' => $movement->user->name ?? 'N/A',
+                'supplier_name' => ($movement->supplier > 0 && $movement->supplierContact) ? $movement->supplierContact->firstName : '-',
                 'status' => $movement->status,
                 'observations' => $movement->observations,
                 'details' => $movement->details->map(function ($detail) {
@@ -228,7 +281,17 @@ class MovementForm extends Component
     #[Computed]
     public function items()
     {
-        return Items::where('status', 1)->get();
+        $this->ensureTenantConnection();
+        return Items::where('status', 1)
+            ->get(['id', 'name', 'sku'])
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'sku' => $item->sku ?? 'N/A'
+                ];
+            })
+            ->toArray();
     }
     
     /**
@@ -237,8 +300,45 @@ class MovementForm extends Component
     #[Computed]
     public function unitMeasurements()
     {
-        return UnitMeasurements::where('status', 1)->get();
+        $this->ensureTenantConnection();
+        return UnitMeasurements::where('status', 1)
+            ->get(['id', 'description', 'quantity'])
+            ->map(function($unit) {
+                return [
+                    'id' => $unit->id,
+                    'description' => $unit->description,
+                    'quantity' => $unit->quantity
+                ];
+            })
+            ->toArray();
     }
+
+
+     /**
+     * Computed property for suppliers (proveedores)
+     * Gets contacts from companies marked as suppliers
+     */
+    #[Computed]
+    public function suppliers()
+    {
+        $this->ensureTenantConnection();
+        
+        return \App\Models\Tenant\Customer\VntContacts::select('vnt_companies.id', 'vnt_contacts.firstName')
+            ->join('vnt_companies', 'vnt_contacts.email', '=', 'vnt_companies.billingEmail')
+            ->where('vnt_companies.type', 'PROVEEDOR')
+            ->where('vnt_contacts.status', 1)
+            ->whereNull('vnt_contacts.deleted_at')
+            ->distinct()
+            ->get()
+            ->map(function($supplier) {
+                return [
+                    'id' => $supplier->id,
+                    'firstName' => $supplier->firstName
+                ];
+            })
+            ->toArray();
+    }
+
     /**
      * Open modal to create new movement
      */
@@ -312,32 +412,77 @@ class MovementForm extends Component
     /**
      * Add item detail to the table
      */
-    public function addDetail()
+   public function addDetail()
     {
+        // Prevenir múltiples clicks
+        if ($this->isProcessing) {
+            return;
+        }
+        
+        $this->isProcessing = true;
+        
         try {
-            // Validate detail form
+            
+            // Validación básica para evitar errores con clicks múltiples
+            if (empty($this->detailForm['itemId'])) {
+                $this->errorMessage = 'Debe seleccionar un item';
+                $this->isProcessing = false;
+                return;
+            }
+            
+            if (empty($this->detailForm['quantity']) || $this->detailForm['quantity'] <= 0) {
+                $this->errorMessage = 'La cantidad debe ser mayor a 0';
+                $this->isProcessing = false;
+                return;
+            }
+            
+            if (empty($this->detailForm['unitMeasurementId'])) {
+                $this->errorMessage = 'Debe seleccionar una unidad de medida';
+                $this->isProcessing = false;
+                return;
+            }
+            
+            // Validación condicional del campo cost
+            if ($this->warehouseForm['movementType'] == 'ENTRADA' && $this->movementForm['reasonId'] == 1) {
+                if (empty($this->detailForm['cost']) || $this->detailForm['cost'] <= 0) {
+                    $this->errorMessage = 'El costo unitario es obligatorio y debe ser mayor a 0';
+                    $this->isProcessing = false;
+                    return;
+                }
+                
+                if (!is_numeric($this->detailForm['cost'])) {
+                    $this->errorMessage = 'El costo debe ser un valor numérico';
+                    $this->isProcessing = false;
+                    return;
+                }
+                
+                // Validación del proveedor
+                if (empty($this->detailForm['supplierId'])) {
+                    $this->errorMessage = 'El proveedor es requerido para movimientos de compra';
+                    $this->isProcessing = false;
+                    return;
+                }
+            }
+             // Validate detail form
             $this->ensureTenantConnection();
-
-            $this->validate([
-                'detailForm.itemId' => 'required|exists:tenant.inv_items,id',
-                'detailForm.quantity' => 'required|numeric|min:0.01',
-                'detailForm.unitMeasurementId' => 'required|exists:tenant.inv_unit_measurements,id',
-            ], [
-                'detailForm.itemId.required' => 'Debe seleccionar un item',
-                'detailForm.itemId.exists' => 'El item seleccionado no es válido',
-                'detailForm.quantity.required' => 'La cantidad es obligatoria',
-                'detailForm.quantity.numeric' => 'La cantidad debe ser un número',
-                'detailForm.quantity.min' => 'La cantidad debe ser mayor a 0',
-                'detailForm.unitMeasurementId.required' => 'Debe seleccionar una unidad de medida',
-                'detailForm.unitMeasurementId.exists' => 'La unidad de medida seleccionada no es válida',
-            ]);
-
-          
-           
+            
             // Get item and unit measurement info with all relationships
             $item = Items::with(['invValues', 'purchasingUnit', 'consumptionUnit'])
-                ->findOrFail($this->detailForm['itemId']);
+                ->find($this->detailForm['itemId']);
+            
+            if (!$item) {
+                $this->errorMessage = 'El item seleccionado no existe';
+                $this->isProcessing = false;
+                return;
+            }
+            
             $unitMeasurement = UnitMeasurements::find($this->detailForm['unitMeasurementId']);
+            
+            if (!$unitMeasurement) {
+                $this->errorMessage = 'La unidad de medida seleccionada no existe';
+                $this->isProcessing = false;
+                return;
+            }
             
             // Get price from inv_values
             $price = $item->invValues->first()->values ?? 0;
@@ -380,6 +525,7 @@ class MovementForm extends Component
                  // for exit             
                 if($adjustedQuantity < 0){
                     $this->errorMessage = 'La bodega no tiene stock suficiente para realizar el movimiento';
+                    $this->isProcessing = false;
                     return;
                 }
 
@@ -401,6 +547,9 @@ class MovementForm extends Component
                     'adjustedQuantity' => $adjustedQuantity,
                     'price' => $price,
                     'total' => $price * $quantity,
+                    'cost' => $this->detailForm['cost'] ?? 0,
+                    'supplierId' => $this->detailForm['supplierId'] ?? 0,
+                    'supplierName' => $this->detailForm['supplierName'] ?? '-',
                 ];
             }
 
@@ -409,6 +558,7 @@ class MovementForm extends Component
             $this->clearMessages();
             
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->isProcessing = false;
             throw $e;
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al agregar el item: ' . $e->getMessage();
@@ -416,6 +566,8 @@ class MovementForm extends Component
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+        } finally {
+            $this->isProcessing = false;
         }
     }
     
@@ -502,7 +654,8 @@ class MovementForm extends Component
                     'storeId' => $this->selectedStoreId,
                     'reasonId' => $this->movementForm['reasonId'],
                     'consecutive' => $consecutive,
-                    'userId' => Auth::id()
+                    'userId' => Auth::id(),
+                    'supplier' => !empty($this->details[0]['supplierId']) ? (int)$this->details[0]['supplierId'] : 0,
                 ]);
                 
                 // Create details
@@ -514,6 +667,7 @@ class MovementForm extends Component
                         'itemId' => $detail['itemId'],
                         'quantity' => $detail['quantity'],
                         'unitMeasurementId' => $detail['unitMeasurementId'],
+                        'cost' => $detail['cost'] ?? 0,
                     ]);
 
                     // Update or create stock
@@ -543,11 +697,11 @@ class MovementForm extends Component
                     'type' => $this->warehouseForm['movementType'],
                     'detailsCount' => count($this->details)
                 ]);
-                
+                $this->showModal = false;
                 // Reset form and close modal
                 $this->resetForm();
-                $this->showModal = false;
-                
+
+                $this->movementType = $selectedType;
                 // Refresh the movement list with the movement type
                 $this->dispatch('refreshMovements', type: $selectedType);
                 
@@ -606,6 +760,8 @@ class MovementForm extends Component
             'itemId' => '',
             'quantity' => '',
             'unitMeasurementId' => '',
+            'cost' => 0,
+            'supplierId' => '',
         ];
         
         // Set default unit measurement to UNIDAD

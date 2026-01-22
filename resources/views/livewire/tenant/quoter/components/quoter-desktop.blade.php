@@ -12,12 +12,22 @@
 
                 <button
                     wire:click="nuevaCotizacion"
-                    class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center transition-colors"
+                    wire:loading.attr="disabled"
+                    wire:target="nuevaCotizacion"
+                    class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm font-medium flex items-center transition-all duration-200"
                 >
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Nueva Cotización
+                    <div wire:loading wire:target="nuevaCotizacion" class="mr-2">
+                        <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <div wire:loading.remove wire:target="nuevaCotizacion">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <span>Nueva Cotización</span>
                 </button>
             </div>
         </div>
@@ -253,6 +263,15 @@
                                         class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
                                         style="display: none;">
                                         <div class="py-1" role="menu" aria-orientation="vertical">
+                                            <button wire:click="viewDetails({{ $quote->id }})"
+                                                class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                </svg>
+                                                Ver Detalle
+                                            </button>
+                                            @if($quote->status !== 'REMISIÓN')
                                             <button wire:click="editarCotizacion({{ $quote->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,6 +279,7 @@
                                                 </svg>
                                                 Editar
                                             </button>
+                                            @endif
                                             <button wire:click="printQuote({{ $quote->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,9 +316,17 @@
                                     @if(!$search)
                                         <button
                                             wire:click="nuevaCotizacion"
-                                            class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded font-medium transition-colors"
+                                            wire:loading.attr="disabled"
+                                            wire:target="nuevaCotizacion"
+                                            class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium transition-all duration-200 flex items-center justify-center mx-auto"
                                         >
-                                            Crear Primer Registro
+                                            <div wire:loading wire:target="nuevaCotizacion" class="mr-2">
+                                                <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </div>
+                                            <span>Crear Primer Registro</span>
                                         </button>
                                     @endif
                                 </div>
@@ -325,78 +353,158 @@
             </div>
         @endif
         </div>
+
+    <!-- Modal de Detalle de Cotización -->
+    <div x-data="{ show: @entangle('showDetailModal') }"
+         x-show="show"
+         class="fixed inset-0 z-[60] overflow-y-auto"
+         style="display: none;"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" @click="show = false">
+                <div class="absolute inset-0 bg-gray-500 dark:bg-slate-900 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Content -->
+            <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border border-gray-200 dark:border-slate-700"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                
+                @if($selectedQuote)
+                    <!-- Header -->
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                                Detalles de Cotización #{{ $selectedQuote->consecutive }}
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                                Fecha: {{ $selectedQuote->created_at->format('d/m/Y H:i') }} | Estado: 
+                                <span class="font-medium text-indigo-500">{{ $selectedQuote->status }}</span>
+                            </p>
+                        </div>
+                        <button @click="show = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <!-- Info Cliente -->
+                            <div class="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700">
+                                <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-4">Información del Cliente</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Nombre:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->customer_name }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Identificación:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->customer->identification ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Tipo persona:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">Natural</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Email:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->customer->billingEmail ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detalles Generales -->
+                            <div class="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700">
+                                <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-4">Detalles Generales</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Tipo:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->typeQuote }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Sucursal:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->warehouse->name ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de Productos -->
+                        <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 mb-6">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                                <thead class="bg-gray-50 dark:bg-slate-700/50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Producto</th>
+                                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Cant.</th>
+                                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Precio Unit.</th>
+                                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                                    @php $totalModal = 0; @endphp
+                                    @foreach($selectedQuote->detalles as $detalle)
+                                        @php 
+                                            $subtotal = $detalle->quantity * $detalle->value;
+                                            $totalModal += $subtotal;
+                                        @endphp
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
+                                                {{ $detalle->item->name ?? $detalle->description }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
+                                                {{ number_format($detalle->quantity, 2) }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
+                                                ${{ number_format($detalle->value, 2) }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900 dark:text-white">
+                                                ${{ number_format($subtotal, 2) }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="bg-gray-50 dark:bg-slate-700/50">
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-4 text-right text-sm font-bold text-gray-700 dark:text-white uppercase tracking-wider">
+                                            Total General:
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-bold text-indigo-500">
+                                            ${{ number_format($totalModal, 2) }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end">
+                        <button @click="show = false" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/30">
+                            Cerrar
+                        </button>
+                    </div>
+                @endif
+            </div>
+        </div>
+            </div>
+        </div>
     </div>
 </div>
 
-{{-- Script de impresión inline para asegurar funcionamiento en producción --}}
-<script>
-// Prevenir múltiples configuraciones de listeners
-if (typeof window.quoterPrintListenerConfigured === 'undefined') {
-    window.quoterPrintListenerConfigured = true;
 
-    // Función de impresión inline para producción
-    function openPrintWindow(eventData) {
-        console.log('🖨️ openPrintWindow ejecutada (inline):', eventData);
-
-        const data = Array.isArray(eventData) ? eventData[0] : eventData;
-        const url = data.url;
-        const format = data.format;
-
-        console.log('🔗 URL a imprimir:', url, '📄 Formato:', format);
-
-        // Tamaño de ventana según formato
-        const features = format === 'pos'
-            ? 'width=400,height=600,scrollbars=yes,resizable=yes,menubar=no,toolbar=no'
-            : 'width=800,height=900,scrollbars=yes,resizable=yes,menubar=no,toolbar=no';
-
-        // Abrir ventana
-        const win = window.open(url, 'printWindow_' + Date.now(), features);
-
-        if (!win) {
-            alert('⚠️ No se pudo abrir la ventana. Verifica que las ventanas emergentes estén permitidas.');
-            return;
-        }
-
-        console.log('✅ Ventana abierta correctamente');
-        win.focus();
-
-        // Auto impresión cuando la página cargue
-        win.onload = function() {
-            setTimeout(() => {
-                console.log('🖨️ Iniciando impresión automática...');
-                win.print();
-            }, 800);
-        };
-    }
-
-    // Función para configurar listener una sola vez
-    function configurePrintListener() {
-        if (window.Livewire && !window.quoterPrintListenerRegistered) {
-            window.quoterPrintListenerRegistered = true;
-            Livewire.on('open-print-window', openPrintWindow);
-            console.log('✅ Listener Livewire configurado una sola vez');
-        }
-    }
-
-    // Configurar listeners cuando el documento esté listo
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔧 Configurando listeners de impresión inline...');
-        configurePrintListener();
-    });
-
-    // También configurar cuando Livewire se inicialice
-    document.addEventListener('livewire:initialized', function() {
-        console.log('🔧 Livewire inicializado, verificando configuración...');
-        configurePrintListener();
-    });
-
-    // Para Livewire 3 también
-    document.addEventListener('livewire:navigated', function() {
-        console.log('🔧 Livewire navegado, verificando configuración...');
-        configurePrintListener();
-    });
-
-    console.log('🛡️ Sistema de impresión protegido contra duplicados');
-}
-</script>
 

@@ -1,11 +1,8 @@
 <?php
 
 use App\Models\Auth\User;
-use App\Services\WhatsApp\WhatsAppService;
-use App\Mail\WhatsAppTokenMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Carbon\Carbon;
@@ -53,11 +50,7 @@ new #[Layout('layouts.guest')] class extends Component
             }
 
             // Verificar si el token ha expirado
-            if (Carbon::now()->greaterThan($user->whatsapp_token_expires_at)) {
-                $this->errorMessage = 'El código ha expirado. Por favor solicita un nuevo código desde el registro.';
-                $this->isLoading = false;
-                return;
-            }
+            // Validación de expiración deshabilitada por solicitud del usuario
 
             // Token válido - activar cuenta y limpiar token
             $user->update([
@@ -68,16 +61,24 @@ new #[Layout('layouts.guest')] class extends Component
 
             Log::info('✅ Token de WhatsApp verificado exitosamente', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ]);
 
-            // Autenticar al usuario
-            Auth::login($user);
+            // Recargar el usuario desde la base de datos para obtener los datos actualizados
+            $user = User::find($user->id);
+
+            // Autenticar al usuario con los datos frescos
+            Auth::login($user, true);
+
+            Log::info('🔄 Usuario autenticado después de verificación', [
+                'user_id' => Auth::id(),
+                'email_verified_at' => Auth::user()->email_verified_at,
+            ]);
 
             session()->flash('status', '¡Cuenta verificada exitosamente! Bienvenido a la plataforma.');
 
-            // Redirigir a completar configuración de empresa
-            $this->redirect(route('company.setup'), navigate: true);
+            // Redirigir usando el método de Livewire sin navigate para forzar recarga completa
+            $this->redirect(route('company.setup'));
 
         } catch (\Exception $e) {
             Log::error('❌ Error verificando token de WhatsApp', [
@@ -92,12 +93,78 @@ new #[Layout('layouts.guest')] class extends Component
     }
 
     /**
-     * Reenviar código (redirigir al registro para generar nuevo token)
+     * Reenviar código de verificación
      */
     public function resendCode(): void
     {
-        session()->flash('info', 'Para solicitar un nuevo código, por favor vuelve al registro.');
-        $this->redirect(route('register'), navigate: true);
+        $this->isResending = true;
+        $this->errorMessage = '';
+        $this->successMessage = '';
+
+        try {
+            // Buscar usuario por email en sesión o el último usuario registrado
+            $user = User::whereNotNull('whatsapp_token')
+                ->whereNotNull('whatsapp_token_expires_at')
+                ->latest()
+                ->first();
+
+            if (!$user) {
+                $this->errorMessage = 'No se encontró una cuenta pendiente de verificación. Por favor regístrate nuevamente.';
+                $this->isResending = false;
+                return;
+            }
+
+            // Generar nuevo token
+            $whatsappToken = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+            $user->update([
+                'whatsapp_token' => $whatsappToken,
+                'whatsapp_token_expires_at' => now()->addMinutes(15),
+            ]);
+
+            // Enviar por email
+            try {
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(
+                    new \App\Mail\WhatsAppTokenMail($user->name, $whatsappToken)
+                );
+
+                Log::info('✅ Código reenviado por correo exitosamente', [
+                    'user_email' => $user->email
+                ]);
+            } catch (\Exception $e) {
+                Log::error('❌ Error reenviando email', [
+                    'error' => $e->getMessage(),
+                    'email' => $user->email
+                ]);
+            }
+
+            // Enviar por WhatsApp si está configurado
+            try {
+                $whatsappService = app(\App\Services\WhatsApp\WhatsAppService::class);
+                $whatsappService->enviarCodigoVerificacion(
+                    $user->phone,
+                    $user->name,
+                    $whatsappToken,
+                    config('whatsapp.empresa.telefono'),
+                    config('whatsapp.empresa.nombre')
+                );
+            } catch (\Exception $e) {
+                // No interrumpir por errores de WhatsApp
+                Log::warning('⚠️ No se pudo enviar por WhatsApp', ['error' => $e->getMessage()]);
+            }
+
+            $this->successMessage = '¡Código reenviado exitosamente! Revisa tu correo electrónico.';
+            $this->lastResendAt = now()->toIso8601String();
+            $this->cooldownSeconds = 60;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error reenviando código', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->errorMessage = 'Error al reenviar el código. Por favor intenta nuevamente.';
+        } finally {
+            $this->isResending = false;
+        }
     }
 }; ?>
 
@@ -122,7 +189,38 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Session Status -->
         <x-auth-session-status class="mb-4" :status="session('status')" />
 
+        <!-- Mensaje informativo desde login -->
+        @if(session('info'))
+            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-blue-800">{{ session('info') }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Mensajes de error y éxito -->
+        @if($successMessage)
+            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-green-800">{{ $successMessage }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         @if($errorMessage)
             <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div class="flex items-center">
@@ -187,8 +285,22 @@ new #[Layout('layouts.guest')] class extends Component
         <div class="mt-6 space-y-4">
             <!-- Reenviar código -->
             <div class="text-center">
-                <button type="button" wire:click="resendCode" class="text-sm text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium">
-                    ¿No recibiste el código? Solicitar nuevo código
+                <button 
+                    type="button" 
+                    wire:click="resendCode" 
+                    wire:loading.attr="disabled"
+                    class="text-sm text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <span wire:loading.remove wire:target="resendCode">
+                        ¿No recibiste el código? Solicitar nuevo código
+                    </span>
+                    <span wire:loading wire:target="resendCode" class="flex items-center justify-center">
+                        <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Reenviando código...
+                    </span>
                 </button>
             </div>
 
