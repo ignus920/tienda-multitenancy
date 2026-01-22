@@ -3,9 +3,12 @@
 namespace App\Services\Facturacion;
 
 use App\Models\Auth\Tenant;
+use App\Services\Facturacion\TenantConfigManager;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 
 class ApiClient
 {
@@ -16,8 +19,8 @@ class ApiClient
 
     public function __construct($baseUrl = null, $token = null, $username = null, $timeout = 30)
     {
-        $this->baseUrl = $baseUrl ?: 'http://127.0.0.1:8000/api';
-        $this->token = $token ?: 'dGljc2lhK2FsZWdyYUBhbGVncmEuY29tOmY3ODQyMTViNTgzYjk5NzU1MzBk';
+        $this->baseUrl = $baseUrl;
+        $this->token = $token;
         $this->username = $username ?: '';
         $this->timeout = $timeout;
     }
@@ -27,18 +30,22 @@ class ApiClient
      */
     public static function forTenant(?Tenant $tenant = null): self
     {
-        if ($tenant && isset($tenant->settings['facturacion'])) {
-            $config = $tenant->settings['facturacion'];
-            return new self(
-                $config['base_url'] ?? null,
-                $config['token'] ?? null,
-                $config['username'] ?? null,
-                $config['timeout'] ?? 30
-            );
+        if ($tenant) {
+            // Usar TenantConfigManager para obtener configuración desde BD
+            $config = TenantConfigManager::getFacturacionConfig($tenant);
+
+            if ($config) {
+                return new self(
+                    $config['base_url'] ?? null,
+                    $config['token'] ?? null,
+                    $config['username'] ?? null,
+                    $config['timeout'] ?? 90
+                );
+            }
         }
 
-        // Usar configuración global como fallback
-        return new self();
+        // Si no hay configuración, lanzar excepción en lugar de usar valores por defecto
+        throw new \Exception('No se encontró configuración de facturación para el tenant. Configure la tabla cnf_invoices.');
     }
 
     /**
@@ -46,6 +53,8 @@ class ApiClient
      */
     protected function makeRequest(string $method, string $endpoint, array $data = []): array
     {
+        $startTime = microtime(true);
+
         try {
             $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
 
@@ -61,7 +70,8 @@ class ApiClient
                 'method' => strtoupper($method),
                 'url' => $url,
                 'headers' => array_keys($headers),
-                'data_size' => count($data)
+                'data_size' => count($data),
+                'timeout' => $this->timeout
             ]);
 
             $response = Http::withHeaders($headers)
@@ -70,36 +80,155 @@ class ApiClient
 
             $responseData = $response->json();
             $statusCode = $response->status();
+            $responseTime = round((microtime(true) - $startTime) * 1000, 2);
 
             Log::info('📡 Respuesta de API de facturación', [
                 'status_code' => $statusCode,
                 'success' => $response->successful(),
+                'response_time_ms' => $responseTime,
                 'response_id' => $responseData['id'] ?? null,
-                'message' => $responseData['message'] ?? null
+                'message' => $responseData['message'] ?? null,
+                'response_size' => strlen(json_encode($responseData))
             ]);
 
-            return [
+            $result = [
                 'success' => $response->successful(),
                 'status' => $statusCode,
                 'data' => $responseData,
-                'message' => $responseData['message'] ?? null
+                'message' => $responseData['message'] ?? null,
+                'response_time' => $responseTime,
+                'request_info' => [
+                    'method' => strtoupper($method),
+                    'url' => $url,
+                    'data_sent' => count($data) > 0
+                ]
             ];
 
+            // Añadir información adicional para errores
+            if (!$response->successful()) {
+                $result['error_details'] = [
+                    'status_code' => $statusCode,
+                    'status_text' => $this->getHttpStatusText($statusCode),
+                    'response_body' => $responseData,
+                    'request_url' => $url,
+                    'request_method' => strtoupper($method)
+                ];
+
+                // Agregar información de validación si está disponible
+                if ($statusCode === 422 && isset($responseData['errors'])) {
+                    $result['validation_errors'] = $responseData['errors'];
+                }
+            }
+
+            return $result;
+
         } catch (Exception $e) {
+            $responseTime = round((microtime(true) - $startTime) * 1000, 2);
+
+            // Categorizar el error
+            $errorType = $this->categorizeError($e);
+
             Log::error('❌ Error en petición a API de facturación', [
                 'method' => strtoupper($method),
                 'endpoint' => $endpoint,
+                'url' => rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/'),
+                'error_type' => $errorType['type'],
                 'error' => $e->getMessage(),
+                'response_time_ms' => $responseTime,
+                'timeout_configured' => $this->timeout,
+                'data_size' => count($data),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return [
                 'success' => false,
-                'status' => 500,
+                'status' => $errorType['http_code'],
                 'data' => null,
-                'message' => 'Error de conexión: ' . $e->getMessage()
+                'message' => $errorType['user_message'],
+                'response_time' => $responseTime,
+                'error_details' => [
+                    'error_type' => $errorType['type'],
+                    'original_message' => $e->getMessage(),
+                    'request_url' => rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/'),
+                    'request_method' => strtoupper($method),
+                    'timeout_used' => $this->timeout
+                ]
             ];
         }
+    }
+
+    /**
+     * Categorizar el tipo de error
+     */
+    private function categorizeError(Exception $e): array
+    {
+        $message = $e->getMessage();
+
+        // Errores de conexión cURL
+        if (str_contains($message, 'Connection refused') ||
+            str_contains($message, 'Could not resolve host') ||
+            str_contains($message, 'Failed to connect') ||
+            str_contains($message, 'Couldn\'t connect to server') ||
+            str_contains($message, 'cURL error 7')) {
+            return [
+                'type' => 'connection',
+                'http_code' => 503,
+                'user_message' => 'No se puede conectar al servidor de facturación. Verifique que el servicio esté disponible'
+            ];
+        }
+
+        // Errores de timeout
+        if (str_contains($message, 'timeout') ||
+            str_contains($message, 'timed out') ||
+            str_contains($message, 'Operation timed out') ||
+            str_contains($message, 'cURL error 28')) {
+            return [
+                'type' => 'timeout',
+                'http_code' => 408,
+                'user_message' => 'La petición al servidor de facturación ha expirado. Intente nuevamente'
+            ];
+        }
+
+        // Errores SSL/TLS
+        if (str_contains($message, 'SSL') ||
+            str_contains($message, 'certificate') ||
+            str_contains($message, 'cURL error 35') ||
+            str_contains($message, 'cURL error 60')) {
+            return [
+                'type' => 'ssl',
+                'http_code' => 495,
+                'user_message' => 'Error de certificado SSL en la conexión'
+            ];
+        }
+
+        return [
+            'type' => 'general',
+            'http_code' => 500,
+            'user_message' => 'Error de conexión: ' . $message
+        ];
+    }
+
+    /**
+     * Obtener texto descriptivo del código de estado HTTP
+     */
+    private function getHttpStatusText(int $code): string
+    {
+        $statusTexts = [
+            200 => 'OK',
+            201 => 'Created',
+            400 => 'Bad Request',
+            401 => 'Unauthorized',
+            403 => 'Forbidden',
+            404 => 'Not Found',
+            408 => 'Request Timeout',
+            422 => 'Unprocessable Entity',
+            500 => 'Internal Server Error',
+            502 => 'Bad Gateway',
+            503 => 'Service Unavailable',
+            504 => 'Gateway Timeout'
+        ];
+
+        return $statusTexts[$code] ?? 'Unknown Status';
     }
 
     // =================== CATEGORÍAS ===================

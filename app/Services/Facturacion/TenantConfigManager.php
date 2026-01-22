@@ -3,6 +3,7 @@
 namespace App\Services\Facturacion;
 
 use App\Models\Auth\Tenant;
+use App\Services\Facturacion\DatabaseConfigService;
 use Illuminate\Support\Facades\Log;
 
 class TenantConfigManager
@@ -55,10 +56,43 @@ class TenantConfigManager
 
     /**
      * Obtener configuración de facturación de un tenant
+     * Prioridad: 1) Base de datos (cnf_invoices), 2) Settings del tenant como fallback
      */
     public static function getFacturacionConfig(Tenant $tenant): ?array
     {
-        return $tenant->settings['facturacion'] ?? null;
+        // Primera prioridad: configuración desde base de datos
+        $databaseConfig = DatabaseConfigService::getFacturacionConfigFromDatabase($tenant);
+
+        if ($databaseConfig) {
+            Log::info('✅ Usando configuración desde base de datos', [
+                'tenant_id' => $tenant->id,
+                'source' => 'database',
+                'warehouse_id' => $databaseConfig['warehouse_id'] ?? null,
+                'facturador' => $databaseConfig['facturador'] ?? null
+            ]);
+            return $databaseConfig;
+        }
+
+        // Fallback: configuración en settings del tenant (solo si no hay en BD)
+        $settingsConfig = $tenant->settings['facturacion'] ?? null;
+
+        if ($settingsConfig && !empty($settingsConfig['token']) && ($settingsConfig['enabled'] ?? false)) {
+            Log::warning('⚠️ Usando configuración desde settings (fallback) - Se recomienda migrar a BD', [
+                'tenant_id' => $tenant->id,
+                'source' => 'settings_fallback'
+            ]);
+            return $settingsConfig;
+        }
+
+        Log::error('❌ No se encontró configuración de facturación en ninguna fuente', [
+            'tenant_id' => $tenant->id,
+            'company_id' => $tenant->company_id,
+            'has_settings' => isset($tenant->settings['facturacion']),
+            'settings_enabled' => $settingsConfig['enabled'] ?? false,
+            'has_database_config' => DatabaseConfigService::hasConfigurationInDatabase($tenant)
+        ]);
+
+        return null;
     }
 
     /**
@@ -68,6 +102,22 @@ class TenantConfigManager
     {
         $config = self::getFacturacionConfig($tenant);
         return $config && !empty($config['token']) && ($config['enabled'] ?? false);
+    }
+
+    /**
+     * Obtener configuración específica por warehouse_id
+     */
+    public static function getConfigByWarehouseId(int $warehouseId): ?array
+    {
+        return DatabaseConfigService::getConfigByWarehouseId($warehouseId);
+    }
+
+    /**
+     * Obtener todas las configuraciones de warehouses para un tenant
+     */
+    public static function getAllWarehouseConfigs(Tenant $tenant): array
+    {
+        return DatabaseConfigService::getAllWarehouseConfigs($tenant);
     }
 
     /**

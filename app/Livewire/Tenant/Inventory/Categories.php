@@ -17,8 +17,6 @@ class Categories extends Component
 
     public $category_id, $name, $status, $created_at;
 
-    public $category_id, $name, $status, $created_at;
-
     // Propiedades para la tabla
     public $search = '';
     public $sortField = 'name';
@@ -84,22 +82,11 @@ class Categories extends Component
     public function mount()
     {
         $this->ensureTenantConnection();
-        $this->initializeService();
-    }
-
-    private function initializeService()
-    {
-        if (!$this->categoriesService) {
-            $this->categoriesService = new CategoriesService();
-        }
     }
 
     private function getService(): CategoriesService
     {
-        if (!$this->categoriesService) {
-            $this->initializeService();
-        }
-        return $this->categoriesService;
+        return new CategoriesService();
     }
 
     public function create()
@@ -142,10 +129,10 @@ class Categories extends Component
             if ($this->category_id) {
                 $category = Category::findOrFail($this->category_id);
                 $service->updateCategory($category, $categorieData);
-                session()->flash('message', 'Categoría actualizada correctamente.');
+                // Los mensajes los maneja el service
             } else {
                 $service->createCategory($categorieData);
-                session()->flash('message', 'Categoría creada correctamente.');
+                // Los mensajes los maneja el service
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('❌ Error en Livewire save', [
@@ -173,7 +160,7 @@ class Categories extends Component
             'status' => $newStatus,
         ]);
 
-        session()->flash('message', 'Estado actualizado correctamente');
+        session()->flash('success', 'Estado actualizado correctamente');
     }
 
     public function confirmItemDeletion($id)
@@ -196,7 +183,7 @@ class Categories extends Component
         $category->update($categorieData);
         $this->confirmingItemDeletion = false;
         $this->reset(['categorieIdToDelete']);
-        session()->flash('message', 'Item eliminado correctamente');
+        session()->flash('success', 'Item eliminado correctamente');
     }
 
 

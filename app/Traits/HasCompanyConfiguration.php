@@ -286,6 +286,7 @@ trait HasCompanyConfiguration
         return 2; // Por defecto institucional - CAMBIAR según tu lógica
     }
 
+
     /**
      * Genera array de configuración para frontend (JavaScript)
      * Método genérico que devuelve todas las opciones habilitadas

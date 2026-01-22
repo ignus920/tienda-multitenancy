@@ -18,6 +18,7 @@ class InvStore extends Model
         'warehouseId',
         'store_manager',
         'status',
+        'api_data_id',
         'created_at',
         'updated_at',
     ];
