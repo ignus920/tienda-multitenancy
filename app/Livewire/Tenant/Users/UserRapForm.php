@@ -20,6 +20,13 @@ use App\Traits\HasCompanyConfiguration;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 
+// sincronizacion con el api
+use App\Services\Facturacion\DatabaseConfigService;
+use App\Services\Facturacion\ApiClient;
+use App\Models\Tenant\CnfInvoice;
+
+
+
 
 class UserRapForm extends Component
 {
@@ -408,6 +415,8 @@ class UserRapForm extends Component
             // Validate all inputs
             $this->validateForm();
             
+            $user = null;
+
             // Check if editingId exists to determine create vs update mode
             if ($this->editingId) {
                 // Update mode
@@ -415,7 +424,30 @@ class UserRapForm extends Component
                 $this->updateUserWithContact($user);
             } else {
                 // Create mode
-                $this->createUserWithContact();
+                $user = $this->createUserWithContact();
+            }
+
+            // Solo sincronizar si tenemos un usuario válido
+            if ($user) {
+                try {
+                    set_time_limit(10); // Máximo 10 segundos para sincronización
+                    $syncResult = $this->syncUserWithApi($user);
+                    set_time_limit(60); // Restaurar timeout normal
+
+                    // Mostrar mensaje de éxito o advertencia al usuario
+                    if ($syncResult['success']) {
+                        session()->flash('sync_message', '✅ Usuario creado/actualizado y sincronizado con la API de facturación correctamente.');
+                    } else {
+                        session()->flash('sync_warning', '⚠️ Usuario creado/actualizado localmente, pero falló la sincronización con API: ' . $syncResult['message']);
+                    }
+                } catch (\Exception $e) {
+                    set_time_limit(60); // Restaurar timeout normal
+                    Log::error('Timeout o error en sincronización de usuario', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    session()->flash('sync_error', '❌ Usuario creado/actualizado localmente, pero falló la sincronización con API de facturación. Error: ' . $e->getMessage());
+                }
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -453,8 +485,9 @@ class UserRapForm extends Component
 
     /**
      * Create user with associated contact record
+     * @return User|null
      */
-    private function createUserWithContact(): void
+    private function createUserWithContact(): ?User
     {
         try {
             $sessionTenant = $this->getTenantId();
@@ -505,7 +538,9 @@ class UserRapForm extends Component
             
             // Close modal after successful creation
             $this->closeModal();
-            
+
+            return $user;
+
         } catch (\Exception $e) {
             DB::rollBack();
             $this->errorMessage = 'Error al crear el usuario: ' . $e->getMessage();
@@ -519,13 +554,16 @@ class UserRapForm extends Component
                     'warehouseId' => $this->warehouseId,
                 ]
             ]);
+
+            return null;
         }
     }
 
     /**
      * Update user with associated contact record
+     * @return User
      */
-    private function updateUserWithContact(User $user): void
+    private function updateUserWithContact(User $user): User
     {
         try {
             DB::beginTransaction();
@@ -566,7 +604,8 @@ class UserRapForm extends Component
             
             // Close modal after successful update
             $this->closeModal();
-            
+
+            return $user;
         } catch (\Exception $e) {
             DB::rollBack();
             $this->errorMessage = 'Error al actualizar el usuario: ' . $e->getMessage();
@@ -932,7 +971,400 @@ class UserRapForm extends Component
          return false;
     }
 
-    
+    /**
+     * Verificar si el plan permite sincronizar vendedores
+     * Similar a canCreateOrUpdateUsers pero para vendedores
+     */
+    private function canSyncVendors(): bool
+    {
+        try {
+            $this->ensureTenantConnection();
+            $this->initializeCompanyConfiguration();
+
+            // Limpiar caché para testing
+            $this->clearConfigurationCache();
+
+            // Verificar límite de vendedores (podría usar el mismo option_id que usuarios o uno específico)
+            $result = $this->isOptionEnabled(1); // Usar mismo que usuarios por ahora
+            $value = $this->getOptionValue(1);
+
+            // Contar vendedores activos actuales con api_data_id (ya sincronizados)
+            $syncedVendors = $this->users->filter(function($user) {
+                return $user->contact &&
+                       $user->contact->status == 1 &&
+                       !empty($user->api_data_id); // Solo contar los que ya están sincronizados
+            });
+            $syncedCount = $syncedVendors->count();
+
+            Log::info('🔍 canSyncVendors() verificación', [
+                'companyId' => $this->currentCompanyId,
+                'option_id' => 1,
+                'result' => $result ? 'TRUE' : 'FALSE',
+                'option_value' => $value,
+                'synced_vendors_count' => $syncedCount,
+                'plan_limit' => $value,
+                'can_sync' => $syncedCount < $value
+            ]);
+
+            // Permitir sincronización si el número de vendedores sincronizados es menor que el límite
+            return $syncedCount < $value;
+
+        } catch (\Exception $e) {
+            Log::error('Error verificando límites de vendedores', [
+                'company_id' => $this->currentCompanyId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    private function syncUserWithApi(User $user): array
+    {
+        try {
+            Log::info('🔄 syncUserWithApi INICIO', ['user_id' => $user->id]);
+
+            // Verificar que tenemos company_id válido
+            if (!$this->currentCompanyId) {
+                $this->initializeCompanyConfiguration();
+
+                if (!$this->currentCompanyId) {
+                    Log::error('❌ No se pudo obtener currentCompanyId', [
+                        'user_id' => $user->id
+                    ]);
+                    return [
+                        'success' => false,
+                        'message' => 'Error de configuración: No se pudo obtener el ID de la empresa'
+                    ];
+                }
+            }
+
+            // Verificar si facturación electrónica está habilitada
+            if (!$this->isElectronicInvoicingEnabled($this->currentCompanyId)) {
+                Log::info('❌ Facturación electrónica no habilitada - bloqueando sincronización', [
+                    'user_id' => $user->id,
+                    'company_id' => $this->currentCompanyId
+                ]);
+                return [
+                    'success' => false,
+                    'message' => 'La facturación electrónica no está habilitada para esta empresa. Active el módulo para sincronizar vendedores.'
+                ];
+            }
+
+            // Verificar límites del plan para vendedores (igual que en usuarios)
+            if (!$this->canSyncVendors()) {
+                Log::info('⏭️ Plan no permite más vendedores - omitiendo sincronización', [
+                    'user_id' => $user->id,
+                    'company_id' => $this->currentCompanyId
+                ]);
+                return [
+                    'success' => false,
+                    'message' => 'El plan actual no permite crear más vendedores en la API de facturación'
+                ];
+            }
+
+            Log::info('✅ Iniciando sincronización de vendedor', [
+                'user_id' => $user->id,
+                'company_id' => $this->currentCompanyId
+            ]);
+
+            // Obtener usuario autenticado para configuración
+            $authUser = Auth::user();
+            if (!$authUser) {
+                Log::error('❌ No hay usuario autenticado para sincronización');
+                return [
+                    'success' => false,
+                    'message' => 'Error de autenticación: No hay usuario logueado'
+                ];
+            }
+
+            // Asegurarse de que tenancy esté correctamente inicializado
+            $this->ensureTenantConnection();
+
+            // Verificar que la conexión tenant apunte a desarrollo, no a RAP
+            $tenantDbName = config('database.connections.tenant.database');
+            Log::info('🔍 Verificando conexión antes de usar DatabaseConfigService', [
+                'user_id' => $authUser->id,
+                'tenant_db' => $tenantDbName,
+                'expected_db' => 'desarrollo (NO rap)'
+            ]);
+
+            // Usar EXACTAMENTE el mismo método que funciona para items
+            $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
+            if (!$optimizedConfig) {
+                Log::error('❌ No se encontró configuración de facturación para usuario', [
+                    'user_id' => $authUser->id,
+                    'user_email' => $authUser->email
+                ]);
+                return [
+                    'success' => false,
+                    'message' => 'Error de configuración: No se encontró configuración de facturación para el usuario actual'
+                ];
+            }
+
+            Log::info('✅ Configuración obtenida (IGUAL QUE ITEMS)', [
+                'user_id' => $authUser->id,
+                'config_source' => $optimizedConfig['source'] ?? 'unknown',
+                'base_url' => $optimizedConfig['base_url'] ?? 'unknown',
+                'has_token' => !empty($optimizedConfig['token']),
+                'token_preview' => !empty($optimizedConfig['token']) ? substr($optimizedConfig['token'], 0, 10) . '...' : 'vacio',
+                'username' => $optimizedConfig['username'] ?? 'unknown',
+                'warehouse_id' => $optimizedConfig['warehouse_id'] ?? 'unknown'
+            ]);
+
+            // Crear ApiClient con configuración optimizada
+            $apiClient = new ApiClient(
+                $optimizedConfig['base_url'],
+                $optimizedConfig['token'],
+                $optimizedConfig['username'],
+                $optimizedConfig['timeout']
+            );
+
+            Log::info('🚀 Usando configuración para Vendedores', [
+                'auth_user_id' => $authUser->id,
+                'warehouse_id' => $optimizedConfig['warehouse_id'],
+                'source' => $optimizedConfig['source']
+            ]);
+
+            // Preparar datos para la API según estructura requerida para vendedores
+            // {"name":"pedro","identification":"1018507004","observations":"vendedor","status":"active"}
+            $apiData = [
+                'name' => $user->name,
+                'identification' => $user->contact->phone_contact ?? $user->phone, // Usar teléfono como identificación
+                'observations' => 'vendedor',
+                'status' => ($user->contact && $user->contact->status) ? 'active' : 'inactive'
+            ];
+
+            // LOGGING: Mostrar el JSON que se está generando
+            Log::info('📋 JSON generado para API de Vendedores', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'json_data' => $apiData,
+                'json_formatted' => json_encode($apiData, JSON_PRETTY_PRINT)
+            ]);
+
+            // AGREGAR LOG DE URL COMPLETA PARA DEBUGGING
+            $baseUrl = $optimizedConfig['base_url'];
+            Log::info('🌐 URL completa que se llamará', [
+                'user_id' => $user->id,
+                'base_url' => $baseUrl,
+                'endpoint' => $user->api_data_id ? "sellers/{$user->api_data_id}" : 'sellers',
+                'full_url' => rtrim($baseUrl, '/') . '/' . ($user->api_data_id ? "sellers/{$user->api_data_id}" : 'sellers'),
+                'method' => $user->api_data_id ? 'PUT' : 'POST',
+                'note' => 'Usando /sellers (correcto)'
+            ]);
+
+            // Sincronizar (crear o actualizar)
+            if ($user->api_data_id) {
+                Log::info('📝 Actualizando vendedor en API', [
+                    'user_id' => $user->id,
+                    'api_data_id' => $user->api_data_id
+                ]);
+                $apiResult = $apiClient->updateSeller($user->api_data_id, $apiData);
+            } else {
+                Log::info('📝 Creando vendedor en API', [
+                    'user_id' => $user->id,
+                    'name' => $user->name
+                ]);
+                $apiResult = $apiClient->createSeller($apiData);
+            }
+
+            if ($apiResult['success']) {
+                // Guardar ID de la API si se creó exitosamente
+                if (isset($apiResult['data']['id']) && !$user->api_data_id) {
+                    $user->update(['api_data_id' => $apiResult['data']['id']]);
+                    Log::info('💾 ID de API guardado para vendedor', [
+                        'user_id' => $user->id,
+                        'api_data_id' => $apiResult['data']['id']
+                    ]);
+                }
+
+                Log::info('✅ Vendedor sincronizado exitosamente', [
+                    'user_id' => $user->id,
+                    'api_response_id' => $apiResult['data']['id'] ?? 'N/A'
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Vendedor sincronizado exitosamente con la API de facturación'
+                ];
+            } else {
+                $errorMessage = $apiResult['message'] ?? 'Error desconocido en la API';
+                Log::error('❌ Error sincronizando vendedor', [
+                    'user_id' => $user->id,
+                    'api_error' => $errorMessage
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Error en la API de facturación: ' . $errorMessage
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción sincronizando vendedor', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'error_type' => 'exception'
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Verificar si facturación electrónica está habilitada
+     */
+    private function isElectronicInvoicingEnabled(?int $companyId): bool
+    {
+        try {
+            if (!$companyId) {
+                Log::warning('Company ID es null para verificación de facturación electrónica');
+                return false;
+            }
+
+            // Asegurar que currentCompanyId está configurado
+            if ($this->currentCompanyId !== $companyId) {
+                $this->currentCompanyId = $companyId;
+            }
+
+            $optionValue = $this->getOptionValue(8); // Option ID 8 = facturación electrónica
+            $enabled = $optionValue == 1;
+
+            Log::debug('Verificación de facturación electrónica para vendedor', [
+                'company_id' => $companyId,
+                'option_value' => $optionValue,
+                'enabled' => $enabled
+            ]);
+
+            return $enabled;
+        } catch (\Exception $e) {
+            Log::error('Error verificando facturación electrónica para vendedor', [
+                'company_id' => $companyId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Obtener configuración de facturación desde la BD del tenant
+     * Combina datos centrales (usuarios) con datos del tenant (cnf_invoices)
+     */
+    private function getFacturacionConfigFromTenant(int $userId): ?array
+    {
+        try {
+            // Asegurar conexión con el tenant
+            $this->ensureTenantConnection();
+
+            // Verificar conexión del tenant
+            $tenantDbName = config('database.connections.tenant.database');
+            Log::info('🔍 Buscando configuración de facturación en BD tenant', [
+                'user_id' => $userId,
+                'tenant_db_name' => $tenantDbName,
+                'tenant_connection_check' => 'verificando...'
+            ]);
+
+            // Verificar que la conexión del tenant esté funcionando
+            try {
+                $tenantTablesCheck = DB::connection('tenant')->select("SHOW TABLES LIKE 'cnf_invoices'");
+                Log::info('✅ Conexión tenant verificada', [
+                    'user_id' => $userId,
+                    'cnf_invoices_table_exists' => !empty($tenantTablesCheck)
+                ]);
+            } catch (\Exception $e) {
+                Log::error('❌ Error verificando conexión tenant', [
+                    'user_id' => $userId,
+                    'error' => $e->getMessage()
+                ]);
+                return null;
+            }
+
+            // 1. Obtener el usuario desde RAP (conexión central)
+            $centralDbName = config('database.connections.central.database');
+
+            // Obtener contacto del usuario desde RAP
+            $userContact = DB::connection('central')
+                ->table('users as u')
+                ->join('vnt_contacts as c', 'c.id', '=', 'u.contact_id')
+                ->where('u.id', $userId)
+                ->select('c.warehouseId')
+                ->first();
+
+            if (!$userContact || !$userContact->warehouseId) {
+                Log::warning('⚠️ Usuario sin contacto o sin warehouseId en RAP', [
+                    'user_id' => $userId,
+                    'contact_found' => !is_null($userContact)
+                ]);
+                return null;
+            }
+
+            Log::info('👤 Datos del usuario obtenidos de RAP', [
+                'user_id' => $userId,
+                'warehouse_id' => $userContact->warehouseId
+            ]);
+
+            // 2. Obtener configuración desde cnf_invoices del tenant usando el warehouseId
+            Log::info('🔍 Ejecutando consulta en cnf_invoices del tenant', [
+                'user_id' => $userId,
+                'warehouse_id' => $userContact->warehouseId,
+                'query' => 'SELECT * FROM cnf_invoices WHERE id_warehouses = ' . $userContact->warehouseId
+            ]);
+
+            $tenantConfig = CnfInvoice::where('id_warehouses', $userContact->warehouseId)
+                ->first();
+
+            Log::info('📋 Resultado de consulta cnf_invoices', [
+                'user_id' => $userId,
+                'warehouse_id' => $userContact->warehouseId,
+                'config_found' => !is_null($tenantConfig),
+                'config_data' => $tenantConfig ? [
+                    'id' => $tenantConfig->id,
+                    'facturador' => $tenantConfig->facturador,
+                    'token_exists' => !empty($tenantConfig->token)
+                ] : null
+            ]);
+
+            if (!$tenantConfig) {
+                Log::warning('⚠️ No se encontró configuración en cnf_invoices del tenant', [
+                    'user_id' => $userId,
+                    'warehouse_id' => $userContact->warehouseId
+                ]);
+                return null;
+            }
+
+            // 3. Preparar array de configuración
+            $config = [
+                'base_url' => $tenantConfig->facturador, // facturador contiene la base_url
+                'token' => $tenantConfig->token,
+                'username' => $tenantConfig->username ?? 'api_user', // valor por defecto si no existe
+                'timeout' => $tenantConfig->timeout ?? 30,
+                'warehouse_id' => $userContact->warehouseId,
+                'source' => 'tenant_bd'
+            ];
+
+            Log::info('✅ Configuración de facturación obtenida desde BD tenant', [
+                'user_id' => $userId,
+                'warehouse_id' => $config['warehouse_id'],
+                'base_url' => $config['base_url'],
+                'has_token' => !empty($config['token']),
+                'source' => $config['source']
+            ]);
+
+            return $config;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error obteniendo configuración de facturación desde BD tenant', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
+    }
+
     private function ensureTenantConnection(): void
     {
         $tenantId = session('tenant_id');
@@ -948,11 +1380,25 @@ class UserRapForm extends Component
             throw new \Exception('Invalid tenant');
         }
 
+        Log::info('🔧 Configurando conexión tenant', [
+            'tenant_id' => $tenantId,
+            'tenant_data' => $tenant->data ?? 'no data'
+        ]);
+
         // Establecer conexión tenant
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+
+        // Verificar que la conexión esté correctamente configurada
+        $currentTenantDb = config('database.connections.tenant.database');
+        Log::info('✅ Conexión tenant configurada', [
+            'tenant_id' => $tenantId,
+            'tenant_database' => $currentTenantDb
+        ]);
     }
 }
+
+

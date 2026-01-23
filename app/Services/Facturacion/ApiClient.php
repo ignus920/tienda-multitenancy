@@ -432,4 +432,45 @@ class ApiClient
     {
         return $this->makeRequest('delete', $endpoint);
     }
+
+    /**
+     * Crear vendedor en la API
+     */
+    public function createSeller(array $sellerData): array
+    {
+        return $this->post('sellers', $sellerData);
+    }
+
+    /**
+     * Actualizar vendedor en la API
+     */
+    public function updateSeller(string $sellerId, array $sellerData): array
+    {
+        return $this->put("sellers/{$sellerId}", $sellerData);
+    }
+
+    /**
+     * Obtener vendedor por ID
+     */
+    public function getSeller(string $sellerId): array
+    {
+        return $this->get("sellers/{$sellerId}");
+    }
+
+    /**
+     * Listar vendedores
+     */
+    public function getSellers(array $params = []): array
+    {
+        $queryString = !empty($params) ? '?' . http_build_query($params) : '';
+        return $this->get("sellers{$queryString}");
+    }
+
+    /**
+     * Eliminar vendedor
+     */
+    public function deleteSeller(string $sellerId): array
+    {
+        return $this->delete("sellers/{$sellerId}");
+    }
 }
