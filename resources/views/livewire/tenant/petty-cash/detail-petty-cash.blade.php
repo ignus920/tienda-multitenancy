@@ -1,4 +1,4 @@
-<div>
+<div class="w-full">
     {{-- @if(!$reusable) --}}
     {{-- <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6"> --}}
         {{-- <div class="max-w-12xl mx-auto"> --}}
@@ -15,7 +15,6 @@
                 </div>
             </div>
             @endif
-
             @if (session()->has('warning'))
             <div
                 class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-6">
@@ -25,64 +24,72 @@
                 </div>
             </div>
             @endif
+            @if( session()->has('error'))
+            <div
+                class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-6">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    {!! session('error') !!}
+                </div>
+            </div>
+            @endif
 
             <!-- DataTable Card -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="w-full lg:max-h-96 lg:overflow-y-auto md:max-h-80">
                 <!--Resumen datos caja-->
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!--Base-->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">BASE</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">BASE</label>
                             <input type="text" readonly
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value="{{number_format($this->resumen['resumBase'],2)}}">
                         </div>
 
                         <!--Suma de ingresos-->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SUMA
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SUMA
                                 INGRESOS</label>
                             <input type="text" readonly
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value="{{ number_format($this->resumen['ingresos'],2) }}">
                         </div>
 
                         <!--Suma de egresos-->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SUMA
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SUMA
                                 EGRESOS</label>
                             <input type="text" readonly
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value="{{ number_format($this->resumen['egresos'],2) }}">
                         </div>
 
                         <!--Total-->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">TOTAL</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TOTAL</label>
                             <input type="text" readonly
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value="{{ number_format($this->resumen['total'],2) }}">
                         </div>
                     </div>
                 </div>
 
                 <!-- Toolbar -->
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="p-6 py-3 md:py-2 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <!-- Búsqueda -->
                         <div class="flex-1 max-w-md">
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
+                                    <x-heroicon-o-eye class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                 </div>
                                 <input wire:model.live.debounce.300ms="search" type="text"
                                     placeholder="Buscar registros..."
-                                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    class="block w-full pl-10 pr-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             </div>
                         </div>
 
@@ -95,9 +102,8 @@
                                     class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <option value="5">5</option>
                                     <option value="10">10</option>
-                                    <option value="25">25</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
+                                    <option value="15">15</option>
+                                    <option value="20">20</option>
                                 </select>
                             </div>
 
@@ -115,20 +121,33 @@
                         </div>
                         <!--Agregar movimiento (Si aplica)-->
                         @if($this->canDoMovement())
+                        @if ($this->getStatusPettyCash()==1)
                         <div>
-                            <button wire:click="createMovement"
-                                class="inline-flex justify-center items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v16m8-8H4"></path>
-                                </svg>
+                            <button wire:click="createMovement" wire:loading.attr="disabled"
+                                class="inline-flex justify-center items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150 relative">
+                                <span wire:loading.remove wire:target="createMovement" class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Movimiento
+                                </span>
+                                <span wire:loading wire:target="createMovement" class="flex items-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Cargando...
+                                </span>
                             </button>
                         </div>
+                        @endif
                         @endif
                     </div>
                 </div>
 
                 <!-- Tabla -->
+                @if($activeTab === 'movements')
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900">
@@ -190,17 +209,17 @@
                             @forelse($detailPettyCash as $dt)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                    class="px-6 py-2 md:py-1 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                     #{{ $dt->invoiceId ?? '999' }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                <td class="px-6 py-2 md:py-1 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                     @if ($dt->reasonsPettyCash->type=="i")
                                     {{$dt->value}}
                                     @else
                                     0
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                <td class="px-6 py-2 md:py-1 text-sm text-gray-500 dark:text-gray-400">
                                     @if($dt->reasonsPettyCash->type=="e")
                                     {{ $dt->value }}
                                     @else
@@ -208,15 +227,20 @@
                                     @endif
                                 </td>
                                 <td
-                                    class="px-6 py-4 justify-between whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    class="px-6 py-2 md:py-1 justify-between whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ $dt->methodPayments->name }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center  text-sm font-medium">
+                                <td class="px-6 py-2 md:py-1 whitespace-nowrap text-center  text-sm font-medium">
                                     <div class="content-center">
+                                        @if($this->getStatusPettyCash()==1)
                                         <button wire:click="deleteMovement({{ $dt->id }})"
                                             class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
                                             <x-heroicon-o-x-mark class="w-6 h-6" />
                                         </button>
+                                        @else
+                                        <span
+                                            class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 italic">No disponible</span>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -224,12 +248,7 @@
                             <tr>
                                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                     <div class="flex flex-col items-center">
-                                        <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
-                                            </path>
-                                        </svg>
+                                        <x-heroicon-o-inbox class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-500" />
                                         <p class="text-lg font-medium">No se encontraron registros</p>
                                         <p class="text-sm">{{ $search ? 'Intenta ajustar tu búsqueda' : 'Comienza
                                             creando un nuevo registro' }}</p>
@@ -244,7 +263,7 @@
                 <!-- Paginación -->
                 @if($detailPettyCash->hasPages())
                 <div
-                    class="bg-white dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
+                    class="bg-white dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700 rounded-b-lg overflow-x-auto">
                     <div class="flex items-center justify-between">
                         <div class="text-sm text-gray-700 dark:text-gray-300">
                             Mostrando {{ $detailPettyCash->firstItem() }} a {{ $detailPettyCash->lastItem() }} de {{
@@ -256,42 +275,34 @@
                     </div>
                 </div>
                 @endif
-            </div>
+                </div>
+                @elseif($activeTab === 'reconciliations')
+                @livewire('tenant.petty-cash.unreconciled-reconciliations', ['pettyCash_id' => $pettyCash_id], key($pettyCash_id . '-reconciliations'))
+                @endif
             {{--
         </div> --}}
 
         <!-- Modal -->
         @if($showModalMovement)
-        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
-            x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
-            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-            x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0">
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full" style="z-index: 9999; display: block;">
             <div class="relative min-h-screen flex items-center justify-center p-4">
-                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-                    x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-xs sm:max-w-sm md:max-w-lg lg:max-w-2xl mx-2 md:mx-auto max-h-[90vh] overflow-y-auto">
                     <!-- Header -->
-                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            Crear Movimiento
-                        </h3>
+                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                Crear Movimiento
+                            </h3>
+                        </div>
+                        <button wire:click="cancel"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <x-heroicon-o-x-mark class="w-6 h-6" />
+                        </button>
                     </div>
 
                     <!-- Alert de Errores de Validación -->
                     @if (session()->has('error'))
                     <div x-data="{ showAlert: true }" x-show="showAlert"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 transform scale-90"
-                        x-transition:enter-end="opacity-100 transform scale-100"
-                        x-transition:leave="transition ease-in duration-200"
-                        x-transition:leave-start="opacity-100 transform scale-100"
-                        x-transition:leave-end="opacity-0 transform scale-90"
                         class="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <div class="flex items-start">
                             <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0"
@@ -321,8 +332,8 @@
                     @endif
 
                     <!-- Form -->
-                    <form wire:submit="save" class="p-6 space-y-6">
-                        <div class="space-y-6">
+                    <form wire:submit="save" class="p-4 md:p-6 space-y-4 md:space-y-6">
+                        <div class="space-y-4 md:space-y-6">
                             <!-- Campo Nombre -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -430,3 +441,4 @@
 
     {{--@endif
 </div> --}}
+</div>

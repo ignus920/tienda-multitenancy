@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Livewire\Tenant\VntCompany\Services;
+
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 
@@ -10,25 +11,25 @@ class CompanyValidationService
      * Obtener reglas de validación dinámicas
      */
     public function getValidationRules(
-        string $typePerson = '', 
-        ?int $editingId = null, 
+        string $typePerson = '',
+        ?int $editingId = null,
         ?int $typeIdentificationId = null,
         bool $includeWarehouseAndContact = false
     ): array {
         $baseRules = $this->getBaseRules($editingId, $typeIdentificationId);
-        
+
         // Aplicar reglas según tipo de persona
         $rules = match ($typePerson) {
             'Juridica' => $this->getJuridicalPersonRules($baseRules),
             'Natural' => $this->getNaturalPersonRules($baseRules),
             default => $baseRules,
         };
-        
+
         // Si se solicita, incluir reglas de warehouse y contacto
         if ($includeWarehouseAndContact) {
             $rules = $this->addWarehouseAndContactRules($rules);
         }
-        
+
         return $rules;
     }
 
@@ -48,21 +49,22 @@ class CompanyValidationService
             'billingEmail.unique' => 'Este email de facturación ya está registrado.',
             'verification_digit.required' => 'El dígito de verificación es obligatorio para NIT.',
             'verification_digit.max' => 'El dígito de verificación debe ser de 1 carácter.',
-            
+            'type.required' => 'El tipo de contacto es obligatorio.',
+
             // Persona jurídica
             'businessName.required' => 'La razón social es obligatoria para personas jurídicas.',
             'regimeId.required' => 'El régimen es obligatorio para personas jurídicas.',
             'fiscalResponsabilityId.required' => 'La responsabilidad fiscal es obligatoria para personas jurídicas.',
-            
+
             // Persona natural
             'firstName.required' => 'El primer nombre es obligatorio para personas naturales.',
             'lastName.required' => 'El segundo nombre es obligatorio para personas naturales.',
-            
+
             // Warehouse (campos individuales)
             // 'warehouseName.required' => 'El nombre de la sucursal es obligatorio.',
             'warehouseAddress.required' => 'La dirección de la sucursal es obligatoria.',
             'warehousePostcode.max' => 'El código postal no puede tener más de 10 caracteres.',
-            
+
             // Contacto
             'business_phone.max' => 'El teléfono empresarial no puede tener más de 100 caracteres.',
             'personal_phone.max' => 'El teléfono personal no puede tener más de 100 caracteres.',
@@ -84,24 +86,25 @@ class CompanyValidationService
             'checkDigit' => 'dígito de verificación',
             'code_ciiu' => 'código CIIU',
             'status' => 'estado',
-            
+            'type' => 'tipo',
+
             // Persona jurídica
             'businessName' => 'razón social',
             'regimeId' => 'régimen',
             'fiscalResponsabilityId' => 'responsabilidad fiscal',
-            
+
             // Persona natural
             'firstName' => 'primer nombre',
             'lastName' => 'apellido',
             'secondName' => 'segundo nombre',
             'secondLastName' => 'segundo apellido',
-            
+
             // Warehouse (campos individuales)
             // 'warehouseName' => 'nombre de sucursal',
             'warehouseAddress' => 'dirección de sucursal',
             'warehousePostcode' => 'código postal',
             'warehouseCityId' => 'ciudad',
-            
+
             // Contacto
             'business_phone' => 'teléfono empresarial',
             'personal_phone' => 'teléfono personal',
@@ -115,14 +118,14 @@ class CompanyValidationService
     private function getBaseRules(?int $editingId = null, ?int $typeIdentificationId = null): array
     {
         $identificationRule = 'required|string|max:15|unique:vnt_companies,identification';
-        
+
         if ($editingId) {
             $identificationRule .= ',' . $editingId;
         }
 
         // Determinar si typePerson es requerido basado en el tipo de identificación
         $typePersonRule = 'required|string|in:Natural,Juridica';
-        
+
         // Si NO es NIT (typeIdentificationId != 2), typePerson puede ser nullable porque se establece automáticamente
         if ($typeIdentificationId && (int) $typeIdentificationId !== 2) {
             $typePersonRule = 'nullable|string|in:Natural,Juridica';
@@ -145,6 +148,7 @@ class CompanyValidationService
             'typePerson' => $typePersonRule,
             'typeIdentificationId' => 'required|integer|exists:central.cnf_type_identifications,id',
             'status' => 'nullable|integer|in:0,1',
+            'type' => 'required|string',
             'billingEmail' => $emailRule,
             'checkDigit' => 'nullable|integer|max:99',
             'integrationDataId' => 'nullable|integer',
@@ -165,11 +169,11 @@ class CompanyValidationService
     private function getJuridicalPersonRules(array $baseRules): array
     {
 
-        
+
         return array_merge($baseRules, [
             'businessName' => 'required|string|max:255',
             'regimeId' => 'required|integer',
-             'fiscalResponsabilityId' => 'required|integer',
+            'fiscalResponsabilityId' => 'required|integer',
         ]);
     }
 
@@ -198,7 +202,7 @@ class CompanyValidationService
         foreach ($warehouseKeys as $key) {
             unset($rules[$key]);
         }
-        
+
         // Agregar reglas para campos individuales de warehouse
         return array_merge($rules, [
             // 'warehouseName' => 'required|string|max:255',
@@ -220,8 +224,8 @@ class CompanyValidationService
      * @return bool True if identification exists, false otherwise
      */
     public function checkIdentificationExists(
-        int $typeIdentificationId, 
-        string $identification, 
+        int $typeIdentificationId,
+        string $identification,
         ?int $excludeId = null
     ): bool {
         $this->ensureTenantConnection();
@@ -236,25 +240,25 @@ class CompanyValidationService
     }
 
 
-     public function checkEmailExists(
-        string $email, 
+    public function checkEmailExists(
+        string $email,
         ?int $excludeId = null
     ): bool {
         $this->ensureTenantConnection();
-        
+
         // Verificar en vnt_companies (billingEmail)
         // $companyQuery = \App\Models\Tenant\Customer\VntCompany::where('billingEmail', $email);
         // if ($excludeId) {
         //     $companyQuery->where('id', '!=', $excludeId);
         // }
-        
+
         // if ($companyQuery->exists()) {
         //     return true;
         // }
-        
+
         // Verificar en vnt_contacts (email)
         $contactQuery = \App\Models\Tenant\Customer\VntContacts::where('email', $email);
-        
+
         return $contactQuery->exists();
     }
 
@@ -280,5 +284,4 @@ class CompanyValidationService
         // Inicializar tenancy
         tenancy()->initialize($tenant);
     }
-
 }

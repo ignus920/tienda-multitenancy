@@ -12,7 +12,7 @@ use Carbon\Carbon;
 
 class Command extends Component
 {
-    use WithPagination;
+    use WithPagination, \App\Traits\Livewire\WithExport;
 
     public $command_id, $name, $print_path, $status, $created_at;
 
@@ -25,9 +25,16 @@ class Command extends Component
     public $commandIdToDelete;
     public $perPage = 10;
 
-    protected $rules =[
-        'name' => 'required|min:3',
+    protected $rules = [
+        'name' => 'required|min:3|regex:/^\pL+(\s+\pL+)*$/u',
         'print_path' => 'required|min:3',
+    ];
+
+    protected $messages = [
+        'name.required' => 'El nombre de la marca es obligatorio',
+        'name.min' => 'El nombre de la marca debe tener al menos 3 caracteres',
+        'name.regex' => 'El nombre de la casa solo debe contener letras y espacios',
+        'print_path.required' => 'La ruta de impresión es obligatoria',
     ];
 
     public function resetForm()
@@ -90,7 +97,7 @@ class Command extends Component
         $command = CommandModel::findOrFail($id);
         $this->name = $command->name;
         $this->print_path = $command->print_path;
-        $this->command_id=$command->id;
+        $this->command_id = $command->id;
         $this->showModal = true;
     }
 
@@ -115,11 +122,11 @@ class Command extends Component
             'print_path' => $this->print_path,
         ];
 
-        if($this->command_id){
-            $command=CommandModel::findOrFail($this->command_id);
+        if ($this->command_id) {
+            $command = CommandModel::findOrFail($this->command_id);
             $command->update($commandData);
             session()->flash('message', 'Comanda actualizada correctamente.');
-        }else{
+        } else {
             CommandModel::create($commandData);
             session()->flash('message', 'Comanda creada correctamente.');
         }
@@ -135,13 +142,13 @@ class Command extends Component
     public function toggleCommandStatus($id)
     {
         $this->ensureTenantConnection();
-        $item=CommandModel::findOrFail($id);
+        $item = CommandModel::findOrFail($id);
 
         $newStatus = $item->status ? 0 : 1;
         $item->update([
-            'status'=>$newStatus, 
+            'status' => $newStatus,
         ]);
-        
+
         session()->flash('message', 'Estado actualizado correctamente');
     }
 
@@ -155,32 +162,71 @@ class Command extends Component
     {
         $this->ensureTenantConnection();
 
-        $commandData=[
-            'status'=>0,
-            'deleted_at'=>Carbon::now(),
+        $commandData = [
+            'status' => 0,
+            'deleted_at' => Carbon::now(),
         ];
 
-        $command=CommandModel::findOrFail($this->commandIdToDelete);
+        $command = CommandModel::findOrFail($this->commandIdToDelete);
         //$category->delete();
         $command->update($commandData);
         $this->confirmingCommandDeletion = false;
         $this->reset(['commandIdToDelete']);
-        session()->flash('message','Comanda eliminada correctamente');
+        session()->flash('message', 'Comanda eliminada correctamente');
     }
 
     public function render()
     {
         $this->ensureTenantConnection();
-        $commands=CommandModel::query()
+        $commands = CommandModel::query()
             //->where('status', 1)
-            ->when($this->search, function($query){
+            ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('print_path', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
-        return view('livewire.tenant.inventory.command',[
+        return view('livewire.tenant.inventory.command', [
             'commands' => $commands
         ]);
+    }
+
+    /**
+     * Métodos para Exportación
+     */
+
+    protected function getExportData()
+    {
+        $this->ensureTenantConnection();
+        return CommandModel::query()
+            ->when($this->search, function ($query) {
+                $query->where('name', 'like', '%' . $this->search . '%')
+                    ->orWhere('print_path', 'like', '%' . $this->search . '%');
+            })
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->get();
+    }
+
+    protected function getExportHeadings(): array
+    {
+        return ['ID', 'Nombre', 'Ruta Impresión', 'Estado', 'Fecha Registro'];
+    }
+
+    protected function getExportMapping()
+    {
+        return function ($command) {
+            return [
+                $command->id,
+                $command->name,
+                $command->print_path,
+                $command->status ? 'Activo' : 'Inactivo',
+                $command->created_at ? Carbon::parse($command->created_at)->format('Y-m-d H:i:s') : 'N/A',
+            ];
+        };
+    }
+
+    protected function getExportFilename(): string
+    {
+        return 'comandas_' . now()->format('Y-m-d_His');
     }
 }
