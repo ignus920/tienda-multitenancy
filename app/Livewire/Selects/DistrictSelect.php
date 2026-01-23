@@ -17,8 +17,13 @@ class DistrictSelect extends Component
     public $class = 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-left bg-white cursor-default sm:text-sm py-2 pl-3 pr-10 relative';
     public $index = null;
     public $search = '';
+    public $city_id;
 
-    public function mount($districtId = '', $name = 'districtId', $placeholder = 'Seleccionar barrio', $label = 'Barrio', $showLabel = true, $class = null, $index = null)
+    public $showCreateCategory = false;
+    public $showDistrictForm = false;
+    public $newDistrictName = '';
+
+    public function mount($districtId = '', $name = 'districtId', $placeholder = 'Seleccionar barrio', $label = 'Barrio', $showLabel = true, $class = null, $index = null, $city_id)
     {
         $this->districtId = $districtId;
         $this->name = $name;
@@ -29,6 +34,7 @@ class DistrictSelect extends Component
         if ($class) {
             $this->class = $class;
         }
+        $this->city_id = $city_id;
     }
 
     #[On('district-changed')]
@@ -94,6 +100,15 @@ class DistrictSelect extends Component
         return CnfDistrict::find($this->districtId)?->name;
     }
 
+    public function toggleDistrictForm()
+    {
+        $this->showDistrictForm = !$this->showDistrictForm;
+        if ($this->showDistrictForm) {
+            $this->newDistrictName = '';
+            $this->resetErrorBag();
+        }
+    }
+
     public function getDistrictsProperty()
     {
         $query = CnfDistrict::where('status', 1);
@@ -106,6 +121,31 @@ class DistrictSelect extends Component
             ->orderBy('district')
             ->limit(50)
             ->get();
+    }
+
+    public function createDistrict()
+    {
+        try {
+            $district = CnfDistrict::create([
+                'city_id' => $this->city_id,
+                'district' => $this->newDistrictName,
+                'status' => 1,
+            ]);
+
+            // Resetear el formulario
+            $this->showDistrictForm = false;
+            $this->newDistrictName = '';
+
+            // Emitir eventos
+            $this->dispatch('district-created', districtId: $district->id);
+            $this->dispatch('refreshDistricts'); // Refrescar este componente
+
+            // Opcional: Seleccionar automáticamente
+            $this->districtId = $district->id;
+            $this->updatedDistrictId();
+        } catch (\Exception $e) {
+            $this->addError('newCategoryName', 'Error al crear la categoría: ' . $e->getMessage());
+        }
     }
 
     public function render()
