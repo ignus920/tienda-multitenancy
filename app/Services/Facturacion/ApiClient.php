@@ -17,7 +17,7 @@ class ApiClient
     protected $username;
     protected $timeout;
 
-    public function __construct($baseUrl = null, $token = null, $username = null, $timeout = 30)
+    public function __construct($baseUrl = null, $token = null, $username = null, $timeout = 15)
     {
         $this->baseUrl = $baseUrl;
         $this->token = $token;
