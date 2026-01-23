@@ -14,16 +14,16 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    Crear Nuevo
+                    Crear Nueva caja
                 </button>
                 @endif
             </div>
         </div>
 
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
             <!--CARD IZQUIERDO-->
-            <div class="lg:col-span-5 xl:col-span-4">
+            <div class="lg:col-span-5 xl:col-span-5 order-1 lg:order-1">
                 <!-- Mensajes -->
                 @if (session()->has('message'))
                 <div
@@ -79,127 +79,124 @@
                     </div>
 
                     <!-- Tabla -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th wire:click="sortBy('name')"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none">
-                                        <div class="flex items-center gap-1">
-                                            #
-                                            @if($sortField === 'consecutive')
-                                            @if($sortDirection === 'desc')
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z">
-                                                </path>
-                                            </svg>
-                                            @else
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z">
-                                                </path>
-                                            </svg>
-                                            @endif
-                                            @endif
-                                        </div>
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Cajero</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Fecha</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Estado</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Detalle</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse ($boxes as $bx)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{$bx->consecutive}}
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                        {{$bx->name}}
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                        {{$bx->created_at}}
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                        @if ($bx->status == 1)
-                                        <span
-                                            class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
-                                            Abierta
-                                        </span>
-                                        @else
-                                        <span
-                                            class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
-                                            Cerrada
-                                        </span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                        <div x-data="{ open: false }" @click.outside="open = false"
-                                            class="relative inline-block text-left">
-                                            <button @click="open = !open"
-                                                class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
-                                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <div class="relative overflow-visible">
+                        <div class="min-w-full overflow-x-auto">
+                            <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900">
+                                    <tr>
+                                        <th wire:click="sortBy('name')"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none">
+                                            <div class="flex items-center gap-1">
+                                                #
+                                                @if($sortField === 'consecutive')
+                                                @if($sortDirection === 'desc')
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                     <path
-                                                        d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z">
+                                                    </path>
                                                 </svg>
-                                            </button>
-
-                                            <div x-show="open" x-transition:enter="transition ease-out duration-100"
-                                                x-transition:enter-start="transform opacity-0 scale-95"
-                                                x-transition:enter-end="transform opacity-100 scale-100"
-                                                x-transition:leave="transition ease-in duration-75"
-                                                x-transition:leave-start="transform opacity-100 scale-100"
-                                                x-transition:leave-end="transform opacity-0 scale-95"
-                                                @click="open = false"
-                                                class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
-                                                style="display: none;">
-                                                <div class="py-1" role="menu" aria-orientation="vertical">
-                                                    <button wire:click="viewDetail({{ $bx->id }})"
-                                                        class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
-                                                        <x-heroicon-o-eye class="w-6 h-6" />
-                                                        Ver Detalle
-                                                    </button>
-                                                    @if ($bx->status==1)
-                                                    <button wire:click="openSalesFinishModal({{ $bx->id }})"
-                                                        class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
-                                                        <x-heroicon-o-lock-closed class="w-6 h-6" />
-                                                        Arqueo/Cerrar
-                                                    </button>
-                                                    @endif
+                                                @else
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path
+                                                        d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z">
+                                                    </path>
+                                                </svg>
+                                                @endif
+                                                @endif
+                                            </div>
+                                        </th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Cajero</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Fecha</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Estado</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    @forelse ($boxes as $bx)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                            {{$bx->consecutive}}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            {{$bx->name}}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            {{$bx->created_at}}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            @if ($bx->status == 1)
+                                            <span
+                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                Abierta
+                                            </span>
+                                            @else
+                                            <span
+                                                class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
+                                                Cerrada
+                                            </span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                            <div x-data="{ open: false }" @click.outside="open = false"
+                                                class="relative inline-block text-left static"
+                                                style="position: static !important;">
+                                                <button @click="open = !open" x-ref="button"
+                                                    class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
+                                                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                            d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                    </svg>
+                                                </button>
+    
+                                                <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                                    x-transition:leave="transition ease-in duration-75"
+                                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                                    x-transition:leave-end="transform opacity-0 scale-95"
+                                                    @click="open = false"
+                                                    class="origin-top-left fixed left-auto right-auto mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[60]"
+                                                    x-anchor="$refs.button"
+                                                    style="display: none;">
+                                                    <div class="py-1" role="menu" aria-orientation="vertical">
+                                                        <button wire:click="viewDetail({{ $bx->id }})"
+                                                            class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
+                                                            <x-heroicon-o-eye class="w-6 h-6" />
+                                                            Ver Detalle
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                        <div class="flex flex-col items-center">
-                                            <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none"
-                                                stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
-                                                </path>
-                                            </svg>
-                                            <p class="text-lg font-medium">No se encontraron registros</p>
-                                            <p class="text-sm">{{ $search ? 'Intenta ajustar tu búsqueda' : 'Comienza
-                                                creando una nueva caja' }}</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                            <div class="flex flex-col items-center">
+                                                <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                                                    </path>
+                                                </svg>
+                                                <p class="text-lg font-medium">No se encontraron registros</p>
+                                                <p class="text-sm">{{ $search ? 'Intenta ajustar tu búsqueda' : 'Comienza
+                                                    creando una nueva caja' }}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Paginación -->
@@ -221,27 +218,42 @@
             </div>
 
             <!--CARD DERECHO-->
-            <div class="lg:col-span-7 xl:col-span-8">
-                @if($showDetail)
-                @livewire('tenant.petty-cash.detail-petty-cash',['pettyCash_id'=>$pettyCash_id], key($pettyCash_id))
-                @else
-                <!-- Placeholder cuando no hay detalle seleccionado -->
-                <div
-                    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-full flex items-center justify-center p-12">
-                    <div class="text-center">
-                        <svg class="w-24 h-24 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                                d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z">
-                            </path>
-                        </svg>
-                        <h3 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">Selecciona una caja</h3>
-                        <p class="text-gray-400 dark:text-gray-500">Haz clic en "Ver Detalle" para ver los movimientos
-                            de una caja específica</p>
+            <div class="lg:col-span-7 xl:col-span-7 order-2 lg:order-2">
+                <div class="space-y-6">
+                    @if($showDetail || $showReconciliations)
+                        <!-- Componente Detail -->
+                        @if ($showDetail)
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                            @livewire('tenant.petty-cash.detail-petty-cash',['pettyCash_id'=>$pettyCash_id], key($pettyCash_id))
+                        </div>
+                        @endif
+
+                        <!-- Componente Reconciliations -->
+                        @if ($showReconciliations)
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                            @livewire('tenant.petty-cash.unreconciled-reconciliations',['pettyCash_id'=>$pettyCash_id], key($pettyCash_id . '-reconciliations'))
+                        </div>
+                        @endif
+                    @else
+                    <!-- Placeholder cuando no hay detalle seleccionado -->
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 min-h-96 flex items-center justify-center p-12">
+                        <div class="text-center">
+                            <svg class="w-24 h-24 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                    d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z">
+                                </path>
+                            </svg>
+                            <h3 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">Selecciona una caja</h3>
+                            <p class="text-gray-400 dark:text-gray-500">Haz clic en "Ver Detalle" para ver los movimientos
+                                de una caja específica</p>
+                        </div>
                     </div>
+                    @endif
                 </div>
-                @endif
             </div>
+
         </div>
     </div>
 
@@ -262,10 +274,16 @@
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                 <!-- Header -->
-                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Crear Caja
-                    </h3>
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            Crear Caja
+                        </h3>
+                    </div>
+                    <button wire:click="cancel"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <x-heroicon-o-x-mark class="w-6 h-6" />
+                    </button>
                 </div>
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
@@ -319,10 +337,7 @@
                         </h3>
                         <button type="button" wire:click="$set('showModalSalesFinish', false)"
                             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
+                            <x-heroicon-o-x-mark class="w-6 h-6" />
                         </button>
                     </div>
                 </div>
@@ -368,7 +383,7 @@
                                 <div class="col-span-6">
                                     <input type="number" wire:model.live="paymentCounts.{{ $key }}"
                                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        placeholder="0" min="0">
+                                        placeholder="0">
                                 </div>
                             </div>
                             @endforeach
