@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Inventory;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Items\Category;
+use App\Services\Tenant\Inventory\CategoriesService;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Carbon\Carbon;
@@ -16,7 +17,7 @@ class Categories extends Component
 
     public $category_id, $name, $status, $created_at;
 
-    //Propiedades para la tabla
+    // Propiedades para la tabla
     public $search = '';
     public $sortField = 'name';
     public $sortDirection = 'asc';
@@ -83,6 +84,11 @@ class Categories extends Component
         $this->ensureTenantConnection();
     }
 
+    private function getService(): CategoriesService
+    {
+        return new CategoriesService();
+    }
+
     public function create()
     {
         $this->resetExcept(['categories', 'types']);
@@ -117,18 +123,29 @@ class Categories extends Component
             'name' => $this->name,
         ];
 
-        if ($this->category_id) {
-            $category = Category::findOrFail($this->category_id);
-            $category->update($categorieData);
-            session()->flash('message', 'Categoría actualizada correctamente.');
-        } else {
-            Category::create($categorieData);
-            session()->flash('message', 'Categoría creada correctamente.');
+        try {
+            $service = $this->getService();
+
+            if ($this->category_id) {
+                $category = Category::findOrFail($this->category_id);
+                $service->updateCategory($category, $categorieData);
+                // Los mensajes los maneja el service
+            } else {
+                $service->createCategory($categorieData);
+                // Los mensajes los maneja el service
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('❌ Error en Livewire save', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            session()->flash('error', 'Error al procesar la categoría: ' . $e->getMessage());
         }
 
         $this->resetValidation();
         $this->reset([
             'name',
+            'category_id'
         ]);
         $this->showModal = false;
     }
@@ -143,7 +160,7 @@ class Categories extends Component
             'status' => $newStatus,
         ]);
 
-        session()->flash('message', 'Estado actualizado correctamente');
+        session()->flash('success', 'Estado actualizado correctamente');
     }
 
     public function confirmItemDeletion($id)
@@ -166,7 +183,7 @@ class Categories extends Component
         $category->update($categorieData);
         $this->confirmingItemDeletion = false;
         $this->reset(['categorieIdToDelete']);
-        session()->flash('message', 'Item eliminado correctamente');
+        session()->flash('success', 'Item eliminado correctamente');
     }
 
 

@@ -1,5 +1,68 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
     <div class="max-w-12xl mx-auto">
+        <!-- Mensajes de Alerta Globales -->
+        @if (session()->has('success'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="mb-6 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-lg shadow-lg">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-medium text-green-800 dark:text-green-300">
+                        {{ session('success') }}
+                    </p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button @click="show = false" class="inline-flex text-green-500 hover:text-green-700 dark:hover:text-green-400 focus:outline-none">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 8000)"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="mb-6 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg shadow-lg">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-medium text-red-800 dark:text-red-300">
+                        {{ session('error') }}
+                    </p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button @click="show = false" class="inline-flex text-red-500 hover:text-red-700 dark:hover:text-red-400 focus:outline-none">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Header -->
         <div
             class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -18,30 +81,6 @@
             </div>
         </div>
 
-        <!-- Mensajes -->
-        @if (session()->has('message'))
-        <div
-            class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-6">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                {{ session('message') }}
-            </div>
-        </div>
-        @endif
-
-        <!-- Mensajes -->
-        @if (session()->has('error'))
-        <div
-            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-6">
-            <div class="flex items-center">
-                <x-heroicon-o-exclamation-circle class="w-6 h-6" />
-                {{ session('error') }}
-            </div>
-        </div>
-        @endif
 
         <!-- DataTable Card -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -255,10 +294,9 @@
                                             <button wire:click="edit({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
                                                 <x-heroicon-o-pencil-square class="w-6 h-6" />
-
                                                 Editar
                                             </button>
-                                            {{-- <button wire:click="openWarehouseModal({{ $it->id }})"
+                                            <button wire:click="openLocationsModal({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -268,16 +306,7 @@
                                                     </path>
                                                 </svg>
                                                 Ubicaciones
-                                            </button> --}}
-                                            {{-- <button wire:click="openValuesModal({{ $it->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="size-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                                </svg>
-                                                Valores
-                                            </button>  --}}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -350,6 +379,8 @@
                     </button>
                 </div>
 
+                
+
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -363,6 +394,7 @@
                         dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                         focus:ring-indigo-500 focus:border-indigo-500'
                         ])
+                        @error('category_id') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
                         <div class="mb-3">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre
@@ -416,19 +448,19 @@
                                     <option value="{{ $k }}">{{ $v }}</option>
                                     @endforeach
                                 </select>
-                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                @error('type') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
                                 <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impuesto</label>
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impuesto <span class="text-red-500">*</span></label>
                                 <select wire:model="tax"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
-                                    @foreach($this->taxes as $tax)
-                                    <option value="{{ $tax->id }}">{{ $tax->name }}</option>
+                                    @foreach($this->taxes as $taxItem)
+                                    <option value="{{ $taxItem->id }}">{{ $taxItem->name }}</option>
                                     @endforeach
                                 </select>
-                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                @error('tax') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
@@ -449,20 +481,24 @@
                         'name' => 'brandId',
                         'label' => 'Marca',
                         'placeholder' => 'Seleccione una marca',
+                        'required' => true,
                         'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
                         dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                         focus:ring-indigo-500 focus:border-indigo-500'
                         ])
+                        @error('brandId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
                         @livewire('tenant.items.house',[
                         'houseId' => $houseId,
                         'name' => 'houseId',
                         'label' => 'Casa',
                         'placeholder' => 'Seleccione una casa',
+                        'required' => true,
                         'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
                         dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                         focus:ring-indigo-500 focus:border-indigo-500'
                         ])
+                        @error('houseId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @livewire('tenant.items.purchasing-unit', [
@@ -470,20 +506,24 @@
                             'name' => 'purchase_unit',
                             'label' => 'Unidad de compra',
                             'placeholder' => 'Seleccione una unidad de compra',
+                            'required' => true,
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
                             dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                             focus:ring-indigo-500 focus:border-indigo-500'
                             ])
+                            @error('purchase_unit') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
                             @livewire('tenant.items.consumption-unit', [
                             'consumptionUnitId' => $consumption_unit,
                             'name' => 'consumption_unit',
                             'label' => 'Unidad de consumo',
                             'placeholder' => 'Seleccione una unidad de consumo',
+                            'required' => true,
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
                             dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                             focus:ring-indigo-500 focus:border-indigo-500'
                             ])
+                            @error('consumption_unit') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="mb-3 grid grid-cols-2 gap-2">
@@ -521,6 +561,83 @@
                             </textarea>
                         </div>
 
+                        <!-- Mensajes dentro del modal -->
+                <div class="px-6 pt-4">
+                    <!-- Mensaje de éxito general -->
+                    @if (session()->has('message'))
+                    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {{ session('message') }}
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Mensaje de error general -->
+                    @if (session()->has('error'))
+                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {{ session('error') }}
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Mensaje de sincronización exitosa -->
+                    @if (session()->has('sync_message'))
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {{ session('sync_message') }}
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Mensaje de advertencia de sincronización -->
+                    @if (session()->has('sync_warning'))
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"></path>
+                                </svg>
+                                <span>{{ session('sync_warning') }}</span>
+                            </div>
+                            <button wire:click="cancel" class="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Mensaje de error de sincronización -->
+                    @if (session()->has('sync_error'))
+                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>{{ session('sync_error') }}</span>
+                            </div>
+                            <button wire:click="cancel" class="ml-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+
                         <!--div class="flex items-center justify-between">
                             <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Generico
@@ -545,7 +662,7 @@
                         </div -->
 
                         <div class="border-t border-gray-300 my-6"></div>
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Valores</h3>
+                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Valores</h3>
 
                         {{-- Si el item es NUEVO: mostrar inputs para agregar valores --}}
                         @if (!$item_id)
@@ -593,10 +710,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-3">
-                                <strong>Nota:</strong> Los valores serán guardados cuando registres el item.
-                            </p>
-                        @else
+                            @else
                             {{-- Si el item YA EXISTE: mostrar botón para abrir modal --}}
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
@@ -683,9 +797,12 @@
     </div>
 
     <!-- Modal Values -->
-
-    <!-- Modal Ubicaciones -->
     @if($showValuesModal)
     @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key($item_id))
+    @endif
+
+    <!-- Modal Ubicaciones -->
+    @if($showLocationsModal)
+    @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
     @endif
 </div>

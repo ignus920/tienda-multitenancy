@@ -9,15 +9,19 @@ use App\Traits\Livewire\WithExport;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\Category;
 use App\Models\Tenant\Items\InvValues;
+use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\InvStore;
 use App\Models\Auth\UserTenant;
 use App\Models\Auth\Tenant;
 use App\Models\Central\VntWarehouse;
-use App\Models\Central\CnfTaxes;
+use App\Models\Tenant\CnfTaxes;
 //Servicios
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Inventory\CategoriesService;
 use App\Services\Tenant\Inventory\CommandsServices;
 use App\Livewire\Tenant\Items\Services\InvValuesService;
+use App\Services\Facturacion\DatabaseConfigService;
+use App\Services\Facturacion\ApiClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +44,7 @@ class ManageItems extends Component
         'category-changed' => 'onCategorySelected',
         'category-created' => 'refreshCategories',
         'closeValuesModal' => 'closeValuesModal',
+        'closeLocationsModal' => 'closeLocationsModal',
         //'invValuesItem-created' => 'refreshValuesItems',
     ];
 
@@ -60,11 +65,16 @@ class ManageItems extends Component
     public $inv_values = [];
     public $warehouses = [];
     public $warehouseIdValue;
+    public $locationName;
     public $tax;
     public $disabled = false;
     public $handles_serial;
     public $inventoriable;
     public $tempValues = [];
+    
+    // Propiedades para modal de ubicaciones
+    public $showLocationsModal = false;
+    public $selectedItemId;
 
     // Propiedades para la tabla
     public $search = '';
@@ -97,6 +107,7 @@ class ManageItems extends Component
     public $skuExists = false;
     public $validatingSku = false;
     public $showCommand = false;
+    public $showSelectStore = false;
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -129,25 +140,59 @@ class ManageItems extends Component
     }
 
     protected $rules = [
-        'category_id' => 'required',
-        'name' => 'required|min:3',
-        'type' => 'required',
-        'internal_code' => 'nullable|string',
-        'brandId' => 'nullable|integer',
-        'houseId' => 'nullable|integer',
-        'purchase_unit' => 'nullable|integer',
-        'consumption_unit' => 'nullable|integer',
+        'category_id' => 'required|integer|exists:tenant.inv_categories,id',
+        'name' => 'required|string|min:3|max:255',
+        'type' => 'required|string',
+        'internal_code' => 'required|string|max:100',
+        'brandId' => 'required|integer|min:1',
+        'houseId' => 'required|integer|min:1',
+        'purchase_unit' => 'required|integer|min:1',
+        'consumption_unit' => 'required|integer|min:1',
+        'tax' => 'required|integer|min:1',
+        'sku' => 'nullable|string|max:100',
+        'description' => 'nullable|string|max:1000',
+        'inventoriable' => 'nullable|boolean',
     ];
 
     protected $messages = [
         'category_id.required' => 'La categoría es obligatoria',
+        'category_id.exists' => 'La categoría seleccionada no es válida',
         'name.required' => 'El nombre del item es obligatorio',
         'name.min' => 'El nombre del item debe tener al menos 3 caracteres',
+        'name.max' => 'El nombre del item no puede exceder 255 caracteres',
         'type.required' => 'El tipo de item es obligatorio',
         'internal_code.required' => 'El código interno es obligatorio',
+        'internal_code.max' => 'El código interno no puede exceder 100 caracteres',
         'brandId.required' => 'La marca es obligatoria',
-
+        'brandId.min' => 'Debe seleccionar una marca válida',
+        'houseId.required' => 'La casa es obligatoria',
+        'houseId.min' => 'Debe seleccionar una casa válida',
+        'purchase_unit.required' => 'La unidad de compra es obligatoria',
+        'purchase_unit.min' => 'Debe seleccionar una unidad de compra válida',
+        'consumption_unit.required' => 'La unidad de consumo es obligatoria',
+        'consumption_unit.min' => 'Debe seleccionar una unidad de consumo válida',
+        'tax.required' => 'El impuesto es obligatorio',
+        'tax.min' => 'Debe seleccionar un impuesto válido',
+        'sku.max' => 'El SKU no puede exceder 100 caracteres',
+        'description.max' => 'La descripción no puede exceder 1000 caracteres',
     ];
+
+    /**
+     * Validación en tiempo real de campos individuales
+     */
+    public function updated($propertyName)
+    {
+        // Lista de campos que deben validarse en tiempo real
+        $fieldsToValidate = [
+            'category_id', 'name', 'type', 'internal_code', 
+            'brandId', 'houseId', 'purchase_unit', 
+            'consumption_unit', 'tax', 'sku', 'description'
+        ];
+
+        if (in_array($propertyName, $fieldsToValidate)) {
+            $this->validateOnly($propertyName);
+        }
+    }
 
 
     protected $queryString = [
@@ -329,18 +374,18 @@ class ManageItems extends Component
             'sku' => $this->sku,
             'description' => $this->description,
             'type' => $this->type,
-            'commandId' => $this->commandId ?: null,
-            'brandId' => $this->brandId,
-            'houseId' => $this->houseId,
+            'commandId' => $this->commandId && $this->commandId > 0 ? (int)$this->commandId : null,
+            'brandId' => (int)$this->brandId,
+            'houseId' => (int)$this->houseId,
             'inventoriable' => $this->inventoriable,
             'purchasing_unit' => $this->purchase_unit,
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
             'generic' => $this->generic,
-            'taxId' => $this->tax,
-            'handles_serial' => $this->handles_serial ?? 0,
+            'taxId' => (int)$this->tax,
+          
         ];
-
+    
         try {
             if ($this->item_id) { // Existing item
                 $existsValue = InvValues::where('itemId', $this->item_id)->exists();
@@ -349,28 +394,125 @@ class ManageItems extends Component
                     $this->messageValues = 'Tiene que registrar al menos un valor.';
                 } else {
                     $item = Items::findOrFail($this->item_id);
+                    $wasInventoriable = $item->inventoriable;
                     $item->update($itemData);
 
+                    // Verificar si cambió a inventoriable y crear registro en inv_items_store si es necesario
+                    if ($item->inventoriable == 1 && $wasInventoriable != 1) {
+                        Log::info('Item actualizado a inventoriable - creando registro en inv_items_store', [
+                            'item_id' => $item->id,
+                            'was_inventoriable' => $wasInventoriable,
+                            'now_inventoriable' => $item->inventoriable
+                        ]);
+                        $this->createItemStore($item);
+                    } elseif ($item->inventoriable == 1) {
+                        // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
+                        $existingRecord = InvItemsStore::where('itemId', $item->id)->first();
+                        if (!$existingRecord) {
+                            Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
+                                'item_id' => $item->id
+                            ]);
+                            $this->createItemStore($item);
+                        }
+                    }
+
+                    // Sincronizar con API de facturación (con timeout)
+                    try {
+                        set_time_limit(10); // Máximo 10 segundos para sincronización
+                        $syncResult = $this->syncItemWithApi($item);
+                        set_time_limit(60); // Restaurar timeout normal
+
+                        // Mostrar mensaje de éxito o advertencia al usuario
+                        if ($syncResult['success']) {
+                            session()->flash('sync_message', '✅ Item actualizado y sincronizado con la API de facturación correctamente.');
+                            $this->showModal = false; // Solo cerrar modal si sincronización fue exitosa
+                        } else {
+                            session()->flash('sync_warning', '⚠️ Item actualizado localmente, pero falló la sincronización con API: ' . $syncResult['message']);
+                            // NO cerrar modal para que el usuario vea el mensaje
+                        }
+                    } catch (\Exception $e) {
+                        set_time_limit(60); // Restaurar timeout normal
+                        Log::error('Timeout o error en sincronización de item (actualización)', [
+                            'item_id' => $item->id,
+                            'error' => $e->getMessage()
+                        ]);
+                        session()->flash('sync_error', '❌ Item actualizado localmente, pero falló la sincronización con API de facturación. Error: ' . $e->getMessage());
+                        // NO cerrar modal para que el usuario vea el mensaje de error
+                    }
+
                     $this->clearTemporaryMessage();
-                    session()->flash('message', 'Item actualizado correctamente.');
-                    $this->showModal = false; // Close modal after update
-                    $this->resetValidation(); // Clear validation errors for next open
-                    $this->resetForm(); // Clear the form completely for next new item
+                    
+                    // Solo cerrar modal si no hay errores de sincronización
+                    if (!session()->has('sync_warning') && !session()->has('sync_error')) {
+                        session()->flash('success', '✅ ¡Item actualizado exitosamente! El item "' . $item->name . '" ha sido actualizado correctamente.');
+                        $this->showModal = false; // Close modal after update
+                        $this->resetValidation(); // Clear validation errors for next open
+                        $this->resetForm(); // Clear the form completely for next new item
+                    } else {
+                        session()->flash('message', 'Item actualizado correctamente.');
+                    }
                 }
             } else { // New item
-                // Validar que los cinco tipos de precios estén registrados
-                $requiredPrices = ['Costo Inicial', 'Costo', 'Precio Base', 'Precio Regular', 'Precio Crédito'];
+                // Validar precios según si es inventoriable o no
+                if ($this->inventoriable == 1) {
+                    // Si es inventoriable, requiere todos los precios
+                    $requiredPrices = ['Costo Inicial', 'Costo', 'Precio Base', 'Precio Regular', 'Precio Crédito'];
+                } else {
+                    // Si NO es inventoriable, solo requiere Costo Inicial
+                    $requiredPrices = ['Costo Inicial'];
+                }
+                
                 $missingPrices = $this->validateRequiredPrices($requiredPrices);
-                //dd($missingPrices);
+                
                 if (!empty($missingPrices)) {
                     $this->messageValues = 'Debe registrar todos los precios requeridos: ' . implode(', ', $missingPrices);
                 } else {
                     $newItem = Items::create($itemData);
                     $item_id = $newItem->id;
                     $this->saveTemporaryValues($item_id);
-                    session()->flash('message', 'Item creado correctamente.');
-                    $this->resetValidation(); // Clear validation for current submission
-                    $this->edit($item_id); // Load new item into the form (sets showModal=true, disabled=true)
+
+                    // Crear registro en inv_items_store con el store principal SOLO si es inventoriable
+                    if ($newItem->inventoriable == 1) {
+                        $this->createItemStore($newItem);
+                    } else {
+                        Log::info('Item no inventoriable - omitiendo creación en inv_items_store', [
+                            'item_id' => $newItem->id,
+                            'item_name' => $newItem->name,
+                            'inventoriable' => $newItem->inventoriable
+                        ]);
+                    }
+
+                    // Sincronizar con API de facturación (con timeout)
+                    try {
+                        set_time_limit(10); // Máximo 10 segundos para sincronización
+                        $syncResult = $this->syncItemWithApi($newItem);
+                        set_time_limit(60); // Restaurar timeout normal
+
+                        // Mostrar mensaje de éxito o advertencia al usuario
+                        if ($syncResult['success']) {
+                            session()->flash('sync_message', '✅ Item creado y sincronizado con la API de facturación correctamente.');
+                        } else {
+                            session()->flash('sync_warning', '⚠️ Item creado localmente, pero falló la sincronización con API: ' . $syncResult['message']);
+                            // NO cerrar modal para que el usuario vea el mensaje
+                        }
+                    } catch (\Exception $e) {
+                        set_time_limit(60); // Restaurar timeout normal
+                        Log::error('Timeout o error en sincronización de item', [
+                            'item_id' => $newItem->id,
+                            'error' => $e->getMessage()
+                        ]);
+                        session()->flash('sync_error', '❌ Item creado localmente, pero falló la sincronización con API de facturación. Error: ' . $e->getMessage());
+                        // NO cerrar modal para que el usuario vea el mensaje de error
+                    }
+
+                    // Solo proceder a editar si no hay errores de sincronización
+                    if (!session()->has('sync_warning') && !session()->has('sync_error')) {
+                        session()->flash('success', '✅ ¡Item creado exitosamente! El item "' . $newItem->name . '" ha sido registrado correctamente.');
+                        $this->resetValidation(); // Clear validation for current submission
+                        $this->edit($item_id); // Load new item into the form (sets showModal=true, disabled=true)
+                    } else {
+                        session()->flash('message', 'Item creado correctamente.');
+                    }
                 }
             }
         } catch (\Exception $e) {
@@ -403,6 +545,19 @@ class ManageItems extends Component
     public function closeValuesModal()
     {
         $this->showValuesModal = false;
+    }
+
+    public function openLocationsModal($itemId)
+    {
+        $this->selectedItemId = $itemId;
+        $this->showLocationsModal = true;
+    }
+
+    public function closeLocationsModal()
+    {
+        $this->showLocationsModal = false;
+        $this->selectedItemId = null;
+        $this->locationName = '';
     }
 
     public function cancel()
@@ -539,6 +694,7 @@ class ManageItems extends Component
             return;
         }
 
+        // Las bodegas están en la base de datos central (vnt_warehouses)
         // Traer todos los almacenes que coincidan con ese company_id
         $this->warehouses = VntWarehouse::where('companyId', $tenant->company_id)
             ->where('status', true)
@@ -840,6 +996,7 @@ class ManageItems extends Component
         $this->inv_values = [];
         $this->warehouses = [];
         $this->warehouseIdValue = '';
+        $this->locationName = '';
         $this->tax = '';
         $this->disabled = false;
         $this->tempValues = []; // Limpiar valores temporales
@@ -985,6 +1142,533 @@ class ManageItems extends Component
         } catch (\Exception $e) {
             Log::error('Error al guardar valores temporales: ' . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Sincronizar item con API de facturación
+     * @return array ['success' => bool, 'message' => string]
+     */
+    private function syncItemWithApi(Items $item): array
+    {
+        try {
+            Log::info('🔄 syncItemWithApi INICIO', ['item_id' => $item->id]);
+
+            // Verificar que tenemos company_id válido, si no lo tenemos, obtenerlo del tenant
+            if (!$this->currentCompanyId) {
+                Log::info('🔄 currentCompanyId es null, intentando obtener desde tenant', [
+                    'item_id' => $item->id
+                ]);
+
+                // Obtener company_id desde el tenant actual
+                $tenantId = session('tenant_id');
+                if ($tenantId) {
+                    $tenant = Tenant::find($tenantId);
+                    if ($tenant && $tenant->company_id) {
+                        $this->currentCompanyId = $tenant->company_id;
+                        Log::info('✅ Company ID obtenido desde tenant', [
+                            'item_id' => $item->id,
+                            'tenant_id' => $tenantId,
+                            'company_id' => $this->currentCompanyId
+                        ]);
+                    } else {
+                        Log::error('❌ Tenant no encontrado o sin company_id', [
+                            'item_id' => $item->id,
+                            'tenant_id' => $tenantId,
+                            'tenant_found' => !is_null($tenant),
+                            'tenant_company_id' => $tenant->company_id ?? 'null'
+                        ]);
+                        return [
+                            'success' => false,
+                            'message' => 'Error de configuración: Tenant no encontrado o sin company_id válido'
+                        ];
+                    }
+                }
+
+                // Si aún no tenemos currentCompanyId, intentar reinicializar la configuración
+                if (!$this->currentCompanyId) {
+                    Log::info('🔄 Intentando reinicializar configuración', [
+                        'item_id' => $item->id
+                    ]);
+
+                    try {
+                        $this->initializeCompanyConfiguration();
+
+                        if ($this->currentCompanyId) {
+                            Log::info('✅ Configuración reinicializada exitosamente', [
+                                'item_id' => $item->id,
+                                'current_company_id' => $this->currentCompanyId
+                            ]);
+                        } else {
+                            Log::error('❌ Reinicialización falló - currentCompanyId sigue siendo null', [
+                                'item_id' => $item->id
+                            ]);
+                            return [
+                                'success' => false,
+                                'message' => 'Error de configuración: No se pudo obtener el ID de la empresa'
+                            ];
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('❌ Error en reinicialización de configuración', [
+                            'item_id' => $item->id,
+                            'error' => $e->getMessage()
+                        ]);
+                        return [
+                            'success' => false,
+                            'message' => 'Error de configuración: ' . $e->getMessage()
+                        ];
+                    }
+                }
+            }
+
+            // Verificar si facturación electrónica está habilitada
+            if (!$this->isElectronicInvoicingEnabled($this->currentCompanyId)) {
+                Log::info('⏭️ Facturación electrónica no habilitada - omitiendo sincronización', [
+                    'item_id' => $item->id,
+                    'company_id' => $this->currentCompanyId
+                ]);
+                return [
+                    'success' => true, // No es un error, simplemente no está habilitado
+                    'message' => 'Facturación electrónica no está habilitada para esta empresa'
+                ];
+            }
+
+            Log::info('✅ Iniciando sincronización de item', [
+                'item_id' => $item->id,
+                'company_id' => $this->currentCompanyId
+            ]);
+
+            // MÉTODO OPTIMIZADO: Usar user_id directamente
+            $user = Auth::user();
+            if (!$user) {
+                Log::error('❌ No hay usuario autenticado para sincronización');
+                return [
+                    'success' => false,
+                    'message' => 'Error de autenticación: No hay usuario logueado'
+                ];
+            }
+
+            // Obtener configuración optimizada
+            $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($user->id);
+            if (!$optimizedConfig) {
+                Log::error('❌ No se encontró configuración de facturación para usuario', [
+                    'user_id' => $user->id,
+                    'user_email' => $user->email
+                ]);
+                return [
+                    'success' => false,
+                    'message' => 'Error de configuración: No se encontró configuración de facturación para el usuario actual'
+                ];
+            }
+
+            // Crear ApiClient con configuración optimizada
+            $apiClient = new ApiClient(
+                $optimizedConfig['base_url'],
+                $optimizedConfig['token'],
+                $optimizedConfig['username'],
+                $optimizedConfig['timeout']
+            );
+
+            Log::info('🚀 Usando configuración OPTIMIZADA para Items', [
+                'user_id' => $user->id,
+                'warehouse_id' => $optimizedConfig['warehouse_id'],
+                'source' => $optimizedConfig['source']
+            ]);
+
+            // Obtener datos de cnf_taxes para accounting
+            $taxData = $this->getTaxAccountingData($item->taxId);
+
+            // LOGGING: Mostrar datos del item que se están usando
+            Log::info('📊 Datos del item para sincronización', [
+                'item_id' => $item->id,
+                'item_data' => [
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'sku' => $item->sku,
+                    'internal_code' => $item->internal_code,
+                    'categoryId' => $item->categoryId,
+                    'taxId' => $item->taxId,
+                    'inventoriable' => $item->inventoriable
+                ],
+                'tax_data_from_cnf_taxes' => $taxData,
+                'price_base' => $this->getPriceBase($item)
+            ]);
+
+            // Obtener api_data_id de la categoría (ID de Alegra)
+            $categoryAlegraId = null;
+            if ($item->categoryId) {
+                $category = Category::find($item->categoryId);
+                $categoryAlegraId = $category ? $category->api_data_id : null;
+
+              
+            } else {
+               
+            }
+
+            // Obtener información del store para inventory
+            $principalStore = $this->getPrincipalStore();
+            $warehouseApiId = null;
+
+            if ($principalStore && $principalStore->api_data_id) {
+                $warehouseApiId = (string)$principalStore->api_data_id;
+                Log::info('📦 Store principal con API ID encontrado', [
+                    'item_id' => $item->id,
+                    'store_id' => $principalStore->id,
+                    'store_name' => $principalStore->name,
+                    'api_data_id' => $principalStore->api_data_id
+                ]);
+            } else {
+                Log::warning('⚠️ Store principal sin api_data_id - usando warehouse por defecto', [
+                    'item_id' => $item->id,
+                    'store_id' => $principalStore->id ?? 'null',
+                    'store_name' => $principalStore->name ?? 'null'
+                ]);
+                $warehouseApiId = '1'; // Fallback a warehouse por defecto
+            }
+
+            $inventory = [
+                'unit' => 'unit',
+                'unitCost' => $this->getCost($item),
+                'negativeSale' => false,
+                'warehouses' => [
+                    [
+                        'id' => $warehouseApiId,
+                        'initialQuantity' => 0,
+                        'minQuantity' => 0,
+                        'maxQuantity' => 0
+                    ]
+                ]
+            ];
+            // Preparar datos para la API según estructura requerida
+            $apiData = [
+                'itemCategory' => [
+                    'id' => $categoryAlegraId // api_data_id de la categoría (ID de Alegra)
+                ],
+                'inventory' => $item->inventoriable == 1 ? $inventory : null,
+                'accounting' => [
+                    'inventory' => $taxData['inventoryAccount'] ?? null, // inventoryAccount desde cnf_taxes
+                    'inventariablePurchase' => $taxData['inventariablePurchaseAccount'] ?? null // inventariablePurchaseAccount desde cnf_taxes
+                ],
+                'description' => $item->description ?? '',
+                'name' => $item->name,
+                'reference' => $item->sku ?? $item->internal_code ?? '',
+                'price' => [
+                    [
+                        'price' => $this->getPriceBase($item) // Obtener precio base
+                    ]
+                ],
+                'type' => $item->inventoriable == 1 ? 'product' : 'service',
+                'tax' => $item->taxId ? (string)$item->taxId : '0' // Convertir a string
+            ];
+
+            // Remover inventory si el item no es inventoriable
+            if ($item->inventoriable != 1) {
+                unset($apiData['inventory']);
+            }
+
+            // LOGGING: Mostrar el JSON que se está generando
+            Log::info('📋 JSON generado para API de Items', [
+                'item_id' => $item->id,
+                'item_name' => $item->name,
+                'json_data' => $apiData,
+                'json_formatted' => json_encode($apiData, JSON_PRETTY_PRINT)
+            ]);
+
+            // Sincronizar (crear o actualizar)
+            if ($item->api_data_id) {
+                Log::info('📝 Actualizando item en API', [
+                    'item_id' => $item->id,
+                    'api_data_id' => $item->api_data_id
+                ]);
+                $apiResult = $apiClient->updateItem($item->api_data_id, $apiData);
+            } else {
+                Log::info('📝 Creando item en API', [
+                    'item_id' => $item->id,
+                    'name' => $item->name
+                ]);
+                $apiResult = $apiClient->createItem($apiData);
+            }
+
+            if ($apiResult['success']) {
+                // Guardar ID de la API si se creó exitosamente
+                if (isset($apiResult['data']['id']) && !$item->api_data_id) {
+                    $item->update(['api_data_id' => $apiResult['data']['id']]);
+                    Log::info('💾 ID de API guardado', [
+                        'item_id' => $item->id,
+                        'api_data_id' => $apiResult['data']['id']
+                    ]);
+                }
+
+                Log::info('✅ Item sincronizado exitosamente', [
+                    'item_id' => $item->id,
+                    'api_response_id' => $apiResult['data']['id'] ?? 'N/A'
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Item sincronizado exitosamente con la API de facturación'
+                ];
+            } else {
+                $errorMessage = $apiResult['message'] ?? 'Error desconocido en la API';
+                Log::error('❌ Error sincronizando item', [
+                    'item_id' => $item->id,
+                    'api_error' => $errorMessage
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Error en la API de facturación: ' . $errorMessage
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción sincronizando item', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage(),
+                'error_type' => 'exception'
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Obtener datos de accounting desde cnf_taxes
+     */
+    private function getTaxAccountingData(?int $taxId): array
+    {
+        try {
+            if (!$taxId) {
+                Log::debug('No taxId proporcionado para accounting');
+                return [
+                    'inventoryAccount' => null,
+                    'inventariablePurchaseAccount' => null,
+                    'categoryAccount' => null
+                ];
+            }
+
+            $tax = CnfTaxes::find($taxId);
+
+            if (!$tax) {
+                Log::warning('Tax no encontrado en cnf_taxes', ['tax_id' => $taxId]);
+                return [
+                    'inventoryAccount' => null,
+                    'inventariablePurchaseAccount' => null,
+                    'categoryAccount' => null
+                ];
+            }
+
+            Log::debug('Datos de accounting obtenidos', [
+                'tax_id' => $taxId,
+                'inventoryAccount' => $tax->inventoryAccount,
+                'inventariablePurchaseAccount' => $tax->inventariablePurchaseAccount,
+                'categoryAccount' => $tax->categoryAccount
+            ]);
+
+            return [
+                'inventoryAccount' => $tax->inventoryAccount,
+                'inventariablePurchaseAccount' => $tax->inventariablePurchaseAccount,
+                'categoryAccount' => $tax->categoryAccount
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo datos de cnf_taxes', [
+                'tax_id' => $taxId,
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'inventoryAccount' => null,
+                'inventariablePurchaseAccount' => null,
+                'categoryAccount' => null
+            ];
+        }
+    }
+
+    /**
+     * Obtener precio base del item desde InvValues
+     */
+    private function getPriceBase($item): float
+    {
+        try {
+            $priceValue = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Base')
+                ->first();
+
+            return $priceValue ? (float)$priceValue->values : 0.0;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo precio base', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage()
+            ]);
+            return 0.0;
+        }
+    }
+
+    /**
+     * Obtener costo del item desde InvValues
+     */
+    private function getCost($item): float
+    {
+        try {
+            $costValue = InvValues::where('itemId', $item->id)
+                ->where('label', 'Costo')
+                ->first();
+
+            return $costValue ? (float)$costValue->values : 0.0;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo costo del item', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage()
+            ]);
+            return 0.0;
+        }
+    }
+
+    /**
+     * Obtener el store principal de la empresa
+     */
+    private function getPrincipalStore(): ?InvStore
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            // Buscar el store principal (puede ser por status = 1 y el primero, o por algún campo específico)
+            $principalStore = InvStore::where('status', 1)
+                ->orderBy('id', 'asc')
+                ->first();
+
+            if (!$principalStore) {
+                Log::warning('No se encontró store principal para la empresa', [
+                    'company_id' => $this->currentCompanyId
+                ]);
+                return null;
+            }
+
+            Log::info('Store principal encontrado', [
+                'store_id' => $principalStore->id,
+                'store_name' => $principalStore->name,
+                'company_id' => $this->currentCompanyId
+            ]);
+
+            return $principalStore;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo store principal', [
+                'error' => $e->getMessage(),
+                'company_id' => $this->currentCompanyId
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Crear registro en inv_items_store para el item (solo si es inventoriable)
+     */
+    private function createItemStore(Items $item): void
+    {
+        try {
+            // Verificar que el item sea inventoriable antes de continuar
+            if ($item->inventoriable != 1) {
+                Log::warning('Intento de crear registro en inv_items_store para item no inventoriable', [
+                    'item_id' => $item->id,
+                    'item_name' => $item->name,
+                    'inventoriable' => $item->inventoriable
+                ]);
+                return;
+            }
+
+            $principalStore = $this->getPrincipalStore();
+
+            if (!$principalStore) {
+                Log::warning('No se pudo crear registro en inv_items_store: no hay store principal', [
+                    'item_id' => $item->id,
+                    'item_name' => $item->name
+                ]);
+                return;
+            }
+
+            // Verificar si ya existe el registro
+            $existingRecord = InvItemsStore::where('itemId', $item->id)
+                ->where('storeId', $principalStore->id)
+                ->first();
+
+            if ($existingRecord) {
+                Log::info('Registro en inv_items_store ya existe', [
+                    'item_id' => $item->id,
+                    'item_name' => $item->name,
+                    'store_id' => $principalStore->id,
+                    'store_name' => $principalStore->name
+                ]);
+                return;
+            }
+
+            // Crear nuevo registro
+            InvItemsStore::create([
+                'itemId' => $item->id,
+                'storeId' => $principalStore->id,
+                'initial_stock' => 0,
+                'stock_items_store' => 0,
+                'stock_min' => 0,
+                'stock_max' => 0,
+            ]);
+
+            Log::info('✅ Registro creado en inv_items_store para item inventoriable', [
+                'item_id' => $item->id,
+                'item_name' => $item->name,
+                'store_id' => $principalStore->id,
+                'store_name' => $principalStore->name,
+                'inventoriable' => $item->inventoriable
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creando registro en inv_items_store', [
+                'item_id' => $item->id,
+                'item_name' => $item->name,
+                'inventoriable' => $item->inventoriable,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Verificar si facturación electrónica está habilitada
+     */
+    private function isElectronicInvoicingEnabled(?int $companyId): bool
+    {
+        try {
+            if (!$companyId) {
+                Log::warning('Company ID es null para verificación de facturación electrónica');
+                return false;
+            }
+
+            // Asegurar que currentCompanyId está configurado
+            if ($this->currentCompanyId !== $companyId) {
+                Log::warning('⚠️ currentCompanyId diferente al companyId pasado', [
+                    'current_company_id' => $this->currentCompanyId,
+                    'passed_company_id' => $companyId
+                ]);
+                // Si no coinciden, usar el companyId pasado como referencia
+                $this->currentCompanyId = $companyId;
+            }
+
+            $optionValue = $this->getOptionValue(8); // Option ID 8 = facturación electrónica
+            $enabled = $optionValue == 1;
+
+            Log::debug('Verificación de facturación electrónica', [
+                'company_id' => $companyId,
+                'option_value' => $optionValue,
+                'enabled' => $enabled
+            ]);
+
+            return $enabled;
+        } catch (\Exception $e) {
+            Log::error('Error verificando facturación electrónica', [
+                'company_id' => $companyId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
     }
 }

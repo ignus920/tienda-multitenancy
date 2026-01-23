@@ -167,13 +167,61 @@ class CompanyConfigurationService
         $cacheKey = $this->getCacheKey('option_value', $companyId, 0, $optionId);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($companyId, $optionId) {
-            $result = DB::connection('tenant')->table('cnf_company_options')
+            \Log::info('🔍 DEBUG getOptionValue INICIO', [
+                'company_id' => $companyId,
+                'option_id' => $optionId,
+                'connection' => DB::connection('tenant')->getDatabaseName(),
+                'cache_key' => $this->getCacheKey('option_value', $companyId, 0, $optionId)
+            ]);
+
+            // Primero verificar que la conexión esté bien
+            try {
+                $connectionTest = DB::connection('tenant')->select('SELECT 1 as test');
+                \Log::info('🔗 Conexión tenant OK', ['test_result' => $connectionTest]);
+            } catch (\Exception $e) {
+                \Log::error('❌ Error de conexión tenant', ['error' => $e->getMessage()]);
+                return null;
+            }
+
+            // Buscar todos los registros para esta company (para debug)
+            $allRecords = DB::connection('tenant')->table('cnf_company_options')
+                ->where('company_id', $companyId)
+                ->whereNull('deleted_at')
+                ->get();
+
+            \Log::info('📊 Todos los registros para company_id ' . $companyId, [
+                'total_records' => $allRecords->count(),
+                'records' => $allRecords->toArray()
+            ]);
+
+            // Buscar específicamente la opción solicitada
+            $specificRecord = DB::connection('tenant')->table('cnf_company_options')
                 ->where('company_id', $companyId)
                 ->where('option_id', $optionId)
                 ->whereNull('deleted_at')
-                ->value('value');
+                ->first();
 
-            return $result !== null ? (int) $result : null;
+            \Log::info('🎯 Registro específico option_id ' . $optionId, [
+                'found' => $specificRecord !== null,
+                'record' => $specificRecord
+            ]);
+
+            if ($specificRecord) {
+                $value = (int) $specificRecord->value;
+                \Log::info('✅ Valor encontrado', [
+                    'raw_value' => $specificRecord->value,
+                    'converted_value' => $value,
+                    'value_type' => gettype($specificRecord->value)
+                ]);
+                return $value;
+            }
+
+            \Log::warning('❌ No se encontró registro', [
+                'company_id' => $companyId,
+                'option_id' => $optionId
+            ]);
+
+            return null;
         });
     }
 
