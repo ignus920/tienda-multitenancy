@@ -12,6 +12,7 @@ class CnfDistrict extends Model
     protected $table = 'district';
 
     protected $fillable = [
+        'id',
         'city_id',
         'status',
         'district',

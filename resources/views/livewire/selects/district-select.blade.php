@@ -64,7 +64,7 @@
                     <!-- Opción vacía / Reset -->
                     <li class="text-gray-900 dark:text-gray-100 relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500"
                         role="option" 
-                        x-on:click="$wire.selectCity(''); close($refs.button)">
+                        x-on:click="$wire.selectDistrict(''); close($refs.button)">
                         <span class="font-normal block truncate">{{ $placeholder }}</span>
                     </li>
         
@@ -73,7 +73,7 @@
                             class="text-gray-900 dark:text-gray-100 relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 group"
                             role="option" x-on:click="$wire.selectDistrict({{ $district->id }}); close($refs.button)">
                         
-                            <span class="font-normal block truncate {{ $districtId == $district->id ? 'font-semibold' : '' }}">
+                            <span class="font-normal block truncate {{ $districtId === $district->id ? 'font-semibold' : '' }}">
                                 {{ $district->district }}
                             </span>
         

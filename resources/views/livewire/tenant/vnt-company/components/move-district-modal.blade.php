@@ -63,33 +63,43 @@
                         Seleccionar Barrio
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <!-- Barrio -->
-                        <div class="md:col-span-1">
-                            @php
-                            $districtItems = collect($availableDistricts)->map(function($district) {
-                            return ['id' => $district, 'name' => $district];
-                            })->toArray();
-                            @endphp
+                        <!-- Ciudad de la Sucursal -->
+                        <div>
+                            @livewire('selects.city-select', [
+                            'cityId' => $warehouseCityId ?? '',
+                            'countryId' => 48,
+                            'name' => 'warehouseCityId',
+                            'placeholder' => 'Seleccionar ciudad',
+                            'label' => 'Ciudad',
+                            'required' => false,
+                            'showLabel' => true,
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                            'index' => 0
+                            ], key('city-select-warehouse'))
 
-                            @livewire('selects.generic-select', [
-                            'selectedValue' => $district,
-                            'items' => $districtItems,
-                            'name' => 'district',
-                            'label' => 'Barrio',
-                            'placeholder' => 'Seleccione un barrio',
-                            'displayField' => 'name',
-                            'valueField' => 'id',
-                            'searchFields' => ['name'],
-                            'eventName' => 'district-changed',
-                            'required' => true,
-                            'showLabel' => true
-                            ], key('district-select'))
+                            @error('warehouseCityId')
+                               <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                               @enderror
+                        </div>
+                        <div class="md:col-span-1">
+                            @livewire('selects.district-select', [
+                                'districtId' => $districtId,
+                                'name' => 'districtId',
+                                'label' => 'Barrio',
+                                'placeholder' => 'Seleccionar barrio',
+                                'label' => 'Barrio',
+                                'showLabel' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                                'index' => 0,
+                                'city_id' => '',
+                                key('district-city-'.$districtId)
+                                ])
                         </div>
                     </div>
                 </div>
 
                 <!-- Table Section - Shows immediately when district is selected -->
-                @if(!empty($district))
+                @if(!empty($districtId))
 
 
                    <!-- Routes Selection Section -->
@@ -107,8 +117,8 @@
                             'selectedValue' => $sourceRouteId,
                             'eventName' => 'source-route-changed',
                             'placeholder' => 'Seleccionar ruta de origen',
-                            'district' => $district
-                            ], key('source-route-select-' . $district))
+                            'district' => $districtId
+                            ], key('source-route-select-' . $districtId))
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 Seleccione la ruta de origen para intercambiar
                             </p>

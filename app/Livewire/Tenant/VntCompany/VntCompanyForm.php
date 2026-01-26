@@ -36,6 +36,7 @@ class VntCompanyForm extends Component
         'contact-modal-closed' => 'handleContactModalClosed',
         'citySelected' => 'updateCityName',
         'route-changed' => 'updateRoute',
+        'district-changed' => 'updateDistrict',
     ];
 
     public $search = '';
@@ -416,6 +417,7 @@ class VntCompanyForm extends Component
             'postcode' => $this->warehousePostcode,
             'cityId' => $this->warehouseCityId,
             'main' => true, // Siempre es la sucursal principal
+            'district' => $this->districtId,
         ]];
         // dd($warehouses);
         try {
@@ -717,6 +719,11 @@ class VntCompanyForm extends Component
     public function updateRoute($routeId)
     {
         $this->routeId = $routeId;
+    }
+
+    public function updateDistrict($districtId)
+    {
+        $this->districtId = $districtId;
     }
 
     public function toggleStatus()

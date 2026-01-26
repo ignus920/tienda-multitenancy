@@ -15,11 +15,11 @@ class VntWarehouse extends Model
      *
      * @var string
      */
-     protected $connection = 'tenant';
-     protected $table = 'vnt_warehouses'; 
+    protected $connection = 'tenant';
+    protected $table = 'vnt_warehouses';
 
-     public const BRANCH_TYPE_FIJA = 'FIJA';
-     public const BRANCH_TYPE_DESPACHO = 'DESPACHO';
+    public const BRANCH_TYPE_FIJA = 'FIJA';
+    public const BRANCH_TYPE_DESPACHO = 'DESPACHO';
     /**
      * The primary key for the model.
      *
@@ -58,6 +58,7 @@ class VntWarehouse extends Model
         'creditLimit',
         'priceList',
         'status',
+        'district',
         'api_data_id',
         'main',
         'branch_type',
@@ -126,6 +127,11 @@ class VntWarehouse extends Model
     public function city()
     {
         return $this->belongsTo(\App\Models\Central\CnfCity::class, 'cityId');
+    }
+
+    public function districtRelation()
+    {
+        return $this->belongsTo(\App\Models\Central\CnfDistrict::class, 'district', 'id');
     }
 
     public function scopeDespacho($query)
