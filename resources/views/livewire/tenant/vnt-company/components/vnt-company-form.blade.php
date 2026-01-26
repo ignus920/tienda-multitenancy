@@ -9,13 +9,35 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros clientes</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
-                <button wire:click="create"
-                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Crear Nuevo Cliente
-                </button>
+                <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
+                    <button wire:click="create"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Crear Nuevo Contacto
+                    </button>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
+                        <button wire:click="openRoutes"
+                            class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7">
+                                </path>
+                            </svg>
+                            Ruteros
+                        </button>
+                        <button wire:click="openMoveDistrict"
+                            class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4">
+                                </path>
+                            </svg>
+                            Mover Barrios
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -50,6 +72,18 @@
                                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                     </div>
+
+                    <div class="flex-1">
+                            <div class="relative">
+                                <label class="text-sm text-gray-700 dark:text-gray-300">Tipos de contacto:</label>
+                                <select wire:model.live="searchType"
+                                    class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="TODOS">TODOS</option>
+                                    <option value="CLIENTE">CLIENTE</option>
+                                    <option value="PROVEEDOR">PROVEEDOR</option>
+                                </select>
+                            </div>
+                        </div>
 
                     <!-- Controles -->
                     <div class="flex items-center gap-3">
@@ -300,7 +334,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $editingId ? 'Editar' : 'Crear' }} Cliente
+                        {{ $editingId ? 'Editar' : 'Crear' }} Contacto
                     </h3>
                 </div>
                 <!-- Alert de Errores de Validación -->
@@ -340,6 +374,17 @@
                 <!-- Form -->
                 <form wire:submit="save" class="p-6 space-y-6">
                     <div class="space-y-6">
+                        <!-- Tipo de Contacto -->
+                            <div class="md:col-span-2">
+                                <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Contacto <span class="text-red-500">*</span></label>
+                                <select wire:model.live="type" id="type" name="type"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Seleccione un tipo de contacto</option>
+                                    <option value="CLIENTE">CLIENTE</option>
+                                    <option value="PROVEEDOR">PROVEEDOR</option>
+                                </select>
+                                @error('type') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
                         <!-- Tipo de Identificación -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -587,6 +632,19 @@
                             @endif
                         </div>
 
+                        @if ($type)
+                            @if ($type == 'CLIENTE')
+                            <!--  vendedor -->
+                            @livewire('selects.route-sales-day', [
+                            'name' => 'routeId',
+                            'label' => 'Ruta',
+                            'required' => false,
+                            'placeholder' => 'Seleccione una ruta (opcional)',
+                            'routeId' => $routeId ?? ''
+                            ])
+                            @endif
+                        @endif
+
                         <!-- Teléfono Empresarial -->
                         <div>
                             <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Empresarial</label>
@@ -642,6 +700,21 @@
                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                @enderror
                         </div>
+
+                        @if ($type)
+                            @if ($type == 'CLIENTE')
+                            @livewire('selects.district-select', [
+                                'districtId' => $districtId,
+                                'name' => 'districtId',
+                                'label' => 'Barrio',
+                                'placeholder' => 'Seleccionar barrio',
+                                'label' => 'Barrio',
+                                'showLabel' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                                'index' => 0
+                                ])
+                            @endif
+                        @endif
 
                         <!-- Código Postal -->
                         <div>

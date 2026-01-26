@@ -6,11 +6,14 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
+use App\Models\Tenant\Customer\VntCompanyRoute;
 use App\Livewire\Tenant\VntCompany\Services\CompanyService;
 use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyQueryService;
 use App\Livewire\Tenant\VntCompany\Services\CompanyValidationService;
 use App\Livewire\Tenant\VntCompany\Services\ExportService;
+use App\Services\Tenant\TenantManager;
+use App\Models\Auth\Tenant;
 
 
 class VntCompanyForm extends Component
@@ -29,9 +32,10 @@ class VntCompanyForm extends Component
         'fiscal-responsibility-changed' => 'updateFiscalResponsibility',
         'city-changed' => 'updateWarehouseCity',
         'position-changed' => 'updatePosition',
-        'warehouse-modal-closed' => 'handleWarehouseModalClosed', 
+        'warehouse-modal-closed' => 'handleWarehouseModalClosed',
         'contact-modal-closed' => 'handleContactModalClosed',
-        'citySelected' => 'updateCityName'
+        'citySelected' => 'updateCityName',
+        'route-changed' => 'updateRoute',
     ];
 
     public $search = '';
@@ -40,16 +44,22 @@ class VntCompanyForm extends Component
     public $perPage = 10;
     public $sortField = 'id';
     public $sortDirection = 'desc';
-    
+    public $searchType = 'TODOS';
+
     // Warehouse modal properties
     public $reusable = false;
     public $companyId = null; // ID del cliente a editar (cuando se usa de forma reutilizable)
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
-    
+
     // Contact modal properties
     public $showContactModal = false;
     public $selectedCompanyIdForContacts = null;
+
+    // Routes modal properties
+    public $showRoutesModal = false;
+    // Move district modal properties
+    public $showMoveDistrictModal = false;
 
     // Propiedades del formulario
     public $businessName = '';
@@ -68,13 +78,15 @@ class VntCompanyForm extends Component
     public $code_ciiu = '';
     public $fiscalResponsabilityId = '';
     public $verification_digit = '';
-    
+    public $type = '';
+
     // Real-time validation properties
     public $identificationExists = false;
     public $validatingIdentification = false;
     public $emailExists = false;
     public $validatingEmail = false;
-    
+    public $validatingType = false;
+
     // Propiedades para contacto
     public $business_phone = '';
     public $personal_phone = '';
@@ -89,16 +101,20 @@ class VntCompanyForm extends Component
     public $warehouseIsMain = false;
     public $canAddMoreWarehouses = false;
     public $warehouseCityName = '';
-    
+
     // IDs para actualización (evitar duplicación)
     public $mainWarehouseId = null;
     public $mainContactId = null;
-    
+
     // Control de visualización de campos
     public $showNaturalPersonFields = false;
-    
+
     // Propiedad para rastrear errores de validación
     public $formHasErrors = false;
+
+    public $routeId = '';
+    public $createUser = false;
+    public $districtId = '';
 
     public function boot(
         CompanyService $companyService,
@@ -125,7 +141,7 @@ class VntCompanyForm extends Component
     protected function rules()
     {
         return $this->validationService->getValidationRules(
-            $this->typePerson, 
+            $this->typePerson,
             $this->editingId,
             $this->typeIdentificationId ? (int) $this->typeIdentificationId : null,
             true // Incluir reglas de warehouse y contacto
@@ -176,25 +192,26 @@ class VntCompanyForm extends Component
     }
 
 
-    
-   public function getItemsProperty()
-   {
-     return $this->queryService->getPaginatedCompanies(
-        $this->search,
-        $this->perPage,
-        $this->sortField,
-        $this->sortDirection
-     ); 
-   }
 
-   public function render()
-   {
-     return view('livewire.tenant.vnt-company.components.vnt-company-form', [
-        'items' => $this->items, // Se cachea automáticamente entre renders
-        'sortField' => $this->sortField,
-        'sortDirection' => $this->sortDirection
-    ]);
-   }
+    public function getItemsProperty()
+    {
+        return $this->queryService->getPaginatedCompanies(
+            $this->search,
+            $this->perPage,
+            $this->sortField,
+            $this->sortDirection,
+            $this->searchType
+        );
+    }
+
+    public function render()
+    {
+        return view('livewire.tenant.vnt-company.components.vnt-company-form', [
+            'items' => $this->items, // Se cachea automáticamente entre renders
+            'sortField' => $this->sortField,
+            'sortDirection' => $this->sortDirection
+        ]);
+    }
 
     public function create()
     {
@@ -207,17 +224,17 @@ class VntCompanyForm extends Component
 
     public function edit($id)
     {
-        
-         $this->clearUniqueValidationErrors(); 
+
+        $this->clearUniqueValidationErrors();
         $company = $this->companyService->getCompanyForEdit($id);
-        
+
         // Log company loading for debugging
         Log::info('Loading company for edit', [
             'company_id' => $id,
             'has_main_warehouse' => $company->mainWarehouse !== null,
             'has_contacts' => $company->mainWarehouse?->contacts->isNotEmpty() ?? false
         ]);
-        
+
         $this->editingId = $id;
         $this->typeIdentificationId = $company->typeIdentificationId;
         $this->identification = $company->identification;
@@ -233,7 +250,11 @@ class VntCompanyForm extends Component
         $this->checkDigit = (string)$company->checkDigit;
         $this->verification_digit = (string)$company->checkDigit; // Cargar el DV desde checkDigit
         $this->status = $company->status ?? 1;
-        
+        $this->type = $company->type;
+        // Cargar ruta asignada si existe
+        $route = VntCompanyRoute::where('company_id', $id)->first();
+        $this->routeId = $route ? $route->route_id : '';
+
         // Log detallado de la carga de datos para verificación
         Log::info('Company data loaded in edit()', [
             'company_id' => $id,
@@ -254,13 +275,13 @@ class VntCompanyForm extends Component
                 'status' => $this->status,
             ]
         ]);
-        
+
         // Determinar tipo de persona para la UI usando la nueva lógica
         $this->typePerson = $this->determineTypePersonForUI($company);
-        
+
         // Establecer showNaturalPersonFields basándose en el tipo determinado
         $this->showNaturalPersonFields = ($this->typePerson === 'Natural');
-        
+
         // Log informativo para debugging
         Log::info('Type person determined for UI', [
             'company_id' => $id,
@@ -270,7 +291,7 @@ class VntCompanyForm extends Component
             'showNaturalPersonFields' => $this->showNaturalPersonFields,
             'has_natural_data' => $this->hasNaturalPersonData($company)
         ]);
-        
+
         // Load main warehouse data into form properties
         $mainWarehouse = $company->mainWarehouse;
         if ($mainWarehouse) {
@@ -279,7 +300,7 @@ class VntCompanyForm extends Component
             $this->warehouseAddress = $mainWarehouse->address;
             $this->warehousePostcode = $mainWarehouse->postcode;
             $this->warehouseCityId = $mainWarehouse->cityId;
-            
+
             // Load contact data if exists
             $mainContact = $mainWarehouse->contacts->first();
             if ($mainContact) {
@@ -289,10 +310,10 @@ class VntCompanyForm extends Component
                 $this->positionId = $mainContact->positionId;
             }
         }
-        
+
         // Cargar sucursales usando el service
         $this->warehouses = $this->warehouseService->prepareWarehousesForForm($company);
-        
+
         // Si no hay sucursales, inicializar con una por defecto
         if (empty($this->warehouses)) {
             $this->initializeDefaultWarehouse();
@@ -300,7 +321,7 @@ class VntCompanyForm extends Component
             // Evaluar permisos para la empresa existente
             $this->evaluateWarehousePermissions();
         }
-        
+
         // Log final antes de mostrar el modal para verificar el estado
         Log::info('Final state before showing modal', [
             'company_id' => $id,
@@ -309,7 +330,7 @@ class VntCompanyForm extends Component
             'showNaturalPersonFields' => $this->showNaturalPersonFields,
             'verification_digit' => $this->verification_digit
         ]);
-        
+
         $this->showModal = true;
     }
 
@@ -319,35 +340,35 @@ class VntCompanyForm extends Component
         if ($this->typeIdentificationId && (int) $this->typeIdentificationId !== 2 && empty($this->typePerson)) {
             $this->typePerson = 'Natural';
         }
-        
+
         // Convertir strings vacíos a null solo para campos opcionales en Persona Natural
         if ($this->typePerson === 'Natural') {
             $this->regimeId = $this->regimeId === '' ? null : $this->regimeId;
             $this->fiscalResponsabilityId = $this->fiscalResponsabilityId === '' ? null : $this->fiscalResponsabilityId;
         }
-        
+
         // Validar que identification y email no existan antes de proceder
         if ($this->identificationExists) {
             $this->addError('identification', 'Este número de identificación ya está registrado.');
             return;
         }
-        
+
         if ($this->emailExists) {
             $this->addError('billingEmail', 'Este email de facturación ya está registrado.');
             return;
         }
 
-          if (!$this->cityValidate(0)) {
-              $this->addError('warehouseName', 'La ciudad seleccionada no es válida.');
+        if (!$this->cityValidate(0)) {
+            $this->addError('warehouseName', 'La ciudad seleccionada no es válida.');
             return; // Si la validación de ciudad falla, detener el guardado
         }
-        
-        
+
+
         // Validación simple usando Livewire nativo
         $this->validate();
-        
+
         $data = $this->getFormData();
-        
+
         // DEBUG: Mostrar todos los valores del formulario
         // dd([
         //     'action' => $this->editingId ? 'update' : 'create',
@@ -384,16 +405,16 @@ class VntCompanyForm extends Component
         //     'validation_rules' => $this->rules(),
         //     'timestamp' => now()->toDateTimeString()
         // ]);
-        
+
         // Preparar array de warehouses con los datos del formulario
         $warehouses = [[
             'id' =>  $this->mainWarehouseId,
             'name' => $this->editingId
-                      ? ($this->warehouseName ?? 'Principal')
-                      : 'Principal',
+                ? ($this->warehouseName ?? 'Principal')
+                : 'Principal',
             'address' => $this->warehouseAddress,
             'postcode' => $this->warehousePostcode,
-            'cityId' => $this->warehouseCityId, 
+            'cityId' => $this->warehouseCityId,
             'main' => true, // Siempre es la sucursal principal
         ]];
         // dd($warehouses);
@@ -401,12 +422,66 @@ class VntCompanyForm extends Component
             if ($this->editingId) {
                 $company = $this->companyService->update($this->editingId, $data, $warehouses, $this->mainContactId);
                 session()->flash('message', 'Registro actualizado exitosamente.');
-
                 // Disparar evento para componentes que escuchan
-                $this->dispatch('customer-updated', $this->editingId);
+                $this->dispatch('customer-updated', customerId: $this->editingId);
+
+                if ($this->routeId) {
+                    $existingRoute = VntCompanyRoute::where('company_id', $this->editingId)->first();
+
+                    if ($existingRoute) {
+                        if ($existingRoute->route_id != $this->routeId) {
+                            $existingRoute->update(['route_id' => $this->routeId]);
+                            Log::info('Route updated for company', ['companyId' => $this->editingId, 'newRouteId' => $this->routeId]);
+                        }
+                    } else {
+                        // Si no existe, crear
+                        $this->createRouteFromCompany($company);
+                        Log::info('Route created during update for company', ['companyId' => $this->editingId, 'routeId' => $this->routeId]);
+                    }
+                } else {
+                    // Si se deseleccionó la ruta (valor vacío), eliminar la asignación existente
+                    VntCompanyRoute::where('company_id', $this->editingId)->delete();
+                    Log::info('Route removed for company', ['companyId' => $this->editingId]);
+                }
             } else {
                 $company = $this->companyService->create($data, $warehouses);
                 session()->flash('message', 'Registro creado exitosamente.');
+
+                // Crear ruta si se ha seleccionado una ruta
+                Log::info('Checking route creation', [
+                    'routeId' => $this->routeId,
+                    'routeId_type' => gettype($this->routeId),
+                    'routeId_empty' => empty($this->routeId),
+                    'company' => $company ? $company->id : null
+                ]);
+
+                if ($this->routeId && $company) {
+                    try {
+                        Log::info('Creating route for company', [
+                            'company_id' => $company->id,
+                            'route_id' => $this->routeId
+                        ]);
+                        $route = $this->createRouteFromCompany($company);
+                        Log::info('Route created successfully', [
+                            'route_id' => $route->id ?? 'unknown',
+                            'company_id' => $route->company_id ?? 'unknown',
+                            'sales_order' => $route->sales_order ?? 'unknown'
+                        ]);
+                        session()->flash('message', 'Registro y ruta creados exitosamente.');
+                    } catch (\Exception $e) {
+                        // Log error but don't fail operation
+                        Log::error('Error creando ruta', [
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        session()->flash('message', 'Registro creado exitosamente, pero hubo un error al crear la ruta.');
+                    }
+                } else {
+                    Log::info('Skipping route creation', [
+                        'routeId' => $this->routeId,
+                        'hasCompany' => $company !== null
+                    ]);
+                }
 
                 // Disparar evento para componentes que escuchan
                 if ($company && isset($company->id)) {
@@ -455,6 +530,26 @@ class VntCompanyForm extends Component
     {
         $this->showContactModal = true;
         $this->selectedCompanyIdForContacts = $companyId;
+    }
+
+    public function openRoutes()
+    {
+        $this->showRoutesModal = true;
+    }
+
+    public function openMoveDistrict()
+    {
+        $this->showMoveDistrictModal = true;
+    }
+
+    public function handleRoutesModalClosed()
+    {
+        $this->showRoutesModal = false;
+    }
+
+    public function handleMoveDistrictModalClosed()
+    {
+        $this->showMoveDistrictModal = false;
     }
 
     public function exportExcel()
@@ -506,11 +601,12 @@ class VntCompanyForm extends Component
         $this->business_phone = '';
         $this->personal_phone = '';
         $this->positionId = 1; // Posición por defecto
-        
+        $this->type = '';
+
         // Reset real-time validation properties
         $this->identificationExists = false;
         $this->validatingIdentification = false;
-        
+
         // Reset warehouse fields e inicializar con una sucursal por defecto
         $this->warehouses = [];
         $this->initializeDefaultWarehouse();
@@ -520,14 +616,14 @@ class VntCompanyForm extends Component
         $this->warehouseCityId = '';
         $this->warehouseIsMain = false;
         $this->canAddMoreWarehouses = false;
-        
+
         // Reset IDs
         $this->mainWarehouseId = null;
         $this->mainContactId = null;
-        
+
         // Reset control de visualización
         $this->showNaturalPersonFields = false;
-        
+
         // Reset form validation state
         $this->formHasErrors = false;
 
@@ -550,7 +646,7 @@ class VntCompanyForm extends Component
     public function updateTypeIdentification($typeIdentificationId)
     {
         $this->typeIdentificationId = $typeIdentificationId;
-        
+
         // Lógica de negocio: establecer tipo de persona según tipo de identificación
         if ((int) $typeIdentificationId === 2) {
             // NIT: Permitir elegir entre Natural y Jurídica (no establecer automáticamente)
@@ -559,7 +655,7 @@ class VntCompanyForm extends Component
             // Cualquier otro tipo de identificación: Automáticamente Persona Natural
             $this->typePerson = 'Natural';
         }
-        
+
         // Re-evaluar permisos de sucursales
         $this->evaluateWarehousePermissions();
     }
@@ -583,7 +679,7 @@ class VntCompanyForm extends Component
             'index' => $index,
             'index_type' => gettype($index)
         ]);
-        
+
         // Validar que cityId sea numérico
         if (!is_numeric($cityId)) {
             Log::warning('Invalid cityId received in updateWarehouseCity', [
@@ -592,19 +688,19 @@ class VntCompanyForm extends Component
             ]);
             return;
         }
-        
+
         // Actualizar warehouseCityId directamente (usado en validación y guardado)
         $this->warehouseCityId = (int) $cityId;
         $city = \App\Models\Central\CnfCity::find($cityId);
-        $this->warehouseCityName = $city ? $city->name : ''; 
-       
+        $this->warehouseCityName = $city ? $city->name : '';
+
 
         // También actualizar en el array de warehouses si existe (para compatibilidad)
         if (isset($this->warehouses[$index])) {
             $this->warehouses[$index]['cityId'] = (int) $cityId;
-             $this->warehouses[$index]['cityName'] = $this->warehouseCityName;
+            $this->warehouses[$index]['cityName'] = $this->warehouseCityName;
         }
-        
+
         // Log para debugging
         Log::info('City updated successfully', [
             'warehouseCityId' => $this->warehouseCityId,
@@ -616,6 +712,11 @@ class VntCompanyForm extends Component
     public function updatePosition($positionId)
     {
         $this->positionId = $positionId;
+    }
+
+    public function updateRoute($routeId)
+    {
+        $this->routeId = $routeId;
     }
 
     public function toggleStatus()
@@ -654,15 +755,15 @@ class VntCompanyForm extends Component
     {
         // Validar solo el campo que cambió
         $this->validateOnly($propertyName);
-        
+
         // Actualizar el estado de errores del formulario
         $this->formHasErrors = $this->getErrorBag()->isNotEmpty();
-        
+
         // Validar unicidad de identification si cambió
         if ($propertyName === 'identification' && !empty($this->identification) && !empty($this->typeIdentificationId)) {
             $this->validateIdentificationUniqueness();
         }
-        
+
         // Validar unicidad de email si cambió
         if ($propertyName === 'billingEmail' && !empty($this->billingEmail)) {
             $this->validateEmailUniqueness();
@@ -677,7 +778,7 @@ class VntCompanyForm extends Component
     {
         // Validate the field using existing validation
         $this->validateOnly('identification');
-        
+
         // Trigger uniqueness check
         $this->validateIdentificationUniqueness();
     }
@@ -686,12 +787,45 @@ class VntCompanyForm extends Component
     {
         $this->validateOnly('billingEmail');
         $this->validateEmailUniqueness();
-        
+
         // Re-validar identificación después de cambiar email
         if (!empty($this->identification) && !empty($this->typeIdentificationId)) {
             $this->validateIdentificationUniqueness();
         }
     }
+
+    public function updatedType($value)
+    {
+        // Log para debugging
+        Log::info('updatedType called', [
+            'value' => $value,
+            'type' => $this->type,
+        ]);
+
+        // Si es PROVEEDOR, inhabilitar el checkbox de crear usuario
+        if ($this->type === 'PROVEEDOR') {
+            $this->validatingType = true;  // TRUE para inhabilitar el checkbox
+            $this->createUser = false;  // Desmarcar el checkbox
+            $this->districtId = '000'; // Asignar '000' al campo district
+            Log::info('Contact type changed to PROVEEDOR, createUser disabled and district set to 000', ['validatingContactType' => $this->validatingType, 'district' => $this->districtId]);
+        } else {
+            // Para otros tipos
+            $this->validatingType = false;  // FALSE para habilitar el checkbox
+            // Si el distrito fue establecido a '000' por la lógica de PROVEEDOR, lo reseteamos
+            if ($this->districtId === '000') {
+                $this->districtId = ''; // Permitir que el usuario ingrese un valor o quede vacío
+                Log::info('Contact type changed from PROVEEDOR, district reset to empty', ['district' => $this->districtId]);
+            }
+            Log::info('Contact type changed to ' . $this->type . ', createUser available', ['validatingType' => $this->validatingType]);
+        }
+    }
+
+    public function updatedSearchType()
+    {
+        $this->resetPage();
+        Log::info('SearchType updated', ['searchType' => $this->searchType]);
+    }
+
     /**
      * Validate identification uniqueness in real-time
      * Called when identification or typeIdentificationId changes
@@ -707,10 +841,10 @@ class VntCompanyForm extends Component
             $this->validatingIdentification = false;
             return;
         }
-        
+
         // Set loading state
         $this->validatingIdentification = true;
-        
+
         try {
             // Check if combination exists
             $this->identificationExists = $this->validationService->checkIdentificationExists(
@@ -732,7 +866,7 @@ class VntCompanyForm extends Component
         }
     }
 
-     public function validateEmailUniqueness(): void
+    public function validateEmailUniqueness(): void
     {
         // Skip validation if required fields are empty
         if (empty($this->billingEmail)) {
@@ -740,10 +874,10 @@ class VntCompanyForm extends Component
             $this->validatingEmail = false;
             return;
         }
-        
+
         // Set loading state
         $this->validatingEmail = true;
-        
+
         try {
             // Check if combination exists
             $this->emailExists = $this->validationService->checkEmailExists(
@@ -777,7 +911,7 @@ class VntCompanyForm extends Component
             $defaultWarehouse = $this->warehouseService->createEmptyWarehouse(0);
             $this->warehouses[] = $defaultWarehouse;
         }
-        
+
         // Evaluar permisos para agregar más sucursales
         $this->evaluateWarehousePermissions();
     }
@@ -814,7 +948,7 @@ class VntCompanyForm extends Component
         // Siempre re-validar la identificación cuando cambia el tipo
         // porque la combinación typeIdentificationId + identification debe ser única
         $this->validateIdentificationUniqueness();
-        
+
         $this->evaluateWarehousePermissions();
     }
 
@@ -832,7 +966,7 @@ class VntCompanyForm extends Component
 
         $newWarehouse = $this->warehouseService->createEmptyWarehouse(count($this->warehouses));
         $this->warehouses[] = $newWarehouse;
-        
+
         // Re-evaluar permisos después de agregar
         $this->evaluateWarehousePermissions();
     }
@@ -848,7 +982,7 @@ class VntCompanyForm extends Component
         }
 
         $this->warehouseService->removeWarehouse($this->warehouses, $index);
-        
+
         // Re-evaluar permisos después de remover
         $this->evaluateWarehousePermissions();
     }
@@ -859,7 +993,7 @@ class VntCompanyForm extends Component
     public function getWarehouseLimitsInfo(): array
     {
         return $this->warehouseService->getWarehouseLimitsInfo(
-            $this->typePerson ?? '', 
+            $this->typePerson ?? '',
             $this->typeIdentificationId ? (int) $this->typeIdentificationId : null
         );
     }
@@ -869,10 +1003,10 @@ class VntCompanyForm extends Component
      */
     private function hasNaturalPersonData($company): bool
     {
-        return !empty($company->firstName) || 
-               !empty($company->lastName) || 
-               !empty($company->secondName) || 
-               !empty($company->secondLastName);
+        return !empty($company->firstName) ||
+            !empty($company->lastName) ||
+            !empty($company->secondName) ||
+            !empty($company->secondLastName);
     }
 
     /**
@@ -890,34 +1024,34 @@ class VntCompanyForm extends Component
     private function determineTypePersonForUI($company): string
     {
         $typeIdentificationId = (int) $company->typeIdentificationId;
-        
+
         //dd($company);
         // Caso 1: No es NIT (typeIdentificationId != 2) → Siempre Persona Natural
         if ($typeIdentificationId !== 2) {
             return 'Natural';
         }
-        
+
         // Caso 2: Es NIT (typeIdentificationId == 2)
         // Verificar si tiene datos de persona natural
         $hasNaturalPersonData = !empty($company->businessName);
-        
+
         // Si tiene datos de persona natural → Persona Natural con NIT
         if (!$hasNaturalPersonData) {
             return 'Natural';
         }
-        
+
         // Si NO tiene datos de persona natural → Persona Jurídica
         return 'Juridica';
     }
 
 
-     public function clearUniqueValidationErrors()
+    public function clearUniqueValidationErrors()
     {
-      // Limpiar errores específicos de unicidad
-      $this->resetErrorBag(['billingEmail', 'identification']);
-      // También resetear las banderas de existencia
-      $this->identificationExists = false;
-      $this->emailExists = false;
+        // Limpiar errores específicos de unicidad
+        $this->resetErrorBag(['billingEmail', 'identification']);
+        // También resetear las banderas de existencia
+        $this->identificationExists = false;
+        $this->emailExists = false;
     }
 
 
@@ -925,44 +1059,80 @@ class VntCompanyForm extends Component
      * Obtener datos del formulario para enviar al service
      */
 
-      #[On('city-valid')]
-       public function cityValidate($index, $cityId = null): bool
-       {
-          if ($index != 0) {
+    #[On('city-valid')]
+    public function cityValidate($index, $cityId = null): bool
+    {
+        if ($index != 0) {
             return false;
-          }
-          
-          // Si cityId viene del evento, usarlo directamente
-          $cityIdToValidate = $cityId ?? $this->warehouseCityId;
-          
-          // Validar que se haya seleccionado una ciudad válida
-          if (empty($cityIdToValidate) || !is_numeric($cityIdToValidate)) {
-              $this->addError('warehouseCityId', 'Debe seleccionar una ciudad válida para la sucursal principal.');
-            return false;
-          }
-          
-          // Obtener el nombre de la ciudad para validar que existe
-          $city = \App\Models\Central\CnfCity::find($cityIdToValidate);
-          if (!$city) {
-              $this->addError('warehouseCityId', 'La ciudad seleccionada no es válida.');
-            return false;
-          }
-          
-          // Actualizar las propiedades si vienen del evento
-          if ($cityId !== null) {
-              $this->warehouseCityId = (int) $cityId;
-              $this->warehouseCityName = $city->name;
-          }
-          
-          return true;
         }
+
+        // Si cityId viene del evento, usarlo directamente
+        $cityIdToValidate = $cityId ?? $this->warehouseCityId;
+
+        // Validar que se haya seleccionado una ciudad válida
+        if (empty($cityIdToValidate) || !is_numeric($cityIdToValidate)) {
+            $this->addError('warehouseCityId', 'Debe seleccionar una ciudad válida para la sucursal principal.');
+            return false;
+        }
+
+        // Obtener el nombre de la ciudad para validar que existe
+        $city = \App\Models\Central\CnfCity::find($cityIdToValidate);
+        if (!$city) {
+            $this->addError('warehouseCityId', 'La ciudad seleccionada no es válida.');
+            return false;
+        }
+
+        // Actualizar las propiedades si vienen del evento
+        if ($cityId !== null) {
+            $this->warehouseCityId = (int) $cityId;
+            $this->warehouseCityName = $city->name;
+        }
+
+        return true;
+    }
+    private function createRouteFromCompany($company)
+    {
+        $this->ensureTenantConnection();
+        Log::info('createRouteFromCompany called', [
+            'company_id' => $company->id,
+            'route_id' => $this->routeId
+        ]);
+        // Obtener el último consecutivo para esta combinación de route_id y company_id
+        $lastRoute = VntCompanyRoute::where('route_id', $this->routeId)
+            ->orderBy('sales_order', 'desc')
+            ->first();
+
+        Log::info('Last route found', [
+            'lastRoute' => $lastRoute ? $lastRoute->toArray() : null
+        ]);
+
+        // Si existe un registro previo, incrementar el consecutivo, si no, empezar en 1
+        $nextSalesOrder = $lastRoute ? ($lastRoute->sales_order + 1) : 1;
+
+        $routeData = [
+            'company_id' => $company->id,
+            'route_id' => $this->routeId,
+            'sales_order' => $nextSalesOrder
+        ];
+
+        Log::info('Creating route with data', ['routeData' => $routeData]);
+
+        $route = VntCompanyRoute::create($routeData);
+
+        Log::info('Route created', [
+            'route' => $route ? $route->toArray() : null
+        ]);
+
+        return $route;
+    }
+
     private function getFormData(): array
     {
         // Si es NIT, usar verification_digit como checkDigit
-        $checkDigit = ((int) $this->typeIdentificationId === 2) 
-            ? $this->verification_digit 
+        $checkDigit = ((int) $this->typeIdentificationId === 2)
+            ? $this->verification_digit
             : $this->checkDigit;
-        
+
         return [
             'typeIdentificationId' => $this->typeIdentificationId,
             'identification' => $this->identification,
@@ -981,6 +1151,31 @@ class VntCompanyForm extends Component
             'business_phone' => $this->business_phone,
             'personal_phone' => $this->personal_phone,
             'positionId' => $this->positionId,
+            'routeId' => $this->routeId === '' ? null : $this->routeId,
+            'type' => $this->type,
         ];
+    }
+
+    private function ensureTenantConnection(): void
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            throw new \Exception('No tenant selected');
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            throw new \Exception('Invalid tenant');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
     }
 }

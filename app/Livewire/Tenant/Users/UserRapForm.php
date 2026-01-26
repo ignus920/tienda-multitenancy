@@ -83,6 +83,7 @@ class UserRapForm extends Component
     public $newPassword = '';
     public $confirmPassword = '';
 
+    public $availableUsers = 0;
     /**
      * Boot method to inject dependencies
      */
@@ -218,7 +219,7 @@ class UserRapForm extends Component
     public function create(): void
     {
         if ($this->canCreateOrUpdateUsers()) {
-            $this->errorMessage = 'No tienes permisos para crear usuarios';
+            $this->errorMessage = 'Sin permisos para crear usuarios. Actualmente tienes ' . $this->availableUsers . ' usuarios activos.';
             return;
         }
 
@@ -753,9 +754,9 @@ class UserRapForm extends Component
             // 6. Calcular nuevo estado (toggle)
             $newStatus = !$user->contact->status;
             
-            if ($this->canCreateOrUpdateUsers(true, $newStatus)) {
+            if (!$this->canCreateOrUpdateUsers(false, $newStatus)) {
                 DB::rollBack();
-                $this->errorMessage = 'No tienes permisos para crear usuarios';
+                $this->errorMessage = 'Sin permisos para activar usuarios. Actualmente tienes ' . $this->availableUsers . ' usuarios activos.';
                 return;
             }
             
@@ -992,12 +993,21 @@ class UserRapForm extends Component
         $result = $this->isOptionEnabled(1);
         $value = $this->getOptionValue(1);
         
+        // Get tenant ID
+        $sessionTenant = $this->getTenantId();
 
-        $filteredUsers = $this->users->filter(function($user) {
-            return $user->contact && $user->contact->status == 1;
-         });
-         $count = $filteredUsers->count();
+        // Query ALL active users for this tenant (not paginated)
+        $activeUser = User::query()
+            ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                $query->where('tenants.id', $sessionTenant)
+                      ->where('user_tenants.is_active', 1);
+            })
+            ->whereHas('contact', function ($query) {
+                $query->where('status', 1);
+            })
+            ->count();
 
+        $this->availableUsers = $value;
         // DEBUG: Log detallado de verificación
         Log::info('🔍 canCreateOrUpdateUsers() verificación', [
             'companyId' => $this->currentCompanyId,
@@ -1007,21 +1017,21 @@ class UserRapForm extends Component
             'configService_exists' => $this->configService ? 'YES' : 'NO',
             'method_called' => 'isOptionEnabled(10) y getOptionValue(10)',
             'update' => $update,
-            'count' => $count,
-            'toggle' => $toggle
+            'total usuarios activos' => $activeUser,
+            'toggle' => $toggle,
+            'tenant_id' => $sessionTenant
         ]);
-        // validation create
-        if(!$update){
-           return (int)$value <= (int)$count;
-        }
-        // validation update positive
+
+        // validation negative
         if(!$toggle){
-            return (int)$value < (int)$count;
+            Log::info('🔍 desactivar usuario');
+            return true;
+        }else if((int)$activeUser < (int)$value){
+             // validate create and positive 
+            Log::info('🔍 crear y activar usuario');
+            return true;       
         }
-        // validation update negative
-        if($toggle){
-            return (int)$value == (int)$count;
-        }
+           Log::info('🔍 no entra en ninguno de los dos casos');
          return false;
     }
 

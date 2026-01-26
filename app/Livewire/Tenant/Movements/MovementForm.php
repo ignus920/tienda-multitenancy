@@ -13,6 +13,7 @@ use App\Models\Tenant\Items\UnitMeasurements;
 use App\Models\Tenant\Items\InvItemsStore;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Auth;
 class MovementForm extends Component
 {
     // Modal state
+     use HasCompanyConfiguration;
     public $showModal = false;
     public $showDetailsModal = false;
     public $movementDetails = []; // Store movement details as array instead of model
@@ -379,12 +381,18 @@ class MovementForm extends Component
             
             // Check stores count to determine if select should be shown
             $warehouseStores = InvStore::where('warehouseId', $this->warehouseId)->where('status', 1)->get();
-            
+            // Validate plan 
+             $validateStore = $this->canAggregateStores(false, $warehouseStores->count());
+            Log::info('validateStore', ['validateStore' => $validateStore]);
             if ($warehouseStores->count() == 1) {
                 $this->showSelectStore = false;
                 $this->selectedStoreId = $warehouseStores->first()->id;
             } elseif ($warehouseStores->count() > 1) {
-                $this->showSelectStore = true;
+                if($validateStore){
+                    $this->showSelectStore = true;
+                } else {
+                    $this->showSelectStore = false;
+                }
             } else {
                 $this->showSelectStore = false;
                 $this->selectedStoreId = null;
@@ -732,6 +740,40 @@ class MovementForm extends Component
         $this->clearMessages();
         $this->resetValidation();
     }
+    
+    /**
+     * User plan
+     */
+
+       private function canAggregateStores(bool $update = false, $quantity): bool
+      {
+
+        $this->ensureTenantConnection();        
+        $this->initializeCompanyConfiguration();
+
+        // DEBUG: Limpiar caché para testing
+        $this->clearConfigurationCache();
+        $result = $this->isOptionEnabled(27);
+        $value = $this->getOptionValue(27);
+        
+        // DEBUG: Log detallado de verificación
+        Log::info('🔍 canCreateOrUpdateUsers() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 1,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(27) y getOptionValue(27)',
+            'update' => $update,
+        ]);
+
+
+         if($result == true && $quantity <= $value){
+            return true;
+         }
+         return false;
+        }
+
     
     /**
      * Reset movement form

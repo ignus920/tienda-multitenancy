@@ -1,7 +1,8 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-full mx-auto">
         <!-- Header -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div 
+            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros Unodades de Medida</h1>
@@ -18,10 +19,12 @@
         </div>
         <!-- Mensajes -->
         @if (session()->has('message'))
-        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-6">
+        <div 
+            class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-6">
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 {{ session('message') }}
             </div>
@@ -49,7 +52,7 @@
                     </div>
 
                     <!-- Controles -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
                         <!-- Registros por página -->
                         <div class="flex items-center gap-2">
                             <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
@@ -62,30 +65,9 @@
                                 <option value="100">100</option>
                             </select>
                         </div>
+                        <!-- Botones de exportar (responsive: icon-only en móviles, full en sm+) -->
                         <!-- Botones de exportar -->
-                        <div class="flex items-center gap-2">
-                            <button wire:click="exportExcel"
-                                class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm transition-colors">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm6 10V6h6v8h-6z"></path>
-                                </svg>
-                                Excel
-                            </button>
-                            <button wire:click="exportPdf"
-                                class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm transition-colors">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z"></path>
-                                </svg>
-                                PDF
-                            </button>
-                            <button wire:click="exportCsv"
-                                class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm transition-colors">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L4.414 10H17a1 1 0 100-2H4.414l1.879-1.293z"></path>
-                                </svg>
-                                CSV
-                            </button>
-                        </div>
+                        <x-export-buttons />
                     </div>
                 </div>
             </div>
@@ -102,36 +84,50 @@
                                     @if($sortField === 'id')
                                     @if($sortDirection === 'asc')
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path>
+                                        <path 
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z">
+                                        </path>
                                     </svg>
                                     @else
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"></path>
+                                        <path 
+                                            d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z">
+                                        </path>
                                     </svg>
                                     @endif
                                     @endif
                                 </div>
                             </th>
-                            <th wire:click="sortBy('name')"
+                            <th wire:click="sortBy('description')"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none">
                                 <div class="flex items-center gap-1">
                                     Descripción
                                     @if($sortField === 'description')
                                     @if($sortDirection === 'asc')
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path>
+                                        <path 
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z">
+                                        </path>
                                     </svg>
                                     @else
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"></path>
+                                        <path 
+                                            d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z">
+                                        </path>
                                     </svg>
                                     @endif
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cantidad</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+                            <th 
+                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Cantidad</th>
+                            <th 
+                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Estado</th>
+                            <th 
+                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -146,13 +142,13 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                     {{ $ut->quantity }}
                                 </td>
-                                <td class="px-6 py-3 whitespace-nowrap text-center  text-sm font-medium text-gray-900 dark:text-white">
+                                <td 
+                                    class="px-6 py-3 whitespace-nowrap text-center  text-sm font-medium text-gray-900 dark:text-white">
                                     <!-- Estado Toggle -->
                                     <div class="flex items-center justify-center">
                                         <div class="flex items-center space-x-3">
                                             <!-- Toggle Switch -->
-                                            <button type="button"
-                                                wire:click="toggleUnitStatus({{ $ut->id }})"
+                                            <button type="button" wire:click="toggleUnitStatus({{ $ut->id }})"
                                                 class="relative inline-flex h-4 w-8 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $ut->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
                                                 role="switch"
                                                 aria-checked="{{ $ut->status ? 'true' : 'false' }}"
@@ -167,7 +163,9 @@
                                         <button wire:click="edit({{ $ut->id }})"
                                             class="inline-flex items-center px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs font-medium rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors">
                                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                </path>
                                             </svg>
                                             Editar
                                         </button>
@@ -178,11 +176,15 @@
                             <tr>
                                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                     <div class="flex flex-col items-center">
-                                        <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                        <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none" 
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                                            </path>
                                         </svg>
                                         <p class="text-lg font-medium">No se encontraron registros</p>
-                                        <p class="text-sm">{{ $search ? 'Intenta ajustar tu búsqueda' : 'Comienza creando un nuevo registro' }}</p>
+                                        <p class="text-sm">{{ $search ? 'Intenta ajustar tu búsqueda' : 'Comienza creando un 
+                                            nuevo registro' }}</p>
                                     </div>
                                 </td>
                             </tr>
@@ -196,10 +198,15 @@
             <div class="bg-white dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
                 <div class="flex items-center justify-between">
                     <div class="text-sm text-gray-700 dark:text-gray-300">
-                        Mostrando {{ $units->firstItem() }} a {{ $units->lastItem() }} de {{ $units->total() }} resultados
+                        Mostrando {{ $units->firstItem() }} a {{ $units->lastItem() }} de {{ $units->total() }} 
+                        resultados
                     </div>
-                    <div>
-                        {{ $units->links() }}
+                    <div class="w-full sm:w-auto">
+                        <div class="mt-2 sm:mt-0 flex justify-center sm:justify-end">
+                            <div class="inline-block overflow-x-auto -mx-2 px-2">
+                                {{ $units->links() }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,13 +217,9 @@
     <!-- Modal -->
     @if($showModal)
     <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
-        x-data="{ show: true }"
-        x-show="show"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
+        x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
+        x-transition:enter-start="opacity-0"  x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0">
         <div class="relative min-h-screen flex items-center justify-center p-4">
             <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
@@ -229,9 +232,15 @@
 
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $unit_id ? 'Editar Unidad' : 'Crear Unidad' }}
-                    </h3>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ $unit_id ? 'Editar Unidad' : 'Crear Unidad' }}
+                        </h3>
+                    </div>
+                    <button wire:click="cancel"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <x-heroicon-o-x-mark class="w-6 h-6" />
+                    </button>
                 </div>
 
                 <!-- Form -->
