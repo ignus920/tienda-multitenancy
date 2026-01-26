@@ -76,7 +76,6 @@ class UserRapForm extends Component
     public $newPassword = '';
     public $confirmPassword = '';
 
-    public $availableUsers = 0;
     /**
      * Boot method to inject dependencies
      */
@@ -211,8 +210,10 @@ class UserRapForm extends Component
      */
     public function create(): void
     {
-        if ($this->canCreateOrUpdateUsers()) {
-            $this->errorMessage = 'Sin permisos para crear usuarios. Actualmente tienes ' . $this->availableUsers . ' usuarios activos.';
+        if (!$this->canCreateUser()) {
+            $limit = $this->getUserLimit();
+            $current = $this->getActiveUserCount();
+            $this->errorMessage = "No se pueden crear más usuarios. Límite: {$limit}, Activos: {$current}";
             return;
         }
 
@@ -661,28 +662,41 @@ class UserRapForm extends Component
             // 6. Calcular nuevo estado (toggle)
             $newStatus = !$user->contact->status;
             
-            if (!$this->canCreateOrUpdateUsers(false, $newStatus)) {
-                DB::rollBack();
-                $this->errorMessage = 'Sin permisos para activar usuarios. Actualmente tienes ' . $this->availableUsers . ' usuarios activos.';
-                return;
+            // 7. Validar según la operación
+            if ($newStatus) {
+                // Activating user - check if allowed
+                if (!$this->canActivateUser()) {
+                    DB::rollBack();
+                    $limit = $this->getUserLimit();
+                    $current = $this->getActiveUserCount();
+                    $this->errorMessage = "No se pueden activar más usuarios. Límite: {$limit}, Activos: {$current}";
+                    return;
+                }
+            } else {
+                // Deactivating user - always allowed but check anyway for consistency
+                if (!$this->canDeactivateUser()) {
+                    DB::rollBack();
+                    $this->errorMessage = 'Error al desactivar usuario';
+                    return;
+                }
             }
             
-            // 7. Actualizar vnt_contacts
+            // 8. Actualizar vnt_contacts
             $user->contact->update(['status' => $newStatus]);
             
-            // 8. Actualizar user_tenants
+            // 9. Actualizar user_tenants
             $userTenant->update(['is_active' => $newStatus]);
             
-            // 9. Confirmar transacción
+            // 10. Confirmar transacción
             DB::commit();
             
-            // 10. Mensaje de éxito
+            // 11. Mensaje de éxito
             $this->successMessage = 'Estado actualizado exitosamente';
             
             // Clear any error messages
             $this->errorMessage = '';
             
-            // 11. Forzar re-render de la tabla para actualizar el switch
+            // 12. Forzar re-render de la tabla para actualizar el switch
             $this->dispatch('refresh-users');
             
         } catch (\Exception $e) {
@@ -889,57 +903,153 @@ class UserRapForm extends Component
         return $tenantId;
     }
 
-    private function canCreateOrUpdateUsers(bool $update = false, $toggle = false): bool
+    /**
+     * Get the count of currently active users for the tenant
+     * Active = user_tenants.is_active = 1 AND vnt_contacts.status = 1
+     * 
+     * @return int
+     */
+    private function getActiveUserCount(): int
     {
+        try {
+            $sessionTenant = $this->getTenantId();
 
-        $this->ensureTenantConnection();        
-        $this->initializeCompanyConfiguration();
+            $count = User::query()
+                ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                    $query->where('tenants.id', $sessionTenant)
+                          ->where('user_tenants.is_active', 1);
+                })
+                ->whereHas('contact', function ($query) {
+                    $query->where('status', 1);
+                })
+                ->count();
 
-        // DEBUG: Limpiar caché para testing
-        $this->clearConfigurationCache();
-        $result = $this->isOptionEnabled(1);
-        $value = $this->getOptionValue(1);
-        
-        // Get tenant ID
-        $sessionTenant = $this->getTenantId();
+            Log::info('Active user count retrieved', [
+                'tenant_id' => $sessionTenant,
+                'count' => $count
+            ]);
 
-        // Query ALL active users for this tenant (not paginated)
-        $activeUser = User::query()
-            ->whereHas('tenants', function ($query) use ($sessionTenant) {
-                $query->where('tenants.id', $sessionTenant)
-                      ->where('user_tenants.is_active', 1);
-            })
-            ->whereHas('contact', function ($query) {
-                $query->where('status', 1);
-            })
-            ->count();
+            return $count;
+        } catch (\Exception $e) {
+            Log::error('Failed to get active user count', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Fail closed - return high value to block operations
+            return PHP_INT_MAX;
+        }
+    }
 
-        $this->availableUsers = $value;
-        // DEBUG: Log detallado de verificación
-        Log::info('🔍 canCreateOrUpdateUsers() verificación', [
-            'companyId' => $this->currentCompanyId,
-            'option_id' => 1,
-            'result' => $result ? 'TRUE' : 'FALSE',
-            'option_value' => $value,
-            'configService_exists' => $this->configService ? 'YES' : 'NO',
-            'method_called' => 'isOptionEnabled(10) y getOptionValue(10)',
-            'update' => $update,
-            'total usuarios activos' => $activeUser,
-            'toggle' => $toggle,
-            'tenant_id' => $sessionTenant
+    /**
+     * Get the user limit for the current tenant from configuration
+     * Retrieves option_id = 1 from cnf_company_options
+     * 
+     * @return int
+     */
+    private function getUserLimit(): int
+    {
+        try {
+            $this->ensureTenantConnection();
+            $this->initializeCompanyConfiguration();
+            $this->clearConfigurationCache();
+
+            $limit = $this->getOptionValue(1);
+
+            // Validate limit is a positive integer
+            if (!is_numeric($limit) || $limit < 0) {
+                Log::warning('Invalid user limit configuration', [
+                    'limit_value' => $limit,
+                    'company_id' => $this->currentCompanyId
+                ]);
+                return 0;
+            }
+
+            Log::info('User limit retrieved', [
+                'company_id' => $this->currentCompanyId,
+                'limit' => $limit
+            ]);
+
+            return (int)$limit;
+        } catch (\Exception $e) {
+            Log::error('Failed to get user limit', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Fail closed - return 0 to block operations
+            return 0;
+        }
+    }
+
+    /**
+     * Check if current active users are below the limit
+     * Returns true if there is capacity for more users
+     * 
+     * @return bool
+     */
+    private function hasAvailableUserSlots(): bool
+    {
+        $activeCount = $this->getActiveUserCount();
+        $limit = $this->getUserLimit();
+
+        $hasSlots = $activeCount < $limit;
+
+        Log::info('Checking available user slots', [
+            'active_count' => $activeCount,
+            'limit' => $limit,
+            'has_slots' => $hasSlots
         ]);
 
-        // validation negative
-        if(!$toggle){
-            Log::info('🔍 desactivar usuario');
-            return true;
-        }else if((int)$activeUser < (int)$value){
-             // validate create and positive 
-            Log::info('🔍 crear y activar usuario');
-            return true;       
-        }
-           Log::info('🔍 no entra en ninguno de los dos casos');
-         return false;
+        return $hasSlots;
+    }
+
+    /**
+     * Check if a new user can be created
+     * Returns true if creation is allowed, false otherwise
+     * 
+     * @return bool
+     */
+    private function canCreateUser(): bool
+    {
+        $canCreate = $this->hasAvailableUserSlots();
+
+        Log::info('User creation validation', [
+            'can_create' => $canCreate,
+            'active_count' => $this->getActiveUserCount(),
+            'limit' => $this->getUserLimit()
+        ]);
+
+        return $canCreate;
+    }
+
+    /**
+     * Check if an inactive user can be activated
+     * Returns true if activation is allowed, false otherwise
+     * 
+     * @return bool
+     */
+    private function canActivateUser(): bool
+    {
+        $canActivate = $this->hasAvailableUserSlots();
+
+        Log::info('User activation validation', [
+            'can_activate' => $canActivate,
+            'active_count' => $this->getActiveUserCount(),
+            'limit' => $this->getUserLimit()
+        ]);
+
+        return $canActivate;
+    }
+
+    /**
+     * Check if an active user can be deactivated
+     * Always returns true (deactivation is always allowed)
+     * 
+     * @return bool
+     */
+    private function canDeactivateUser(): bool
+    {
+        Log::info('User deactivation validation - always allowed');
+        return true;
     }
 
     

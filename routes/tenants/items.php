@@ -8,6 +8,7 @@ use App\Http\Controllers\Inventory\BrandsController;
 use App\Http\Controllers\Inventory\CommandsController;
 use App\Http\Controllers\Inventory\HousesController;
 use App\Http\Controllers\Inventory\UnitsMeasurementsController;
+use App\Http\Controllers\Inventory\WarehousesController;
 
 //Items
 Route::prefix('/items')->group(function(){
@@ -37,4 +38,9 @@ Route::prefix('/inventory')->group(function(){
 //Unit Measurements
 Route::prefix('/inventory')->group(function(){
     Route::get('/units', [UnitsMeasurementsController::class, 'homeUnits'])->name('units');
+});
+
+//Warehouses
+Route::prefix('/inventory')->group(function(){
+    Route::get('/warehouses', [WarehousesController::class, 'homeWarehouses'])->name('warehouses');
 });

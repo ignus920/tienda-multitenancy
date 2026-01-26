@@ -446,6 +446,8 @@ new class extends Component
                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('transfers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                    Transferencias
                 </a>
+                <a href="{{url('/inventory/warehouses')}}" wire:navigate
+                    class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Bodegas</a>
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
