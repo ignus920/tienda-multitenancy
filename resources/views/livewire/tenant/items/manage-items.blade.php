@@ -215,15 +215,22 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 @if($it->inventoriable == 1)
-                                @if($it->invItemsStore->isNotEmpty())
-                                @foreach($it->invItemsStore as $store)
-                                {{ $store->stock_items_store }}
-                                @endforeach
+                                    @if($it->invItemsStore->isNotEmpty())
+                                        <button wire:click="openStockModal({{ $it->id }})" 
+                                            class="inline-flex items-center px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                            Ver Stock
+                                            <span class="ml-1.5 px-2 py-0.5 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-bold">
+                                                {{ $it->invItemsStore->count() }}
+                                            </span>
+                                        </button>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-500 italic text-xs">Sin stock</span>
+                                    @endif
                                 @else
-                                <p>Sin stock</p>
-                                @endif
-                                @else
-                                No maneja inventario
+                                    <span class="text-gray-400 dark:text-gray-500 italic text-xs">No maneja inventario</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
@@ -804,5 +811,174 @@
     <!-- Modal Ubicaciones -->
     @if($showLocationsModal)
     @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
+    @endif
+
+    <!-- Modal Stock por Sucursales y Bodegas -->
+    @if($showStockModal)
+    <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+        x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0">
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+
+                <!-- Header -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            Stock por Sucursales y Bodegas
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Visualiza el stock disponible en cada bodega de las sucursales
+                        </p>
+                    </div>
+                    <button wire:click="closeStockModal"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    @if(empty($stockByWarehouse))
+                        <div class="text-center py-12">
+                            <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                            </svg>
+                            <p class="text-gray-500 dark:text-gray-400 text-lg font-medium">No hay stock registrado</p>
+                            <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Este item no tiene stock en ninguna bodega</p>
+                        </div>
+                    @else
+                        <div class="space-y-6">
+                            @foreach($stockByWarehouse as $warehouseData)
+                                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                                    <!-- Warehouse Header -->
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                                                <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-base font-semibold text-gray-900 dark:text-white">
+                                                    {{ $warehouseData['warehouse_name'] }}
+                                                </h4>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                    Sucursal ID: {{ $warehouseData['warehouse_id'] }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded-full">
+                                            {{ count($warehouseData['stores']) }} {{ count($warehouseData['stores']) == 1 ? 'Bodega' : 'Bodegas' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Stores Table -->
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                                            <thead class="bg-gray-100 dark:bg-gray-800">
+                                                <tr>
+                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Bodega
+                                                    </th>
+                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Stock Actual
+                                                    </th>
+                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Stock Mínimo
+                                                    </th>
+                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Stock Máximo
+                                                    </th>
+                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Estado
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white dark:bg-gray-700 divide-y divide-gray-200 dark:divide-gray-600">
+                                                @foreach($warehouseData['stores'] as $store)
+                                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                                            <div class="flex items-center gap-2">
+                                                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                                                </svg>
+                                                                {{ $store['store_name'] }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
+                                                                @if($store['stock'] <= 0)
+                                                                    bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300
+                                                                @elseif($store['stock'] <= $store['stock_min'])
+                                                                    bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300
+                                                                @else
+                                                                    bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
+                                                                @endif
+                                                            ">
+                                                                {{ number_format($store['stock'], 0) }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-400">
+                                                            {{ number_format($store['stock_min'], 0) }}
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-400">
+                                                            {{ number_format($store['stock_max'], 0) }}
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            @if($store['stock'] <= 0)
+                                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                                                    </svg>
+                                                                    Sin Stock
+                                                                </span>
+                                                            @elseif($store['stock'] <= $store['stock_min'])
+                                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                                    </svg>
+                                                                    Bajo
+                                                                </span>
+                                                            @else
+                                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                                    </svg>
+                                                                    Disponible
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Footer -->
+                <div class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end">
+                    <button wire:click="closeStockModal"
+                        class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     @endif
 </div>

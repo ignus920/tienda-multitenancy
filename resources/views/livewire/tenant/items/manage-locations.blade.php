@@ -136,9 +136,6 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Ubicación
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Stock
-                                </th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Acciones
                                 </th>
@@ -165,9 +162,6 @@
                                             {{ $location->locationId ?? 'Sin ubicación asignada' }}
                                         </span>
                                     @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                    {{ $location->stock_item_location ?? 0 }}
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     @if($editingLocationId === $location->id)

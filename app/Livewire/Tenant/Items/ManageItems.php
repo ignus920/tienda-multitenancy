@@ -75,6 +75,11 @@ class ManageItems extends Component
     // Propiedades para modal de ubicaciones
     public $showLocationsModal = false;
     public $selectedItemId;
+    
+    // Propiedades para modal de stock
+    public $showStockModal = false;
+    public $selectedItemForStock;
+    public $stockByWarehouse = [];
 
     // Propiedades para la tabla
     public $search = '';
@@ -558,6 +563,77 @@ class ManageItems extends Component
         $this->showLocationsModal = false;
         $this->selectedItemId = null;
         $this->locationName = '';
+    }
+
+    public function openStockModal($itemId)
+    {
+        $this->selectedItemForStock = $itemId;
+        $this->loadStockByWarehouse($itemId);
+        $this->showStockModal = true;
+    }
+
+    public function closeStockModal()
+    {
+        $this->showStockModal = false;
+        $this->selectedItemForStock = null;
+        $this->stockByWarehouse = [];
+    }
+
+    private function loadStockByWarehouse($itemId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            
+            // Obtener todos los registros de inv_items_store para este item
+            $itemStores = InvItemsStore::where('itemId', $itemId)
+                ->with('store')
+                ->get();
+            
+            $this->stockByWarehouse = [];
+            
+            foreach ($itemStores as $itemStore) {
+                if ($itemStore->store) {
+                    // Obtener el warehouse asociado al store desde la BD central
+                    $warehouse = VntWarehouse::on('central')
+                        ->where('id', $itemStore->store->warehouseId)
+                        ->first();
+                    
+                    if ($warehouse) {
+                        $warehouseId = $warehouse->id;
+                        
+                        // Si el warehouse no existe en el array, inicializarlo
+                        if (!isset($this->stockByWarehouse[$warehouseId])) {
+                            $this->stockByWarehouse[$warehouseId] = [
+                                'warehouse_name' => $warehouse->name,
+                                'warehouse_id' => $warehouseId,
+                                'stores' => []
+                            ];
+                        }
+                        
+                        // Agregar el store con su stock
+                        $this->stockByWarehouse[$warehouseId]['stores'][] = [
+                            'store_id' => $itemStore->store->id,
+                            'store_name' => $itemStore->store->name,
+                            'stock' => $itemStore->stock_items_store ?? 0,
+                            'stock_min' => $itemStore->stock_min ?? 0,
+                            'stock_max' => $itemStore->stock_max ?? 0,
+                        ];
+                    }
+                }
+            }
+            
+            Log::info('Stock cargado por warehouse', [
+                'item_id' => $itemId,
+                'warehouses_count' => count($this->stockByWarehouse)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error cargando stock por warehouse', [
+                'item_id' => $itemId,
+                'error' => $e->getMessage()
+            ]);
+            $this->stockByWarehouse = [];
+        }
     }
 
     public function cancel()
