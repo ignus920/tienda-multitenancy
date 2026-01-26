@@ -38,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => \App\Auth\Middleware\SetTenantConnection::class,
             'company.complete' => \App\Http\Middleware\EnsureCompanyDataComplete::class,
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'warehouse.selected' => \App\Http\Middleware\EnsureWarehouseSelected::class,
         ]);
 
         // Aplicar middleware tenant a rutas de Livewire cuando sea necesario
@@ -46,6 +47,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'company.complete',
             \App\Auth\Middleware\SetTenantConnection::class,
         ]);
+
+        // DESHABILITADO TEMPORALMENTE - Causaba loop de redirección
+        // $middleware->web(append: [
+        //     \App\Http\Middleware\EnsureWarehouseSelected::class,
+        // ]);
 
         // Excluir rutas de test del CSRF (SOLO PARA DESARROLLO)
         $middleware->validateCsrfTokens(except: [

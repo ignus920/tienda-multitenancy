@@ -64,14 +64,6 @@ new #[Layout('layouts.guest')] class extends Component
             // Si llegamos aquí, no hay 2FA o ya fue validado
             Session::regenerate();
 
-            // Mostrar notificación de bienvenida
-            $userName = auth()->user()->name ?? 'Usuario';
-            $this->dispatch('login-success', [
-                'title' => '¡Bienvenido!',
-                'message' => "Hola {$userName}, has iniciado sesión correctamente.",
-                'icon' => 'success'
-            ]);
-
             // Verificar si ya hay 2FA pendiente
             if (Session::has('2fa_user_id')) {
                 $this->redirect(route('verify.2fa'), navigate: true);
@@ -86,12 +78,21 @@ new #[Layout('layouts.guest')] class extends Component
 
             // Verificar si el usuario es TAT (profile_id = 17)
             if (auth()->user()->profile_id == 17) {
-                $this->redirect(route('petty-cash.petty-cash'), navigate: true);
+                // Marcar que necesita seleccionar sucursal
+                Session::put('needs_warehouse_selection', true);
+                Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
+                
+                // Mostrar selector de sucursales inmediatamente (sin mensaje de bienvenida)
+                $this->dispatch('show-warehouse-selector-after-login', redirectRoute: 'petty-cash.petty-cash');
                 return;
             }
 
-            // Redirigir a selección de tenant para usuarios normales
-            $this->redirect(route('tenant.select'), navigate: true);
+            // Marcar que necesita seleccionar sucursal
+            Session::put('needs_warehouse_selection', true);
+            Session::put('warehouse_redirect_route', 'tenant.select');
+            
+            // Mostrar selector de sucursales inmediatamente (sin mensaje de bienvenida)
+            $this->dispatch('show-warehouse-selector-after-login', redirectRoute: 'tenant.select');
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Si hay 2FA habilitado, redirigir a verificación
             if (Session::has('2fa_user_id')) {
@@ -165,6 +166,14 @@ new #[Layout('layouts.guest')] class extends Component
                     content: 'swal-content-light'
                 }
             });
+        });
+
+        // Listener para mostrar selector de sucursales después del login
+        Livewire.on('show-warehouse-selector-after-login', (data) => {
+            console.log('Evento recibido: show-warehouse-selector-after-login', data);
+            
+            // Redirigir a la página de selección de sucursal
+            window.location.href = '/select-warehouse';
         });
 
         // Listener para cerrar SweetAlert cuando el usuario escribe

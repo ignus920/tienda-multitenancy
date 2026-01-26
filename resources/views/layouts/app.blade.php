@@ -102,6 +102,9 @@
             </main>
         </div>
 
+        <!-- Warehouse Selector Modal -->
+        <livewire:warehouse-selector />
+
         @livewireScripts
         @stack('scripts')
 

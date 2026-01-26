@@ -63,19 +63,45 @@ class ManageLocations extends Component
     {
         $this->ensureTenantConnection();
         
-        return InvItemsLocations::with('store')
+        $locations = InvItemsLocations::with('store')
             ->where('itemId', $this->itemId)
             ->get();
+        
+        // Enriquecer cada ubicación con el nombre de la sucursal
+        $locations->each(function ($location) {
+            if ($location->store && $location->store->warehouseId) {
+                $warehouse = \App\Models\Central\VntWarehouse::on('central')
+                    ->find($location->store->warehouseId);
+                $location->store->warehouseName = $warehouse ? $warehouse->name : 'Sin sucursal';
+            } else if ($location->store) {
+                $location->store->warehouseName = 'Sin sucursal';
+            }
+        });
+        
+        return $locations;
     }
 
     public function getStoresProperty()
     {
         $this->ensureTenantConnection();
         
-        // Obtener todas las tiendas activas
-        return InvStore::where('status', 1)
+        // Obtener todas las tiendas activas con información de la sucursal
+        $stores = InvStore::where('status', 1)
             ->orderBy('name')
             ->get();
+        
+        // Enriquecer cada tienda con el nombre de la sucursal desde la BD central
+        $stores->each(function ($store) {
+            if ($store->warehouseId) {
+                $warehouse = \App\Models\Central\VntWarehouse::on('central')
+                    ->find($store->warehouseId);
+                $store->warehouseName = $warehouse ? $warehouse->name : 'Sin sucursal';
+            } else {
+                $store->warehouseName = 'Sin sucursal';
+            }
+        });
+        
+        return $stores;
     }
 
     public function toggleCreateForm()

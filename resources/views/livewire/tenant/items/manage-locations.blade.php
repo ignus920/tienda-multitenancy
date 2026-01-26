@@ -74,16 +74,16 @@
                     <h4 class="text-md font-semibold text-gray-900 dark:text-white mb-4">Nueva Ubicación</h4>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Select de Tienda -->
+                        <!-- Select de Bodega -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Tienda <span class="text-red-500">*</span>
+                                Bodega <span class="text-red-500">*</span>
                             </label>
                             <select wire:model="selectedStoreId"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Seleccione una tienda</option>
+                                <option value="">Seleccione una bodega</option>
                                 @foreach($this->stores as $store)
-                                    <option value="{{ $store->id }}">{{ $store->name }}</option>
+                                    <option value="{{ $store->id }}">{{ $store->warehouseName }} - {{ $store->name }}</option>
                                 @endforeach
                             </select>
                             @error('selectedStoreId') 
@@ -131,7 +131,10 @@
                         <thead class="bg-gray-50 dark:bg-gray-900">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Tienda
+                                    Sucursal
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Bodega
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Ubicación
@@ -144,6 +147,9 @@
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             @forelse($this->locations as $location)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                    {{ $location->store->warehouseName ?? 'N/A' }}
+                                </td>
                                 <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
                                     {{ $location->store->name ?? 'N/A' }}
                                 </td>
