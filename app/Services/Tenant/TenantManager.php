@@ -522,7 +522,7 @@ class TenantManager
             'driver' => 'mysql',
             'host' => $tenant->db_host,
             'port' => $tenant->db_port,
-            'database' => 'desarrollo',
+            'database' => 'desarrollo',     // $tenant->db_name,
             'username' => $tenant->db_user,
             'password' => $tenant->db_password,
             'username' => $tenant->db_user,
