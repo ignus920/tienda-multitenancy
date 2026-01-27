@@ -13,7 +13,7 @@ class WarehouseManagementModal extends Component
 {
     public $companyId;
     public $companyName = '';
-    
+
     public $formMode = null; // null, 'create', 'edit'
     public $editingWarehouseId = null;
     public $warehouseForm = [
@@ -23,20 +23,22 @@ class WarehouseManagementModal extends Component
         'postcode' => '',
         'branch_type' => 'FIJA'
     ];
-    
+    public $districtId = null;
+
     public $successMessage = '';
     public $errorMessage = '';
-    
+
     protected $listeners = [
-        'city-changed' => 'updateCity'
+        'city-changed' => 'updateCity',
+        'district-changed' => 'updateDistrict'
     ];
-    
+
     public function mount($companyId)
     {
         $this->companyId = $companyId;
         $this->loadCompanyData();
     }
-    
+
     public function render()
     {
         $this->ensureTenantConnection();
@@ -45,23 +47,23 @@ class WarehouseManagementModal extends Component
             'warehouses' => $warehouses
         ]);
     }
-    
+
     public function loadCompanyData()
     {
         $this->ensureTenantConnection();
         $company = VntCompany::findOrFail($this->companyId);
         $this->companyName = $company->businessName ?: trim($company->firstName . ' ' . $company->lastName);
     }
-    
+
     public function getWarehouses()
     {
         return VntWarehouse::where('companyId', $this->companyId)
-            ->with('city')
+            ->with(['city', 'districtRelation'])
             ->orderBy('main', 'desc')
             ->orderBy('name', 'asc')
             ->get();
     }
-    
+
     public function startCreateWarehouse()
     {
         $this->formMode = 'create';
@@ -77,18 +79,18 @@ class WarehouseManagementModal extends Component
         $this->successMessage = '';
         $this->errorMessage = '';
     }
-    
+
     public function editWarehouse($warehouseId)
     {
-         $this->ensureTenantConnection();
+        $this->ensureTenantConnection();
         $warehouse = VntWarehouse::findOrFail($warehouseId);
-        
+
         // No permitir editar sucursal principal
         if ($warehouse->main) {
             $this->errorMessage = 'La sucursal principal se edita desde el formulario de compañía';
             return;
         }
-        
+
         $this->formMode = 'edit';
         $this->editingWarehouseId = $warehouseId;
         $this->warehouseForm = [
@@ -102,7 +104,7 @@ class WarehouseManagementModal extends Component
         $this->successMessage = '';
         $this->errorMessage = '';
     }
-    
+
     public function saveWarehouse()
     {
         $this->validate([
@@ -122,10 +124,10 @@ class WarehouseManagementModal extends Component
             'warehouseForm.branch_type.required' => 'El tipo de sucursal es obligatorio',
             'warehouseForm.branch_type.in' => 'El tipo de sucursal debe ser FIJA o DESPACHO',
         ]);
-        
+
         try {
             if ($this->formMode === 'create') {
-                 $this->ensureTenantConnection();
+                $this->ensureTenantConnection();
                 VntWarehouse::create([
                     'companyId' => $this->companyId,
                     'name' => $this->warehouseForm['name'],
@@ -134,71 +136,71 @@ class WarehouseManagementModal extends Component
                     'postcode' => $this->warehouseForm['postcode'],
                     'branch_type' => $this->warehouseForm['branch_type'],
                     'main' => 0,
-                    'status' => 1
+                    'status' => 1,
+                    'district' => $this->districtId
                 ]);
-                
+
                 $this->successMessage = 'Sucursal agregada exitosamente';
             } else {
-                 $this->ensureTenantConnection();
+                $this->ensureTenantConnection();
                 $warehouse = VntWarehouse::findOrFail($this->editingWarehouseId);
-                
+
                 // Verificar que no sea sucursal principal
                 if ($warehouse->main) {
                     $this->errorMessage = 'No se puede editar la sucursal principal desde este modal';
                     return;
                 }
-                
+
                 $warehouse->update([
                     'name' => $this->warehouseForm['name'],
                     'address' => $this->warehouseForm['address'],
                     'cityId' => $this->warehouseForm['cityId'],
                     'postcode' => $this->warehouseForm['postcode'],
                     'branch_type' => $this->warehouseForm['branch_type'],
-                    'main' => 0
+                    'main' => 0,
+                    'district' => $this->districtId
                 ]);
-                
+
                 $this->successMessage = 'Sucursal actualizada exitosamente';
             }
-            
+
             $this->cancelForm();
-            
         } catch (\Exception $e) {
             Log::error('Error saving warehouse', [
                 'company_id' => $this->companyId,
                 'mode' => $this->formMode,
                 'error' => $e->getMessage()
             ]);
-            
+
             $this->errorMessage = 'Error al guardar la sucursal: ' . $e->getMessage();
         }
     }
-    
+
     public function deleteWarehouse($warehouseId)
     {
         try {
-             $this->ensureTenantConnection();
+            $this->ensureTenantConnection();
             $warehouse = VntWarehouse::findOrFail($warehouseId);
-            
+
             // No permitir eliminar sucursal principal
             if ($warehouse->main) {
                 $this->errorMessage = 'No se puede eliminar la sucursal principal';
                 return;
             }
-            
+
             $warehouse->delete();
-            
+
             $this->successMessage = 'Sucursal eliminada exitosamente';
-            
         } catch (\Exception $e) {
             Log::error('Error deleting warehouse', [
                 'warehouse_id' => $warehouseId,
                 'error' => $e->getMessage()
             ]);
-            
+
             $this->errorMessage = 'Error al eliminar la sucursal: ' . $e->getMessage();
         }
     }
-    
+
     public function cancelForm()
     {
         $this->formMode = null;
@@ -212,39 +214,43 @@ class WarehouseManagementModal extends Component
         ];
         $this->resetErrorBag();
     }
-    
+
     public function updateCity($cityId, $index = null)
     {
         $this->warehouseForm['cityId'] = $cityId;
     }
-    
+
+    public function updateDistrict($districtId, $index = null)
+    {
+        $this->districtId = $districtId;
+    }
+
     public function toggleWarehouseStatus($warehouseId)
     {
         try {
             $this->ensureTenantConnection();
             $warehouse = VntWarehouse::findOrFail($warehouseId);
-            
+
             // Toggle warehouse status
             $newStatus = $warehouse->status ? 0 : 1;
             $warehouse->update(['status' => $newStatus]);
-            
+
             $this->successMessage = 'Estado de sucursal actualizado exitosamente';
-            
+
             Log::info('Warehouse status toggled', [
                 'warehouse_id' => $warehouseId,
                 'new_status' => $newStatus
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Error toggling warehouse status', [
                 'warehouse_id' => $warehouseId,
                 'error' => $e->getMessage()
             ]);
-            
+
             $this->errorMessage = 'Error al actualizar el estado: ' . $e->getMessage();
         }
     }
-    
+
     public function closeModal()
     {
         $this->dispatch('warehouse-modal-closed');
