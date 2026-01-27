@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Tenant\Customer\VntCompanyRoute;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Livewire\Attributes\On;
 
 class MoveDistrictModal extends Component
 {
@@ -19,7 +20,8 @@ class MoveDistrictModal extends Component
     public $perPage = 10;
 
     // Form properties
-    public $district = '';
+    public $districtId = '';
+    public $warehouseCityId;
     public $sourceRouteId = '';
     public $targetRouteId = '';
     public $selectedCompanies = [];
@@ -35,7 +37,7 @@ class MoveDistrictModal extends Component
     protected function rules()
     {
         return [
-            'district' => 'required|string',
+            'districtId' => 'nullable|integer',
             'targetRouteId' => 'required|exists:tat_routes,id',
         ];
     }
@@ -43,7 +45,6 @@ class MoveDistrictModal extends Component
     protected function messages()
     {
         return [
-            'district.required' => 'Debe seleccionar un barrio.',
             'targetRouteId.required' => 'Debe seleccionar una ruta de destino.',
             'targetRouteId.exists' => 'La ruta de destino seleccionada no existe.',
         ];
@@ -71,14 +72,14 @@ class MoveDistrictModal extends Component
     public function getFilteredCompanies()
     {
         $this->ensureTenantConnection();
-        if (empty($this->district)) {
+        if (empty($this->districtId)) {
             return collect([]);
         }
 
         $query = VntCompanyRoute::query()
             ->with(['company', 'company.mainWarehouse'])
             ->whereHas('company.mainWarehouse', function ($query) {
-                $query->where('district', $this->district);
+                $query->where('district', $this->districtId);
             });
 
         // NO filtrar por sourceRouteId aquí tampoco
@@ -101,7 +102,7 @@ class MoveDistrictModal extends Component
         $this->ensureTenantConnection();
         try {
             // Si no hay distrito seleccionado, no mostrar nada
-            if (empty($this->district)) {
+            if (empty($this->districtId)) {
                 return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $this->perPage);
             }
 
@@ -109,7 +110,7 @@ class MoveDistrictModal extends Component
             $query = VntCompanyRoute::query()
                 ->with(['company', 'company.mainWarehouse', 'route.salesman'])
                 ->whereHas('company.mainWarehouse', function ($query) {
-                    $query->where('district', $this->district);
+                    $query->where('district', $this->districtId);
                 });
 
             // NO filtrar por sourceRouteId - la tabla siempre muestra todos los clientes del distrito
@@ -133,7 +134,7 @@ class MoveDistrictModal extends Component
 
     public function mount()
     {
-        $this->loadAvailableDistricts();
+        //$this->loadAvailableDistricts();
     }
 
     public function loadAvailableDistricts()
@@ -188,7 +189,7 @@ class MoveDistrictModal extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'district' => 'required|string',
+            'district' => 'nullable|integer',
             'sourceRouteId' => 'required|exists:tat_routes,id',
             'targetRouteId' => 'required|exists:tat_routes,id',
         ]);
@@ -204,7 +205,7 @@ class MoveDistrictModal extends Component
             // Obtener todos los clientes de la ruta origen en el distrito
             $sourceCompanies = VntCompanyRoute::query()
                 ->whereHas('company.mainWarehouse', function ($query) {
-                    $query->where('district', $this->district);
+                    $query->where('district', $this->districtId);
                 })
                 ->where('route_id', $this->sourceRouteId)
                 ->get();
@@ -212,7 +213,7 @@ class MoveDistrictModal extends Component
             // Obtener todos los clientes de la ruta destino en el distrito
             $targetCompanies = VntCompanyRoute::query()
                 ->whereHas('company.mainWarehouse', function ($query) {
-                    $query->where('district', $this->district);
+                    $query->where('district', $this->districtId);
                 })
                 ->where('route_id', $this->targetRouteId)
                 ->get();
@@ -248,7 +249,6 @@ class MoveDistrictModal extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'district' => 'required|string',
             'targetRouteId' => 'required|exists:tat_routes,id',
         ]);
 
@@ -308,15 +308,24 @@ class MoveDistrictModal extends Component
         // Solo actualizar el valor para que aparezca el botón de intercambio
     }
 
-    public function updateDistrict($value)
+    public function updateDistrict($value = null)
     {
-        $this->district = $value;
+        $this->districtId = $value;
         // El método updatedDistrict() se ejecutará automáticamente
+    }
+
+    #[On('city-changed')]
+    public function updateCity($cityId)
+    {
+        \Illuminate\Support\Facades\Log::info('DistrictSelect: city-changed received', [
+            'cityId' => $cityId,
+        ]);
+        $this->warehouseCityId = $cityId;
     }
 
     private function resetForm()
     {
-        $this->district = '';
+        $this->districtId = '';
         $this->sourceRouteId = '';
         $this->targetRouteId = '';
         $this->selectedCompanies = [];

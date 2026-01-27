@@ -210,6 +210,21 @@
                                 <span class="text-red-500 text-sm">{{ $message }}</span> 
                             @enderror
                         </div>
+
+                        <div class="md:col-span-2">
+                            @livewire('selects.district-select', [
+                                'districtId' => $districtId,
+                                'name' => 'districtId',
+                                'label' => 'Barrio',
+                                'placeholder' => 'Seleccionar barrio',
+                                'label' => 'Barrio',
+                                'showLabel' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                                'index' => 0,
+                                'city_id' => $warehouseForm['cityId'],
+                                key('district-city-'.$districtId)
+                                ])
+                        </div>
                     </div>
 
                     <!-- Botones de Acción -->
@@ -241,6 +256,9 @@
                                     Ciudad
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Barrio
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Código Postal
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -265,6 +283,9 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ $warehouse->city->name ?? 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ $warehouse->districtRelation?->district ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ $warehouse->postcode ?? 'N/A' }}
