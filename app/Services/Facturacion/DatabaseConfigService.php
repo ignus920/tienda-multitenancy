@@ -190,7 +190,7 @@ class DatabaseConfigService
     }
 
     /**
-     * Obtener configuración de invoice por warehouse_id desde BD Tenant
+     * Obtener configuración de invoice por warehouse_id desde BD Central
      */
     private static function getInvoiceConfigByWarehouse(int $warehouseId): ?array
     {
