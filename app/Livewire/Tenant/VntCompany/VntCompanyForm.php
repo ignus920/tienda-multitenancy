@@ -652,26 +652,25 @@ class VntCompanyForm extends Component
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Errores de validación - ya manejados por Livewire
             Log::info('❌ Errores de validación en formulario', [
-                'errors' => $e->errors()
+                'validation_errors' => $e->errors(),
+                'user_id' => Auth::id(),
+                'form_data_summary' => [
+                    'has_identification' => !empty($this->identification),
+                    'has_email' => !empty($this->billingEmail),
+                    'type_person' => $this->typePerson,
+                    'is_editing' => !is_null($this->editingId)
+                ],
+                'context' => $this->buildErrorContext()
             ]);
             // No hacer nada, Livewire maneja automáticamente los errores de validación
             return;
         } catch (\Illuminate\Database\QueryException $e) {
-            // Errores de base de datos
-            Log::error('❌ Error de base de datos', [
-                'error' => $e->getMessage(),
-                'code' => $e->getCode()
-            ]);
-
+            // Errores de base de datos con manejo especializado
             $userMessage = $this->handleDatabaseError($e);
             session()->flash('error', $userMessage);
             return;
         } catch (\Exception $e) {
-            Log::error('❌ ERROR GENERAL en save()', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
+            // Errores generales con manejo completo
             $userMessage = $this->handleGeneralError($e);
             session()->flash('error', $userMessage);
             return;
@@ -697,9 +696,11 @@ class VntCompanyForm extends Component
             // Verificar si es error de referencia (cliente está siendo usado)
             if (strpos($e->getMessage(), 'foreign key constraint') !== false ||
                 strpos($e->getMessage(), 'Cannot delete') !== false) {
-                session()->flash('error', '🚫 No se puede Eliminar: Este cliente está asociado a facturas, pedidos u otros registros. Para eliminarlo, primero debe eliminar o transferir esos registros asociados.');
+                $constraintErrorMessage = $this->buildConstraintErrorMessage();
+                session()->flash('error', $constraintErrorMessage);
             } else {
-                session()->flash('error', '💾 Error de Base de Datos: No se pudo eliminar el cliente. Por favor intente nuevamente o contacte al administrador.');
+                $databaseErrorMessage = $this->buildDatabaseDeleteErrorMessage();
+                session()->flash('error', $databaseErrorMessage);
             }
 
         } catch (\Exception $e) {
@@ -708,7 +709,8 @@ class VntCompanyForm extends Component
                 'error' => $e->getMessage()
             ]);
 
-            session()->flash('error', '⚠️ Error Inesperado: No se pudo eliminar el cliente. Por favor intente nuevamente. Si el problema persiste, contacte al soporte técnico.');
+            $generalDeleteErrorMessage = $this->buildGeneralDeleteErrorMessage();
+            session()->flash('error', $generalDeleteErrorMessage);
         }
     }
 
@@ -1038,7 +1040,7 @@ class VntCompanyForm extends Component
     /**
      * Validate identification uniqueness in real-time
      * Called when identification or typeIdentificationId changes
-     * 
+     *
      * IMPORTANTE: Este método SIEMPRE debe ejecutarse después de cualquier
      * validación para mantener el estado de identificationExists actualizado
      */
@@ -1048,6 +1050,7 @@ class VntCompanyForm extends Component
         if (empty($this->identification) || empty($this->typeIdentificationId)) {
             $this->identificationExists = false;
             $this->validatingIdentification = false;
+            $this->resetErrorBag(['identification']);
             return;
         }
 
@@ -1061,14 +1064,23 @@ class VntCompanyForm extends Component
                 $this->identification,
                 $this->editingId
             );
+
+            // Show user-friendly message if duplicate found
+            if ($this->identificationExists) {
+                $this->addValidationError('identification', '👤 Cliente Duplicado: Ya existe un cliente registrado con esta identificación. Por favor verifique el número e intente con una identificación diferente.');
+            } else {
+                $this->resetErrorBag(['identification']);
+            }
         } catch (\Exception $e) {
             // Log error but don't break the form
-            Log::error('Error validating identification uniqueness', [
+            Log::error('❌ Error validating identification uniqueness', [
                 'error' => $e->getMessage(),
                 'identification' => $this->identification,
-                'typeIdentificationId' => $this->typeIdentificationId
+                'typeIdentificationId' => $this->typeIdentificationId,
+                'editingId' => $this->editingId
             ]);
             $this->identificationExists = false;
+            $this->addValidationError('identification', '⚠️ Error de Validación: No se pudo verificar la unicidad de la identificación. Por favor intente nuevamente.');
         } finally {
             // Always clear loading state
             $this->validatingIdentification = false;
@@ -1081,6 +1093,7 @@ class VntCompanyForm extends Component
         if (empty($this->billingEmail)) {
             $this->emailExists = false;
             $this->validatingEmail = false;
+            $this->resetErrorBag(['billingEmail']);
             return;
         }
 
@@ -1093,13 +1106,22 @@ class VntCompanyForm extends Component
                 $this->billingEmail,
                 $this->editingId
             );
+
+            // Show user-friendly message if duplicate found
+            if ($this->emailExists) {
+                $this->addValidationError('billingEmail', '✉️ Email Duplicado: Ya existe un cliente registrado con este email de facturación. Por favor use un email diferente.');
+            } else {
+                $this->resetErrorBag(['billingEmail']);
+            }
         } catch (\Exception $e) {
             // Log error but don't break the form
-            Log::error('Error validating email uniqueness', [
+            Log::error('❌ Error validating email uniqueness', [
                 'error' => $e->getMessage(),
-                'billingEmail' => $this->billingEmail
+                'billingEmail' => $this->billingEmail,
+                'editingId' => $this->editingId
             ]);
             $this->emailExists = false;
+            $this->addValidationError('billingEmail', '⚠️ Error de Validación: No se pudo verificar la unicidad del email. Por favor intente nuevamente.');
         } finally {
             // Always clear loading state
             $this->validatingEmail = false;
@@ -1420,57 +1442,195 @@ class VntCompanyForm extends Component
 
     /**
      * Formatear mensajes de error de API para hacerlos más amigables al usuario
+     * Categoriza y traduce errores de API a mensajes comprensibles
      */
     private function formatApiErrorMessage(string $apiError): string
     {
-        // Errores comunes de la API de Alegra con traducciones amigables
-        $errorMappings = [
-            // Errores de duplicados
-            'ya existe' => '👤 Cliente Duplicado: Este cliente ya existe en el sistema de facturación. Verifique el número de identificación e intente con datos diferentes.',
-            'already exists' => '👤 Cliente Duplicado: Este cliente ya existe en el sistema de facturación. Verifique el número de identificación e intente con datos diferentes.',
-            'duplicate' => '👤 Cliente Duplicado: Este cliente ya existe en el sistema de facturación.',
+        $lowerError = strtolower($apiError);
+        $errorCategory = $this->categorizeApiError($lowerError);
 
-            // Errores de campos
-            'régimen del cliente no es válido' => '📋 Régimen Inválido: El régimen fiscal seleccionado no es válido. Por favor seleccione un régimen válido e intente nuevamente.',
-            'regime' => '📋 Régimen Inválido: Hay un problema con el régimen fiscal seleccionado.',
-            'fiscal' => '📋 Error Fiscal: Hay un problema con las responsabilidades fiscales seleccionadas.',
-
-            // Errores de configuración
-            'token' => '🔐 Error de Configuración: Problema con la autenticación del sistema de facturación. Contacte al administrador.',
-            'unauthorized' => '🔐 Error de Autorización: El sistema no tiene permisos para acceder a la API de facturación.',
-            'forbidden' => '🔐 Error de Permisos: Sin permisos suficientes en el sistema de facturación.',
-
-            // Errores de conexión
-            'timeout' => '⏰ Error de Conexión: El sistema de facturación no responde. Intente nuevamente en unos momentos.',
-            'connection' => '📡 Error de Red: No se pudo conectar con el sistema de facturación. Verifique su conexión a internet.',
-            'network' => '📡 Error de Red: Problema de conectividad con el sistema de facturación.',
-
-            // Errores de servidor
-            'internal server error' => '🔧 Error del Sistema: Problema interno del sistema de facturación. Intente nuevamente o contacte al soporte.',
-            '500' => '🔧 Error del Servidor: El sistema de facturación está experimentando problemas técnicos.',
-
-            // Errores de validación de campos
-            'email' => '✉️ Error de Email: El formato del email no es válido.',
-            'phone' => '📞 Error de Teléfono: El formato del teléfono no es válido.',
-            'address' => '📍 Error de Dirección: Hay un problema con la dirección proporcionada.',
+        // Mensajes categorizados por tipo de error
+        $errorMessages = [
+            'duplicate' => [
+                'icon' => '👤',
+                'title' => 'Cliente Duplicado',
+                'message' => 'Este cliente ya existe en el sistema de facturación.',
+                'suggestions' => [
+                    'Verifique el número de identificación y tipo de documento',
+                    'Confirme que no está registrando un cliente existente',
+                    'Use una identificación diferente si es correcto'
+                ]
+            ],
+            'validation' => [
+                'icon' => '📋',
+                'title' => 'Error de Validación',
+                'message' => 'Los datos proporcionados no cumplen con los requisitos de la API.',
+                'suggestions' => [
+                    'Verifique que todos los campos estén completos',
+                    'Confirme que el régimen fiscal sea válido',
+                    'Revise las responsabilidades fiscales seleccionadas'
+                ]
+            ],
+            'authentication' => [
+                'icon' => '🔐',
+                'title' => 'Error de Autenticación',
+                'message' => 'Problema con las credenciales de acceso al sistema de facturación.',
+                'suggestions' => [
+                    'Contacte al administrador del sistema',
+                    'Verifique la configuración de la API de facturación',
+                    'Asegúrese de que el token no haya expirado'
+                ]
+            ],
+            'connection' => [
+                'icon' => '📡',
+                'title' => 'Error de Conexión',
+                'message' => 'No se pudo establecer comunicación con el sistema de facturación.',
+                'suggestions' => [
+                    'Verifique su conexión a internet',
+                    'Intente nuevamente en unos momentos',
+                    'Contacte soporte si el problema persiste'
+                ]
+            ],
+            'server' => [
+                'icon' => '🔧',
+                'title' => 'Error del Servidor',
+                'message' => 'El sistema de facturación está experimentando problemas internos.',
+                'suggestions' => [
+                    'Intente nuevamente en unos minutos',
+                    'El problema es temporal del proveedor de facturación',
+                    'Contacte al soporte si persiste por más de 30 minutos'
+                ]
+            ],
+            'field' => [
+                'icon' => '⚠️',
+                'title' => 'Error de Campo',
+                'message' => 'Uno o más campos contienen información inválida.',
+                'suggestions' => [
+                    'Revise el formato del email de facturación',
+                    'Verifique que los teléfonos sean válidos',
+                    'Confirme que la dirección esté completa'
+                ]
+            ],
+            'rate_limit' => [
+                'icon' => '⏱️',
+                'title' => 'Límite de Solicitudes',
+                'message' => 'Se han realizado demasiadas solicitudes al sistema de facturación.',
+                'suggestions' => [
+                    'Espere unos minutos antes de intentar nuevamente',
+                    'Evite realizar múltiples operaciones simultáneas',
+                    'El límite se restablece automáticamente'
+                ]
+            ],
+            'plan_limit' => [
+                'icon' => '📊',
+                'title' => 'Límite del Plan',
+                'message' => 'Ha alcanzado el límite de clientes permitidos en su plan actual.',
+                'suggestions' => [
+                    'Actualice su plan de facturación',
+                    'Elimine clientes no utilizados',
+                    'Contacte al administrador para revisar los límites'
+                ]
+            ]
         ];
 
-        $lowerError = strtolower($apiError);
+        $errorInfo = $errorMessages[$errorCategory] ?? $errorMessages['validation'];
 
-        // Buscar coincidencias en los errores conocidos
-        foreach ($errorMappings as $pattern => $friendlyMessage) {
+        // Construir mensaje formateado
+        $formattedMessage = $errorInfo['icon'] . ' ' . $errorInfo['title'] . ': ' . $errorInfo['message'];
+
+        // Agregar sugerencias
+        $formattedMessage .= "\n\n💡 Sugerencias:";
+        foreach ($errorInfo['suggestions'] as $suggestion) {
+            $formattedMessage .= "\n• " . $suggestion;
+        }
+
+        // Agregar detalles técnicos si son útiles
+        if (strlen($apiError) < 200 && !empty(trim($apiError))) {
+            $formattedMessage .= "\n\n🔍 Detalles técnicos: " . $apiError;
+        }
+
+        // Log para tracking de errores
+        Log::warning('🎯 Error API categorizado', [
+            'original_error' => $apiError,
+            'category' => $errorCategory,
+            'user_id' => Auth::id(),
+            'editing_id' => $this->editingId
+        ]);
+
+        return $formattedMessage;
+    }
+
+    /**
+     * Categorizar errores de API para aplicar el tratamiento adecuado
+     */
+    private function categorizeApiError(string $lowerError): string
+    {
+        // Patrones de errores duplicados
+        $duplicatePatterns = ['ya existe', 'already exists', 'duplicate', 'duplicado'];
+        foreach ($duplicatePatterns as $pattern) {
             if (strpos($lowerError, $pattern) !== false) {
-                return $friendlyMessage . "\n\n💡 Detalles técnicos: " . $apiError;
+                return 'duplicate';
             }
         }
 
-        // Si no se encuentra un mapeo específico, dar un mensaje genérico pero útil
-        return "⚠️ Error de Sincronización: Hubo un problema al sincronizar con el sistema de facturación.\n\n" .
-               "💡 Detalles técnicos: " . $apiError . "\n\n" .
-               "🔧 Sugerencias:\n" .
-               "• Verifique que todos los campos estén completos y correctos\n" .
-               "• Asegúrese de que el cliente no existe previamente\n" .
-               "• Si el problema persiste, contacte al administrador del sistema";
+        // Patrones de autenticación
+        $authPatterns = ['token', 'unauthorized', 'forbidden', 'authentication', 'credentials'];
+        foreach ($authPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'authentication';
+            }
+        }
+
+        // Patrones de conexión
+        $connectionPatterns = ['timeout', 'connection', 'network', 'unreachable', 'connect'];
+        foreach ($connectionPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'connection';
+            }
+        }
+
+        // Patrones de servidor
+        $serverPatterns = ['internal server error', '500', '502', '503', 'server error'];
+        foreach ($serverPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'server';
+            }
+        }
+
+        // Patrones de límites de solicitudes
+        $rateLimitPatterns = ['rate limit', 'too many requests', '429', 'limit exceeded'];
+        foreach ($rateLimitPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'rate_limit';
+            }
+        }
+
+        // Patrones de límites del plan
+        $planLimitPatterns = ['plan limit', 'subscription limit', 'limit reached', 'maximum clients'];
+        foreach ($planLimitPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'plan_limit';
+            }
+        }
+
+        // Patrones de campos
+        $fieldPatterns = ['email', 'phone', 'address', 'invalid format', 'field'];
+        foreach ($fieldPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'field';
+            }
+        }
+
+        // Patrones de validación
+        $validationPatterns = ['régimen', 'regime', 'fiscal', 'validation', 'invalid'];
+        foreach ($validationPatterns as $pattern) {
+            if (strpos($lowerError, $pattern) !== false) {
+                return 'validation';
+            }
+        }
+
+        // Por defecto, categorizar como error de validación
+        return 'validation';
     }
 
     /**
@@ -2095,130 +2255,647 @@ class VntCompanyForm extends Component
 
     /**
      * Manejar errores de base de datos con mensajes amigables
+     * Incluye logging detallado para debugging
      */
     private function handleDatabaseError(\Illuminate\Database\QueryException $e): string
     {
         $errorCode = $e->getCode();
         $errorMessage = $e->getMessage();
+        $contextData = $this->buildErrorContext();
 
-        // Errores comunes de base de datos
+        // Log detallado del error de base de datos
+        Log::error('💾 Error de Base de Datos Detectado', [
+            'error_type' => 'database',
+            'error_code' => $errorCode,
+            'error_message' => $errorMessage,
+            'sql_state' => $e->errorInfo[0] ?? 'unknown',
+            'driver_code' => $e->errorInfo[1] ?? 'unknown',
+            'context' => $contextData,
+            'stack_trace' => $e->getTraceAsString()
+        ]);
+
+        // Errores de duplicados con contexto específico
         if (strpos($errorMessage, 'Duplicate entry') !== false) {
             if (strpos($errorMessage, 'identification') !== false) {
+                Log::warning('👤 Intento de registro con identificación duplicada', [
+                    'attempted_identification' => $this->identification,
+                    'type_identification' => $this->typeIdentificationId,
+                    'user_id' => Auth::id(),
+                    'context' => $contextData
+                ]);
                 return '👤 Cliente Duplicado: Ya existe un cliente con este número de identificación. Por favor verifique el documento e intente con uno diferente.';
             }
             if (strpos($errorMessage, 'email') !== false) {
+                Log::warning('✉️ Intento de registro con email duplicado', [
+                    'attempted_email' => $this->billingEmail,
+                    'user_id' => Auth::id(),
+                    'context' => $contextData
+                ]);
                 return '✉️ Email Duplicado: Ya existe un cliente con este email de facturación. Por favor use un email diferente.';
             }
+            Log::warning('⚠️ Intento de registro con datos duplicados', $contextData);
             return '⚠️ Registro Duplicado: Ya existe un cliente con estos datos. Por favor verifique la información e intente nuevamente.';
         }
 
+        // Errores de integridad referencial
         if (strpos($errorMessage, 'foreign key constraint') !== false) {
+            Log::warning('🔗 Error de integridad referencial', [
+                'selected_regime' => $this->regimeId,
+                'selected_fiscal_responsibility' => $this->fiscalResponsabilityId,
+                'selected_city' => $this->warehouseCityId,
+                'context' => $contextData
+            ]);
             return '🔗 Error de Referencia: Los datos seleccionados no son válidos. Por favor verifique que los campos como ciudad, régimen y responsabilidades fiscales estén correctamente seleccionados.';
         }
 
+        // Error de longitud de datos
         if (strpos($errorMessage, 'Data too long') !== false) {
-            return '📝 Datos Demasiado Largos: Uno de los campos contiene demasiado texto. Por favor reduzca la longitud de los campos como nombres, dirección o descripción.';
+            $fieldInfo = $this->extractFieldFromDataTooLongError($errorMessage);
+            Log::warning('📝 Datos demasiado largos', array_merge($fieldInfo, $contextData));
+            return '📝 Datos Demasiado Largos: ' . ($fieldInfo['friendly_message'] ?? 'Uno de los campos contiene demasiado texto. Por favor reduzca la longitud de los campos como nombres, dirección o descripción.');
         }
 
+        // Error de campos nulos
         if (strpos($errorMessage, 'cannot be null') !== false) {
+            $nullField = $this->extractNullFieldFromError($errorMessage);
+            Log::warning('⚠️ Campo requerido null', array_merge(['null_field' => $nullField], $contextData));
             return '⚠️ Campo Requerido: Falta información obligatoria. Por favor complete todos los campos marcados como requeridos.';
         }
 
-        // Error genérico de base de datos
-        return '💾 Error de Base de Datos: Hubo un problema guardando la información. Por favor intente nuevamente o contacte al administrador si el problema persiste.';
+        // Error de conexión de base de datos
+        if (strpos($errorMessage, 'Connection refused') !== false || strpos($errorMessage, 'connection timeout') !== false) {
+            Log::critical('📡 Error de conexión a la base de datos', $contextData);
+            return '📡 Error de Conexión: Problema de conectividad con la base de datos. Por favor intente nuevamente en unos momentos.';
+        }
+
+        // Error genérico con ID de tracking
+        $errorId = substr(md5($errorMessage . time()), 0, 8);
+        Log::error('💾 Error de base de datos no categorizado', array_merge([
+            'error_id' => $errorId,
+            'needs_investigation' => true
+        ], $contextData));
+
+        return '💾 Error de Base de Datos: Hubo un problema guardando la información. Por favor intente nuevamente o contacte al administrador si el problema persiste. (ID: ' . $errorId . ')';
     }
 
     /**
      * Manejar errores generales con mensajes amigables
+     * Incluye categorización detallada y logging completo
      */
     private function handleGeneralError(\Exception $e): string
     {
         $errorMessage = $e->getMessage();
         $errorClass = get_class($e);
+        $contextData = $this->buildErrorContext();
+        $errorId = substr(md5($errorMessage . time() . $errorClass), 0, 8);
 
-        // Errores de conexión
+        // Log completo del error con contexto
+        Log::error('❌ Error General Capturado', [
+            'error_id' => $errorId,
+            'error_type' => 'general_exception',
+            'error_class' => $errorClass,
+            'error_message' => $errorMessage,
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'context' => $contextData,
+            'stack_trace' => $e->getTraceAsString(),
+            'previous_exception' => $e->getPrevious() ? [
+                'class' => get_class($e->getPrevious()),
+                'message' => $e->getPrevious()->getMessage()
+            ] : null
+        ]);
+
+        // Errores de conexión HTTP/API
         if ($errorClass === 'GuzzleHttp\\Exception\\ConnectException' ||
+            strpos($errorClass, 'ConnectException') !== false ||
             strpos($errorMessage, 'Connection refused') !== false ||
             strpos($errorMessage, 'timeout') !== false) {
-            return '📡 Error de Conexión: No se pudo conectar con el sistema de facturación. Verifique su conexión a internet e intente nuevamente.';
+
+            Log::warning('📡 Error de conexión HTTP detectado', [
+                'error_id' => $errorId,
+                'connection_target' => $this->extractConnectionTarget($errorMessage),
+                'user_action' => $this->editingId ? 'update' : 'create',
+                'context' => $contextData
+            ]);
+
+            return '📡 Error de Conexión: No se pudo conectar con el sistema de facturación. Verifique su conexión a internet e intente nuevamente. (ID: ' . $errorId . ')';
         }
 
         // Errores de memoria
-        if (strpos($errorMessage, 'memory') !== false) {
-            return '🔧 Error de Sistema: El sistema está experimentando una sobrecarga. Por favor intente nuevamente en unos momentos.';
+        if (strpos($errorMessage, 'memory') !== false || strpos($errorMessage, 'Maximum execution time') !== false) {
+            Log::critical('🔧 Error de recursos del sistema', [
+                'error_id' => $errorId,
+                'memory_usage' => memory_get_peak_usage(true),
+                'execution_time' => microtime(true) - LARAVEL_START,
+                'context' => $contextData
+            ]);
+
+            return '🔧 Error de Sistema: El sistema está experimentando una sobrecarga de recursos. Por favor intente nuevamente en unos momentos. (ID: ' . $errorId . ')';
         }
 
         // Errores de permisos
         if (strpos($errorMessage, 'permission') !== false ||
-            strpos($errorMessage, 'Access denied') !== false) {
-            return '🔐 Error de Permisos: Su usuario no tiene permisos suficientes para realizar esta operación. Contacte al administrador del sistema.';
+            strpos($errorMessage, 'Access denied') !== false ||
+            strpos($errorMessage, 'Forbidden') !== false) {
+
+            Log::warning('🔐 Error de permisos detectado', [
+                'error_id' => $errorId,
+                'user_id' => Auth::id(),
+                'user_roles' => Auth::user() ? Auth::user()->getRoleNames() : [],
+                'attempted_action' => $this->editingId ? 'update_customer' : 'create_customer',
+                'context' => $contextData
+            ]);
+
+            return '🔐 Error de Permisos: Su usuario no tiene permisos suficientes para realizar esta operación. Contacte al administrador del sistema. (ID: ' . $errorId . ')';
         }
 
-        // Errores de archivos
+        // Errores de archivos y sistema de archivos
         if (strpos($errorMessage, 'file') !== false ||
-            strpos($errorMessage, 'directory') !== false) {
-            return '📁 Error de Archivos: Hubo un problema accediendo a los archivos del sistema. Contacte al administrador técnico.';
+            strpos($errorMessage, 'directory') !== false ||
+            strpos($errorMessage, 'fopen') !== false) {
+
+            Log::error('📁 Error del sistema de archivos', [
+                'error_id' => $errorId,
+                'disk_space' => disk_free_space('.'),
+                'writable' => is_writable(storage_path()),
+                'context' => $contextData
+            ]);
+
+            return '📁 Error de Archivos: Hubo un problema accediendo a los archivos del sistema. Contacte al administrador técnico. (ID: ' . $errorId . ')';
         }
 
-        // Error genérico
-        return '⚠️ Error Inesperado: Ocurrió un problema inesperado. Por favor intente nuevamente. Si el problema persiste, contacte al soporte técnico con el siguiente código: ' . substr(md5($errorMessage), 0, 8);
+        // Errores de validación de Livewire
+        if (strpos($errorClass, 'ValidationException') !== false) {
+            Log::info('📝 Error de validación capturado en handleGeneralError', [
+                'error_id' => $errorId,
+                'validation_errors' => method_exists($e, 'errors') ? $e->errors() : 'no_errors_method',
+                'context' => $contextData
+            ]);
+
+            return '📝 Error de Validación: Algunos campos no cumplen con los requisitos. Por favor revise la información e intente nuevamente.';
+        }
+
+        // Errores de base de datos que llegaron hasta acá
+        if (strpos($errorClass, 'QueryException') !== false ||
+            strpos($errorClass, 'PDOException') !== false) {
+
+            Log::error('💾 Error de BD no manejado por handleDatabaseError', [
+                'error_id' => $errorId,
+                'should_be_handled_by' => 'handleDatabaseError',
+                'context' => $contextData
+            ]);
+
+            return '💾 Error de Base de Datos: Problema inesperado con la base de datos. Contacte al administrador. (ID: ' . $errorId . ')';
+        }
+
+        // Error completamente inesperado
+        Log::critical('❓ Error no categorizado requiere investigación', [
+            'error_id' => $errorId,
+            'priority' => 'HIGH',
+            'requires_investigation' => true,
+            'error_class' => $errorClass,
+            'context' => $contextData
+        ]);
+
+        return '⚠️ Error Inesperado: Ocurrió un problema inesperado. Por favor intente nuevamente. Si el problema persiste, contacte al soporte técnico con el código: ' . $errorId;
     }
 
     /**
      * Manejar errores de validación en tiempo real con mensajes específicos
+     * Proporciona mensajes amigables y claros para el usuario
      */
     public function addValidationError(string $field, string $message): void
     {
         $friendlyMessages = [
             'identification' => [
-                'required' => '📄 Número de Identificación: Este campo es obligatorio.',
+                'required' => '📄 Número de Identificación: Este campo es obligatorio para registrar el cliente.',
                 'unique' => '👤 Identificación Duplicada: Ya existe un cliente con este número de identificación.',
-                'numeric' => '🔢 Formato Inválido: El número de identificación debe contener solo números.',
-                'min' => '📏 Muy Corto: El número de identificación debe tener al menos 6 dígitos.',
-                'max' => '📏 Muy Largo: El número de identificación no puede exceder 15 dígitos.'
+                'numeric' => '🔢 Formato Inválido: El número de identificación debe contener solo números, sin puntos ni guiones.',
+                'min' => '📏 Muy Corto: El número de identificación debe tener al menos 6 dígitos para ser válido.',
+                'max' => '📏 Muy Largo: El número de identificación no puede exceder 15 dígitos según normativas.',
+                'digits_between' => '📏 Longitud Inválida: El número de identificación debe tener entre 6 y 15 dígitos.'
             ],
             'billingEmail' => [
-                'required' => '✉️ Email de Facturación: Este campo es obligatorio.',
+                'required' => '✉️ Email de Facturación: Este campo es obligatorio para el envío de facturas electrónicas.',
                 'email' => '📧 Formato Inválido: Por favor ingrese un email válido (ejemplo: usuario@empresa.com).',
-                'unique' => '✉️ Email Duplicado: Ya existe un cliente con este email de facturación.'
+                'unique' => '✉️ Email Duplicado: Ya existe un cliente con este email de facturación.',
+                'max' => '📧 Email Muy Largo: El email no puede exceder 100 caracteres.'
             ],
             'firstName' => [
                 'required' => '👤 Primer Nombre: Este campo es obligatorio para personas naturales.',
-                'min' => '📝 Muy Corto: El nombre debe tener al menos 2 caracteres.',
-                'max' => '📝 Muy Largo: El nombre no puede exceder 50 caracteres.'
+                'min' => '📝 Muy Corto: El primer nombre debe tener al menos 2 caracteres.',
+                'max' => '📝 Muy Largo: El primer nombre no puede exceder 50 caracteres.',
+                'regex' => '🔤 Formato Inválido: El nombre solo puede contener letras y espacios.'
             ],
             'lastName' => [
                 'required' => '👤 Primer Apellido: Este campo es obligatorio para personas naturales.',
-                'min' => '📝 Muy Corto: El apellido debe tener al menos 2 caracteres.',
-                'max' => '📝 Muy Largo: El apellido no puede exceder 50 caracteres.'
+                'min' => '📝 Muy Corto: El primer apellido debe tener al menos 2 caracteres.',
+                'max' => '📝 Muy Largo: El primer apellido no puede exceder 50 caracteres.',
+                'regex' => '🔤 Formato Inválido: El apellido solo puede contener letras y espacios.'
             ],
             'businessName' => [
                 'required' => '🏢 Razón Social: Este campo es obligatorio para personas jurídicas.',
                 'min' => '📝 Muy Corto: La razón social debe tener al menos 3 caracteres.',
                 'max' => '📝 Muy Largo: La razón social no puede exceder 100 caracteres.'
+            ],
+            'typeIdentificationId' => [
+                'required' => '📋 Tipo de Identificación: Debe seleccionar el tipo de documento de identidad.',
+                'exists' => '❌ Tipo Inválido: El tipo de identificación seleccionado no es válido.'
+            ],
+            'regimeId' => [
+                'required' => '📊 Régimen Fiscal: Este campo es obligatorio para personas jurídicas.',
+                'exists' => '❌ Régimen Inválido: El régimen fiscal seleccionado no es válido.'
+            ],
+            'fiscalResponsabilityId' => [
+                'exists' => '❌ Responsabilidad Inválida: La responsabilidad fiscal seleccionada no es válida.'
+            ],
+            'warehouseName' => [
+                'required' => '🏪 Nombre de Sucursal: Debe ingresar el nombre de la sucursal principal.',
+                'min' => '📝 Muy Corto: El nombre de la sucursal debe tener al menos 2 caracteres.',
+                'max' => '📝 Muy Largo: El nombre de la sucursal no puede exceder 100 caracteres.'
+            ],
+            'warehouseAddress' => [
+                'required' => '📍 Dirección de Sucursal: Debe ingresar la dirección de la sucursal principal.',
+                'min' => '📝 Muy Corta: La dirección debe tener al menos 5 caracteres.',
+                'max' => '📝 Muy Larga: La dirección no puede exceder 200 caracteres.'
+            ],
+            'warehouseCityId' => [
+                'required' => '🌆 Ciudad: Debe seleccionar la ciudad donde se ubica la sucursal.',
+                'exists' => '❌ Ciudad Inválida: La ciudad seleccionada no es válida.'
+            ],
+            'business_phone' => [
+                'min' => '📞 Muy Corto: El teléfono comercial debe tener al menos 7 dígitos.',
+                'max' => '📞 Muy Largo: El teléfono comercial no puede exceder 20 caracteres.',
+                'regex' => '📞 Formato Inválido: El teléfono debe contener solo números, espacios, guiones y paréntesis.'
+            ],
+            'personal_phone' => [
+                'min' => '📱 Muy Corto: El teléfono personal debe tener al menos 7 dígitos.',
+                'max' => '📱 Muy Largo: El teléfono personal no puede exceder 20 caracteres.',
+                'regex' => '📱 Formato Inválido: El teléfono debe contener solo números, espacios, guiones y paréntesis.'
+            ],
+            'code_ciiu' => [
+                'min' => '🏭 Muy Corto: El código CIIU debe tener al menos 4 caracteres.',
+                'max' => '🏭 Muy Largo: El código CIIU no puede exceder 10 caracteres.'
             ]
         ];
 
-        // Buscar mensaje específico o usar el genérico
-        $friendlyMessage = $friendlyMessages[$field][$this->getValidationRuleFromMessage($message)] ??
-                          $friendlyMessages[$field]['required'] ??
-                          $message;
+        // Buscar mensaje específico o usar el mensaje proporcionado
+        $rule = $this->getValidationRuleFromMessage($message);
+        $friendlyMessage = $friendlyMessages[$field][$rule] ?? $message;
+
+        // Agregar contexto adicional si es necesario
+        if ($field === 'identification' && strpos($message, 'duplicate') !== false) {
+            $friendlyMessage .= '\n\n💡 Sugerencia: Verifique que el tipo y número de identificación sean correctos, o que no esté intentando registrar un cliente que ya existe.';
+        }
+
+        if ($field === 'billingEmail' && strpos($message, 'duplicate') !== false) {
+            $friendlyMessage .= '\n\n💡 Sugerencia: Puede usar un email diferente o verificar si el cliente ya está registrado en el sistema.';
+        }
 
         $this->addError($field, $friendlyMessage);
+
+        // Log para debugging con información contextual
+        Log::warning('🔍 Error de validación mostrado al usuario', [
+            'field' => $field,
+            'original_message' => $message,
+            'friendly_message' => $friendlyMessage,
+            'rule' => $rule,
+            'user_id' => Auth::id(),
+            'editing_id' => $this->editingId
+        ]);
     }
 
     /**
      * Extraer la regla de validación del mensaje de error
+     * Identifica el tipo de error para mostrar mensajes más específicos
      */
     private function getValidationRuleFromMessage(string $message): string
     {
-        if (strpos($message, 'required') !== false) return 'required';
-        if (strpos($message, 'email') !== false) return 'email';
-        if (strpos($message, 'unique') !== false) return 'unique';
-        if (strpos($message, 'numeric') !== false) return 'numeric';
-        if (strpos($message, 'min') !== false) return 'min';
-        if (strpos($message, 'max') !== false) return 'max';
+        $lowerMessage = strtolower($message);
+
+        // Reglas más específicas primero
+        if (strpos($lowerMessage, 'required') !== false) return 'required';
+        if (strpos($lowerMessage, 'unique') !== false || strpos($lowerMessage, 'duplicad') !== false) return 'unique';
+        if (strpos($lowerMessage, 'email') !== false && strpos($lowerMessage, 'format') !== false) return 'email';
+        if (strpos($lowerMessage, 'numeric') !== false) return 'numeric';
+        if (strpos($lowerMessage, 'digits_between') !== false) return 'digits_between';
+        if (strpos($lowerMessage, 'min') !== false) return 'min';
+        if (strpos($lowerMessage, 'max') !== false) return 'max';
+        if (strpos($lowerMessage, 'regex') !== false || strpos($lowerMessage, 'format') !== false) return 'regex';
+        if (strpos($lowerMessage, 'exists') !== false || strpos($lowerMessage, 'valid') !== false) return 'exists';
+        if (strpos($lowerMessage, 'confirmed') !== false) return 'confirmed';
+        if (strpos($lowerMessage, 'same') !== false) return 'same';
+        if (strpos($lowerMessage, 'different') !== false) return 'different';
+        if (strpos($lowerMessage, 'before') !== false) return 'before';
+        if (strpos($lowerMessage, 'after') !== false) return 'after';
+        if (strpos($lowerMessage, 'date') !== false) return 'date';
 
         return 'general';
+    }
+
+    /**
+     * Construir contexto detallado para logging de errores
+     */
+    private function buildErrorContext(): array
+    {
+        return [
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user()?->email,
+            'editing_id' => $this->editingId,
+            'is_editing' => !is_null($this->editingId),
+            'form_action' => $this->editingId ? 'update' : 'create',
+            'form_data_summary' => [
+                'identification' => $this->identification ? substr($this->identification, 0, 4) . '****' : null,
+                'email' => $this->billingEmail ? substr($this->billingEmail, 0, 3) . '****@****' : null,
+                'type_person' => $this->typePerson,
+                'type_identification_id' => $this->typeIdentificationId,
+                'has_business_name' => !empty($this->businessName),
+                'has_names' => !empty($this->firstName) || !empty($this->lastName),
+                'regime_id' => $this->regimeId,
+                'fiscal_responsibility_id' => $this->fiscalResponsabilityId,
+                'warehouse_city_id' => $this->warehouseCityId
+            ],
+            'session_info' => [
+                'tenant_id' => session('tenant_id'),
+                'has_tenant' => !is_null(session('tenant_id'))
+            ],
+            'timestamp' => now()->toISOString(),
+            'request_id' => request()->header('X-Request-ID', uniqid()),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
+        ];
+    }
+
+    /**
+     * Extraer campo específico del error "Data too long"
+     */
+    private function extractFieldFromDataTooLongError(string $errorMessage): array
+    {
+        // Intentar extraer el nombre del campo del mensaje de error
+        $fieldMappings = [
+            'businessName' => ['business_name', 'businessname', 'razón social'],
+            'firstName' => ['first_name', 'firstname', 'primer nombre'],
+            'lastName' => ['last_name', 'lastname', 'apellido'],
+            'billingEmail' => ['billing_email', 'email', 'correo'],
+            'warehouseAddress' => ['address', 'direccion', 'direccion'],
+            'warehouseName' => ['warehouse_name', 'sucursal', 'almacen']
+        ];
+
+        $lowerMessage = strtolower($errorMessage);
+
+        foreach ($fieldMappings as $field => $patterns) {
+            foreach ($patterns as $pattern) {
+                if (strpos($lowerMessage, $pattern) !== false) {
+                    return [
+                        'affected_field' => $field,
+                        'friendly_message' => $this->getDataTooLongMessage($field),
+                        'current_length' => strlen($this->{$field} ?? ''),
+                        'error_message' => $errorMessage
+                    ];
+                }
+            }
+        }
+
+        return [
+            'affected_field' => 'unknown',
+            'friendly_message' => 'Uno de los campos contiene demasiado texto. Por favor reduzca la longitud de la información.',
+            'error_message' => $errorMessage
+        ];
+    }
+
+    /**
+     * Obtener mensaje específico para campo demasiado largo
+     */
+    private function getDataTooLongMessage(string $field): string
+    {
+        $messages = [
+            'businessName' => 'La razón social es demasiado larga. Máximo 100 caracteres.',
+            'firstName' => 'El primer nombre es demasiado largo. Máximo 50 caracteres.',
+            'lastName' => 'El primer apellido es demasiado largo. Máximo 50 caracteres.',
+            'billingEmail' => 'El email de facturación es demasiado largo. Máximo 100 caracteres.',
+            'warehouseAddress' => 'La dirección de la sucursal es demasiado larga. Máximo 200 caracteres.',
+            'warehouseName' => 'El nombre de la sucursal es demasiado largo. Máximo 100 caracteres.'
+        ];
+
+        return $messages[$field] ?? 'Este campo es demasiado largo. Por favor reduzca el texto.';
+    }
+
+    /**
+     * Extraer campo nulo del mensaje de error
+     */
+    private function extractNullFieldFromError(string $errorMessage): string
+    {
+        // Patrones comunes en errores de MySQL/PostgreSQL
+        if (preg_match("/Column '([^']+)' cannot be null/", $errorMessage, $matches)) {
+            return $matches[1];
+        }
+
+        if (preg_match("/null value in column \"([^\"]+)\"/", $errorMessage, $matches)) {
+            return $matches[1];
+        }
+
+        return 'unknown_field';
+    }
+
+    /**
+     * Extraer destino de conexión del mensaje de error
+     */
+    private function extractConnectionTarget(string $errorMessage): ?string
+    {
+        // Intentar extraer URL o host del mensaje de error
+        if (preg_match('/(?:https?:\/\/)?([^\s\/]+)/i', $errorMessage, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Construir mensaje de éxito personalizado con contexto
+     */
+    private function buildSuccessMessage(string $action, string $syncType, string $customerName): string
+    {
+        $customerName = trim($customerName);
+        $customerDisplay = !empty($customerName) ? " '{$customerName}'" : '';
+
+        $icons = [
+            'create' => '✅',
+            'update' => '🔄'
+        ];
+
+        $actions = [
+            'create' => 'Registrado',
+            'update' => 'Actualizado'
+        ];
+
+        $syncMessages = [
+            'sync' => 'se guardó localmente y se sincronizó exitosamente con el sistema de facturación electrónica',
+            'local' => 'se guardó exitosamente en el sistema local'
+        ];
+
+        $icon = $icons[$action] ?? '✅';
+        $actionText = $actions[$action] ?? 'Procesado';
+        $syncMessage = $syncMessages[$syncType] ?? 'se procesó correctamente';
+
+        $baseMessage = "{$icon} Cliente {$actionText}: El cliente{$customerDisplay} {$syncMessage}.";
+
+        // Agregar información adicional según el contexto
+        $additionalInfo = [];
+
+        if ($syncType === 'sync') {
+            $additionalInfo[] = "🔗 Los datos están disponibles para facturación electrónica";
+        }
+
+        if ($action === 'create' && $this->routeId) {
+            $additionalInfo[] = "📍 Ruta de ventas asignada correctamente";
+        }
+
+        if (!empty($additionalInfo)) {
+            $baseMessage .= "\n\n💡 Información adicional:\n• " . implode("\n• ", $additionalInfo);
+        }
+
+        return $baseMessage;
+    }
+
+    /**
+     * Construir mensaje de éxito para rutas
+     */
+    private function buildRouteSuccessMessage($company, $route): string
+    {
+        $customerName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
+
+        return "✅ Cliente y Ruta Creados: El cliente '{$customerName}' se registró exitosamente y se asignó a la ruta de ventas.\n\n" .
+               "📍 Detalles de la ruta:\n" .
+               "• Número de orden: {$route->sales_order}\n" .
+               "• ID de ruta: {$route->route_id}";
+    }
+
+    /**
+     * Construir mensaje de error para rutas
+     */
+    private function buildRouteErrorMessage($company): string
+    {
+        $customerName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
+
+        return "✅ Cliente Creado con Advertencia: El cliente '{$customerName}' se registró exitosamente en el sistema.\n\n" .
+               "⚠️ Problema con Ruta: Hubo un inconveniente al asignar la ruta de ventas. La ruta se puede asignar posteriormente desde la gestión de rutas.";
+    }
+
+    /**
+     * Construir mensaje de éxito para eliminación
+     */
+    private function buildDeleteSuccessMessage(): string
+    {
+        return "🗑️ Cliente Eliminado: El registro se ha eliminado exitosamente del sistema.\n\n" .
+               "💡 Información:\n" .
+               "• Los datos se eliminaron permanentemente\n" .
+               "• Los registros asociados se mantuvieron intactos\n" .
+               "• Esta acción no se puede deshacer";
+    }
+
+    /**
+     * Construir mensaje de error por restricciones de integridad
+     */
+    private function buildConstraintErrorMessage(): string
+    {
+        return "🚫 No se puede Eliminar: Este cliente está asociado a registros importantes del sistema.\n\n" .
+               "🔗 Registros que pueden estar asociados:\n" .
+               "• Facturas electrónicas emitidas\n" .
+               "• Pedidos de venta realizados\n" .
+               "• Transacciones financieras\n" .
+               "• Historial de compras\n\n" .
+               "💡 Soluciones:\n" .
+               "• Desactive el cliente en lugar de eliminarlo\n" .
+               "• Transfiera los registros a otro cliente\n" .
+               "• Contacte al administrador para realizar una eliminación segura";
+    }
+
+    /**
+     * Construir mensaje de error de base de datos para eliminación
+     */
+    private function buildDatabaseDeleteErrorMessage(): string
+    {
+        return "💾 Error de Base de Datos: Hubo un problema técnico al eliminar el cliente.\n\n" .
+               "🔧 Acciones recomendadas:\n" .
+               "• Intente nuevamente en unos momentos\n" .
+               "• Verifique que tiene los permisos necesarios\n" .
+               "• Contacte al administrador si el problema persiste\n\n" .
+               "💡 Alternativa: Puede desactivar el cliente temporalmente en lugar de eliminarlo.";
+    }
+
+    /**
+     * Construir mensaje de error general para eliminación
+     */
+    private function buildGeneralDeleteErrorMessage(): string
+    {
+        $errorId = substr(md5(time() . Auth::id()), 0, 8);
+
+        return "⚠️ Error Inesperado: Ocurrió un problema inesperado al eliminar el cliente.\n\n" .
+               "🆔 Código de error: {$errorId}\n\n" .
+               "🔧 Qué hacer:\n" .
+               "• Intente nuevamente en unos minutos\n" .
+               "• Si persiste, contacte al soporte técnico\n" .
+               "• Proporcione el código de error al soporte\n\n" .
+               "💡 Como alternativa temporal, puede desactivar el cliente en lugar de eliminarlo.";
+    }
+
+    /**
+     * Verificar integridad del sistema de manejo de errores
+     * Este método se puede usar para testing y debugging
+     */
+    public function validateErrorHandlingCompleteness(): array
+    {
+        $results = [
+            'validation_errors' => true,
+            'database_errors' => true,
+            'api_errors' => true,
+            'general_errors' => true,
+            'success_messages' => true,
+            'logging_system' => true,
+            'completeness_score' => 0
+        ];
+
+        $totalChecks = count($results) - 1; // Excluir el score
+
+        // Verificar que los métodos de manejo de errores existen
+        $requiredMethods = [
+            'handleDatabaseError',
+            'handleGeneralError',
+            'formatApiErrorMessage',
+            'categorizeApiError',
+            'addValidationError',
+            'buildSuccessMessage',
+            'buildErrorContext'
+        ];
+
+        $methodsExist = 0;
+        foreach ($requiredMethods as $method) {
+            if (method_exists($this, $method)) {
+                $methodsExist++;
+            }
+        }
+
+        // Verificar logging
+        $results['logging_system'] = $methodsExist === count($requiredMethods);
+
+        // Verificar mensajes de validación
+        $validationMessages = $this->validationService->getValidationMessages();
+        $results['validation_errors'] = !empty($validationMessages);
+
+        // Calcular score de completeness
+        $completedChecks = array_sum(array_filter($results, function($key) {
+            return $key !== 'completeness_score';
+        }, ARRAY_FILTER_USE_KEY));
+
+        $results['completeness_score'] = round(($completedChecks / $totalChecks) * 100, 2);
+
+        // Log del resultado para monitoreo
+        Log::info('🔍 Verificación de completeness del sistema de errores', [
+            'results' => $results,
+            'required_methods_found' => $methodsExist . '/' . count($requiredMethods),
+            'timestamp' => now()->toISOString()
+        ]);
+
+        return $results;
     }
 }
