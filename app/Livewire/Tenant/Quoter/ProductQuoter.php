@@ -14,6 +14,7 @@ use App\Models\Tenant\Remissions\InvDetailRemissions;
 use App\Models\Tenant\Items\Category;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class ProductQuoter extends Component
 {
@@ -65,11 +66,19 @@ class ProductQuoter extends Component
     public function updatingSearch()
     {
         $this->resetPage();
+        Log::info('🔄 Reseteando página por cambio en búsqueda', ['search' => $this->search]);
     }
 
     public function updatingPerPage()
     {
         $this->resetPage();
+        Log::info('🔄 Reseteando página por cambio en perPage', ['perPage' => $this->perPage]);
+    }
+    
+    public function updatingSelectedCategory()
+    {
+        $this->resetPage();
+        Log::info('🔄 Reseteando página por cambio en categoría', ['category' => $this->selectedCategory]);
     }
 
     public function sortBy($field)
@@ -89,6 +98,9 @@ class ProductQuoter extends Component
         // Obtener viewType de la ruta o usar desktop por defecto
         $this->viewType = request()->route('viewType', 'desktop');
         $this->ensureTenantConnection();
+        
+        // Resetear página si viene de otra vista
+        $this->resetPage();
 
         // Intentar obtener remissionId de los parámetros de la ruta si no se pasó directamente
         if (!$remissionId) {
@@ -106,6 +118,13 @@ class ProductQuoter extends Component
         }
 
         $this->calculateTotal();
+        
+        Log::info('🚀 ProductQuoter montado', [
+            'viewType' => $this->viewType,
+            'quoteId' => $quoteId,
+            'remissionId' => $remissionId,
+            'quoterItems_count' => count($this->quoterItems)
+        ]);
     }
 
     /**
@@ -140,25 +159,88 @@ class ProductQuoter extends Component
     }
 
 
-    //funcion para renderizar los productos en la vista
+    /**
+     * Renderizar los productos en la vista
+     * 
+     * Filtra automáticamente los productos por el warehouse del usuario autenticado.
+     * El warehouse se obtiene desde la BD central (RAP) a través de:
+     * Auth::user() → contact_id → vnt_contacts.warehouseId
+     * 
+     * Los productos se filtran mediante joins comenzando desde inv_store:
+     * inv_store (WHERE warehouseId = user's warehouse) → inv_items_store → inv_items
+     * Esto asegura que solo se traigan items disponibles en las bodegas del warehouse del usuario.
+     * 
+     * @return \Illuminate\View\View
+     */
     public function render()
     {
+    try{
         $this->ensureTenantConnection();
+        $userWarehouseId = $this->getUserWarehouseId();
 
-        $products = Items::query()
-            ->active()
+        $query = Items::query()
+            ->select(
+                'inv_items.*',
+                DB::raw('GROUP_CONCAT(DISTINCT inv_store.name SEPARATOR ", ") as store_names'),
+                DB::raw('GROUP_CONCAT(DISTINCT inv_store.id SEPARATOR ",") as store_ids')
+            )
+            ->where('inv_items.status', 1)
             ->with('principalImage')
+            ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+            ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+            ->where('inv_store.warehouseId', $userWarehouseId)
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('internal_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('sku', 'like', '%' . $this->search . '%')
-                      ->orWhere('description', 'like', '%' . $this->search . '%');
+                $query->where(function($q) {
+                    $q->where('inv_items.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%')
+                      ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
+                      ->orWhere('inv_items.description', 'like', '%' . $this->search . '%');
+                });
             })
              ->when($this->selectedCategory, function ($query) {
-             $query->where('categoryId', $this->selectedCategory);
+             $query->where('inv_items.categoryId', $this->selectedCategory);
             })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate($this->perPage);
+            ->groupBy('inv_items.id')
+            ->orderBy('inv_items.' . $this->sortField, $this->sortDirection);
+        
+        $products = $query->paginate($this->perPage);
+        
+        Log::info('✅ Productos cargados', [
+            'total' => $products->total(),
+            'current_page' => $products->currentPage(),
+            'per_page' => $products->perPage(),
+            'last_page' => $products->lastPage(),
+            'productos_en_pagina' => $products->count(),
+            'productos_ids' => $products->pluck('id')->toArray(),
+            'productos_nombres' => $products->pluck('name')->toArray(),
+            'productos_bodegas' => $products->pluck('store_names')->toArray()
+        ]);
+        
+        // Si estamos en una página que no existe, resetear a la página 1
+        if ($products->currentPage() > $products->lastPage() && $products->total() > 0) {
+            Log::warning('⚠️ Página actual mayor que última página, reseteando', [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage()
+            ]);
+            $this->resetPage();
+            $products = $query->paginate($this->perPage);
+        }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en render() de ProductQuoter', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al cargar productos: ' . $e->getMessage()
+            ]);
+
+            // Retornar vista vacía en caso de error
+            $products = Items::query()->whereRaw('1 = 0')->paginate($this->perPage);
+        }
 
         $viewName = $this->viewType === 'mobile'
             ? 'livewire.tenant.quoter.components.mobile-product-quoter'
@@ -1059,5 +1141,68 @@ private function sanitizeItemQuantity($index)
         ]);
 
         return redirect()->route($redirectRoute);
+    }
+
+    /**
+     * Obtener el warehouseId del usuario autenticado desde la BD central (RAP)
+     * 
+     * @return int
+     * @throws \Exception
+     */
+    private function getUserWarehouseId()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                Log::error('getUserWarehouseId: Usuario no autenticado');
+                throw new \Exception('Usuario no autenticado');
+            }
+            
+            if (!$user->contact_id) {
+                Log::error('getUserWarehouseId: Usuario sin contact_id', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+                throw new \Exception('Usuario sin contacto asignado');
+            }
+            
+            // Consultar vnt_contacts en BD central (RAP)
+            $contact = DB::connection('central')
+                ->table('vnt_contacts')
+                ->where('id', $user->contact_id)
+                ->first(['warehouseId']);
+            
+            if (!$contact) {
+                Log::error('getUserWarehouseId: Contacto no encontrado en vnt_contacts', [
+                    'user_id' => $user->id,
+                    'contact_id' => $user->contact_id
+                ]);
+                throw new \Exception('Contacto no encontrado en vnt_contacts');
+            }
+            
+            if (!$contact->warehouseId) {
+                Log::error('getUserWarehouseId: Contacto sin warehouseId', [
+                    'user_id' => $user->id,
+                    'contact_id' => $user->contact_id
+                ]);
+                throw new \Exception('Contacto sin warehouse asignado');
+            }
+            
+            Log::info('getUserWarehouseId: Warehouse obtenido exitosamente', [
+                'user_id' => $user->id,
+                'contact_id' => $user->contact_id,
+                'warehouse_id' => $contact->warehouseId
+            ]);
+            
+            return $contact->warehouseId;
+            
+        } catch (\Exception $e) {
+            Log::error('getUserWarehouseId: Error al obtener warehouse', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 }

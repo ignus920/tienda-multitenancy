@@ -114,6 +114,25 @@ $header = 'Seleccionar productos';
                                 @endif
                             </div>
 
+                            <!-- Bodegas disponibles -->
+                            @if($product->store_names)
+                            <div class="mb-2 px-2">
+                                <div class="text-[9px] uppercase font-semibold text-indigo-600 dark:text-indigo-400 mb-1">
+                                    Disponible en:
+                                </div>
+                                <div class="flex flex-wrap gap-1 justify-center">
+                                    @foreach(explode(', ', $product->store_names) as $storeName)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
+                                        <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                        </svg>
+                                        {{ $storeName }}
+                                    </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+
                             <!-- Precios -->
                             @php
                             $allPrices = $product->all_prices;
