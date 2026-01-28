@@ -28,7 +28,7 @@
                             </div>
                             @if ($tenant->pivot->last_accessed_at)
                                 <span class="text-xs text-gray-500">
-                                    Último acceso: {{ $tenant->pivot->last_accessed_at->diffForHumans() }}
+                                    Último acceso: {{ \Carbon\Carbon::parse($tenant->pivot->last_accessed_at)->diffForHumans() }}
                                 </span>
                             @endif
                         </div>

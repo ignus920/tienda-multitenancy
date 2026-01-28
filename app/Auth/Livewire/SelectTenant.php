@@ -55,11 +55,15 @@ class SelectTenant extends Component
             $userTenant->pivot->update(['last_accessed_at' => now()]);
         }
 
-        // Redirigir al dashboard del tenant
-        return redirect()->route('tenant.dashboard');
+        // Establecer bandera para abrir el modal de selección de bodega
+        session()->put('needs_warehouse_selection', true);
+        session()->put('warehouse_redirect_route', 'tenant.dashboard');
+
+        // NO redirigir, solo recargar el componente para que el modal se abra
+        $this->dispatch('$refresh');
     }
 
-    #[Layout('layouts.guest')]
+    #[Layout('layouts.app')]
     public function render()
     {
         return view('livewire.auth.select-tenant', [

@@ -23,10 +23,10 @@ Route::view('/', 'welcome');
 Route::get('/verify-2fa', Verify2FA::class)
     ->name('verify.2fa');
 
-// Selección de sucursal después del login
-Volt::route('/select-warehouse', 'pages.auth.select-warehouse')
-    ->middleware(['auth'])
-    ->name('select.warehouse');
+// Selección de sucursal después del login (DESHABILITADA - Ahora se usa el modal LoginWarehouseSelector)
+// Volt::route('/select-warehouse', 'pages.auth.select-warehouse')
+//     ->middleware(['auth'])
+//     ->name('select.warehouse');
 
 // Configuración de empresa (requiere autenticación)
 Route::get('/company/setup', UpdateCompany::class)

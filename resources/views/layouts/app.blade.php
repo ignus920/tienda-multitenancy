@@ -104,6 +104,9 @@
 
         <!-- Warehouse Selector Modal -->
         <livewire:warehouse-selector />
+        
+        <!-- Login Warehouse Selector Modal - Para selección de bodega después del login -->
+        <livewire:auth.login-warehouse-selector />
 
         @livewireScripts
         @stack('scripts')

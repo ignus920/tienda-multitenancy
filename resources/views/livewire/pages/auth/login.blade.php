@@ -78,21 +78,37 @@ new #[Layout('layouts.guest')] class extends Component
 
             // Verificar si el usuario es TAT (profile_id = 17)
             if (auth()->user()->profile_id == 17) {
+                // Obtener el tenant del usuario
+                $userTenants = auth()->user()->activeTenants()->get();
+                
+                // Si solo tiene un tenant, establecerlo automáticamente
+                if ($userTenants->count() === 1) {
+                    Session::put('tenant_id', $userTenants->first()->id);
+                }
+                
                 // Marcar que necesita seleccionar sucursal
                 Session::put('needs_warehouse_selection', true);
                 Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
                 
-                // Mostrar selector de sucursales inmediatamente (sin mensaje de bienvenida)
-                $this->dispatch('show-warehouse-selector-after-login', redirectRoute: 'petty-cash.petty-cash');
+                // Redirigir a tenant.select (el modal se abrirá automáticamente)
+                $this->redirect(route('tenant.select'), navigate: true);
                 return;
             }
 
+            // Obtener el tenant del usuario
+            $userTenants = auth()->user()->activeTenants()->get();
+            
+            // Si solo tiene un tenant, establecerlo automáticamente
+            if ($userTenants->count() === 1) {
+                Session::put('tenant_id', $userTenants->first()->id);
+            }
+            
             // Marcar que necesita seleccionar sucursal
             Session::put('needs_warehouse_selection', true);
             Session::put('warehouse_redirect_route', 'tenant.select');
             
-            // Mostrar selector de sucursales inmediatamente (sin mensaje de bienvenida)
-            $this->dispatch('show-warehouse-selector-after-login', redirectRoute: 'tenant.select');
+            // Redirigir a tenant.select (el modal se abrirá automáticamente)
+            $this->redirect(route('tenant.select'), navigate: true);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Si hay 2FA habilitado, redirigir a verificación
             if (Session::has('2fa_user_id')) {
@@ -166,14 +182,6 @@ new #[Layout('layouts.guest')] class extends Component
                     content: 'swal-content-light'
                 }
             });
-        });
-
-        // Listener para mostrar selector de sucursales después del login
-        Livewire.on('show-warehouse-selector-after-login', (data) => {
-            console.log('Evento recibido: show-warehouse-selector-after-login', data);
-            
-            // Redirigir a la página de selección de sucursal
-            window.location.href = '/select-warehouse';
         });
 
         // Listener para cerrar SweetAlert cuando el usuario escribe

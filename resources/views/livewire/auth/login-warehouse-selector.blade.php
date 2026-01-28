@@ -4,11 +4,21 @@
         x-data="{ 
             show: @entangle('showModal'),
             init() {
-                console.log('LoginWarehouseSelector inicializado', {
+                console.log('🔵 LoginWarehouseSelector Modal inicializado', {
                     showModal: this.show,
                     needsSelection: @js(session('needs_warehouse_selection')),
-                    isAuth: @js(auth()->check())
+                    isAuth: @js(auth()->check()),
+                    storesCount: @js(count($stores)),
+                    selectedStoreId: @js($selectedStoreId),
+                    warehouseName: @js($warehouseName)
                 });
+                
+                // Verificar que Livewire está disponible
+                if (typeof Livewire !== 'undefined') {
+                    console.log('✅ Livewire está disponible en el modal');
+                } else {
+                    console.error('❌ Livewire NO está disponible en el modal');
+                }
             }
         }"
         x-show="show"
@@ -47,16 +57,16 @@
                         <div class="flex-shrink-0">
                             <div class="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
                                 <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                                 </svg>
                             </div>
                         </div>
                         <div class="ml-4">
                             <h3 class="text-xl font-semibold text-white">
-                                Selecciona tu Sucursal
+                                Selecciona tu Bodega
                             </h3>
                             <p class="mt-1 text-sm text-indigo-100">
-                                Elige la sucursal donde trabajarás hoy
+                                Elige la bodega donde trabajarás hoy
                             </p>
                         </div>
                     </div>
@@ -64,78 +74,116 @@
 
                 <!-- Body -->
                 <div class="bg-white dark:bg-gray-800 px-6 py-6">
-                    @if(count($warehouses) > 0)
-                        <div class="space-y-3 max-h-96 overflow-y-auto">
-                            @foreach($warehouses as $warehouse)
-                                <button
-                                    type="button"
-                                    wire:click="selectWarehouse({{ $warehouse['id'] }})"
-                                    wire:loading.attr="disabled"
-                                    class="w-full text-left px-5 py-4 rounded-xl border-2 transition-all duration-200 group
-                                        {{ $warehouse['id'] == $selectedWarehouseId 
-                                            ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 shadow-md' 
-                                            : 'border-gray-200 dark:border-gray-600 hover:border-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm' 
-                                        }}
-                                        disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center space-x-4 flex-1">
-                                            <!-- Icon -->
-                                            <div class="flex-shrink-0">
-                                                <div class="h-12 w-12 rounded-lg flex items-center justify-center
-                                                    {{ $warehouse['id'] == $selectedWarehouseId 
-                                                        ? 'bg-indigo-600' 
-                                                        : 'bg-gray-100 dark:bg-gray-700 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50' 
-                                                    }}
-                                                    transition-colors duration-200">
-                                                    <svg class="h-6 w-6 {{ $warehouse['id'] == $selectedWarehouseId ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-indigo-600' }}" 
-                                                         fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
-                                                    </svg>
+                    <!-- Warehouse Information (Read-only) -->
+                    @if($warehouseName)
+                        <div class="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800">
+                            <div class="flex items-start space-x-4">
+                                <!-- Icon -->
+                                <div class="flex-shrink-0">
+                                    <div class="h-12 w-12 rounded-lg bg-indigo-600 flex items-center justify-center">
+                                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <!-- Warehouse Info -->
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">
+                                        Tu Sucursal
+                                    </p>
+                                    <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                        {{ $warehouseName }}
+                                    </h4>
+                                    @if($warehouseAddress)
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                                            <svg class="h-4 w-4 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {{ $warehouseAddress }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Store Selection Section -->
+                    @if(count($stores) > 0)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                Bodegas Disponibles
+                            </h4>
+                            <div class="space-y-2 max-h-80 overflow-y-auto">
+                                @foreach($stores as $store)
+                                    <button
+                                        type="button"
+                                        wire:click="selectStore({{ $store['id'] }})"
+                                        @click="console.log('🟡 Bodega clickeada', { storeId: {{ $store['id'] }}, storeName: '{{ $store['name'] }}' })"
+                                        wire:loading.attr="disabled"
+                                        class="w-full text-left px-4 py-3 rounded-lg border-2 transition-all duration-200 group
+                                            {{ $store['id'] == $selectedStoreId 
+                                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 shadow-md' 
+                                                : 'border-gray-200 dark:border-gray-600 hover:border-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm' 
+                                            }}
+                                            disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-3 flex-1">
+                                                <!-- Store Icon -->
+                                                <div class="flex-shrink-0">
+                                                    <div class="h-10 w-10 rounded-lg flex items-center justify-center
+                                                        {{ $store['id'] == $selectedStoreId 
+                                                            ? 'bg-indigo-600' 
+                                                            : 'bg-gray-100 dark:bg-gray-700 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50' 
+                                                        }}
+                                                        transition-colors duration-200">
+                                                        <svg class="h-5 w-5 {{ $store['id'] == $selectedStoreId ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-indigo-600' }}" 
+                                                             fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Store Info -->
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-semibold {{ $store['id'] == $selectedStoreId ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white' }}">
+                                                        {{ $store['name'] }}
+                                                    </p>
+                                                    @if(!empty($store['store_manager']))
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                            Encargado: {{ $store['store_manager'] }}
+                                                        </p>
+                                                    @endif
                                                 </div>
                                             </div>
                                             
-                                            <!-- Info -->
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-base font-semibold {{ $warehouse['id'] == $selectedWarehouseId ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white' }}">
-                                                    {{ $warehouse['name'] }}
-                                                </p>
-                                                @if(!empty($warehouse['address']))
-                                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center">
-                                                        <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <!-- Check Icon -->
+                                            @if($store['id'] == $selectedStoreId)
+                                                <div class="flex-shrink-0 ml-3">
+                                                    <div class="h-6 w-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                                                        <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                                                         </svg>
-                                                        {{ $warehouse['address'] }}
-                                                    </p>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Check Icon -->
-                                        @if($warehouse['id'] == $selectedWarehouseId)
-                                            <div class="flex-shrink-0 ml-4">
-                                                <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                                                    <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                                    </svg>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </button>
-                            @endforeach
+                                            @endif
+                                        </div>
+                                    </button>
+                                @endforeach
+                            </div>
                         </div>
                     @else
                         <div class="text-center py-12">
                             <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                             </svg>
                             <p class="mt-4 text-base text-gray-500 dark:text-gray-400">
-                                No hay sucursales disponibles
+                                No hay bodegas disponibles
                             </p>
                             <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">
-                                Contacta al administrador para obtener acceso
+                                No se encontraron bodegas activas para tu sucursal
                             </p>
                         </div>
                     @endif
@@ -145,22 +193,23 @@
                 <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4">
                     <div class="flex items-center justify-between">
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                            @if($selectedWarehouseId)
+                            @if($selectedStoreId)
                                 <span class="flex items-center">
                                     <svg class="h-4 w-4 text-green-500 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                     </svg>
-                                    Sucursal seleccionada
+                                    Bodega seleccionada
                                 </span>
                             @else
-                                Selecciona una sucursal para continuar
+                                Selecciona una bodega para continuar
                             @endif
                         </p>
                         <button
                             type="button"
                             wire:click="confirm"
+                            @click="console.log('🔴 Botón Continuar clickeado', { selectedStoreId: @js($selectedStoreId), loading: @js($loading) })"
                             wire:loading.attr="disabled"
-                            :disabled="!@js($selectedWarehouseId)"
+                            {{ !$selectedStoreId ? 'disabled' : '' }}
                             class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                             <span wire:loading.remove wire:target="confirm">Continuar</span>

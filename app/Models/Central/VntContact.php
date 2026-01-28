@@ -2,11 +2,15 @@
 
 namespace App\Models\Central;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Tenant\Movements\InvStore;
 
 class VntContact extends Model
 {
+    use HasFactory;
+
     protected $connection = 'central';
     protected $table = 'vnt_contacts';
 
@@ -21,7 +25,8 @@ class VntContact extends Model
         'status',
         'integrationDataId',
         'warehouseId',
-        'positionId'
+        'positionId',
+        'store'
     ];
 
     protected $casts = [
@@ -37,5 +42,19 @@ class VntContact extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(VntWarehouse::class, 'warehouseId');
+    }
+
+    /**
+     * Get the selected store from the tenant database.
+     * Returns null if no store is selected.
+     *
+     * @return InvStore|null
+     */
+    public function selectedStore(): ?InvStore
+    {
+        if (!$this->store) {
+            return null;
+        }
+        return InvStore::on('tenant')->find($this->store);
     }
 }

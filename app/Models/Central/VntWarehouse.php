@@ -2,12 +2,15 @@
 
 namespace App\Models\Central;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VntWarehouse extends Model
 {
+    use HasFactory;
+
     protected $connection = 'central';
     protected $table = 'vnt_warehouses';
 
