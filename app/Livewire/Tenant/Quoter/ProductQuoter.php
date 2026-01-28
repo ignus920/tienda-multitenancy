@@ -12,6 +12,7 @@ use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Remissions\InvDetailRemissions;
 use App\Models\Tenant\Items\Category;
+use App\Models\Central\VntContact;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -162,13 +163,13 @@ class ProductQuoter extends Component
     /**
      * Renderizar los productos en la vista
      * 
-     * Filtra automáticamente los productos por el warehouse del usuario autenticado.
-     * El warehouse se obtiene desde la BD central (RAP) a través de:
-     * Auth::user() → contact_id → vnt_contacts.warehouseId
+     * Filtra automáticamente los productos por la bodega (store) del usuario autenticado.
+     * La bodega se obtiene desde la BD central (RAP) a través de:
+     * Auth::user() → contact_id → vnt_contacts.store
      * 
      * Los productos se filtran mediante joins comenzando desde inv_store:
-     * inv_store (WHERE warehouseId = user's warehouse) → inv_items_store → inv_items
-     * Esto asegura que solo se traigan items disponibles en las bodegas del warehouse del usuario.
+     * inv_store (WHERE id = user's store) → inv_items_store → inv_items
+     * Esto asegura que solo se traigan items disponibles en la bodega específica del usuario.
      * 
      * @return \Illuminate\View\View
      */
@@ -176,7 +177,7 @@ class ProductQuoter extends Component
     {
     try{
         $this->ensureTenantConnection();
-        $userWarehouseId = $this->getUserWarehouseId();
+        $userStoreId = $this->getUserStoreId();
 
         $query = Items::query()
             ->select(
@@ -188,7 +189,7 @@ class ProductQuoter extends Component
             ->with('principalImage')
             ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
             ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
-            ->where('inv_store.warehouseId', $userWarehouseId)
+            ->where('inv_store.id', $userStoreId)
             ->when($this->search, function ($query) {
                 $query->where(function($q) {
                     $q->where('inv_items.name', 'like', '%' . $this->search . '%')
@@ -1144,61 +1145,58 @@ private function sanitizeItemQuantity($index)
     }
 
     /**
-     * Obtener el warehouseId del usuario autenticado desde la BD central (RAP)
+     * Obtener el storeId del usuario autenticado desde la BD central (RAP)
      * 
      * @return int
      * @throws \Exception
      */
-    private function getUserWarehouseId()
+    private function getUserStoreId()
     {
         try {
             $user = Auth::user();
             
             if (!$user) {
-                Log::error('getUserWarehouseId: Usuario no autenticado');
+                Log::error('getUserStoreId: Usuario no autenticado');
                 throw new \Exception('Usuario no autenticado');
             }
             
             if (!$user->contact_id) {
-                Log::error('getUserWarehouseId: Usuario sin contact_id', [
+                Log::error('getUserStoreId: Usuario sin contact_id', [
                     'user_id' => $user->id,
                     'email' => $user->email
                 ]);
                 throw new \Exception('Usuario sin contacto asignado');
             }
             
-            // Consultar vnt_contacts en BD central (RAP)
-            $contact = DB::connection('central')
-                ->table('vnt_contacts')
-                ->where('id', $user->contact_id)
-                ->first(['warehouseId']);
+            // Consultar vnt_contacts en BD central (RAP) usando el modelo
+            $contact = VntContact::find($user->contact_id);
             
             if (!$contact) {
-                Log::error('getUserWarehouseId: Contacto no encontrado en vnt_contacts', [
+                Log::error('getUserStoreId: Contacto no encontrado en vnt_contacts', [
                     'user_id' => $user->id,
                     'contact_id' => $user->contact_id
                 ]);
                 throw new \Exception('Contacto no encontrado en vnt_contacts');
             }
             
-            if (!$contact->warehouseId) {
-                Log::error('getUserWarehouseId: Contacto sin warehouseId', [
+            if (!$contact->store) {
+                Log::error('getUserStoreId: Contacto sin store asignado', [
                     'user_id' => $user->id,
                     'contact_id' => $user->contact_id
                 ]);
-                throw new \Exception('Contacto sin warehouse asignado');
+                throw new \Exception('Contacto sin bodega (store) asignada');
             }
             
-            Log::info('getUserWarehouseId: Warehouse obtenido exitosamente', [
+            Log::info('getUserStoreId: Store obtenido exitosamente', [
                 'user_id' => $user->id,
                 'contact_id' => $user->contact_id,
-                'warehouse_id' => $contact->warehouseId
+                'store_id' => $contact->store
             ]);
             
-            return $contact->warehouseId;
+            return $contact->store;
             
         } catch (\Exception $e) {
-            Log::error('getUserWarehouseId: Error al obtener warehouse', [
+            Log::error('getUserStoreId: Error al obtener store', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
