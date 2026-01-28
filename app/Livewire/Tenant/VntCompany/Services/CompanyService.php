@@ -209,8 +209,9 @@ class CompanyService
             $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
             $preparedData['checkDigit'] = null;
             $preparedData['code_ciiu'] = '0';
-            $preparedData['regimeId'] = 2;
-            $preparedData['fiscalResponsabilityId'] = 1;
+            // Usar valores del formulario si están disponibles, sino usar defaults
+            $preparedData['regimeId'] = $data['regimeId'] ?? 2;
+            $preparedData['fiscalResponsabilityId'] = $data['fiscalResponsabilityId'] ?? 1;
         }
         // Caso 2: Persona natural con NIT
         // typePerson en DB: LEGAL_ENTITY (por requerimientos tributarios)
@@ -222,8 +223,9 @@ class CompanyService
             $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
             $preparedData['checkDigit'] = $data['checkDigit'] ?? null;
             $preparedData['code_ciiu'] = '0';
-            $preparedData['regimeId'] = 2;
-            $preparedData['fiscalResponsabilityId'] = 1;
+            // Usar valores del formulario si están disponibles, sino usar defaults
+            $preparedData['regimeId'] = $data['regimeId'] ?? 2;
+            $preparedData['fiscalResponsabilityId'] = $data['fiscalResponsabilityId'] ?? 1;
         }
         // Caso 3: Persona jurídica (siempre con NIT)
         // typePerson en DB: LEGAL_ENTITY

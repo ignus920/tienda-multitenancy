@@ -51,6 +51,7 @@ class VntCompany extends Model
         'regimeId',
         'code_ciiu',
         'fiscalResponsabilityId',
+        'api_data_id', // Para sincronización con API
     ];
 
     /**
@@ -70,6 +71,7 @@ class VntCompany extends Model
         'typeIdentificationId' => 'integer',
         'regimeId' => 'integer',
         'fiscalResponsabilityId' => 'integer',
+        'api_data_id' => 'string',
     ];
 
     /**
