@@ -20,7 +20,7 @@ class Quoter extends Component
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
     public $showDetailModal = false;
-    public $selectedQuote = null;
+    public $selectedQuoteId = null;
 
 
 
@@ -68,6 +68,22 @@ class Quoter extends Component
 
         // Re-inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
+    }
+
+    /**
+     * Computed property para acceder al modelo selectedQuote
+     * Carga el modelo con la conexión tenant correcta establecida
+     */
+    public function getSelectedQuoteProperty()
+    {
+        if (!$this->selectedQuoteId) {
+            return null;
+        }
+
+        $this->ensureTenantConnection();
+
+        return VntQuote::with(['customer', 'detalles.item', 'warehouse'])
+            ->find($this->selectedQuoteId);
     }
 
     public function updatingSearch()
@@ -199,14 +215,14 @@ class Quoter extends Component
     public function viewDetails($id)
     {
         $this->ensureTenantConnection();
-        $this->selectedQuote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])->find($id);
+        $this->selectedQuoteId = $id;
         $this->showDetailModal = true;
     }
 
     public function closeDetailModal()
     {
         $this->showDetailModal = false;
-        $this->selectedQuote = null;
+        $this->selectedQuoteId = null;
     }
 
 
