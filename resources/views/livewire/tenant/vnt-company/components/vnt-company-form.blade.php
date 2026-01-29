@@ -6,7 +6,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros clientes</h1>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros contactos</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">

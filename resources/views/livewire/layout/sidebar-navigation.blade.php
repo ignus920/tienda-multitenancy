@@ -89,7 +89,7 @@ new class extends Component
 
 
 
-        <!-- Empresas -->
+        <!-- Escritorio -->
         <a href="{{ route('tenant.select') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.select') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -229,7 +229,7 @@ new class extends Component
                 </svg>
 
                 <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>
-                     Gestión de personas
+                     Gestión de contactos
                 </span>
 
                 <!-- Icono desplegable -->
@@ -242,7 +242,7 @@ new class extends Component
                 <!-- Tooltip (solo cuando está colapsado) -->
                 <div x-show="tooltip" x-transition
                     class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Gestión de personas
+                    Gestión de contactos
                 </div>
             </div>
 
@@ -251,7 +251,7 @@ new class extends Component
                 class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                 <a href="{{ route('customers.customers') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('customers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
-                    Gestión Clientes
+                    Gestión Contactos
                 </a>
                  <a href="{{ route('users.users') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('users.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
@@ -332,6 +332,9 @@ new class extends Component
             <!-- Submenú -->
             <div x-show="open && !sidebarCollapsed" x-transition
                 class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <a href="{{route('tenant.parameters.company-information')}}" class="block rounded-md px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">
+                    Empresa
+                </a>
                 <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.pricelists') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Listas de Precios

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CnfInvoice extends Model
 {
+    public $timestamps = false;
+
     protected $connection = 'tenant';
     protected $table = 'cnf_invoices';
 
@@ -29,9 +31,14 @@ class CnfInvoice extends Model
     /**
      * Relación con el warehouse
      */
-    public function warehouse(): BelongsTo
+    // public function warehouse(): BelongsTo
+    // {
+    //     return $this->belongsTo(\App\Models\Tenant\Customer\VntWarehouse::class, 'id_warehouses');
+    // }
+
+    public function warehouseRap(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Tenant\Customer\VntWarehouse::class, 'id_warehouses');
+        return $this->belongsTo(\App\Models\Central\VntWarehouse::class, 'id_warehouses');
     }
 
     /**
