@@ -810,7 +810,7 @@ private function sanitizeItemQuantity($index)
     {
         $this->ensureTenantConnection();
         try {
-            $quote = VntQuote::with('detalles')->findOrFail($quoteId);
+            $quote = VntQuote::with(['detalles', 'customer', 'customer.company'])->findOrFail($quoteId);
 
             $this->editingQuoteId = $quoteId;
             $this->isEditing = true;
@@ -821,19 +821,46 @@ private function sanitizeItemQuantity($index)
             // Inicializar estado del acordeón de observaciones
             $this->showObservations = !empty($quote->observations);
 
-            // Cargar información del cliente
-            if ($quote->customerId) {
-                $customer = VntCompany::find($quote->customerId);
-                if ($customer) {
+            // Cargar información del cliente usando la relación definida en el modelo
+            if ($quote->customerId && $quote->customer) {
+                $contact = $quote->customer; // Obtener el contacto desde la relación
+
+                // Intentar obtener la empresa asociada al contacto
+                $company = $contact->company;
+
+                if ($company) {
+                    // Si existe empresa asociada, usar datos de la empresa
                     $this->selectedCustomer = [
-                        'id' => $customer->id,
-                        'businessName' => $customer->businessName,
-                        'firstName' => $customer->firstName,
-                        'lastName' => $customer->lastName,
-                        'identification' => $customer->identification,
-                        'billingEmail' => $customer->billingEmail,
+                        'id' => $company->id,
+                        'businessName' => $company->businessName,
+                        'firstName' => $company->firstName,
+                        'lastName' => $company->lastName,
+                        'identification' => $company->identification,
+                        'billingEmail' => $company->billingEmail,
+                    ];
+                } else {
+                    // Si no hay empresa asociada, usar datos del contacto
+                    $this->selectedCustomer = [
+                        'id' => $contact->id,
+                        'businessName' => $contact->full_name,
+                        'firstName' => $contact->firstName,
+                        'lastName' => $contact->lastName,
+                        'identification' => null, // VntContacts no tiene identification
+                        'billingEmail' => $contact->email,
                     ];
                 }
+
+                Log::info('🔄 Cliente cargado para edición', [
+                    'contact_id' => $contact->id,
+                    'company_id' => $company ? $company->id : null,
+                    'selectedCustomer' => $this->selectedCustomer
+                ]);
+            } else {
+                Log::warning('⚠️ No se pudo cargar cliente para edición', [
+                    'quote_id' => $quoteId,
+                    'customerId' => $quote->customerId,
+                    'customer_exists' => $quote->customer ? 'YES' : 'NO'
+                ]);
             }
 
             // Cargar productos de la cotización
