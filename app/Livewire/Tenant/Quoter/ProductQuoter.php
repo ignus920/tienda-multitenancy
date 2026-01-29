@@ -8,7 +8,9 @@ use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Customer\VntCompany;
+use App\Models\Tenant\Customer\VntContacts;
 use App\Models\Tenant\Quoter\VntQuote;
+use App\Models\Tenant\Quoter\VntDetailQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Remissions\InvDetailRemissions;
 use App\Models\Tenant\Items\Category;
@@ -379,6 +381,31 @@ class ProductQuoter extends Component
         $this->ensureTenantConnection();
 
         try {
+            $userStoreId = $this->getUserStoreId();
+            
+            // La tabla vnt_quotes requiere un ID de vnt_contacts en el campo customerId
+            // Buscamos el primer contacto asociado a esta empresa
+            $contact = VntContacts::whereHas('company', function($q) {
+                $q->where('vnt_companies.id', $this->selectedCustomer['id']);
+            })->first();
+
+            // Si la empresa no tiene contactos, creamos uno genérico para permitir el registro
+            if (!$contact) {
+                $contact = VntContacts::create([
+                    'firstName' => $this->selectedCustomer['firstName'] ?: $this->selectedCustomer['businessName'],
+                    'lastName' => $this->selectedCustomer['lastName'] ?: 'Cliente',
+                    'email' => $this->selectedCustomer['billingEmail'] ?: 'cliente@ejemplo.com',
+                    'status' => 1,
+                    'warehouseId' => session('warehouse_id', $userStoreId),
+                    'positionId' => 1
+                ]);
+                
+                Log::info('🆕 Contacto genérico creado automáticamente para la empresa', [
+                    'company_id' => $this->selectedCustomer['id'],
+                    'contact_id' => $contact->id
+                ]);
+            }
+
             // Obtener el siguiente consecutivo
             $lastQuote = VntQuote::orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
@@ -388,11 +415,11 @@ class ProductQuoter extends Component
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
-                'customerId' => $this->selectedCustomer['id'],
-                'warehouseId' => session('warehouse_id', 1), // Si tienes warehouse en sesión
+                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO AQUÍ (Referencia a vnt_contacts)
+                'warehouseId' => session('warehouse_id', $userStoreId), // Usar userStoreId como fallback
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
-                'branchId' => session('branch_id', 1) // Si tienes branch en sesión
+                'branchId' => session('branch_id', $userStoreId) // Usar userStoreId como fallback
             ]);
 
             // Crear los detalles de la cotización
