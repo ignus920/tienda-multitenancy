@@ -415,7 +415,7 @@ class ProductQuoter extends Component
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
-                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO AQUÍ
+                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO AQUÍ (Referencia a vnt_contacts)
                 'warehouseId' => session('warehouse_id', $userStoreId), // Usar userStoreId como fallback
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
