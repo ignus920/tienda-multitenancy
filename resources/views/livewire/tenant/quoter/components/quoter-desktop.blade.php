@@ -149,7 +149,7 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
-                                <span>SUCURSAL</span>
+                                <span>BODEGA</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
@@ -212,13 +212,15 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                @if($quote->warehouse)
-                                    {{ $quote->warehouse->name }}
-                                    @if($quote->warehouse->address)
-                                        <br><small class="text-gray-500">{{ $quote->warehouse->address }}</small>
-                                    @endif
+                                @if(isset($quote->storage_name))
+                                    <span class="inline-flex items-center">
+                                        <svg class="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                        </svg>
+                                        {{ $quote->storage_name }}
+                                    </span>
                                 @else
-                                    <span class="text-gray-400">Sin sucursal</span>
+                                    <span class="text-gray-400">Sin bodega</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">

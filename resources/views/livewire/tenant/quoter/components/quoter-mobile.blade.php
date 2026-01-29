@@ -125,14 +125,14 @@
                                 </span>
                             </div>
 
-                            @if($quote->warehouse)
+                            @if(isset($quote->storage_name))
                                 <div>
-                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Sucursal</span>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                                        🏢 {{ $quote->warehouse->name }}
-                                        @if($quote->warehouse->address)
-                                            <br>📍 {{ $quote->warehouse->address }}
-                                        @endif
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Bodega</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                        </svg>
+                                        {{ $quote->storage_name }}
                                     </p>
                                 </div>
                             @endif
