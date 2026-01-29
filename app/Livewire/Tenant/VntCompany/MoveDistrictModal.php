@@ -21,7 +21,7 @@ class MoveDistrictModal extends Component
 
     // Form properties
     public $districtId = '';
-    public $warehouseCityId;
+    public $warehouseCityId = null;
     public $sourceRouteId = '';
     public $targetRouteId = '';
     public $selectedCompanies = [];
@@ -31,6 +31,7 @@ class MoveDistrictModal extends Component
     protected $listeners = [
         'source-route-changed' => 'updateSourceRoute',
         'target-route-changed' => 'updateTargetRoute',
+        'city-changed' => 'updateCity',
         'district-changed' => 'updateDistrict'
     ];
 
@@ -38,7 +39,7 @@ class MoveDistrictModal extends Component
     {
         return [
             'districtId' => 'nullable|integer',
-            'targetRouteId' => 'required|exists:tat_routes,id',
+            'targetRouteId' => 'required|exists:vnt_routes,id',
         ];
     }
 
@@ -175,7 +176,7 @@ class MoveDistrictModal extends Component
         $this->dispatch('move-district-modal-closed');
     }
 
-    public function updatedDistrict()
+    public function updatedDistrictId()
     {
         // Reset selections when district changes
         $this->selectedCompanies = [];
@@ -189,9 +190,9 @@ class MoveDistrictModal extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'district' => 'nullable|integer',
-            'sourceRouteId' => 'required|exists:tat_routes,id',
-            'targetRouteId' => 'required|exists:tat_routes,id',
+            'districtId' => 'nullable|integer',
+            'sourceRouteId' => 'required',
+            'targetRouteId' => 'required',
         ]);
 
         if ($this->sourceRouteId == $this->targetRouteId) {
@@ -249,7 +250,7 @@ class MoveDistrictModal extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'targetRouteId' => 'required|exists:tat_routes,id',
+            'targetRouteId' => 'required|exists:vnt_routes,id',
         ]);
 
         if (empty($this->selectedCompanies)) {
@@ -308,19 +309,23 @@ class MoveDistrictModal extends Component
         // Solo actualizar el valor para que aparezca el botón de intercambio
     }
 
-    public function updateDistrict($value = null)
+    #[On('district-changed')]
+    public function updateDistrict($districtId)
     {
-        $this->districtId = $value;
-        // El método updatedDistrict() se ejecutará automáticamente
+        $this->districtId = $districtId ? (int)$districtId : null;
+        \Illuminate\Support\Facades\Log::info('MoveDistrictModal: district updated', [
+            'districtId' => $this->districtId
+        ]);
     }
 
     #[On('city-changed')]
     public function updateCity($cityId)
     {
-        \Illuminate\Support\Facades\Log::info('DistrictSelect: city-changed received', [
+        \Illuminate\Support\Facades\Log::info('CitySelect: city-changed received', [
             'cityId' => $cityId,
         ]);
-        $this->warehouseCityId = $cityId;
+        $this->warehouseCityId = $cityId ? (int)$cityId : null;
+        $this->districtId = null;
     }
 
     private function resetForm()
