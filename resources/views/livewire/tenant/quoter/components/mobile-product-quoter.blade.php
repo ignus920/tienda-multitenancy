@@ -591,7 +591,7 @@ $header = 'Seleccionar productos';
                         <button wire:click="confirmOrder"
                             wire:loading.attr="disabled"
                             wire:target="confirmOrder"
-                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-lg transform transition active:scale-95 disabled:opacity-50">
+                            class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-lg transform transition active:scale-95 disabled:opacity-50 border border-green-500 dark:border-green-600">
                             
                             <svg wire:loading.remove wire:target="confirmOrder" class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
