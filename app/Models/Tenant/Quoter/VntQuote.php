@@ -75,6 +75,35 @@ class VntQuote extends Model
     }
 
     /**
+     * Obtiene el nombre del vendedor/usuario que creó la cotización
+     * Carga el usuario desde la base de datos central
+     */
+    public function getSellerNameAttribute()
+    {
+        if (!$this->userId) {
+            return 'Sin vendedor';
+        }
+
+        // Cargar el usuario desde la base de datos central
+        $user = \App\Models\Auth\User::on('central')->find($this->userId);
+        
+        return $user ? $user->name : 'Sin vendedor';
+    }
+
+    /**
+     * Obtiene el usuario/vendedor desde la base de datos central
+     * Este método se puede usar para acceder al objeto completo del usuario
+     */
+    public function getUser()
+    {
+        if (!$this->userId) {
+            return null;
+        }
+
+        return \App\Models\Auth\User::on('central')->find($this->userId);
+    }
+
+    /**
      * Obtiene el nombre de la bodega (sucursal) asignada al usuario que creó la cotización.
      * La bodega está almacenada en el campo 'store' de vnt_contacts (BD central)
      * y apunta a inv_store (BD tenant).

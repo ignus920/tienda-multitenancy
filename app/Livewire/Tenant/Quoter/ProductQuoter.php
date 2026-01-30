@@ -14,6 +14,7 @@ use App\Models\Tenant\Quoter\VntDetailQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Remissions\InvDetailRemissions;
 use App\Models\Tenant\Items\Category;
+use App\Models\Tenant\Items\InvItemsStore;
 use App\Models\Central\VntContact;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -1000,6 +1001,33 @@ private function sanitizeItemQuantity($index)
 
             $quote = VntQuote::findOrFail($this->editingQuoteId);
 
+            // Validar stock disponible antes de procesar
+            foreach ($this->quoterItems as $item) {
+                $itemStore = InvItemsStore::where('itemId', $item['id'])
+                    ->where('storeId', $quote->warehouseId)
+                    ->first();
+
+                if (!$itemStore) {
+                    DB::connection('tenant')->rollBack();
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => "El producto '{$item['name']}' no está disponible en esta bodega"
+                    ]);
+                    return;
+                }
+
+                $newStock = $itemStore->stock_items_store - $item['quantity'];
+
+                if ($newStock < 0) {
+                    DB::connection('tenant')->rollBack();
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => "Stock insuficiente para '{$item['name']}'. Solicitado: {$item['quantity']}, Disponible: {$itemStore->stock_items_store}"
+                    ]);
+                    return;
+                }
+            }
+
             // Obtener siguiente consecutivo de remisiones
             $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
@@ -1009,7 +1037,7 @@ private function sanitizeItemQuantity($index)
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'quoteId' => $quote->id,
-                'warehouseId' => $quote->warehouseId ?: session('warehouse_id', 1),
+                'warehouseId' => $quote->warehouseId,
                 'methodPaymentId' => 1, // Por defecto efectivo
                 'userId' => auth()->id(),
                 'deliveryDate' => now()->format('Y-m-d'),
@@ -1017,7 +1045,7 @@ private function sanitizeItemQuantity($index)
                 'modify' => 0
             ]);
 
-            // Crear detalles de la remisión
+            // Crear detalles de la remisión y actualizar stock
             foreach ($this->quoterItems as $item) {
                 InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
@@ -1026,6 +1054,15 @@ private function sanitizeItemQuantity($index)
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],
                     'invoiceId' => null,
+                ]);
+
+                // Actualizar el stock del producto en la bodega específica
+                $itemStore = InvItemsStore::where('itemId', $item['id'])
+                    ->where('storeId', $quote->warehouseId)
+                    ->first();
+
+                $itemStore->update([
+                    'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
                 ]);
             }
 

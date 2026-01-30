@@ -82,8 +82,15 @@ class Quoter extends Component
 
         $this->ensureTenantConnection();
 
-        return VntQuote::with(['customer', 'detalles.item', 'warehouse'])
+        $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])
             ->find($this->selectedQuoteId);
+        
+        // Agregar el storage_name al modelo
+        if ($quote) {
+            $quote->storage_name = $quote->getStorageName();
+        }
+        
+        return $quote;
     }
 
     public function updatingSearch()

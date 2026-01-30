@@ -136,6 +136,16 @@
                                     </p>
                                 </div>
                             @endif
+
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Vendedor</span>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    {{ $quote->seller_name }}
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Observations if any -->
@@ -378,10 +388,14 @@
                                     <div class="flex justify-between">
                                         <span class="text-xs text-gray-500 dark:text-slate-400">Tipo:</span>
                                         <span class="text-xs font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->typeQuote }}</span>
+                                    </div> 
+                                    <div class="flex justify-between">
+                                        <span class="text-xs text-gray-500 dark:text-slate-400">Bodega:</span>
+                                        <span class="text-xs font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->storage_name ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-xs text-gray-500 dark:text-slate-400">Sucursal:</span>
-                                        <span class="text-xs font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->warehouse->name ?? 'N/A' }}</span>
+                                        <span class="text-xs text-gray-500 dark:text-slate-400">Vendedor:</span>
+                                        <span class="text-xs font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->seller_name }}</span>
                                     </div>
                                 </div>
                             </div>
