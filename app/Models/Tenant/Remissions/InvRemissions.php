@@ -54,9 +54,33 @@ class InvRemissions extends Model
         return $this->belongsTo(\App\Models\Tenant\DeliveriesList\DisDeliveries::class, 'delivery_id');
     }
 
+    /**
+     * Relación con el usuario/vendedor desde la base central
+     * Nota: Esta relación no usa Eloquent estándar porque cruza bases de datos
+     */
     public function user()
     {
         return $this->belongsTo(User::class, 'userId');
+    }
+
+    /**
+     * Obtiene el usuario/vendedor desde la base de datos central
+     * @return User|null
+     */
+    public function getUser()
+    {
+        if (!$this->userId) {
+            return null;
+        }
+        return \App\Models\Auth\User::on('central')->find($this->userId);
+    }
+
+    /**
+     * Relación con el almacén (inv_store)
+     */
+    public function store()
+    {
+        return $this->belongsTo(\App\Models\Tenant\Items\InvStore::class, 'warehouseId', 'id');
     }
 
     /**
@@ -70,5 +94,23 @@ class InvRemissions extends Model
     public function getObservationsAttribute()
     {
         return $this->observations_return;
+    }
+
+    public function getStoreNameAttribute()
+    {
+        return $this->store?->name;
+    }
+
+    /**
+     * Accessor para obtener el nombre completo del vendedor
+     * @return string
+     */
+    public function getSellerNameAttribute()
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return 'N/A';
+        }
+        return trim($user->name . ' ' . ($user->lastName ?? ''));
     }
 }

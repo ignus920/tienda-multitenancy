@@ -237,8 +237,20 @@ class Remissions extends Component
             'quote.customer', 
             'quote.warehouse.contacts', 
             'quote.branch', 
-            'details.item'
+            'details.item',
+            'store'
         ])->find($id);
+        
+        $seller = $this->selectedRemission->getUser();
+        
+        Log::info('👁️ Ver detalles de remisión', [
+            'remission_id' => $id,
+            'consecutive' => $this->selectedRemission->consecutive ?? 'N/A',
+            'store_name' => $this->selectedRemission->store?->name ?? 'N/A',
+            'warehouseId' => $this->selectedRemission->warehouseId ?? 'N/A',
+            'userId' => $this->selectedRemission->userId ?? 'N/A',
+            'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A'
+        ]);
         
         $this->showDetailModal = true;
     }
@@ -477,13 +489,69 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
 
+        // Obtener el store (bodega) del usuario autenticado desde su contacto
+        $user = auth()->user();
+        $storeId = null;
+
+        if ($user && $user->contact_id) {
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            if ($contact) {
+                $storeId = $contact->store;
+            }
+        }
+
+        Log::info('📋 Remissions render() - Iniciando carga de remisiones', [
+            'search' => $this->search,
+            'perPage' => $this->perPage,
+            'user_id' => $user?->id,
+            'contact_id' => $user?->contact_id,
+            'store_id' => $storeId
+        ]);
+
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details'])
+        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store'])
+            ->when($storeId, function ($query) use ($storeId) {
+                // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
+                $query->where('warehouseId', $storeId);
+                Log::info('🔍 Aplicando filtro por store en remisiones', [
+                    'store_id' => $storeId,
+                    'field' => 'warehouseId'
+                ]);
+            })
             ->where(function($query) {
                 $this->applyBaseFilters($query);
             })
             ->orderBy('created_at', 'desc')
             ->paginate($this->perPage);
+
+        // Log de datos para debug
+        Log::info('📊 Remisiones cargadas y filtradas', [
+            'total' => $remissions->total(),
+            'count' => $remissions->count(),
+            'per_page' => $this->perPage,
+            'current_page' => $remissions->currentPage(),
+            'filtered_by_store' => $storeId
+        ]);
+
+        // Log detallado de cada remisión
+        foreach ($remissions as $remission) {
+            $seller = $remission->getUser();
+            Log::info('📦 Remisión #' . $remission->consecutive, [
+                'id' => $remission->id,
+                'warehouseId' => $remission->warehouseId,
+                'store_name' => $remission->store?->name ?? 'N/A',
+                'store_id' => $remission->store?->id ?? 'N/A',
+                'quote_warehouse_name' => $remission->quote?->warehouse?->name ?? 'N/A',
+                'customer_name' => $remission->quote?->customer_name ?? 'N/A',
+                'status' => $remission->status,
+                'userId' => $remission->userId,
+                'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A',
+                'seller_email' => $seller?->email ?? 'N/A',
+                'created_at' => $remission->created_at->format('Y-m-d H:i:s')
+            ]);
+        }
+
+        Log::info('✅ Render completado - Todas las remisiones procesadas');
 
         return view('livewire.tenant.remissions.remissions', [
             'remissions' => $remissions
