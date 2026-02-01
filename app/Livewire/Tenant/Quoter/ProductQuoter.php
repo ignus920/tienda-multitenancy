@@ -62,6 +62,7 @@ class ProductQuoter extends Component
     public $currentPaymentMethod = 'efectivo';
     public $totalPaid = 0;
     public $remainingBalance = 0;
+    public $changeAmount = 0;
     public $canProceedToPayment = false;
     public $showObservations = false;
      // Nueva propiedad para la categoría seleccionada
@@ -1254,7 +1255,15 @@ private function sanitizeItemQuantity($index)
             $this->totalPaid += (float) ($method['value'] ?? 0);
         }
 
-        $this->remainingBalance = $this->totalAmount - $this->totalPaid;
+        // Calcular balance restante y cambio
+        if ($this->totalPaid > $this->totalAmount) {
+            $this->remainingBalance = 0;
+            $this->changeAmount = $this->totalPaid - $this->totalAmount;
+        } else {
+            $this->remainingBalance = $this->totalAmount - $this->totalPaid;
+            $this->changeAmount = 0;
+        }
+
         // Permitir proceder si hay algún pago (puede ser mayor al total, eso está bien)
         $this->canProceedToPayment = $this->totalPaid > 0;
     }
@@ -1870,8 +1879,8 @@ private function sanitizeItemQuantity($index)
                 $methodName = $payment['method'] ?? $payment['form'] ?? null;
                 $rawAmount = floatval($payment['value'] ?? $payment['valor'] ?? $payment['amount'] ?? 0);
 
-                // Redondear montos para evitar decimales como 59,999.99
-                $amount = round($rawAmount, 0); // Redondear a entero
+                // Preservar decimales para pagos exactos (NO redondear)
+                $amount = round($rawAmount, 2); // Redondear solo a 2 decimales
 
                 Log::info("💳 Procesando pago #{$index}", [
                     'payment_raw' => $payment,
@@ -1927,54 +1936,67 @@ private function sanitizeItemQuantity($index)
 
             // Preparar datos para envío a Alegra (similar a la función JS)
             if ($totalPayments > 0) {
-                // Inicializar con monto local como fallback
-                $finalPaymentAmount = round($totalPayments, 0);
+                // Obtener valor total de la factura local CON DECIMALES
+                $invoiceTotal = floatval($this->totalAmount);
+                $paymentAmount = floatval($totalPayments);
+                $changeAmount = 0;
 
-                // 1. CONSULTAR SALDO REAL DE LA FACTURA EN ALEGRA
+                // Si el pago es mayor al total de la factura, calcular cambio
+                if ($paymentAmount > $invoiceTotal) {
+                    $changeAmount = $paymentAmount - $invoiceTotal;
+                    $finalPaymentAmount = $invoiceTotal; // Solo enviar el valor exacto de la factura
+
+                    Log::info('💰 Pago excede valor de factura - calculando cambio', [
+                        'invoice_total_exact' => $invoiceTotal,
+                        'payment_amount' => $paymentAmount,
+                        'change_amount' => $changeAmount,
+                        'sending_to_alegra_exact' => $finalPaymentAmount
+                    ]);
+                } else {
+                    // Si el pago es igual o menor, enviar el valor exacto de la factura si están pagando el total
+                    // o el monto pagado si es parcial
+                    if (abs($paymentAmount - $invoiceTotal) < 0.01) {
+                        // Están pagando el total exacto (o muy cercano), enviar el total de la factura
+                        $finalPaymentAmount = $invoiceTotal;
+                    } else {
+                        // Pago parcial, enviar lo que pagaron
+                        $finalPaymentAmount = $paymentAmount;
+                    }
+
+                    Log::info('💰 Pago dentro del rango normal', [
+                        'invoice_total_exact' => $invoiceTotal,
+                        'payment_amount' => $paymentAmount,
+                        'difference' => abs($paymentAmount - $invoiceTotal),
+                        'is_full_payment' => abs($paymentAmount - $invoiceTotal) < 0.01,
+                        'sending_to_alegra_exact' => $finalPaymentAmount
+                    ]);
+                }
+
+                // Opcional: También validar con el saldo de Alegra si está disponible
                 $invoiceBalance = $facturacionService->getInvoiceBalance($alegraInvoiceId);
 
-                if (!$invoiceBalance['success']) {
-                    Log::warning('⚠️ No se pudo obtener saldo de factura, usando monto local', [
-                        'error' => $invoiceBalance['error'] ?? 'Error desconocido',
-                        'using_local_amount' => $finalPaymentAmount
-                    ]);
-                    // $finalPaymentAmount ya está inicializado con monto local
-                } else {
-                    // Usar el saldo pendiente real de Alegra
+                if ($invoiceBalance['success']) {
                     $alegraBalance = $invoiceBalance['balance'];
                     $alegraTotal = $invoiceBalance['total'];
 
-                    Log::info('💰 Saldo obtenido de Alegra', [
-                        'local_payment_amount' => round($totalPayments, 0),
+                    Log::info('💰 Validación con saldo de Alegra', [
                         'alegra_total' => $alegraTotal,
-                        'alegra_balance' => $alegraBalance
+                        'alegra_balance' => $alegraBalance,
+                        'local_final_amount' => $finalPaymentAmount
                     ]);
 
-                    // Solo ajustar si el saldo de Alegra es válido y menor al local
-                    if ($alegraBalance > 0 && $alegraBalance < round($totalPayments, 0)) {
+                    // Si el saldo de Alegra es menor, usar ese
+                    if ($alegraBalance > 0 && $alegraBalance < $finalPaymentAmount) {
                         $finalPaymentAmount = $alegraBalance;
-
-                        Log::info('💰 Ajustando monto de pago según saldo real', [
-                            'local_payment_amount' => round($totalPayments, 0),
-                            'alegra_total' => $alegraTotal,
-                            'alegra_balance' => $alegraBalance,
-                            'final_payment_amount' => $finalPaymentAmount,
-                            'adjustment_needed' => true
+                        Log::info('💰 Ajustando según saldo de Alegra', [
+                            'final_payment_amount' => $finalPaymentAmount
                         ]);
-                    } else if ($alegraBalance <= 0) {
-                        Log::warning('⚠️ Saldo de Alegra es 0 o inválido, usando monto local', [
-                            'alegra_balance' => $alegraBalance,
-                            'using_local_amount' => $finalPaymentAmount
-                        ]);
-                        // Mantener $finalPaymentAmount como monto local
-                    } else {
-                        Log::info('✅ Saldo de Alegra suficiente, usando monto local', [
-                            'alegra_balance' => $alegraBalance,
-                            'local_amount' => $finalPaymentAmount,
-                            'no_adjustment_needed' => true
-                        ]);
-                        // Mantener $finalPaymentAmount como monto local
                     }
+                } else {
+                    Log::warning('⚠️ No se pudo obtener saldo de Alegra, usando cálculo local', [
+                        'error' => $invoiceBalance['error'] ?? 'Error desconocido',
+                        'using_local_amount' => $finalPaymentAmount
+                    ]);
                 }
 
                 $alegraPaymentData = $this->buildAlegraPaymentData($paymentData, $alegraInvoiceId, $finalPaymentAmount, $paymentMethods);

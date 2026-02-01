@@ -70,6 +70,11 @@ class InvoiceDataBuilder
         // Validaciones requeridas (equivalent to JS validations)
         self::validateInvoiceData($customerData, $itemsAlegra);
 
+        // Validación adicional específica para customer
+        if (empty($customerData['id_alegra'])) {
+            throw new \Exception('El cliente no tiene ID de Alegra configurado. Debe sincronizar el cliente con Alegra primero.');
+        }
+
         // Construir objeto completo para Alegra (equivalente al dataAlegra en JS)
         $dataAlegra = [
             'date' => $date,
@@ -253,7 +258,15 @@ class InvoiceDataBuilder
         Log::info('👤 Datos de cliente obtenidos', [
             'customer_id_alegra' => $customerData['id_alegra'],
             'warehouse_id_alegra' => $customerData['warehouse_id_alegra'],
-            'warehouse_format' => $customerData['warehouse_format']
+            'warehouse_format' => $customerData['warehouse_format'],
+            'customer_details' => [
+                'has_company' => !empty($company),
+                'company_api_data_id' => $company->api_data_id ?? null,
+                'company_customer_id_alegra' => $company->customer_id_alegra ?? null,
+                'customer_api_data_id' => $customer->api_data_id ?? null,
+                'customer_identification' => $customer->identification ?? null,
+                'customer_name' => $customer->businessName ?? ($customer->firstName . ' ' . $customer->lastName)
+            ]
         ]);
 
         return $customerData;
