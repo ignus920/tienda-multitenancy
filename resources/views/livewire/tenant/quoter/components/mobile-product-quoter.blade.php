@@ -769,6 +769,24 @@ $header = 'Seleccionar productos';
 
                 <!-- Estado del Pago -->
                 <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                    @if($changeAmount > 0)
+                    <!-- Modo con cambio -->
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div class="text-sm text-gray-600">PAGADO</div>
+                            <div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600">TOTAL</div>
+                            <div class="text-xl font-bold text-gray-800">${{ number_format($totalAmount, 0, ',', '.') }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600">CAMBIO</div>
+                            <div class="text-xl font-bold text-green-600">${{ number_format($changeAmount, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                    @else
+                    <!-- Modo normal -->
                     <div class="grid grid-cols-2 gap-4 text-center">
                         <div>
                             <div class="text-sm text-gray-600">PAGADO</div>
@@ -779,6 +797,7 @@ $header = 'Seleccionar productos';
                             <div class="text-xl font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</div>
                         </div>
                     </div>
+                    @endif
                 </div>
 
                 <!-- Métodos de Pago -->
@@ -823,18 +842,20 @@ $header = 'Seleccionar productos';
                     CANCELAR
                 </button>
 
-                @if($canProceedToPayment && $remainingBalance == 0)
+                @if($canProceedToPayment && ($remainingBalance == 0 || $changeAmount > 0))
                 <button wire:click="confirmPayment"
                         class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg">
-                    FACTURAR
+                    @if($changeAmount > 0)
+                        FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})
+                    @else
+                        FACTURAR
+                    @endif
                 </button>
                 @else
                 <button disabled
                         class="flex-1 bg-gray-400 text-gray-200 font-bold py-3 rounded-lg text-sm">
                     @if($remainingBalance > 0)
                         FALTA ${{ number_format($remainingBalance, 0, ',', '.') }}
-                    @elseif($remainingBalance < 0)
-                        SOBRA ${{ number_format(abs($remainingBalance), 0, ',', '.') }}
                     @else
                         INGRESE PAGO
                     @endif
