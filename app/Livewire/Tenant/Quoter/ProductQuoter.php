@@ -13,9 +13,15 @@ use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Quoter\VntDetailQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Remissions\InvDetailRemissions;
+use App\Models\Tenant\Invoices\VntInvoices;
+use App\Models\Tenant\Invoices\VntInvoicesXsales;
+use App\Models\Tenant\Invoices\VntInvoicePayments;
 use App\Models\Tenant\Items\Category;
 use App\Models\Tenant\Items\InvItemsStore;
 use App\Models\Central\VntContact;
+use App\Services\Facturacion\FacturacionService;
+use App\Services\Facturacion\TenantConfigManager;
+use App\Services\Facturacion\InvoiceDataBuilder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -44,6 +50,19 @@ class ProductQuoter extends Component
     public $editingRemissionId = null;
     public $isEditing = false;
     public $isEditingRemission = false;
+
+    // Propiedades para modal de pagos
+    public $showPaymentModal = false;
+    public $paymentMethods = [
+        'efectivo' => ['name' => 'EFECTIVO', 'value' => 0, 'selected' => false],
+        'nequi' => ['name' => 'NEQUI', 'value' => 0, 'selected' => false],
+        'daviplata' => ['name' => 'DAVIPLATA', 'value' => 0, 'selected' => false],
+        'tarjeta' => ['name' => 'TARJETA', 'value' => 0, 'selected' => false],
+    ];
+    public $currentPaymentMethod = 'efectivo';
+    public $totalPaid = 0;
+    public $remainingBalance = 0;
+    public $canProceedToPayment = false;
     public $showObservations = false;
      // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
@@ -122,13 +141,32 @@ class ProductQuoter extends Component
         }
 
         $this->calculateTotal();
-        
+
         Log::info('🚀 ProductQuoter montado', [
             'viewType' => $this->viewType,
             'quoteId' => $quoteId,
             'remissionId' => $remissionId,
             'quoterItems_count' => count($this->quoterItems)
         ]);
+
+        // NUEVO: Detectar si viene del sistema de pagos para procesar factura
+        if (session('process_invoice_after_payment') && $quoteId) {
+            session()->forget('process_invoice_after_payment');
+
+            // Obtener datos de pago desde la sesión
+            $paymentData = session('payment_data_for_quote_' . $quoteId, []);
+            session()->forget('payment_data_for_quote_' . $quoteId);
+
+            Log::info('💳 Detectado retorno desde sistema de pagos, procesando factura', [
+                'quote_id' => $quoteId,
+                'payment_data_received' => !empty($paymentData)
+            ]);
+
+            // Procesar la factura automáticamente con los datos de pago
+            if (!empty($paymentData)) {
+                $this->processInvoiceAfterPayment($paymentData);
+            }
+        }
     }
 
     /**
@@ -725,14 +763,57 @@ private function sanitizeItemQuantity($index)
 
     private function calculateTotal()
     {
-        $this->totalAmount = collect($this->quoterItems)->sum(function ($item) {
-            return $item['price'] * $item['quantity'];
+        // Calcular total imitando la lógica de Alegra:
+        // 1. Calcular subtotal (precio base sin IVA)
+        // 2. Aplicar 19% IVA
+        // Esto debe coincidir exactamente con lo que muestra Alegra
+
+        $totalAmount = collect($this->quoterItems)->sum(function ($item) {
+            $priceWithIva = $item['price'];
+
+            // Calcular precio base (subtotal) como lo hace Alegra
+            $priceBase = round($priceWithIva / 1.19, 0); // Alegra parece redondear subtotal a entero
+
+            // Calcular total con IVA como Alegra: base * 1.19
+            $alegraStyleTotal = $priceBase * 1.19;
+
+            return $alegraStyleTotal * $item['quantity'];
         });
+
+        $this->totalAmount = $totalAmount;
     }
 
     public function getQuoterCountProperty()
     {
         return collect($this->quoterItems)->sum('quantity');
+    }
+
+    public function getIsInvoiceModuleActiveProperty()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $result = DB::connection('tenant')
+                ->table('cnf_company_options')
+                ->where('option_id', 8)
+                ->value('value');
+
+            Log::info('🔧 Verificando módulo de facturación', [
+                'option_id' => 8,
+                'raw_value' => $result,
+                'boolean_result' => (bool) $result,
+                'tenant_connection' => 'OK'
+            ]);
+
+            return (bool) $result;
+        } catch (\Exception $e) {
+            Log::error('❌ Error verificando módulo de facturación', [
+                'error' => $e->getMessage(),
+                'tenant_id' => session('tenant_id'),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false; // Por defecto desactivado si hay error
+        }
     }
 
     public function getProductQuantity($productId)
@@ -1089,6 +1170,476 @@ private function sanitizeItemQuantity($index)
         }
     }
 
+    public function invoiceOrder()
+    {
+        // Permitir facturación tanto para cotizaciones existentes como nuevas
+        // Si no está editando, debe crear la cotización primero
+        if (!$this->isEditing || !$this->editingQuoteId) {
+            // Si no está editando, primero guardar la cotización
+            Log::info('🔄 Creando cotización antes de facturar', [
+                'isEditing' => $this->isEditing,
+                'editingQuoteId' => $this->editingQuoteId
+            ]);
+
+            $this->saveQuote(); // Esto creará la cotización y establecerá $editingQuoteId
+
+            // Verificar que se creó correctamente
+            if (!$this->editingQuoteId) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Error al crear la cotización'
+                ]);
+                return;
+            }
+        }
+
+        if (empty($this->quoterItems)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No hay productos seleccionados'
+            ]);
+            return;
+        }
+
+        if (!$this->selectedCustomer) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes tener un cliente seleccionado'
+            ]);
+            return;
+        }
+
+        // NUEVO FLUJO: Abrir modal de pagos antes de facturar
+        Log::info('💰 Abriendo modal de pagos antes de facturar', [
+            'quote_id' => $this->editingQuoteId,
+            'customer_id' => $this->selectedCustomer['id'] ?? null,
+            'total_amount' => $this->totalAmount
+        ]);
+
+        // Inicializar datos del modal de pagos
+        $this->initPaymentModal();
+
+        // Mostrar modal de pagos
+        $this->showPaymentModal = true;
+    }
+
+    /**
+     * Inicializar modal de pagos con datos de la cotización
+     */
+    public function initPaymentModal()
+    {
+        // Resetear métodos de pago
+        foreach ($this->paymentMethods as $key => $method) {
+            $this->paymentMethods[$key]['value'] = 0;
+            $this->paymentMethods[$key]['selected'] = false;
+        }
+
+        // Calcular balances iniciales
+        $this->calculatePaymentBalances();
+
+        Log::info('💳 Modal de pagos inicializado', [
+            'quote_id' => $this->editingQuoteId,
+            'total_amount' => $this->totalAmount,
+            'customer' => $this->selectedCustomer['businessName'] ?? $this->selectedCustomer['firstName'] ?? 'Sin nombre'
+        ]);
+    }
+
+    /**
+     * Calcular balances de pagos
+     */
+    public function calculatePaymentBalances()
+    {
+        $this->totalPaid = 0;
+        foreach ($this->paymentMethods as $method) {
+            $this->totalPaid += (float) ($method['value'] ?? 0);
+        }
+
+        $this->remainingBalance = $this->totalAmount - $this->totalPaid;
+        // Permitir proceder si hay algún pago (puede ser mayor al total, eso está bien)
+        $this->canProceedToPayment = $this->totalPaid > 0;
+    }
+
+    /**
+     * Actualizar valor de método de pago
+     */
+    public function updatePaymentMethodValue($method, $value)
+    {
+        $value = max(0, (float) ($value ?? 0));
+        $this->paymentMethods[$method]['value'] = $value;
+        $this->calculatePaymentBalances();
+    }
+
+    /**
+     * Seleccionar método de pago activo
+     */
+    public function selectPaymentMethod($method)
+    {
+        $this->currentPaymentMethod = $method;
+    }
+
+    /**
+     * Pagar total con el método actual
+     */
+    public function payTotalWithCurrentMethod()
+    {
+        // Calcular cuánto falta por pagar
+        $remainingAmount = max(0, $this->totalAmount - $this->totalPaid + $this->paymentMethods[$this->currentPaymentMethod]['value']);
+
+        // Asignar el monto restante al método actual
+        $this->paymentMethods[$this->currentPaymentMethod]['value'] = $remainingAmount;
+
+        $this->calculatePaymentBalances();
+    }
+
+    /**
+     * Cerrar modal de pagos
+     */
+    public function closePaymentModal()
+    {
+        $this->showPaymentModal = false;
+
+        Log::info('❌ Modal de pagos cerrado sin completar', [
+            'quote_id' => $this->editingQuoteId
+        ]);
+    }
+
+    /**
+     * Confirmar pago y procesar factura
+     */
+    public function confirmPayment()
+    {
+        // Validaciones
+        if (!$this->canProceedToPayment) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar al menos un pago para proceder.'
+            ]);
+            return;
+        }
+
+        if ($this->remainingBalance < 0) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'El total pagado excede el valor de la cotización.'
+            ]);
+            return;
+        }
+
+        if ($this->remainingBalance > 0) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Falta pagar $' . number_format($this->remainingBalance, 0, ',', '.') . ' para completar el total.'
+            ]);
+            return;
+        }
+
+        // Preparar datos de pago
+        $paymentData = [];
+        foreach ($this->paymentMethods as $key => $method) {
+            if (((float) ($method['value'] ?? 0)) > 0) {
+                $paymentData[] = [
+                    'method' => $method['name'],
+                    'value' => (float) $method['value']
+                ];
+            }
+        }
+
+        Log::info('✅ Pago confirmado, procesando factura', [
+            'quote_id' => $this->editingQuoteId,
+            'payment_methods' => $paymentData,
+            'total_paid' => $this->totalPaid
+        ]);
+
+        // Cerrar modal de pagos
+        $this->showPaymentModal = false;
+
+        // Procesar factura con datos de pago
+        $this->processInvoiceAfterPayment($paymentData);
+    }
+
+    /**
+     * Función para procesar factura DESPUÉS del pago
+     * Esta función será llamada desde PaymentQuote o con datos de pago
+     */
+    public function processInvoiceAfterPayment(array $paymentData = [])
+    {
+        Log::info('🚀 Iniciando processInvoiceAfterPayment', [
+            'editing_quote_id' => $this->editingQuoteId,
+            'payment_data' => $paymentData,
+            'has_payment_data' => !empty($paymentData),
+            'payment_methods_count' => count($paymentData)
+        ]);
+
+        if (!$this->isEditing || !$this->editingQuoteId) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Primero debes cargar una cotización para facturarla'
+            ]);
+            return;
+        }
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            // Cargar la cotización con todas sus relaciones
+            $quote = VntQuote::with(['detalles.item', 'customer', 'warehouse'])->findOrFail($this->editingQuoteId);
+
+            // Verificar si la facturación está habilitada para este tenant
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+
+            if (!$tenant) {
+                throw new \Exception('No se pudo identificar el tenant');
+            }
+
+            $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
+
+            if (!$hasFacturacionConfig) {
+                Log::warning('⚠️ Facturación no configurada para tenant', ['tenant_id' => $tenant->id]);
+
+                // Solo actualizar estado si no hay configuración de facturación
+                $quote->update(['status' => 'FACTURADO']);
+
+                DB::connection('tenant')->commit();
+
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Cotización marcada como facturada, pero la facturación automática no está configurada.'
+                ]);
+
+                // Limpiar y salir del modo edición
+                $this->cancelEditing();
+                return;
+            }
+
+            // Log del inicio del proceso de facturación
+            Log::info('🧾 Iniciando proceso de facturación', [
+                'quote_id' => $quote->id,
+                'consecutive' => $quote->consecutive,
+                'tenant_id' => $tenant->id,
+                'payment_data_received' => !empty($paymentData)
+            ]);
+
+            // Crear instancia del servicio de facturación
+            $facturacionService = FacturacionService::forTenant($tenant);
+
+            // Construir datos de la factura usando el nuevo servicio
+            // Usar los datos de pago recibidos si están disponibles
+            $paymentMethods = $paymentData; // Datos de pago desde PaymentQuote
+            $retentions = [];     // TODO: Obtener del formulario de facturación
+            $termDays = 0;        // TODO: Obtener del formulario de facturación
+
+            $invoiceData = InvoiceDataBuilder::buildFromQuote(
+                $quote,
+                $paymentMethods,
+                $retentions,
+                $termDays
+            );
+
+            // Enviar factura a la API de Alegra
+            Log::info('📡 Enviando factura a API de Alegra', [
+                'invoice_data_summary' => [
+                    'client_id' => $invoiceData['client']['id'] ?? null,
+                    'items_count' => count($invoiceData['items'] ?? []),
+                    'payment_form' => $invoiceData['paymentForm'] ?? null
+                ]
+            ]);
+
+            // Crear la factura en la API
+            $apiResponse = $facturacionService->createInvoice($invoiceData);
+
+            if ($apiResponse['success'] && isset($apiResponse['data']['id'])) {
+                $invoiceId = $apiResponse['data']['id'];
+                $invoiceNumber = $apiResponse['data']['fullNumber'] ?? $invoiceId;
+
+                // Crear el registro local de factura
+                $invoice = VntInvoices::create([
+                    'consecutive' => $invoiceId, // Usar ID de Alegra como consecutivo temporal
+                    'status' => 'SIN EMITIR', // Estado inicial
+                    'quoteId' => $quote->id,
+                    'warehouseId' => $quote->warehouseId ?: session('warehouse_id', 1),
+                    'api_data_id' => $invoiceId,
+                    'invoiceNumber' => $invoiceNumber,
+                    'partialPayment' => 0.00,
+                    'retentionFuente' => 0.00,
+                    'retentionIca' => 0.00,
+                    'retentionIva' => 0.00,
+                    'creditNote' => null,
+                    'orderNumber' => null,
+                    'remission' => 0
+                ]);
+
+                // 1. CREAR REGISTRO EN BD CON ESTADO INICIAL "SIN EMITIR"
+                $invoice->update(['status' => 'SIN EMITIR']);
+                $quote->update(['status' => 'FACTURADO']); // Quote ya pasa a FACTURADO al crear la factura
+
+                // 2. CREAR REGISTRO EN LA TABLA DE RELACIONES vnt_invoicesXsales
+                VntInvoicesXsales::create([
+                    'remissionId' => 0, // Desde cotizador, no hay remisión
+                    'quoteId' => $quote->id,
+                    'invoiceId' => $invoice->id
+                ]);
+
+                Log::info('📄 Factura creada con estado SIN EMITIR, procediendo a emitir (stamp)', [
+                    'invoice_local_id' => $invoice->id,
+                    'api_data_id' => $invoiceId,
+                    'initial_status' => 'SIN EMITIR'
+                ]);
+
+                Log::info('🔗 Relación factura-cotización creada en vnt_invoicesXsales', [
+                    'quote_id' => $quote->id,
+                    'invoice_id' => $invoice->id,
+                    'remission_id' => 0
+                ]);
+
+                // 2. INTENTAR EMITIR (STAMP) LA FACTURA
+                $stampResponse = $facturacionService->stampInvoice($invoiceId);
+
+                if ($stampResponse['success']) {
+                    // ✅ STAMP EXITOSO: Actualizar estado a FACTURADO
+                    $invoice->update(['status' => 'FACTURADO']);
+
+                    // 3. REGISTRAR PAGO SI HAY DATOS DE PAGO
+                    if (!empty($paymentData)) {
+                        $this->registerInvoicePayments($invoice, $paymentData, $invoiceId, $facturacionService);
+                    }
+
+                    DB::connection('tenant')->commit();
+
+                    Log::info('✅ Factura emitida exitosamente tras stamp', [
+                        'quote_id' => $quote->id,
+                        'invoice_id_alegra' => $invoiceId,
+                        'invoice_number' => $invoiceNumber,
+                        'final_status' => 'FACTURADO',
+                        'has_payment_data' => !empty($paymentData)
+                    ]);
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => "¡Factura creada y emitida exitosamente! Número: {$invoiceNumber}"
+                    ]);
+
+                    // Redirigir al cotizador (listado de facturas pendiente de implementar)
+                    return redirect()->route('tenant.quoter');
+
+                } else {
+                    // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
+                    DB::connection('tenant')->commit(); // Confirmamos la creación, pero sin emitir
+
+                    Log::error('❌ Falló la emisión legal (stamp)', [
+                        'invoice_id' => $invoiceId,
+                        'invoice_status' => 'SIN EMITIR',
+                        'stamp_response' => $stampResponse
+                    ]);
+
+                    // Extraer mensaje de error más claro
+                    $errorMessage = 'Error desconocido en la emisión';
+
+                    if (isset($stampResponse['data']['message'])) {
+                        $errorMessage = $stampResponse['data']['message'];
+                    } elseif (isset($stampResponse['message'])) {
+                        $errorMessage = $stampResponse['message'];
+                    } elseif (isset($stampResponse['error_details']['original_message'])) {
+                        $errorMessage = $stampResponse['error_details']['original_message'];
+                    }
+
+                    // Limpiar mensaje para mostrar solo la razón específica
+                    if (str_contains($errorMessage, 'La factura electrónica de venta no se ha podido emitir porque')) {
+                        $errorMessage = str_replace('La factura electrónica de venta no se ha podido emitir porque ', '', $errorMessage);
+                    }
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'warning',
+                        'message' => "Factura creada pero NO emitida. Razón: {$errorMessage}. Puede intentar emitirla desde el listado de facturas."
+                    ]);
+
+                    // NO redirigir, mantener en cotizador para mostrar el error
+                }
+
+            } else {
+                // Error en la API - NO cambiar estado, hacer rollback
+                DB::connection('tenant')->rollBack();
+
+                // Obtener detalles del error
+                $errorMessage = $apiResponse['message'] ?? 'Error desconocido';
+                $statusCode = $apiResponse['status'] ?? 0;
+
+                Log::error('❌ Error en API de facturación', [
+                    'quote_id' => $quote->id,
+                    'status_code' => $statusCode,
+                    'api_error' => $errorMessage,
+                    'full_response' => $apiResponse
+                ]);
+
+                // Determinar tipo de error para el usuario
+                $userMessage = $this->formatApiErrorForUser($errorMessage, $statusCode);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => $userMessage
+                ]);
+
+                // NO cancelar edición para que el usuario pueda intentar de nuevo
+                return;
+            }
+
+            // Limpiar y salir del modo edición
+            $this->cancelEditing();
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error en processInvoiceAfterPayment', [
+                'quote_id' => $this->editingQuoteId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar la facturación: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    private function formatApiErrorForUser(string $errorMessage, int $statusCode = 0): string
+    {
+        // Errores específicos de stock (como el que reportas)
+        if (str_contains(strtolower($errorMessage), 'stock')) {
+            return "❌ Error de stock: " . $errorMessage;
+        }
+
+        // Errores de validación 400
+        if ($statusCode === 400) {
+            return "❌ Error de validación: " . $errorMessage;
+        }
+
+        // Errores de autenticación 401
+        if ($statusCode === 401) {
+            return "❌ Error de autenticación: Verifique la configuración de la API de facturación";
+        }
+
+        // Errores de autorización 403
+        if ($statusCode === 403) {
+            return "❌ Sin permisos: No tiene autorización para crear facturas";
+        }
+
+        // Error de conexión
+        if ($statusCode >= 500) {
+            return "❌ Error del servidor: " . $errorMessage . " (Código: {$statusCode})";
+        }
+
+        // Otros errores específicos
+        if (str_contains(strtolower($errorMessage), 'cliente') || str_contains(strtolower($errorMessage), 'client')) {
+            return "❌ Error de cliente: " . $errorMessage;
+        }
+
+        if (str_contains(strtolower($errorMessage), 'item') || str_contains(strtolower($errorMessage), 'producto')) {
+            return "❌ Error de producto: " . $errorMessage;
+        }
+
+        // Error genérico
+        return "❌ Error en facturación: " . $errorMessage;
+    }
+
     public function loadRemissionForEditing($remissionId)
     {
         $this->ensureTenantConnection();
@@ -1293,5 +1844,230 @@ private function sanitizeItemQuantity($index)
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Registrar pagos de la factura en BD local y enviar a Alegra
+     */
+    private function registerInvoicePayments(VntInvoices $invoice, array $paymentData, string $alegraInvoiceId, FacturacionService $facturacionService): void
+    {
+        try {
+            Log::info('💳 Iniciando registro de pagos de factura', [
+                'invoice_id' => $invoice->id,
+                'alegra_invoice_id' => $alegraInvoiceId,
+                'payment_data' => $paymentData
+            ]);
+
+            // Obtener métodos de pago desde BD RAP
+            $paymentMethods = DB::connection('mysql')->table('vnt_method_payments')->get()->keyBy('id');
+
+            $totalPayments = 0;
+            $paymentRecords = [];
+
+            // Procesar cada método de pago
+            foreach ($paymentData as $index => $payment) {
+                // Verificar diferentes formatos posibles de datos de pago
+                $methodName = $payment['method'] ?? $payment['form'] ?? null;
+                $rawAmount = floatval($payment['value'] ?? $payment['valor'] ?? $payment['amount'] ?? 0);
+
+                // Redondear montos para evitar decimales como 59,999.99
+                $amount = round($rawAmount, 0); // Redondear a entero
+
+                Log::info("💳 Procesando pago #{$index}", [
+                    'payment_raw' => $payment,
+                    'has_method' => isset($payment['method']),
+                    'has_value' => isset($payment['value']),
+                    'has_valor' => isset($payment['valor']),
+                    'method_value' => $payment['method'] ?? null,
+                    'raw_amount' => $rawAmount,
+                    'rounded_amount' => $amount
+                ]);
+
+                if (empty($methodName) || $amount <= 0) {
+                    Log::warning("⚠️ Pago #{$index} inválido - saltando", [
+                        'method_name' => $methodName,
+                        'amount' => $amount,
+                        'payment' => $payment
+                    ]);
+                    continue;
+                }
+
+                // Buscar el método por nombre en BD RAP (en lugar de por ID)
+                $paymentMethod = $paymentMethods->firstWhere('name', $methodName);
+
+                if (!$paymentMethod) {
+                    Log::warning('⚠️ Método de pago no encontrado en BD RAP por nombre', [
+                        'method_name' => $methodName,
+                        'amount' => $amount,
+                        'available_methods' => $paymentMethods->pluck('name', 'id')->toArray()
+                    ]);
+                    continue;
+                }
+
+                $methodId = $paymentMethod->id;
+
+                // Registrar en vnt_invoice_payments
+                $paymentRecord = VntInvoicePayments::create([
+                    'value' => $amount,
+                    'invoiceId' => $invoice->id,
+                    'methodPaymentId' => $methodId
+                ]);
+
+                $paymentRecords[] = $paymentRecord;
+                $totalPayments += $amount;
+
+                Log::info('💳 Pago registrado en BD local', [
+                    'payment_id' => $paymentRecord->id,
+                    'method_id' => $methodId,
+                    'method_name' => $paymentMethod->name,
+                    'method_bank' => $paymentMethod->bank ?? null,
+                    'amount' => $amount
+                ]);
+            }
+
+            // Preparar datos para envío a Alegra (similar a la función JS)
+            if ($totalPayments > 0) {
+                // Inicializar con monto local como fallback
+                $finalPaymentAmount = round($totalPayments, 0);
+
+                // 1. CONSULTAR SALDO REAL DE LA FACTURA EN ALEGRA
+                $invoiceBalance = $facturacionService->getInvoiceBalance($alegraInvoiceId);
+
+                if (!$invoiceBalance['success']) {
+                    Log::warning('⚠️ No se pudo obtener saldo de factura, usando monto local', [
+                        'error' => $invoiceBalance['error'] ?? 'Error desconocido',
+                        'using_local_amount' => $finalPaymentAmount
+                    ]);
+                    // $finalPaymentAmount ya está inicializado con monto local
+                } else {
+                    // Usar el saldo pendiente real de Alegra
+                    $alegraBalance = $invoiceBalance['balance'];
+                    $alegraTotal = $invoiceBalance['total'];
+
+                    Log::info('💰 Saldo obtenido de Alegra', [
+                        'local_payment_amount' => round($totalPayments, 0),
+                        'alegra_total' => $alegraTotal,
+                        'alegra_balance' => $alegraBalance
+                    ]);
+
+                    // Solo ajustar si el saldo de Alegra es válido y menor al local
+                    if ($alegraBalance > 0 && $alegraBalance < round($totalPayments, 0)) {
+                        $finalPaymentAmount = $alegraBalance;
+
+                        Log::info('💰 Ajustando monto de pago según saldo real', [
+                            'local_payment_amount' => round($totalPayments, 0),
+                            'alegra_total' => $alegraTotal,
+                            'alegra_balance' => $alegraBalance,
+                            'final_payment_amount' => $finalPaymentAmount,
+                            'adjustment_needed' => true
+                        ]);
+                    } else if ($alegraBalance <= 0) {
+                        Log::warning('⚠️ Saldo de Alegra es 0 o inválido, usando monto local', [
+                            'alegra_balance' => $alegraBalance,
+                            'using_local_amount' => $finalPaymentAmount
+                        ]);
+                        // Mantener $finalPaymentAmount como monto local
+                    } else {
+                        Log::info('✅ Saldo de Alegra suficiente, usando monto local', [
+                            'alegra_balance' => $alegraBalance,
+                            'local_amount' => $finalPaymentAmount,
+                            'no_adjustment_needed' => true
+                        ]);
+                        // Mantener $finalPaymentAmount como monto local
+                    }
+                }
+
+                $alegraPaymentData = $this->buildAlegraPaymentData($paymentData, $alegraInvoiceId, $finalPaymentAmount, $paymentMethods);
+
+                Log::info('📤 Enviando pago a Alegra', [
+                    'payment_data' => $alegraPaymentData,
+                    'local_total' => $totalPayments,
+                    'adjusted_amount' => $finalPaymentAmount
+                ]);
+
+                // Enviar a través del servicio de facturación (reutilizar el mismo servicio configurado)
+                $paymentResponse = $facturacionService->registerPayment($alegraPaymentData);
+
+                if ($paymentResponse['success'] ?? false) {
+                    Log::info('✅ Pago registrado exitosamente en Alegra', [
+                        'alegra_payment_id' => $paymentResponse['data']['id'] ?? null,
+                        'total_amount' => $totalPayments
+                    ]);
+                } else {
+                    Log::error('❌ Error registrando pago en Alegra', [
+                        'error' => $paymentResponse['error'] ?? 'Error desconocido',
+                        'response' => $paymentResponse
+                    ]);
+                }
+            }
+
+            Log::info('✅ Registro de pagos completado', [
+                'total_payments' => count($paymentRecords),
+                'total_amount' => $totalPayments
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error registrando pagos de factura', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // No lanzar excepción para no afectar el flujo principal de facturación
+        }
+    }
+
+    /**
+     * Construir datos de pago para Alegra API
+     */
+    private function buildAlegraPaymentData(array $paymentData, string $alegraInvoiceId, float $totalAmount, $paymentMethods = null): array
+    {
+        Log::info('🔧 Construyendo datos de pago para Alegra', [
+            'input_payment_data' => $paymentData,
+            'alegra_invoice_id' => $alegraInvoiceId,
+            'total_amount' => $totalAmount
+        ]);
+
+        // Obtener primer método de pago para determinar bankAccount
+        $firstPayment = reset($paymentData);
+        $bankAccount = '1'; // Default
+
+        // Si tenemos los métodos de pago de BD RAP, buscar el bank correcto
+        if ($paymentMethods && isset($firstPayment['method'])) {
+            $paymentMethod = $paymentMethods->firstWhere('name', $firstPayment['method']);
+            if ($paymentMethod && !empty($paymentMethod->bank)) {
+                $bankAccount = $paymentMethod->bank;
+            }
+        }
+
+        // Fallback a datos directos si están disponibles
+        $bankAccount = $firstPayment['bank'] ?? $firstPayment['bankAccount'] ?? $bankAccount;
+
+        Log::info('💳 Datos del primer método de pago', [
+            'first_payment' => $firstPayment,
+            'payment_method_from_db' => $paymentMethods ? $paymentMethods->firstWhere('name', $firstPayment['method'] ?? '') : null,
+            'extracted_bank_account' => $bankAccount
+        ]);
+
+        // Construir payload según formato de Alegra API
+        $payloadData = [
+            'bankAccount' => [
+                'id' => (string)$bankAccount
+            ],
+            'type' => 'in', // Pago entrante
+            'date' => now()->format('Y-m-d'), // Fecha actual
+            'invoices' => [
+                [
+                    'id' => $alegraInvoiceId,
+                    'amount' => $totalAmount
+                ]
+            ]
+        ];
+
+        Log::info('📋 JSON FINAL PARA ALEGRA PAYMENTS API', [
+            'payload' => $payloadData,
+            'json_string' => json_encode($payloadData, JSON_PRETTY_PRINT)
+        ]);
+
+        return $payloadData;
     }
 }

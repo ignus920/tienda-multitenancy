@@ -55,6 +55,11 @@ class PaymentQuote extends Component
     {
         // Interceptar actualizaciones de valores de métodos de pago
         if (str_contains($name, 'paymentMethods.') && str_ends_with($name, '.value')) {
+            Log::info('🔔 updating() disparado para método de pago', [
+                'field' => $name,
+                'oldValue' => data_get($this->paymentMethods, str_replace(['paymentMethods.', '.value'], ['', ''], $name) . '.value'),
+                'newValue' => $value
+            ]);
             return max(0, (float) ($value ?? 0));
         }
         return $value;
@@ -64,6 +69,12 @@ class PaymentQuote extends Component
     {
         // Después de actualizar cualquier valor de método de pago, recalcular
         if (str_contains($name, 'paymentMethods.') && str_ends_with($name, '.value')) {
+            Log::info('✅ updated() disparado para método de pago', [
+                'field' => $name,
+                'newValue' => data_get($this->paymentMethods, str_replace(['paymentMethods.', '.value'], ['', ''], $name) . '.value'),
+                'allPaymentMethods' => $this->paymentMethods
+            ]);
+
             $this->autoDistributePayments();
             $this->calculateBalances();
         }
@@ -153,9 +164,16 @@ class PaymentQuote extends Component
         $subtotal = 0;
         $totalTaxes = 0;
 
+        // Calcular totales imitando la lógica de Alegra para coincidir exactamente
         foreach ($quote->detalles as $detalle) {
-            $lineSubtotal = $detalle->quantity * $detalle->value;
-            $lineTax = $lineSubtotal * ($detalle->tax / 100);
+            $priceWithIva = $detalle->value;
+
+            // Calcular como Alegra: subtotal redondeado a entero, luego aplicar IVA
+            $priceBase = round($priceWithIva / 1.19, 0); // Subtotal como Alegra
+            $alegraStyleTotal = $priceBase * 1.19;       // Total como Alegra
+
+            $lineSubtotal = $priceBase * $detalle->quantity;
+            $lineTax = ($alegraStyleTotal - $priceBase) * $detalle->quantity;
 
             $subtotal += $lineSubtotal;
             $totalTaxes += $lineTax;
@@ -221,7 +239,27 @@ class PaymentQuote extends Component
         $this->remainingBalance = $this->quoteTotal - $this->totalPaid;
 
         // Determinar si puede proceder al pago
+        $oldCanProceed = $this->canProceedToPayment;
+        // Lógica temporal más permisiva para debugging
         $this->canProceedToPayment = $this->totalPaid > 0;
+
+        Log::info('💰 calculateBalances ejecutado', [
+            'totalFromMethods' => $totalFromMethods,
+            'totalAdvances' => $this->totalAdvances,
+            'totalPaid' => $this->totalPaid,
+            'quoteTotal' => $this->quoteTotal,
+            'remainingBalance' => $this->remainingBalance,
+            'oldCanProceed' => $oldCanProceed,
+            'newCanProceed' => $this->canProceedToPayment,
+            'comparison_details' => [
+                'totalPaid_exactly' => $this->totalPaid,
+                'quoteTotal_exactly' => $this->quoteTotal,
+                'totalPaid_type' => gettype($this->totalPaid),
+                'quoteTotal_type' => gettype($this->quoteTotal),
+                'comparison_result' => $this->totalPaid >= $this->quoteTotal,
+                'difference' => $this->totalPaid - $this->quoteTotal
+            ]
+        ]);
     }
 
     public function updateMethodValue($method, $value)
@@ -259,17 +297,37 @@ class PaymentQuote extends Component
 
     public function autoDistributePayments()
     {
+        Log::info('🔄 autoDistributePayments ejecutado', [
+            'paymentMethods' => $this->paymentMethods,
+            'quoteTotal' => $this->quoteTotal
+        ]);
+
         // Calcular total actual de todos los métodos
         $totalCurrentPayments = 0;
         foreach ($this->paymentMethods as $method) {
             $totalCurrentPayments += (float) ($method['value'] ?? 0);
         }
 
+        Log::info('💳 Calculando pagos', [
+            'totalCurrentPayments' => $totalCurrentPayments,
+            'quoteTotal' => $this->quoteTotal,
+            'exceedsTotal' => $totalCurrentPayments > $this->quoteTotal
+        ]);
+
         // Si el total excede la venta, ajustar proporcionalmente
         if ($totalCurrentPayments > $this->quoteTotal) {
             $this->redistributePayments($totalCurrentPayments);
         }
         // Si es menor al total, no hacer nada (permitir combinaciones manuales)
+
+        // IMPORTANTE: Recalcular balances para actualizar canProceedToPayment
+        $this->calculateBalances();
+
+        Log::info('✅ Balances actualizados', [
+            'totalPaid' => $this->totalPaid,
+            'remainingBalance' => $this->remainingBalance,
+            'canProceedToPayment' => $this->canProceedToPayment
+        ]);
     }
 
     private function redistributePayments($overAmount)
@@ -359,30 +417,72 @@ class PaymentQuote extends Component
             return;
         }
 
-        // Crear resumen del pago
-        $metodosUsados = [];
-        foreach ($this->paymentMethods as $key => $method) {
-            if (((float) ($method['value'] ?? 0)) > 0) {
-                $metodosUsados[] = $method['name'] . ': $' . number_format($method['value'], 0, ',', '.');
+        try {
+            // Preparar datos de pago para enviar a la facturación
+            $paymentData = [];
+            foreach ($this->paymentMethods as $key => $method) {
+                if (((float) ($method['value'] ?? 0)) > 0) {
+                    $paymentData[] = [
+                        'method' => $method['name'],
+                        'value' => (float) $method['value']
+                    ];
+                }
             }
+
+            // Log del pago procesado
+            Log::info('💰 Pago confirmado, procediendo a facturación', [
+                'quote_id' => $this->quoteId,
+                'total_paid' => $this->totalPaid,
+                'payment_methods' => $paymentData,
+                'remaining_balance' => $this->remainingBalance,
+                'petty_cash_id' => $this->activePettyCash['id'] ?? null
+            ]);
+
+            // Crear resumen del pago para mostrar al usuario
+            $metodosUsados = [];
+            foreach ($paymentData as $method) {
+                $metodosUsados[] = $method['method'] . ': $' . number_format($method['value'], 0, ',', '.');
+            }
+
+            $resumen = "PAGO CONFIRMADO\n\n";
+            $resumen .= "Total: $" . number_format($this->quoteTotal, 0, ',', '.') . "\n";
+            $resumen .= "Métodos de pago:\n" . implode("\n", $metodosUsados);
+            $resumen .= "\n\n¡Procediendo a generar factura...!";
+
+            // Mostrar confirmación
+            $this->dispatch('showAlert', $resumen);
+
+            // NUEVO: Procesar factura con los datos de pago
+            return $this->processInvoice($paymentData);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en confirmPayment', [
+                'quote_id' => $this->quoteId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->dispatch('showAlert', 'Error al procesar el pago: ' . $e->getMessage());
         }
+    }
 
-        $resumen = "PAGO CONFIRMADO\n\n";
-        $resumen .= "Total: $" . number_format($this->quoteTotal, 0, ',', '.') . "\n";
-        $resumen .= "Métodos de pago:\n" . implode("\n", $metodosUsados);
-        $resumen .= "\n\n¡Transacción exitosa!";
-
-        // Mostrar alert de confirmación
-        $this->dispatch('showAlert', $resumen);
-
-        // Log de la transacción simulada
-        Log::info('Pago simulado procesado:', [
+    /**
+     * Procesar la factura después del pago confirmado
+     */
+    public function processInvoice(array $paymentData)
+    {
+        // Redirigir al cotizador con los datos de pago para procesar la factura
+        Log::info('🔄 Redirigiendo al cotizador para procesar factura', [
             'quote_id' => $this->quoteId,
-            'total_paid' => $this->totalPaid,
-            'payment_methods' => $this->paymentMethods,
-            'remaining_balance' => $this->remainingBalance,
-            'petty_cash_id' => $this->activePettyCash['id'] ?? null
+            'payment_data_count' => count($paymentData)
         ]);
+
+        // Guardar datos de pago en sesión para pasarlos al cotizador
+        session(['payment_data_for_quote_' . $this->quoteId => $paymentData]);
+
+        // Redirigir de vuelta al cotizador en modo edición para procesar la factura
+        return redirect()->route('tenant.quoter.products.desktop.edit', ['quoteId' => $this->quoteId])
+                        ->with('process_invoice_after_payment', true);
     }
 
     public function resetPayment()

@@ -256,11 +256,25 @@ class Items extends Model
         $priceList = CnfPricelist::active()->first();
 
         if (!$priceList) {
-            return $basePriceRecord->values; // Sin multiplicador
+            // Sin multiplicador, pero aún aplicar IVA si existe
+            $taxPercentage = 0;
+            if ($this->tax) {
+                $taxPercentage = $this->tax->percentage / 100;
+            }
+            return $basePriceRecord->values * (1 + $taxPercentage);
         }
 
-        // Aplicar multiplicador
-        return $basePriceRecord->values * $priceList->value;
+        // Obtener el porcentaje de IVA del item
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100; // Convertir a decimal (19% = 0.19)
+        }
+
+        // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+        $priceWithoutIva = $basePriceRecord->values * $priceList->value;
+        $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
+
+        return $priceWithIva;
     }
 
     /**
@@ -322,11 +336,20 @@ class Items extends Model
         $basePrice = $basePriceRecord->values;
         $prices = [];
 
+        // Obtener el porcentaje de IVA del item
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100; // Convertir a decimal (19% = 0.19)
+        }
+
         // Obtener TODAS las listas de precios activas
         $priceLists = CnfPricelist::active()->get();
 
         foreach ($priceLists as $priceList) {
-            $prices[$priceList->title] = $basePrice * $priceList->value;
+            // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+            $priceWithoutIva = $basePrice * $priceList->value;
+            $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
+            $prices[$priceList->title] = $priceWithIva;
         }
 
         return $prices;
