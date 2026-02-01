@@ -575,7 +575,7 @@ $header = 'Seleccionar productos';
                     <!-- Total -->
                     <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
                         <span>Total:</span>
-                        <span>${{ number_format($totalAmount) }}</span>
+                        <span>${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
 
                     <!-- Botones ---->
@@ -602,9 +602,30 @@ $header = 'Seleccionar productos';
                                 <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                             </svg>
 
-                            <span wire:loading.remove wire:target="confirmOrder">Confirmar pedido</span>
-                            <span wire:loading wire:target="confirmOrder">Confirmando...</span>
+                            <span wire:loading.remove wire:target="confirmOrder">Crear remisión</span>
+                            <span wire:loading wire:target="confirmOrder">Creando remisión...</span>
                         </button>
+
+                        <!-- Botón Facturar - Solo visible si el módulo está activo -->
+                        @if($this->isInvoiceModuleActive)
+                        <button wire:click="invoiceOrder"
+                            wire:loading.attr="disabled"
+                            wire:target="invoiceOrder"
+                            class="w-full mt-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-lg transform transition active:scale-95 disabled:opacity-50 border border-blue-500 dark:border-blue-600">
+
+                            <svg wire:loading.remove wire:target="invoiceOrder" class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+
+                            <svg wire:loading wire:target="invoiceOrder" class="w-6 h-6 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+
+                            <span wire:loading.remove wire:target="invoiceOrder">Facturar</span>
+                            <span wire:loading wire:target="invoiceOrder">Facturando...</span>
+                        </button>
+                        @endif
                     </div>
                     @endif
 
@@ -685,6 +706,27 @@ $header = 'Seleccionar productos';
                             <span wire:loading wire:target="saveQuote">Guardando...</span>
                         </button>
 
+                        <!-- Botón Facturar - También disponible al crear cotización -->
+                        @if($this->isInvoiceModuleActive)
+                        <button wire:click="invoiceOrder"
+                            wire:loading.attr="disabled"
+                            wire:target="invoiceOrder"
+                            class="w-full mt-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-lg transform transition active:scale-95 disabled:opacity-50 border border-blue-500 dark:border-blue-600">
+
+                            <svg wire:loading.remove wire:target="invoiceOrder" class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+
+                            <svg wire:loading wire:target="invoiceOrder" class="w-6 h-6 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+
+                            <span wire:loading.remove wire:target="invoiceOrder">Facturar</span>
+                            <span wire:loading wire:target="invoiceOrder">Facturando...</span>
+                        </button>
+                        @endif
+
                         @endif
                     </div>
 
@@ -697,4 +739,110 @@ $header = 'Seleccionar productos';
 
     </div>
     @endif
+
+    <!-- Modal de Métodos de Pago (Versión Móvil) -->
+    @if($showPaymentModal)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-2 z-50">
+
+        <!-- Modal Principal (Responsivo para móvil) -->
+        <div class="w-full h-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
+
+            <!-- Header -->
+            <div class="bg-gray-800 text-white p-4 flex-shrink-0">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-lg font-bold">MÉTODOS DE PAGO</h1>
+                        <p class="text-gray-300 text-sm">
+                            Total: ${{ number_format($totalAmount, 2, ',', '.') }}
+                        </p>
+                    </div>
+                    <button wire:click="closePaymentModal" class="text-gray-300 hover:text-white p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="flex-1 p-4 overflow-y-auto">
+
+                <!-- Estado del Pago -->
+                <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div class="text-sm text-gray-600">PAGADO</div>
+                            <div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600">FALTA</div>
+                            <div class="text-xl font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métodos de Pago -->
+                <div class="space-y-4">
+                    @foreach($paymentMethods as $key => $method)
+                    <div class="bg-white rounded-lg p-4 border-2
+                        @if($currentPaymentMethod === $key) border-yellow-500 bg-yellow-50 @else border-gray-200 @endif">
+
+                        <div class="flex justify-between items-center mb-3">
+                            <button wire:click="selectPaymentMethod('{{ $key }}')"
+                                    class="font-bold text-lg text-gray-800">
+                                @if($currentPaymentMethod === $key)
+                                    <span class="text-yellow-500">▶ </span>
+                                @elseif($method['value'] > 0)
+                                    <span class="text-blue-500">● </span>
+                                @endif
+                                {{ $method['name'] }}
+                            </button>
+                            <button wire:click="selectPaymentMethod('{{ $key }}'); payTotalWithCurrentMethod();"
+                                    class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">
+                                TODO
+                            </button>
+                        </div>
+
+                        <input type="number"
+                               wire:model.live="paymentMethods.{{ $key }}.value"
+                               wire:change="calculatePaymentBalances"
+                               class="w-full text-xl font-bold text-center py-3 px-4 border rounded-lg
+                                   @if($currentPaymentMethod === $key) border-yellow-500 bg-yellow-50 @else border-gray-300 @endif"
+                               placeholder="0"
+                               min="0"
+                               step="1000">
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="p-4 border-t bg-gray-50 flex gap-3">
+                <button wire:click="closePaymentModal"
+                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg">
+                    CANCELAR
+                </button>
+
+                @if($canProceedToPayment && $remainingBalance == 0)
+                <button wire:click="confirmPayment"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg">
+                    FACTURAR
+                </button>
+                @else
+                <button disabled
+                        class="flex-1 bg-gray-400 text-gray-200 font-bold py-3 rounded-lg text-sm">
+                    @if($remainingBalance > 0)
+                        FALTA ${{ number_format($remainingBalance, 0, ',', '.') }}
+                    @elseif($remainingBalance < 0)
+                        SOBRA ${{ number_format(abs($remainingBalance), 0, ',', '.') }}
+                    @else
+                        INGRESE PAGO
+                    @endif
+                </button>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>

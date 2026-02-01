@@ -1,18 +1,24 @@
-<div class="fixed inset-0 bg-gray-900 flex items-center justify-center"
+<div class="fixed inset-0 bg-gray-900 flex items-center justify-center p-2 sm:p-4"
      x-data="paymentKeyboard()"
      x-init="init()">
 
     <!-- Modal Principal -->
-    <div class="w-[95vw] h-[90vh] bg-white rounded-lg shadow-2xl overflow-hidden">
+    <div class="w-full h-full max-w-7xl max-h-screen bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
 
         <!-- Header -->
-        <div class="bg-gray-800 text-white p-6">
-            <div class="flex justify-between items-center">
+        <div class="bg-gray-800 text-white p-4 sm:p-6 flex-shrink-0">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <div>
-                    <h1 class="text-2xl font-bold">CAJA REGISTRADORA</h1>
-                    <p class="text-gray-300">{{ $quoteCustumer }} - {{ $quoteNumber }}</p>
+                    <h1 class="text-xl sm:text-2xl font-bold">CAJA REGISTRADORA</h1>
+                    <p class="text-gray-300 text-sm sm:text-base">{{ $quoteCustumer }} - {{ $quoteNumber }}</p>
                 </div>
-                <div class="text-right">
+                <div class="flex items-center gap-3">
+                    <!-- Botón de regreso -->
+                    <a href="{{ route('tenant.quoter.products.desktop.edit', ['quoteId' => $quoteId]) }}"
+                       class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                        ← Regresar al Cotizador
+                    </a>
+
                     @if($activePettyCash)
                         <span class="bg-green-500 px-3 py-1 rounded text-sm">
                             ✓ Caja {{ $activePettyCash['consecutive'] }} Abierta
@@ -23,18 +29,18 @@
         </div>
 
         <!-- Contenido Principal -->
-        <div class="flex h-[calc(100%-120px)]">
+        <div class="flex flex-col lg:flex-row flex-1 overflow-hidden">
 
             <!-- Panel Izquierdo - Resumen -->
-            <div class="w-1/3 bg-gray-100 p-6 border-r-2 border-gray-300">
-                <div class="space-y-6">
+            <div class="w-full lg:w-1/3 lg:min-w-80 bg-gray-100 p-4 sm:p-6 border-b-2 lg:border-b-0 lg:border-r-2 border-gray-300 overflow-y-auto">
+                <div class="space-y-4 sm:space-y-6">
 
                     <!-- Total de la Venta -->
                     <div class="bg-white rounded-lg p-6 shadow">
                         <h3 class="text-lg font-semibold mb-4 text-gray-800">TOTAL VENTA</h3>
                         <div class="text-center">
                             <div class="text-4xl font-bold text-green-600">
-                                ${{ number_format($quoteTotal, 0, ',', '.') }}
+                                ${{ number_format($quoteTotal, 2, ',', '.') }}
                             </div>
                         </div>
                     </div>
@@ -45,11 +51,11 @@
                         <div class="space-y-3 text-lg">
                             <div class="flex justify-between">
                                 <span>Pagado:</span>
-                                <span class="font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</span>
+                                <span class="font-bold text-blue-600">${{ number_format($totalPaid, 2, ',', '.') }}</span>
                             </div>
                             <div class="flex justify-between border-t pt-3">
                                 <span>Falta:</span>
-                                <span class="font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</span>
+                                <span class="font-bold text-red-600">${{ number_format($remainingBalance, 2, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
@@ -69,7 +75,7 @@
             </div>
 
             <!-- Panel Derecho - Métodos de Pago -->
-            <div class="flex-1 p-6">
+            <div class="flex-1 p-4 sm:p-6 overflow-y-auto">
                 <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">FORMA DE PAGO</h2>
 
                 <!-- Tabla de Métodos de Pago -->
@@ -161,7 +167,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="text-xl font-bold text-center">TOTAL PAGADO:</div>
                             <div class="text-3xl font-bold text-center text-green-600">
-                                ${{ number_format($totalPaid, 0, ',', '.') }}
+                                ${{ number_format($totalPaid, 2, ',', '.') }}
                             </div>
                         </div>
                     </div>
