@@ -149,7 +149,15 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
-                                <span>SUCURSAL</span>
+                                <span>BODEGA</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                            <div class="flex items-center space-x-1">
+                                <span>VENDEDOR</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
@@ -212,14 +220,24 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                @if($quote->warehouse)
-                                    {{ $quote->warehouse->name }}
-                                    @if($quote->warehouse->address)
-                                        <br><small class="text-gray-500">{{ $quote->warehouse->address }}</small>
-                                    @endif
+                                @if(isset($quote->storage_name))
+                                    <span class="inline-flex items-center">
+                                        <svg class="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                        </svg>
+                                        {{ $quote->storage_name }}
+                                    </span>
                                 @else
-                                    <span class="text-gray-400">Sin sucursal</span>
+                                    <span class="text-gray-400">Sin bodega</span>
                                 @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
+                                <span class="inline-flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    {{ $quote->seller_name }}
+                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
                                 @if($quote->warehouse && $quote->warehouse->contacts && $quote->warehouse->contacts->isNotEmpty())
@@ -243,7 +261,7 @@
                             <!---Botones de accion--->
                               <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
+                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left static" style="position: static !important;" >
                                     <button @click="open = !open"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -300,7 +318,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center">
+                            <td colspan="9" class="px-6 py-12 text-center">
                                 <div class="text-gray-500 dark:text-slate-400">
                                     <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -383,16 +401,16 @@
                  x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                 
-                @if($selectedQuote)
+                @if($this->selectedQuote)
                     <!-- Header -->
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
                         <div>
                             <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                                Detalles de Cotización #{{ $selectedQuote->consecutive }}
+                                Detalles de Cotización #{{ $this->selectedQuote->consecutive }}
                             </h3>
                             <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                                Fecha: {{ $selectedQuote->created_at->format('d/m/Y H:i') }} | Estado: 
-                                <span class="font-medium text-indigo-500">{{ $selectedQuote->status }}</span>
+                                Fecha: {{ $this->selectedQuote->created_at->format('d/m/Y H:i') }} | Estado: 
+                                <span class="font-medium text-indigo-500">{{ $this->selectedQuote->status }}</span>
                             </p>
                         </div>
                         <button @click="show = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
@@ -411,11 +429,11 @@
                                 <div class="space-y-3">
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Nombre:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->customer_name }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer_name }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Identificación:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->customer->identification ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer->identification ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Tipo persona:</span>
@@ -423,7 +441,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Email:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->customer->billingEmail ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer->billingEmail ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -434,11 +452,15 @@
                                 <div class="space-y-3">
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Tipo:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->typeQuote }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->typeQuote }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500 dark:text-slate-400">Sucursal:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedQuote->warehouse->name ?? 'N/A' }}</span>
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Bodega:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->storage_name ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Vendedor:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->seller_name }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -457,7 +479,7 @@
                                 </thead>
                                 <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                                     @php $totalModal = 0; @endphp
-                                    @foreach($selectedQuote->detalles as $detalle)
+                                    @foreach($this->selectedQuote->detalles as $detalle)
                                         @php 
                                             $subtotal = $detalle->quantity * $detalle->value;
                                             $totalModal += $subtotal;
@@ -495,6 +517,22 @@
                     <!-- Footer -->
                     <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end">
                         <button @click="show = false" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/30">
+                            Cerrar
+                        </button>
+                    </div>
+                @else
+                    <!-- Error State -->
+                    <div class="p-6">
+                        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-xl p-8 text-center">
+                            <svg class="mx-auto h-16 w-16 text-red-400 dark:text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <h3 class="text-xl font-bold text-red-800 dark:text-red-300 mb-2">Cotización no encontrada</h3>
+                            <p class="text-sm text-red-600 dark:text-red-400">La cotización no fue encontrada o ha sido eliminada.</p>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end">
+                        <button @click="show = false" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95">
                             Cerrar
                         </button>
                     </div>

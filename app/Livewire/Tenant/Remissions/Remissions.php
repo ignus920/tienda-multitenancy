@@ -168,8 +168,7 @@ class Remissions extends Component
             $q->where('consecutive', 'like', '%' . $this->search . '%')
                 ->orWhere('status', 'like', '%' . $this->search . '%')
                 ->orWhereHas('quote.customer', function ($sub) {
-                    $sub->where('businessName', 'like', '%' . $this->search . '%')
-                      ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                    $sub->where('firstName', 'like', '%' . $this->search . '%')
                       ->orWhere('lastName', 'like', '%' . $this->search . '%');
                 });
         });
@@ -183,8 +182,7 @@ class Remissions extends Component
 
         if ($this->searchName) {
             $query->whereHas('quote.customer', function($q) {
-                $q->where('businessName', 'like', '%' . $this->searchName . '%')
-                  ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
+                $q->where('firstName', 'like', '%' . $this->searchName . '%')
                   ->orWhere('lastName', 'like', '%' . $this->searchName . '%');
             });
         }
@@ -239,8 +237,20 @@ class Remissions extends Component
             'quote.customer', 
             'quote.warehouse.contacts', 
             'quote.branch', 
-            'details.item'
+            'details.item',
+            'store'
         ])->find($id);
+        
+        $seller = $this->selectedRemission->getUser();
+        
+        Log::info('👁️ Ver detalles de remisión', [
+            'remission_id' => $id,
+            'consecutive' => $this->selectedRemission->consecutive ?? 'N/A',
+            'store_name' => $this->selectedRemission->store?->name ?? 'N/A',
+            'warehouseId' => $this->selectedRemission->warehouseId ?? 'N/A',
+            'userId' => $this->selectedRemission->userId ?? 'N/A',
+            'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A'
+        ]);
         
         $this->showDetailModal = true;
     }
@@ -273,11 +283,63 @@ class Remissions extends Component
         $this->initializeCompanyConfiguration();
 
         try {
-            $remission = InvRemissions::with(['details.item', 'quote.customer', 'user'])->findOrFail($id);
-            Log::info('📄 Remisión cargada', ['consecutive' => $remission->consecutive]);
+            Log::info('🔄 Iniciando carga de remisión...');
 
+            // Cargar la remisión paso a paso para debug
+            Log::info('🔄 Cargando remisión básica...');
+            $remission = InvRemissions::findOrFail($id);
+            Log::info('📄 Remisión básica cargada', ['consecutive' => $remission->consecutive]);
+
+            Log::info('🔄 Cargando detalles...');
+            try {
+                $remission->load('details');
+                Log::info('📋 Detalles cargados', ['count' => $remission->details->count()]);
+            } catch (\Exception $detailError) {
+                Log::error('❌ Error cargando detalles', ['error' => $detailError->getMessage()]);
+                throw $detailError;
+            }
+
+            Log::info('🔄 Cargando cliente desde quote...');
+            try {
+                $remission->load('quote.customer');
+                Log::info('👤 Cliente cargado', ['customer_id' => $remission->quote->customerId ?? 'N/A']);
+            } catch (\Exception $customerError) {
+                Log::error('❌ Error cargando cliente', ['error' => $customerError->getMessage()]);
+                // Continuar sin cliente para debug
+            }
+
+            // Nota: No cargamos warehouse aquí porque se consultará directamente desde central en getCompanyInfo()
+            Log::info('🔄 WarehouseId de la remisión: ' . $remission->warehouseId);
+
+            Log::info('🔄 Cargando items de los detalles...');
+            try {
+                $remission->load('details.item');
+                Log::info('📦 Items cargados');
+
+                // Debug: verificar si hay items null
+                $nullItems = $remission->details->whereNull('item')->count();
+                if ($nullItems > 0) {
+                    Log::warning('⚠️ Hay items null', ['null_count' => $nullItems]);
+                }
+            } catch (\Exception $itemError) {
+                Log::error('❌ Error cargando items', ['error' => $itemError->getMessage()]);
+            }
+
+            Log::info('🔄 Cargando usuario...');
+            try {
+                $remission->load('user');
+                Log::info('👤 Usuario cargado');
+            } catch (\Exception $userError) {
+                Log::error('❌ Error cargando usuario', ['error' => $userError->getMessage()]);
+            }
+
+            // Obtener información de la empresa
             $company = $this->getCompanyInfo($remission);
+            Log::info('🏢 Empresa cargada', ['company' => $company->businessName ?? 'N/A']);
+
+            // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
+            Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
 
             $data = [
                 'quote' => $remission, // Pasamos la remisión como 'quote' para reusar la vista
@@ -287,36 +349,52 @@ class Remissions extends Component
                 'showQR' => true,
                 'defaultObservations' => 'Sin observaciones.'
             ];
+            Log::info('📝 Datos preparados para la vista');
 
             $viewName = ($printFormat === 1)
                 ? 'livewire.tenant.quoter.print.print-carta'
                 : 'livewire.tenant.quoter.print.print-pos';
+            Log::info('🎨 Vista seleccionada', ['viewName' => $viewName]);
 
-            $html = view($viewName, $data)->render();
+            Log::info('🔄 Iniciando generación de HTML...');
+            try {
+                $html = view($viewName, $data)->render();
+                Log::info('✅ HTML generado exitosamente', ['length' => strlen($html)]);
+            } catch (\Exception $viewError) {
+                Log::error('❌ Error generando vista', ['error' => $viewError->getMessage()]);
+                throw $viewError;
+            }
 
             $tempFileName = 'quote_' . $id . '_' . time() . '.html';
             $tempPath = storage_path('app/temp/' . $tempFileName);
+            Log::info('📁 Archivo temporal', ['fileName' => $tempFileName, 'path' => $tempPath]);
 
             if (!file_exists(dirname($tempPath))) {
                 mkdir(dirname($tempPath), 0755, true);
+                Log::info('📂 Directorio temp creado');
             }
 
             file_put_contents($tempPath, $html);
+            Log::info('💾 Archivo guardado', ['size' => filesize($tempPath) . ' bytes']);
 
             $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+            Log::info('🔗 URL generada', ['url' => $printUrl]);
 
             $this->dispatch('open-print-window', [
                 'url' => $printUrl,
                 'format' => $printFormat === 1 ? 'carta' : 'pos'
             ]);
+            Log::info('🚀 Evento dispatch enviado');
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión'
+                'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error en printRemission: ' . $e->getMessage());
+            Log::error('❌ Error en printRemission: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al preparar impresión: ' . $e->getMessage()
@@ -341,43 +419,139 @@ class Remissions extends Component
      */
     private function getCompanyInfo($remission = null)
     {
+        Log::info('🏢 getCompanyInfo llamado para remisión');
+
+        // Intentar obtener información del warehouse desde la base central
         if ($remission && $remission->warehouseId) {
+            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $remission->warehouseId]);
+
             try {
+                // Consultar directamente desde la base central usando el modelo VntWarehouse
                 $warehouse = VntWarehouse::find($remission->warehouseId);
+
                 if ($warehouse) {
-                    return (object) [
-                        'businessName' => $warehouse->name ?? 'EMPRESA',
+                    Log::info('🏢 Warehouse encontrado en central', [
+                        'id' => $warehouse->id,
+                        'name' => $warehouse->name,
+                        'address' => $warehouse->address
+                    ]);
+
+                    $companyData = [
+                        'businessName' => $warehouse->name ?? 'EMPRESA DE PRUEBA',
+                        'firstName' => 'Admin',
+                        'lastName' => 'Sistema',
                         'identification' => '123456789',
-                        'billingAddress' => $warehouse->address ?? '',
+                        'billingAddress' => $warehouse->address ?? 'Dirección de prueba',
                         'phone' => '1234567890',
                         'billingEmail' => 'test@empresa.com'
                     ];
+
+                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
+                } else {
+                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $remission->warehouseId);
+                    throw new \Exception('Warehouse no encontrado');
                 }
             } catch (\Exception $e) {
-                Log::error('Error consultando warehouse central: ' . $e->getMessage());
+                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
+
+                // Datos por defecto si hay error
+                $companyData = [
+                    'businessName' => 'EMPRESA DE PRUEBA',
+                    'firstName' => 'Admin',
+                    'lastName' => 'Sistema',
+                    'identification' => '123456789',
+                    'billingAddress' => 'Dirección de prueba',
+                    'phone' => '1234567890',
+                    'billingEmail' => 'test@empresa.com'
+                ];
             }
+        } else {
+            Log::warning('⚠️ No se encontró warehouseId en la remisión, usando datos por defecto');
+
+            // Datos por defecto si no hay warehouse
+            $companyData = [
+                'businessName' => 'EMPRESA DE PRUEBA',
+                'firstName' => 'Admin',
+                'lastName' => 'Sistema',
+                'identification' => '123456789',
+                'billingAddress' => 'Dirección de prueba',
+                'phone' => '1234567890',
+                'billingEmail' => 'test@empresa.com'
+            ];
         }
 
-        return (object) [
-            'businessName' => 'EMPRESA',
-            'identification' => '123456789',
-            'billingAddress' => '',
-            'phone' => '1234567890',
-            'billingEmail' => 'test@empresa.com'
-        ];
+        Log::info('🏢 Datos empresa preparados para remisión', $companyData);
+
+        return (object) $companyData;
     }
 
     public function render()
     {
         $this->ensureTenantConnection();
 
+        // Obtener el store (bodega) del usuario autenticado desde su contacto
+        $user = auth()->user();
+        $storeId = null;
+
+        if ($user && $user->contact_id) {
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            if ($contact) {
+                $storeId = $contact->store;
+            }
+        }
+
+        Log::info('📋 Remissions render() - Iniciando carga de remisiones', [
+            'search' => $this->search,
+            'perPage' => $this->perPage,
+            'user_id' => $user?->id,
+            'contact_id' => $user?->contact_id,
+            'store_id' => $storeId
+        ]);
+
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details'])
+        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store'])
+            ->when($storeId, function ($query) use ($storeId) {
+                // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
+                $query->where('warehouseId', $storeId);
+                Log::info('🔍 Aplicando filtro por store en remisiones', [
+                    'store_id' => $storeId,
+                    'field' => 'warehouseId'
+                ]);
+            })
             ->where(function($query) {
                 $this->applyBaseFilters($query);
             })
             ->orderBy('created_at', 'desc')
             ->paginate($this->perPage);
+
+        // Log de datos para debug
+        Log::info('📊 Remisiones cargadas y filtradas', [
+            'total' => $remissions->total(),
+            'count' => $remissions->count(),
+            'per_page' => $this->perPage,
+            'current_page' => $remissions->currentPage(),
+            'filtered_by_store' => $storeId
+        ]);
+
+        // Log detallado de cada remisión
+        foreach ($remissions as $remission) {
+            $seller = $remission->getUser();
+            Log::info('📦 Remisión #' . $remission->consecutive, [
+                'id' => $remission->id,
+                'warehouseId' => $remission->warehouseId,
+                'store_name' => $remission->store?->name ?? 'N/A',
+                'store_id' => $remission->store?->id ?? 'N/A',
+                'quote_warehouse_name' => $remission->quote?->warehouse?->name ?? 'N/A',
+                'customer_name' => $remission->quote?->customer_name ?? 'N/A',
+                'status' => $remission->status,
+                'userId' => $remission->userId,
+                'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A',
+                'seller_email' => $seller?->email ?? 'N/A',
+                'created_at' => $remission->created_at->format('Y-m-d H:i:s')
+            ]);
+        }
+
+        Log::info('✅ Render completado - Todas las remisiones procesadas');
 
         return view('livewire.tenant.remissions.remissions', [
             'remissions' => $remissions

@@ -20,7 +20,7 @@ class Quoter extends Component
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
     public $showDetailModal = false;
-    public $selectedQuote = null;
+    public $selectedQuoteId = null;
 
 
 
@@ -68,6 +68,29 @@ class Quoter extends Component
 
         // Re-inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
+    }
+
+    /**
+     * Computed property para acceder al modelo selectedQuote
+     * Carga el modelo con la conexión tenant correcta establecida
+     */
+    public function getSelectedQuoteProperty()
+    {
+        if (!$this->selectedQuoteId) {
+            return null;
+        }
+
+        $this->ensureTenantConnection();
+
+        $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])
+            ->find($this->selectedQuoteId);
+        
+        // Agregar el storage_name al modelo
+        if ($quote) {
+            $quote->storage_name = $quote->getStorageName();
+        }
+        
+        return $quote;
     }
 
     public function updatingSearch()
@@ -199,14 +222,14 @@ class Quoter extends Component
     public function viewDetails($id)
     {
         $this->ensureTenantConnection();
-        $this->selectedQuote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])->find($id);
+        $this->selectedQuoteId = $id;
         $this->showDetailModal = true;
     }
 
     public function closeDetailModal()
     {
         $this->showDetailModal = false;
-        $this->selectedQuote = null;
+        $this->selectedQuoteId = null;
     }
 
 
@@ -451,8 +474,36 @@ class Quoter extends Component
         // Asegurar conexión tenant activa
         $this->ensureTenantConnection();
 
-        // Cargar cotizaciones con sus relaciones
+        // Obtener el store (bodega) del usuario autenticado desde su contacto
+        $user = auth()->user();
+        $storeId = null;
+
+        if ($user && $user->contact_id) {
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            if ($contact) {
+                $storeId = $contact->store;
+            }
+        }
+
+        Log::info('📋 Quoter render() - Iniciando carga de cotizaciones', [
+            'search' => $this->search,
+            'perPage' => $this->perPage,
+            'viewType' => $this->viewType,
+            'user_id' => $user?->id,
+            'contact_id' => $user?->contact_id,
+            'store_id' => $storeId
+        ]);
+
+        // Cargar cotizaciones con sus relaciones, filtrando por store (warehouseId en vnt_quotes)
         $quotes = VntQuote::with(['customer', 'warehouse.contacts', 'branch', 'detalles'])
+            ->when($storeId, function ($query) use ($storeId) {
+                // Filtrar por store del usuario (warehouseId en vnt_quotes = store del contacto)
+                $query->where('warehouseId', $storeId);
+                Log::info('🔍 Aplicando filtro por store', [
+                    'store_id' => $storeId,
+                    'field' => 'warehouseId'
+                ]);
+            })
             ->when($this->search, function ($query) {
                 $query->where('consecutive', 'like', '%' . $this->search . '%')
                     ->orWhere('status', 'like', '%' . $this->search . '%')
@@ -472,6 +523,34 @@ class Quoter extends Component
             })
             ->orderBy('created_at', 'desc')
             ->paginate($this->perPage);
+
+        Log::info('📊 Cotizaciones cargadas y filtradas', [
+            'total' => $quotes->total(),
+            'count' => $quotes->count(),
+            'current_page' => $quotes->currentPage(),
+            'filtered_by_store' => $storeId
+        ]);
+
+        // Agregar el nombre de la bodega a cada cotización
+        $quotes->getCollection()->transform(function ($quote) {
+            Log::info('🔄 Procesando cotización para obtener storage_name', [
+                'quote_id' => $quote->id,
+                'consecutive' => $quote->consecutive,
+                'warehouseId' => $quote->warehouseId
+            ]);
+
+            $storageName = $quote->getStorageName();
+            
+            Log::info('✅ Storage name obtenido', [
+                'quote_id' => $quote->id,
+                'storage_name' => $storageName
+            ]);
+
+            $quote->storage_name = $storageName;
+            return $quote;
+        });
+
+        Log::info('✅ Render completado - Todas las cotizaciones procesadas');
 
         $viewName = $this->viewType === 'mobile'
             ? 'livewire.tenant.quoter.components.quoter-mobile'

@@ -133,7 +133,15 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
-                                <span>SUCURSAL</span>
+                                <span>BODEGA</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                            <div class="flex items-center space-x-1">
+                                <span>VENDEDOR</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
@@ -187,7 +195,10 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->quote->warehouse->name ?? 'N/A' }}
+                                {{ $remission->store?->name ?? 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
+                                {{ $remission->seller_name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
                                 @php
@@ -199,7 +210,7 @@
                                 {{ $remission->created_at->format('d/m/Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
+                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left static" style="position: static !important;">
                                     <button @click="open = !open"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -238,7 +249,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
                                 No se encontraron remisiones.
                             </td>
                         </tr>
@@ -338,8 +349,12 @@
                                         <span class="text-sm font-medium text-gray-900 dark:text-white">#{{ $selectedRemission->quote->consecutive ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500 dark:text-slate-400">Sucursal:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->quote->warehouse->name ?? 'N/A' }}</span>
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Bodega:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->store?->name ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Vendedor:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->seller_name }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Fecha Entrega:</span>
