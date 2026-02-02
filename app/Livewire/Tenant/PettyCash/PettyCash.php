@@ -411,11 +411,24 @@ class PettyCash extends Component
 
     public function cashierPettyCash($close_id)
     {
+        $sessionTenant = $this->getTenantId();
         // 1. Establecer el contexto del tenant para poder obtener su información.
         $this->ensureTenantConnection();
 
         // 2. Obtener dinámicamente el nombre de la base de datos del tenant.
         $tenantDbName = tenancy()->tenant->getInternalDatabaseNameAttribute();
+
+        try {
+            // Validar si la base de datos del tenant existe, si no, usar la de la conexión actual.
+            $schemas = DB::select('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?', [$tenantDbName]);
+            if (empty($schemas)) {
+                Log::warning("La base de datos '{$tenantDbName}' no existe. Usando la base de datos de la conexión tenant por defecto.");
+                $tenantDbName = config('database.connections.tenant.database');
+            }
+        } catch (\Exception $e) {
+            Log::error("No se pudo verificar la existencia de la base de datos '{$tenantDbName}'. Usando la de por defecto. Error: " . $e->getMessage());
+            $tenantDbName = config('database.connections.tenant.database');
+        }
 
         // 3. Definir el nombre de la base de datos central (asumimos 'rap' por el código existente y el error).
         $centralDbName = config('database.connections.central.database');
@@ -439,7 +452,7 @@ class PettyCash extends Component
             ->join("{$centralDbName}.vnt_warehouses as w", 'w.id', '=', 'cnt.warehouseId') // Asunción sobre r.warehouseId
 
             // Condiciones
-            ->where('uXt.tenant_id', '8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a')
+            ->where('uXt.tenant_id', $sessionTenant)
             ->where('uXt.user_id', Auth::id())
             ->where('r.id', $close_id)
             ->first();
@@ -528,5 +541,15 @@ class PettyCash extends Component
         $this->base = '';
         $this->paymentCounts = [];
         $this->paymentValues = [];
+    }
+
+    private function getTenantId()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            throw new \Exception('No tenant selected');
+        }
+        return $tenantId;
     }
 }

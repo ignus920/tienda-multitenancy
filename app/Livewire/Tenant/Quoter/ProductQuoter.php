@@ -65,7 +65,7 @@ class ProductQuoter extends Component
     public $changeAmount = 0;
     public $canProceedToPayment = false;
     public $showObservations = false;
-     // Nueva propiedad para la categoría seleccionada
+    // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
     public $customerResults = []; // Resultados de búsqueda de clientes
 
@@ -98,7 +98,7 @@ class ProductQuoter extends Component
         $this->resetPage();
         Log::info('🔄 Reseteando página por cambio en perPage', ['perPage' => $this->perPage]);
     }
-    
+
     public function updatingSelectedCategory()
     {
         $this->resetPage();
@@ -122,7 +122,7 @@ class ProductQuoter extends Component
         // Obtener viewType de la ruta o usar desktop por defecto
         $this->viewType = request()->route('viewType', 'desktop');
         $this->ensureTenantConnection();
-        
+
         // Resetear página si viene de otra vista
         $this->resetPage();
 
@@ -217,58 +217,79 @@ class ProductQuoter extends Component
      */
     public function render()
     {
-    try{
-        $this->ensureTenantConnection();
-        $userStoreId = $this->getUserStoreId();
+        try {
+            $this->ensureTenantConnection();
+            $userStoreId = $this->getUserStoreId();
 
-        $query = Items::query()
-            ->select(
-                'inv_items.*',
-                DB::raw('GROUP_CONCAT(DISTINCT inv_store.name SEPARATOR ", ") as store_names'),
-                DB::raw('GROUP_CONCAT(DISTINCT inv_store.id SEPARATOR ",") as store_ids')
-            )
-            ->where('inv_items.status', 1)
-            ->with('principalImage')
-            ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
-            ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
-            ->where('inv_store.id', $userStoreId)
-            ->when($this->search, function ($query) {
-                $query->where(function($q) {
-                    $q->where('inv_items.name', 'like', '%' . $this->search . '%')
-                      ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
-                      ->orWhere('inv_items.description', 'like', '%' . $this->search . '%');
-                });
-            })
-             ->when($this->selectedCategory, function ($query) {
-             $query->where('inv_items.categoryId', $this->selectedCategory);
-            })
-            ->groupBy('inv_items.id')
-            ->orderBy('inv_items.' . $this->sortField, $this->sortDirection);
-        
-        $products = $query->paginate($this->perPage);
-        
-        Log::info('✅ Productos cargados', [
-            'total' => $products->total(),
-            'current_page' => $products->currentPage(),
-            'per_page' => $products->perPage(),
-            'last_page' => $products->lastPage(),
-            'productos_en_pagina' => $products->count(),
-            'productos_ids' => $products->pluck('id')->toArray(),
-            'productos_nombres' => $products->pluck('name')->toArray(),
-            'productos_bodegas' => $products->pluck('store_names')->toArray()
-        ]);
-        
-        // Si estamos en una página que no existe, resetear a la página 1
-        if ($products->currentPage() > $products->lastPage() && $products->total() > 0) {
-            Log::warning('⚠️ Página actual mayor que última página, reseteando', [
-                'current_page' => $products->currentPage(),
-                'last_page' => $products->lastPage()
-            ]);
-            $this->resetPage();
+            $query = Items::query()
+                ->select(
+                    'inv_items.*',
+                    DB::raw('GROUP_CONCAT(DISTINCT inv_store.name SEPARATOR ", ") as store_names'),
+                    DB::raw('GROUP_CONCAT(DISTINCT inv_store.id SEPARATOR ",") as store_ids')
+                )
+                ->where('inv_items.status', 1)
+                ->with('principalImage')
+                ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+                ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+                ->where('inv_store.id', $userStoreId)
+                ->when($this->search, function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('inv_items.name', 'like', '%' . $this->search . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
+                            ->orWhere('inv_items.description', 'like', '%' . $this->search . '%');
+                    });
+                })
+                ->when($this->selectedCategory, function ($query) {
+                    $query->where('inv_items.categoryId', $this->selectedCategory);
+                })
+                ->groupBy(
+                    'inv_items.id',
+                    'inv_items.api_data_id',
+                    'inv_items.categoryId',
+                    'inv_items.name',
+                    'inv_items.internal_code',
+                    'inv_items.sku',
+                    'inv_items.description',
+                    'inv_items.type',
+                    'inv_items.taxId',
+                    'inv_items.commandId',
+                    'inv_items.brandId',
+                    'inv_items.houseId',
+                    'inv_items.inventoriable',
+                    'inv_items.purchasing_unit',
+                    'inv_items.consumption_unit',
+                    'inv_items.handles_serial',
+                    'inv_items.status',
+                    'inv_items.generic',
+                    'inv_items.created_at',
+                    'inv_items.updated_at',
+                    'inv_items.deleted_at'
+                )
+                ->orderBy('inv_items.' . $this->sortField, $this->sortDirection);
+
             $products = $query->paginate($this->perPage);
-        }
 
+            Log::info('✅ Productos cargados', [
+                'total' => $products->total(),
+                'current_page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'last_page' => $products->lastPage(),
+                'productos_en_pagina' => $products->count(),
+                'productos_ids' => $products->pluck('id')->toArray(),
+                'productos_nombres' => $products->pluck('name')->toArray(),
+                'productos_bodegas' => $products->pluck('store_names')->toArray()
+            ]);
+
+            // Si estamos en una página que no existe, resetear a la página 1
+            if ($products->currentPage() > $products->lastPage() && $products->total() > 0) {
+                Log::warning('⚠️ Página actual mayor que última página, reseteando', [
+                    'current_page' => $products->currentPage(),
+                    'last_page' => $products->lastPage()
+                ]);
+                $this->resetPage();
+                $products = $query->paginate($this->perPage);
+            }
         } catch (\Exception $e) {
             Log::error('❌ Error en render() de ProductQuoter', [
                 'error' => $e->getMessage(),
@@ -294,7 +315,7 @@ class ProductQuoter extends Component
         ])->layout('layouts.app');
     }
 
-     // Método para obtener las categorías
+    // Método para obtener las categorías
     public function getCategories()
     {
         $this->ensureTenantConnection();
@@ -312,7 +333,7 @@ class ProductQuoter extends Component
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
-            $product = Items::find($productId);
+            $product = Items::with('tax')->find($productId);
 
             if (!$product) {
                 $this->dispatch('show-toast', [
@@ -328,6 +349,7 @@ class ProductQuoter extends Component
                 'name' => $product->display_name,
                 'sku' => $product->sku,
                 'price' => $selectedPrice,
+                'tax' => $product->tax->name,
                 'price_label' => $priceLabel,
                 'quantity' => 1,
                 'description' => $product->description,
@@ -398,7 +420,7 @@ class ProductQuoter extends Component
 
 
 
-    
+
     // funcion para guardar una cotizacion 
     public function saveQuote()
     {
@@ -422,10 +444,10 @@ class ProductQuoter extends Component
 
         try {
             $userStoreId = $this->getUserStoreId();
-            
+
             // La tabla vnt_quotes requiere un ID de vnt_contacts en el campo customerId
             // Buscamos el primer contacto asociado a esta empresa
-            $contact = VntContacts::whereHas('company', function($q) {
+            $contact = VntContacts::whereHas('company', function ($q) {
                 $q->where('vnt_companies.id', $this->selectedCustomer['id']);
             })->first();
 
@@ -439,7 +461,7 @@ class ProductQuoter extends Component
                     'warehouseId' => session('warehouse_id', $userStoreId),
                     'positionId' => 1
                 ]);
-                
+
                 Log::info('🆕 Contacto genérico creado automáticamente para la empresa', [
                     'company_id' => $this->selectedCustomer['id'],
                     'contact_id' => $contact->id
@@ -466,7 +488,7 @@ class ProductQuoter extends Component
             foreach ($this->quoterItems as $item) {
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
-                    'tax' => 0, // Puedes ajustar esto según tus necesidades
+                    'tax' => $item['tax'], // Puedes ajustar esto según tus necesidades
                     'value' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
@@ -496,7 +518,6 @@ class ProductQuoter extends Component
                 : 'tenant.quoter.desktop';
 
             return redirect()->route($routeName);
-
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -506,48 +527,48 @@ class ProductQuoter extends Component
     }
 
 
-//funcion para validar la cantidad ingresada
-public function validateQuantity($index = null)
-{
-    // Si no se pasa el índice, intentar obtenerlo de las propiedades (para Livewire binding)
-    // Pero como estamos usando wire:model.lazy="quoterItems.{{ $index }}.quantity", 
-    // Livewire ya actualiza el valor antes de llamar a este método.
+    //funcion para validar la cantidad ingresada
+    public function validateQuantity($index = null)
+    {
+        // Si no se pasa el índice, intentar obtenerlo de las propiedades (para Livewire binding)
+        // Pero como estamos usando wire:model.lazy="quoterItems.{{ $index }}.quantity", 
+        // Livewire ya actualiza el valor antes de llamar a este método.
 
-    if ($index === null) {
-        // En caso de que se llame sin índice, validamos todos los items
-        foreach ($this->quoterItems as $idx => $item) {
-            $this->sanitizeItemQuantity($idx);
+        if ($index === null) {
+            // En caso de que se llame sin índice, validamos todos los items
+            foreach ($this->quoterItems as $idx => $item) {
+                $this->sanitizeItemQuantity($idx);
+            }
+        } else {
+            if (!isset($this->quoterItems[$index])) {
+                return;
+            }
+            $this->sanitizeItemQuantity($index);
         }
-    } else {
-        if (!isset($this->quoterItems[$index])) {
-            return;
-        }
-        $this->sanitizeItemQuantity($index);
+
+        // Actualizar sesión
+        session(['quoter_items' => $this->quoterItems]);
+
+        // Recalcular total
+        $this->calculateTotal();
+
+        // Notificación opcional
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Contenido actualizado'
+        ]);
     }
 
-    // Actualizar sesión
-    session(['quoter_items' => $this->quoterItems]);
+    private function sanitizeItemQuantity($index)
+    {
+        $quantity = $this->quoterItems[$index]['quantity'];
 
-    // Recalcular total
-    $this->calculateTotal();
-
-    // Notificación opcional
-    $this->dispatch('show-toast', [
-        'type' => 'info',
-        'message' => 'Contenido actualizado'
-    ]);
-}
-
-private function sanitizeItemQuantity($index)
-{
-    $quantity = $this->quoterItems[$index]['quantity'];
-    
-    if ($quantity === '' || !is_numeric($quantity) || intval($quantity) < 1) {
-        $this->quoterItems[$index]['quantity'] = 1;
-    } else {
-        $this->quoterItems[$index]['quantity'] = intval($quantity);
+        if ($quantity === '' || !is_numeric($quantity) || intval($quantity) < 1) {
+            $this->quoterItems[$index]['quantity'] = 1;
+        } else {
+            $this->quoterItems[$index]['quantity'] = intval($quantity);
+        }
     }
-}
 
 
 
@@ -572,7 +593,7 @@ private function sanitizeItemQuantity($index)
         $this->ensureTenantConnection();
 
         $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
-            ->where(function($query) use ($value) {
+            ->where(function ($query) use ($value) {
                 $query->where('identification', 'like', '%' . $value . '%')
                     ->orWhere('businessName', 'like', '%' . $value . '%')
                     ->orWhere('firstName', 'like', '%' . $value . '%')
@@ -606,7 +627,7 @@ private function sanitizeItemQuantity($index)
     public function searchCustomer()
     {
         if (empty($this->customerSearch)) return;
-        
+
         $this->ensureTenantConnection();
         $customer = VntCompany::where('identification', $this->customerSearch)->first();
 
@@ -876,7 +897,7 @@ private function sanitizeItemQuantity($index)
                 $this->quoterItems[$existingIndex]['quantity']--;
                 $this->calculateTotal();
                 session(['quoter_items' => $this->quoterItems]);
-                
+
                 $productName = $this->quoterItems[$existingIndex]['name'] ?? 'Producto';
                 $this->dispatch('show-toast', [
                     'type' => 'info',
@@ -949,7 +970,7 @@ private function sanitizeItemQuantity($index)
             // Cargar productos de la cotización
             $this->quoterItems = [];
             foreach ($quote->detalles as $detalle) {
-                $product = Items::find($detalle->itemId);
+                $product = Items::with('tax')->find($detalle->itemId);
                 if ($product) {
                     $this->quoterItems[] = [
                         'id' => $product->id,
@@ -959,6 +980,7 @@ private function sanitizeItemQuantity($index)
                         'price_label' => 'Precio seleccionado', // Podrías mejorarlo para detectar el label correcto
                         'quantity' => $detalle->quantity,
                         'description' => $product->description,
+                        'tax' => $product->tax->name,
                     ];
                 }
             }
@@ -970,7 +992,6 @@ private function sanitizeItemQuantity($index)
                 'type' => 'success',
                 'message' => 'Cotización #' . $quote->consecutive . ' cargada para edición'
             ]);
-
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -1023,7 +1044,7 @@ private function sanitizeItemQuantity($index)
             foreach ($this->quoterItems as $item) {
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
-                    'tax' => 0,
+                    'tax' => $item['tax'],
                     'value' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
@@ -1131,7 +1152,7 @@ private function sanitizeItemQuantity($index)
             foreach ($this->quoterItems as $item) {
                 InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
-                    'tax' => 0,
+                    'tax' => $item['tax'],
                     'value' => $item['price'],
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],
@@ -1160,7 +1181,6 @@ private function sanitizeItemQuantity($index)
 
             // Limpiar y salir del modo edición
             $this->cancelEditing();
-
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('Error en confirmOrder: ' . $e->getMessage());
@@ -1529,7 +1549,6 @@ private function sanitizeItemQuantity($index)
 
                     // Redirigir al cotizador (listado de facturas pendiente de implementar)
                     return redirect()->route('tenant.quoter');
-
                 } else {
                     // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
                     DB::connection('tenant')->commit(); // Confirmamos la creación, pero sin emitir
@@ -1563,7 +1582,6 @@ private function sanitizeItemQuantity($index)
 
                     // NO redirigir, mantener en cotizador para mostrar el error
                 }
-
             } else {
                 // Error en la API - NO cambiar estado, hacer rollback
                 DB::connection('tenant')->rollBack();
@@ -1593,7 +1611,6 @@ private function sanitizeItemQuantity($index)
 
             // Limpiar y salir del modo edición
             $this->cancelEditing();
-
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('❌ Error en processInvoiceAfterPayment', [
@@ -1687,6 +1704,7 @@ private function sanitizeItemQuantity($index)
                         'price_label' => 'Precio remisión',
                         'quantity' => $detalle->quantity,
                         'description' => $detalle->item->description,
+                        'tax' => $detalle->tax ?? 'N/A',
                     ];
                 }
             }
@@ -1697,7 +1715,6 @@ private function sanitizeItemQuantity($index)
                 'type' => 'success',
                 'message' => 'Remisión #' . $remission->consecutive . ' cargada para edición'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error en loadRemissionForEditing: ' . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -1756,7 +1773,6 @@ private function sanitizeItemQuantity($index)
             ]);
 
             return redirect()->route('tenant.remissions');
-
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('Error en updateRemission: ' . $e->getMessage());
@@ -1805,12 +1821,12 @@ private function sanitizeItemQuantity($index)
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user) {
                 Log::error('getUserStoreId: Usuario no autenticado');
                 throw new \Exception('Usuario no autenticado');
             }
-            
+
             if (!$user->contact_id) {
                 Log::error('getUserStoreId: Usuario sin contact_id', [
                     'user_id' => $user->id,
@@ -1818,10 +1834,10 @@ private function sanitizeItemQuantity($index)
                 ]);
                 throw new \Exception('Usuario sin contacto asignado');
             }
-            
+
             // Consultar vnt_contacts en BD central (RAP) usando el modelo
             $contact = VntContact::find($user->contact_id);
-            
+
             if (!$contact) {
                 Log::error('getUserStoreId: Contacto no encontrado en vnt_contacts', [
                     'user_id' => $user->id,
@@ -1829,7 +1845,7 @@ private function sanitizeItemQuantity($index)
                 ]);
                 throw new \Exception('Contacto no encontrado en vnt_contacts');
             }
-            
+
             if (!$contact->store) {
                 Log::error('getUserStoreId: Contacto sin store asignado', [
                     'user_id' => $user->id,
@@ -1837,15 +1853,14 @@ private function sanitizeItemQuantity($index)
                 ]);
                 throw new \Exception('Contacto sin bodega (store) asignada');
             }
-            
+
             Log::info('getUserStoreId: Store obtenido exitosamente', [
                 'user_id' => $user->id,
                 'contact_id' => $user->contact_id,
                 'store_id' => $contact->store
             ]);
-            
+
             return $contact->store;
-            
         } catch (\Exception $e) {
             Log::error('getUserStoreId: Error al obtener store', [
                 'error' => $e->getMessage(),
@@ -2027,7 +2042,6 @@ private function sanitizeItemQuantity($index)
                 'total_payments' => count($paymentRecords),
                 'total_amount' => $totalPayments
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error registrando pagos de factura', [
                 'invoice_id' => $invoice->id,

@@ -86,6 +86,7 @@ class PurchasingUnit extends Component
     #[Computed]
     public function selectedPurchaseUnitName()
     {
+        $this->ensureTenantConnection();
         if (!$this->purchaseUnitId) return null;
         return UnitMeasurementsModel::find($this->purchaseUnitId)?->description;
     }
