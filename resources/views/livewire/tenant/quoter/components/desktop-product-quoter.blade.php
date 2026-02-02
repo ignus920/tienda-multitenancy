@@ -140,16 +140,37 @@ $header = 'Seleccionar productos';
                             @if(!empty($allPrices))
                             <div class="mb-2 space-y-1">
                                 @foreach($allPrices as $label => $price)
+                                @php
+                                    // Verificar si este precio está seleccionado en modo edición
+                                    $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
+                                @endphp
                                 <button
                                     wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                     wire:loading.attr="disabled"
                                     wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                    class="relative w-full py-1 px-2 rounded-lg border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 text-center transition-colors active:bg-emerald-100 dark:active:bg-emerald-900/30 overflow-hidden group">
+                                    class="relative w-full py-1 px-2 rounded-lg border transition-colors overflow-hidden group
+                                        {{ $isThisPriceSelected 
+                                            ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' 
+                                            : 'border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30' 
+                                        }}">
                                     
                                     <!-- Contenido Normal -->
                                     <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
-                                        <div class="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 truncate group-hover:text-emerald-700 transition-colors">{{ $label }}</div>
-                                        <div class="text-[12px] font-black text-emerald-700 dark:text-emerald-300">
+                                        <div class="text-[9px] uppercase font-bold truncate transition-colors
+                                            {{ $isThisPriceSelected 
+                                                ? 'text-blue-700 dark:text-blue-300' 
+                                                : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700' 
+                                            }}">
+                                            {{ $label }}
+                                            @if($isThisPriceSelected)
+                                                <span class="ml-1">✓</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-[12px] font-black
+                                            {{ $isThisPriceSelected 
+                                                ? 'text-blue-800 dark:text-blue-200' 
+                                                : 'text-emerald-700 dark:text-emerald-300' 
+                                            }}">
                                             ${{ number_format($price) }}
                                         </div>
                                     </div>

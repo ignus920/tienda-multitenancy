@@ -444,6 +444,9 @@ class ProductQuoter extends Component
         $this->ensureTenantConnection();
 
         try {
+            // Iniciar transacción
+            DB::connection('tenant')->beginTransaction();
+
             $userStoreId = $this->getUserStoreId();
 
             // La tabla vnt_quotes requiere un ID de vnt_contacts en el campo customerId
@@ -487,17 +490,34 @@ class ProductQuoter extends Component
 
             // Crear los detalles de la cotización
             foreach ($this->quoterItems as $item) {
+                Log::info('💾 Guardando detalle de cotización', [
+                    'item_id' => $item['id'],
+                    'item_name' => $item['name'],
+                    'price' => $item['price'],
+                    'price_label' => $item['price_label'] ?? 'Precio',
+                    'quantity' => $item['quantity'],
+                    'tax' => $item['tax'] ?? 0
+                ]);
+
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
-                    'tax' => $item['tax'],
-                    'tax_label' => $item['tax_label'],
+                    'tax' => $item['tax'] ?? 0,
                     'value' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
                     'description' => $item['name'],
-                    'priceList' => $item['price'] // O el ID de la lista de precios si lo tienes
+                    'priceList' => $item['price'],
+                    'price_label' => $item['price_label'] ?? 'Precio' // Guardar el label de la lista de precios
                 ]);
             }
+
+            // Confirmar transacción
+            DB::connection('tenant')->commit();
+
+            Log::info('✅ Cotización guardada exitosamente', [
+                'quote_id' => $quote->id,
+                'consecutive' => $nextConsecutive
+            ]);
 
             // Limpiar el cotizador y campos del formulario
             $this->quoterItems = [];
@@ -521,6 +541,14 @@ class ProductQuoter extends Component
 
             return redirect()->route($routeName);
         } catch (\Exception $e) {
+            // Revertir transacción en caso de error
+            DB::connection('tenant')->rollBack();
+
+            Log::error('❌ Error al guardar cotización', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al guardar la cotización: ' . $e->getMessage()
@@ -863,6 +891,20 @@ class ProductQuoter extends Component
         return null;
     }
 
+    /**
+     * Verificar si un precio específico está seleccionado para un producto
+     * Útil para resaltar el precio en la vista cuando se está editando
+     */
+    public function isPriceSelected($productId, $priceLabel)
+    {
+        foreach ($this->quoterItems as $item) {
+            if ($item['id'] == $productId && isset($item['price_label'])) {
+                return $item['price_label'] === $priceLabel;
+            }
+        }
+        return false;
+    }
+
     public function increaseQuantity($productId)
     {
         $this->ensureTenantConnection();
@@ -971,22 +1013,52 @@ class ProductQuoter extends Component
 
             // Cargar productos de la cotización
             $this->quoterItems = [];
+            Log::info('📦 Iniciando carga de productos de la cotización', [
+                'quote_id' => $quoteId,
+                'detalles_count' => $quote->detalles->count()
+            ]);
+
             foreach ($quote->detalles as $detalle) {
+                Log::info('📦 Procesando detalle de cotización', [
+                    'detalle_id' => $detalle->id,
+                    'itemId' => $detalle->itemId,
+                    'value' => $detalle->value,
+                    'price_label_from_db' => $detalle->price_label ?? 'NO EXISTE EN BD',
+                    'priceList' => $detalle->priceList,
+                    'quantity' => $detalle->quantity,
+                    'detalle_completo' => $detalle->toArray()
+                ]);
+
                 $product = Items::with('tax')->find($detalle->itemId);
                 if ($product) {
-                    $this->quoterItems[] = [
+                    $itemData = [
                         'id' => $product->id,
                         'name' => $product->display_name,
                         'sku' => $product->sku,
                         'price' => $detalle->value,
-                        'price_label' => 'Precio seleccionado', // Podrías mejorarlo para detectar el label correcto
+                        'price_label' => $detalle->price_label ?? 'Precio seleccionado', // Recuperar el label guardado
                         'quantity' => $detalle->quantity,
                         'description' => $product->description,
-                        'tax' => $product->tax->percentage,
-                        'tax_label' => $product->tax->name,
+                        'tax' => $product->tax->percentage ?? 0,
+                        'tax_label' => $product->tax->name ?? 'IVA',
                     ];
+
+                    $this->quoterItems[] = $itemData;
+
+                    Log::info('✅ Producto agregado a quoterItems', [
+                        'item_data' => $itemData
+                    ]);
+                } else {
+                    Log::warning('⚠️ Producto no encontrado', [
+                        'itemId' => $detalle->itemId
+                    ]);
                 }
             }
+
+            Log::info('📦 Productos cargados completamente', [
+                'quoterItems_count' => count($this->quoterItems),
+                'quoterItems' => $this->quoterItems
+            ]);
 
             // Guardar en sesión
             session(['quoter_items' => $this->quoterItems]);
@@ -1005,7 +1077,14 @@ class ProductQuoter extends Component
 
     public function updateQuote()
     {
+        Log::info('📤 INICIO - Actualizando cotización', [
+            'isEditing' => $this->isEditing,
+            'editingQuoteId' => $this->editingQuoteId,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+
         if (!$this->isEditing || !$this->editingQuoteId) {
+            Log::warning('⚠️ No hay cotización en modo edición');
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'No hay cotización en modo edición'
@@ -1014,6 +1093,7 @@ class ProductQuoter extends Component
         }
 
         if (empty($this->quoterItems)) {
+            Log::warning('⚠️ No hay productos en el cotizador');
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'No hay productos en el cotizador'
@@ -1022,6 +1102,7 @@ class ProductQuoter extends Component
         }
 
         if (!$this->selectedCustomer) {
+            Log::warning('⚠️ No hay cliente seleccionado');
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Debe seleccionar un cliente para la cotización'
@@ -1029,45 +1110,156 @@ class ProductQuoter extends Component
             return;
         }
 
+        Log::info('📋 Datos a enviar para actualización', [
+            'editingQuoteId' => $this->editingQuoteId,
+            'selectedCustomer' => $this->selectedCustomer,
+            'observaciones' => $this->observaciones,
+            'quoterItems_count' => count($this->quoterItems),
+            'quoterItems' => $this->quoterItems
+        ]);
+
         $this->ensureTenantConnection();
 
         try {
+            // Iniciar transacción
+            DB::connection('tenant')->beginTransaction();
+
             $quote = VntQuote::findOrFail($this->editingQuoteId);
+            $userStoreId = $this->getUserStoreId();
+
+            Log::info('📋 Cotización encontrada en BD (antes de actualizar)', [
+                'quote_id' => $quote->id,
+                'consecutive' => $quote->consecutive,
+                'current_customerId' => $quote->customerId,
+                'current_observations' => $quote->observations,
+                'quote_raw' => $quote->toArray()
+            ]);
+
+            // La tabla vnt_quotes requiere un ID de vnt_contacts en el campo customerId
+            // Buscamos el primer contacto asociado a esta empresa
+            $contact = VntContacts::whereHas('company', function ($q) {
+                $q->where('vnt_companies.id', $this->selectedCustomer['id']);
+            })->first();
+
+            // Si la empresa no tiene contactos, creamos uno genérico para permitir el registro
+            if (!$contact) {
+                $contact = VntContacts::create([
+                    'firstName' => $this->selectedCustomer['firstName'] ?: $this->selectedCustomer['businessName'],
+                    'lastName' => $this->selectedCustomer['lastName'] ?: 'Cliente',
+                    'email' => $this->selectedCustomer['billingEmail'] ?: 'cliente@ejemplo.com',
+                    'status' => 1,
+                    'warehouseId' => session('warehouse_id', $userStoreId),
+                    'positionId' => 1
+                ]);
+
+                Log::info('🆕 Contacto genérico creado automáticamente para la empresa', [
+                    'company_id' => $this->selectedCustomer['id'],
+                    'contact_id' => $contact->id
+                ]);
+            }
+
+            Log::info('👤 Contacto obtenido/creado para actualización', [
+                'contact_id' => $contact->id,
+                'company_id' => $this->selectedCustomer['id']
+            ]);
 
             // Actualizar la cotización
-            $quote->update([
-                'customerId' => $this->selectedCustomer['id'],
+            $updateData = [
+                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO (Referencia a vnt_contacts)
                 'observations' => $this->observaciones,
+                'warehouseId' => session('warehouse_id', $userStoreId),
+                'userId' => auth()->id(),
+                'branchId' => session('branch_id', $userStoreId)
+            ];
+
+            Log::info('💾 Datos que se van a actualizar en vnt_quotes', [
+                'update_data' => $updateData
+            ]);
+
+            $quote->update($updateData);
+
+            Log::info('✅ Cotización actualizada en BD', [
+                'quote_id' => $quote->id,
+                'new_customerId' => $quote->customerId,
+                'new_observations' => $quote->observations
             ]);
 
             // Eliminar detalles existentes
+            $deletedCount = VntDetailQuote::where('quoteId', $quote->id)->count();
+            Log::info('🗑️ Eliminando detalles existentes', [
+                'quote_id' => $quote->id,
+                'detalles_a_eliminar' => $deletedCount
+            ]);
+
             VntDetailQuote::where('quoteId', $quote->id)->delete();
 
+            Log::info('✅ Detalles eliminados');
+
             // Crear los nuevos detalles
-            foreach ($this->quoterItems as $item) {
-                VntDetailQuote::create([
+            Log::info('📦 Creando nuevos detalles', [
+                'items_count' => count($this->quoterItems)
+            ]);
+
+            foreach ($this->quoterItems as $index => $item) {
+                $detalleData = [
                     'quantity' => $item['quantity'],
-                    'tax' => $item['tax'],
-                    'tax_label' => $item['tax_label'],
+                    'tax' => $item['tax'] ?? 0,
                     'value' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
                     'description' => $item['name'],
-                    'priceList' => $item['price']
+                    'priceList' => $item['price'],
+                    'price_label' => $item['price_label'] ?? 'Precio' // Guardar el label de la lista de precios
+                ];
+
+                Log::info("📦 Creando detalle #{$index}", [
+                    'detalle_data' => $detalleData
+                ]);
+
+                $newDetalle = VntDetailQuote::create($detalleData);
+
+                Log::info("✅ Detalle creado", [
+                    'detalle_id' => $newDetalle->id,
+                    'detalle_raw' => $newDetalle->toArray()
                 ]);
             }
+
+            // Confirmar transacción
+            DB::connection('tenant')->commit();
+
+            Log::info('✅ FINALIZADO - Cotización actualizada exitosamente', [
+                'quote_id' => $quote->id,
+                'consecutive' => $quote->consecutive,
+                'detalles_creados' => count($this->quoterItems)
+            ]);
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Cotización #' . $quote->consecutive . ' actualizada exitosamente'
             ]);
 
-            // Opcional: limpiar después de actualizar
-            // $this->clearQuoter();
-            // $this->isEditing = false;
-            // $this->editingQuoteId = null;
+            // Limpiar después de actualizar
+            $this->clearQuoter();
+            $this->isEditing = false;
+            $this->editingQuoteId = null;
+
+            // Redirigir al listado de cotizaciones según el tipo de vista
+            $routeName = $this->viewType === 'mobile'
+                ? 'tenant.quoter.mobile'
+                : 'tenant.quoter.desktop';
+
+            return redirect()->route($routeName);
 
         } catch (\Exception $e) {
+            // Revertir transacción en caso de error
+            DB::connection('tenant')->rollBack();
+
+            Log::error('❌ ERROR al actualizar cotización', [
+                'editingQuoteId' => $this->editingQuoteId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al actualizar la cotización: ' . $e->getMessage()
