@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Auth;
 class MovementForm extends Component
 {
     // Modal state
-     use HasCompanyConfiguration;
+    use HasCompanyConfiguration;
     public $showModal = false;
     public $showDetailsModal = false;
     public $movementDetails = []; // Store movement details as array instead of model
@@ -29,12 +29,12 @@ class MovementForm extends Component
     public $warehouseId = null; // ID of the warehouse from central
     public $selectedStoreId = null; // ID of the selected store (bodega)
     public $showSelectStore = false;
-    
+
     // Form data with warehouse form structure
     public $warehouseForm = [
         'movementType' => '', // ENTRADA o SALIDA
     ];
-    
+
     public $movementForm = [
         'date' => '',
         'observations' => '',
@@ -49,11 +49,11 @@ class MovementForm extends Component
         'cost' => 0,
         'supplierId' => ''
     ];
-    
+
     // Messages
     public $successMessage = '';
     public $errorMessage = '';
-    
+
     public $isProcessing = false;
 
     protected $listeners = [
@@ -62,13 +62,14 @@ class MovementForm extends Component
         'reasonSelected',
         'itemSelected',
         'unitMeasurementSelected',
-        'supplierSelected'];
+        'supplierSelected'
+    ];
 
     public function mount()
     {
         $this->warehouseForm['movementType'] = '';
         $this->movementForm['date'] = now()->format('Y-m-d');
-        
+
         // Set default unit measurement to "UNIDAD"
         $this->setDefaultUnitMeasurement();
     }
@@ -104,7 +105,7 @@ class MovementForm extends Component
     public function supplierSelected($value)
     {
         $this->detailForm['supplierId'] = $value ?? '';
-        
+
         // Update supplier name for display in details table
         if (!empty($value)) {
             $supplier = collect($this->suppliers)->firstWhere('id', $value);
@@ -140,7 +141,7 @@ class MovementForm extends Component
             'reason',
             'supplierContact'
         ])->find($movementId);
-        
+
         if ($movement) {
             // Convert model to array to avoid serialization issues
             $this->movementDetails = [
@@ -162,7 +163,7 @@ class MovementForm extends Component
                     ];
                 })->toArray()
             ];
-            
+
             $this->showDetailsModal = true;
         }
     }
@@ -183,11 +184,11 @@ class MovementForm extends Component
     {
         try {
             $this->ensureTenantConnection();
-            
+
             DB::connection('tenant')->beginTransaction();
-            
+
             $movement = InvInventoryAdjustment::with('details')->find($movementId);
-            
+
             if (!$movement) {
                 $this->errorMessage = 'Movimiento no encontrado';
                 return;
@@ -203,7 +204,7 @@ class MovementForm extends Component
                 $itemStore = InvItemsStore::where('itemId', $detail->itemId)
                     ->where('storeId', $movement->storeId)
                     ->first();
-                
+
                 if (!$itemStore) {
                     DB::connection('tenant')->rollBack();
                     $this->errorMessage = 'No se encontró el registro de inventario para el item';
@@ -223,28 +224,27 @@ class MovementForm extends Component
                         $this->errorMessage = 'No hay suficiente stock para anular este movimiento de entrada';
                         return;
                     }
-                    
+
                     // Restar del inventario (revertir la entrada)
                     $itemStore->stock_items_store -= $quantityInConsumptionUnit;
                 } else {
                     // Sumar al inventario (revertir la salida)
                     $itemStore->stock_items_store += $quantityInConsumptionUnit;
                 }
-                
+
                 $itemStore->save();
             }
 
             // Marcar el movimiento como anulado
             $movement->update(['status' => 0]);
-            
+
             DB::connection('tenant')->commit();
-            
+
             $this->successMessage = 'Movimiento anulado correctamente y el inventario ha sido actualizado';
-            
+
             // Close details modal and refresh list
             $this->closeDetailsModal();
             $this->dispatch('refreshMovements', type: $movement->type);
-            
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('Error al anular movimiento', [
@@ -255,14 +255,14 @@ class MovementForm extends Component
         }
     }
 
-    
+
     public function render()
     {
         $this->ensureTenantConnection();
-        
+
         return view('livewire.tenant.movements.components.movement-form');
     }
-    
+
     /**
      * Computed property for reasons based on movement type
      */
@@ -272,11 +272,11 @@ class MovementForm extends Component
         if (empty($this->warehouseForm['movementType'])) {
             return collect([]);
         }
-        
+
         $movementType = $this->warehouseForm['movementType'] === 'ENTRADA' ? 'e' : 's';
         return InvReason::active()->byType($movementType)->get();
     }
-    
+
     /**
      * Computed property for items
      */
@@ -285,8 +285,9 @@ class MovementForm extends Component
     {
         $this->ensureTenantConnection();
         return Items::where('status', 1)
+            ->where('inventoriable', 1)
             ->get(['id', 'name', 'sku'])
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'id' => $item->id,
                     'name' => $item->name,
@@ -295,7 +296,7 @@ class MovementForm extends Component
             })
             ->toArray();
     }
-    
+
     /**
      * Computed property for unit measurements
      */
@@ -305,7 +306,7 @@ class MovementForm extends Component
         $this->ensureTenantConnection();
         return UnitMeasurements::where('status', 1)
             ->get(['id', 'description', 'quantity'])
-            ->map(function($unit) {
+            ->map(function ($unit) {
                 return [
                     'id' => $unit->id,
                     'description' => $unit->description,
@@ -316,7 +317,7 @@ class MovementForm extends Component
     }
 
 
-     /**
+    /**
      * Computed property for suppliers (proveedores)
      * Gets contacts from companies marked as suppliers
      */
@@ -324,7 +325,7 @@ class MovementForm extends Component
     public function suppliers()
     {
         $this->ensureTenantConnection();
-        
+
         return \App\Models\Tenant\Customer\VntContacts::select('vnt_companies.id', 'vnt_contacts.firstName')
             ->join('vnt_companies', 'vnt_contacts.email', '=', 'vnt_companies.billingEmail')
             ->where('vnt_companies.type', 'PROVEEDOR')
@@ -332,7 +333,7 @@ class MovementForm extends Component
             ->whereNull('vnt_contacts.deleted_at')
             ->distinct()
             ->get()
-            ->map(function($supplier) {
+            ->map(function ($supplier) {
                 return [
                     'id' => $supplier->id,
                     'firstName' => $supplier->firstName
@@ -351,7 +352,7 @@ class MovementForm extends Component
         $this->movementForm['date'] = now()->format('Y-m-d');
         $this->clearMessages();
     }
-    
+
     /**
      * Computed property to get warehouse name
      */
@@ -359,36 +360,36 @@ class MovementForm extends Component
     public function warehouseMovement()
     {
         $this->ensureTenantConnection();
-        
+
         // Get warehouse from user's contact
         $user = Auth::user();
-        
+
         if (!$user || !$user->contact_id) {
             return 'Sin bodega asignada';
         }
         // Load contact with warehouse relationship
         $contact = \App\Models\Central\VntContact::with('warehouse')
             ->find($user->contact_id);
-        
+
         if (!$contact || !$contact->warehouseId) {
             return 'Sin bodega asignada';
         }
         $warehouse = $contact->warehouse;
-        
+
         // Set the warehouse ID for use in stores
         if ($warehouse && $warehouse->status) {
             $this->warehouseId = $warehouse->id;
-            
+
             // Check stores count to determine if select should be shown
             $warehouseStores = InvStore::where('warehouseId', $this->warehouseId)->where('status', 1)->get();
             // Validate plan 
-             $validateStore = $this->canAggregateStores(false, $warehouseStores->count());
+            $validateStore = $this->canAggregateStores(false, $warehouseStores->count());
             Log::info('validateStore', ['validateStore' => $validateStore]);
             if ($warehouseStores->count() == 1) {
                 $this->showSelectStore = false;
                 $this->selectedStoreId = $warehouseStores->first()->id;
             } elseif ($warehouseStores->count() > 1) {
-                if($validateStore){
+                if ($validateStore) {
                     $this->showSelectStore = true;
                 } else {
                     $this->showSelectStore = false;
@@ -400,7 +401,7 @@ class MovementForm extends Component
 
             return $warehouse->name;
         }
-        
+
         return 'Sin bodega asignada';
     }
 
@@ -413,43 +414,43 @@ class MovementForm extends Component
         if (!$this->warehouseId) {
             return collect([]);
         }
-        
+
         $this->ensureTenantConnection();
         return InvStore::where('warehouseId', $this->warehouseId)->where('status', 1)->get();
     }
     /**
      * Add item detail to the table
      */
-   public function addDetail()
+    public function addDetail()
     {
         // Prevenir múltiples clicks
         if ($this->isProcessing) {
             return;
         }
-        
+
         $this->isProcessing = true;
-        
+
         try {
-            
+
             // Validación básica para evitar errores con clicks múltiples
             if (empty($this->detailForm['itemId'])) {
                 $this->errorMessage = 'Debe seleccionar un item';
                 $this->isProcessing = false;
                 return;
             }
-            
+
             if (empty($this->detailForm['quantity']) || $this->detailForm['quantity'] <= 0) {
                 $this->errorMessage = 'La cantidad debe ser mayor a 0';
                 $this->isProcessing = false;
                 return;
             }
-            
+
             if (empty($this->detailForm['unitMeasurementId'])) {
                 $this->errorMessage = 'Debe seleccionar una unidad de medida';
                 $this->isProcessing = false;
                 return;
             }
-            
+
             // Validación condicional del campo cost
             if ($this->warehouseForm['movementType'] == 'ENTRADA' && $this->movementForm['reasonId'] == 1) {
                 if (empty($this->detailForm['cost']) || $this->detailForm['cost'] <= 0) {
@@ -457,13 +458,13 @@ class MovementForm extends Component
                     $this->isProcessing = false;
                     return;
                 }
-                
+
                 if (!is_numeric($this->detailForm['cost'])) {
                     $this->errorMessage = 'El costo debe ser un valor numérico';
                     $this->isProcessing = false;
                     return;
                 }
-                
+
                 // Validación del proveedor
                 if (empty($this->detailForm['supplierId'])) {
                     $this->errorMessage = 'El proveedor es requerido para movimientos de compra';
@@ -471,37 +472,37 @@ class MovementForm extends Component
                     return;
                 }
             }
-             // Validate detail form
+            // Validate detail form
             $this->ensureTenantConnection();
-            
+
             // Get item and unit measurement info with all relationships
             $item = Items::with(['invValues', 'purchasingUnit', 'consumptionUnit'])
                 ->find($this->detailForm['itemId']);
-            
+
             if (!$item) {
                 $this->errorMessage = 'El item seleccionado no existe';
                 $this->isProcessing = false;
                 return;
             }
-            
+
             $unitMeasurement = UnitMeasurements::find($this->detailForm['unitMeasurementId']);
-            
+
             if (!$unitMeasurement) {
                 $this->errorMessage = 'La unidad de medida seleccionada no existe';
                 $this->isProcessing = false;
                 return;
             }
-            
+
             // Get price from inv_values
             $price = $item->invValues->first()->values ?? 0;
             $quantity = $this->detailForm['quantity'];
-            
+
             // Check if item already exists in details
             $existingIndex = collect($this->details)->search(function ($detail) {
                 return $detail['itemId'] == $this->detailForm['itemId'];
             });
-            
-           
+
+
             if ($existingIndex !== false) {
                 // Update quantity if item already exists
 
@@ -512,26 +513,26 @@ class MovementForm extends Component
                 $this->details[$existingIndex]['total'] = $price * $newQuantity;
                 // Recalculate adjusted quantity
                 $currentQty = $this->details[$existingIndex]['currentQuantity'];
-                $this->details[$existingIndex]['adjustedQuantity'] = $this->warehouseForm['movementType'] === 'ENTRADA' 
-                    ? $currentQty + $newQuantity 
+                $this->details[$existingIndex]['adjustedQuantity'] = $this->warehouseForm['movementType'] === 'ENTRADA'
+                    ? $currentQty + $newQuantity
                     : $currentQty - $newQuantity;
             } else {
                 // Get current quantity from inv_items_store
                 $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
                     ->where('storeId', $this->selectedStoreId)
                     ->first();
-                
+
                 // dd($itemStore->stock_items_store);
                 $currentQuantity = $itemStore ? $itemStore->stock_items_store : 0;
-                
-                // Calculate adjusted quantity based on movement type
-                $adjustedQuantity = $this->warehouseForm['movementType'] === 'ENTRADA' 
-                    ? $currentQuantity + ($unitMeasurement->quantity * $quantity) 
-                    : $currentQuantity - ($unitMeasurement->quantity * $quantity);
-            
 
-                 // for exit             
-                if($adjustedQuantity < 0){
+                // Calculate adjusted quantity based on movement type
+                $adjustedQuantity = $this->warehouseForm['movementType'] === 'ENTRADA'
+                    ? $currentQuantity + ($unitMeasurement->quantity * $quantity)
+                    : $currentQuantity - ($unitMeasurement->quantity * $quantity);
+
+
+                // for exit             
+                if ($adjustedQuantity < 0) {
                     $this->errorMessage = 'La bodega no tiene stock suficiente para realizar el movimiento';
                     $this->isProcessing = false;
                     return;
@@ -564,7 +565,6 @@ class MovementForm extends Component
             // Reset detail form
             $this->resetDetailForm();
             $this->clearMessages();
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->isProcessing = false;
             throw $e;
@@ -578,7 +578,7 @@ class MovementForm extends Component
             $this->isProcessing = false;
         }
     }
-    
+
     /**
      * Remove detail from table
      */
@@ -589,7 +589,7 @@ class MovementForm extends Component
             $this->details = array_values($this->details); // Re-index array
         }
     }
-    
+
     /**
      * Save movement with details
      */
@@ -611,49 +611,49 @@ class MovementForm extends Component
             //     'movementForm.reasonId.exists' => 'El motivo seleccionado no es válido',
             //     'movementForm.observations.max' => 'Las observaciones no pueden exceder 500 caracteres',
             // ]);
-            
+
             // Validate that there are details
             if (empty($this->details)) {
                 $this->errorMessage = 'Debe agregar al menos un item al movimiento';
                 return;
             }
-            
+
             $this->ensureTenantConnection();
-            
+
             DB::connection('tenant')->beginTransaction();
-            
+
             try {
                 // Get next consecutive by warehouse, store and type
                 $selectedType = strtolower($this->warehouseForm['movementType']);
-                
+
                 // Get the store to access warehouseId
                 $store = InvStore::find($this->selectedStoreId);
                 $warehouseId = $store ? $store->warehouseId : null;
-                
+
                 // Query for last consecutive filtering by warehouse (through store relationship), store, and type
                 $lastMovement = InvInventoryAdjustment::byType($selectedType)
                     ->byStore($this->selectedStoreId)
-                    ->whereHas('store', function($query) use ($warehouseId) {
+                    ->whereHas('store', function ($query) use ($warehouseId) {
                         $query->where('warehouseId', $warehouseId);
                     })
                     ->orderBy('consecutive', 'desc')
                     ->first();
                 $consecutive = $lastMovement ? $lastMovement->consecutive + 1 : 1;
-                
 
-            //    dd([
-            //         'date'        => $this->movementForm['date'],
-            //         'observations'=> $this->movementForm['observations'],
-            //         'type'        => $selectedType,
-            //         'status'      => 1,
-            //         'warehouseId' => $this->warehouseId,
-            //         'reasonId'    => $this->movementForm['reasonId'],
-            //         'consecutive' => $consecutive,
-            //         'storeId'    => $this->selectedStoreId,
-            //         'userId'      => Auth::id(),
-            //     ]);
+
+                //    dd([
+                //         'date'        => $this->movementForm['date'],
+                //         'observations'=> $this->movementForm['observations'],
+                //         'type'        => $selectedType,
+                //         'status'      => 1,
+                //         'warehouseId' => $this->warehouseId,
+                //         'reasonId'    => $this->movementForm['reasonId'],
+                //         'consecutive' => $consecutive,
+                //         'storeId'    => $this->selectedStoreId,
+                //         'userId'      => Auth::id(),
+                //     ]);
                 // Create movement
-             
+
                 $movement = InvInventoryAdjustment::create([
                     'date' => $this->movementForm['date'],
                     'observations' => $this->movementForm['observations'],
@@ -665,7 +665,7 @@ class MovementForm extends Component
                     'userId' => Auth::id(),
                     'supplier' => !empty($this->details[0]['supplierId']) ? (int)$this->details[0]['supplierId'] : 0,
                 ]);
-                
+
                 // Create details
                 // 
                 foreach ($this->details as $detail) {
@@ -682,7 +682,7 @@ class MovementForm extends Component
                     $itemStore = InvItemsStore::where('itemId', $detail['itemId'])
                         ->where('storeId', $this->selectedStoreId)
                         ->first();
-                    
+
                     if ($itemStore) {
                         $itemStore->stock_items_store = $detail['adjustedQuantity'];
                         $itemStore->save();
@@ -695,11 +695,11 @@ class MovementForm extends Component
                         ]);
                     }
                 }
-                
+
                 DB::connection('tenant')->commit();
-                
+
                 $this->successMessage = 'Movimiento creado exitosamente';
-                
+
                 Log::info('Movement created successfully', [
                     'movementId' => $movement->id,
                     'type' => $this->warehouseForm['movementType'],
@@ -712,24 +712,22 @@ class MovementForm extends Component
                 $this->movementType = $selectedType;
                 // Refresh the movement list with the movement type
                 $this->dispatch('refreshMovements', type: $selectedType);
-                
             } catch (\Exception $e) {
                 DB::connection('tenant')->rollBack();
                 throw $e;
             }
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al guardar el movimiento: ' . $e->getMessage();
-            
+
             Log::error('Error saving movement', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
         }
     }
-    
+
     /**
      * Close modal and reset form
      */
@@ -740,22 +738,22 @@ class MovementForm extends Component
         $this->clearMessages();
         $this->resetValidation();
     }
-    
+
     /**
      * User plan
      */
 
-       private function canAggregateStores(bool $update = false, $quantity): bool
-      {
+    private function canAggregateStores(bool $update = false, $quantity): bool
+    {
 
-        $this->ensureTenantConnection();        
+        $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
 
         // DEBUG: Limpiar caché para testing
         $this->clearConfigurationCache();
         $result = $this->isOptionEnabled(27);
         $value = $this->getOptionValue(27);
-        
+
         // DEBUG: Log detallado de verificación
         Log::info('🔍 canCreateOrUpdateUsers() verificación', [
             'companyId' => $this->currentCompanyId,
@@ -768,13 +766,13 @@ class MovementForm extends Component
         ]);
 
 
-         if($result == true && $quantity <= $value){
+        if ($result == true && $quantity <= $value) {
             return true;
-         }
-         return false;
         }
+        return false;
+    }
 
-    
+
     /**
      * Reset movement form
      */
@@ -792,7 +790,7 @@ class MovementForm extends Component
         $this->details = [];
         $this->resetDetailForm();
     }
-    
+
     /**
      * Reset detail form
      */
@@ -805,11 +803,11 @@ class MovementForm extends Component
             'cost' => 0,
             'supplierId' => '',
         ];
-        
+
         // Set default unit measurement to UNIDAD
         $this->setDefaultUnitMeasurement();
     }
-    
+
     /**
      * Clear messages
      */
@@ -818,7 +816,7 @@ class MovementForm extends Component
         $this->successMessage = '';
         $this->errorMessage = '';
     }
-    
+
     /**
      * Ensure tenant connection is established
      */
@@ -829,17 +827,17 @@ class MovementForm extends Component
         if (!$tenantId) {
             throw new \Exception('No tenant selected');
         }
-        
+
         $tenant = Tenant::find($tenantId);
         if (!$tenant) {
             session()->forget('tenant_id');
             throw new \Exception('Invalid tenant');
         }
-        
+
         // Set tenant connection
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
-        
+
         // Initialize tenancy
         tenancy()->initialize($tenant);
     }

@@ -382,10 +382,12 @@ $header = 'Seleccionar productos';
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex-1">
                                 <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ $item['name'] }}</h4>
-                                @if(isset($item['price_label']))
-                                <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
-                                @endif
-                            
+                                <div class="flex items-center gap-3 mt-1">
+                                    @if(isset($item['price_label']))
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
+                                    @endif
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Impuesto: {{ $item['tax']}}</p>
+                                </div>
                             </div>
                             <button wire:click="removeFromQuoter({{ $index }})"
                                 class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">

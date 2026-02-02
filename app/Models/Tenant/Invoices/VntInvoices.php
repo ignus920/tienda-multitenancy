@@ -16,12 +16,16 @@ class VntInvoices extends Model
     protected $table = 'vnt_invoices';
 
     protected $fillable = [
+        'id',
         'consecutive',
         'status',
         'status_payment',
         'api_data_id',
         'api_data_id_pay',
         'partialPayment',
+        'created_at',
+        'updated_at',
+        'deleted_at',
         'quoteId',
         'warehouseId',
         'remission',
@@ -58,7 +62,7 @@ class VntInvoices extends Model
     // Métodos de utilidad
     public function getStatusTextAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'REGISTRADO' => 'Registrado',
             'FACTURADO' => 'Facturado',
             'ANULADO' => 'Anulado',
@@ -68,7 +72,7 @@ class VntInvoices extends Model
 
     public function getPaymentStatusTextAttribute(): string
     {
-        return match($this->status_payment) {
+        return match ($this->status_payment) {
             'REGISTRADO' => 'Registrado',
             'ABONO' => 'Abono',
             'PAGADO' => 'Pagado',
