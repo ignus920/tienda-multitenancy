@@ -194,6 +194,8 @@ class InvoiceDataBuilder
 
             $itemsAlegra[] = [
                 'id' => (string)$idAlegra,
+                'name' => (string)($product->name ?: 'Producto sin nombre'),
+                'description' => (string)($product->description ?: $product->name ?: 'Producto'),
                 'price' => $finalPrice,
                 'quantity' => intval($detalle->quantity ?: 1),
                 'tax' => [['id' => (string)$taxIdAlegra]],
