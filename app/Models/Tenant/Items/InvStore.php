@@ -12,11 +12,11 @@ class InvStore extends Model
     protected $connection = 'tenant';
 
     protected $table = 'inv_store';
-    
+
     // Specify custom timestamp column names
-    const CREATED_AT = 'createdAt';
-    const UPDATED_AT = 'updatedAt';
-    const DELETED_AT = 'deletedAt';
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'updated_at';
+    const DELETED_AT = 'deleted_at';
 
     protected $fillable = [
         'name',
@@ -25,14 +25,14 @@ class InvStore extends Model
         'status',
         'api_data_id',
     ];
-    
+
     protected $casts = [
         'id' => 'integer',
         'warehouseId' => 'integer',
         'store_manager' => 'integer',
         'status' => 'integer',
-        'createdAt' => 'datetime',
-        'updatedAt' => 'datetime',
-        'deletedAt' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 }

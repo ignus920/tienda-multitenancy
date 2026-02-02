@@ -84,6 +84,30 @@ class InvRemissions extends Model
     }
 
     /**
+     * Relación con la factura a través de vnt_invoicesXsales
+     * Permite obtener la factura asociada a esta remisión (individual o agrupada)
+     */
+    public function invoice()
+    {
+        return $this->hasOneThrough(
+            \App\Models\Tenant\Invoices\VntInvoices::class,
+            \App\Models\Tenant\Invoices\VntInvoicesXsales::class,
+            'remissionId', // Foreign key en vnt_invoicesXsales
+            'id',          // Foreign key en vnt_invoices
+            'id',          // Local key en inv_remissions
+            'invoiceId'    // Local key en vnt_invoicesXsales
+        );
+    }
+
+    /**
+     * Relación directa con el registro en vnt_invoicesXsales
+     */
+    public function invoiceSale()
+    {
+        return $this->hasOne(\App\Models\Tenant\Invoices\VntInvoicesXsales::class, 'remissionId', 'id');
+    }
+
+    /**
      * Getters para compatibilidad con las vistas de impresión del cotizador
      */
     public function getDetallesAttribute()

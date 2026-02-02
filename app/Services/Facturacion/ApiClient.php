@@ -91,6 +91,15 @@ class ApiClient
                 'response_size' => strlen(json_encode($responseData))
             ]);
 
+            // Logging adicional para errores de stamp
+            if (!$response->successful() && str_contains($endpoint, 'stamp')) {
+                Log::error('❌ Error detallado en stamp', [
+                    'endpoint' => $endpoint,
+                    'full_response' => $responseData,
+                    'raw_body' => $response->body()
+                ]);
+            }
+
             $result = [
                 'success' => $response->successful(),
                 'status' => $statusCode,
@@ -397,6 +406,14 @@ class ApiClient
     public function deleteInvoice(int $id): array
     {
         return $this->makeRequest('delete', "invoices/{$id}");
+    }
+
+    /**
+     * Emitir (stamp) facturas
+     */
+    public function stampInvoice(int $id): array
+    {
+        return $this->makeRequest('post', "invoices/stamp", ['ids' => [(string)$id]]);
     }
 
     // =================== MÉTODOS GENÉRICOS ===================

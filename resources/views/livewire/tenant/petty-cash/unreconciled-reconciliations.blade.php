@@ -155,11 +155,13 @@
                                             
                                             Ver Detalle
                                         </button>
+                                        @if ($this->profileUser == 2 || (Auth::id() == $reconciliation->userId))
                                         <button wire:click="ticketPettyCash({{ $reconciliation->id }}, {{ $pettyCash_id }})"
                                             class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
                                             <x-heroicon-o-document class="w-6 h-6 mr-1" />
                                             PDF
                                         </button>
+                                        @endif
                                     </div>
                                 </div>
                             </div>

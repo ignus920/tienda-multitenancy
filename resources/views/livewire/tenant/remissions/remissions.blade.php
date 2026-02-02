@@ -123,11 +123,11 @@
                                 </svg>
                             </div>
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center space-x-1">
-                                <span>ESTADO</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                <span>FACTURA</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                             </div>
                         </th>
@@ -172,9 +172,11 @@
                     @forelse($remissions as $remission)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-4 py-4 text-center">
-                                @if($remission->status === 'REGISTRADO')
+                                @if($remission->status === 'REGISTRADO' && !$remission->invoice)
                                     <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
                                         class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                @elseif($remission->invoice)
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">Ya facturada</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
@@ -187,12 +189,25 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                    @if($remission->status === 'REGISTRADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                    @elseif($remission->status === 'ANULADO') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                    @else bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @endif">
-                                    {{ $remission->status }}
-                                </span>
+                                @if($remission->invoice)
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                            @if($remission->invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                            @elseif($remission->invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
+                                            {{ $remission->invoice->status }}
+                                        </span>
+                                        @if($remission->invoice->invoiceNumber)
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                #{{ $remission->invoice->invoiceNumber }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                        Sin facturar
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
                                 {{ $remission->store?->name ?? 'N/A' }}
@@ -249,7 +264,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
+                            <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
                                 No se encontraron remisiones.
                             </td>
                         </tr>
@@ -267,35 +282,31 @@
     </div>
 
     <!-- Modal de Detalle de Remisión -->
-    <div x-data="{ show: @entangle('showDetailModal') }"
-         x-show="show"
-         class="fixed inset-0 z-[60] overflow-y-auto"
-         style="display: none;"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0">
-        
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+    <template x-teleport="body">
+        <div x-data="{ show: @entangle('showDetailModal') }"
+             x-show="show"
+             class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+             style="display: none;"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            
             <!-- Overlay -->
-            <div class="fixed inset-0 transition-opacity" aria-hidden="true" @click="show = false">
-                <div class="absolute inset-0 bg-gray-500 dark:bg-slate-900 opacity-75"></div>
-            </div>
+            <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
 
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <!-- Modal Content -->
-            <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border border-gray-200 dark:border-slate-700"
+            <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-2xl border border-gray-200 dark:border-slate-700 max-h-[90vh] flex flex-col"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                  x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                  x-transition:leave="transition ease-in duration-200"
                  x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                
+
                 @if($selectedRemission)
+
                     <!-- Header -->
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
                         <div>
@@ -315,7 +326,7 @@
                     </div>
 
                     <!-- Body -->
-                    <div class="p-6">
+                    <div class="p-6 overflow-y-auto">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <!-- Info Cliente -->
                             <div class="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700">
@@ -421,5 +432,169 @@
                 @endif
             </div>
         </div>
-    </div>
+    </template>
+
+    <!-- Modal de Confirmación de Facturación -->
+    <template x-teleport="body">
+        <div x-data="{ show: @entangle('showInvoiceModal') }"
+             x-show="show"
+             class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+             style="display: none;"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+
+            <!-- Overlay -->
+            <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
+
+            <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-xl border border-gray-200 dark:border-slate-700 max-h-[90vh] flex flex-col"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+
+
+
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                            <svg class="w-6 h-6 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Confirmar Facturación de Remisiones
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                            Revise la información antes de proceder con la facturación
+                        </p>
+                    </div>
+                    <button wire:click="closeInvoiceModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="p-6 overflow-y-auto">
+                    <!-- Información del Cliente -->
+                    @if($selectedCustomer)
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800 mb-6">
+                        <h4 class="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Cliente a Facturar
+                        </h4>
+                        <div class="flex flex-col sm:flex-row sm:justify-between gap-4">
+                            <div class="flex-1">
+                                <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">Nombre/Razón Social:</span>
+                                <p class="text-base font-bold text-gray-900 dark:text-white truncate">
+                                    {{ $selectedCustomer->businessName ?: ($selectedCustomer->firstName . ' ' . $selectedCustomer->lastName) }}
+                                </p>
+                            </div>
+                            <div class="sm:text-right">
+                                <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">Identificación:</span>
+                                <p class="text-base font-bold text-gray-900 dark:text-white">
+                                    {{ $selectedCustomer->identification }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    @endif
+
+                    <!-- Resumen de Remisiones -->
+                    <div class="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700 mb-6">
+                        <h4 class="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Remisiones Seleccionadas
+                        </h4>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ count($selectedRemissionsData) }}</p>
+                                <p class="text-sm text-gray-500 dark:text-slate-400">Remisiones</p>
+                            </div>
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $totalItems }}</p>
+                                <p class="text-sm text-gray-500 dark:text-slate-400">Items Totales</p>
+                            </div>
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                    ${{ number_format(array_sum(array_column($selectedRemissionsData, 'total_value')), 2, ',', '.') }}
+                                </p>
+                                <p class="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Remisiones -->
+                        @if(count($selectedRemissionsData) > 0)
+                        <div class="space-y-2">
+                            @foreach($selectedRemissionsData as $remissionData)
+                            <div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                                <div class="flex-1">
+                                    <span class="font-semibold text-gray-900 dark:text-white">Remisión #{{ $remissionData['consecutive'] }}</span>
+                                    <span class="text-sm text-gray-500 dark:text-slate-400 ml-2">{{ $remissionData['created_at'] }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-sm text-gray-600 dark:text-slate-400">{{ $remissionData['items_count'] }} items</span>
+                                    <span class="ml-3 font-semibold text-gray-900 dark:text-white">
+                                        ${{ number_format($remissionData['total_value'], 2, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Advertencia -->
+                    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                        <div class="flex">
+                            <svg class="w-5 h-5 text-amber-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <div>
+                                <h5 class="text-sm font-semibold text-amber-700 dark:text-amber-300">Importante</h5>
+                                <p class="text-sm text-amber-600 dark:text-amber-400 mt-1">
+                                    Al confirmar, se creará una factura electrónica para todas las remisiones seleccionadas.
+                                    Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
+                    <button wire:click="closeInvoiceModal"
+                            class="px-6 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    <button wire:click="confirmarFacturacion"
+                            wire:loading.attr="disabled"
+                            wire:target="confirmarFacturacion"
+                            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center transition-colors disabled:opacity-50">
+                        <svg wire:loading.remove wire:target="confirmarFacturacion" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <svg wire:loading wire:target="confirmarFacturacion" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span wire:loading.remove wire:target="confirmarFacturacion">Confirmar Facturación</span>
+                        <span wire:loading wire:target="confirmarFacturacion">Procesando...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>

@@ -52,10 +52,17 @@ class VntQuote extends Model
     }
 
     // Métodos de utilidad
-    public function getTotalAttribute()
+    public function getSubTotalAttribute()
     {
         return $this->detalles->sum(function ($detalle) {
             return $detalle->quantity * $detalle->value;
+        });
+    }
+
+    public function getTotalAttribute()
+    {
+        return $this->detalles->sum(function ($detalle) {
+            return ($detalle->value + ($detalle->value * $detalle->tax / 100)) * $detalle->quantity;
         });
     }
 
@@ -86,7 +93,7 @@ class VntQuote extends Model
 
         // Cargar el usuario desde la base de datos central
         $user = \App\Models\Auth\User::on('central')->find($this->userId);
-        
+
         return $user ? $user->name : 'Sin vendedor';
     }
 
@@ -117,7 +124,7 @@ class VntQuote extends Model
 
         // Obtener el usuario de la cotización
         $user = \App\Models\Auth\User::find($this->userId);
-        
+
         if (!$user || !$user->contact_id) {
             \Illuminate\Support\Facades\Log::warning('⚠️ Usuario no encontrado o sin contacto', [
                 'quote_id' => $this->id,
@@ -128,7 +135,7 @@ class VntQuote extends Model
 
         // Obtener el contacto del usuario desde la BD central
         $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
-        
+
         if (!$contact || !$contact->store) {
             \Illuminate\Support\Facades\Log::warning('⚠️ Contacto sin bodega asignada', [
                 'quote_id' => $this->id,
@@ -139,9 +146,9 @@ class VntQuote extends Model
 
         // Obtener el nombre de la bodega desde inv_store en la BD tenant
         $store = \App\Models\Tenant\Movements\InvStore::on('tenant')->find($contact->store);
-        
+
         $storeName = $store ? $store->name : 'Bodega no encontrada';
-        
+
         \Illuminate\Support\Facades\Log::info('✅ Bodega obtenida para cotización', [
             'quote_id' => $this->id,
             'store_id' => $contact->store,

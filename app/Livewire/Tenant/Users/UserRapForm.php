@@ -515,6 +515,7 @@ class UserRapForm extends Component
             Log::info('Validation error in save method', [
                 'errors' => $e->errors(),
             ]);
+            throw $e;
         } catch (\Exception $e) {
             $this->errorMessage = 'Error inesperado: ' . $e->getMessage();
             Log::error('Unexpected error in save method', [

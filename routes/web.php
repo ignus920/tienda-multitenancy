@@ -44,7 +44,7 @@ Route::get('/tenant/dashboard', TenantDashboard::class)
     ->name('tenant.dashboard');
 
 
-    
+
 
 // Módulo de Clientes (requiere autenticación, datos completos y tenant seleccionado)
 Route::get('/tenant/customers', CustomerManager::class)
@@ -56,7 +56,7 @@ Route::get('/tenant/warehouses', WarehouseManager::class)
     ->middleware('tenant')
     ->name('tenant.warehouses');
 
-     
+
 
 
 // Configuración de 2FA (requiere autenticación y datos completos)
@@ -148,18 +148,18 @@ Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->grou
 
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 // Incluir rutas del módulo de parámetros del tenant
-require __DIR__.'/tenants/parameters.php';
+require __DIR__ . '/tenants/parameters.php';
 // Incluir rutas del módulo de pagos de cotizacion 
-require __DIR__.'/tenants/payments.php';
+require __DIR__ . '/tenants/payments.php';
+
+
 // Incluir rutas del módulo de remisiones 
-require __DIR__.'/tenants/remissions.php';
+require __DIR__ . '/tenants/remissions.php';
+
+//Incluir rutas del módelo de facturas
+require __DIR__ . '/tenants/invoices.php';
 // Incluir rutas del módulo de usuarios
 require __DIR__.'/tenants/users.php';
-
-
-
-
-

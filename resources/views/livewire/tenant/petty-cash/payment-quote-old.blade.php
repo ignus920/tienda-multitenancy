@@ -84,7 +84,7 @@
 
                             <div class="flex justify-between text-lg font-bold">
                                 <span class="text-gray-900 dark:text-white">Total:</span>
-                                <span class="text-indigo-600 dark:text-indigo-400">${{ number_format($quoteTotal, 0, ',', '.') }}</span>
+                                <span class="text-indigo-600 dark:text-indigo-400">${{ number_format($quoteTotal, 2, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
@@ -126,7 +126,7 @@
                         <div class="space-y-3">
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Total Factura:</span>
-                                <span class="font-medium text-gray-900 dark:text-white">${{ number_format($quoteTotal, 0, ',', '.') }}</span>
+                                <span class="font-medium text-gray-900 dark:text-white">${{ number_format($quoteTotal, 2, ',', '.') }}</span>
                             </div>
 
                             <div class="flex justify-between">

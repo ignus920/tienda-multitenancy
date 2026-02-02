@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\Tenant\PettyCash\PettyCash as PettyCashModel;
+use App\Models\Auth\User;
 
 class UnreconciledReconciliations extends Component
 {
@@ -131,6 +132,11 @@ class UnreconciledReconciliations extends Component
         $this->ensureTenantConnection();
         $status = PettyCashModel::where('id', $this->pettyCash_id)->value('status');
         return $status;
+    }
+
+    public function getProfileUserProperty()
+    {
+        return User::where('id', Auth::id())->value('profile_id');
     }
 
     private function ensureTenantConnection(): void

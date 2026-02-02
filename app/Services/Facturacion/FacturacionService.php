@@ -141,6 +141,26 @@ class FacturacionService
     }
 
     /**
+     * Emitir (stamp) una factura en la API
+     */
+    public function stampInvoice(int $invoiceId): array
+    {
+        try {
+            Log::info('📄 Emitiendo (stamp) factura en API de facturación', ['invoice_id' => $invoiceId]);
+            return $this->apiClient->stampInvoice($invoiceId);
+        } catch (\Exception $e) {
+            Log::error('❌ Error emitiendo factura', [
+                'invoice_id' => $invoiceId,
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'success' => false,
+                'message' => 'Error emitiendo factura: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Validar configuración de facturación del tenant
      */
     public function validateConfiguration(): array
@@ -196,6 +216,133 @@ class FacturacionService
         }
 
         return [];
+    }
+
+    /**
+     * Consultar factura en Alegra para obtener saldo pendiente
+     */
+    public function getInvoiceBalance(string $invoiceId): array
+    {
+        try {
+            Log::info('🔍 Consultando saldo de factura en Alegra', [
+                'invoice_id' => $invoiceId
+            ]);
+
+            $response = $this->apiClient->get("invoices/{$invoiceId}");
+
+            if (isset($response['success']) && $response['success']) {
+                $invoiceData = $response['data'] ?? [];
+                $total = $invoiceData['total'] ?? 0;
+                $balance = $invoiceData['balance'] ?? $total; // Saldo pendiente
+
+                Log::info('💰 Saldo de factura obtenido', [
+                    'invoice_id' => $invoiceId,
+                    'total' => $total,
+                    'balance' => $balance,
+                    'paid_amount' => $total - $balance
+                ]);
+
+                return [
+                    'success' => true,
+                    'total' => $total,
+                    'balance' => $balance,
+                    'paid_amount' => $total - $balance
+                ];
+            } else {
+                Log::error('❌ Error consultando factura en Alegra', [
+                    'response' => $response
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => 'No se pudo consultar la factura en Alegra'
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción consultando factura en Alegra', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Error al consultar factura: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Registrar pago en Alegra
+     */
+    public function registerPayment(array $paymentData): array
+    {
+        try {
+            Log::info('📤 Enviando pago a API de Alegra', [
+                'payment_data' => $paymentData
+            ]);
+
+            $response = $this->apiClient->post('payments', $paymentData);
+
+            Log::info('🔄 Respuesta raw de API de pagos', [
+                'response' => $response
+            ]);
+
+            // Verificar estructura de respuesta según endpoints mostrados
+            if (isset($response['success']) && $response['success']) {
+                // Si la respuesta tiene estructura {success: true, data: {...}}
+                $paymentId = $response['data']['id'] ?? $response['data'] ?? null;
+
+                Log::info('✅ Pago registrado exitosamente en Alegra', [
+                    'payment_id' => $paymentId,
+                    'amount' => $paymentData['invoices'][0]['amount'] ?? null
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response['data'] ?? ['id' => $paymentId],
+                    'message' => 'Pago registrado exitosamente en Alegra'
+                ];
+            }
+            // Si la respuesta es solo el ID (según endpoint: return response()->json($result['data']['id']))
+            else if (isset($response['data']) && is_numeric($response['data']) && $response['data'] > 0) {
+                $paymentId = $response['data'];
+
+                Log::info('✅ Pago registrado exitosamente en Alegra (ID directo)', [
+                    'payment_id' => $paymentId,
+                    'amount' => $paymentData['invoices'][0]['amount'] ?? null
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => ['id' => $paymentId],
+                    'message' => 'Pago registrado exitosamente en Alegra'
+                ];
+            }
+            // Si la respuesta es 0 o error
+            else {
+                Log::error('❌ Error en respuesta de API de pagos Alegra', [
+                    'response' => $response
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => 'Error al registrar pago en Alegra (respuesta: 0 o inválida)',
+                    'response' => $response
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción registrando pago en Alegra', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Error al conectar con API de pagos: ' . $e->getMessage()
+            ];
+        }
     }
 
     /**
