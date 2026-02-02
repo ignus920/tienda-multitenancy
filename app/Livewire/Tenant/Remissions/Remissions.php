@@ -10,7 +10,13 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Central\VntWarehouse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Jenssegers\Agent\Agent;
+use App\Services\Facturacion\TenantConfigManager;
+use App\Services\Facturacion\FacturacionService;
+use App\Services\Facturacion\InvoiceDataBuilder;
+use App\Models\Tenant\Invoices\VntInvoices;
+use App\Models\Tenant\Invoices\VntInvoicesXsales;
 
 class Remissions extends Component
 {
@@ -33,6 +39,12 @@ class Remissions extends Component
     // Propiedades para el modal de detalle
     public $showDetailModal = false;
     public $selectedRemission = null;
+
+    // Propiedades para modal de facturación
+    public $showInvoiceModal = false;
+    public $selectedCustomer = null;
+    public $selectedRemissionsData = [];
+    public $totalItems = 0;
 
     protected $paginationTheme = 'tailwind';
 
@@ -74,16 +86,80 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
         if ($value) {
-            $this->selectedRemissions = InvRemissions::query()
+            // Obtener primera remisión para determinar el cliente
+            $firstRemission = InvRemissions::with('quote.customer')
                 ->when($this->search, function ($query) {
                     $this->applyBaseFilters($query);
                 })
-                ->where('status', 'REGISTRADO') // Solo se facturan las registradas
+                ->where('status', 'REGISTRADO')
+                ->first();
+
+            if ($firstRemission && $firstRemission->quote && $firstRemission->quote->customer) {
+                $customerId = $firstRemission->quote->customerId;
+
+                // Solo seleccionar remisiones del mismo cliente
+                $this->selectedRemissions = InvRemissions::query()
+                    ->when($this->search, function ($query) {
+                        $this->applyBaseFilters($query);
+                    })
+                    ->where('status', 'REGISTRADO')
+                    ->whereHas('quote', function ($query) use ($customerId) {
+                        $query->where('customerId', $customerId);
+                    })
+                    ->pluck('id')
+                    ->map(fn($id) => (string) $id)
+                    ->toArray();
+            } else {
+                $this->selectedRemissions = [];
+            }
+        } else {
+            $this->selectedRemissions = [];
+        }
+    }
+
+    /**
+     * Maneja la selección individual de remisiones (validando mismo cliente)
+     */
+    public function updatedSelectedRemissions($value)
+    {
+        $this->ensureTenantConnection();
+
+        if (empty($this->selectedRemissions)) {
+            return;
+        }
+
+        // Obtener cliente de las remisiones ya seleccionadas
+        $selectedCustomerId = null;
+        if (!empty($this->selectedRemissions)) {
+            $existingRemission = InvRemissions::with('quote.customer')
+                ->whereIn('id', $this->selectedRemissions)
+                ->first();
+
+            if ($existingRemission && $existingRemission->quote) {
+                $selectedCustomerId = $existingRemission->quote->customerId;
+            }
+        }
+
+        // Si hay un cliente ya seleccionado, validar que las nuevas selecciones sean del mismo cliente
+        if ($selectedCustomerId) {
+            $validRemissions = InvRemissions::with('quote.customer')
+                ->whereIn('id', $this->selectedRemissions)
+                ->whereHas('quote', function ($query) use ($selectedCustomerId) {
+                    $query->where('customerId', $selectedCustomerId);
+                })
                 ->pluck('id')
                 ->map(fn($id) => (string) $id)
                 ->toArray();
-        } else {
-            $this->selectedRemissions = [];
+
+            // Si hay remisiones de diferentes clientes, mantener solo las válidas
+            if (count($validRemissions) !== count($this->selectedRemissions)) {
+                $this->selectedRemissions = $validRemissions;
+
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Solo se pueden seleccionar remisiones del mismo cliente. Se han deseleccionado las remisiones de otros clientes.'
+                ]);
+            }
         }
     }
 
@@ -102,7 +178,7 @@ class Remissions extends Component
     }
 
     /**
-     * Procesa la facturación masiva de las remisiones seleccionadas
+     * Abre el modal de confirmación de facturación
      */
     public function facturarMasivo()
     {
@@ -114,47 +190,198 @@ class Remissions extends Component
             return;
         }
 
+        // Verificar módulo de facturación
+        if (!$this->isInvoiceModuleActive) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'El módulo de facturación no está activo.'
+            ]);
+            return;
+        }
+
         $this->ensureTenantConnection();
 
         try {
-            $remisiones = InvRemissions::with(['quote.customer'])
+            // Cargar remisiones con detalles y cliente (solo las NO facturadas)
+            $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
+                ->where('status', 'REGISTRADO')
+                ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
                 ->get();
 
-            // Agrupamos por cliente para la facturación
-            $agrupados = $remisiones->groupBy(function($r) {
-                return $r->quote->customerId ?? 'sin_cliente';
-            });
+            if ($remisiones->isEmpty()) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No se encontraron remisiones válidas para facturar.'
+                ]);
+                return;
+            }
 
-            Log::info('🚀 Iniciando Facturación Masiva', [
-                'count' => count($this->selectedRemissions),
-                'clientes_unicos' => $agrupados->count(),
-                'remisiones_ids' => $this->selectedRemissions
+            // Obtener el cliente (todas las remisiones deben ser del mismo cliente)
+            $this->selectedCustomer = $remisiones->first()->quote->customer;
+
+            // Preparar datos de las remisiones para el modal
+            $this->selectedRemissionsData = [];
+            $this->totalItems = 0;
+
+            foreach ($remisiones as $remission) {
+                $itemsCount = $remission->details->count();
+                $this->totalItems += $itemsCount;
+
+                $this->selectedRemissionsData[] = [
+                    'id' => $remission->id,
+                    'consecutive' => $remission->consecutive,
+                    'items_count' => $itemsCount,
+                    'created_at' => $remission->created_at->format('d/m/Y H:i'),
+                    'total_value' => $remission->details->sum(function($detail) {
+                        return $detail->quantity * $detail->value;
+                    })
+                ];
+            }
+
+            Log::info('📋 Preparando modal de facturación', [
+                'remisiones_count' => count($this->selectedRemissionsData),
+                'customer_id' => $this->selectedCustomer->id ?? null,
+                'customer_name' => $this->selectedCustomer->businessName ?? $this->selectedCustomer->firstName,
+                'total_items' => $this->totalItems
             ]);
 
-            /**
-             * NOTA TÉCNICA PARA FUTURA INTEGRACIÓN:
-             * Aquí se debe integrar con el UnifiedController de Factura Electrónica.
-             * 1. Validar que el cliente tenga datos completos para DIAN.
-             * 2. Crear el objeto Invoice consolidando los items de todas las remisiones del grupo.
-             * 3. Consumir el servicio (Alegra, Siigo, etc.)
-             * 4. Actualizar estado de remisiones a 'FACTURADO'.
-             */
+            // Mostrar modal de confirmación
+            $this->showInvoiceModal = true;
 
+        } catch (\Exception $e) {
+            Log::error('❌ Error preparando modal de facturación: ' . $e->getMessage());
             $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Procesando facturación para ' . $remisiones->count() . ' remisiones de ' . $agrupados->count() . ' clientes.'
+                'type' => 'error',
+                'message' => 'Error al preparar la facturación: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Cerrar modal de facturación
+     */
+    public function closeInvoiceModal()
+    {
+        $this->showInvoiceModal = false;
+        $this->selectedCustomer = null;
+        $this->selectedRemissionsData = [];
+        $this->totalItems = 0;
+    }
+
+    /**
+     * Confirmar y procesar la facturación desde el modal
+     */
+    public function confirmarFacturacion()
+    {
+        if (empty($this->selectedRemissions)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No hay remisiones seleccionadas para facturar.'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        try {
+            $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
+                ->whereIn('id', $this->selectedRemissions)
+                ->where('status', 'REGISTRADO')
+                ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
+                ->get();
+
+            if ($remisiones->isEmpty()) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No se encontraron remisiones válidas para facturar.'
+                ]);
+                return;
+            }
+
+            // Verificar configuración de facturación del tenant
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            if (!$tenant) {
+                throw new \Exception('No se pudo identificar el tenant');
+            }
+
+            $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
+            if (!$hasFacturacionConfig) {
+                throw new \Exception('No hay configuración de facturación para este tenant');
+            }
+
+            $facturadas = 0;
+            $errores = 0;
+
+            Log::info('🚀 Iniciando Facturación Confirmada desde Modal', [
+                'remisiones_count' => $remisiones->count(),
+                'remisiones_ids' => $this->selectedRemissions,
+                'customer_id' => $this->selectedCustomer->id ?? null,
+                'tenant_id' => $tenant->id
             ]);
 
-            // Limpiamos selección
+            // Verificar si hay múltiples remisiones para agrupar
+            if ($remisiones->count() > 1) {
+                // FACTURACIÓN AGRUPADA
+                try {
+                    $this->facturarRemisionesAgrupadas($remisiones, $tenant);
+                    $facturadas = $remisiones->count();
+                } catch (\Exception $e) {
+                    $errores = $remisiones->count();
+                    Log::error('❌ Error facturando remisiones agrupadas', [
+                        'remisiones_ids' => $remisiones->pluck('id')->toArray(),
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            } else {
+                // FACTURACIÓN INDIVIDUAL (una sola remisión)
+                foreach ($remisiones as $remission) {
+                    try {
+                        $this->facturarRemisionIndividual($remission, $tenant);
+                        $facturadas++;
+                    } catch (\Exception $e) {
+                        $errores++;
+                        Log::error('❌ Error facturando remisión individual', [
+                            'remission_id' => $remission->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+
+            // Cerrar modal
+            $this->closeInvoiceModal();
+
+            // Limpiar selección
             $this->selectedRemissions = [];
             $this->selectAll = false;
 
+            // Mostrar resultado
+            if ($facturadas > 0 && $errores == 0) {
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "✅ {$facturadas} remisiones facturadas y emitidas exitosamente."
+                ]);
+            } elseif ($facturadas > 0 && $errores > 0) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => "⚠️ {$facturadas} facturadas exitosamente, {$errores} con errores. Revise los detalles en los logs."
+                ]);
+            } else {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => "❌ No se pudo facturar ninguna remisión. Revise la configuración de facturación y los datos de los productos."
+                ]);
+            }
+
         } catch (\Exception $e) {
-            Log::error('❌ Error en facturarMasivo: ' . $e->getMessage());
+            $this->closeInvoiceModal();
+            Log::error('❌ Error en confirmarFacturacion: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'Error al procesar facturación masiva.'
+                'message' => 'Error al procesar facturación: ' . $e->getMessage()
             ]);
         }
     }
@@ -166,10 +393,13 @@ class Remissions extends Component
     {
         $query->where(function($q) {
             $q->where('consecutive', 'like', '%' . $this->search . '%')
-                ->orWhere('status', 'like', '%' . $this->search . '%')
                 ->orWhereHas('quote.customer', function ($sub) {
                     $sub->where('firstName', 'like', '%' . $this->search . '%')
                       ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                })
+                ->orWhereHas('invoice', function ($sub) {
+                    $sub->where('status', 'like', '%' . $this->search . '%')
+                        ->orWhere('invoiceNumber', 'like', '%' . $this->search . '%');
                 });
         });
 
@@ -509,7 +739,7 @@ class Remissions extends Component
         ]);
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store'])
+        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice'])
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
                 $query->where('warehouseId', $storeId);
@@ -556,5 +786,478 @@ class Remissions extends Component
         return view('livewire.tenant.remissions.remissions', [
             'remissions' => $remissions
         ])->layout('layouts.app', ['header' => 'Remisiones']);
+    }
+
+    /**
+     * Facturar una remisión individual
+     * Proceso: 1) Crear factura SIN EMITIR, 2) Emitir factura (stamp)
+     */
+    private function facturarRemisionIndividual(InvRemissions $remission, Tenant $tenant): void
+    {
+        try {
+            Log::info('🧾 Iniciando facturación individual de remisión', [
+                'remission_id' => $remission->id,
+                'consecutive' => $remission->consecutive,
+                'tenant_id' => $tenant->id
+            ]);
+
+            // Cargar relaciones necesarias si no están cargadas
+            if (!$remission->relationLoaded('quote') || !$remission->relationLoaded('details')) {
+                $remission->load(['quote.customer', 'details.item']);
+            }
+
+            if (!$remission->quote || !$remission->quote->customer) {
+                throw new \Exception('Remisión sin cotización o cliente asociado');
+            }
+
+            if ($remission->details->isEmpty()) {
+                throw new \Exception('Remisión sin productos');
+            }
+
+            // Crear instancia del servicio de facturación
+            $facturacionService = FacturacionService::forTenant($tenant);
+
+            // Construir datos de la factura usando el InvoiceDataBuilder
+            // Para remisiones: establecer como CRÉDITO (no CASH)
+            $paymentMethods = [
+                [
+                    'descriptionFormaPago' => 'CREDITO',
+                    'nombre' => 'CREDITO',
+                    'valor' => $this->calculateRemissionTotal($remission) // Valor total de la remisión
+                ]
+            ];
+            $retentions = [];     // Sin retenciones
+            $termDays = 0;        // Sin términos
+
+            $invoiceData = InvoiceDataBuilder::buildFromQuote(
+                $remission->quote,  // Usamos la cotización asociada a la remisión
+                $paymentMethods,
+                $retentions,
+                $termDays
+            );
+
+            Log::info('📡 Enviando factura a API de Alegra desde remisión', [
+                'remission_id' => $remission->id,
+                'quote_id' => $remission->quote->id,
+                'invoice_data_summary' => [
+                    'client_id' => $invoiceData['client']['id'] ?? null,
+                    'items_count' => count($invoiceData['items'] ?? []),
+                    'payment_form' => $invoiceData['paymentForm'] ?? null,
+                    'has_payment_method' => isset($invoiceData['paymentMethod']),
+                    'payment_method_value' => $invoiceData['paymentMethod'] ?? 'not_set'
+                ],
+                'full_invoice_data' => $invoiceData
+            ]);
+
+            // 1. CREAR FACTURA EN ALEGRA (Estado inicial: SIN EMITIR)
+            $apiResponse = $facturacionService->createInvoice($invoiceData);
+
+            if (!$apiResponse['success'] || !isset($apiResponse['data']['id'])) {
+                $errorMessage = $apiResponse['message'] ?? 'Error desconocido en la API';
+                throw new \Exception("Error creando factura en API: {$errorMessage}");
+            }
+
+            $invoiceId = $apiResponse['data']['id'];
+            $invoiceNumber = $apiResponse['data']['fullNumber'] ?? $invoiceId;
+
+            // 2. CREAR REGISTRO LOCAL DE FACTURA CON ESTADO "SIN EMITIR"
+            $invoice = VntInvoices::create([
+                'consecutive' => $invoiceId, // Usar ID de Alegra como consecutivo temporal
+                'status' => 'SIN EMITIR', // Estado inicial
+                'quoteId' => $remission->quote->id,
+                'warehouseId' => $remission->warehouseId,
+                'api_data_id' => $invoiceId,
+                'invoiceNumber' => $invoiceNumber,
+                'partialPayment' => 0.00,
+                'retentionFuente' => 0.00,
+                'retentionIca' => 0.00,
+                'retentionIva' => 0.00,
+                'creditNote' => null,
+                'orderNumber' => null,
+                'remission' => 0 // Valor por defecto para nueva arquitectura
+            ]);
+
+            // 3. CREAR REGISTRO EN vnt_invoicesXsales
+            VntInvoicesXsales::create([
+                'remissionId' => $remission->id, // Desde remisión
+                'quoteId' => $remission->quote->id,
+                'invoiceId' => $invoice->id
+            ]);
+
+            Log::info('📄 Factura creada con estado SIN EMITIR, procediendo a emitir', [
+                'invoice_local_id' => $invoice->id,
+                'api_data_id' => $invoiceId,
+                'remission_id' => $remission->id
+            ]);
+
+            // 4. INTENTAR EMITIR (STAMP) LA FACTURA
+            $stampResponse = $facturacionService->stampInvoice($invoiceId);
+
+            if ($stampResponse['success']) {
+                // ✅ STAMP EXITOSO: Actualizar estado a FACTURADO
+                $invoice->update(['status' => 'FACTURADO']);
+                // La remisión mantiene su status original (REGISTRADO, etc.)
+
+                Log::info('✅ Factura emitida exitosamente desde remisión', [
+                    'remission_id' => $remission->id,
+                    'invoice_id_alegra' => $invoiceId,
+                    'invoice_number' => $invoiceNumber,
+                    'final_status' => 'FACTURADO'
+                ]);
+
+            } else {
+                // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
+                Log::error('❌ Falló la emisión legal (stamp) de remisión', [
+                    'remission_id' => $remission->id,
+                    'invoice_id' => $invoiceId,
+                    'stamp_response' => $stampResponse
+                ]);
+
+                // Extraer mensaje de error más específico
+                $errorMessage = $this->extractStampErrorMessage($stampResponse);
+
+                throw new \Exception("La factura #{$invoiceNumber} se creó exitosamente pero no se pudo emitir legalmente. Razón: {$errorMessage}. Puede intentar emitirla desde el módulo de facturas.");
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en facturarRemisionIndividual', [
+                'remission_id' => $remission->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Facturar múltiples remisiones agrupadas en una sola factura
+     */
+    private function facturarRemisionesAgrupadas($remisiones, Tenant $tenant): void
+    {
+        try {
+            $remissionIds = $remisiones->pluck('id')->toArray();
+
+            Log::info('🧾 Iniciando facturación agrupada de remisiones', [
+                'remisiones_count' => $remisiones->count(),
+                'remisiones_ids' => $remissionIds,
+                'tenant_id' => $tenant->id
+            ]);
+
+            // Cargar todas las relaciones necesarias
+            foreach ($remisiones as $remission) {
+                if (!$remission->relationLoaded('quote') || !$remission->relationLoaded('details')) {
+                    $remission->load(['quote.customer', 'details.item']);
+                }
+
+                if (!$remission->quote || !$remission->quote->customer) {
+                    throw new \Exception("Remisión {$remission->id} sin cotización o cliente asociado");
+                }
+            }
+
+            // Agrupar y validar items
+            $groupedItems = $this->groupRemissionItems($remisiones);
+
+            if (count($groupedItems) > 30) {
+                throw new \Exception("La factura agrupada supera el límite de 30 items (" . count($groupedItems) . " items). Seleccione menos remisiones.");
+            }
+
+            // Crear instancia del servicio de facturación
+            $facturacionService = FacturacionService::forTenant($tenant);
+
+            // Construir datos de la factura agrupada
+            $invoiceData = $this->buildGroupedInvoiceData($remisiones, $groupedItems);
+
+            Log::info('📡 Enviando factura agrupada a API de Alegra', [
+                'remisiones_ids' => $remissionIds,
+                'items_count' => count($groupedItems)
+            ]);
+
+            // 1. CREAR FACTURA EN ALEGRA
+            $apiResponse = $facturacionService->createInvoice($invoiceData);
+
+            if (!$apiResponse['success'] || !isset($apiResponse['data']['id'])) {
+                $errorMessage = $apiResponse['message'] ?? 'Error desconocido en la API';
+                throw new \Exception("Error creando factura agrupada en API: {$errorMessage}");
+            }
+
+            $invoiceId = $apiResponse['data']['id'];
+            $invoiceNumber = $apiResponse['data']['fullNumber'] ?? $invoiceId;
+
+            // 2. CREAR REGISTRO LOCAL DE FACTURA
+            $invoice = VntInvoices::create([
+                'consecutive' => $invoiceId,
+                'status' => 'SIN EMITIR',
+                'quoteId' => $remisiones->first()->quote->id, // Usar la primera cotización como referencia
+                'warehouseId' => $remisiones->first()->warehouseId,
+                'api_data_id' => $invoiceId,
+                'invoiceNumber' => $invoiceNumber,
+                'partialPayment' => 0.00,
+                'retentionFuente' => 0.00,
+                'retentionIca' => 0.00,
+                'retentionIva' => 0.00,
+                'creditNote' => null,
+                'orderNumber' => null,
+                'remission' => 0 // Valor por defecto para facturas agrupadas
+            ]);
+
+            // 3. CREAR REGISTROS EN vnt_invoicesXsales para TODAS las remisiones
+            foreach ($remisiones as $remission) {
+                VntInvoicesXsales::create([
+                    'remissionId' => $remission->id,
+                    'quoteId' => $remission->quote->id,
+                    'invoiceId' => $invoice->id
+                ]);
+            }
+
+            Log::info('📄 Factura agrupada creada, procediendo a emitir', [
+                'invoice_local_id' => $invoice->id,
+                'api_data_id' => $invoiceId,
+                'remisiones_asociadas' => $remissionIds
+            ]);
+
+            // 4. EMITIR (STAMP) LA FACTURA
+            $stampResponse = $facturacionService->stampInvoice($invoiceId);
+
+            if ($stampResponse['success']) {
+                // ✅ STAMP EXITOSO
+                $invoice->update(['status' => 'FACTURADO']);
+
+                Log::info('✅ Factura agrupada emitida exitosamente', [
+                    'remisiones_ids' => $remissionIds,
+                    'invoice_id_alegra' => $invoiceId,
+                    'invoice_number' => $invoiceNumber,
+                    'remisiones_count' => $remisiones->count()
+                ]);
+
+            } else {
+                // ❌ STAMP FALLÓ
+                $errorMessage = $this->extractStampErrorMessage($stampResponse);
+                throw new \Exception("La factura agrupada #{$invoiceNumber} se creó exitosamente pero no se pudo emitir legalmente. Razón: {$errorMessage}");
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en facturarRemisionesAgrupadas', [
+                'remisiones_ids' => $remisiones->pluck('id')->toArray(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Agrupar items de múltiples remisiones, sumando cantidades del mismo producto
+     */
+    private function groupRemissionItems($remisiones): array
+    {
+        $groupedItems = [];
+
+        foreach ($remisiones as $remission) {
+            foreach ($remission->details as $detail) {
+                $product = $detail->item;
+
+                if (!$product) {
+                    Log::warning('⚠️ Producto no encontrado para detalle en remisión agrupada', [
+                        'remission_id' => $remission->id,
+                        'detail_id' => $detail->id
+                    ]);
+                    continue;
+                }
+
+                // Usar el ID del producto como clave para agrupar
+                $productId = $product->id;
+
+                if (!isset($groupedItems[$productId])) {
+                    // Primera vez que vemos este producto
+                    $groupedItems[$productId] = [
+                        'product' => $product,
+                        'total_quantity' => 0,
+                        'price' => floatval($detail->value ?: 0), // Usar precio del primer item
+                        'remissions' => [] // Para tracking
+                    ];
+                }
+
+                // Sumar la cantidad
+                $groupedItems[$productId]['total_quantity'] += intval($detail->quantity ?: 1);
+                $groupedItems[$productId]['remissions'][] = $remission->id;
+            }
+        }
+
+        Log::info('📦 Items agrupados para factura', [
+            'total_productos_unicos' => count($groupedItems),
+            'detalle_agrupacion' => array_map(function($item) {
+                return [
+                    'product_id' => $item['product']->id,
+                    'product_name' => $item['product']->name,
+                    'total_quantity' => $item['total_quantity'],
+                    'price' => $item['price'],
+                    'from_remissions' => $item['remissions']
+                ];
+            }, $groupedItems)
+        ]);
+
+        return $groupedItems;
+    }
+
+    /**
+     * Construir datos de factura para múltiples remisiones agrupadas
+     */
+    private function buildGroupedInvoiceData($remisiones, $groupedItems): array
+    {
+        // Usar la primera remisión como base para datos del cliente
+        $firstRemission = $remisiones->first();
+        $quote = $firstRemission->quote;
+
+        // Calcular total de todas las remisiones
+        $totalValue = 0;
+        foreach ($remisiones as $remission) {
+            $totalValue += $this->calculateRemissionTotal($remission);
+        }
+
+        // Construir array de métodos de pago para CRÉDITO
+        $paymentMethods = [
+            [
+                'descriptionFormaPago' => 'CREDITO',
+                'nombre' => 'CREDITO',
+                'valor' => $totalValue
+            ]
+        ];
+
+        // Construir la factura usando el InvoiceDataBuilder pero con items agrupados
+        $invoiceData = InvoiceDataBuilder::buildFromQuote(
+            $quote,
+            $paymentMethods,
+            [], // Sin retenciones
+            0   // Sin términos
+        );
+
+        // REEMPLAZAR los items con nuestros items agrupados
+        $invoiceData['items'] = $this->buildGroupedItemsForAlegra($groupedItems);
+
+        // Agregar información de agrupación para tracking
+        $invoiceData['remissionIds'] = $remisiones->pluck('id')->toArray();
+        $invoiceData['es_agrupado'] = true;
+        $invoiceData['total_remisiones'] = $remisiones->count();
+
+        return $invoiceData;
+    }
+
+    /**
+     * Construir items agrupados en formato para API de Alegra
+     */
+    private function buildGroupedItemsForAlegra($groupedItems): array
+    {
+        $itemsAlegra = [];
+
+        foreach ($groupedItems as $productId => $itemData) {
+            $product = $itemData['product'];
+            $quantity = $itemData['total_quantity'];
+            $price = $itemData['price'];
+
+            // Obtener ID de Alegra del producto
+            $idAlegra = $product->api_data_id ?? $product->id_alegra ?? $product->alegra_id ?? null;
+            if (empty($idAlegra)) {
+                Log::warning('⚠️ Producto agrupado sin ID de Alegra', [
+                    'product_id' => $product->id,
+                    'name' => $product->name
+                ]);
+                continue;
+            }
+
+            // Obtener tax ID
+            $taxIdAlegra = $product->tax_api_data_id ?? $product->taxIdAlegra ?? $product->tax_id_alegra ?? '3';
+
+            // Calcular precio sin IVA (igual que en individual)
+            $originalPriceWithIva = floatval($price);
+            $targetSubtotal = round($originalPriceWithIva / 1.19, 0);
+            $finalPrice = $targetSubtotal;
+
+            $itemsAlegra[] = [
+                'id' => (string)$idAlegra,
+                'name' => (string)($product->name ?: 'Producto sin nombre'),
+                'description' => (string)($product->description ?: $product->name ?: 'Producto agrupado'),
+                'price' => $finalPrice,
+                'quantity' => $quantity, // Cantidad agrupada
+                'tax' => [['id' => (string)$taxIdAlegra]],
+                'reference' => (string)($product->sku ?: $product->internal_code ?: $product->id)
+            ];
+        }
+
+        return $itemsAlegra;
+    }
+
+    /**
+     * Calcular el total de una remisión
+     */
+    private function calculateRemissionTotal(InvRemissions $remission): float
+    {
+        return $remission->details->sum(function($detail) {
+            return $detail->quantity * $detail->value;
+        });
+    }
+
+    /**
+     * Extraer mensaje de error más claro del response de stamp
+     */
+    private function extractStampErrorMessage(array $stampResponse): string
+    {
+        // Buscar mensaje en diferentes ubicaciones del response
+        $message = '';
+
+        if (isset($stampResponse['data']['error_details']['error'][0]['message'])) {
+            $message = $stampResponse['data']['error_details']['error'][0]['message'];
+        } elseif (isset($stampResponse['data']['message'])) {
+            $message = $stampResponse['data']['message'];
+        } elseif (isset($stampResponse['message'])) {
+            $message = $stampResponse['message'];
+        } else {
+            return 'Error desconocido en la emisión';
+        }
+
+        // Limpiar el mensaje para hacerlo más entendible al usuario
+        if (str_contains($message, 'La factura electrónica de venta no se ha podido emitir porque no cumple con las validaciones necesarias:')) {
+            // Extraer solo las reglas de validación
+            $message = str_replace('La factura electrónica de venta no se ha podido emitir porque no cumple con las validaciones necesarias:', '', $message);
+            $message = strip_tags($message); // Quitar HTML
+            $message = str_replace(['<ul>', '</ul>', '<li>', '</li>'], ['', '', '• ', "\n"], $message);
+            $message = trim($message);
+        }
+
+        // Traducir algunos errores comunes
+        if (str_contains($message, 'medio de pago informado es invalido')) {
+            $message .= ' - Verifique la configuración del método de pago.';
+        }
+
+        if (str_contains($message, 'debe existir el grupo de información de identificación del bien o servicio')) {
+            $message .= ' - Revise que los productos tengan toda la información requerida.';
+        }
+
+        if (str_contains($message, 'nombre informado no corresponde al registrado en el rut')) {
+            $message .= ' - Verifique que los datos del cliente estén actualizados en el RUT.';
+        }
+
+        return $message;
+    }
+
+    /**
+     * Propiedad computada para verificar si el módulo de facturación está activo
+     */
+    public function getIsInvoiceModuleActiveProperty()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $result = DB::connection('tenant')
+                ->table('cnf_company_options')
+                ->where('option_id', 8) // ID para FACTURACION_ELECTRONICA o similar
+                ->value('value');
+
+            return (bool) $result;
+        } catch (\Exception $e) {
+            Log::error('❌ Error verificando módulo de facturación en Remissions', [
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 }
