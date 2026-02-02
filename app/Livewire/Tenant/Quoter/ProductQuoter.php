@@ -349,7 +349,8 @@ class ProductQuoter extends Component
                 'name' => $product->display_name,
                 'sku' => $product->sku,
                 'price' => $selectedPrice,
-                'tax' => $product->tax->name,
+                'tax' => $product->tax->percentage,
+                'tax_label' => $product->tax->name,
                 'price_label' => $priceLabel,
                 'quantity' => 1,
                 'description' => $product->description,
@@ -488,7 +489,8 @@ class ProductQuoter extends Component
             foreach ($this->quoterItems as $item) {
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
-                    'tax' => $item['tax'], // Puedes ajustar esto según tus necesidades
+                    'tax' => $item['tax'],
+                    'tax_label' => $item['tax_label'],
                     'value' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
@@ -980,7 +982,8 @@ class ProductQuoter extends Component
                         'price_label' => 'Precio seleccionado', // Podrías mejorarlo para detectar el label correcto
                         'quantity' => $detalle->quantity,
                         'description' => $product->description,
-                        'tax' => $product->tax->name,
+                        'tax' => $product->tax->percentage,
+                        'tax_label' => $product->tax->name,
                     ];
                 }
             }
@@ -1045,6 +1048,7 @@ class ProductQuoter extends Component
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
                     'tax' => $item['tax'],
+                    'tax_label' => $item['tax_label'],
                     'value' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
@@ -1153,6 +1157,7 @@ class ProductQuoter extends Component
                 InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
                     'tax' => $item['tax'],
+                    'tax_label' => $item['tax_label'],
                     'value' => $item['price'],
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],
@@ -1704,7 +1709,8 @@ class ProductQuoter extends Component
                         'price_label' => 'Precio remisión',
                         'quantity' => $detalle->quantity,
                         'description' => $detalle->item->description,
-                        'tax' => $detalle->tax ?? 'N/A',
+                        'tax' => $detalle->tax ?? 0,
+                        'tax_label' => $detalle->tax_label ?? 'N/A',
                     ];
                 }
             }

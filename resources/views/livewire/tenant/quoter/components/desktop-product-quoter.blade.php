@@ -386,7 +386,7 @@ $header = 'Seleccionar productos';
                                     @if(isset($item['price_label']))
                                     <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
                                     @endif
-                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Impuesto: {{ $item['tax']}}</p>
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Impuesto: {{ $item['tax_label']}}</p>
                                 </div>
                             </div>
                             <button wire:click="removeFromQuoter({{ $index }})"

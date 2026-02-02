@@ -499,7 +499,7 @@ $header = 'Seleccionar productos';
                                             @if(isset($item['price_label']))
                                             <p class="text-[10px] text-indigo-600 dark:text-indigo-400 mt-0.5">Precio: {{ $item['price_label'] }}</p>
                                             @endif
-                                            <p class="text-xs text-indigo-600 dark:text-indigo-400">@Impuesto: {{ $item['tax'] }}</p>
+                                            <p class="text-xs text-indigo-600 dark:text-indigo-400">@Impuesto: {{ $item['tax_label'] }}</p>
                                         </div>
                                             
                                     </div>
