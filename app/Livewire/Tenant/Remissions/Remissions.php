@@ -73,11 +73,26 @@ class Remissions extends Component
         $this->resetPage();
     }
 
-    public function updatingSearchNit() { $this->resetPage(); }
-    public function updatingSearchName() { $this->resetPage(); }
-    public function updatingSearchQuote() { $this->resetPage(); }
-    public function updatingSearchStartDate() { $this->resetPage(); }
-    public function updatingSearchEndDate() { $this->resetPage(); }
+    public function updatingSearchNit()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchName()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchQuote()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchStartDate()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchEndDate()
+    {
+        $this->resetPage();
+    }
 
     /**
      * Maneja la selección de todas las remisiones en la página actual
@@ -233,7 +248,7 @@ class Remissions extends Component
                     'consecutive' => $remission->consecutive,
                     'items_count' => $itemsCount,
                     'created_at' => $remission->created_at->format('d/m/Y H:i'),
-                    'total_value' => $remission->details->sum(function($detail) {
+                    'total_value' => $remission->details->sum(function ($detail) {
                         return $detail->quantity * $detail->value;
                     })
                 ];
@@ -248,7 +263,6 @@ class Remissions extends Component
 
             // Mostrar modal de confirmación
             $this->showInvoiceModal = true;
-
         } catch (\Exception $e) {
             Log::error('❌ Error preparando modal de facturación: ' . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -373,7 +387,6 @@ class Remissions extends Component
                     'message' => "❌ No se pudo facturar ninguna remisión. Revise la configuración de facturación y los datos de los productos."
                 ]);
             }
-
         } catch (\Exception $e) {
             $this->closeInvoiceModal();
             Log::error('❌ Error en confirmarFacturacion: ' . $e->getMessage(), [
@@ -391,11 +404,11 @@ class Remissions extends Component
      */
     private function applyBaseFilters($query)
     {
-        $query->where(function($q) {
+        $query->where(function ($q) {
             $q->where('consecutive', 'like', '%' . $this->search . '%')
                 ->orWhereHas('quote.customer', function ($sub) {
                     $sub->where('firstName', 'like', '%' . $this->search . '%')
-                      ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                        ->orWhere('lastName', 'like', '%' . $this->search . '%');
                 })
                 ->orWhereHas('invoice', function ($sub) {
                     $sub->where('status', 'like', '%' . $this->search . '%')
@@ -405,20 +418,20 @@ class Remissions extends Component
 
         // Búsqueda avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer', function($q) {
+            $query->whereHas('quote.customer', function ($q) {
                 $q->where('identification', 'like', '%' . $this->searchNit . '%');
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote.customer', function($q) {
+            $query->whereHas('quote.customer', function ($q) {
                 $q->where('firstName', 'like', '%' . $this->searchName . '%')
-                  ->orWhere('lastName', 'like', '%' . $this->searchName . '%');
+                    ->orWhere('lastName', 'like', '%' . $this->searchName . '%');
             });
         }
 
         if ($this->searchQuote) {
-            $query->whereHas('quote', function($q) {
+            $query->whereHas('quote', function ($q) {
                 $q->where('consecutive', 'like', '%' . $this->searchQuote . '%');
             });
         }
@@ -463,25 +476,44 @@ class Remissions extends Component
     public function viewDetails($id)
     {
         $this->ensureTenantConnection();
-        $this->selectedRemission = InvRemissions::with([
-            'quote.customer', 
-            'quote.warehouse.contacts', 
-            'quote.branch', 
+        // Usar '$remission' como el nombre de la variable local para el modelo
+        $remission = InvRemissions::with([
+            'quote.customer',
+            'quote.warehouse.contacts',
+            'quote.branch',
             'details.item',
             'store'
         ])->find($id);
-        
-        $seller = $this->selectedRemission->getUser();
-        
-        Log::info('👁️ Ver detalles de remisión', [
-            'remission_id' => $id,
-            'consecutive' => $this->selectedRemission->consecutive ?? 'N/A',
-            'store_name' => $this->selectedRemission->store?->name ?? 'N/A',
-            'warehouseId' => $this->selectedRemission->warehouseId ?? 'N/A',
-            'userId' => $this->selectedRemission->userId ?? 'N/A',
-            'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A'
-        ]);
-        
+
+        if ($remission) {
+            // Convertir el modelo a un arreglo
+            $remissionArray = $remission->toArray();
+
+            // Pre-formatear fechas y agregar manualmente los valores de los accesor
+            $remissionArray['created_at_formatted'] = $remission->created_at->format('d/m/Y H:i');
+            $remissionArray['delivery_date_formatted'] = $remission->deliveryDate ? \Carbon\Carbon::parse($remission->deliveryDate)->format('d/m/Y') : 'N/A';
+            $remissionArray['seller_name'] = $remission->seller_name; // Se añade la clave que faltaba
+
+            // Asegurarse de que el accesor anidado también exista
+            if (isset($remissionArray['quote'])) {
+                $remissionArray['quote']['customer_name'] = $remission->quote->customer_name;
+            }
+
+            // Guardar el arreglo final y completo en la propiedad pública '$selectedRemission'
+            $this->selectedRemission = $remissionArray;
+
+            // La lógica de logging puede seguir usando el modelo original
+            $seller = $remission->getUser();
+            Log::info('👁️ Ver detalles de remisión', [
+                'remission_id' => $id,
+                'consecutive' => $remission->consecutive ?? 'N/A',
+                'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A'
+            ]);
+
+        } else {
+            $this->selectedRemission = null;
+        }
+
         $this->showDetailModal = true;
     }
 
@@ -620,7 +652,6 @@ class Remissions extends Component
                 'type' => 'success',
                 'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error en printRemission: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -748,7 +779,7 @@ class Remissions extends Component
                     'field' => 'warehouseId'
                 ]);
             })
-            ->where(function($query) {
+            ->where(function ($query) {
                 $this->applyBaseFilters($query);
             })
             ->orderBy('created_at', 'desc')
@@ -904,7 +935,6 @@ class Remissions extends Component
                     'invoice_number' => $invoiceNumber,
                     'final_status' => 'FACTURADO'
                 ]);
-
             } else {
                 // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
                 Log::error('❌ Falló la emisión legal (stamp) de remisión', [
@@ -918,7 +948,6 @@ class Remissions extends Component
 
                 throw new \Exception("La factura #{$invoiceNumber} se creó exitosamente pero no se pudo emitir legalmente. Razón: {$errorMessage}. Puede intentar emitirla desde el módulo de facturas.");
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error en facturarRemisionIndividual', [
                 'remission_id' => $remission->id,
@@ -1028,13 +1057,11 @@ class Remissions extends Component
                     'invoice_number' => $invoiceNumber,
                     'remisiones_count' => $remisiones->count()
                 ]);
-
             } else {
                 // ❌ STAMP FALLÓ
                 $errorMessage = $this->extractStampErrorMessage($stampResponse);
                 throw new \Exception("La factura agrupada #{$invoiceNumber} se creó exitosamente pero no se pudo emitir legalmente. Razón: {$errorMessage}");
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error en facturarRemisionesAgrupadas', [
                 'remisiones_ids' => $remisiones->pluck('id')->toArray(),
@@ -1085,7 +1112,7 @@ class Remissions extends Component
 
         Log::info('📦 Items agrupados para factura', [
             'total_productos_unicos' => count($groupedItems),
-            'detalle_agrupacion' => array_map(function($item) {
+            'detalle_agrupacion' => array_map(function ($item) {
                 return [
                     'product_id' => $item['product']->id,
                     'product_name' => $item['product']->name,
@@ -1191,7 +1218,7 @@ class Remissions extends Component
      */
     private function calculateRemissionTotal(InvRemissions $remission): float
     {
-        return $remission->details->sum(function($detail) {
+        return $remission->details->sum(function ($detail) {
             return $detail->quantity * $detail->value;
         });
     }

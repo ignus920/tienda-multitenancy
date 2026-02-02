@@ -311,11 +311,11 @@
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
                         <div>
                             <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                                Detalles de Remisión #{{ $selectedRemission->consecutive }}
+                                Detalles de Remisión #{{ $selectedRemission['consecutive'] }}
                             </h3>
                             <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                                Fecha: {{ $selectedRemission->created_at->format('d/m/Y H:i') }} | Estado: 
-                                <span class="font-medium text-indigo-500">{{ $selectedRemission->status }}</span>
+                                {{-- Fecha: {{ $selectedRemission['created_at']->format('d/m/Y H:i') }} | Estado:  --}}
+                                <span class="font-medium text-indigo-500">{{ $selectedRemission['status'] }}</span>
                             </p>
                         </div>
                         <button @click="show = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
@@ -334,11 +334,11 @@
                                 <div class="space-y-3">
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Nombre:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->quote->customer_name ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer_name'] ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Identificación:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->quote->customer->identification ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['identification'] ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Tipo persona:</span>
@@ -346,7 +346,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Email:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->quote->customer->billingEmail ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['billingEmail'] ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -357,19 +357,19 @@
                                 <div class="space-y-3">
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Cotización:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">#{{ $selectedRemission->quote->consecutive ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">#{{ $selectedRemission['quote']['consecutive'] ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Bodega:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->store?->name ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['store']['name'] ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Vendedor:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->seller_name }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['seller_name'] }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Fecha Entrega:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission->deliveryDate ? \Carbon\Carbon::parse($selectedRemission->deliveryDate)->format('d/m/Y') : 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['delivery_date_formatted'] }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -388,20 +388,20 @@
                                 </thead>
                                 <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                                     @php $totalModal = 0; @endphp
-                                    @foreach($selectedRemission->details as $detalle)
+                                    @foreach($selectedRemission['details'] as $detalle)
                                         @php 
-                                            $subtotal = $detalle->quantity * $detalle->value;
+                                            $subtotal = $detalle['quantity'] * $detalle['value'];
                                             $totalModal += $subtotal;
                                         @endphp
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                                                {{ $detalle->item->name ?? $detalle->description }}
+                                                {{ $detalle['item']['name'] ?? $detalle['description'] }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
-                                                {{ number_format($detalle->quantity, 2) }}
+                                                {{ number_format($detalle['quantity'], 2) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
-                                                ${{ number_format($detalle->value, 2) }}
+                                                ${{ number_format($detalle['value'], 2) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900 dark:text-white">
                                                 ${{ number_format($subtotal, 2) }}
