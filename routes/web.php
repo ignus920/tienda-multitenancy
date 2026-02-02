@@ -154,10 +154,10 @@ require __DIR__.'/auth.php';
 require __DIR__.'/tenants/parameters.php';
 // Incluir rutas del módulo de pagos de cotizacion 
 require __DIR__.'/tenants/payments.php';
-
-
 // Incluir rutas del módulo de remisiones 
 require __DIR__.'/tenants/remissions.php';
+// Incluir rutas del módulo de usuarios
+require __DIR__.'/tenants/users.php';
 
 
 

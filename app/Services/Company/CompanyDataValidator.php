@@ -6,6 +6,7 @@ use App\Models\Central\VntCompany;
 use App\Models\Central\VntContact;
 use App\Models\Central\VntWarehouse;
 use App\Models\Auth\User;
+use Illuminate\Support\Facades\Log;
 
 class CompanyDataValidator
 {
@@ -50,9 +51,8 @@ class CompanyDataValidator
         // Obtener company_id del nombre de la base de datos del tenant
         // El formato es: company_{company_id}_{tenant_id}
         $dbName = $userTenant->db_name;
-
         if (preg_match('/company_(\d+)_/', $dbName, $matches)) {
-            $companyId = $matches[1];
+            $companyId = $userTenant->company_id;
             return VntCompany::find($companyId);
         }
 
