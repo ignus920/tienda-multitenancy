@@ -79,6 +79,8 @@ class ManageItems extends Component
     // Propiedades para modal de stock
     public $showStockModal = false;
     public $selectedItemForStock;
+    public $selectedItemName;
+    public $selectedItemSku;
     public $stockByWarehouse = [];
 
     // Propiedades para la tabla
@@ -568,6 +570,14 @@ class ManageItems extends Component
     public function openStockModal($itemId)
     {
         $this->selectedItemForStock = $itemId;
+        $this->ensureTenantConnection();
+        // Cargar información del item
+        $item = Items::find($itemId);
+        if ($item) {
+            $this->selectedItemName = $item->name;
+            $this->selectedItemSku = $item->sku;
+        }
+        
         $this->loadStockByWarehouse($itemId);
         $this->showStockModal = true;
     }
@@ -576,6 +586,8 @@ class ManageItems extends Component
     {
         $this->showStockModal = false;
         $this->selectedItemForStock = null;
+        $this->selectedItemName = null;
+        $this->selectedItemSku = null;
         $this->stockByWarehouse = [];
     }
 
@@ -722,11 +734,8 @@ class ManageItems extends Component
         $stock = 'No maneja';
         if ($item->inventoriable == 1) {
             if ($item->invItemsStore->isNotEmpty()) {
-                $stocks = [];
-                foreach ($item->invItemsStore as $store) {
-                    $stocks[] = $store->stock_items_store;
-                }
-                $stock = implode(' / ', $stocks);
+                // Sumar el stock total de todas las bodegas
+                $stock = $item->invItemsStore->sum('stock_items_store');
             } else {
                 $stock = '0';
             }

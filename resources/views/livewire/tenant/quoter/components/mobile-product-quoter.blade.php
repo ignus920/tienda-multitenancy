@@ -144,6 +144,22 @@ $header = 'Seleccionar productos';
                         {{ $product->display_name }}
                     </div>
                     
+                    <!-- Stock Total -->
+                    @if($product->total_stock !== null)
+                    <div class="mt-2">
+                        <div class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-semibold
+                            {{ $product->total_stock > 0 
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700' 
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700' 
+                            }}">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                            Stock: {{ number_format($product->total_stock, 0, ',', '.') }}
+                        </div>
+                    </div>
+                    @endif
+                    
                     <!-- Bodegas disponibles -->
                     @if($product->store_names)
                     <div class="mt-2">
@@ -170,25 +186,59 @@ $header = 'Seleccionar productos';
                         <!-- Botones de Precio (Cajas verdes como en la imagen) -->
                         @php $allPrices = $product->all_prices; @endphp
                         @if(!empty($allPrices))
-                        <div class="space-y-1.5">
+                        <div class="grid grid-cols-2 gap-1.5">
                             @foreach($allPrices as $label => $price)
+                            @php
+                                // Verificar si este precio está seleccionado en modo edición
+                                $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
+                                
+                                // Determinar colores según el label del precio
+                                $colorClasses = match($label) {
+                                    'Precio Regular' => [
+                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
+                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
+                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400',
+                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-red-700 dark:text-red-300',
+                                        'spinner' => 'text-red-600 dark:text-red-400'
+                                    ],
+                                    'Precio Crédito' => [
+                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-yellow-500/30',
+                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-yellow-50/50 dark:bg-yellow-900/10 active:bg-yellow-100 dark:active:bg-yellow-900/30',
+                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-yellow-600 dark:text-yellow-400',
+                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-700 dark:text-yellow-300',
+                                        'spinner' => 'text-yellow-600 dark:text-yellow-400'
+                                    ],
+                                    default => [
+                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-emerald-500/30',
+                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30',
+                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-600 dark:text-emerald-400',
+                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-emerald-700 dark:text-emerald-300',
+                                        'spinner' => 'text-emerald-600 dark:text-emerald-400'
+                                    ]
+                                };
+                            @endphp
                             <button
                                 wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                 wire:loading.attr="disabled"
                                 wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                class="relative w-full py-1.5 px-2 rounded-lg border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 text-center transition-colors active:bg-emerald-100 dark:active:bg-emerald-900/30 overflow-hidden">
+                                class="relative w-full py-1.5 px-2 rounded-lg border transition-colors overflow-hidden {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
                                 
                                 <!-- Contenido Normal -->
                                 <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
-                                    <div class="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 truncate">{{ $label }}</div>
-                                    <div class="text-[13px] font-black text-emerald-700 dark:text-emerald-300">
+                                    <div class="text-[9px] uppercase font-bold truncate {{ $colorClasses['label_text'] }}">
+                                        {{ $label }}
+                                        @if($isThisPriceSelected)
+                                            <span class="ml-1">✓</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-[13px] font-black {{ $colorClasses['price_text'] }}">
                                         ${{ number_format($price) }}
                                     </div>
                                 </div>
 
                                 <!-- Spinner de Carga -->
                                 <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="flex items-center justify-center py-1">
-                                    <svg class="animate-spin h-5 w-5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <svg class="animate-spin h-5 w-5 {{ $colorClasses['spinner'] }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
@@ -499,7 +549,7 @@ $header = 'Seleccionar productos';
                                             @if(isset($item['price_label']))
                                             <p class="text-[10px] text-indigo-600 dark:text-indigo-400 mt-0.5">Precio: {{ $item['price_label'] }}</p>
                                             @endif
-                                            <p class="text-xs text-indigo-600 dark:text-indigo-400">@Impuesto: {{ $item['tax'] }}</p>
+                                            <p class="text-xs text-indigo-600 dark:text-indigo-400">@Impuesto: {{ $item['tax_label'] }}</p>
                                         </div>
                                             
                                     </div>

@@ -223,7 +223,7 @@
                                             </svg>
                                             Ver Stock
                                             <span class="ml-1.5 px-2 py-0.5 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-bold">
-                                                {{ $it->invItemsStore->count() }}
+                                                {{ $it->invItemsStore->sum('stock_items_store') }}
                                             </span>
                                         </button>
                                     @else
@@ -830,21 +830,52 @@
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
 
                 <!-- Header -->
-                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            Stock por Sucursales y Bodegas
-                        </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Visualiza el stock disponible en cada bodega de las sucursales
-                        </p>
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                Stock por Sucursales y Bodegas
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Visualiza el stock disponible en cada bodega de las sucursales
+                            </p>
+                            
+                            @if($selectedItemName)
+                            <div class="mt-4 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex-shrink-0">
+                                        <div class="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
+                                            <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-base font-bold text-gray-900 dark:text-white truncate">
+                                            {{ $selectedItemName }}
+                                        </p>
+                                        @if($selectedItemSku)
+                                        <div class="flex items-center gap-2 mt-2">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                                                </svg>
+                                                SKU: {{ $selectedItemSku }}
+                                            </span>
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        <button wire:click="closeStockModal"
+                            class="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
-                    <button wire:click="closeStockModal"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
                 </div>
 
                 <!-- Content -->
