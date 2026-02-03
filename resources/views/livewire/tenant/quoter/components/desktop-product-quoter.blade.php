@@ -554,8 +554,8 @@ $header = 'Seleccionar productos';
                             <span wire:loading wire:target="confirmOrder">Creando remisión...</span>
                         </button>
 
-                        <!-- Botón Facturar - Solo visible si el módulo está activo -->
-                        @if($this->isInvoiceModuleActive)
+                        <!-- Botón Facturar - Solo visible si el módulo está activo, estamos editando y no hay cambios -->
+                        @if($this->canShowInvoiceButton)
                         <button wire:click="invoiceOrder"
                             wire:loading.attr="disabled"
                             wire:target="invoiceOrder"
@@ -608,8 +608,7 @@ $header = 'Seleccionar productos';
                         <span wire:loading wire:target="saveQuote">Guardando...</span>
                     </button>
 
-                        <!-- Botón Facturar - También disponible al crear cotización -->
-                        @if($this->isInvoiceModuleActive)
+                        @if(false)
                         <button wire:click="invoiceOrder"
                             wire:loading.attr="disabled"
                             wire:target="invoiceOrder"

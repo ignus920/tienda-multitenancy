@@ -184,8 +184,8 @@ class CompanyValidationService
     {
         return array_merge($baseRules, [
             'firstName' => 'required|string|max:255',
-            'lastName' => 'nullable|string|max:255',
-            'secondName' => 'required|string|max:255',
+            'secondName' => 'nullable|string|max:255',
+            'lastName' => 'required|string|max:255',
             'secondLastName' => 'nullable|string|max:255',
             'fiscalResponsabilityId' => 'nullable|integer',
             'regimeId' => 'nullable|integer',

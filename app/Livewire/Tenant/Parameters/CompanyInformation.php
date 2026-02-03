@@ -99,7 +99,7 @@ class CompanyInformation extends Component
             'token' => $this->token,
             'id_warehouses' => $this->warehouseId,
             'numeracion' => $this->numeration,
-            'facturador' => 'http://127.0.0.1:8000/api'
+            'facturador' => 'http://cloud.dosil.com.co/api'
         ];
 
         try {

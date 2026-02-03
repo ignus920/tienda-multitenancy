@@ -50,6 +50,7 @@ class ProductQuoter extends Component
     public $editingRemissionId = null;
     public $isEditing = false;
     public $isEditingRemission = false;
+    public $hasChanges = false;
 
     // Propiedades para modal de pagos
     public $showPaymentModal = false;
@@ -75,6 +76,14 @@ class ProductQuoter extends Component
         'customer-updated' => 'onCustomerUpdated',
         'customer-form-cancelled' => 'cancelCreateCustomer'
     ];
+
+    public function updatedObservaciones()
+    {
+        // Marcar que hay cambios si estamos editando
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+    }
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -356,6 +365,11 @@ class ProductQuoter extends Component
             ];
         }
 
+        // Marcar que hay cambios si estamos editando
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
         // Optimización: Solo guardar en sesión si realmente cambió
         session(['quoter_items' => $this->quoterItems]);
 
@@ -377,6 +391,12 @@ class ProductQuoter extends Component
         }
 
         $this->quoterItems[$index]['quantity'] = $quantity;
+
+        // Marcar que hay cambios si estamos editando
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
         session(['quoter_items' => $this->quoterItems]);
         $this->calculateTotal();
     }
@@ -385,6 +405,12 @@ class ProductQuoter extends Component
     {
         unset($this->quoterItems[$index]);
         $this->quoterItems = array_values($this->quoterItems); // Reindexar array
+
+        // Marcar que hay cambios si estamos editando
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
         session(['quoter_items' => $this->quoterItems]);
         $this->calculateTotal();
 
@@ -615,6 +641,11 @@ class ProductQuoter extends Component
             $this->customerSearch = ''; // Opcional: limpiar búsqueda al seleccionar
             $this->showCreateCustomerButton = false;
 
+            // Marcar que hay cambios si estamos editando
+            if ($this->isEditing) {
+                $this->hasChanges = true;
+            }
+
             $name = $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName);
             $this->dispatch('show-toast', [
                 'type' => 'success',
@@ -838,6 +869,15 @@ class ProductQuoter extends Component
         }
     }
 
+    public function getCanShowInvoiceButtonProperty()
+    {
+        // Solo mostrar botón de facturar cuando:
+        // 1. El módulo de facturación está activo
+        // 2. Estamos editando una cotización existente
+        // 3. No hay cambios pendientes
+        return $this->isInvoiceModuleActive && $this->isEditing && !$this->hasChanges;
+    }
+
     public function getProductQuantity($productId)
     {
         foreach ($this->quoterItems as $item) {
@@ -918,6 +958,7 @@ class ProductQuoter extends Component
 
             $this->editingQuoteId = $quoteId;
             $this->isEditing = true;
+            $this->hasChanges = false;
 
             // Cargar observaciones de la cotización
             $this->observaciones = $quote->observations;
@@ -1052,6 +1093,9 @@ class ProductQuoter extends Component
                     'priceList' => $item['price']
                 ]);
             }
+
+            // Resetear bandera de cambios ya que se guardó exitosamente
+            $this->hasChanges = false;
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
