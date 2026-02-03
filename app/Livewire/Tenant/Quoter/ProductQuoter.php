@@ -225,10 +225,11 @@ class ProductQuoter extends Component
                 ->select(
                     'inv_items.*',
                     DB::raw('GROUP_CONCAT(DISTINCT inv_store.name SEPARATOR ", ") as store_names'),
-                    DB::raw('GROUP_CONCAT(DISTINCT inv_store.id SEPARATOR ",") as store_ids')
+                    DB::raw('GROUP_CONCAT(DISTINCT inv_store.id SEPARATOR ",") as store_ids'),
+                    DB::raw('SUM(inv_items_store.stock_items_store) as total_stock')
                 )
                 ->where('inv_items.status', 1)
-                ->with('principalImage')
+                ->with(['principalImage', 'invValues', 'tax'])
                 ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->where('inv_store.id', $userStoreId)
@@ -278,8 +279,53 @@ class ProductQuoter extends Component
                 'productos_en_pagina' => $products->count(),
                 'productos_ids' => $products->pluck('id')->toArray(),
                 'productos_nombres' => $products->pluck('name')->toArray(),
-                'productos_bodegas' => $products->pluck('store_names')->toArray()
+                'productos_bodegas' => $products->pluck('store_names')->toArray(),
+                'productos_stock_total' => $products->pluck('total_stock')->toArray()
             ]);
+
+            // LOG DETALLADO DE PRECIOS POR PRODUCTO
+            foreach ($products as $product) {
+                // Obtener todos los precios del producto
+                $allPrices = $product->all_prices;
+                
+                // Obtener específicamente Precio Regular y Precio Crédito desde inv_values
+                $precioRegular = $product->invValues()
+                    ->where('type', 'precio')
+                    ->where('label', 'Precio Regular')
+                    ->orderBy('date', 'desc')
+                    ->first();
+                
+                $precioCredito = $product->invValues()
+                    ->where('type', 'precio')
+                    ->where('label', 'Precio Crédito')
+                    ->orderBy('date', 'desc')
+                    ->first();
+
+                Log::info('💰 Precios del producto', [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'all_prices_count' => count($allPrices),
+                    'all_prices' => $allPrices,
+                    'precio_regular_exists' => $precioRegular ? 'SÍ' : 'NO',
+                    'precio_regular_value' => $precioRegular ? $precioRegular->values : null,
+                    'precio_regular_label' => $precioRegular ? $precioRegular->label : null,
+                    'precio_credito_exists' => $precioCredito ? 'SÍ' : 'NO',
+                    'precio_credito_value' => $precioCredito ? $precioCredito->values : null,
+                    'precio_credito_label' => $precioCredito ? $precioCredito->label : null,
+                    'inv_values_total' => $product->invValues->count(),
+                    'inv_values_precios' => $product->invValues()
+                        ->where('type', 'precio')
+                        ->get()
+                        ->map(function($value) {
+                            return [
+                                'label' => $value->label,
+                                'value' => $value->values,
+                                'date' => $value->date
+                            ];
+                        })
+                        ->toArray()
+                ]);
+            }
 
             // Si estamos en una página que no existe, resetear a la página 1
             if ($products->currentPage() > $products->lastPage() && $products->total() > 0) {

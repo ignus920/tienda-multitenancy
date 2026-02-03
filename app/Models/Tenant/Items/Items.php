@@ -317,7 +317,7 @@ class Items extends Model
 
     /**
      * Obtiene todos los precios usando listas de precios
-     * Retorna: ['P1' => 100000, 'P2' => 90000, ...]
+     * Retorna: ['P1' => 100000, 'P2' => 90000, 'Precio Regular' => 95000, 'Precio Crédito' => 98000, ...]
      */
     private function getAllPricesWithPriceList()
     {
@@ -350,6 +350,29 @@ class Items extends Model
             $priceWithoutIva = $basePrice * $priceList->value;
             $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
             $prices[$priceList->title] = $priceWithIva;
+        }
+
+        // AGREGAR: Incluir "Precio Regular" y "Precio Crédito" desde inv_values
+        $precioRegular = $this->invValues()
+            ->where('type', 'precio')
+            ->where('label', 'Precio Regular')
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($precioRegular) {
+            $prices['Precio Regular'] = $precioRegular->values;
+        }
+
+        $precioCredito = $this->invValues()
+            ->where('type', 'precio')
+            ->where('label', 'Precio Crédito')
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($precioCredito) {
+            $prices['Precio Crédito'] = $precioCredito->values;
         }
 
         return $prices;
