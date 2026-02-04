@@ -140,7 +140,7 @@ class LoginWarehouseSelector extends Component
             Log::info('🟢 loadWarehouseAndStores() - Tenant encontrado', [
                 'tenant_id' => $tenant?->id,
                 'tenant_active' => $tenant?->is_active,
-                'tenant_database' => $tenant?->tenancy_db_name ?? 'N/A'
+                'tenant_database' => $tenant?->db_name ?? 'N/A'
             ]);
 
             if (!$tenant || !$tenant->is_active) {
