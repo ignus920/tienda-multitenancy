@@ -12,7 +12,7 @@ return new class extends Migration
             Schema::create('vnt_detail_petty_cash', function (Blueprint $table) {
                 $table->id('id');
                 $table->integer('status')->nullable()->default(1);
-                $table->decimal('value', 10, 2);
+                $table->decimal('value', 11, 2);
                 $table->integer('pettyCashId')->nullable();
                 $table->integer('reasonPettyCashId')->nullable();
                 $table->integer('methodPaymentId')->nullable();

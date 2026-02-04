@@ -12,9 +12,9 @@ return new class extends Migration
             Schema::create('vnt_reconciliations', function (Blueprint $table) {
                 $table->id('id');
                 $table->integer('reconciliation');
-                $table->string('observations', 255)->nullable();
                 $table->integer('pettyCashId')->nullable();
                 $table->integer('userId')->nullable();
+                $table->string('observations', 255)->nullable();
                 $table->index('pettyCashId');
                 $table->index('userId');
                 $table->timestamps();        // created_at, updated_at
