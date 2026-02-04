@@ -20,8 +20,8 @@ return new class extends Migration
                 $table->string('personal_phone', 100)->nullable();
                 $table->integer('status')->nullable()->default(1);
                 $table->integer('api_data_id')->nullable();
-                $table->bigInteger('warehouseId')->nullable()->default(0);
-                $table->bigInteger('positionId')->nullable()->default(0);
+                $table->bigInteger('warehouseId')->nullable()->default(1);
+                $table->bigInteger('positionId')->nullable()->default(1);
                 $table->timestamps();        // created_at, updated_at
                 $table->softDeletes();       // deleted_at
             });

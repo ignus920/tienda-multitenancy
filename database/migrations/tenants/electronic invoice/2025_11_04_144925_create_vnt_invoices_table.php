@@ -12,8 +12,8 @@ return new class extends Migration
             Schema::create('vnt_invoices', function (Blueprint $table) {
                 $table->id('id');
                 $table->integer('consecutive');
-                $table->string('status');
-                $table->string('status_payment');
+                $table->enum('status', ['REGISTRADO', 'FACTURADO', 'ANULADO', 'SIN EMITIR']);
+                $table->enum('status_payment', ['REGISTRADO', 'ABONO', 'PAGADO', 'ANULADO']);
                 $table->integer('api_data_id')->nullable();
                 $table->integer('api_data_id_pay')->nullable();
                 $table->integer('partialPayment')->nullable();

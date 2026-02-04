@@ -15,6 +15,7 @@ return new class extends Migration
                 $table->integer('invoiceId')->nullable();
                 $table->integer('methodPaymentId')->nullable();
                 $table->index('invoiceId');
+                $table->index('methodPaymentId');
                 $table->timestamps();        // created_at, updated_at
                 $table->softDeletes();       // deleted_at
             });

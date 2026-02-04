@@ -18,6 +18,7 @@ return new class extends Migration
                 $table->integer('userIdClose')->nullable();
                 $table->integer('userIdOpen')->nullable();
                 $table->integer('warehouseId')->nullable();
+                $table->integer('cashier')->nullable();
                 $table->index('warehouseId');
                 $table->timestamps();        // created_at, updated_at
                 $table->softDeletes();       // deleted_at
