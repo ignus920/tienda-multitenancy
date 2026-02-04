@@ -233,15 +233,14 @@ class ProductQuoter extends Component
             $query = Items::query()
                 ->select(
                     'inv_items.*',
-                    DB::raw('GROUP_CONCAT(DISTINCT inv_store.name SEPARATOR ", ") as store_names'),
-                    DB::raw('GROUP_CONCAT(DISTINCT inv_store.id SEPARATOR ",") as store_ids'),
+                    DB::raw('GROUP_CONCAT(DISTINCT CONCAT(inv_store.name, ":", inv_items_store.stock_items_store) SEPARATOR ", ") as store_stock_details'),
                     DB::raw('SUM(inv_items_store.stock_items_store) as total_stock')
                 )
                 ->where('inv_items.status', 1)
                 ->with(['principalImage', 'invValues', 'tax'])
                 ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
-                ->where('inv_store.id', $userStoreId)
+                ->where('inv_items_store.stock_items_store', '>=', 0) // Mostrar todas las bodegas, incluyendo stock 0
                 ->when($this->search, function ($query) {
                     $query->where(function ($q) {
                         $q->where('inv_items.name', 'like', '%' . $this->search . '%')
@@ -288,7 +287,7 @@ class ProductQuoter extends Component
                 'productos_en_pagina' => $products->count(),
                 'productos_ids' => $products->pluck('id')->toArray(),
                 'productos_nombres' => $products->pluck('name')->toArray(),
-                'productos_bodegas' => $products->pluck('store_names')->toArray(),
+                'productos_stock_detalles' => $products->pluck('store_stock_details')->toArray(),
                 'productos_stock_total' => $products->pluck('total_stock')->toArray()
             ]);
 

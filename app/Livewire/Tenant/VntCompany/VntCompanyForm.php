@@ -48,6 +48,14 @@ class VntCompanyForm extends Component
         'district-changed' => 'updateDistrict',
     ];
 
+    public function mount()
+    {
+        // Si está en modo simplificado (usado desde cotizador), establecer tipo por defecto
+        if ($this->simplified && $this->reusable && empty($this->type)) {
+            $this->type = 'CLIENTE';
+        }
+    }
+
     public $search = '';
     public $showModal = false;
     public $editingId = null;
@@ -394,23 +402,31 @@ class VntCompanyForm extends Component
         ]);
 
         // Validar que identification y email no existan antes de proceder
+        Log::info('🔍 Validando identificación duplicada', ['identificationExists' => $this->identificationExists]);
         if ($this->identificationExists) {
             $this->addError('identification', 'Este número de identificación ya está registrado.');
+            Log::info('❌ Guardado detenido: Identificación duplicada');
             return;
         }
 
+        Log::info('🔍 Validando email duplicado', ['emailExists' => $this->emailExists]);
         if ($this->emailExists) {
             $this->addError('billingEmail', 'Este email de facturación ya está registrado.');
+            Log::info('❌ Guardado detenido: Email duplicado');
             return;
         }
+
+        Log::info('🔍 Validando ciudad', ['simplified' => $this->simplified, 'warehouseCityId' => $this->warehouseCityId]);
 
         if (!$this->cityValidate(0)) {
             $this->addError('warehouseName', 'La ciudad seleccionada no es válida.');
+            Log::info('❌ Guardado detenido: Ciudad inválida');
             return; // Si la validación de ciudad falla, detener el guardado
         }
-
+        Log::info('✅ Validación de ciudad exitosa');
 
         // Validación simple usando Livewire nativo
+        Log::info('🔍 Iniciando validación de formulario con Livewire');
         $this->validate();
 
         Log::info('✅ Validación de formulario exitosa');
@@ -1402,13 +1418,17 @@ class VntCompanyForm extends Component
             'personal_phone' => $this->personal_phone,
             'positionId' => $this->positionId,
             'routeId' => $this->routeId === '' ? null : $this->routeId,
-            'type' => $this->type,
+            'type' => $this->type ?: ($this->simplified && $this->reusable ? 'CLIENTE' : $this->type),
         ];
 
         Log::info('🔍 DATOS ENVIADOS AL CompanyService', [
             'fiscalResponsabilityId_en_formData' => $formData['fiscalResponsabilityId'],
             'fiscalResponsabilityId_type' => gettype($formData['fiscalResponsabilityId']),
             'regimeId_en_formData' => $formData['regimeId'],
+            'type_field_value' => $formData['type'],
+            'type_property_value' => $this->type,
+            'simplified_mode' => $this->simplified,
+            'reusable_mode' => $this->reusable,
             'complete_form_data' => $formData
         ]);
 

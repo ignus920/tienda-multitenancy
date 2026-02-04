@@ -297,6 +297,8 @@ class CompanyValidationService
             'Natural' => array_merge($baseRules, [
                 'firstName' => 'required|string|max:255',
                 'lastName' => 'required|string|max:255',
+                'secondName' => 'nullable|string|max:255',
+                'secondLastName' => 'nullable|string|max:255',
             ]),
             default => $baseRules,
         };

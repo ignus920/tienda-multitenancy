@@ -981,7 +981,7 @@
                             </div>
                         </div>
 
-                        @if(!$simplified)
+                        <!-- Segundo nombre y segundo apellido - disponibles en todos los modos -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre</label>
@@ -998,7 +998,6 @@
                                 @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
-                        @endif
 
                         <!-- Régimen y Responsabilidad Fiscal para Persona Natural (en modo simplificado) -->
                         @if($simplified)
@@ -1038,6 +1037,24 @@
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
+                        </div>
+
+                        <!-- Ciudad para sucursal principal -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ciudad <span class="text-red-500">*</span>
+                            </label>
+                            @livewire('selects.city-select', [
+                            'cityId' => $warehouseCityId,
+                            'name' => 'warehouseCityId',
+                            'label' => '',
+                            'showLabel' => false,
+                            'placeholder' => 'Seleccionar ciudad',
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('warehouseCityId')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
                         </div>
                         @endif
 
