@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Invoices;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Invoices\VntInvoices;
+use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Illuminate\Support\Facades\Log;
@@ -17,25 +18,22 @@ class Invoices extends Component
 
     public $search = '';
     public $perPage = 12;
-    public $sortField = 'invoiceNumber';
+    public $sortField = 'vnt_invoices.invoiceNumber';
     public $sortDirection = 'desc';
 
     public function boot()
     {
-        // Establecer conexión tenant lo más pronto posible (antes de la hidratación de modelos)
         $this->ensureTenantConnection();
     }
 
     public function updatingSearch()
     {
         $this->resetPage();
-        Log::info('🔄 Reseteando página por cambio en búsqueda', ['search' => $this->search]);
     }
 
     public function updatingPerPage()
     {
         $this->resetPage();
-        Log::info('🔄 Reseteando página por cambio en perPage', ['perPage' => $this->perPage]);
     }
 
     public function sortBy($field)
@@ -45,7 +43,6 @@ class Invoices extends Component
         } else {
             $this->sortDirection = 'asc';
         }
-
         $this->sortField = $field;
         $this->resetPage();
     }
@@ -58,19 +55,92 @@ class Invoices extends Component
     public function render()
     {
         try {
+            $centralDbName = config('database.connections.central.database');
             $this->ensureTenantConnection();
-            $invoices = VntInvoices::query()
-                ->with(['quote.detalles', 'warehouse'])
-                ->when($this->search, function ($query) {
-                    $query->where('consecutive', 'like', '%' . $this->search . '%');
-                })
-                ->orderBy($this->sortField, $this->sortDirection)
-                ->paginate($this->perPage);
+
+            // Subconsulta para totales de detalles de remisión
+            $remissionTotals = DB::connection('tenant')->table("inv_detail_remissions")
+                ->select(
+                    "invoiceId",
+                    DB::raw("SUM(value * quantity) as total_sin_impuestos"),
+                    DB::raw("SUM((value + (value * tax / 100)) * quantity) as total_con_impuestos")
+                )
+                ->whereNotNull("invoiceId")
+                ->groupBy("invoiceId");
+
+            // Subconsulta para totales de detalles de cotización
+            $quoteTotals = DB::connection('tenant')->table("vnt_detail_quotes as dq")
+                ->select(
+                    "ixs.invoiceId",
+                    DB::raw("SUM(dq.value * dq.quantity) as total_sin_impuestos"),
+                    DB::raw("SUM((dq.value + (dq.value * dq.tax / 100)) * dq.quantity) as total_con_impuestos")
+                )
+                ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
+                ->whereNotNull("ixs.invoiceId")
+                ->groupBy("ixs.invoiceId");
+
+            // Subconsulta para GROUP_CONCAT de consecutivos de remisión
+            $remissionConsecutives = DB::connection('tenant')->table("vnt_invoicesXsales as s_sub")
+                ->select(
+                    "s_sub.invoiceId",
+                    DB::raw("GROUP_CONCAT(r_sub.consecutive ORDER BY r_sub.consecutive SEPARATOR ', ') as remission_consecutive")
+                )
+                ->join("inv_remissions as r_sub", "s_sub.remissionId", "=", "r_sub.id")
+                ->groupBy("s_sub.invoiceId");
+
+            $query = VntInvoices::query()
+                ->select([
+                    'vnt_invoices.*',
+                    DB::raw("ANY_VALUE(remission_consecutives.remission_consecutive) as remission_consecutive"),
+                    DB::raw("ANY_VALUE(COALESCE(wr.name, wd.name)) as warehouse_name"),
+                    DB::raw("ANY_VALUE(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))) AS seller"),
+                    DB::raw("ANY_VALUE(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))) AS client_name"),
+                    DB::raw("ANY_VALUE(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
+                    DB::raw("ANY_VALUE(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
+                    DB::raw("ANY_VALUE(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
+                ])
+                ->join("vnt_invoicesXsales as s", "s.invoiceId", "=", "vnt_invoices.id")
+                // Joins para la ruta de Remisión
+                ->leftJoin("inv_remissions as r", "s.remissionId", "=", "r.id")
+                ->leftJoin("inv_store as wr", "r.warehouseId", "=", "wr.id")
+                // Joins para la ruta de Cotización (puede venir de una remisión o directa)
+                ->leftJoin("vnt_quotes as qr", "r.quoteId", "=", "qr.id") // Cotización vía Remisión
+                ->leftJoin("vnt_quotes as qd", "s.quoteId", "=", "qd.id") // Cotización Directa
+                ->leftJoin("inv_store as wd", "qd.warehouseId", "=", "wd.id")
+                // Joins para datos de Cliente y Vendedor (usando COALESCE para tomar de cualquiera de las dos rutas)
+                ->leftJoin("vnt_contacts as c", "c.id", "=", DB::raw("COALESCE(qr.customerId, qd.customerId)"))
+                ->leftJoin(DB::raw("{$centralDbName}.users as u"), "u.id", "=", DB::raw("COALESCE(qr.userId, qd.userId)"))
+                // Joins con las subconsultas
+                ->leftJoinSub($remissionTotals, "dr_totals", "vnt_invoices.id", "=", "dr_totals.invoiceId")
+                ->leftJoinSub($quoteTotals, "dq_totals", "vnt_invoices.id", "=", "dq_totals.invoiceId")
+                ->leftJoinSub($remissionConsecutives, "remission_consecutives", "vnt_invoices.id", "=", "remission_consecutives.invoiceId")
+                ->groupBy("vnt_invoices.id");
+
+            // Aplicar búsqueda
+            $query->when($this->search, function ($q) {
+                $search = '%' . $this->search . '%';
+                $q->where(function ($subQ) use ($search) {
+                    $subQ->where('vnt_invoices.invoiceNumber', 'like', $search)
+                        ->orWhere('remission_consecutives.remission_consecutive', 'like', $search)
+                        ->orWhere(DB::raw("CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))"), 'like', $search)
+                        ->orWhere(DB::raw("CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))"), 'like', $search);
+                });
+            });
+
+            // Aplicar ordenamiento
+            $query->orderBy($this->sortField, $this->sortDirection);
+
+            $invoices = $query->paginate($this->perPage);
+
             return view('livewire.tenant.invoices.invoices', [
                 'invoices' => $invoices
-            ])->layout('layouts.app', ['header' => 'Remisiones']);
+            ])->layout('layouts.app', ['header' => 'Gestión de Facturas']);
         } catch (\Exception $e) {
-            Log::error('❌ Error consultando con la consulta: ' . $e->getMessage());
+            Log::error('❌ Error en la consulta de facturas: ' . $e->getMessage() . ' en la línea ' . $e->getLine());
+            // Opcional: retornar una vista de error o una colección vacía para no romper la UI
+            return view('livewire.tenant.invoices.invoices', [
+                'invoices' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, $this->perPage)
+            ])->layout('layouts.app', ['header' => 'Gestión de Facturas']);
         }
     }
 

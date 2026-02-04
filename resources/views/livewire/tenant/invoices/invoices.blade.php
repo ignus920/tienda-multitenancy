@@ -53,6 +53,22 @@
                     <tr class="border-b border-gray-200 dark:border-slate-700">
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
+                                <span>FECHA</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
+                            <div class="flex items-center space-x-1">
+                                <span>No. REM</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
+                            <div class="flex items-center space-x-1">
                                 <span>FACTURA #</span>
                                 @if ($sortField === 'invoiceNumber')
                                     @if ($sortDirection === 'asc')
@@ -177,7 +193,13 @@
                     @forelse ($invoices as $invoice)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                #{{$invoice->invoiceNumber}}
+                                {{ $invoice->created_at->format('d/m/Y') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                {{ $invoice->remission_consecutive }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                #{{ $invoice->invoiceNumber }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full
@@ -194,38 +216,38 @@
                                     @elseif($invoice->status_payment === 'ABONO') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
                                     @elseif($invoice->status_payment === 'PAGADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                                     @elseif($invoice->status_payment === 'ANULADO') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 @endif">
-                                    {{ $invoice->status_payment}}
+                                    {{ $invoice->status_payment }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ $invoice->warehouse->name }}
+                                {{ $invoice->warehouse_name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ $invoice->quote->seller_name }}
+                                {{ $invoice->seller }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ number_format($invoice->quote->subtotal, 2) }}
+                                {{ number_format($invoice->total_sin_impuestos, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ number_format($invoice->quote->total, 2) }}
+                                {{ number_format($invoice->total_con_impuestos, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-white">
                                 {{ $invoice->creditNoteId ?? 'Sin NC' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ number_format($invoice->retentionFuente,2) }}
+                                {{ number_format($invoice->retentionFuente, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ number_format($invoice->retentionIca,2)}}
+                                {{ number_format($invoice->retentionIca, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ number_format($invoice->retentionIva,2)}}
+                                {{ number_format($invoice->retentionIva, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-white">
                                 {{ $invoice->orderNumber ?? 'Sin orden' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ number_format($invoice->quote->total - $invoice->retentionFuente - $invoice->retentionIca - $invoice->retentionIva, 2) }}
+                                {{ number_format($invoice->total_con_impuestos - $invoice->retentionFuente - $invoice->retentionIca - $invoice->retentionIva, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                 <!-- Menú de tres puntos con Alpine.js -->
