@@ -915,13 +915,17 @@ class Remissions extends Component
                 'invoiceId' => $invoice->id
             ]);
 
+            // 4. ACTUALIZAR EL CAMPO invoiceId EN LOS DETALLES DE LA REMISIÓN
+            \App\Models\Tenant\Remissions\InvDetailRemissions::where('remissionId', $remission->id)
+                ->update(['invoiceId' => $invoice->id]);
+
             Log::info('📄 Factura creada con estado SIN EMITIR, procediendo a emitir', [
                 'invoice_local_id' => $invoice->id,
                 'api_data_id' => $invoiceId,
                 'remission_id' => $remission->id
             ]);
 
-            // 4. INTENTAR EMITIR (STAMP) LA FACTURA
+            // 5. INTENTAR EMITIR (STAMP) LA FACTURA
             $stampResponse = $facturacionService->stampInvoice($invoiceId);
 
             if ($stampResponse['success']) {
@@ -1038,13 +1042,19 @@ class Remissions extends Component
                 ]);
             }
 
+            // 4. ACTUALIZAR EL CAMPO invoiceId EN LOS DETALLES DE TODAS LAS REMISIONES
+            foreach ($remisiones as $remission) {
+                \App\Models\Tenant\Remissions\InvDetailRemissions::where('remissionId', $remission->id)
+                    ->update(['invoiceId' => $invoice->id]);
+            }
+
             Log::info('📄 Factura agrupada creada, procediendo a emitir', [
                 'invoice_local_id' => $invoice->id,
                 'api_data_id' => $invoiceId,
                 'remisiones_asociadas' => $remissionIds
             ]);
 
-            // 4. EMITIR (STAMP) LA FACTURA
+            // 5. EMITIR (STAMP) LA FACTURA
             $stampResponse = $facturacionService->stampInvoice($invoiceId);
 
             if ($stampResponse['success']) {

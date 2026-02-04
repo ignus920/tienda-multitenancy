@@ -262,6 +262,46 @@ class CompanyValidationService
         return $contactQuery->exists();
     }
 
+    /**
+     * Obtener reglas de validación simplificadas para cotizador
+     */
+    public function getSimplifiedValidationRules(
+        string $typePerson = '',
+        ?int $editingId = null,
+        ?int $typeIdentificationId = null
+    ): array {
+        $identificationRule = 'required|string|max:15|unique:vnt_companies,identification';
+        if ($editingId) {
+            $identificationRule .= ',' . $editingId;
+        }
+
+        $emailRule = 'required|email|max:255';
+        if ($editingId) {
+            $emailRule .= '|unique:vnt_companies,billingEmail,' . $editingId;
+        }
+
+        $baseRules = [
+            'typeIdentificationId' => 'required|integer',
+            'identification' => $identificationRule,
+            'regimeId' => 'required|integer',
+            'fiscalResponsabilityId' => 'required|integer',
+            'billingEmail' => $emailRule,
+            'typePerson' => 'required|string|in:Natural,Juridica',
+        ];
+
+        // Aplicar reglas según tipo de persona (solo campos esenciales)
+        return match ($typePerson) {
+            'Juridica' => array_merge($baseRules, [
+                'businessName' => 'required|string|max:255',
+            ]),
+            'Natural' => array_merge($baseRules, [
+                'firstName' => 'required|string|max:255',
+                'lastName' => 'required|string|max:255',
+            ]),
+            default => $baseRules,
+        };
+    }
+
     private function ensureTenantConnection(): void
     {
         $tenantId = session('tenant_id');

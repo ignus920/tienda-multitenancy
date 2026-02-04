@@ -58,6 +58,7 @@ class VntCompanyForm extends Component
 
     // Warehouse modal properties
     public $reusable = false;
+    public $simplified = false; // Modo simplificado para cotizador
     public $companyId = null; // ID del cliente a editar (cuando se usa de forma reutilizable)
     public $showWarehouseModal = false;
     public $selectedCompanyId = null;
@@ -152,6 +153,15 @@ class VntCompanyForm extends Component
      */
     protected function rules()
     {
+        // Si está en modo simplificado, usar reglas simplificadas
+        if ($this->simplified) {
+            return $this->validationService->getSimplifiedValidationRules(
+                $this->typePerson,
+                $this->editingId,
+                $this->typeIdentificationId ? (int) $this->typeIdentificationId : null
+            );
+        }
+
         return $this->validationService->getValidationRules(
             $this->typePerson,
             $this->editingId,
@@ -855,11 +865,20 @@ class VntCompanyForm extends Component
 
         // Lógica de negocio: establecer tipo de persona según tipo de identificación
         if ((int) $typeIdentificationId === 2) {
-            // NIT: Permitir elegir entre Natural y Jurídica (no establecer automáticamente)
+            // NIT: En modo simplificado, automáticamente Persona Jurídica
+            if ($this->simplified) {
+                $this->typePerson = 'Juridica';
+            }
+            // En modo normal: Permitir elegir entre Natural y Jurídica (no establecer automáticamente)
             // El usuario debe elegir manualmente
         } else {
             // Cualquier otro tipo de identificación: Automáticamente Persona Natural
             $this->typePerson = 'Natural';
+        }
+
+        // Limpiar campos según el tipo de persona en modo simplificado
+        if ($this->simplified) {
+            $this->resetPersonFieldsForSimplified();
         }
 
         // Re-evaluar permisos de sucursales
@@ -2897,5 +2916,18 @@ class VntCompanyForm extends Component
         ]);
 
         return $results;
+    }
+
+    /**
+     * Limpiar campos de persona para modo simplificado
+     */
+    private function resetPersonFieldsForSimplified()
+    {
+        if ($this->typePerson == 'Natural') {
+            $this->businessName = '';
+        } else if ($this->typePerson == 'Juridica') {
+            $this->firstName = '';
+            $this->lastName = '';
+        }
     }
 }

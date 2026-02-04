@@ -970,30 +970,73 @@
                                 @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre </label>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
                                 <input wire:model="lastName" type="text" id="lastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
+                                    placeholder="Ingrese su primer apellido">
                                 @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
+                        @if(!$simplified)
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
+                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre</label>
                                 <input wire:model="secondName" type="text" id="secondName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su nombre">
+                                    placeholder="Ingrese su segundo nombre">
                                 @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido </label>
+                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido</label>
                                 <input wire:model="secondLastName" type="text" id="secondLastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
+                                    placeholder="Ingrese su segundo apellido">
                                 @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
+                        @endif
+
+                        <!-- Régimen y Responsabilidad Fiscal para Persona Natural (en modo simplificado) -->
+                        @if($simplified)
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Régimen -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Régimen <span class="text-red-500">*</span>
+                                </label>
+                                @livewire('selects.regime-select', [
+                                'regimeId' => $regimeId,
+                                'name' => 'regimeId',
+                                'label' => '',
+                                'showLabel' => false,
+                                'placeholder' => 'Seleccionar régimen',
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                                @error('regimeId')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Responsabilidad Fiscal -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Responsabilidad Fiscal <span class="text-red-500">*</span>
+                                </label>
+                                @livewire('selects.fiscal-responsibility-select', [
+                                'fiscalResponsibilityId' => $fiscalResponsabilityId,
+                                'name' => 'fiscalResponsabilityId',
+                                'label' => '',
+                                'showLabel' => false,
+                                'placeholder' => 'Seleccionar responsabilidad fiscal',
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                                @error('fiscalResponsabilityId')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                        @endif
 
                         @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
                         <!-- Persona Jurídica: Razón Social -->
@@ -1082,8 +1125,10 @@
                             </div>
                         </div>
                         @endif
+
                         <!-- Email de Facturación -->
-                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
+                        <div>
+                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación *</label>
                             <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                  @error('billingEmail') border-red-500 @enderror
@@ -1098,6 +1143,7 @@
                             @endif
                         </div>
 
+                        @if(!$simplified)
                         <!-- Teléfono Empresarial -->
                         <div>
                             <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Empresarial</label>
@@ -1135,6 +1181,7 @@
                             @error('warehouseName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
                         @endif
+
                         <!-- Ciudad de la Sucursal -->
                         <div>
                             @livewire('selects.city-select', [
@@ -1148,6 +1195,10 @@
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
                             'index' => 0
                             ], key('city-select-warehouse'))
+
+                            @error('warehouseCityId')
+                               <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                               @enderror
                         </div>
 
                         <!-- Código Postal -->
@@ -1167,6 +1218,7 @@
                                 placeholder="Ej: Calle 123 #45-67">
                             @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
+                        @endif
 
                         <!-- Actions -->
                         <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

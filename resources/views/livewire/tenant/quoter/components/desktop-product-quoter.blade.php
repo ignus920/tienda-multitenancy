@@ -362,6 +362,7 @@ $header = 'Seleccionar productos';
                         @endif
                         <livewire:tenant.vnt-company.vnt-company-form
                             :reusable="true"
+                            :simplified="true"
                             :companyId="$editingCustomerId"
                             key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
                         @if (!$editingCustomerId)
