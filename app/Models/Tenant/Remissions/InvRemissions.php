@@ -5,6 +5,7 @@ namespace App\Models\Tenant\Remissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Auth\User;
+use App\Models\Tenant\Customer\VntWarehouse;
 
 
 class InvRemissions extends Model
@@ -37,7 +38,8 @@ class InvRemissions extends Model
         'updated_at' => 'datetime'
     ];
 
-    public function quote(){
+    public function quote()
+    {
         return $this->belongsTo(\App\Models\Tenant\Quoter\VntQuote::class, 'quoteId');
     }
 
@@ -136,5 +138,19 @@ class InvRemissions extends Model
             return 'N/A';
         }
         return trim($user->name . ' ' . ($user->lastName ?? ''));
+    }
+
+    public function getSubTotalRemAttribute()
+    {
+        return $this->details->sum(function ($detail) {
+            return $detail->quantity * $detail->value;
+        });
+    }
+
+    public function getTotalRemAttribute()
+    {
+        return $this->details->sum(function ($detail) {
+            return ($detail->value + ($detail->value * $detail->tax / 100)) * $detail->quantity;
+        });
     }
 }

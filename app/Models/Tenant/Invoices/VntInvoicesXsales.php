@@ -3,6 +3,7 @@
 namespace App\Models\Tenant\Invoices;
 
 use App\Models\Tenant\Quoter\VntQuote;
+use App\Models\Tenant\Remissions\InvRemissions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -25,6 +26,11 @@ class VntInvoicesXsales extends Model
     public function quote(): BelongsTo
     {
         return $this->belongsTo(VntQuote::class, 'quoteId');
+    }
+
+    public function remission(): BelongsTo
+    {
+        return $this->belongsTo(InvRemissions::class, 'remissionId');
     }
 
     public function invoice(): BelongsTo

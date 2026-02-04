@@ -314,7 +314,7 @@
                                 Detalles de Remisión #{{ $selectedRemission['consecutive'] }}
                             </h3>
                             <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                                {{-- Fecha: {{ $selectedRemission['created_at']->format('d/m/Y H:i') }} | Estado:  --}}
+                                Fecha: {{ $selectedRemission['created_at_formatted'] }} | Estado: 
                                 <span class="font-medium text-indigo-500">{{ $selectedRemission['status'] }}</span>
                             </p>
                         </div>

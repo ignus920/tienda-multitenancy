@@ -359,8 +359,10 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
-                                    <button @click="open = !open"
+                                <div x-data="{ open: false }" @click.outside="open = false"
+                                    class="relative inline-block text-left static"
+                                    style="position: static !important;">
+                                    <button @click="open = !open" x-ref="button"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -376,7 +378,8 @@
                                         x-transition:leave-start="transform opacity-100 scale-100"
                                         x-transition:leave-end="transform opacity-0 scale-95"
                                         @click="open = false"
-                                        class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
+                                        class="origin-top-left fixed left-auto right-auto mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[60]"
+                                        x-anchor="$refs.button"
                                         style="display: none;">
                                         <div class="py-1" role="menu" aria-orientation="vertical">
                                             <!-- Editar Usuario -->
