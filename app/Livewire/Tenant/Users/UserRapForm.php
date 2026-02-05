@@ -96,7 +96,7 @@ class UserRapForm extends Component
      */
     public function mount(): void
     {
- 
+
         $this->loadProfiles();
         $this->loadWarehouses();
     }
