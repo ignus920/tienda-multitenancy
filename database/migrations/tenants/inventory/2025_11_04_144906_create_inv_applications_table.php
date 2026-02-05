@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_applications')) {
             Schema::create('inv_applications', function (Blueprint $table) {
-                $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+                $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
                 $table->string('name', 100)->default(1);
                 $table->text('icon_path')->nullable();
                 $table->integer('status')->default(1);

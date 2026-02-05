@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_inventory_count')) {
             Schema::create('inv_inventory_count', function (Blueprint $table) {
-                $table->id('id');
+                $table->integer('id')->autoIncrement()->primary();
                 $table->integer('status')->default(0);
                 $table->integer('warehouseId')->nullable();
                 $table->integer('consecutive');

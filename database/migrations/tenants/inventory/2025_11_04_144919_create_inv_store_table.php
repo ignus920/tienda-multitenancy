@@ -9,15 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('inv_store')) {
-          Schema::create('inv_store', function (Blueprint $table) {
-            $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-            $table->string('name', 100)->default(1);
-            $table->unsignedInteger('warehouseId')->nullable();
-            $table->unsignedInteger('store_manager')->nullable();
-            $table->tinyInteger('status')->default(1); // tinyint, default 1
-            $table->timestamps();        // created_at, updated_at
-            $table->softDeletes();       // deleted_at
-        });
+            Schema::create('inv_store', function (Blueprint $table) {
+                $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+                $table->string('name', 100)->default(1);
+                $table->integer('warehouseId')->nullable();
+                $table->integer('store_manager')->nullable();
+                $table->tinyInteger('status')->default(1); // tinyint, default 1
+                $table->string('api_data_id', 150)->nullable();
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
+            });
         }
     }
 

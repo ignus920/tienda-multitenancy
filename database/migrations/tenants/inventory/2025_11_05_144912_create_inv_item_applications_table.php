@@ -10,14 +10,14 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_item_applications')) {
             Schema::create('inv_item_applications', function (Blueprint $table) {
-            $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-            $table->unsignedInteger('itemId');
-            $table->foreign('itemId')->references('id')->on('inv_items');
-            $table->unsignedInteger('applicationsId');
-            $table->foreign('applicationsId')->references('id')->on('inv_applications');
-            $table->timestamps();        // created_at, updated_at
-            $table->softDeletes();       // deleted_at
-        });
+                $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+                $table->integer('itemId');
+                $table->foreign('itemId')->references('id')->on('inv_items');
+                $table->integer('applicationsId');
+                $table->foreign('applicationsId')->references('id')->on('inv_applications');
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
+            });
         }
     }
 

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_detail_transfer_requests')) {
             Schema::create('inv_detail_transfer_requests', function (Blueprint $table) {
-                $table->id('id');
+                $table->integer('id')->autoIncrement()->primary();
                 $table->integer('quantity')->default(0);
                 $table->integer('quantitySend')->default(0);
                 $table->integer('transferRequestId')->nullable();

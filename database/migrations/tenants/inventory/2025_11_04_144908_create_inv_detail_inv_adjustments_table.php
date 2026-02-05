@@ -11,10 +11,11 @@ return new class extends Migration
         if (!Schema::hasTable('inv_detail_inv_adjustments')) {
             Schema::create('inv_detail_inv_adjustments', function (Blueprint $table) {
                 $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-                $table->unsignedInteger('quantity')->default(0);
-                $table->unsignedInteger('inventoryAdjustmentId')->nullable();
-                $table->unsignedInteger('itemId')->nullable();
-                $table->unsignedInteger('unitMeasurementId')->nullable();
+                $table->integer('quantity')->default(0);
+                $table->double('cost')->nullable()->default(0);
+                $table->integer('inventoryAdjustmentId')->nullable();
+                $table->integer('itemId')->nullable();
+                $table->integer('unitMeasurementId')->nullable();
                 $table->index('inventoryAdjustmentId');
                 $table->index('itemId');
                 $table->timestamps();        // created_at, updated_at  

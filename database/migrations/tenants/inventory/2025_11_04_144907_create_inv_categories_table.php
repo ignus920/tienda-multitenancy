@@ -9,13 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('inv_categories')) {
-           Schema::create('inv_categories', function (Blueprint $table) {
-            $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-            $table->string('name', 255);  // varchar(255), not nullable
-            $table->tinyInteger('status')->default(1)->nullable(); // tinyint, default 1
-            $table->timestamps();        // created_at, updated_at
-            $table->softDeletes();       // deleted_at
-        });
+            Schema::create('inv_categories', function (Blueprint $table) {
+                $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+                $table->string('name', 255);  // varchar(255), not nullable
+                $table->tinyInteger('status')->default(1)->nullable(); // tinyint, default 1
+                $table->string('api_data_id', 60)->default(0);
+                $table->timestamps();        // created_at, updated_at
+                $table->softDeletes();       // deleted_at
+            });
         }
     }
 

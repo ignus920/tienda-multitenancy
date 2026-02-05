@@ -10,8 +10,8 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_transfer_requests')) {
             Schema::create('inv_transfer_requests', function (Blueprint $table) {
-                $table->id('id');
-                $table->string('status')->nullable()->default('REGISTRADO');
+                $table->integer('id')->autoIncrement()->primary();
+                $table->enum('type', ["REGISTRADO", "EN PROGRESO", "ENTREGADO"])->nullable()->default('REGISTRADO');
                 $table->string('date', 255);
                 $table->integer('quoteId')->nullable();
                 $table->integer('warehouseId')->nullable()->default(0);
