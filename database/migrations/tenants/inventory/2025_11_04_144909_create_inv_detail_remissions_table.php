@@ -10,13 +10,14 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_detail_remissions')) {
             Schema::create('inv_detail_remissions', function (Blueprint $table) {
-                $table->id('id');
+                $table->integer('id')->autoIncrement()->primary();
                 $table->integer('quantity')->nullable()->default(0);
                 $table->integer('tax')->nullable();
                 $table->integer('value')->nullable()->default(0);
                 $table->integer('invoiceId')->nullable();
                 $table->integer('itemId')->nullable();
                 $table->integer('remissionId')->nullable();
+                $table->integer('cant_return')->nullable();
                 $table->index('remissionId');
                 $table->index('itemId');
                 $table->timestamps();        // created_at, updated_at

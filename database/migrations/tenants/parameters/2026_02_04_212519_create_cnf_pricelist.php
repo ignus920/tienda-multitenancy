@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inv_locations', function (Blueprint $table) {
-            $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-            $table->string('name', 100)->default(0);
-            $table->tinyInteger('status')->default(1); // tinyint, default 1
+        Schema::create('cnf_pricelist', function (Blueprint $table) {
+            $table->integer('id')->autoIncrement()->primary();
+            $table->string('title', 10);
+            $table->float('value');
+            $table->tinyInteger('status')->default(1);
             $table->timestamps();        // created_at, updated_at
             $table->softDeletes();       // deleted_at
         });
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inv_locations');
+        Schema::dropIfExists('cnf_pricelist');
     }
 };

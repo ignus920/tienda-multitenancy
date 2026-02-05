@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('inv_items',  function (Blueprint $table){
-            $table->foreign('taxId')->references('id')->on('cnf_taxes');
+        Schema::create('cnf_priceprofile', function (Blueprint $table) {
+            $table->integer('id')->autoIncrement()->primary();
+            $table->integer('price');
+            $table->integer('profile');
         });
     }
 
@@ -21,9 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('inv_items', function (Blueprint $table) {
-            $table->dropForeign(['taxId']);
-            $table->dropColumn(['generic', 'taxId', 'handles_serial']);
-        });
+        Schema::dropIfExists('cnf_priceprofile');
     }
 };
