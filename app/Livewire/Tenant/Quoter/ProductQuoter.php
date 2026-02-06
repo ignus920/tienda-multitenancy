@@ -65,6 +65,7 @@ class ProductQuoter extends Component
     public $remainingBalance = 0;
     public $changeAmount = 0;
     public $canProceedToPayment = false;
+    public $cashAutoAdjusted = false; // Flag para controlar ajuste automático
     public $showObservations = false;
     // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
@@ -83,6 +84,82 @@ class ProductQuoter extends Component
         if ($this->isEditing) {
             $this->hasChanges = true;
         }
+    }
+
+    /**
+     * Se ejecuta automáticamente cuando cambia cualquier valor en paymentMethods
+     * Aplica validaciones y recalcula automáticamente los balances y el cambio
+     */
+    public function updatedPaymentMethods()
+    {
+        // Calcular total pagado por métodos que no son efectivo
+        $totalNonCashPayments = 0;
+        foreach ($this->paymentMethods as $key => $method) {
+            if ($key !== 'efectivo') {
+                $methodValue = (float) ($method['value'] ?? 0);
+
+                // Calcular límite para este método (excluyendo efectivo)
+                $otherNonCashTotal = 0;
+                foreach ($this->paymentMethods as $otherKey => $otherMethod) {
+                    if ($otherKey !== 'efectivo' && $otherKey !== $key) {
+                        $otherNonCashTotal += (float) ($otherMethod['value'] ?? 0);
+                    }
+                }
+
+                $maxAllowedForMethod = $this->totalAmount - $otherNonCashTotal;
+
+                // Aplicar límite a métodos no-efectivo
+                if ($methodValue > $maxAllowedForMethod) {
+                    $this->paymentMethods[$key]['value'] = max(0, $maxAllowedForMethod);
+                    $methodValue = $this->paymentMethods[$key]['value'];
+                }
+
+                $totalNonCashPayments += $methodValue;
+            }
+        }
+
+        // NUEVA LÓGICA: Ajustar efectivo automáticamente
+        $currentCashValue = (float) ($this->paymentMethods['efectivo']['value'] ?? 0);
+
+        // Solo ajustar automáticamente si no se está editando efectivo directamente
+        if ($this->currentPaymentMethod !== 'efectivo') {
+            // CASO 1: Si hay otros métodos y efectivo tiene cualquier valor, ajustar
+            if ($totalNonCashPayments > 0 && $currentCashValue > 0) {
+                $remainingForCash = max(0, $this->totalAmount - $totalNonCashPayments);
+                $this->paymentMethods['efectivo']['value'] = $remainingForCash;
+                $this->cashAutoAdjusted = true;
+            }
+        } else {
+            // Si se está editando efectivo, desactivar el ajuste automático
+            $this->cashAutoAdjusted = false;
+        }
+
+        // Si se quitaron todos los otros métodos y efectivo es 0, restaurar efectivo al total
+        if ($totalNonCashPayments == 0 && $currentCashValue == 0) {
+            // Solo restaurar si antes había algún pago configurado
+            $hadPreviousPayments = false;
+            foreach ($this->paymentMethods as $method) {
+                if ((float) ($method['value'] ?? 0) > 0) {
+                    $hadPreviousPayments = true;
+                    break;
+                }
+            }
+
+            // No restaurar automáticamente - dejar que el usuario decida
+        }
+
+        $this->calculatePaymentBalances();
+    }
+
+    /**
+     * Método específico que se ejecuta cuando se modifica efectivo
+     * Desactiva el ajuste automático
+     */
+    public function updatedPaymentMethodsEfectivo()
+    {
+        // Resetear el flag cuando el usuario modifica efectivo manualmente
+        $this->cashAutoAdjusted = false;
+        $this->calculatePaymentBalances();
     }
 
     protected $queryString = [
@@ -1551,25 +1628,51 @@ class ProductQuoter extends Component
     }
 
     /**
+     * Obtiene el saldo disponible para un método de pago específico
+     */
+    public function getAvailableBalanceForMethod($methodKey)
+    {
+        // Para efectivo, no hay límite (puede dar cambio)
+        if ($methodKey === 'efectivo') {
+            return PHP_FLOAT_MAX; // Sin límite
+        }
+
+        // Para otros métodos, calcular saldo disponible excluyendo efectivo
+        $totalPaidNonCash = 0;
+        foreach ($this->paymentMethods as $key => $method) {
+            if ($key !== $methodKey && $key !== 'efectivo') {
+                $totalPaidNonCash += (float) ($method['value'] ?? 0);
+            }
+        }
+
+        // El máximo disponible es el total menos lo pagado por otros métodos no-efectivo
+        return max(0, $this->totalAmount - $totalPaidNonCash);
+    }
+
+    /**
      * Calcular balances de pagos
      */
     public function calculatePaymentBalances()
     {
+        // Calcular total pagado sumando todos los métodos de pago
         $this->totalPaid = 0;
-        foreach ($this->paymentMethods as $method) {
-            $this->totalPaid += (float) ($method['value'] ?? 0);
+        foreach ($this->paymentMethods as $key => $method) {
+            $value = (float) ($method['value'] ?? 0);
+            $this->totalPaid += $value;
         }
 
         // Calcular balance restante y cambio
         if ($this->totalPaid > $this->totalAmount) {
+            // Si se pagó más del total, calcular el cambio
             $this->remainingBalance = 0;
-            $this->changeAmount = $this->totalPaid - $this->totalAmount;
+            $this->changeAmount = round($this->totalPaid - $this->totalAmount, 2);
         } else {
-            $this->remainingBalance = $this->totalAmount - $this->totalPaid;
+            // Si falta dinero por pagar
+            $this->remainingBalance = round($this->totalAmount - $this->totalPaid, 2);
             $this->changeAmount = 0;
         }
 
-        // Permitir proceder si hay algún pago (puede ser mayor al total, eso está bien)
+        // Permitir proceder si hay algún pago (simplificar la lógica)
         $this->canProceedToPayment = $this->totalPaid > 0;
     }
 
@@ -1579,6 +1682,12 @@ class ProductQuoter extends Component
     public function updatePaymentMethodValue($method, $value)
     {
         $value = max(0, (float) ($value ?? 0));
+
+        // Limitar el valor máximo para métodos que no son efectivo
+        if ($method !== 'efectivo' && $value > $this->totalAmount) {
+            $value = $this->totalAmount;
+        }
+
         $this->paymentMethods[$method]['value'] = $value;
         $this->calculatePaymentBalances();
     }
@@ -1592,16 +1701,83 @@ class ProductQuoter extends Component
     }
 
     /**
+     * Seleccionar método de pago y pagar todo con él
+     */
+    public function selectAndPayTotal($method)
+    {
+        // Seleccionar el método
+        $this->currentPaymentMethod = $method;
+
+        // Limpiar el valor actual del método para recalcular correctamente
+        $this->paymentMethods[$method]['value'] = 0;
+
+        // Recalcular totales sin el método actual
+        $totalPaidOthers = 0;
+        foreach ($this->paymentMethods as $key => $methodData) {
+            if ($key !== $method) {
+                $totalPaidOthers += (float) ($methodData['value'] ?? 0);
+            }
+        }
+
+        // Calcular cuánto falta por pagar
+        $remainingAmount = $this->totalAmount - $totalPaidOthers;
+
+        // Asegurar que no sea negativo
+        $remainingAmount = max(0, $remainingAmount);
+
+        // Para métodos que no son efectivo, no puede exceder el total pendiente
+        if ($method !== 'efectivo') {
+            $remainingAmount = min($remainingAmount, $this->totalAmount);
+        }
+
+        // Redondear a 2 decimales para evitar problemas de precisión
+        $remainingAmount = round($remainingAmount, 2);
+
+        // Asignar el monto al método actual
+        $this->paymentMethods[$method]['value'] = $remainingAmount;
+
+        // Recalcular balances
+        $this->calculatePaymentBalances();
+
+        // Forzar actualización del frontend
+        $this->dispatch('payment-updated', [
+            'method' => $method,
+            'value' => $remainingAmount
+        ]);
+    }
+
+    /**
      * Pagar total con el método actual
+     * Solo funciona para métodos que no son efectivo
      */
     public function payTotalWithCurrentMethod()
     {
-        // Calcular cuánto falta por pagar
-        $remainingAmount = max(0, $this->totalAmount - $this->totalPaid + $this->paymentMethods[$this->currentPaymentMethod]['value']);
+        // Solo permitir para métodos que no son efectivo
+        if ($this->currentPaymentMethod === 'efectivo') {
+            return;
+        }
 
-        // Asignar el monto restante al método actual
+        // Limpiar el valor actual del método para recalcular correctamente
+        $this->paymentMethods[$this->currentPaymentMethod]['value'] = 0;
+
+        // Recalcular totales sin el método actual
+        $totalPaidOthers = 0;
+        foreach ($this->paymentMethods as $key => $method) {
+            if ($key !== $this->currentPaymentMethod) {
+                $totalPaidOthers += (float) ($method['value'] ?? 0);
+            }
+        }
+
+        // Calcular cuánto falta por pagar
+        $remainingAmount = $this->totalAmount - $totalPaidOthers;
+
+        // Asegurar que no sea negativo y no exceda el total
+        $remainingAmount = max(0, min($remainingAmount, $this->totalAmount));
+
+        // Asignar el monto al método actual
         $this->paymentMethods[$this->currentPaymentMethod]['value'] = $remainingAmount;
 
+        // Recalcular balances
         $this->calculatePaymentBalances();
     }
 
@@ -2168,8 +2344,8 @@ class ProductQuoter extends Component
                 'payment_data' => $paymentData
             ]);
 
-            // Obtener métodos de pago desde BD RAP
-            $paymentMethods = DB::connection('mysql')->table('vnt_method_payments')->get()->keyBy('id');
+            // Obtener métodos de pago desde BD Tenant
+            $paymentMethods = DB::connection('tenant')->table('vnt_method_payments')->get()->keyBy('id');
 
             $totalPayments = 0;
             $paymentRecords = [];
@@ -2202,11 +2378,11 @@ class ProductQuoter extends Component
                     continue;
                 }
 
-                // Buscar el método por nombre en BD RAP (en lugar de por ID)
+                // Buscar el método por nombre en BD Tenant (en lugar de por ID)
                 $paymentMethod = $paymentMethods->firstWhere('name', $methodName);
 
                 if (!$paymentMethod) {
-                    Log::warning('⚠️ Método de pago no encontrado en BD RAP por nombre', [
+                    Log::warning('⚠️ Método de pago no encontrado en BD Tenant por nombre', [
                         'method_name' => $methodName,
                         'amount' => $amount,
                         'available_methods' => $paymentMethods->pluck('name', 'id')->toArray()
