@@ -664,6 +664,95 @@ class Remissions extends Component
     }
 
     /**
+     * Método para imprimir factura (basado en una remisión facturada)
+     * Utiliza el api_data_id si existe para obtener el PDF oficial de Alegra.
+     */
+    public function printInvoice($id)
+    {
+        Log::info('🖨️ Remissions.printInvoice llamado', ['remission_id' => $id]);
+
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
+
+        try {
+            // 1. Buscar la remisión y su factura asociada
+            $remission = InvRemissions::with('invoice')->findOrFail($id);
+            $invoice = $remission->invoice;
+
+            if (!$invoice) {
+                Log::warning('⚠️ No se encontró factura vinculada a la remisión', ['remission_id' => $id]);
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Esta remisión aún no tiene una factura asociada.'
+                ]);
+                return;
+            }
+
+            Log::info('🔍 Factura vinculada encontrada', [
+                'invoice_id' => $invoice->id,
+                'api_data_id' => $invoice->api_data_id
+            ]);
+
+            // 2. Obtener configuración de facturación
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            if (!$tenant) {
+                throw new \Exception('No se pudo identificar el tenant');
+            }
+
+            $facturacionService = new FacturacionService($tenant);
+            $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
+
+            // 3. Lógica de impresión (Prioridad Alegra)
+            if ($hasFacturacionConfig && $invoice->api_data_id) {
+                Log::info('🔗 Usando api_data_id de Alegra para obtener PDF', ['api_id' => $invoice->api_data_id]);
+                
+                $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
+                
+                // Analizar estructura de respuesta para depurar (igual que en Quoter)
+                $respData = $apiResponse['data'] ?? [];
+                
+                // Intentar obtener URL de varios posibles campos
+                $printUrl = $respData['pdf'] ?? 
+                            $respData['publicUrl'] ?? 
+                            ($respData['data']['publicUrl'] ?? null);
+
+                if ($apiResponse['success'] && !empty($printUrl)) {
+                    Log::info('✅ URL de documento Alegra encontrada', ['url' => $printUrl]);
+                    
+                    $this->dispatch('open-print-window', [
+                        'url' => $printUrl,
+                        'format' => 'carta'
+                    ]);
+                    return;
+                } else {
+                    Log::warning('⚠️ No se obtuvo URL válida de Alegra. ¿Está emitida?', [
+                        'response' => $apiResponse
+                    ]);
+                    $this->dispatch('show-toast', [
+                        'type' => 'warning',
+                        'message' => 'No se pudo obtener el PDF de Alegra. Verifique si la factura ya fue emitida.'
+                    ]);
+                }
+            } else {
+                Log::info('ℹ️ Facturación no configurada o sin api_data_id. Se usaría impresión local.');
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'La factura no está en Alegra todavía. Se requiere emisión previa.'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en Remissions.printInvoice: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar impresión de factura: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Obtiene el formato de impresión desde la configuración
      */
     public function getPrintCopiesLimit(): int
