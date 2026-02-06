@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('vnt_zones')) {
         Schema::create('vnt_zones', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable();
             $table->timestamps();
         });
+        }
     }
 
     /**

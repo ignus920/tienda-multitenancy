@@ -11,6 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('vnt_routes')) {
         Schema::create('vnt_routes', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable();
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->foreign('zone_id')->references('id')->on('vnt_zones')->onDelete('set null');
             // salesman_id referencia a la tabla users en la BD central, no se puede crear FK aquí
         });
+        }
     }
 
     /**
