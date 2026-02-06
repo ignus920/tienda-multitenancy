@@ -161,12 +161,12 @@ class PriceList extends Component
         if ($this->pricelist_id) {
             // Actualizar registro existente
             $pricelist = PriceListModel::findOrFail($this->pricelist_id);
-            $pricelistData['updateAd'] = Carbon::now();
+            $pricelistData['update_at'] = Carbon::now();
             $pricelist->update($pricelistData);
             session()->flash('message', 'Lista de precios actualizada correctamente.');
         } else {
             // Crear nuevo registro
-            $pricelistData['createAd'] = Carbon::now();
+            $pricelistData['create_at'] = Carbon::now();
             $pricelistData['status'] = 1; // Por defecto activo
             PriceListModel::create($pricelistData);
             session()->flash('message', 'Lista de precios creada correctamente.');
@@ -192,7 +192,7 @@ class PriceList extends Component
         $newStatus = $item->status ? 0 : 1;
         $item->update([
             'status' => $newStatus,
-            'updateAd' => Carbon::now(),
+            'update_at' => Carbon::now(),
         ]);
 
         session()->flash('message', 'Estado actualizado correctamente');
@@ -218,7 +218,7 @@ class PriceList extends Component
 
         $pricelistData = [
             'status' => 0,
-            'updateAd' => Carbon::now(),
+            'update_at' => Carbon::now(),
         ];
 
         $pricelist = PriceListModel::findOrFail($this->pricelistIdToDelete);

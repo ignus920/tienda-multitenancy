@@ -38,6 +38,7 @@ class RegisterCompany extends Component
     public string $businessName = '';
     public $countryId = null;
     public $merchant_type_id = null;
+    public $plain_id = null;  // ← NUEVO: Para que el usuario seleccione el plan
 
     // Datos de aceptación
     public bool $accept_terms = false;
@@ -58,9 +59,9 @@ class RegisterCompany extends Component
     public function mount()
     {
         $this->merchant_types = VntMerchantType::where('status', 1)->get();
-        // Los módulos no se cargan automáticamente - son administrados por administradores globales
         $this->countries = CnfCountry::where('status', 1)->get();
-        $this->plains = VntPlain::where('status', 1)->get();
+        // Los planes se cargarán dinámicamente cuando se seleccione el merchant_type
+        $this->plains = collect(); // Iniciar vacío
     }
 
     public function updatedMerchantTypeId()
@@ -69,6 +70,14 @@ class RegisterCompany extends Component
         $this->plains = VntPlain::where('status', 1)
             ->where('merchantTypeId', $this->merchant_type_id)
             ->get();
+        
+        // Resetear el plan seleccionado cuando cambia el tipo de comercio
+        $this->plain_id = null;
+        
+        Log::info('📋 Planes cargados para merchant_type', [
+            'merchant_type_id' => $this->merchant_type_id,
+            'plains_count' => $this->plains->count()
+        ]);
     }
 
     public function updateCountry($countryId)
@@ -139,6 +148,17 @@ class RegisterCompany extends Component
         Log::info('🔍 Validando información del registro');
         
         $this->isRegistering = true;
+        
+        // Validar que se seleccionó un plan
+        if (!$this->plain_id) {
+            $this->isRegistering = false;
+            $this->dispatch('registration-error', [
+                'title' => 'Plan Requerido',
+                'message' => 'Debes seleccionar un plan de servicio.'
+            ]);
+            return;
+        }
+        
         $validated = $this->validateRegistration();
 
         try {
@@ -230,11 +250,34 @@ class RegisterCompany extends Component
                 // No interrumpimos el registro por errores de email
             }
 
-            // 5. Obtener plan por defecto para el tipo de comercio
-            Log::info('📋 Configurando plan de servicio...');
-            $defaultPlain = VntPlain::where('merchantTypeId', $this->merchant_type_id)
+            // 5. Validar que se seleccionó un plan
+            if (!$this->plain_id) {
+                throw new \Exception('Debes seleccionar un plan de servicio.');
+            }
+            
+            Log::info('� Plan seleccionado por el usuario', [
+                'plain_id' => $this->plain_id,
+                'merchant_type_id' => $this->merchant_type_id
+            ]);
+
+            // 5.1. Verificar que el plan existe y está activo
+            $selectedPlain = VntPlain::where('id', $this->plain_id)
+                ->where('merchantTypeId', $this->merchant_type_id)
                 ->where('status', 1)
                 ->first();
+
+            if (!$selectedPlain) {
+                Log::error('❌ Plan seleccionado no válido', [
+                    'plain_id' => $this->plain_id,
+                    'merchant_type_id' => $this->merchant_type_id
+                ]);
+                throw new \Exception('El plan seleccionado no es válido.');
+            }
+
+            Log::info('✅ Plan validado correctamente', [
+                'plain_id' => $selectedPlain->id,
+                'plain_name' => $selectedPlain->name
+            ]);
 
             // 6. Crear SOLO el registro del tenant (sin base de datos física)
             Log::info('📝 Creando registro del tenant (sin base de datos física para agilizar el proceso)');
@@ -244,7 +287,7 @@ class RegisterCompany extends Component
                 'email' => $this->email,
                 'company_id' => $company->id,
                 'merchant_type_id' => $this->merchant_type_id,
-                'plain_id' => $defaultPlain?->id,
+                'plain_id' => $this->plain_id,  // ← Usar el plan seleccionado por el usuario
                 'afiliation_date' => now(),
                 'end_test' => now()->addDays(30), // 30 días de prueba
             ], $user);
