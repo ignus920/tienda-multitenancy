@@ -4,8 +4,6 @@ namespace App\Livewire\Auth;
 
 use App\Models\Auth\User;
 use App\Models\Central\VntMerchantType;
-use App\Models\Central\VntModul;
-use App\Models\Central\VntMerchantModul;
 use App\Models\Central\VntCompany;
 use App\Models\Central\VntContact;
 use App\Models\Central\VntWarehouse;
@@ -17,7 +15,6 @@ use App\Http\Traits\HasCommonValidation;
 use App\Mail\WhatsAppTokenMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +24,7 @@ class RegisterCompany extends Component
 {
     use HasCommonValidation;
 
-    protected $listeners = ['country-changed' => 'updateCountry'];
+    protected $listeners = ['country-selected' => 'updateCountry'];
 
     // Datos del contacto
     public string $firstName = '';
@@ -110,22 +107,22 @@ class RegisterCompany extends Component
      */
     public function testMessages()
     {
-        $this->isLoading = true;
-        $this->loadingMessage = 'Probando mensaje de carga...';
+        $this->isRegistering = true;
+        $this->currentStep = 'Probando mensaje de carga...';
 
         Log::info('Método testMessages ejecutado', [
-            'isLoading' => $this->isLoading,
-            'loadingMessage' => $this->loadingMessage
+            'isRegistering' => $this->isRegistering,
+            'currentStep' => $this->currentStep
         ]);
     }
 
     public function testSuccess()
     {
-        $this->isLoading = false;
+        $this->isRegistering = false;
         $this->successMessage = 'Mensaje de éxito funcionando correctamente!';
 
         Log::info('Método testSuccess ejecutado', [
-            'isLoading' => $this->isLoading,
+            'isRegistering' => $this->isRegistering,
             'successMessage' => $this->successMessage
         ]);
     }
@@ -135,31 +132,19 @@ class RegisterCompany extends Component
      */
     public function register(): void
     {
-        // Iniciar proceso de registro - Mostrar SweetAlert de carga
-        Log::info('🚀 Iniciando registro - Emitiendo evento registration-started');
-        $this->dispatch('registration-started');
-
-        // Pequeño delay para asegurar que el SweetAlert se muestre
-        sleep(1);
-
-        $this->isRegistering = true;
-        $this->progressPercentage = 10;
-        $this->currentStep = 'Validando información...';
-
         // Aumentar tiempo de ejecución para creación de tenant
         set_time_limit(300); // 5 minutos
 
+        Log::info('🚀 Iniciando registro');
         Log::info('🔍 Validando información del registro');
+        
+        $this->isRegistering = true;
         $validated = $this->validateRegistration();
 
         try {
             DB::beginTransaction();
 
-            // Paso 1: Crear empresa
-            $this->progressPercentage = 25;
-            $this->currentStep = 'Configurando empresa...';
-            sleep(1); // Simular procesamiento para mostrar progreso
-
+            Log::info('📝 Creando empresa');    
             // 1. Crear la empresa
             $company = VntCompany::create([
                 'businessName' => $this->businessName,
@@ -170,10 +155,7 @@ class RegisterCompany extends Component
                 'created_at' => now(),
             ]);
 
-            // Paso 2: Crear contacto
-            $this->progressPercentage = 40;
-            $this->currentStep = 'Creando perfil de usuario...';
-
+            Log::info('👤 Creando contacto');
             $contact = VntContact::create([
                 'firstName' => $this->firstName,
                 'lastName' => $this->lastName,
@@ -185,6 +167,7 @@ class RegisterCompany extends Component
             ]);
 
             // 3. Crear warehouse principal
+            Log::info('🏢 Creando warehouse principal');
             $warehouse = VntWarehouse::create([
                 'companyId' => $company->id,
                 'name' => 'Principal',
@@ -192,9 +175,7 @@ class RegisterCompany extends Component
             ]);
 
             // Paso 3: Crear usuario
-            $this->progressPercentage = 55;
-            $this->currentStep = 'Configurando cuenta de acceso...';
-
+            Log::info('🔐 Creando usuario');
             $validated['password'] = Hash::make($validated['password']);
             $userData = [
                 'name' => $this->firstName . ' ' . $this->lastName,
@@ -208,9 +189,7 @@ class RegisterCompany extends Component
             event(new Registered($user));
 
             // Paso 4: Generar códigos de verificación
-            $this->progressPercentage = 70;
-            $this->currentStep = 'Enviando código de verificación...';
-
+            Log::info('📧 Generando código de verificación');
             $whatsappToken = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
             $user->update([
                 'whatsapp_token' => $whatsappToken,
@@ -303,21 +282,14 @@ class RegisterCompany extends Component
 
         // Log::info('🎉 Registro completado exitosamente', ['user_id' => $user->id, 'email' => $user->email]);
 
-        // Auth::login($user); // Comentado: no hacer autologin automático
+        // NO hacer autologin automático - el usuario debe verificar primero
+        // Auth::login($user);
 
-        // Redirigir a verificación de token
-        // $this->redirect(route('verify-token'), navigate: true);
-
-        Log::info('🚀 Emitiendo evento registration-complete');
-        $this->dispatch('registration-complete', [
-            'title' => '¡Registro Exitoso!',
-            'message' => 'Tu cuenta ha sido creada. Revisa tu correo (o WhatsApp) para obtener tu código de verificación.',
-            'redirectUrl' => route('verify-token')
-        ]);
-        Log::info('✅ Evento registration-complete emitido correctamente');
-
-        // Limpiar el formulario después de un registro exitoso
-        $this->clearForm();
+        Log::info('✅ Registro completado - Redirigiendo a verificación de token');
+        session()->flash('status', '¡Cuenta creada exitosamente! Se ha enviado un código de verificación a tu correo y WhatsApp.');
+        
+        // Redirigir directamente a verificación de token
+        $this->redirect(route('verify-token'));
     }
 
     /**

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Tenant\Items\Items;
 
 class Category extends Model
-
 {
     use HasFactory;
 
@@ -15,6 +14,33 @@ class Category extends Model
 
     protected $table = 'inv_categories';
 
-    protected $fillable = ['id','name', 'status', 'createdAt', 'updatedAt','deletedAt'];
+    protected $fillable = [
+        'id',
+        'name',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'deletedAt',
+        'api_data_id'          // Solo el ID retornado por la API de facturación
+    ];
 
+    protected $casts = [
+        'status' => 'boolean'
+    ];
+
+    /**
+     * Verificar si la categoría está sincronizada
+     */
+    public function isSynced(): bool
+    {
+        return !empty($this->api_data_id);
+    }
+
+    /**
+     * Guardar el ID de la API de facturación
+     */
+    public function setApiId(int $apiDataId): void
+    {
+        $this->update(['api_data_id' => $apiDataId]);
+    }
 }

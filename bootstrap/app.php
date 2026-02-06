@@ -28,13 +28,17 @@ return Application::configure(basePath: dirname(__DIR__))
         
              Route::middleware('web')
                 ->group(base_path('routes/tenants/movements.php')); 
+
+             Route::middleware('web')
+                ->group(base_path('routes/tenants/transfers.php')); 
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'tenant' => \App\Http\Middleware\SetTenantConnection::class,
+            'tenant' => \App\Auth\Middleware\SetTenantConnection::class,
             'company.complete' => \App\Http\Middleware\EnsureCompanyDataComplete::class,
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'warehouse.selected' => \App\Http\Middleware\EnsureWarehouseSelected::class,
         ]);
 
         // Aplicar middleware tenant a rutas de Livewire cuando sea necesario
@@ -43,6 +47,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'company.complete',
             \App\Auth\Middleware\SetTenantConnection::class,
         ]);
+
+        // DESHABILITADO TEMPORALMENTE - Causaba loop de redirección
+        // $middleware->web(append: [
+        //     \App\Http\Middleware\EnsureWarehouseSelected::class,
+        // ]);
 
         // Excluir rutas de test del CSRF (SOLO PARA DESARROLLO)
         $middleware->validateCsrfTokens(except: [

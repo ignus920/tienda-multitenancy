@@ -72,19 +72,6 @@
 
                 <!-- Content -->
                 <div class="p-6">
-                    <!-- Messages -->
-                    @if($successMessage)
-                    <div class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <p class="text-sm text-green-700 dark:text-green-400">{{ $successMessage }}</p>
-                    </div>
-                    @endif
-
-                    @if($errorMessage)
-                    <div class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p class="text-sm text-red-700 dark:text-red-400">{{ $errorMessage }}</p>
-                    </div>
-                    @endif
-
                     <!-- Form -->
                     <div class="space-y-4">
                         <!-- Tipo de Movimiento -->
@@ -168,40 +155,105 @@
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                             <h4 class="font-medium text-gray-900 dark:text-white mb-4">Agregar productos</h4>
 
+                            <!-- Messages -->
+                            @if($successMessage)
+                            <div class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                <p class="text-sm text-green-700 dark:text-green-400">{{ $successMessage }}</p>
+                            </div>
+                            @endif
+
+                            @if($errorMessage)
+                            <div class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                <p class="text-sm text-red-700 dark:text-red-400">{{ $errorMessage }}</p>
+                            </div>
+                            @endif
                             <div class="grid grid-cols-3 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Item *</label>
-                                    <select wire:model.defer="detailForm.itemId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
-                                        <option value="">Seleccionar</option>
-                                        @foreach($this->items as $item)
-                                        <option value="{{ $item->id }}">{{ $item->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('detailForm.itemId') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
-                                </div>
+                                  <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Item <span class="text-red-500">*</span></label>
+                                        @livewire('selects.generic-select', [
+                                            'selectedValue' => $detailForm['itemId'],
+                                            'items' => $this->items,
+                                            'name' => 'detailForm.itemId',
+                                            'placeholder' => 'Seleccionar',
+                                            'label' => '',
+                                            'required' => true,
+                                            'showLabel' => false,
+                                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400',
+                                            'eventName' => 'itemSelected',
+                                            'displayField' => 'name',
+                                            'valueField' => 'id',
+                                            'searchFields' => ['name', 'sku']
+                                        ], key('item-select-' . now()->timestamp))
+                                        @error('detailForm.itemId') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                                    </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cantidad *</label>
-                                    <input type="number" step="0.01" wire:model.defer="detailForm.quantity" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
+                                    <input type="number" step="0.01" wire:model.live="detailForm.quantity" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
                                     @error('detailForm.quantity') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Unidad *</label>
-                                    <select wire:model.defer="detailForm.unitMeasurementId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
-                                        <option value="">Seleccionar</option>
-                                        @foreach($this->unitMeasurements as $unit)
-                                        <option value="{{ $unit->id }}">{{ $unit->description }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('detailForm.unitMeasurementId') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
-                                </div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Unidad <span class="text-red-500">*</span></label>
+                                        @livewire('selects.generic-select', [
+                                            'selectedValue' => $detailForm['unitMeasurementId'],
+                                            'items' => $this->unitMeasurements,
+                                            'name' => 'detailForm.unitMeasurementId',
+                                            'placeholder' => 'Seleccionar',
+                                            'label' => '',
+                                            'required' => true,
+                                            'showLabel' => false,
+                                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400',
+                                            'eventName' => 'unitMeasurementSelected',
+                                            'displayField' => 'description',
+                                            'valueField' => 'id',
+                                            'searchFields' => ['description']
+                                        ], key('unit-select-' . now()->timestamp))
+                                        @error('detailForm.unitMeasurementId') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                                    </div>
+
+                                  @if($warehouseForm['movementType'] == 'ENTRADA' && $movementForm['reasonId'] == 1)
+                                   <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Costo <span class="text-red-500">*</span></label>
+                                        <input type="number" step="0.01" wire:model.defer="detailForm.cost"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
+                                        @error('detailForm.cost') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                                    </div>
+                                      <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Proveedor <span class="text-red-500">*</span></label>
+                                        @livewire('selects.generic-select', [
+                                            'selectedValue' => $detailForm['supplierId'],
+                                            'items' => $this->suppliers,
+                                            'name' => 'detailForm.supplierId',
+                                            'placeholder' => 'Seleccionar proveedor',
+                                            'label' => '',
+                                            'required' => true,
+                                            'showLabel' => false,
+                                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400',
+                                            'eventName' => 'supplierSelected',
+                                            'displayField' => 'firstName',
+                                            'valueField' => 'id',
+                                            'searchFields' => ['firstName']
+                                        ], key('supplier-select-' . now()->timestamp))
+                                        @error('detailForm.supplierId') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                                    </div>
+                                  @endif
                             </div>
 
-                            <button wire:click="addDetail" type="button" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                Agregar Item
-                            </button>
+                            <button wire:click="addDetail" type="button" 
+                                    wire:loading.attr="disabled"
+                                    wire:target="addDetail"
+                                    {{ $isProcessing ? 'disabled' : '' }}
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <svg wire:loading.remove wire:target="addDetail" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    <svg wire:loading wire:target="addDetail" class="animate-spin w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span wire:loading.remove wire:target="addDetail">Agregar Item</span>
+                                    <span wire:loading wire:target="addDetail">Agregando...</span>
+                                </button>
                         </div>
                         @endif
                         <!-- Details Table -->
@@ -217,8 +269,8 @@
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Unidad consumo</th>
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cant Actual</th>
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cant Ajustada</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Precio base</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Precio final</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Costo</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Costo final</th>
                                         <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acción</th>
                                     </tr>
                                 </thead>
@@ -373,7 +425,27 @@
             </div>
 
             <!-- Footer -->
-            <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 flex justify-end">
+            <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 flex justify-end gap-3">
+                    <!-- Anular Movimiento -->
+                @if($movementDetails['status'] === 1)
+                    <button wire:click="annulMovement({{ $movementDetails['id'] }})"
+                        class="w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                        role="menuitem">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Anular Movimiento
+                    </button>
+                @else
+                    <button disabled
+                        class="w-full text-left px-4 py-2 text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed flex items-center gap-2"
+                        role="menuitem">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Movimiento Anulado
+                    </button>
+                @endif
                 <button wire:click="closeDetailsModal"
                     class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm font-medium">
                     Cerrar

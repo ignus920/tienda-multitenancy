@@ -4,7 +4,6 @@ namespace App\Models\Tenant\Quoter;
 
 use App\Models\Tenant\Customer\VntContacts;
 use App\Models\Tenant\Customer\VntWarehouse;
-use App\Models\Tenant\Customer\VntCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,7 +38,7 @@ class VntQuote extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(VntCompany::class, 'customerId');
+        return $this->belongsTo(VntContacts::class, 'customerId');
     }
 
     public function warehouse(): BelongsTo
@@ -53,10 +52,17 @@ class VntQuote extends Model
     }
 
     // Métodos de utilidad
-    public function getTotalAttribute()
+    public function getSubTotalAttribute()
     {
         return $this->detalles->sum(function ($detalle) {
             return $detalle->quantity * $detalle->value;
+        });
+    }
+
+    public function getTotalAttribute()
+    {
+        return $this->detalles->sum(function ($detalle) {
+            return ($detalle->value + ($detalle->value * $detalle->tax / 100)) * $detalle->quantity;
         });
     }
 
@@ -66,14 +72,89 @@ class VntQuote extends Model
             return 'Cliente no encontrado';
         }
 
-        // Si es persona jurídica, usar businessName; si es persona natural, usar nombres
-        return $this->customer->businessName ?:
-               trim($this->customer->firstName . ' ' . $this->customer->secondName . ' ' .
-                    $this->customer->lastName . ' ' . $this->customer->secondLastName);
+        // Usar el atributo full_name definido en el modelo VntContacts
+        return $this->customer->full_name ?: 'Sin nombre';
     }
 
     public function getWarehouseNameAttribute()
     {
         return $this->warehouse ? $this->warehouse->name : 'Sucursal no encontrada';
+    }
+
+    /**
+     * Obtiene el nombre del vendedor/usuario que creó la cotización
+     * Carga el usuario desde la base de datos central
+     */
+    public function getSellerNameAttribute()
+    {
+        if (!$this->userId) {
+            return 'Sin vendedor';
+        }
+
+        // Cargar el usuario desde la base de datos central
+        $user = \App\Models\Auth\User::on('central')->find($this->userId);
+
+        return $user ? $user->name : 'Sin vendedor';
+    }
+
+    /**
+     * Obtiene el usuario/vendedor desde la base de datos central
+     * Este método se puede usar para acceder al objeto completo del usuario
+     */
+    public function getUser()
+    {
+        if (!$this->userId) {
+            return null;
+        }
+
+        return \App\Models\Auth\User::on('central')->find($this->userId);
+    }
+
+    /**
+     * Obtiene el nombre de la bodega (sucursal) asignada al usuario que creó la cotización.
+     * La bodega está almacenada en el campo 'store' de vnt_contacts (BD central)
+     * y apunta a inv_store (BD tenant).
+     */
+    public function getStorageName()
+    {
+        \Illuminate\Support\Facades\Log::info('🏪 getStorageName() - Obteniendo bodega para cotización', [
+            'quote_id' => $this->id,
+            'userId' => $this->userId
+        ]);
+
+        // Obtener el usuario de la cotización
+        $user = \App\Models\Auth\User::find($this->userId);
+
+        if (!$user || !$user->contact_id) {
+            \Illuminate\Support\Facades\Log::warning('⚠️ Usuario no encontrado o sin contacto', [
+                'quote_id' => $this->id,
+                'userId' => $this->userId
+            ]);
+            return 'Sin usuario';
+        }
+
+        // Obtener el contacto del usuario desde la BD central
+        $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+
+        if (!$contact || !$contact->store) {
+            \Illuminate\Support\Facades\Log::warning('⚠️ Contacto sin bodega asignada', [
+                'quote_id' => $this->id,
+                'contact_id' => $user->contact_id
+            ]);
+            return 'Sin bodega';
+        }
+
+        // Obtener el nombre de la bodega desde inv_store en la BD tenant
+        $store = \App\Models\Tenant\Movements\InvStore::on('tenant')->find($contact->store);
+
+        $storeName = $store ? $store->name : 'Bodega no encontrada';
+
+        \Illuminate\Support\Facades\Log::info('✅ Bodega obtenida para cotización', [
+            'quote_id' => $this->id,
+            'store_id' => $contact->store,
+            'store_name' => $storeName
+        ]);
+
+        return $storeName;
     }
 }

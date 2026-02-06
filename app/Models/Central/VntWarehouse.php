@@ -2,12 +2,15 @@
 
 namespace App\Models\Central;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VntWarehouse extends Model
 {
+    use HasFactory;
+
     protected $connection = 'central';
     protected $table = 'vnt_warehouses';
 
@@ -34,7 +37,7 @@ class VntWarehouse extends Model
         'termId' => 'integer',
         'priceList' => 'integer',
         'status' => 'boolean',
-        'main' => 'boolean',
+        'main' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'
@@ -51,5 +54,17 @@ class VntWarehouse extends Model
     public function contacts(): HasMany
     {
         return $this->hasMany(VntContact::class, 'warehouseId');
+    }
+
+    /**
+     * Obtener los stores (inv_store) asociados desde la BD tenant
+     * Nota: Esta relación requiere que la conexión tenant esté activa
+     */
+    public function stores()
+    {
+        return \App\Models\Tenant\Items\InvStore::on('tenant')
+            ->where('warehouseId', $this->id)
+            ->where('status', 1)
+            ->get();
     }
 }

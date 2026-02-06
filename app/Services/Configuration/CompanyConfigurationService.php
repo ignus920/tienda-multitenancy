@@ -167,13 +167,23 @@ class CompanyConfigurationService
         $cacheKey = $this->getCacheKey('option_value', $companyId, 0, $optionId);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($companyId, $optionId) {
-            $result = DB::connection('tenant')->table('cnf_company_options')
+            // CONSULTA OPTIMIZADA: Solo buscar la opción específica
+            $specificRecord = DB::connection('tenant')->table('cnf_company_options')
                 ->where('company_id', $companyId)
                 ->where('option_id', $optionId)
                 ->whereNull('deleted_at')
-                ->value('value');
+                ->first();
 
-            return $result !== null ? (int) $result : null;
+            \Log::info('🔍 CONSULTA OPTIMIZADA getOptionValue', [
+                'company_id' => $companyId,
+                'option_id' => $optionId,
+                'found' => $specificRecord !== null,
+                'value' => $specificRecord ? $specificRecord->value : null,
+                'cache_key' => $this->getCacheKey('option_value', $companyId, 0, $optionId),
+                'query_type' => 'specific_option_only'
+            ]);
+
+            return $specificRecord ? (int) $specificRecord->value : null;
         });
     }
 
@@ -246,15 +256,37 @@ class CompanyConfigurationService
      */
     public function preloadCommonConfigurations(int $companyId, int $plainId): void
     {
-        // Módulos más utilizados
-        $commonModules = ['usuarios', 'formularios', 'reportes', 'facturacion'];
+        // OPTIMIZACIÓN: Precargar opciones más comunes en una sola consulta
+        $commonOptionIds = [1, 8, 32]; // usuarios, facturacion electronica, items
 
-        foreach ($commonModules as $module) {
-            $this->getModuleConfiguration($companyId, $plainId, $module);
-        }
+        $this->preloadSpecificOptions($companyId, $commonOptionIds);
 
         // Precargar también opciones habilitadas
         $this->getEnabledOptions($companyId);
+    }
+
+    /**
+     * Precarga opciones específicas en una sola consulta
+     */
+    public function preloadSpecificOptions(int $companyId, array $optionIds): void
+    {
+        $options = DB::connection('tenant')->table('cnf_company_options')
+            ->where('company_id', $companyId)
+            ->whereIn('option_id', $optionIds)
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($options as $option) {
+            $cacheKey = $this->getCacheKey('option_value', $companyId, 0, $option->option_id);
+            Cache::put($cacheKey, (int) $option->value, self::CACHE_TTL);
+        }
+
+        \Log::info('🚀 OPCIONES PRECARGADAS', [
+            'company_id' => $companyId,
+            'option_ids' => $optionIds,
+            'found_options' => $options->pluck('option_id')->toArray(),
+            'optimization' => 'single_query_multiple_options'
+        ]);
     }
 
     /**

@@ -37,13 +37,23 @@
         </div>
 
         <!-- País -->
-       @livewire('selects.country-select', [
-       'countryId' => $countryId,
-       'name' => 'countryId',
-       'label' => 'País',
-        'placeholder' => 'Selecciona el país',
-         'class' => 'block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm'
-    ])
+        <div>
+            @livewire('selects.generic-select', [
+                'selectedValue' => $countryId,
+                'items' => $countries,
+                'name' => 'countryId',
+                'label' => 'País',
+                'placeholder' => 'Selecciona el país',
+                'required' => true,
+                'showLabel' => true,
+                'class' => 'block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-left bg-white cursor-default sm:text-sm py-2 pl-3 pr-10 relative',
+                'eventName' => 'country-selected',
+                'displayField' => 'name',
+                'valueField' => 'id',
+                'searchFields' => ['name', 'iso2', 'iso3']
+            ])
+            <x-input-error :messages="$errors->get('countryId')" class="mt-2" />
+        </div>
 
         <!-- Tipo de Negocio -->
         <div>
@@ -149,8 +159,15 @@
         <x-input-error :messages="$errors->get('accept_terms')" class="mt-2" />
 
         <div class="flex items-center justify-between pt-12">
-            <x-primary-button class="ml-4" wire:loading.attr="disabled" onclick="showProcessingAlert()">
-                Registrarse
+            <x-primary-button class="ml-4" wire:loading.attr="disabled" wire:target="register">
+                <span wire:loading.remove wire:target="register">Registrarse</span>
+                <span wire:loading wire:target="register">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Procesando...
+                </span>
             </x-primary-button>
         </div>
     </form>
@@ -160,47 +177,8 @@
 <script>
 console.log('🔧 Script cargado - Inicializando listeners...');
 
-let loadingSwal = null;
-let loadingStartTime = null;
-
-// Función para mostrar el SweetAlert inmediatamente al hacer clic en registrar
-window.showProcessingAlert = function() {
-    console.log('⚡ Mostrando alerta de procesamiento inmediatamente...');
-
-    // Guardar el tiempo de inicio
-    loadingStartTime = Date.now();
-
-    // Cerrar cualquier SweetAlert existente primero
-    if (loadingSwal) {
-        loadingSwal.close();
-    }
-
-    loadingSwal = Swal.fire({
-        title: 'Procesando registro...',
-        html: `
-            <div class="text-center">
-                <div class="mb-4">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-                <p class="text-gray-600">Esto puede tomar unos minutos mientras creamos tu empresa.</p>
-                <p class="text-sm text-gray-500 mt-2">Por favor no cierres esta ventana.</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            console.log('🎯 SweetAlert de carga ABIERTO inmediatamente');
-            Swal.showLoading();
-        }
-    });
-};
-
-
-
-document.addEventListener('livewire:init', () => {
+document.addEventListener('livewire:initialized', () => {
     console.log('✅ Livewire inicializado - Configurando listeners');
-
 
     // Listener para completar el registro
     Livewire.on('registration-complete', (event) => {
@@ -209,44 +187,20 @@ document.addEventListener('livewire:init', () => {
         const { title, message, redirectUrl } = event[0];
         console.log('📝 Datos del evento:', { title, message, redirectUrl });
 
-        // Calcular cuánto tiempo ha pasado desde que se inició la carga
-        const elapsedTime = loadingStartTime ? Date.now() - loadingStartTime : 0;
-        const minimumLoadingTime = 2000; // 2 segundos mínimo
-        const remainingTime = Math.max(0, minimumLoadingTime - elapsedTime);
-
-        console.log(`⏱️ Tiempo transcurrido: ${elapsedTime}ms, esperando ${remainingTime}ms más`);
-
-        // Función para mostrar el resultado
-        const showSuccessAlert = () => {
-            // Cerrar el SweetAlert de carga si existe
-            if (loadingSwal) {
-                console.log('🔄 Cerrando SweetAlert de carga...');
-                loadingSwal.close();
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: 'success',
+            confirmButtonText: 'Continuar',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+        }).then((result) => {
+            console.log('👆 Usuario hizo clic en la alerta:', result);
+            if (result.isConfirmed) {
+                console.log('🔄 Redirigiendo a:', redirectUrl);
+                window.location.href = redirectUrl;
             }
-
-            Swal.fire({
-                title: title,
-                text: message,
-                icon: 'success',
-                confirmButtonText: 'Continuar',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-            }).then((result) => {
-                console.log('👆 Usuario hizo clic en la alerta:', result);
-                if (result.isConfirmed) {
-                    console.log('🔄 Redirigiendo a:', redirectUrl);
-                    window.location.href = redirectUrl;
-                }
-            });
-        };
-
-        // Si no ha pasado suficiente tiempo, esperar
-        if (remainingTime > 0) {
-            console.log(`⏳ Esperando ${remainingTime}ms para mostrar mejor UX...`);
-            setTimeout(showSuccessAlert, remainingTime);
-        } else {
-            showSuccessAlert();
-        }
+        });
     });
 
     // Listener para errores en el registro
@@ -255,104 +209,16 @@ document.addEventListener('livewire:init', () => {
 
         const { title, message } = event[0];
 
-        // Calcular cuánto tiempo ha pasado desde que se inició la carga
-        const elapsedTime = loadingStartTime ? Date.now() - loadingStartTime : 0;
-        const minimumLoadingTime = 1000; // 1 segundo mínimo para errores
-        const remainingTime = Math.max(0, minimumLoadingTime - elapsedTime);
-
-        // Función para mostrar el error
-        const showErrorAlert = () => {
-            // Cerrar el SweetAlert de carga si existe
-            if (loadingSwal) {
-                console.log('🔄 Cerrando SweetAlert de carga por error...');
-                loadingSwal.close();
-            }
-
-            Swal.fire({
-                title: title || 'Error en el registro',
-                text: message || 'Ha ocurrido un error inesperado. Por favor intenta nuevamente.',
-                icon: 'error',
-                confirmButtonText: 'Entendido',
-                allowOutsideClick: true,
-                allowEscapeKey: true,
-            });
-        };
-
-        // Si no ha pasado suficiente tiempo, esperar un poco
-        if (remainingTime > 0) {
-            setTimeout(showErrorAlert, remainingTime);
-        } else {
-            showErrorAlert();
-        }
+        Swal.fire({
+            title: title || 'Error en el registro',
+            text: message || 'Ha ocurrido un error inesperado. Por favor intenta nuevamente.',
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+            allowOutsideClick: true,
+            allowEscapeKey: true,
+        });
     });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Función de prueba manual para loading
-window.testLoadingAlert = function() {
-    console.log('🧪 Probando alerta de carga...');
-    Swal.fire({
-        title: 'Cargando...',
-        html: `
-            <div class="text-center">
-                <div class="mb-4">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-                <p class="text-gray-600">Procesando...</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-};
-
-
-
-// Función de prueba manual para success
-window.testAlert = function() {
-    console.log('🧪 Probando alerta de éxito...');
-    Swal.fire({
-        title: 'Prueba',
-        text: 'Esta es una prueba manual',
-        icon: 'success',
-        confirmButtonText: 'OK'
-    });
-};
-
-// Función para probar el flujo completo
-window.testFullFlow = function() {
-    console.log('🧪 Probando flujo completo...');
-
-    // Simular inicio de registro
-    Livewire.dispatch('registration-started');
-
-    // Después de 3 segundos, simular éxito
-    setTimeout(() => {
-        Livewire.dispatch('registration-complete', [{
-            title: '¡Registro Exitoso!',
-            message: 'Tu cuenta ha sido creada. Revisa tu correo (o WhatsApp) para obtener tu código de verificación.',
-            redirectUrl: '#'
-        }]);
-    }, 3000);
-};
-
-console.log('🎯 Para probar: testLoadingAlert(), testAlert() o testFullFlow()');
 
 // Función para alternar visibilidad de contraseñas
 window.togglePasswordVisibility = function(fieldId) {

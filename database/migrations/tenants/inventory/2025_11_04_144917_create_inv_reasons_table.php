@@ -10,10 +10,10 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_reasons')) {
             Schema::create('inv_reasons', function (Blueprint $table) {
-                $table->id('id');
+                $table->integer('id')->autoIncrement()->primary();
                 $table->string('name', 255);
                 $table->string('type', 255);
-                $table->integer('status')->default(1);
+                $table->tinyInteger('status')->default(1);
                 $table->timestamps();        // created_at, updated_at
                 $table->softDeletes();       // deleted_at
             });

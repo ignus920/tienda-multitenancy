@@ -12,7 +12,7 @@ return new class extends Migration
             Schema::create('vnt_quotes', function (Blueprint $table) {
                 $table->id('id');
                 $table->integer('consecutive');
-                $table->string('status');
+                $table->enum('status', ['REGISTRADO', 'ANULADO', 'FACTURADO', 'REMISIÓN'])->default('FIJA');
                 $table->string('typeQuote');
                 $table->integer('customerId')->nullable();
                 $table->integer('warehouseId')->nullable();

@@ -26,6 +26,11 @@ class RegimeSelect extends Component
         if ($class) {
             $this->class = $class;
         }
+        
+        // Emit event if regimeId has a value on mount
+        if (!empty($this->regimeId)) {
+            $this->dispatch('regime-changed', $this->regimeId);
+        }
     }
 
     public function updatedRegimeId()

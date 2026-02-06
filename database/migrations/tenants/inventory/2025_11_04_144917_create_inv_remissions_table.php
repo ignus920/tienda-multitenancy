@@ -10,17 +10,19 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_remissions')) {
             Schema::create('inv_remissions', function (Blueprint $table) {
-                $table->id('id');
+                $table->integer('id')->autoIncrement()->primary();
                 $table->integer('consecutive');
-                $table->string('status')->nullable()->default('REGISTRADO');
+                $table->enum('status', ["REGISTRADO", "ALISTAMIENTO", "EN RECORRIDO", "ENTREGADO", "DEVUELTO", "ANULADO", "VENCIDO"])->default('REGISTRADO');
                 $table->integer('quoteId')->nullable();
                 $table->integer('warehouseId')->nullable();
                 $table->integer('deliveryTypeId')->nullable();
-                $table->integer('methodPaymentId');
+                $table->integer('methodPaymentId')->nullable();
                 $table->integer('userId');
-                $table->string('deliveryDate', 50);
+                $table->dateTime('deliveryDate')->nullable();
+                $table->integer('delivery_id')->nullable();
                 $table->integer('expiration')->nullable();
                 $table->integer('modify')->nullable();
+                $table->text('observations_return')->nullable();
                 $table->index('quoteId');
                 $table->index('warehouseId');
                 $table->timestamps();        // created_at, updated_at

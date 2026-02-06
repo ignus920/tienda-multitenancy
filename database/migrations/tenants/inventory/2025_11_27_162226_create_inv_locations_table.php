@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('inv_locations', function (Blueprint $table) {
-            $table->unsignedInteger('id')->autoIncrement()->primary(); // INT, auto-increment, PK
+            $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
             $table->string('name', 100)->default(0);
             $table->tinyInteger('status')->default(1); // tinyint, default 1
             $table->timestamps();        // created_at, updated_at

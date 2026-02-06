@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Tenant\Parameters\PriceList;
+use App\Livewire\Tenant\Parameters\Zones;
+use App\Livewire\Tenant\Parameters\Routes;
+use App\Livewire\Tenant\Parameters\CompanyInformation;
 
 /**
  * Rutas para el módulo de Parámetros del Tenant
@@ -10,14 +13,23 @@ use App\Livewire\Tenant\Parameters\PriceList;
 
 // Grupo de rutas para parámetros con prefijo '/parameters'
 Route::prefix('/parameters')->group(function () {
-    
+
     // Ruta para gestión de listas de precios
-    Route::get('/pricelists',PriceList::class)
+    Route::get('/pricelists', PriceList::class)
         ->name('tenant.parameters.pricelists');
-    
+
+    Route::get('/zones', Zones::class)
+        ->name('tenant.parameters.zones');
+
+    Route::get('/routes', Routes::class)
+        ->name('tenant.parameters.routes');
+
+    Route::get('/company-information', CompanyInformation::class)
+        ->name('tenant.parameters.company-information');
+
     // Aquí se pueden agregar más rutas de parámetros en el futuro
     // Ejemplo:
     // Route::get('/taxes', App\Livewire\Tenant\Parameters\Taxes::class)
     //     ->name('tenant.parameters.taxes');
-    
+
 });

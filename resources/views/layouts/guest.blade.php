@@ -13,6 +13,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
 
         <!-- SweetAlert2 -->
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -21,6 +22,11 @@
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             {{ $slot }}
         </div>
+
+        <!-- Login Warehouse Selector Modal - Siempre presente -->
+        <livewire:auth.login-warehouse-selector />
+
+        @livewireScripts
         @stack('scripts')
     </body>
 </html>

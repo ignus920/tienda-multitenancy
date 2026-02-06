@@ -23,6 +23,15 @@ class Customer extends Model
         'tax_id',
         'type',
         'active',
+        'api_data_id',
+        'business_name',
+        'identification_number',
+        'identification_type',
+        'dv',
+        'kind_of_person',
+        'regime',
+        'fiscal_responsibilities',
+        'postcode',
     ];
 
     protected function casts(): array
@@ -34,6 +43,8 @@ class Customer extends Model
             'city_id' => 'integer',
             'active' => 'boolean',
             'type' => 'string',
+            'api_data_id' => 'string',
+            'fiscal_responsibilities' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

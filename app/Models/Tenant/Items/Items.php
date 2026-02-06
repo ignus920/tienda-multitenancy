@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Tenant\Items\Brand;
 use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\ImageGallery;
-use App\Models\Central\CnfTaxes;
+use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\CnfTaxes;
 use App\Models\Tenant\Items\CnfPricelist;
 use App\Traits\HasCompanyConfiguration;
 
@@ -35,6 +36,7 @@ class Items extends Model
         'consumption_unit',
         'generic',
         'status',
+        'handles_serial',
     ];
 
     /**
@@ -60,6 +62,11 @@ class Items extends Model
         return $this->belongsTo(Brand::class, 'brandId', 'id');
     }
 
+    public function house()
+    {
+        return $this->belongsTo(House::class, 'houseId', 'id');
+    }
+
     public function purchasingUnit()
     {
         return $this->belongsTo(UnitMeasurements::class, 'purchasing_unit', 'id');
@@ -70,7 +77,8 @@ class Items extends Model
         return $this->belongsTo(UnitMeasurements::class, 'consumption_unit', 'id');
     }
 
-    public function tax(){
+    public function tax()
+    {
         return $this->belongsTo(CnfTaxes::class, 'taxId', 'id');
     }
 
@@ -78,7 +86,10 @@ class Items extends Model
     {
         return $this->hasMany(InvValues::class, 'itemId', 'id');
     }
-
+    public function invItemsStore()
+    {
+        return $this->hasMany(InvItemsStore::class, 'itemId', 'id');
+    }
     /**
      * Relación con la galería de imágenes
      * Un item puede tener múltiples imágenes
@@ -94,7 +105,7 @@ class Items extends Model
     public function activeImages()
     {
         return $this->hasMany(ImageGallery::class, 'itemId', 'id')
-                    ->whereNull('deleted_at');
+            ->whereNull('deleted_at');
     }
 
     /**
@@ -103,8 +114,8 @@ class Items extends Model
     public function principalImage()
     {
         return $this->hasOne(ImageGallery::class, 'itemId', 'id')
-                    ->where('type', 'PRINCIPAL')
-                    ->whereNull('deleted_at');
+            ->where('type', 'PRINCIPAL')
+            ->whereNull('deleted_at');
     }
 
     /**
@@ -115,7 +126,7 @@ class Items extends Model
     public function getPrincipalImageUrl()
     {
         $principalImage = $this->principalImage;
-        
+
         if ($principalImage) {
             return $principalImage->getImageUrl();
         }
@@ -131,7 +142,7 @@ class Items extends Model
     public function getPrincipalThumbnailUrl()
     {
         $principalImage = $this->principalImage;
-        
+
         if ($principalImage) {
             return $principalImage->getThumbnailUrl();
         }
@@ -145,9 +156,9 @@ class Items extends Model
     public function getGalleryImages()
     {
         return $this->imageGallery()
-                    ->where('type', 'GALERIA')
-                    ->whereNull('deleted_at')
-                    ->get();
+            ->where('type', 'GALERIA')
+            ->whereNull('deleted_at')
+            ->get();
     }
 
     /**
@@ -158,9 +169,9 @@ class Items extends Model
     public function getGalleryImagesCount()
     {
         return $this->imageGallery()
-                    ->where('type', 'GALERIA')
-                    ->whereNull('deleted_at')
-                    ->count();
+            ->where('type', 'GALERIA')
+            ->whereNull('deleted_at')
+            ->count();
     }
 
 
@@ -245,11 +256,25 @@ class Items extends Model
         $priceList = CnfPricelist::active()->first();
 
         if (!$priceList) {
-            return $basePriceRecord->values; // Sin multiplicador
+            // Sin multiplicador, pero aún aplicar IVA si existe
+            $taxPercentage = 0;
+            if ($this->tax) {
+                $taxPercentage = $this->tax->percentage / 100;
+            }
+            return $basePriceRecord->values * (1 + $taxPercentage);
         }
 
-        // Aplicar multiplicador
-        return $basePriceRecord->values * $priceList->value;
+        // Obtener el porcentaje de IVA del item
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100; // Convertir a decimal (19% = 0.19)
+        }
+
+        // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+        $priceWithoutIva = $basePriceRecord->values * $priceList->value;
+        $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
+
+        return $priceWithIva;
     }
 
     /**
@@ -292,7 +317,7 @@ class Items extends Model
 
     /**
      * Obtiene todos los precios usando listas de precios
-     * Retorna: ['P1' => 100000, 'P2' => 90000, ...]
+     * Retorna: ['P1' => 100000, 'P2' => 90000, 'Precio Regular' => 95000, 'Precio Crédito' => 98000, ...]
      */
     private function getAllPricesWithPriceList()
     {
@@ -311,11 +336,43 @@ class Items extends Model
         $basePrice = $basePriceRecord->values;
         $prices = [];
 
+        // Obtener el porcentaje de IVA del item
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100; // Convertir a decimal (19% = 0.19)
+        }
+
         // Obtener TODAS las listas de precios activas
         $priceLists = CnfPricelist::active()->get();
 
         foreach ($priceLists as $priceList) {
-            $prices[$priceList->title] = $basePrice * $priceList->value;
+            // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+            $priceWithoutIva = $basePrice * $priceList->value;
+            $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
+            $prices[$priceList->title] = $priceWithIva;
+        }
+
+        // AGREGAR: Incluir "Precio Regular" y "Precio Crédito" desde inv_values
+        $precioRegular = $this->invValues()
+            ->where('type', 'precio')
+            ->where('label', 'Precio Regular')
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($precioRegular) {
+            $prices['Precio Regular'] = $precioRegular->values;
+        }
+
+        $precioCredito = $this->invValues()
+            ->where('type', 'precio')
+            ->where('label', 'Precio Crédito')
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($precioCredito) {
+            $prices['Precio Crédito'] = $precioCredito->values;
         }
 
         return $prices;
@@ -335,7 +392,7 @@ class Items extends Model
             ->get();
 
         $prices = [];
-        
+
         // Agrupar por label y tomar solo el primero (más reciente) de cada grupo
         foreach ($priceRecords->groupBy('label') as $label => $records) {
             $prices[$label] = $records->first()->values;

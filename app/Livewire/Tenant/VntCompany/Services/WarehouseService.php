@@ -14,15 +14,15 @@ class WarehouseService
     {
         foreach ($warehouses as $warehouseData) {
             // if ($this->isValidWarehouseData($warehouseData)) {
-                VntWarehouse::create([
-                    'companyId' => $company->id,
-                    'name' => $warehouseData['name'],
-                    'address' => $warehouseData['address'],
-                    'postcode' => $warehouseData['postcode'] ?? null,
-                    'cityId' => !empty($warehouseData['cityId']) ? $warehouseData['cityId'] : null,
-                    'main' => $warehouseData['main'] ? 1 : 0,
-                    'status' => 1,
-                ]);
+            VntWarehouse::create([
+                'companyId' => $company->id,
+                'name' => $warehouseData['name'],
+                'address' => $warehouseData['address'],
+                'postcode' => $warehouseData['postcode'] ?? null,
+                'cityId' => !empty($warehouseData['cityId']) ? $warehouseData['cityId'] : null,
+                'main' => $warehouseData['main'] ? 1 : 0,
+                'status' => 1,
+            ]);
             // }
         }
     }
@@ -38,13 +38,13 @@ class WarehouseService
 
         foreach ($warehouses as $warehouseData) {
             // if ($this->isValidWarehouseData($warehouseData)) {
-                if (isset($warehouseData['id'])) {
-                    // Actualizar sucursal existente
-                    $this->updateExistingWarehouse($warehouseData);
-                } else {
-                    // Crear nueva sucursal
-                    $this->createNewWarehouse($company, $warehouseData);
-                }
+            if (isset($warehouseData['id'])) {
+                // Actualizar sucursal existente
+                $this->updateExistingWarehouse($warehouseData);
+            } else {
+                // Crear nueva sucursal
+                $this->createNewWarehouse($company, $warehouseData);
+            }
             // }
         }
     }
@@ -113,18 +113,19 @@ class WarehouseService
     private function updateExistingWarehouse(array $warehouseData): void
     {
         $warehouse = VntWarehouse::find($warehouseData['id']);
-        
+
         if (!$warehouse) {
             // Si no existe, no hacer nada (será creada como nueva)
             return;
         }
-        
+
         $warehouse->update([
             'name' => $warehouseData['name'],
             'address' => $warehouseData['address'],
             'postcode' => $warehouseData['postcode'] ?? null,
             'cityId' => !empty($warehouseData['cityId']) ? $warehouseData['cityId'] : null,
             'main' => $warehouseData['main'] ? 1 : 0,
+            'district' => $warehouseData['district'] ?? null,
         ]);
     }
 
@@ -142,14 +143,14 @@ class WarehouseService
         if ($typePerson === 'Natural') {
             return $currentWarehouseCount < 1;
         }
-        
+
         // Regla 2: Personas jurídicas pueden tener múltiples sucursales
         if ($typePerson === 'Juridica') {
             // Límite máximo de sucursales (configurable)
             $maxWarehouses = $this->getMaxWarehousesForCompany($typeIdentificationId, $editingId);
             return $currentWarehouseCount < $maxWarehouses;
         }
-        
+
         // Por defecto, no permitir agregar más si no se ha definido el tipo de persona
         return false;
     }
@@ -160,16 +161,16 @@ class WarehouseService
     public function getMaxWarehousesForCompany(?int $typeIdentificationId = null, ?int $editingId = null): int
     {
         // Lógica de negocio para determinar límites
-        
+
         // Por defecto, personas jurídicas pueden tener hasta 5 sucursales
         $defaultLimit = 5;
-        
+
         // Aquí puedes agregar lógica más compleja basada en:
         // - Tipo de identificación
         // - Plan de suscripción
         // - Configuraciones específicas de la empresa
         // - Etc.
-        
+
         if ($typeIdentificationId) {
             switch ($typeIdentificationId) {
                 case 1: // Cédula de ciudadanía - Persona natural
@@ -180,7 +181,7 @@ class WarehouseService
                     return $defaultLimit;
             }
         }
-        
+
         return $defaultLimit;
     }
 
@@ -190,7 +191,7 @@ class WarehouseService
     public function getWarehouseLimitsInfo(string $typePerson = '', ?int $typeIdentificationId = null): array
     {
         $maxWarehouses = $this->getMaxWarehousesForCompany($typeIdentificationId);
-        
+
         return [
             'max_warehouses' => $maxWarehouses,
             'type_person' => $typePerson,
@@ -207,12 +208,12 @@ class WarehouseService
         if ($typePerson === 'Natural') {
             return 'Las personas naturales solo pueden tener una sucursal principal.';
         }
-        
+
         if ($typePerson === 'Juridica') {
             $maxWarehouses = $this->getMaxWarehousesForCompany($typeIdentificationId);
             return "Las personas jurídicas pueden tener hasta {$maxWarehouses} sucursales.";
         }
-        
+
         return 'Debe seleccionar el tipo de persona para determinar el límite de sucursales.';
     }
 
@@ -229,6 +230,7 @@ class WarehouseService
             'cityId' => !empty($warehouseData['cityId']) ? $warehouseData['cityId'] : null,
             'main' => $warehouseData['main'] ? 1 : 0,
             'status' => 1,
+            'district' => $warehouseData['district'] ?? null,
         ]);
     }
 
@@ -238,7 +240,7 @@ class WarehouseService
     public function toggleWarehouseStatus(int $warehouseId): void
     {
         $warehouse = VntWarehouse::findOrFail($warehouseId);
-        
+
         // Toggle warehouse status
         $newStatus = $warehouse->status ? 0 : 1;
         $warehouse->update(['status' => $newStatus]);

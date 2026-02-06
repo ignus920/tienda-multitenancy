@@ -11,6 +11,7 @@ class CitySelect extends Component
 {
     public $cityId = '';
     public $countryId = 48; 
+    public $countryCode = 'CO';
     public $name = 'cityId';
     public $placeholder = 'Seleccionar ciudad';
     public $label = 'Ciudad';
@@ -105,20 +106,21 @@ class CitySelect extends Component
         return CnfCity::find($this->cityId)?->name;
     }
 
-    #[Computed]
-    public function cities()
-    {
-        $query = CnfCity::where('country_id', $this->countryId);
-         
-        if (!empty($this->search)) {
-            $query->where('name', 'like', '%' . $this->search . '%');
-        }
+#[Computed]
+public function cities()
+{
+    $query = CnfCity::where('country_id', $this->countryId)
+                    ->where('country_code', $this->countryCode);
 
-        return $query->select('id', 'name', 'state_id')
-            ->orderBy('name')
-            ->limit(50) // Importante: Limitar resultados para no saturar el DOM
-            ->get();
+    if (!empty($this->search)) {
+        $query->where('name', 'like', '%' . $this->search . '%');
     }
+
+    return $query->select('id', 'name', 'state_id')
+        ->orderBy('name')
+        ->limit(50)
+        ->get();
+}
 
     public function render()
     {

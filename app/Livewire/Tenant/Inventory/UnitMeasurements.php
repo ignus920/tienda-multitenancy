@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class UnitMeasurements extends Component
 {
-    use WithPagination;
+    use WithPagination, \App\Traits\Livewire\WithExport;
 
     public $unit_id, $description, $status, $quantity, $created_at;
 
@@ -24,7 +24,7 @@ class UnitMeasurements extends Component
     public $unitIdToDelete;
     public $perPage = 10;
 
-    protected $rules =[
+    protected $rules = [
         'description' => 'required|min:3',
         'quantity' => 'required|min:1',
     ];
@@ -89,7 +89,7 @@ class UnitMeasurements extends Component
         $unit = UnitMeasurementsModel::findOrFail($id);
         $this->description = $unit->description;
         $this->quantity = $unit->quantity;
-        $this->unit_id=$unit->id;
+        $this->unit_id = $unit->id;
         $this->showModal = true;
     }
 
@@ -114,11 +114,11 @@ class UnitMeasurements extends Component
             'quantity' => $this->quantity,
         ];
 
-        if($this->unit_id){
-            $unit=UnitMeasurementsModel::findOrFail($this->unit_id);
+        if ($this->unit_id) {
+            $unit = UnitMeasurementsModel::findOrFail($this->unit_id);
             $unit->update($unitData);
             session()->flash('message', 'Unidad de medida actualizada correctamente.');
-        }else{
+        } else {
             UnitMeasurementsModel::create($unitData);
             session()->flash('message', 'Unidad de medida creada correctamente.');
         }
@@ -134,13 +134,13 @@ class UnitMeasurements extends Component
     public function toggleUnitStatus($id)
     {
         $this->ensureTenantConnection();
-        $item=UnitMeasurementsModel::findOrFail($id);
+        $item = UnitMeasurementsModel::findOrFail($id);
 
         $newStatus = $item->status ? 0 : 1;
         $item->update([
-            'status'=>$newStatus, 
+            'status' => $newStatus,
         ]);
-        
+
         session()->flash('message', 'Estado actualizado correctamente');
     }
 
@@ -154,31 +154,69 @@ class UnitMeasurements extends Component
     {
         $this->ensureTenantConnection();
 
-        $unitData=[
-            'status'=>0,
-            'deleted_at'=>Carbon::now(),
+        $unitData = [
+            'status' => 0,
+            'deleted_at' => Carbon::now(),
         ];
 
-        $unit=UnitMeasurementsModel::findOrFail($this->unitIdToDelete);
+        $unit = UnitMeasurementsModel::findOrFail($this->unitIdToDelete);
         //$category->delete();
         $unit->update($unitData);
         $this->confirmingUnitDeletion = false;
         $this->reset(['unitIdToDelete']);
-        session()->flash('message','Unidad de medida eliminada correctamente');
+        session()->flash('message', 'Unidad de medida eliminada correctamente');
     }
 
     public function render()
     {
         $this->ensureTenantConnection();
-        $units=UnitMeasurementsModel::query()
+        $units = UnitMeasurementsModel::query()
             // ->where('status', 1)
-            ->when($this->search, function($query){
+            ->when($this->search, function ($query) {
                 $query->where('description', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
-        return view('livewire.tenant.inventory.unit-measurements',[
+        return view('livewire.tenant.inventory.unit-measurements', [
             'units' => $units
         ]);
+    }
+
+    /**
+     * Métodos para Exportación
+     */
+
+    protected function getExportData()
+    {
+        $this->ensureTenantConnection();
+        return UnitMeasurementsModel::query()
+            ->when($this->search, function ($query) {
+                $query->where('description', 'like', '%' . $this->search . '%');
+            })
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->get();
+    }
+
+    protected function getExportHeadings(): array
+    {
+        return ['ID', 'Descripción', 'Cantidad', 'Estado', 'Fecha Registro'];
+    }
+
+    protected function getExportMapping()
+    {
+        return function ($unit) {
+            return [
+                $unit->id,
+                $unit->description,
+                $unit->quantity,
+                $unit->status ? 'Activo' : 'Inactivo',
+                $unit->created_at ? Carbon::parse($unit->created_at)->format('Y-m-d H:i:s') : 'N/A',
+            ];
+        };
+    }
+
+    protected function getExportFilename(): string
+    {
+        return 'unidades_medida_' . now()->format('Y-m-d_His');
     }
 }

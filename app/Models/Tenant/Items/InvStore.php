@@ -13,12 +13,26 @@ class InvStore extends Model
 
     protected $table = 'inv_store';
 
+    // Specify custom timestamp column names
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'updated_at';
+    const DELETED_AT = 'deleted_at';
+
     protected $fillable = [
         'name',
         'warehouseId',
         'store_manager',
         'status',
-        'created_at',
-        'updated_at',
+        'api_data_id',
+    ];
+
+    protected $casts = [
+        'id' => 'integer',
+        'warehouseId' => 'integer',
+        'store_manager' => 'integer',
+        'status' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 }

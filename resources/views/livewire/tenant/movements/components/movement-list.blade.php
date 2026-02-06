@@ -177,27 +177,6 @@
                                                 </svg>
                                                 Ver Detalles
                                             </button>
-
-                                            <!-- Anular Movimiento -->
-                                            @if($movement->status === 1)
-                                                <button @click="$dispatch('confirm-annul', { movementId: {{ $movement->id }}, consecutive: '{{ $movement->formatted_consecutive }}' })"
-                                                    class="w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
-                                                    role="menuitem">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                    </svg>
-                                                    Anular Movimiento
-                                                </button>
-                                            @else
-                                                <button disabled
-                                                    class="w-full text-left px-4 py-2 text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed flex items-center gap-2"
-                                                    role="menuitem">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                    </svg>
-                                                    Anular Movimiento
-                                                </button>
-                                            @endif
                                         </div>
                                     </div>
                                 </div>

@@ -10,12 +10,12 @@ return new class extends Migration
     {
         if (!Schema::hasTable('inv_purchase_orders')) {
             Schema::create('inv_purchase_orders', function (Blueprint $table) {
-                $table->id('id');
+                $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
                 $table->string('consecutive', 50);
                 $table->integer('providerId')->nullable();
                 $table->integer('user')->nullable();
-                $table->string('status');
-                $table->decimal('total', 10, 2);
+                $table->enum('status', ["PENDIENTE", "EN PROCESO", "RECIBIDO", "CANCELADO"]);
+                $table->decimal('total', 11, 2);
                 $table->text('observations');
                 $table->dateTime('expected_date');
                 $table->timestamps();        // created_at, updated_at

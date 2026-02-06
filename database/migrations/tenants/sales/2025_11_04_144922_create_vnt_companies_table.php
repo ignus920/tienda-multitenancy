@@ -12,6 +12,7 @@ return new class extends Migration
             Schema::create('vnt_companies', function (Blueprint $table) {
                 $table->id('id');
                 $table->string('businessName', 255)->nullable();
+                $table->string('api_data_id', 255)->nullable();
                 $table->string('billingEmail', 255)->nullable();
                 $table->string('firstName', 255)->nullable();
                 $table->integer('integrationDataId')->nullable();
@@ -26,6 +27,7 @@ return new class extends Migration
                 $table->integer('regimeId')->nullable();
                 $table->string('code_ciiu', 255)->nullable();
                 $table->integer('fiscalResponsabilityId')->nullable();
+                $table->enum('type', ['CLIENTE', 'PROVEEDOR'])->default('CLIENTE');
                 $table->timestamps();        // created_at, updated_at
                 $table->softDeletes();       // deleted_at
             });

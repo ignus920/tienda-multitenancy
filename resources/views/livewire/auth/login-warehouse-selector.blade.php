@@ -1,0 +1,254 @@
+<div>
+    <!-- Modal -->
+    <div 
+        x-data="{ 
+            show: @entangle('showModal'),
+            init() {
+                console.log('🔵 LoginWarehouseSelector Modal inicializado', {
+                    showModal: this.show,
+                    needsSelection: @js(session('needs_warehouse_selection')),
+                    isAuth: @js(auth()->check()),
+                    storesCount: @js(count($stores)),
+                    selectedStoreId: @js($selectedStoreId),
+                    warehouseName: @js($warehouseName)
+                });
+                
+                // Verificar que Livewire está disponible
+                if (typeof Livewire !== 'undefined') {
+                    console.log('✅ Livewire está disponible en el modal');
+                } else {
+                    console.error('❌ Livewire NO está disponible en el modal');
+                }
+            }
+        }"
+        x-show="show"
+        x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto"
+        style="display: none;"
+    >
+        <!-- Overlay (no se puede cerrar haciendo clic fuera) -->
+        <div 
+            x-show="show"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"
+        ></div>
+
+        <!-- Modal Content -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div 
+                x-show="show"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl"
+                @click.stop
+            >
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
+                                <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-semibold text-white">
+                                Selecciona tu Bodega
+                            </h3>
+                            <p class="mt-1 text-sm text-indigo-100">
+                                Elige la bodega donde trabajarás hoy
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="bg-white dark:bg-gray-800 px-6 py-6">
+                    <!-- Warehouse Information (Read-only) -->
+                    @if($warehouseName)
+                        <div class="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800">
+                            <div class="flex items-start space-x-4">
+                                <!-- Icon -->
+                                <div class="flex-shrink-0">
+                                    <div class="h-12 w-12 rounded-lg bg-indigo-600 flex items-center justify-center">
+                                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <!-- Warehouse Info -->
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">
+                                        Tu Sucursal
+                                    </p>
+                                    <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                        {{ $warehouseName }}
+                                    </h4>
+                                    @if($warehouseAddress)
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                                            <svg class="h-4 w-4 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {{ $warehouseAddress }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Store Selection Section -->
+                    @if(count($stores) > 0)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                Bodegas Disponibles
+                            </h4>
+                            <div class="space-y-2 max-h-80 overflow-y-auto">
+                                @foreach($stores as $store)
+                                    <button
+                                        type="button"
+                                        wire:click="selectStore({{ $store['id'] }})"
+                                        @click="console.log('🟡 Bodega clickeada', { storeId: {{ $store['id'] }}, storeName: '{{ $store['name'] }}' })"
+                                        wire:loading.attr="disabled"
+                                        class="w-full text-left px-4 py-3 rounded-lg border-2 transition-all duration-200 group
+                                            {{ $store['id'] == $selectedStoreId 
+                                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 shadow-md' 
+                                                : 'border-gray-200 dark:border-gray-600 hover:border-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm' 
+                                            }}
+                                            disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-3 flex-1">
+                                                <!-- Store Icon -->
+                                                <div class="flex-shrink-0">
+                                                    <div class="h-10 w-10 rounded-lg flex items-center justify-center
+                                                        {{ $store['id'] == $selectedStoreId 
+                                                            ? 'bg-indigo-600' 
+                                                            : 'bg-gray-100 dark:bg-gray-700 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50' 
+                                                        }}
+                                                        transition-colors duration-200">
+                                                        <svg class="h-5 w-5 {{ $store['id'] == $selectedStoreId ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-indigo-600' }}" 
+                                                             fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Store Info -->
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-semibold {{ $store['id'] == $selectedStoreId ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white' }}">
+                                                        {{ $store['name'] }}
+                                                    </p>
+                                                    @if(!empty($store['store_manager']))
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                            Encargado: {{ $store['store_manager'] }}
+                                                        </p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Check Icon -->
+                                            @if($store['id'] == $selectedStoreId)
+                                                <div class="flex-shrink-0 ml-3">
+                                                    <div class="h-6 w-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                                                        <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-center py-12">
+                            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                            </svg>
+                            <p class="mt-4 text-base text-gray-500 dark:text-gray-400">
+                                No hay bodegas disponibles
+                            </p>
+                            <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">
+                                No se encontraron bodegas activas para tu sucursal
+                            </p>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            @if($selectedStoreId)
+                                <span class="flex items-center">
+                                    <svg class="h-4 w-4 text-green-500 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    Bodega seleccionada
+                                </span>
+                            @else
+                                Selecciona una bodega para continuar
+                            @endif
+                        </p>
+                        <button
+                            type="button"
+                            wire:click="confirm"
+                            @click="console.log('🔴 Botón Continuar clickeado', { selectedStoreId: @js($selectedStoreId), loading: @js($loading) })"
+                            wire:loading.attr="disabled"
+                            {{ !$selectedStoreId ? 'disabled' : '' }}
+                            class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
+                            <span wire:loading.remove wire:target="confirm">Continuar</span>
+                            <span wire:loading wire:target="confirm" class="flex items-center">
+                                <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
+                            <svg wire:loading.remove wire:target="confirm" class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Listeners for SweetAlert -->
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('warehouse-error', (data) => {
+                Swal.fire({
+                    title: data[0].title,
+                    text: data[0].message,
+                    icon: data[0].icon,
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#4F46E5',
+                    background: '#ffffff',
+                    color: '#111827',
+                    customClass: {
+                        popup: 'swal-popup-light',
+                        title: 'swal-title-light',
+                        content: 'swal-content-light'
+                    }
+                });
+            });
+        });
+    </script>
+</div>

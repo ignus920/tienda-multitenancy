@@ -21,7 +21,7 @@ class CommonValidator
                 'required',
                 'string',
                 'lowercase',
-                'email:rfc,dns',
+                'email:rfc',  // Removido 'dns' para evitar lentitud
                 'max:255',
                 'unique:'.User::class.',email',
                 'unique:vnt_contacts,email'
@@ -152,7 +152,7 @@ class CommonValidator
                 'required',
                 'string',
                 'lowercase',
-                'email:rfc,dns',
+                'email:rfc',  // Removido 'dns' para evitar lentitud
                 'max:255',
                 'unique:'.User::class.',email',
                 'unique:vnt_contacts,email'

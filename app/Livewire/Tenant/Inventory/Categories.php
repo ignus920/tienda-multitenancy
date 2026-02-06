@@ -5,17 +5,19 @@ namespace App\Livewire\Tenant\Inventory;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Items\Category;
+use App\Services\Tenant\Inventory\CategoriesService;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Carbon\Carbon;
 
 class Categories extends Component
-{   
+{
     use WithPagination;
-    
-    public $category_id,$name, $status, $created_at;
+    use \App\Traits\Livewire\WithExport;
 
-    //Propiedades para la tabla
+    public $category_id, $name, $status, $created_at;
+
+    // Propiedades para la tabla
     public $search = '';
     public $sortField = 'name';
     public $sortDirection = 'asc';
@@ -24,8 +26,14 @@ class Categories extends Component
     public $categorieIdToDelete;
     public $perPage = 10;
 
-    protected $rules =[
-        'name' => 'required|min:3',
+    protected $rules = [
+        'name' => 'required|min:3|regex:/^\pL+(\s+\pL+)*$/u',
+    ];
+
+    protected $messages = [
+        'name.required' => 'El nombre de la categoría es obligatorio',
+        'name.min' => 'El nombre de la categoría debe tener al menos 3 caracteres',
+        'name.regex' => 'El nombre de la categoría solo debe contener letras y espacios',
     ];
 
     public function resetForm()
@@ -76,6 +84,11 @@ class Categories extends Component
         $this->ensureTenantConnection();
     }
 
+    private function getService(): CategoriesService
+    {
+        return new CategoriesService();
+    }
+
     public function create()
     {
         $this->resetExcept(['categories', 'types']);
@@ -87,7 +100,7 @@ class Categories extends Component
         $this->ensureTenantConnection();
         $category = Category::findOrFail($id);
         $this->name = $category->name;
-        $this->category_id=$category->id;
+        $this->category_id = $category->id;
         $this->showModal = true;
     }
 
@@ -110,18 +123,29 @@ class Categories extends Component
             'name' => $this->name,
         ];
 
-        if($this->category_id){
-            $category=Category::findOrFail($this->category_id);
-            $category->update($categorieData);
-            session()->flash('message', 'Categoría actualizada correctamente.');
-        }else{
-            Category::create($categorieData);
-            session()->flash('message', 'Categoría creada correctamente.');
+        try {
+            $service = $this->getService();
+
+            if ($this->category_id) {
+                $category = Category::findOrFail($this->category_id);
+                $service->updateCategory($category, $categorieData);
+                // Los mensajes los maneja el service
+            } else {
+                $service->createCategory($categorieData);
+                // Los mensajes los maneja el service
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('❌ Error en Livewire save', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            session()->flash('error', 'Error al procesar la categoría: ' . $e->getMessage());
         }
 
         $this->resetValidation();
         $this->reset([
             'name',
+            'category_id'
         ]);
         $this->showModal = false;
     }
@@ -129,14 +153,14 @@ class Categories extends Component
     public function toggleCategoryStatus($id)
     {
         $this->ensureTenantConnection();
-        $item=Category::findOrFail($id);
+        $item = Category::findOrFail($id);
 
         $newStatus = $item->status ? 0 : 1;
         $item->update([
-            'status'=>$newStatus, 
+            'status' => $newStatus,
         ]);
-        
-        session()->flash('message', 'Estado actualizado correctamente');
+
+        session()->flash('success', 'Estado actualizado correctamente');
     }
 
     public function confirmItemDeletion($id)
@@ -149,32 +173,69 @@ class Categories extends Component
     {
         $this->ensureTenantConnection();
 
-        $categorieData=[
-            'status'=>0,
-            'deleted_at'=>Carbon::now(),
+        $categorieData = [
+            'status' => 0,
+            'deleted_at' => Carbon::now(),
         ];
 
-        $category=Category::findOrFail($this->categorieIdToDelete);
+        $category = Category::findOrFail($this->categorieIdToDelete);
         //$category->delete();
         $category->update($categorieData);
         $this->confirmingItemDeletion = false;
         $this->reset(['categorieIdToDelete']);
-        session()->flash('message','Item eliminado correctamente');
+        session()->flash('success', 'Item eliminado correctamente');
     }
 
 
     public function render()
     {
         $this->ensureTenantConnection();
-        $categories= Category::query()
+        $categories = Category::query()
             //->where('status', 1)
-            ->when($this->search, function($query){
+            ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
-        return view('livewire.tenant.inventory.categories',[
+        return view('livewire.tenant.inventory.categories', [
             'categories' => $categories
         ]);
+    }
+
+    /**
+     * Métodos para Exportación
+     */
+
+    protected function getExportData()
+    {
+        $this->ensureTenantConnection();
+        return Category::query()
+            ->when($this->search, function ($query) {
+                $query->where('name', 'like', '%' . $this->search . '%');
+            })
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->get();
+    }
+
+    protected function getExportHeadings(): array
+    {
+        return ['ID', 'Nombre', 'Estado', 'Fecha Registro'];
+    }
+
+    protected function getExportMapping()
+    {
+        return function ($category) {
+            return [
+                $category->id,
+                $category->name,
+                $category->status ? 'Activo' : 'Inactivo',
+                $category->created_at ? Carbon::parse($category->created_at)->format('Y-m-d H:i:s') : 'N/A',
+            ];
+        };
+    }
+
+    protected function getExportFilename(): string
+    {
+        return 'categorias_inventario_' . now()->format('Y-m-d_His');
     }
 }

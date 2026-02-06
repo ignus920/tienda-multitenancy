@@ -10,6 +10,18 @@ new #[Layout('layouts.guest')] class extends Component
     public LoginForm $form;
 
     /**
+     * Clear login errors when user starts typing
+     */
+    public function clearErrors(): void
+    {
+        $this->resetValidation('form.email');
+        $this->resetValidation('form.password');
+        
+        // Dispatch event to close SweetAlert modal
+        $this->dispatch('close-swal');
+    }
+
+    /**
      * Handle an incoming authentication request.
      */
     public function login(): void
@@ -18,6 +30,36 @@ new #[Layout('layouts.guest')] class extends Component
 
         try {
             $this->form->authenticate();
+
+            $user = auth()->user();
+
+            // Verificar acceso activo a tenants
+            $hasActiveAccess = \App\Models\Auth\UserTenant::where('user_id', $user->id)
+             ->where('is_active', true)
+             ->exists();
+
+            if (!$hasActiveAccess) {
+                auth()->logout();
+                Session::invalidate();
+                $this->dispatch('login-error', [
+                  'title' => 'Cuenta inactiva',
+                  'message' => 'No tienes acceso activo a ninguna empresa. Contacta al administrador.',
+                  'icon' => 'warning'
+                ]);
+                return;
+            }
+
+           if ($user->whatsapp_token_expires_at !== null) {
+                auth()->logout();
+                 Session::invalidate();
+                 $this->dispatch('login-error', [
+                 'title' => 'Cuenta no verificada',
+                 'message' => 'Debes verificar tu cuenta antes de iniciar sesión. Revisa tu correo o WhatsApp para obtener el código de verificación.',
+                 'icon' => 'warning'
+               ]);
+                $this->redirect(route('verify-token'), navigate: true);
+                return;
+            }
 
             // Si llegamos aquí, no hay 2FA o ya fue validado
             Session::regenerate();
@@ -34,7 +76,38 @@ new #[Layout('layouts.guest')] class extends Component
                 return;
             }
 
-            // Redirigir a selección de tenant para usuarios normales
+            // Verificar si el usuario es TAT (profile_id = 17)
+            if (auth()->user()->profile_id == 17) {
+                // Obtener el tenant del usuario
+                $userTenants = auth()->user()->activeTenants()->get();
+                
+                // Si solo tiene un tenant, establecerlo automáticamente
+                if ($userTenants->count() === 1) {
+                    Session::put('tenant_id', $userTenants->first()->id);
+                }
+                
+                // Marcar que necesita seleccionar sucursal
+                Session::put('needs_warehouse_selection', true);
+                Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
+                
+                // Redirigir a tenant.select (el modal se abrirá automáticamente)
+                $this->redirect(route('tenant.select'), navigate: true);
+                return;
+            }
+
+            // Obtener el tenant del usuario
+            $userTenants = auth()->user()->activeTenants()->get();
+            
+            // Si solo tiene un tenant, establecerlo automáticamente
+            if ($userTenants->count() === 1) {
+                Session::put('tenant_id', $userTenants->first()->id);
+            }
+            
+            // Marcar que necesita seleccionar sucursal
+            Session::put('needs_warehouse_selection', true);
+            Session::put('warehouse_redirect_route', 'tenant.select');
+            
+            // Redirigir a tenant.select (el modal se abrirá automáticamente)
             $this->redirect(route('tenant.select'), navigate: true);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Si hay 2FA habilitado, redirigir a verificación
@@ -43,12 +116,82 @@ new #[Layout('layouts.guest')] class extends Component
                 return;
             }
 
+            // Capturar el mensaje de error y mostrar notificación SweetAlert
+            $errors = $e->errors();
+            if (isset($errors['form.email'][0])) {
+                $message = $errors['form.email'][0];
+
+                // Determinar el tipo de error y mostrar notificación personalizada
+                if (str_contains($message, 'bloqueado temporalmente')) {
+                    $this->dispatch('login-error', [
+                        'title' => 'Demasiados intentos',
+                        'message' => $message,
+                        'icon' => 'warning'
+                    ]);
+                } else {
+                    $this->dispatch('login-error', [
+                        'title' => 'Credenciales incorrectas',
+                        'message' => $message,
+                        'icon' => 'error'
+                    ]);
+                }
+
+                // Limpiar el mensaje de error para evitar mostrar el mensaje estándar
+                $e->withMessages(['form.email' => '']);
+            }
+
             throw $e;
         }
     }
 }; ?>
 
-<div class="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8 lg:py-20">
+<div class="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8 lg:py-20" x-data="{
+    init() {
+        // Listener para errores de login
+        Livewire.on('login-error', (data) => {
+            Swal.fire({
+                title: data[0].title,
+                text: data[0].message,
+                icon: data[0].icon,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#4F46E5',
+                background: '#ffffff',
+                color: '#111827',
+                customClass: {
+                    popup: 'swal-popup-light',
+                    title: 'swal-title-light',
+                    content: 'swal-content-light'
+                }
+            });
+        });
+
+        // Listener para login exitoso
+        Livewire.on('login-success', (data) => {
+            Swal.fire({
+                title: data[0].title,
+                text: data[0].message,
+                icon: data[0].icon,
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                background: '#ffffff',
+                color: '#111827',
+                customClass: {
+                    popup: 'swal-popup-light',
+                    title: 'swal-title-light',
+                    content: 'swal-content-light'
+                }
+            });
+        });
+
+        // Listener para cerrar SweetAlert cuando el usuario escribe
+        Livewire.on('close-swal', () => {
+            if (Swal.isVisible()) {
+                Swal.close();
+            }
+        });
+    }
+}">
     <!-- Header -->
     <div class="sm:mx-auto sm:w-full sm:max-w-sm">
         <div class="mx-auto h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-lg">
@@ -81,6 +224,7 @@ new #[Layout('layouts.guest')] class extends Component
                         required
                         autofocus
                         autocomplete="email"
+                        wire:keydown="clearErrors"
                         class="block w-full rounded-md bg-white dark:bg-white/5 px-3 py-1.5 text-base text-gray-900 dark:text-white outline-1 -outline-offset-1 outline-gray-300 dark:outline-white/10 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                         placeholder="tu@email.com"
                     />
@@ -110,6 +254,7 @@ new #[Layout('layouts.guest')] class extends Component
                         name="password"
                         required
                         autocomplete="current-password"
+                        wire:keydown="clearErrors"
                         class="block w-full rounded-md bg-white dark:bg-white/5 px-3 py-1.5 pr-12 text-base text-gray-900 dark:text-white outline-1 -outline-offset-1 outline-gray-300 dark:outline-white/10 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                         placeholder="••••••••"
                     />
@@ -176,4 +321,56 @@ new #[Layout('layouts.guest')] class extends Component
             </p>
         @endif
     </div>
+
+    <!-- Estilos CSS para SweetAlert2 - Siempre modo claro -->
+    <style>
+        /* Estilos personalizados para SweetAlert2 - Forzar modo claro */
+        .swal-popup-light {
+            background-color: white !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .swal-title-light {
+            color: #111827 !important;
+            font-weight: 600 !important;
+        }
+
+        .swal-content-light {
+            color: #374151 !important;
+        }
+
+        /* Forzar colores claros para todos los elementos internos */
+        .swal2-popup {
+            background-color: white !important;
+            color: #111827 !important;
+        }
+
+        .swal2-title {
+            color: #111827 !important;
+        }
+
+        .swal2-content {
+            color: #374151 !important;
+        }
+
+        .swal2-confirm {
+            background-color: #4F46E5 !important;
+            color: white !important;
+        }
+
+        /* Estilos para el icono de éxito */
+        .swal2-success-circular-line-left,
+        .swal2-success-circular-line-right {
+            background-color: #10B981 !important;
+        }
+
+        .swal2-success-fix {
+            background-color: #10B981 !important;
+        }
+
+        .swal2-timer-progress-bar {
+            background-color: #10B981 !important;
+        }
+    </style>
 </div>

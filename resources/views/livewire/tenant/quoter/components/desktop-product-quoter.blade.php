@@ -108,11 +108,35 @@ $header = 'Seleccionar productos';
                                 {{ $product->display_name }}
                             </div>
                             <!-- SKU (con altura fija para mantener estructura) -->
-                            <div class="text-xs text-gray-500 dark:text-gray-500 mb-3 h-4 flex items-center justify-center">
+                            <div class="text-xs text-gray-500 dark:text-gray-500 mb-2 h-4 flex items-center justify-center">
                                 @if($product->sku && trim($product->sku) !== '')
                                 SKU: {{ $product->sku }}
                                 @endif
                             </div>
+
+                            <!-- Bodegas disponibles -->
+                            @if($product->store_stock_details)
+                            <div class="mb-1 px-2">
+                                <div class="flex flex-wrap gap-1 justify-center">
+                                    @foreach(explode(', ', $product->store_stock_details) as $storeDetail)
+                                        @php
+                                            $parts = explode(':', $storeDetail);
+                                            $storeName = $parts[0] ?? '';
+                                            $stock = $parts[1] ?? '0';
+                                        @endphp
+                                        @if($storeName)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium
+                                            {{ $stock > 0
+                                                ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-700'
+                                                : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-700'
+                                            }}">
+                                            {{ $storeName }}: {{ number_format($stock, 0, ',', '.') }}
+                                        </span>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
 
                             <!-- Precios -->
                             @php
@@ -122,29 +146,61 @@ $header = 'Seleccionar productos';
                             <div class="mb-2 grid grid-cols-2 gap-1">
                                 @foreach($allPrices as $label => $price)
                                 @php
-                                $isDisabled = $isSelected;
+                                    // Verificar si este precio está seleccionado en modo edición
+                                    $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
+                                    
+                                    // Determinar colores según el label del precio
+                                    $colorClasses = match($label) {
+                                        'Precio Regular' => [
+                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
+                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
+                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',
+                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-red-700 dark:text-red-300',
+                                            'spinner' => 'text-red-600 dark:text-red-400'
+                                        ],
+                                        'Precio Crédito' => [
+                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-yellow-500/30',
+                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-yellow-50/50 dark:bg-yellow-900/10 active:bg-yellow-100 dark:active:bg-yellow-900/30',
+                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700',
+                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-700 dark:text-yellow-300',
+                                            'spinner' => 'text-yellow-600 dark:text-yellow-400'
+                                        ],
+                                        default => [
+                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-emerald-500/30',
+                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30',
+                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700',
+                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-emerald-700 dark:text-emerald-300',
+                                            'spinner' => 'text-emerald-600 dark:text-emerald-400'
+                                        ]
+                                    };
                                 @endphp
                                 <button
-                                    title="{{ $label }}"
-                                    wire:click="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                    wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                     wire:loading.attr="disabled"
-                                    wire:target="addToQuoter"
-                                    x-on:click.stop
-                                    @if($isDisabled) disabled @endif
-                                    class="px-2 py-1 text-center rounded border transition-colors min-h-[28px] flex items-center justify-center {{ $isDisabled ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed': 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer'}}">
-
-                                    <!-- Contenido normal -->
-                                    <div wire:loading.remove wire:target="addToQuoter" class="font-bold text-xs {{ $isDisabled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white' }}">
-                                        ${{ number_format($price) }}
+                                    wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                    class="relative w-full py-1 px-2 rounded-lg border transition-colors overflow-hidden group {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
+                                    
+                                    <!-- Contenido Normal -->
+                                    <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
+                                        <div class="text-[9px] uppercase font-bold truncate transition-colors {{ $colorClasses['label_text'] }}">
+                                            {{ $label }}
+                                            @if($isThisPriceSelected)
+                                                <span class="ml-1">✓</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-[12px] font-black {{ $colorClasses['price_text'] }}">
+                                            ${{ number_format($price) }}
+                                        </div>
                                     </div>
 
-                                    <!-- Spinner de carga -->
-                                    <svg wire:loading wire:target="addToQuoter" class="w-3 h-3 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2-647z"></path>
-                                    </svg>
+                                    <!-- Spinner de Carga (Reload) -->
+                                    <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="flex items-center justify-center py-1">
+                                        <svg class="animate-spin h-4 w-4 {{ $colorClasses['spinner'] }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
                                 </button>
-
                                 @endforeach
                             </div>
                             @else
@@ -194,7 +250,25 @@ $header = 'Seleccionar productos';
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $this->quoterCount }} Productos seleccionados</h2>
                     @if(!empty($quoterItems))
-                    <button wire:click="clearQuoter"
+                    <button
+                        @click="
+                            Swal.fire({
+                                title: '¿Limpiar cotizador?',
+                                text: 'Se eliminarán todos los productos seleccionados.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#4f46e5',
+                                cancelButtonColor: '#ef4444',
+                                confirmButtonText: 'Sí, limpiar',
+                                cancelButtonText: 'Cancelar',
+                                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    $wire.clearQuoter()
+                                }
+                            })
+                        "
                         class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium">
                         Limpiar
                     </button>
@@ -280,6 +354,7 @@ $header = 'Seleccionar productos';
                         @endif
                         <livewire:tenant.vnt-company.vnt-company-form
                             :reusable="true"
+                            :simplified="true"
                             :companyId="$editingCustomerId"
                             key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
                         @if (!$editingCustomerId)
@@ -290,41 +365,36 @@ $header = 'Seleccionar productos';
                     @endif
 
                     @if(!$selectedCustomer && !$showCreateCustomerForm && !$showCreateCustomerButton)
-                    <!-- Formulario de búsqueda -->
+                    <!-- Formulario de búsqueda Predictiva -->
                     <div class="space-y-2">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Buscar Cliente</label>
-                        <div x-data="{ searching: false }" class="flex gap-2">
-
+                        <div class="relative">
                             <!-- Input de búsqueda -->
                             <input
-                                wire:model.defer="customerSearch"
+                                wire:model.live.debounce.300ms="customerSearch"
                                 type="text"
-                                placeholder="NIT o cédula..."
-                                class="flex-1 px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                placeholder="Escribe nombre, NIT o cédula..."
+                                class="w-full px-3 py-2 text-sm border-2 border-gray-200 focus:border-indigo-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all outline-none"
+                                @keydown.enter="$wire.searchCustomer()">
 
-                            <!-- Botón con respuesta instantánea -->
-                            <button
-                                @click="searching = true; $wire.searchCustomer().then(() => searching = false)"
-                                :class="searching ? 'opacity-50 cursor-wait' : ''"
-                                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
-
-                                <!-- Ícono normal -->
-                                <svg x-show="!searching" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-
-                                <!-- Ícono loading instantáneo (no espera Livewire) -->
-                                <svg x-show="searching" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10"
-                                        stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor"
-                                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                            </button>
-
+                            <!-- Resultados de búsqueda -->
+                            @if(!empty($customerResults))
+                            <div class="absolute z-50 left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-60 overflow-y-auto">
+                                @foreach($customerResults as $result)
+                                <button
+                                    wire:click="selectCustomer({{ $result['id'] }})"
+                                    class="w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors">
+                                    <div class="font-bold text-sm text-gray-900 dark:text-white">
+                                        {{ $result['businessName'] ?: ($result['firstName'] . ' ' . $result['lastName']) }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 dark:text-gray-400">
+                                        {{ $result['identification'] }}
+                                    </div>
+                                </button>
+                                @endforeach
+                            </div>
+                            @endif
                         </div>
-
                     </div>
                     @endif
                 </div>
@@ -352,10 +422,12 @@ $header = 'Seleccionar productos';
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex-1">
                                 <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ $item['name'] }}</h4>
-                                @if(isset($item['price_label']))
-                                <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
-                                @endif
-                            
+                                <div class="flex items-center gap-3 mt-1">
+                                    @if(isset($item['price_label']))
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
+                                    @endif
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Impuesto: {{ $item['tax_label']}}</p>
+                                </div>
                             </div>
                             <button wire:click="removeFromQuoter({{ $index }})"
                                 class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">
@@ -456,29 +528,33 @@ $header = 'Seleccionar productos';
                     <!-- Total -->
                     <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
                         <span>Total:</span>
-                        <span>${{ number_format($totalAmount) }}</span>
+                        <span>${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
 
 
-                    @if($isEditing)
+                    @if($isEditing || $isEditingRemission)
                     <!-- Botones para edición -->
                     <div class="flex gap-2">
-                        <button wire:click="updateQuote"
+                        @php
+                            $updateMethod = $isEditingRemission ? 'updateRemission' : 'updateQuote';
+                            $updateText = $isEditingRemission ? 'Actualizar Remisión' : 'Actualizar Cotización';
+                        @endphp
+                        <button wire:click="{{ $updateMethod }}"
                             wire:loading.attr="disabled"
-                            wire:target="updateQuote"
+                            wire:target="{{ $updateMethod }}"
                             class="flex-1  bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap">
 
-                            <svg wire:loading.remove wire:target="updateQuote" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg wire:loading.remove wire:target="{{ $updateMethod }}" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
 
-                            <svg wire:loading wire:target="updateQuote" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <svg wire:loading wire:target="{{ $updateMethod }}" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
 
-                            <span wire:loading.remove wire:target="updateQuote">Actualizar Cotización</span>
-                            <span wire:loading wire:target="updateQuote">Actualizando...</span>
+                            <span wire:loading.remove wire:target="{{ $updateMethod }}">{{ $updateText }}</span>
+                            <span wire:loading wire:target="{{ $updateMethod }}">Actualizando...</span>
                         </button>
 
                         <button wire:click="cancelEditing"
@@ -499,6 +575,44 @@ $header = 'Seleccionar productos';
                             <span wire:loading wire:target="cancelEditing">Cancelando...</span>
                         </button>
                     </div>
+
+                    @if($isEditing)
+                    <!-- Botón Confirmar Pedido (Solo en modo edición de cotización) -->
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button wire:click="confirmOrder"
+                            wire:loading.attr="disabled"
+                            wire:target="confirmOrder"
+                            class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg border border-green-500 dark:border-green-600 disabled:opacity-50 disabled:cursor-wait">
+                            <svg wire:loading.remove wire:target="confirmOrder" class="w-5 h-5 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <svg wire:loading wire:target="confirmOrder" class="w-5 h-5 mr-3 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="confirmOrder">Crear remisión</span>
+                            <span wire:loading wire:target="confirmOrder">Creando remisión...</span>
+                        </button>
+
+                        <!-- Botón Facturar - Solo visible si el módulo está activo, estamos editando y no hay cambios -->
+                        @if($this->canShowInvoiceButton)
+                        <button wire:click="invoiceOrder"
+                            wire:loading.attr="disabled"
+                            wire:target="invoiceOrder"
+                            class="w-full mt-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg border border-blue-500 dark:border-blue-600 disabled:opacity-50 disabled:cursor-wait">
+                            <svg wire:loading.remove wire:target="invoiceOrder" class="w-5 h-5 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <svg wire:loading wire:target="invoiceOrder" class="w-5 h-5 mr-3 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="invoiceOrder">Facturar</span>
+                            <span wire:loading wire:target="invoiceOrder">Facturando...</span>
+                        </button>
+                        @endif
+                    </div>
+                    @endif
 
                     @else
                     <!-- Botón crear nueva cotización -->
@@ -533,6 +647,23 @@ $header = 'Seleccionar productos';
                         <span wire:loading.remove wire:target="saveQuote">Crear Cotización</span>
                         <span wire:loading wire:target="saveQuote">Guardando...</span>
                     </button>
+
+                        @if(false)
+                        <button wire:click="invoiceOrder"
+                            wire:loading.attr="disabled"
+                            wire:target="invoiceOrder"
+                            class="w-full mt-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg border border-blue-500 dark:border-blue-600 disabled:opacity-50 disabled:cursor-wait">
+                            <svg wire:loading.remove wire:target="invoiceOrder" class="w-5 h-5 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <svg wire:loading wire:target="invoiceOrder" class="w-5 h-5 mr-3 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="invoiceOrder">Facturar</span>
+                            <span wire:loading wire:target="invoiceOrder">Facturando...</span>
+                        </button>
+                        @endif
                     @endif
                     @endif
                 </div>
@@ -540,4 +671,203 @@ $header = 'Seleccionar productos';
             @endif
         </div>
     </div>
+
+    <!-- Modal de Métodos de Pago -->
+    @if($showPaymentModal)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50"
+         x-data="{
+            currentMethod: @entangle('currentPaymentMethod'),
+            methods: @entangle('paymentMethods'),
+            updateValue(method, value) {
+                this.methods[method].value = Math.max(0, parseFloat(value) || 0);
+                $wire.updatePaymentMethodValue(method, value);
+            }
+         }">
+
+        <!-- Modal Principal -->
+        <div class="w-full max-w-6xl max-h-[95vh] lg:max-h-[90vh] bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col mx-4">
+
+            <!-- Header Responsivo -->
+            <div class="bg-gray-800 text-white p-4 lg:p-6 flex-shrink-0">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg lg:text-2xl font-bold">MÉTODOS DE PAGO</h1>
+                        <p class="text-gray-300 text-sm lg:text-base mt-1">
+                            @if($selectedCustomer)
+                                <span class="block lg:inline">{{ $selectedCustomer['businessName'] ?? $selectedCustomer['firstName'] ?? 'Cliente' }}</span>
+                                <span class="hidden lg:inline"> - </span>
+                            @endif
+                            <span class="block lg:inline">Total: ${{ number_format($totalAmount, 2, ',', '.') }}</span>
+                        </p>
+                    </div>
+                    <button wire:click="closePaymentModal"
+                            class="text-gray-300 hover:text-white p-2 ml-2 flex-shrink-0">
+                        <svg class="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="flex flex-1 overflow-hidden flex-col lg:flex-row">
+
+                <!-- Panel Izquierdo - Resumen -->
+                <div class="w-full lg:w-1/3 bg-gray-100 p-4 lg:p-6 lg:border-r border-gray-300 overflow-y-auto flex-shrink-0">
+                    <!-- Layout responsivo para el resumen -->
+                    <div class="space-y-4 lg:space-y-6">
+
+                        <!-- Total de la Venta -->
+                        <div class="bg-white rounded-lg p-4 lg:p-6 shadow">
+                            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800">TOTAL VENTA</h3>
+                            <div class="text-center">
+                                <div class="text-2xl lg:text-4xl font-bold text-green-600">
+                                    ${{ number_format($totalAmount, 2, ',', '.') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado del Pago -->
+                        <div class="bg-white rounded-lg p-4 lg:p-6 shadow">
+                            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800">ESTADO</h3>
+                            <div class="space-y-2 lg:space-y-3 text-base lg:text-lg">
+                                <div class="flex justify-between">
+                                    <span>Pagado:</span>
+                                    <span class="font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="flex justify-between border-t pt-2 lg:pt-3">
+                                    <span>Falta:</span>
+                                    <span class="font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</span>
+                                </div>
+                                @if($changeAmount > 0)
+                                <div class="flex justify-between border-t pt-2 lg:pt-3">
+                                    <span>Cambio:</span>
+                                    <span class="font-bold text-green-600">${{ number_format($changeAmount, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Panel Derecho - Métodos de Pago -->
+                <div class="flex-1 p-4 lg:p-6 overflow-y-auto">
+                    <h2 class="text-lg lg:text-2xl font-bold mb-4 lg:mb-6 text-center text-gray-800">FORMA DE PAGO</h2>
+
+                    <!-- Tabla de Métodos de Pago Responsiva -->
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+
+                        <!-- Header de la Tabla -->
+                        <div class="bg-gray-800 text-white p-3 lg:p-4">
+                            <div class="grid grid-cols-3 gap-2 lg:gap-4">
+                                <div class="text-sm lg:text-xl font-bold text-center">MÉTODO</div>
+                                <div class="text-sm lg:text-xl font-bold text-center">VALOR</div>
+                                <div class="text-sm lg:text-xl font-bold text-center">ACCIÓN</div>
+                            </div>
+                        </div>
+
+                        <!-- Filas de Métodos de Pago -->
+                        <div class="divide-y divide-gray-200">
+                            @foreach($paymentMethods as $key => $method)
+                            <div class="grid grid-cols-3 gap-2 lg:gap-4 p-3 lg:p-6 items-center
+                                @if($currentPaymentMethod === $key) bg-yellow-100 border-l-4 border-yellow-500 @endif
+                                @if($method['value'] > 0 && $currentPaymentMethod !== $key) bg-blue-50 border-l-4 border-blue-400 @endif">
+
+                                <!-- Nombre del Método -->
+                                <div class="text-sm lg:text-2xl font-semibold text-gray-800 flex items-center cursor-pointer"
+                                     wire:click="selectPaymentMethod('{{ $key }}')">
+                                    @if($currentPaymentMethod === $key)
+                                        <span class="mr-1 lg:mr-3 text-yellow-500">▶</span>
+                                    @elseif($method['value'] > 0)
+                                        <span class="mr-1 lg:mr-3 text-blue-500">●</span>
+                                    @endif
+                                    <span class="truncate">{{ $method['name'] }}</span>
+                                </div>
+
+                                <!-- Valor Pagado -->
+                                <div class="text-center">
+                                    @php
+                                    $availableForMethod = $this->getAvailableBalanceForMethod($key);
+                                    $isEffectivo = $key === 'efectivo';
+                                    @endphp
+
+                                    <input type="number"
+                                           wire:model.live="paymentMethods.{{ $key }}.value"
+                                           wire:change="calculatePaymentBalances"
+                                           class="w-full text-lg lg:text-2xl font-bold text-center py-2 lg:py-3 px-2 lg:px-4 border-2 rounded-lg
+                                               @if($currentPaymentMethod === $key) border-yellow-500 bg-yellow-50 @else border-gray-300 @endif
+                                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           placeholder="@if($isEffectivo)$0@else Máx: ${{ number_format($availableForMethod, 0, ',', '.') }} @endif"
+                                           min="0"
+                                           @if(!$isEffectivo && $availableForMethod != PHP_FLOAT_MAX) max="{{ $availableForMethod }}" @endif
+                                           step="1000"
+                                           inputmode="numeric">
+
+                                    @if(!$isEffectivo && $availableForMethod > 0 && $availableForMethod != PHP_FLOAT_MAX)
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Disponible: ${{ number_format($availableForMethod, 0, ',', '.') }}
+                                    </div>
+                                    @elseif($isEffectivo)
+                                    <div class="text-xs text-blue-500 mt-1">
+                                        Sin límite (puede dar cambio)
+                                        @if($cashAutoAdjusted && $method['value'] > 0)
+                                        <div class="text-xs text-orange-500 mt-1">
+                                            ⚡ Ajustado automáticamente
+                                        </div>
+                                        @endif
+                                    </div>
+                                    @endif
+                                </div>
+
+                                <!-- Botón de Acción -->
+                                <div class="text-center">
+                                    <button wire:click="selectAndPayTotal('{{ $key }}')"
+                                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 lg:py-3 px-3 lg:px-6 rounded-lg transition-all text-xs lg:text-sm">
+                                        <span class="hidden lg:inline">PAGAR TODO</span>
+                                        <span class="lg:hidden">TODO</span>
+                                    </button>
+                                </div>
+
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción Responsivos -->
+                    <div class="mt-4 lg:mt-8 flex flex-col lg:flex-row justify-center gap-3 lg:gap-4">
+                        <button wire:click="closePaymentModal"
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg">
+                            CANCELAR
+                        </button>
+
+                        @if($canProceedToPayment && ($remainingBalance == 0 || $changeAmount > 0))
+                        <button wire:click="confirmPayment"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg">
+                            @if($changeAmount > 0)
+                                <span class="hidden lg:inline">FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})</span>
+                                <span class="lg:hidden">FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})</span>
+                            @else
+                                <span class="hidden lg:inline">CONFIRMAR PAGO Y FACTURAR</span>
+                                <span class="lg:hidden">FACTURAR</span>
+                            @endif
+                        </button>
+                        @else
+                        <button disabled
+                                class="bg-gray-400 text-gray-200 font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg cursor-not-allowed">
+                            @if($remainingBalance > 0)
+                                FALTA ${{ number_format($remainingBalance, 0, ',', '.') }}
+                            @else
+                                INGRESE PAGO
+                            @endif
+                        </button>
+                        @endif
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>

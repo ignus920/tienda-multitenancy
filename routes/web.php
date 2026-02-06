@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Auth\Livewire\Verify2FA;
 use App\Auth\Livewire\SelectTenant;
 use App\Auth\Livewire\Enable2FA;
-use App\Http\Livewire\Tenant\Dashboard as TenantDashboard;
+use App\Livewire\Tenant\Dashboard\Dashboard as TenantDashboard;
 use App\Http\Controllers\WorldController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TestController;
@@ -23,6 +23,11 @@ Route::view('/', 'welcome');
 Route::get('/verify-2fa', Verify2FA::class)
     ->name('verify.2fa');
 
+// Selección de sucursal después del login (DESHABILITADA - Ahora se usa el modal LoginWarehouseSelector)
+// Volt::route('/select-warehouse', 'pages.auth.select-warehouse')
+//     ->middleware(['auth'])
+//     ->name('select.warehouse');
+
 // Configuración de empresa (requiere autenticación)
 Route::get('/company/setup', UpdateCompany::class)
     ->middleware(['auth'])
@@ -39,7 +44,7 @@ Route::get('/tenant/dashboard', TenantDashboard::class)
     ->name('tenant.dashboard');
 
 
-    
+
 
 // Módulo de Clientes (requiere autenticación, datos completos y tenant seleccionado)
 Route::get('/tenant/customers', CustomerManager::class)
@@ -51,7 +56,7 @@ Route::get('/tenant/warehouses', WarehouseManager::class)
     ->middleware('tenant')
     ->name('tenant.warehouses');
 
-     
+
 
 
 // Configuración de 2FA (requiere autenticación y datos completos)
@@ -120,13 +125,6 @@ Route::get('/super-admin', App\Livewire\Central\SuperAdmin\GlobalDashboard::clas
 //     ->middleware(['auth', 'company.complete', App\Auth\Middleware\SetTenantConnection::class])
 //     ->name('ejemplo.configuracion');
 
-
-
-
-
-
-
-
 // Rutas para gestión de permisos y roles (Catálogo de permisos)
 Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->group(function () {
     Route::get('/catalog', [App\Http\Controllers\Auth\PermissionController::class, 'getCatalog'])
@@ -150,11 +148,18 @@ Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->grou
 
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 // Incluir rutas del módulo de parámetros del tenant
-require __DIR__.'/tenants/parameters.php';
+require __DIR__ . '/tenants/parameters.php';
 // Incluir rutas del módulo de pagos de cotizacion 
-require __DIR__.'/tenants/payments.php';
+require __DIR__ . '/tenants/payments.php';
 
 
+// Incluir rutas del módulo de remisiones 
+require __DIR__ . '/tenants/remissions.php';
+
+//Incluir rutas del módelo de facturas
+require __DIR__ . '/tenants/invoices.php';
+// Incluir rutas del módulo de usuarios
+require __DIR__.'/tenants/users.php';

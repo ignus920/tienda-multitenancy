@@ -13,6 +13,7 @@
         @if($required) required @endif
         class="{{ $class }} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
         wire:loading.attr="disabled">
+        <option value="">{{ $placeholder }}</option>
         @foreach($fiscalResponsibilities as $fiscalResponsibility)
             <option value="{{ $fiscalResponsibility->id }}">
                 {{ $fiscalResponsibility->description }}

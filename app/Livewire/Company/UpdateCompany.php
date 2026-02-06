@@ -221,7 +221,7 @@ class UpdateCompany extends Component
             empty($this->code_ciiu) ||
             $this->typeIdentificationId == 0 ||
             $this->regimeId == 0 ||
-            $this->fiscalResponsibilityId == 0) {
+            !isset($this->fiscalResponsibilityId)) { // Cambiado para permitir 0 como valor válido
             $this->currentStep = 1;
             return;
         }
@@ -287,7 +287,7 @@ class UpdateCompany extends Component
             // 'typePerson' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
             // 'code_ciiu' => ['required', 'string'], // Comentado temporalmente - campo falta en vista
             'regimeId' => ['required', 'numeric', 'min:1'],
-            'fiscalResponsibilityId' => ['required', 'numeric', 'min:1'],
+            'fiscalResponsibilityId' => ['required', 'numeric', 'min:0'], // Cambiado a min:0 para permitir "Ninguna" (id=0 o id=1)
         ];
 
         Log::info('🐛 DEBUG - Reglas de validación:', $rules);
@@ -429,8 +429,10 @@ class UpdateCompany extends Component
                 ]);
             }
 
-            // Configurar base de datos del tenant si aún no está configurada
-            $this->setupTenantDatabaseIfNeeded();
+            // Migration removed - will happen in finish() method
+            Log::info('✅ Warehouse and contact data saved, migration deferred to finish()', [
+                'warehouse_id' => $this->warehouse->id
+            ]);
         }
     }
 
@@ -441,62 +443,81 @@ class UpdateCompany extends Component
     protected function setupTenantDatabaseIfNeeded(): void
     {
         try {
-            // Buscar el tenant asociado al usuario actual
             $user = Auth::user();
+            
+            Log::info('🔍 Checking tenant database setup status', ['user_id' => $user->id]);
+            
+            // Find tenant associated with current user
             $tenant = Tenant::whereHas('users', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })->first();
 
             if (!$tenant) {
-                Log::warning('⚠️ No se encontró tenant para el usuario', ['user_id' => $user->id]);
+                Log::warning('⚠️ No tenant found for user', ['user_id' => $user->id]);
                 return;
             }
 
-            // Verificar si la base de datos ya está configurada
+            // Check if database is already setup (idempotency)
             if ($tenant->database_setup) {
-                Log::info('ℹ️ Base de datos del tenant ya está configurada', ['tenant_id' => $tenant->id]);
+                Log::info('⏭️ Tenant database already configured, skipping migration', [
+                    'tenant_id' => $tenant->id,
+                    'db_name' => $tenant->db_name
+                ]);
                 return;
             }
 
-            Log::info('🏗️ Configurando base de datos del tenant después de completar datos de empresa', [
+            Log::info('🏗️ Starting tenant database setup', [
                 'tenant_id' => $tenant->id,
                 'user_id' => $user->id,
-                'company_id' => $this->company->id
+                'company_id' => $this->company->id,
+                'db_name' => $tenant->db_name
             ]);
 
-            // Configurar la base de datos y ejecutar migraciones
+            // Setup the database and run migrations
             $tenantManager = app(TenantManager::class);
             $tenantManager->setupTenantDatabase($tenant);
 
-            Log::info('✅ Base de datos del tenant configurada exitosamente', ['tenant_id' => $tenant->id]);
+            Log::info('✅ Tenant database configured successfully', [
+                'tenant_id' => $tenant->id,
+                'db_name' => $tenant->db_name
+            ]);
 
-            // Opcional: mostrar mensaje al usuario
+            // Optional: Set session flash for user notification
             session()->flash('tenant_database_ready', 'Tu base de datos empresarial ha sido configurada exitosamente.');
 
         } catch (\Exception $e) {
-            Log::error('❌ Error configurando base de datos del tenant', [
+            Log::error('❌ Error configuring tenant database', [
                 'user_id' => $user->id ?? null,
                 'company_id' => $this->company->id ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // No interrumpir el flujo del usuario, solo registrar el error
-            // El admin puede revisar logs y reconfigurar manualmente si es necesario
+            // Re-throw exception to be caught by finish() method
+            // This allows proper error handling and user notification
+            throw new \RuntimeException(
+                'No se pudo configurar la base de datos de tu empresa. Por favor, contacta al soporte técnico.',
+                0,
+                $e
+            );
         }
     }
 
-    #[On('finish-company-config')]
     public function finish()
     {
         try {
-            Log::info('🚀 Iniciando finish() - validateCurrentStep...');
+            Log::info('🚀 Starting finish() - validating final step');
+            
+            // Step 1: Validate all form data
             $this->validateCurrentStep();
-            Log::info('✅ validateCurrentStep completado exitosamente');
+            Log::info('✅ Validation completed successfully');
+            
+            // Step 2: Setup tenant database if not already done
+            $this->setupTenantDatabaseIfNeeded();
+            
+            // Step 3: Show success and redirect
+            Log::info('🎉 Company setup completed', ['user_id' => Auth::user()->id]);
 
-            Log::info('🎉 Configuración de empresa completada', ['user_id' => Auth::user()->id]);
-
-            Log::info('💾 Configurando session flash messages...');
             session()->flash('company_setup_completed', true);
             session()->flash('success', '¡Configuración de empresa completada exitosamente!');
 
@@ -507,10 +528,10 @@ class UpdateCompany extends Component
                 'redirectTo' => route('tenant.select')
             ]);
 
-            Log::info('📢 Evento show-completion-alert emitido correctamente');
+            Log::info('📢 Completion alert dispatched successfully');
 
         } catch (\Exception $e) {
-            Log::error('❌ Error en finish()', [
+            Log::error('❌ Error in finish()', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -518,7 +539,7 @@ class UpdateCompany extends Component
             // Emitir evento de error
             $this->dispatch('show-completion-alert', [
                 'title' => 'Error',
-                'message' => 'Hubo un error al finalizar la configuración: ' . $e->getMessage(),
+                'message' => 'Hubo un error al finalizar la configuración. Por favor, contacte al soporte técnico.',
                 'redirectTo' => route('company.setup')
             ]);
         }
@@ -532,7 +553,7 @@ class UpdateCompany extends Component
                         !empty($this->code_ciiu) &&
                         $this->typeIdentificationId > 0 &&
                         $this->regimeId > 0 &&
-                        $this->fiscalResponsibilityId  > 0;
+                        isset($this->fiscalResponsibilityId); // Cambiado para permitir 0 como valor válido
 
         $step2Complete = !empty($this->address) &&
                         $this->cityId > 0 &&

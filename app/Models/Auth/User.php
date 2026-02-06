@@ -18,6 +18,12 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    /**
+     * The database connection that should be used by the model.
+     *
+     * @var string
+     */
+    protected $connection = 'central';
 
     /**
      * The attributes that are mass assignable.
@@ -39,6 +45,7 @@ class User extends Authenticatable
         'whatsapp_token',
         'whatsapp_token_expires_at',
         'contact_id',
+        'api_data_id',
     ];
 
     /**

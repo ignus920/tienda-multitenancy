@@ -6,16 +6,38 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros clientes</h1>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros contactos</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
-                <button wire:click="create"
-                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Crear Nuevo Cliente
-                </button>
+                <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
+                    <button wire:click="create"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Crear Nuevo Contacto
+                    </button>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
+                        <button wire:click="openRoutes"
+                            class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7">
+                                </path>
+                            </svg>
+                            Ruteros
+                        </button>
+                        <button wire:click="openMoveDistrict"
+                            class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4">
+                                </path>
+                            </svg>
+                            Mover Barrios
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -50,6 +72,18 @@
                                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                     </div>
+
+                    <div class="flex-1">
+                            <div class="relative">
+                                <label class="text-sm text-gray-700 dark:text-gray-300">Tipos de contacto:</label>
+                                <select wire:model.live="searchType"
+                                    class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="TODOS">TODOS</option>
+                                    <option value="CLIENTE">CLIENTE</option>
+                                    <option value="PROVEEDOR">PROVEEDOR</option>
+                                </select>
+                            </div>
+                        </div>
 
                     <!-- Controles -->
                     <div class="flex items-center gap-3">
@@ -190,8 +224,10 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
-                                    <button @click="open = !open"
+                                <div x-data="{ open: false }" @click.outside="open = false"
+                                    class="relative inline-block text-left static"
+                                    style="position: static !important;">
+                                    <button @click="open = !open" x-ref="button"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -207,7 +243,8 @@
                                         x-transition:leave-start="transform opacity-100 scale-100"
                                         x-transition:leave-end="transform opacity-0 scale-95"
                                         @click="open = false"
-                                        class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
+                                        class="origin-top-left fixed left-auto right-auto mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[60]"
+                                        x-anchor="$refs.button"
                                         style="display: none;">
                                         <div class="py-1" role="menu" aria-orientation="vertical">
                                             <button wire:click="edit({{ $item->id }})"
@@ -300,7 +337,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $editingId ? 'Editar' : 'Crear' }} Cliente
+                        {{ $editingId ? 'Editar' : 'Crear' }} Contacto
                     </h3>
                 </div>
                 <!-- Alert de Errores de Validación -->
@@ -340,6 +377,17 @@
                 <!-- Form -->
                 <form wire:submit="save" class="p-6 space-y-6">
                     <div class="space-y-6">
+                        <!-- Tipo de Contacto -->
+                            <div class="md:col-span-2">
+                                <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Contacto <span class="text-red-500">*</span></label>
+                                <select wire:model.live="type" id="type" name="type"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Seleccione un tipo de contacto</option>
+                                    <option value="CLIENTE">CLIENTE</option>
+                                    <option value="PROVEEDOR">PROVEEDOR</option>
+                                </select>
+                                @error('type') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
                         <!-- Tipo de Identificación -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -459,6 +507,53 @@
                                 @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
+                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre </label>
+                                <input wire:model="secondName" type="text" id="secondName"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Ingrese su segundo nombre">
+                                @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
+                                <input wire:model="lastName" type="text" id="lastName"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Ingrese su apellido">
+                                @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido </label>
+                                <input wire:model="secondLastName" type="text" id="secondLastName"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Ingrese su apellido">
+                                @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
+                        <!-- Persona Jurídica: Razón Social -->
+                        <div>
+                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>
+                            <input wire:model="businessName" type="text" id="businessName"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ingrese la razón social de la empresa">
+                            @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+
+                        @endif
+                        @else()
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Nombre *</label>
+                                <input wire:model="firstName" type="text" id="firstName"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Ingrese su nombre">
+                                @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
                                 <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre </label>
                                 <input wire:model="lastName" type="text" id="lastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -483,17 +578,7 @@
                                 @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
-
-                        @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
-                        <!-- Persona Jurídica: Razón Social -->
-                        <div>
-                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>
-                            <input wire:model="businessName" type="text" id="businessName"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ingrese la razón social de la empresa">
-                            @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                        </div>
-
+                        @endif
                         <div>
                             <!-- Selects para configuraciones fiscales -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -535,42 +620,6 @@
                             </div>
 
                         </div>
-                        @endif
-                        @else()
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Nombre *</label>
-                                <input wire:model="firstName" type="text" id="firstName"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su nombre">
-                                @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre </label>
-                                <input wire:model="lastName" type="text" id="lastName"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
-                                @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
-                                <input wire:model="secondName" type="text" id="secondName"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su nombre">
-                                @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido </label>
-                                <input wire:model="secondLastName" type="text" id="secondLastName"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
-                                @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                        @endif
                         <!-- Email de Facturación -->
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
                             <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
@@ -586,6 +635,19 @@
                             </span>
                             @endif
                         </div>
+
+                        @if ($type)
+                            @if ($type == 'CLIENTE')
+                            <!--  vendedor -->
+                            @livewire('selects.route-sales-day', [
+                            'name' => 'routeId',
+                            'label' => 'Ruta',
+                            'required' => false,
+                            'placeholder' => 'Seleccione una ruta (opcional)',
+                            'routeId' => $routeId ?? ''
+                            ])
+                            @endif
+                        @endif
 
                         <!-- Teléfono Empresarial -->
                         <div>
@@ -642,6 +704,23 @@
                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                @enderror
                         </div>
+
+                        @if ($type)
+                            @if ($type == 'CLIENTE')
+                            @livewire('selects.district-select', [
+                                'districtId' => $districtId,
+                                'name' => 'districtId',
+                                'label' => 'Barrio',
+                                'placeholder' => 'Seleccionar barrio',
+                                'label' => 'Barrio',
+                                'showLabel' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                                'index' => 0,
+                                'city_id' => $warehouseCityId,
+                                key('district-city-'.$districtId)
+                                ])
+                            @endif
+                        @endif
 
                         <!-- Código Postal -->
                         <div>
@@ -894,30 +973,90 @@
                                 @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre </label>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
                                 <input wire:model="lastName" type="text" id="lastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
+                                    placeholder="Ingrese su primer apellido">
                                 @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
+                        <!-- Segundo nombre y segundo apellido - disponibles en todos los modos -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
+                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre</label>
                                 <input wire:model="secondName" type="text" id="secondName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su nombre">
+                                    placeholder="Ingrese su segundo nombre">
                                 @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido </label>
+                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido</label>
                                 <input wire:model="secondLastName" type="text" id="secondLastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
+                                    placeholder="Ingrese su segundo apellido">
                                 @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
+
+                        <!-- Régimen y Responsabilidad Fiscal para Persona Natural (en modo simplificado) -->
+                        @if($simplified)
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Régimen -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Régimen <span class="text-red-500">*</span>
+                                </label>
+                                @livewire('selects.regime-select', [
+                                'regimeId' => $regimeId,
+                                'name' => 'regimeId',
+                                'label' => '',
+                                'showLabel' => false,
+                                'placeholder' => 'Seleccionar régimen',
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                                @error('regimeId')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Responsabilidad Fiscal -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Responsabilidad Fiscal <span class="text-red-500">*</span>
+                                </label>
+                                @livewire('selects.fiscal-responsibility-select', [
+                                'fiscalResponsibilityId' => $fiscalResponsabilityId,
+                                'name' => 'fiscalResponsabilityId',
+                                'label' => '',
+                                'showLabel' => false,
+                                'placeholder' => 'Seleccionar responsabilidad fiscal',
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                                @error('fiscalResponsabilityId')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Ciudad para sucursal principal -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ciudad <span class="text-red-500">*</span>
+                            </label>
+                            @livewire('selects.city-select', [
+                            'cityId' => $warehouseCityId,
+                            'name' => 'warehouseCityId',
+                            'label' => '',
+                            'showLabel' => false,
+                            'placeholder' => 'Seleccionar ciudad',
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('warehouseCityId')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        @endif
 
                         @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
                         <!-- Persona Jurídica: Razón Social -->
@@ -1006,8 +1145,10 @@
                             </div>
                         </div>
                         @endif
+
                         <!-- Email de Facturación -->
-                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
+                        <div>
+                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación *</label>
                             <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                  @error('billingEmail') border-red-500 @enderror
@@ -1022,6 +1163,7 @@
                             @endif
                         </div>
 
+                        @if(!$simplified)
                         <!-- Teléfono Empresarial -->
                         <div>
                             <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Empresarial</label>
@@ -1059,6 +1201,7 @@
                             @error('warehouseName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
                         @endif
+
                         <!-- Ciudad de la Sucursal -->
                         <div>
                             @livewire('selects.city-select', [
@@ -1072,6 +1215,10 @@
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
                             'index' => 0
                             ], key('city-select-warehouse'))
+
+                            @error('warehouseCityId')
+                               <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                               @enderror
                         </div>
 
                         <!-- Código Postal -->
@@ -1091,6 +1238,7 @@
                                 placeholder="Ej: Calle 123 #45-67">
                             @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
+                        @endif
 
                         <!-- Actions -->
                         <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -1119,4 +1267,14 @@
     @endif
   </div>
 @endif
+
+    <!-- Routes Modal -->   
+    @if($showRoutesModal)
+        @livewire('tenant.vnt-company.company-routes-modal', ['showModal' => true], key('routes-modal'))
+    @endif
+
+    <!-- Move District Modal -->
+    @if($showMoveDistrictModal)
+        @livewire('tenant.vnt-company.move-district-modal', ['showModal' => true], key('move-district-modal'))
+    @endif
 </div>
