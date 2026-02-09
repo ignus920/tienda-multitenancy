@@ -56,12 +56,61 @@
         </div>
         @endif
 
-        <!-- Transfer List Component -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Listado de Transferencias
-            </h2>
-            <livewire:tenant.transfers.components.transfer-list />
+        <!-- Tab System -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 dark:border-gray-700 px-6 pt-6">
+                <nav class="flex space-x-8 -mb-px">
+                    <!-- Transferencias Tab -->
+                    <button 
+                        wire:click="setActiveTab('transfers')"
+                        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-150 ease-in-out
+                            {{ $activeTab === 'transfers' 
+                                ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-500' 
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600' 
+                            }}"
+                        type="button">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            </svg>
+                            Transferencias
+                        </div>
+                    </button>
+                    
+                    <!-- Solicitudes Tab -->
+                    <button 
+                        wire:click="setActiveTab('requests')"
+                        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-150 ease-in-out
+                            {{ $activeTab === 'requests' 
+                                ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-500' 
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600' 
+                            }}"
+                        type="button">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Solicitudes
+                        </div>
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- Tab Content -->
+            <div class="p-6">
+                @if($activeTab === 'transfers')
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Listado de Transferencias
+                    </h2>
+                    <livewire:tenant.transfers.components.transfer-list />
+                @else
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Listado de Solicitudes de Transferencia
+                    </h2>
+                    <livewire:tenant.transfers.components.transfer-request-list />
+                @endif
+            </div>
         </div>
     </div>
 
@@ -399,13 +448,33 @@
                         </h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             @if(isset($transferDetails['status']))
-                                @if($transferDetails['status'] == 1)
+                                @if($transferDetails['status'] === 'REGISTRADO')
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                        Activa
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Registrada
                                     </span>
-                                @else
+                                @elseif($transferDetails['status'] === 'ANULADO')
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                        </svg>
                                         Anulada
+                                    </span>
+                                @elseif($transferDetails['status'] === 'ENTREGADO')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Entregada
+                                    </span>
+                                @elseif($transferDetails['status'] === 'EN TRANSITO')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        En tránsito
                                     </span>
                                 @endif
                             @endif
@@ -447,10 +516,12 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sucursal Origen</label>
                             <p class="text-sm text-gray-900 dark:text-white">{{ $transferDetails['warehouse_from'] ?? 'N/A' }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Bodega: {{ $transferDetails['store_from'] ?? 'N/A' }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sucursal Destino</label>
                             <p class="text-sm text-gray-900 dark:text-white">{{ $transferDetails['warehouse_to'] ?? 'N/A' }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Bodega: {{ $transferDetails['store_to'] ?? 'N/A' }}</p>
                         </div>
                         @if(!empty($transferDetails['observations']))
                         <div class="md:col-span-2">
@@ -491,8 +562,8 @@
 
                     <!-- Actions -->
                     <div class="mt-6 flex justify-between gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <div>
-                            @if(isset($transferDetails['status']) && $transferDetails['status'] == 1)
+                        <div class="flex gap-2">
+                            @if(isset($transferDetails['status']) && $transferDetails['status'] === 'REGISTRADO')
                             <button wire:click="cancelTransfer" 
                                 wire:confirm="¿Está seguro que desea anular esta transferencia? Esta acción no se puede deshacer."
                                 type="button" 
@@ -504,14 +575,14 @@
                             </button>
                             @endif
 
-                            @if(isset($transferDetails['status']) && $transferDetails['status'] == 1)
-                            <button wire:click="cancelTransfer" 
+                            @if(isset($transferDetails['status']) && ($transferDetails['status'] === 'REGISTRADO' || $transferDetails['status'] === 'EN TRANSITO'))
+                            <button wire:click="receiveTransfer" 
                                 wire:confirm="¿Está seguro que desea recibir esta transferencia? Esta acción no se puede deshacer."
                                 type="button" 
                                 class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors">
                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-</svg>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
                                 Recibir Transferencia
                             </button>
                             @endif

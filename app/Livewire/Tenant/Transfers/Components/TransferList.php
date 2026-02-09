@@ -53,7 +53,7 @@ class TransferList extends Component
     {
         $this->ensureTenantConnection();
         return InvTransfer::query()
-            ->with(['warehouseFrom', 'warehouseTo'])
+            ->with(['storeFrom', 'storeTo'])
             ->withCount('details')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -89,13 +89,15 @@ class TransferList extends Component
                 return;
             }
 
-            // Get stores for both warehouses
-            $storeFrom = InvStore::where('warehouseId', $transfer->warehouseFromId)
-                ->where('status', 1)
-                ->first();
-            $storeTo = InvStore::where('warehouseId', $transfer->warehouseToId)
-                ->where('status', 1)
-                ->first();
+            // Get stores directly
+            $storeFrom = $transfer->storeFrom;
+            $storeTo = $transfer->storeTo;
+
+            if (!$storeFrom || !$storeTo) {
+                DB::connection('tenant')->rollBack();
+                $this->dispatch('notify', type: 'error', message: 'No se encontraron las bodegas de origen o destino');
+                return;
+            }
 
             // Reverse the inventory changes
             foreach ($transfer->details as $detail) {
@@ -132,7 +134,7 @@ class TransferList extends Component
             }
 
             // Mark transfer as annulled
-            $transfer->update(['status' => 0]);
+            $transfer->update(['status' => 'ANULADO']);
             
             DB::connection('tenant')->commit();
             

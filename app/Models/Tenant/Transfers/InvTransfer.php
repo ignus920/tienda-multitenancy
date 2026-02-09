@@ -36,8 +36,8 @@ class InvTransfer extends Model
         'observations',
         'status',
         'api_data_id',
-        'warehouseFromId',
-        'warehouseToId',
+        'storeFromId',
+        'storeToId',
         'consecutive',
         'userId',
         'packing',
@@ -50,7 +50,6 @@ class InvTransfer extends Model
      */
     protected $casts = [
         'date' => 'datetime',
-        'status' => 'integer',
         'packing' => 'integer',
     ];
 
@@ -64,19 +63,41 @@ class InvTransfer extends Model
     }
 
     /**
-     * Relación con el almacén de origen (base de datos central)
+     * Relación con la bodega de origen
      */
-    public function warehouseFrom()
+    public function storeFrom()
     {
-        return $this->belongsTo(\App\Models\Central\VntWarehouse::class, 'warehouseFromId', 'id');
+        return $this->belongsTo(\App\Models\Tenant\Movements\InvStore::class, 'storeFromId', 'id');
     }
 
     /**
-     * Relación con el almacén de destino (base de datos central)
+     * Relación con la bodega de destino
      */
-    public function warehouseTo()
+    public function storeTo()
     {
-        return $this->belongsTo(\App\Models\Central\VntWarehouse::class, 'warehouseToId', 'id');
+        return $this->belongsTo(\App\Models\Tenant\Movements\InvStore::class, 'storeToId', 'id');
+    }
+
+    /**
+     * Obtener el warehouse de origen a través del store
+     */
+    public function getWarehouseFromAttribute()
+    {
+        if ($this->storeFrom && $this->storeFrom->warehouseId) {
+            return \App\Models\Central\VntWarehouse::find($this->storeFrom->warehouseId);
+        }
+        return null;
+    }
+
+    /**
+     * Obtener el warehouse de destino a través del store
+     */
+    public function getWarehouseToAttribute()
+    {
+        if ($this->storeTo && $this->storeTo->warehouseId) {
+            return \App\Models\Central\VntWarehouse::find($this->storeTo->warehouseId);
+        }
+        return null;
     }
 
     /**

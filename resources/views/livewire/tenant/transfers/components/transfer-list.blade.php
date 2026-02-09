@@ -103,7 +103,7 @@
                                 {{ $transfer->warehouseFrom->name ?? 'N/A' }}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $transfer->warehouseFrom->company->name ?? '' }}
+                                {{ $transfer->storeFrom->name ?? 'N/A' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -111,7 +111,7 @@
                                 {{ $transfer->warehouseTo->name ?? 'N/A' }}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $transfer->warehouseTo->company->name ?? '' }}
+                                {{ $transfer->storeTo->name ?? 'N/A' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -128,12 +128,13 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            <!-- DEBUG: Status = "{{ $transfer->status }}" | Type = {{ gettype($transfer->status) }} -->
                             @if($transfer->status === 'REGISTRADO')
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                     </svg>
-                                    Activa
+                                    REGISTRADA
                                 </span>
                             @elseif($transfer->status === 'ANULADO')
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
@@ -156,11 +157,15 @@
                                     </svg>
                                     En tránsito
                                 </span>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                    Desconocido: {{ $transfer->status }}
+                                </span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                            <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
+                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left static" style="position: static !important;">
                                     <button @click="open = !open"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
