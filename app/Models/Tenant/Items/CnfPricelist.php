@@ -12,16 +12,17 @@ class CnfPricelist extends Model
     protected $fillable = [
         'title',
         'value',
-        'createAd',
-        'updateAd',
+        'create_at',
+        'update_at',
+        'delete_at',
         'status'
     ];
 
     protected $casts = [
         'value' => 'float',
         'status' => 'integer',
-        'createAd' => 'datetime',
-        'updateAd' => 'datetime',
+        'create_at' => 'datetime',
+        'update_at' => 'datetime',
     ];
 
     public function scopeActive($query)

@@ -685,23 +685,24 @@ $header = 'Seleccionar productos';
          }">
 
         <!-- Modal Principal -->
-        <div class="w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
+        <div class="w-full max-w-6xl max-h-[95vh] lg:max-h-[90vh] bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col mx-4">
 
-            <!-- Header -->
-            <div class="bg-gray-800 text-white p-6 flex-shrink-0">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold">MÉTODOS DE PAGO</h1>
-                        <p class="text-gray-300">
+            <!-- Header Responsivo -->
+            <div class="bg-gray-800 text-white p-4 lg:p-6 flex-shrink-0">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg lg:text-2xl font-bold">MÉTODOS DE PAGO</h1>
+                        <p class="text-gray-300 text-sm lg:text-base mt-1">
                             @if($selectedCustomer)
-                                {{ $selectedCustomer['businessName'] ?? $selectedCustomer['firstName'] ?? 'Cliente' }}
+                                <span class="block lg:inline">{{ $selectedCustomer['businessName'] ?? $selectedCustomer['firstName'] ?? 'Cliente' }}</span>
+                                <span class="hidden lg:inline"> - </span>
                             @endif
-                            - Total: ${{ number_format($totalAmount, 2, ',', '.') }}
+                            <span class="block lg:inline">Total: ${{ number_format($totalAmount, 2, ',', '.') }}</span>
                         </p>
                     </div>
                     <button wire:click="closePaymentModal"
-                            class="text-gray-300 hover:text-white p-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="text-gray-300 hover:text-white p-2 ml-2 flex-shrink-0">
+                        <svg class="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
@@ -709,34 +710,41 @@ $header = 'Seleccionar productos';
             </div>
 
             <!-- Contenido Principal -->
-            <div class="flex flex-1 overflow-hidden">
+            <div class="flex flex-1 overflow-hidden flex-col lg:flex-row">
 
                 <!-- Panel Izquierdo - Resumen -->
-                <div class="w-1/3 bg-gray-100 p-6 border-r border-gray-300 overflow-y-auto">
-                    <div class="space-y-6">
+                <div class="w-full lg:w-1/3 bg-gray-100 p-4 lg:p-6 lg:border-r border-gray-300 overflow-y-auto flex-shrink-0">
+                    <!-- Layout responsivo para el resumen -->
+                    <div class="space-y-4 lg:space-y-6">
 
                         <!-- Total de la Venta -->
-                        <div class="bg-white rounded-lg p-6 shadow">
-                            <h3 class="text-lg font-semibold mb-4 text-gray-800">TOTAL VENTA</h3>
+                        <div class="bg-white rounded-lg p-4 lg:p-6 shadow">
+                            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800">TOTAL VENTA</h3>
                             <div class="text-center">
-                                <div class="text-4xl font-bold text-green-600">
+                                <div class="text-2xl lg:text-4xl font-bold text-green-600">
                                     ${{ number_format($totalAmount, 2, ',', '.') }}
                                 </div>
                             </div>
                         </div>
 
                         <!-- Estado del Pago -->
-                        <div class="bg-white rounded-lg p-6 shadow">
-                            <h3 class="text-lg font-semibold mb-4 text-gray-800">ESTADO</h3>
-                            <div class="space-y-3 text-lg">
+                        <div class="bg-white rounded-lg p-4 lg:p-6 shadow">
+                            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800">ESTADO</h3>
+                            <div class="space-y-2 lg:space-y-3 text-base lg:text-lg">
                                 <div class="flex justify-between">
                                     <span>Pagado:</span>
                                     <span class="font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</span>
                                 </div>
-                                <div class="flex justify-between border-t pt-3">
+                                <div class="flex justify-between border-t pt-2 lg:pt-3">
                                     <span>Falta:</span>
                                     <span class="font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</span>
                                 </div>
+                                @if($changeAmount > 0)
+                                <div class="flex justify-between border-t pt-2 lg:pt-3">
+                                    <span>Cambio:</span>
+                                    <span class="font-bold text-green-600">${{ number_format($changeAmount, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
                             </div>
                         </div>
 
@@ -744,57 +752,80 @@ $header = 'Seleccionar productos';
                 </div>
 
                 <!-- Panel Derecho - Métodos de Pago -->
-                <div class="flex-1 p-6 overflow-y-auto">
-                    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">FORMA DE PAGO</h2>
+                <div class="flex-1 p-4 lg:p-6 overflow-y-auto">
+                    <h2 class="text-lg lg:text-2xl font-bold mb-4 lg:mb-6 text-center text-gray-800">FORMA DE PAGO</h2>
 
-                    <!-- Tabla de Métodos de Pago -->
+                    <!-- Tabla de Métodos de Pago Responsiva -->
                     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
 
                         <!-- Header de la Tabla -->
-                        <div class="bg-gray-800 text-white p-4">
-                            <div class="grid grid-cols-3 gap-4">
-                                <div class="text-xl font-bold text-center">MÉTODO</div>
-                                <div class="text-xl font-bold text-center">VALOR</div>
-                                <div class="text-xl font-bold text-center">ACCIÓN</div>
+                        <div class="bg-gray-800 text-white p-3 lg:p-4">
+                            <div class="grid grid-cols-3 gap-2 lg:gap-4">
+                                <div class="text-sm lg:text-xl font-bold text-center">MÉTODO</div>
+                                <div class="text-sm lg:text-xl font-bold text-center">VALOR</div>
+                                <div class="text-sm lg:text-xl font-bold text-center">ACCIÓN</div>
                             </div>
                         </div>
 
                         <!-- Filas de Métodos de Pago -->
                         <div class="divide-y divide-gray-200">
                             @foreach($paymentMethods as $key => $method)
-                            <div class="grid grid-cols-3 gap-4 p-6 items-center
+                            <div class="grid grid-cols-3 gap-2 lg:gap-4 p-3 lg:p-6 items-center
                                 @if($currentPaymentMethod === $key) bg-yellow-100 border-l-4 border-yellow-500 @endif
                                 @if($method['value'] > 0 && $currentPaymentMethod !== $key) bg-blue-50 border-l-4 border-blue-400 @endif">
 
                                 <!-- Nombre del Método -->
-                                <div class="text-2xl font-semibold text-gray-800 flex items-center cursor-pointer"
+                                <div class="text-sm lg:text-2xl font-semibold text-gray-800 flex items-center cursor-pointer"
                                      wire:click="selectPaymentMethod('{{ $key }}')">
                                     @if($currentPaymentMethod === $key)
-                                        <span class="mr-3 text-yellow-500">▶</span>
+                                        <span class="mr-1 lg:mr-3 text-yellow-500">▶</span>
                                     @elseif($method['value'] > 0)
-                                        <span class="mr-3 text-blue-500">●</span>
+                                        <span class="mr-1 lg:mr-3 text-blue-500">●</span>
                                     @endif
-                                    {{ $method['name'] }}
+                                    <span class="truncate">{{ $method['name'] }}</span>
                                 </div>
 
                                 <!-- Valor Pagado -->
                                 <div class="text-center">
+                                    @php
+                                    $availableForMethod = $this->getAvailableBalanceForMethod($key);
+                                    $isEffectivo = $key === 'efectivo';
+                                    @endphp
+
                                     <input type="number"
                                            wire:model.live="paymentMethods.{{ $key }}.value"
                                            wire:change="calculatePaymentBalances"
-                                           class="w-full text-2xl font-bold text-center py-3 px-4 border-2 rounded-lg
+                                           class="w-full text-lg lg:text-2xl font-bold text-center py-2 lg:py-3 px-2 lg:px-4 border-2 rounded-lg
                                                @if($currentPaymentMethod === $key) border-yellow-500 bg-yellow-50 @else border-gray-300 @endif
                                                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           placeholder="0"
+                                           placeholder="@if($isEffectivo)$0@else Máx: ${{ number_format($availableForMethod, 0, ',', '.') }} @endif"
                                            min="0"
-                                           step="1000">
+                                           @if(!$isEffectivo && $availableForMethod != PHP_FLOAT_MAX) max="{{ $availableForMethod }}" @endif
+                                           step="1000"
+                                           inputmode="numeric">
+
+                                    @if(!$isEffectivo && $availableForMethod > 0 && $availableForMethod != PHP_FLOAT_MAX)
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Disponible: ${{ number_format($availableForMethod, 0, ',', '.') }}
+                                    </div>
+                                    @elseif($isEffectivo)
+                                    <div class="text-xs text-blue-500 mt-1">
+                                        Sin límite (puede dar cambio)
+                                        @if($cashAutoAdjusted && $method['value'] > 0)
+                                        <div class="text-xs text-orange-500 mt-1">
+                                            ⚡ Ajustado automáticamente
+                                        </div>
+                                        @endif
+                                    </div>
+                                    @endif
                                 </div>
 
                                 <!-- Botón de Acción -->
                                 <div class="text-center">
-                                    <button wire:click="selectPaymentMethod('{{ $key }}'); payTotalWithCurrentMethod();"
-                                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
-                                        PAGAR TODO
+                                    <button wire:click="selectAndPayTotal('{{ $key }}')"
+                                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 lg:py-3 px-3 lg:px-6 rounded-lg transition-all text-xs lg:text-sm">
+                                        <span class="hidden lg:inline">PAGAR TODO</span>
+                                        <span class="lg:hidden">TODO</span>
                                     </button>
                                 </div>
 
@@ -803,25 +834,29 @@ $header = 'Seleccionar productos';
                         </div>
                     </div>
 
-                    <!-- Botones de Acción -->
-                    <div class="mt-8 flex justify-center gap-4">
+                    <!-- Botones de Acción Responsivos -->
+                    <div class="mt-4 lg:mt-8 flex flex-col lg:flex-row justify-center gap-3 lg:gap-4">
                         <button wire:click="closePaymentModal"
-                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-lg">
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg">
                             CANCELAR
                         </button>
 
-                        @if($canProceedToPayment && $remainingBalance == 0)
+                        @if($canProceedToPayment && ($remainingBalance == 0 || $changeAmount > 0))
                         <button wire:click="confirmPayment"
-                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg">
-                            CONFIRMAR PAGO Y FACTURAR
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg">
+                            @if($changeAmount > 0)
+                                <span class="hidden lg:inline">FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})</span>
+                                <span class="lg:hidden">FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})</span>
+                            @else
+                                <span class="hidden lg:inline">CONFIRMAR PAGO Y FACTURAR</span>
+                                <span class="lg:hidden">FACTURAR</span>
+                            @endif
                         </button>
                         @else
                         <button disabled
-                                class="bg-gray-400 text-gray-200 font-bold py-4 px-8 rounded-lg text-lg cursor-not-allowed">
+                                class="bg-gray-400 text-gray-200 font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg cursor-not-allowed">
                             @if($remainingBalance > 0)
                                 FALTA ${{ number_format($remainingBalance, 0, ',', '.') }}
-                            @elseif($remainingBalance < 0)
-                                SOBRA ${{ number_format(abs($remainingBalance), 0, ',', '.') }}
                             @else
                                 INGRESE PAGO
                             @endif

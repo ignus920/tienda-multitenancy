@@ -840,20 +840,43 @@ $header = 'Seleccionar productos';
                                 @endif
                                 {{ $method['name'] }}
                             </button>
-                            <button wire:click="selectPaymentMethod('{{ $key }}'); payTotalWithCurrentMethod();"
-                                    class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">
+                            <button wire:click="selectAndPayTotal('{{ $key }}')"
+                                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
                                 TODO
                             </button>
                         </div>
+
+                        @php
+                        $availableForMethod = $this->getAvailableBalanceForMethod($key);
+                        $isEffectivo = $key === 'efectivo';
+                        @endphp
 
                         <input type="number"
                                wire:model.live="paymentMethods.{{ $key }}.value"
                                wire:change="calculatePaymentBalances"
                                class="w-full text-xl font-bold text-center py-3 px-4 border rounded-lg
                                    @if($currentPaymentMethod === $key) border-yellow-500 bg-yellow-50 @else border-gray-300 @endif"
-                               placeholder="0"
+                               placeholder="@if($isEffectivo)$0@else Máx: ${{ number_format($availableForMethod, 0, ',', '.') }} @endif"
                                min="0"
-                               step="1000">
+                               @if(!$isEffectivo && $availableForMethod != PHP_FLOAT_MAX) max="{{ $availableForMethod }}" @endif
+                               step="1000"
+                               inputmode="numeric"
+                               pattern="[0-9]*">
+
+                        @if(!$isEffectivo && $availableForMethod > 0 && $availableForMethod != PHP_FLOAT_MAX)
+                        <div class="text-xs text-gray-500 mt-2 text-center">
+                            Disponible: ${{ number_format($availableForMethod, 0, ',', '.') }}
+                        </div>
+                        @elseif($isEffectivo)
+                        <div class="text-xs text-blue-500 mt-2 text-center">
+                            Sin límite (puede dar cambio)
+                            @if($cashAutoAdjusted && $method['value'] > 0)
+                            <div class="text-xs text-orange-500 mt-1">
+                                ⚡ Ajustado automáticamente
+                            </div>
+                            @endif
+                        </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>

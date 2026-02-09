@@ -16,7 +16,7 @@ return new class extends Migration
                 $table->enum('type', ["costo", "precio"]);
                 $table->integer('itemId');
                 $table->foreign('itemId')->references('id')->on('inv_items');
-                $table->integer('warehouseId')->unique()->nullable();
+                $table->integer('warehouseId')->nullable();
                 $table->enum('label', ["Costo Inicial", "Costo", "Precio Base", "Precio Regular", "Precio Crédito"])->nullable();
                 $table->timestamps();    // created_at, updated_at
                 $table->softDeletes();   // deleted_at

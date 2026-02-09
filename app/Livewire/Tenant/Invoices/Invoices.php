@@ -90,14 +90,33 @@ class Invoices extends Component
 
             $query = VntInvoices::query()
                 ->select([
-                    'vnt_invoices.*',
-                    DB::raw("ANY_VALUE(remission_consecutives.remission_consecutive) as remission_consecutive"),
-                    DB::raw("ANY_VALUE(COALESCE(wr.name, wd.name)) as warehouse_name"),
-                    DB::raw("ANY_VALUE(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))) AS seller"),
-                    DB::raw("ANY_VALUE(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))) AS client_name"),
-                    DB::raw("ANY_VALUE(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
-                    DB::raw("ANY_VALUE(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
-                    DB::raw("ANY_VALUE(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
+                    'vnt_invoices.id',
+                    'vnt_invoices.consecutive',
+                    'vnt_invoices.status',
+                    'vnt_invoices.status_payment',
+                    'vnt_invoices.api_data_id',
+                    'vnt_invoices.api_data_id_pay',
+                    'vnt_invoices.partialPayment',
+                    'vnt_invoices.quoteId',
+                    'vnt_invoices.warehouseId',
+                    'vnt_invoices.remission',
+                    'vnt_invoices.creditNoteId',
+                    'vnt_invoices.invoiceNumber',
+                    'vnt_invoices.retentionFuente',
+                    'vnt_invoices.retentionIca',
+                    'vnt_invoices.retentionIva',
+                    'vnt_invoices.creditNote',
+                    'vnt_invoices.orderNumber',
+                    'vnt_invoices.created_at',
+                    'vnt_invoices.updated_at',
+                    'vnt_invoices.deleted_at',
+                    DB::raw("MAX(remission_consecutives.remission_consecutive) as remission_consecutive"),
+                    DB::raw("MAX(COALESCE(wr.name, wd.name)) as warehouse_name"),
+                    DB::raw("MAX(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))) AS seller"),
+                    DB::raw("MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))) AS client_name"),
+                    DB::raw("MAX(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
+                    DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
+                    DB::raw("MAX(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
                 ])
                 ->join("vnt_invoicesXsales as s", "s.invoiceId", "=", "vnt_invoices.id")
                 // Joins para la ruta de Remisión
@@ -114,17 +133,39 @@ class Invoices extends Component
                 ->leftJoinSub($remissionTotals, "dr_totals", "vnt_invoices.id", "=", "dr_totals.invoiceId")
                 ->leftJoinSub($quoteTotals, "dq_totals", "vnt_invoices.id", "=", "dq_totals.invoiceId")
                 ->leftJoinSub($remissionConsecutives, "remission_consecutives", "vnt_invoices.id", "=", "remission_consecutives.invoiceId")
-                ->groupBy("vnt_invoices.id");
+                ->groupBy([
+                    "vnt_invoices.id",
+                    "vnt_invoices.consecutive",
+                    "vnt_invoices.status",
+                    "vnt_invoices.status_payment",
+                    "vnt_invoices.api_data_id",
+                    "vnt_invoices.api_data_id_pay",
+                    "vnt_invoices.partialPayment",
+                    "vnt_invoices.quoteId",
+                    "vnt_invoices.warehouseId",
+                    "vnt_invoices.remission",
+                    "vnt_invoices.creditNoteId",
+                    "vnt_invoices.invoiceNumber",
+                    "vnt_invoices.retentionFuente",
+                    "vnt_invoices.retentionIca",
+                    "vnt_invoices.retentionIva",
+                    "vnt_invoices.creditNote",
+                    "vnt_invoices.orderNumber",
+                    "vnt_invoices.created_at",
+                    "vnt_invoices.updated_at",
+                    "vnt_invoices.deleted_at"
+                ]);
 
             // Aplicar búsqueda
             $query->when($this->search, function ($q) {
                 $search = '%' . $this->search . '%';
                 $q->where(function ($subQ) use ($search) {
                     $subQ->where('vnt_invoices.invoiceNumber', 'like', $search)
-                        ->orWhere('remission_consecutives.remission_consecutive', 'like', $search)
                         ->orWhere(DB::raw("CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))"), 'like', $search)
                         ->orWhere(DB::raw("CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))"), 'like', $search);
                 });
+                // Usar HAVING para campos agregados
+                $q->havingRaw("MAX(remission_consecutives.remission_consecutive) LIKE ?", [$search]);
             });
 
             // Aplicar ordenamiento

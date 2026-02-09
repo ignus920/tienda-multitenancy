@@ -83,11 +83,11 @@ return [
             ]) : [],
         ],
 
-        'pruebaMigraciones' => [
+        'company_119_0998194a_5eea_4518_9393_0a86cdf52572' => [
             'driver' => 'mysql',
             'host' => '192.168.1.205', // Cambia por la IP/host de tu BD
             'port' => '3306', // Cambia si usas otro puerto
-            'database' => 'company_111_acc99af8_3851_421b_a5b9_83a1c751425a', // ← CAMBIA ESTO
+            'database' => 'company_119_0998194a_5eea_4518_9393_0a86cdf52572', // ← CAMBIA ESTO
             'password' => 'marsella', // ← CAMBIA ESTO
             'username' => 'root', // ← CAMBIA ESTO
             'charset' => 'utf8mb4',
@@ -148,11 +148,11 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7' => [
+        'company_119_0998194a_5eea_4518_9393_0a86cdf52572' => [
             'driver' => 'mysql',
             'host' => '192.168.1.205', // IP/host BD
             'port' => '3306',
-            'database' => 'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7',
+            'database' => 'company_119_0998194a_5eea_4518_9393_0a86cdf52572',
             'username' => 'root',
             'password' => 'marsella',
             'unix_socket' => '',

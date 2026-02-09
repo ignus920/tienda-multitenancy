@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Auth;
 
 class TransferForm extends Component
 {
+    // Tab state
+    public string $activeTab = 'transfers';
+    
     // Modal state
     public $showModal = false;
     public $showDetailsModal = false;
@@ -50,6 +53,14 @@ class TransferForm extends Component
     public function mount()
     {
         $this->transferForm['date'] = now()->format('Y-m-d');
+    }
+
+    /**
+     * Set the active tab
+     */
+    public function setActiveTab(string $tab): void
+    {
+        $this->activeTab = $tab;
     }
 
     /**
@@ -172,8 +183,8 @@ class TransferForm extends Component
         $this->ensureTenantConnection();
         $transfer = InvTransfer::with([
             'details.item',
-            'warehouseFrom',
-            'warehouseTo'
+            'storeFrom',
+            'storeTo'
         ])->find($transferId);
         
         if ($transfer) {
@@ -182,7 +193,9 @@ class TransferForm extends Component
                 'consecutive' => str_pad($transfer->consecutive, 6, '0', STR_PAD_LEFT),
                 'date' => $transfer->date->format('d/m/Y H:i'),
                 'warehouse_from' => $transfer->warehouseFrom->name ?? 'N/A',
+                'store_from' => $transfer->storeFrom->name ?? 'N/A',
                 'warehouse_to' => $transfer->warehouseTo->name ?? 'N/A',
+                'store_to' => $transfer->storeTo->name ?? 'N/A',
                 'user_name' => $transfer->user->name ?? 'N/A',
                 'status' => $transfer->status,
                 'packing' => $transfer->packing,
@@ -612,23 +625,23 @@ class TransferForm extends Component
                 // Get next consecutive
                 $lastTransfer = InvTransfer::orderBy('consecutive', 'desc')->first();
                 $consecutive = $lastTransfer ? $lastTransfer->consecutive + 1 : 1;
-            
+                 // Get stores directly by ID
+                $storeFrom = InvStore::find($this->transferForm['storeFromId']);
+                $storeTo = InvStore::find($this->transferForm['storeToId']);
 
                 // Create transfer
                 $transfer = InvTransfer::create([
                     'date' => $this->transferForm['date'],
                     'observations' => $this->transferForm['observations'],
-                    'status' => 1,
-                    'warehouseFromId' => $this->transferForm['warehouseFromId'],
-                    'warehouseToId' => $this->transferForm['warehouseToId'],
+                    'status' => 'REGISTRADO',
+                    'storeFromId' => $this->transferForm['storeFromId'],
+                    'storeToId' => $this->transferForm['storeToId'],
                     'consecutive' => $consecutive,
                     'userId' => Auth::id(),
                     'packing' => 0,
                 ]);
                 
-                // Get stores directly by ID
-                $storeFrom = InvStore::find($this->transferForm['storeFromId']);
-                $storeTo = InvStore::find($this->transferForm['storeToId']);
+             
                 
                 if (!$storeFrom) {
                     throw new \Exception('No se encontró la bodega de origen');

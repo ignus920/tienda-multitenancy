@@ -15,6 +15,8 @@ return new class extends Migration
             $table->integer('id')->autoIncrement()->primary();
             $table->integer('price');
             $table->integer('profile');
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
         });
     }
 

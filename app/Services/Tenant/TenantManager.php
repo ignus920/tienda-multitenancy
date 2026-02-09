@@ -69,6 +69,7 @@ class TenantManager
         try {
             $this->createDatabase($tenant);
             $this->runMigrations($tenant);
+            $this->runSeeders($tenant);
 
             // Marcar como configurado
             $tenant->update(['database_setup' => true]);
@@ -131,6 +132,7 @@ class TenantManager
 
             $this->createDatabase($tenant);
             $this->runMigrations($tenant);
+            $this->runSeeders($tenant);
 
             if ($owner) {
                 $this->assignUser($tenant, $owner, 'admin');
@@ -221,6 +223,21 @@ class TenantManager
             'merchant_type_id' => $tenant->merchant_type_id,
             'modules' => $modules->pluck('name')->toArray()
         ]);
+
+        // Verificar si 'parameters' ya está en el array de módulos
+        $hasParameters = $modules->contains(function ($module) {
+            return !empty($module->migration) && trim($module->migration, '/') === 'parameters';
+        });
+
+        // Si no tiene 'parameters', agregarlo al inicio
+        if (!$hasParameters) {
+            Log::info('📦 Agregando módulo parameters (obligatorio)');
+            $parametersModule = (object)[
+                'name' => 'Parameters',
+                'migration' => 'parameters'
+            ];
+            $modules = collect([$parametersModule])->merge($modules);
+        }
 
         if ($modules->isEmpty()) {
             Log::warning('⚠️ No hay módulos activos para este merchant type');
@@ -409,6 +426,89 @@ class TenantManager
             }
         }
 
+        // Ejecutar migraciones de relationships (foreign keys) al final
+        $relationshipsPath = 'tenants/relationships';
+        $relationshipsFullPath = base_path("database/migrations/{$relationshipsPath}");
+        
+        if (File::isDirectory($relationshipsFullPath)) {
+            Log::info("🔗 Ejecutando migraciones de relationships (foreign keys)");
+            
+            $relationshipFiles = File::glob($relationshipsFullPath . '/*.php');
+            
+            if (!empty($relationshipFiles)) {
+                Log::info("📁 Archivos de relationships encontrados", [
+                    'path' => $relationshipsFullPath,
+                    'files_count' => count($relationshipFiles),
+                    'files' => array_map('basename', $relationshipFiles)
+                ]);
+                
+                $relationshipsExecuted = 0;
+                foreach ($relationshipFiles as $relationshipFile) {
+                    $migrationName = basename($relationshipFile, '.php');
+                    
+                    // Verificar si ya fue ejecutada
+                    $exists = DB::connection('tenant_migrations')
+                        ->table('migrations')
+                        ->where('migration', $migrationName)
+                        ->exists();
+                    
+                    if ($exists) {
+                        Log::info("⚠️ Relationship ya ejecutada, saltando", [
+                            'migration' => $migrationName
+                        ]);
+                        continue;
+                    }
+                    
+                    // Ejecutar la migración de relationship
+                    Log::info("🔄 Ejecutando relationship", [
+                        'migration' => $migrationName,
+                        'file' => $relationshipFile
+                    ]);
+                    
+                    try {
+                        $migration = require $relationshipFile;
+                        
+                        if ($migration instanceof \Illuminate\Database\Migrations\Migration) {
+                            $migration->up();
+                            
+                            // Registrar en tabla migrations
+                            DB::connection('tenant_migrations')
+                                ->table('migrations')
+                                ->insert([
+                                    'migration' => $migrationName,
+                                    'batch' => 2 // Batch 2 para relationships
+                                ]);
+                            
+                            $relationshipsExecuted++;
+                            Log::info("✅ Relationship ejecutada exitosamente", [
+                                'migration' => $migrationName
+                            ]);
+                        }
+                    } catch (\Exception $relationshipError) {
+                        Log::error("❌ Error en relationship", [
+                            'migration' => $migrationName,
+                            'error' => $relationshipError->getMessage(),
+                            'trace' => $relationshipError->getTraceAsString()
+                        ]);
+                        // Continuar con la siguiente relationship
+                    }
+                }
+                
+                Log::info('✅ Relationships procesadas', [
+                    'relationships_executed' => $relationshipsExecuted,
+                    'total_files' => count($relationshipFiles)
+                ]);
+            } else {
+                Log::warning("⚠️ No hay archivos de relationships en la carpeta", [
+                    'path' => $relationshipsFullPath
+                ]);
+            }
+        } else {
+            Log::warning("⚠️ Carpeta de relationships no encontrada", [
+                'path' => $relationshipsFullPath
+            ]);
+        }
+
         // Commit de todas las migraciones y restaurar configuraciones
         DB::connection('tenant_migrations')->commit();
         DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
@@ -500,6 +600,58 @@ class TenantManager
     }
 
     /**
+     * Ejecuta los seeders del tenant según sus módulos activos.
+     */
+    protected function runSeeders(Tenant $tenant): void
+    {
+        Log::info('🌱 Iniciando seeders para tenant', ['db_name' => $tenant->db_name]);
+
+        $originalConnection = config('database.default');
+
+        try {
+            // Configurar conexión para seeders
+            $this->setConnection($tenant);
+
+            // Guardar información del tenant en config para que los seeders puedan acceder
+            config(['tenant.current_tenant_id' => $tenant->id]);
+            config(['tenant.current_company_id' => $tenant->company_id]);
+            config(['tenant.current_merchant_type_id' => $tenant->merchant_type_id]);
+
+            // Ejecutar el seeder principal del tenant
+            Artisan::call('db:seed', [
+                '--class' => 'Database\\Seeders\\Tenant\\TenantDatabaseSeeder',
+                '--force' => true,
+            ]);
+
+            $output = Artisan::output();
+            Log::info('✅ Seeders ejecutados exitosamente', [
+                'db_name' => $tenant->db_name,
+                'output' => $output
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error ejecutando seeders', [
+                'db_name' => $tenant->db_name,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // No lanzar excepción para que no falle toda la creación del tenant
+            // Los seeders son opcionales
+            Log::warning('⚠️ Continuando sin seeders');
+        } finally {
+            // Limpiar configuración temporal
+            config(['tenant.current_tenant_id' => null]);
+            config(['tenant.current_company_id' => null]);
+            config(['tenant.current_merchant_type_id' => null]);
+            
+            // Restaurar conexión original
+            config(['database.default' => $originalConnection]);
+            DB::purge('tenant');
+            DB::reconnect($originalConnection);
+        }
+    }
+
+    /**
      * Asigna un usuario al tenant.
      */
     public function assignUser(Tenant $tenant, User $user, string $role = 'user'): void
@@ -522,7 +674,7 @@ class TenantManager
             'driver' => 'mysql',
             'host' => $tenant->db_host,
             'port' => $tenant->db_port,
-            'database' => $tenant->db_name,
+            'database' => 'desarrollo',//$tenant->db_name,
             'username' => $tenant->db_user,
             'password' => $tenant->db_password,
             'charset' => 'utf8mb4',
