@@ -134,6 +134,14 @@ class VntWarehouse extends Model
         return $this->belongsTo(\App\Models\Central\CnfDistrict::class, 'district', 'id');
     }
 
+    /**
+     * Relación con los stores del warehouse
+     */
+    public function stores()
+    {
+        return $this->hasMany(\App\Models\Tenant\Items\InvStore::class, 'warehouseId', 'id');
+    }
+
     public function scopeDespacho($query)
     {
         return $query->where('branch_type', self::BRANCH_TYPE_DESPACHO);

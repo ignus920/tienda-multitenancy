@@ -3,6 +3,7 @@
 namespace App\Models\Tenant\Transfers;
 
 use App\Models\Tenant\Customer\VntWarehouse;
+use App\Models\Tenant\Items\InvStore;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,13 +74,13 @@ class InvTransferRequest extends Model
     // --- Relationships ---
 
     /**
-     * Get the warehouse associated with this transfer request.
+     * Get the store associated with this transfer request.
      *
      * @return BelongsTo
      */
-    public function warehouse(): BelongsTo
+    public function store(): BelongsTo
     {
-        return $this->belongsTo(VntWarehouse::class, 'warehouseId', 'id');
+        return $this->belongsTo(InvStore::class, 'warehouseId', 'id');
     }
 
     // --- Accessor Methods ---

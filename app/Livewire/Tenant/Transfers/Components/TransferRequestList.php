@@ -62,7 +62,7 @@ class TransferRequestList extends Component
         try {
             $this->ensureTenantConnection();
             
-            $request = InvTransferRequest::with('warehouse')->find($requestId);
+            $request = InvTransferRequest::with(['store', 'store.warehouse'])->find($requestId);
             
             if (!$request) {
                 $this->errorMessage = 'Solicitud de transferencia no encontrada';
@@ -73,11 +73,12 @@ class TransferRequestList extends Component
                 'id' => $request->id,
                 'type' => $request->type,
                 'date' => $request->formatted_date,
-                'warehouse' => $request->warehouse->name ?? 'N/A',
+                'warehouse' => $request->store->warehouse->name ?? 'N/A',
+                'store' => $request->store->name ?? 'N/A',
                 'quoteId' => $request->quoteId ?? '-',
                 'observations' => $request->observations ?? 'N/A',
-                'created_at' => $request->created_at->format('d/m/Y H:i'),
-                'updated_at' => $request->updated_at->format('d/m/Y H:i'),
+                'created_at' => $request->created_at ? $request->created_at->format('d/m/Y H:i') : 'N/A',
+                'updated_at' => $request->updated_at ? $request->updated_at->format('d/m/Y H:i') : 'N/A',
                 'status_badge_class' => $request->status_badge_class,
             ];
             
@@ -112,12 +113,15 @@ class TransferRequestList extends Component
         $this->ensureTenantConnection();
         
         return InvTransferRequest::query()
-            ->with('warehouse')
+            ->with(['store', 'store.warehouse'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('date', 'like', "%{$this->search}%")
                         ->orWhere('observations', 'like', "%{$this->search}%")
-                        ->orWhereHas('warehouse', function ($wq) {
+                        ->orWhereHas('store', function ($wq) {
+                            $wq->where('name', 'like', "%{$this->search}%");
+                        })
+                        ->orWhereHas('store.warehouse', function ($wq) {
                             $wq->where('name', 'like', "%{$this->search}%");
                         });
                 });
