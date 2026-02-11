@@ -6,15 +6,19 @@
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
                         Transferencias
-                        <span class="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                            | {{ $this->currentWarehouseName }}
-                        </span>
+                        
                     </h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">
-                        Administración de transferencias entre sucursales
-                        <span class="text-sm text-gray-500 dark:text-gray-500">
-                            • Store: {{ $this->currentStoreName }}
-                        </span>
+                    <p class="text-gray-600 ml-2 dark:text-gray-400 mt-1">
+                        Administración |            
+                        <span class="font-medium text-gray-800 dark:text-gray-200">
+                           {{ $this->currentWarehouseName }}
+                           </span>               
+                  <span class="text-sm">
+                    <span class="block font-medium ml-1 text-gray-400 dark:text-gray-200">
+                        Bodega: {{ $this->currentStoreName }}
+                    </span>
+                  </span>
+                   
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
@@ -309,7 +313,7 @@
                         <h4 class="text-md font-semibold text-gray-900 dark:text-white mb-4">Agregar Items</h4>
                         
                         <!-- Add Item Form -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <!-- Item Select -->
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -335,20 +339,6 @@
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="0.00">
                             </div>
-
-                            <!-- Unit Measurement -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Unidad <span class="text-red-500">*</span>
-                                </label>
-                                <select wire:model.defer="detailForm.unitMeasurementId"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">Seleccionar</option>
-                                    @foreach($this->unitMeasurements as $unit)
-                                        <option value="{{ $unit->id }}">{{ $unit->description }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
                         </div>
 
                         <!-- Add Button -->
@@ -371,7 +361,6 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SKU</th>
                                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Unidad</th>
                                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stock Actual</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                                     </tr>
@@ -382,7 +371,6 @@
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ $detail['itemName'] }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $detail['sku'] }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-white text-right">{{ number_format($detail['quantity'], 2) }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $detail['unitMeasurementName'] }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">{{ number_format($detail['currentStock'], 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-center">
                                             <button wire:click="removeDetail({{ $index }})" type="button"
@@ -517,11 +505,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
-                            <p class="text-sm text-gray-900 dark:text-white">{{ $transferDetails['date'] ?? 'N/A' }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $transferDetails['date'] ?? 'N/A' }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
-                            <p class="text-sm text-gray-900 dark:text-white">{{ $transferDetails['user_name'] ?? 'N/A' }}</p>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $transferDetails['user_label'] ?? 'Usuario' }}
+                            </label>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $transferDetails['user_name'] ?? 'N/A' }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sucursal Origen</label>
@@ -533,6 +523,50 @@
                             <p class="text-sm text-gray-900 dark:text-white">{{ $transferDetails['warehouse_to'] ?? 'N/A' }}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Bodega: {{ $transferDetails['store_to'] ?? 'N/A' }}</p>
                         </div>
+                        @if(isset($transferDetails['status']) && $transferDetails['status'] !== 'REGISTRADO')
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empaque</label>
+                            @if(isset($transferDetails['packing']) && is_array($transferDetails['packing']))
+                                <div class="flex flex-wrap gap-2">
+                                    @if(isset($transferDetails['packing']['bolsas']) && $transferDetails['packing']['bolsas'] > 0)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                            </svg>
+                                            Bolsas: {{ $transferDetails['packing']['bolsas'] }}
+                                        </span>
+                                    @endif
+                                    @if(isset($transferDetails['packing']['canastas']) && $transferDetails['packing']['canastas'] > 0)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            </svg>
+                                            Canastas: {{ $transferDetails['packing']['canastas'] }}
+                                        </span>
+                                    @endif
+                                    @if(isset($transferDetails['packing']['cajas']) && $transferDetails['packing']['cajas'] > 0)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                            Cajas: {{ $transferDetails['packing']['cajas'] }}
+                                        </span>
+                                    @endif
+                                    @if(
+                                        (!isset($transferDetails['packing']['bolsas']) || $transferDetails['packing']['bolsas'] == 0) &&
+                                        (!isset($transferDetails['packing']['canastas']) || $transferDetails['packing']['canastas'] == 0) &&
+                                        (!isset($transferDetails['packing']['cajas']) || $transferDetails['packing']['cajas'] == 0)
+                                    )
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                            Sin packing
+                                        </span>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-500 dark:text-gray-400">No disponible</p>
+                            @endif
+                        </div>
+                        @endif
                         @if(!empty($transferDetails['observations']))
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observaciones</label>
@@ -547,19 +581,28 @@
                         @if(isset($transferDetails['details']) && count($transferDetails['details']) > 0)
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                <thead class="bg-indigo-50 dark:bg-indigo-900/20">
                                     <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad Recibida</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Item</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Cantidad</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Cantidad Recibida</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                     @foreach($transferDetails['details'] as $detail)
-                                    <tr>
-                                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ $detail['item_name'] }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-white text-right">{{ $detail['quantity'] }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-white text-right">{{ $detail['amount_received'] }}</td>
+                                    <tr class="hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-2 w-2 bg-indigo-600 dark:bg-indigo-400 rounded-full mr-2"></div>
+                                                {{ $detail['item_name'] }}
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm font-semibold text-indigo-900 dark:text-indigo-100 text-right">
+                                            {{ $detail['quantity'] }}
+                                        </td>
+                                        <td class="px-4 py-3 text-sm font-semibold text-green-700 dark:text-green-400 text-right">
+                                            {{ $detail['amount_received'] }}
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -573,7 +616,7 @@
                     <!-- Actions -->
                     <div class="mt-6 flex justify-between gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                         <div class="flex gap-2">
-                            @if(isset($transferDetails['status']) && $transferDetails['status'] === 'REGISTRADO')
+                            @if(isset($transferDetails['can_cancel']) && $transferDetails['can_cancel'])
                             <button wire:click="cancelTransfer" 
                                 wire:confirm="¿Está seguro que desea anular esta transferencia? Esta acción no se puede deshacer."
                                 type="button" 
@@ -585,9 +628,8 @@
                             </button>
                             @endif
 
-                            @if(isset($transferDetails['status']) && ($transferDetails['status'] === 'REGISTRADO' || $transferDetails['status'] === 'EN TRANSITO'))
-                            <button wire:click="receiveTransfer" 
-                                wire:confirm="¿Está seguro que desea recibir esta transferencia? Esta acción no se puede deshacer."
+                            @if(isset($transferDetails['status']) && $transferDetails['status'] === 'EN TRANSITO' && isset($transferDetails['can_receive']) && $transferDetails['can_receive'])
+                            <button wire:click="openReceiveModal" 
                                 type="button" 
                                 class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors">
                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -600,6 +642,116 @@
                         <button wire:click="closeDetailsModal" type="button" 
                             class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Receive Transfer Modal -->
+    @if($showReceiveModal)
+    <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50">
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full">
+                <!-- Header -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            Recibir Transferencia #{{ $transferDetails['consecutive'] ?? 'N/A' }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            Ingrese la cantidad recibida para cada item
+                        </p>
+                    </div>
+                    <button wire:click="closeReceiveModal"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <!-- Messages -->
+                    @if($errorMessage)
+                    <div class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p class="text-sm text-red-700 dark:text-red-400">{{ $errorMessage }}</p>
+                    </div>
+                    @endif
+
+                    <!-- Items Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad Enviada</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad Recibida Actual</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nueva Cantidad Recibida</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                @foreach($receiveDetails as $index => $detail)
+                                <tr>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                        {{ $detail['itemName'] }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-white text-right">
+                                        {{ number_format($detail['quantitySent'], 2) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">
+                                        {{ number_format($detail['currentAmountReceived'], 2) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-right">
+                                        <input 
+                                            type="number" 
+                                            step="0.01" 
+                                            min="0"
+                                            max="{{ $detail['quantitySent'] }}"
+                                            wire:model.defer="receiveDetails.{{ $index }}.amountReceived"
+                                            class="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-right"
+                                            placeholder="0.00">
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Info Message -->
+                    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-sm text-blue-700 dark:text-blue-400">
+                                La cantidad recibida no puede ser mayor a la cantidad enviada. Si recibe menos cantidad, ingrese el valor real recibido.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mt-6 flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <button wire:click="closeReceiveModal" type="button" 
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button wire:click="receiveTransfer" type="button" 
+                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="receiveTransfer">Confirmar Recepción</span>
+                            <span wire:loading wire:target="receiveTransfer">
+                                <svg class="animate-spin inline h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
                         </button>
                     </div>
                 </div>
