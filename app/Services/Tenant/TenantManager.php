@@ -516,34 +516,22 @@ class TenantManager
             // Rollback en caso de error
             try {
                 DB::connection('tenant_migrations')->rollback();
-                // Commit de todas las migraciones y restaurar configuraciones
-                DB::connection('tenant_migrations')->commit();
-
                 DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
                 DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
-
-                Log::info('✅ Todas las migraciones completadas exitosamente');
-            } catch (\Exception $e) {
-                // Rollback en caso de error
-                try {
-                    DB::connection('tenant_migrations')->rollback();
-                    DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
-                    DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
-                } catch (\Exception $rollbackError) {
-                    Log::warning('⚠️ Error durante rollback', ['error' => $rollbackError->getMessage()]);
-                }
-
-                Log::error('❌ Error ejecutando migraciones', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-                throw $e;
-            } finally {
-                // Restaurar conexión original
-                config(['database.default' => $originalConnection]);
-                DB::purge('tenant_migrations');
-                DB::reconnect($originalConnection);
+            } catch (\Exception $rollbackError) {
+                Log::warning('⚠️ Error durante rollback', ['error' => $rollbackError->getMessage()]);
             }
+
+            Log::error('❌ Error ejecutando migraciones', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        } finally {
+            // Restaurar conexión original
+            config(['database.default' => $originalConnection]);
+            DB::purge('tenant_migrations');
+            DB::reconnect($originalConnection);
         }
     }
 
