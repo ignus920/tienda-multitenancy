@@ -162,4 +162,6 @@ require __DIR__ . '/tenants/remissions.php';
 //Incluir rutas del módelo de facturas
 require __DIR__ . '/tenants/invoices.php';
 // Incluir rutas del módulo de usuarios
-require __DIR__.'/tenants/users.php';
+require __DIR__ . '/tenants/users.php';
+// Incluir rutas del módulo de solicitud de transferencia
+require __DIR__ . '/tenants/transfer_request.php';
