@@ -7,10 +7,15 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
                         Transferencias
                         <span class="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                            | valor dinamico
+                            | {{ $this->currentWarehouseName }}
                         </span>
                     </h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">Administración de transferencias entre sucursales</p>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">
+                        Administración de transferencias entre sucursales
+                        <span class="text-sm text-gray-500 dark:text-gray-500">
+                            • Store: {{ $this->currentStoreName }}
+                        </span>
+                    </p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
                     <div class="flex flex-col gap-2">
@@ -121,12 +126,17 @@
             <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full">
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Nueva Transferencia
-                        <span class="text-base font-medium text-gray-700 dark:text-gray-300">
-                            | valor dinamico
-                        </span>
-                    </h3>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            Nueva Transferencia
+                            <span class="text-base font-medium text-gray-700 dark:text-gray-300">
+                                | {{ $this->currentWarehouseName }}
+                            </span>
+                        </h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Store: {{ $this->currentStoreName }}
+                        </p>
+                    </div>
                     <button wire:click="closeModal"
                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

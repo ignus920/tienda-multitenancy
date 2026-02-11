@@ -82,7 +82,7 @@
                         </button>
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Warehouse
+                        Sucursal/Store
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Quote ID
@@ -138,7 +138,10 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900 dark:text-white">
-                                {{ $request->warehouse->name ?? 'N/A' }}
+                                {{ $request->store->warehouse->name ?? 'N/A' }}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $request->store->name ?? 'N/A' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -286,14 +289,26 @@
                             </div>
                         </div>
 
-                        <!-- Warehouse -->
+                        <!-- Warehouse (Sucursal) -->
                         <div class="flex items-start">
                             <div class="w-1/3">
-                                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Warehouse:</span>
+                                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Sucursal:</span>
                             </div>
                             <div class="w-2/3">
                                 <span class="text-sm text-gray-900 dark:text-white">
                                     {{ $requestDetails['warehouse'] ?? 'N/A' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Store -->
+                        <div class="flex items-start">
+                            <div class="w-1/3">
+                                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Store:</span>
+                            </div>
+                            <div class="w-2/3">
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {{ $requestDetails['store'] ?? 'N/A' }}
                                 </span>
                             </div>
                         </div>

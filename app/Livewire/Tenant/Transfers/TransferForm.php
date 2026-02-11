@@ -306,6 +306,83 @@ class TransferForm extends Component
             ->get();
     }
     
+    /**
+     * Get the current user's warehouse name
+     */
+    #[Computed]
+    public function currentWarehouseName()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user || !$user->contact_id) {
+                return 'N/A';
+            }
+            
+            // Get contact from central DB
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            
+            if (!$contact || !$contact->store) {
+                return 'N/A';
+            }
+            
+            // Get store from tenant DB
+            $this->ensureTenantConnection();
+            $store = InvStore::on('tenant')->find($contact->store);
+            
+            if (!$store || !$store->warehouseId) {
+                return 'N/A';
+            }
+            
+            // Get warehouse from central DB
+            $warehouse = VntWarehouse::on('central')->find($store->warehouseId);
+            
+            return $warehouse ? $warehouse->name : 'N/A';
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting current warehouse name', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return 'N/A';
+        }
+    }
+    
+    /**
+     * Get the current user's store name
+     */
+    #[Computed]
+    public function currentStoreName()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user || !$user->contact_id) {
+                return 'N/A';
+            }
+            
+            // Get contact from central DB
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            
+            if (!$contact || !$contact->store) {
+                return 'N/A';
+            }
+            
+            // Get store from tenant DB
+            $this->ensureTenantConnection();
+            $store = InvStore::on('tenant')->find($contact->store);
+            
+            return $store ? $store->name : 'N/A';
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting current store name', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return 'N/A';
+        }
+    }
+    
 
     /**
      * Computed property for items filtered by store with stock
