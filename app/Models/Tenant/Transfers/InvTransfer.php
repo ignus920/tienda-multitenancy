@@ -50,7 +50,7 @@ class InvTransfer extends Model
      */
     protected $casts = [
         'date' => 'datetime',
-        'packing' => 'integer',
+        'packing' => 'string',
     ];
 
     /**

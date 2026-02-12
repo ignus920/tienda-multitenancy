@@ -83,21 +83,6 @@ return [
             ]) : [],
         ],
 
-        'company_119_0998194a_5eea_4518_9393_0a86cdf52572' => [
-            'driver' => 'mysql',
-            'host' => '192.168.1.205', // Cambia por la IP/host de tu BD
-            'port' => '3306', // Cambia si usas otro puerto
-            'database' => 'company_119_0998194a_5eea_4518_9393_0a86cdf52572', // ← CAMBIA ESTO
-            'password' => 'marsella', // ← CAMBIA ESTO
-            'username' => 'root', // ← CAMBIA ESTO
-            'charset' => 'utf8mb4',
-            'unix_socket' => '',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-        ],
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
@@ -148,27 +133,28 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        'company_119_0998194a_5eea_4518_9393_0a86cdf52572' => [
-            'driver' => 'mysql',
-            'host' => '192.168.1.205', // IP/host BD
-            'port' => '3306',
-            'database' => 'company_119_0998194a_5eea_4518_9393_0a86cdf52572',
-            'username' => 'root',
-            'password' => 'marsella',
-            'unix_socket' => '',
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-        ],
+        // Prueba de migraciones individuales
+        // 'company_119_0998194a_5eea_4518_9393_0a86cdf52572' => [
+        //     'driver' => 'mysql',
+        //     'host' => '192.168.1.205', // IP/host BD
+        //     'port' => '3306',
+        //     'database' => 'company_119_0998194a_5eea_4518_9393_0a86cdf52572',
+        //     'username' => 'root',
+        //     'password' => 'marsella',
+        //     'unix_socket' => '',
+        //     'charset' => 'utf8mb4',
+        //     'collation' => 'utf8mb4_unicode_ci',
+        //     'prefix' => '',
+        //     'prefix_indexes' => true,
+        //     'strict' => true,
+        //     'engine' => null,
+        // ],
 
         'tenant' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'desarrollo'),
+            'database' => null,  //env('DB_DATABASE', 'desarrollo'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),

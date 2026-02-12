@@ -414,6 +414,9 @@ class UserRapForm extends Component
             $this->errorMessage = '';
             $this->successMessage = '';
 
+            // CRITICAL: Ensure tenant connection is configured BEFORE any database queries
+            $this->ensureTenantConnection();
+
             // Validate all inputs
             $this->validateForm();
 
@@ -1728,212 +1731,24 @@ class UserRapForm extends Component
                 $this->currentCompanyId = $companyId;
             }
 
-            // VALIDACIÓN COMPLETA Y COMPARACIÓN PARA OPTION_ID=8
-            Log::error('🔍 DEBUGGING OPTION_ID=8 DETALLADO', [
-                'company_id' => $companyId,
-                'checking_option' => 8,
-                'about_to_call' => 'getOptionValue(8)'
-            ]);
+            // Usar directamente el servicio de configuración que ya tiene la conexión correcta
+            $optionValue = $this->getOptionValue(8);
 
-            // 1. CONSULTA DIRECTA FORZANDO CONEXIÓN A DESARROLLO
-            // Verificar conexiones antes de la consulta
-            $this->logCurrentConnections('ANTES DE CONSULTA DIRECTA');
-
-            Log::error('🔍 CONSULTA DIRECTA A DESARROLLO', [
-                'company_id' => $companyId,
-                'target_database' => 'desarrollo',
-                'checking_option_id' => 8,
-                'current_mysql_config' => config('database.connections.mysql.database'),
-                'current_tenant_config' => config('database.connections.tenant.database'),
-            ]);
-
-            // Verificar conexión real antes de la consulta
-            try {
-                $actualMysqlDb = DB::connection('mysql')->getDatabaseName();
-                Log::error('🎯 CONEXIÓN MYSQL ANTES DE CONSULTA', [
-                    'actual_database_name' => $actualMysqlDb,
-                    'expected' => 'desarrollo',
-                    'matches_expected' => $actualMysqlDb === 'desarrollo'
-                ]);
-            } catch (\Exception $e) {
-                Log::error('❌ Error obteniendo nombre de BD mysql', ['error' => $e->getMessage()]);
-            }
-
-            // Consulta directa específicamente en desarrollo (usar mysql que apunta a desarrollo)
-            $directQuery = DB::connection('mysql')->table('cnf_company_options')
-                ->where('company_id', $companyId)
-                ->where('option_id', 8)
-                ->whereNull('deleted_at')
-                ->first();
-
-            // Verificar conexión después de la consulta
-            Log::error('📊 RESULTADO POST-CONSULTA', [
-                'query_executed' => true,
-                'result_found' => $directQuery !== null,
+            Log::info('🔍 VALIDACIÓN FACTURACIÓN ELECTRÓNICA', [
                 'company_id' => $companyId,
                 'option_id' => 8,
-                'final_database_check' => DB::connection('mysql')->getDatabaseName(),
-            ]);
-
-            Log::error('🔍 RESULTADO CONSULTA DIRECTA DESARROLLO', [
-                'company_id' => $companyId,
-                'direct_result' => $directQuery ? [
-                    'id' => $directQuery->id,
-                    'value' => $directQuery->value,
-                    'type' => gettype($directQuery->value)
-                ] : 'NULL'
-            ]);
-
-            // 2. DETECTAR AMBIENTE Y USAR BD CORRECTA para consultar cache
-            $originalConnection = config('database.connections.tenant.database');
-            $environment = app()->environment();
-
-            // Determinar BD correcta según ambiente
-            $targetDatabase = $environment === 'production' ? 'rap' : 'desarrollo';
-
-            // Solo cambiar conexión si es diferente a la actual
-            if ($originalConnection !== $targetDatabase) {
-                config(['database.connections.tenant.database' => $targetDatabase]);
-
-                Log::error('🔧 AJUSTANDO CONEXIÓN SEGÚN AMBIENTE', [
-                    'company_id' => $companyId,
-                    'environment' => $environment,
-                    'original_connection' => $originalConnection,
-                    'target_database' => $targetDatabase,
-                    'connection_changed' => true,
-                ]);
-            } else {
-                Log::error('🔧 CONEXIÓN YA CORRECTA PARA AMBIENTE', [
-                    'company_id' => $companyId,
-                    'environment' => $environment,
-                    'current_connection' => $originalConnection,
-                    'connection_changed' => false,
-                ]);
-            }
-
-            // Limpiar cache de DB para forzar nueva conexión
-            DB::purge('tenant');
-
-            // Verificar conexiones después del cambio forzado
-            $this->logCurrentConnections('DESPUÉS DE FORZAR CONEXIÓN');
-
-            // Consulta usando el servicio (cached)
-            $cachedValue = $this->getOptionValue(8);
-
-            Log::error('🔍 RESULTADOS OPTION_ID=8', [
-                'company_id' => $companyId,
-                'direct_query_result' => $directQuery ? [
-                    'id' => $directQuery->id,
-                    'option_id' => $directQuery->option_id,
-                    'value' => $directQuery->value,
-                    'type' => gettype($directQuery->value)
-                ] : 'NULL',
-                'cached_value' => $cachedValue,
-                'cached_type' => gettype($cachedValue),
-                'values_equal' => $directQuery ? ($directQuery->value == $cachedValue) : false
-            ]);
-
-            // LÓGICA DE DECISIÓN MEJORADA: Usar cached si está disponible, sino usar directo
-            if ($cachedValue !== null) {
-                $optionValue = $cachedValue;
-                $reason = 'Usando cached_value (conexión tenant correcta)';
-            } else if ($directQuery) {
-                $optionValue = $directQuery->value;
-                $reason = 'Usando direct_value como fallback (cached_value era null)';
-            } else {
-                $optionValue = null;
-                $reason = 'Ambos valores son null - configuración no encontrada';
-            }
-
-            Log::error('🎯 DECISIÓN FINAL DE VALOR', [
-                'company_id' => $companyId,
-                'direct_value' => $directQuery ? $directQuery->value : 'NULL',
-                'cached_value' => $cachedValue,
-                'final_value_used' => $optionValue,
-                'reason' => $reason,
-                'environment_check' => app()->environment(),
+                'option_value' => $optionValue,
+                'enabled' => $optionValue !== null && $optionValue > 0
             ]);
 
             // VALIDACIÓN: value > 0 significa HABILITADA
-            $enabled = $optionValue !== null && $optionValue > 0;
-
-            Log::info('🔍 VALIDACIÓN FACTURACIÓN ELECTRÓNICA DETALLADA', [
-                'company_id' => $companyId,
-                'option_value_raw' => $optionValue,
-                'option_value_type' => gettype($optionValue),
-                'is_null' => is_null($optionValue),
-                'is_greater_than_zero' => $optionValue > 0,
-                'enabled_result' => $enabled,
-                'expected_behavior' => 'Si value > 0 entonces HABILITADO, si value = 0 entonces DESHABILITADO'
-            ]);
-
-            return $enabled;
+            return $optionValue !== null && $optionValue > 0;
         } catch (\Exception $e) {
             Log::error('Error verificando facturación electrónica para vendedor', [
                 'company_id' => $companyId,
                 'error' => $e->getMessage()
             ]);
             return false;
-        }
-    }
-
-    /**
-     * Verificar y loggear estado actual de todas las conexiones de BD
-     */
-    private function logCurrentConnections(string $context = ''): void
-    {
-        try {
-            Log::error('📊 ESTADO ACTUAL DE CONEXIONES' . ($context ? " - {$context}" : ''), [
-                'mysql_config' => [
-                    'host' => config('database.connections.mysql.host'),
-                    'port' => config('database.connections.mysql.port'),
-                    'database' => config('database.connections.mysql.database'),
-                    'username' => config('database.connections.mysql.username'),
-                ],
-                'tenant_config' => [
-                    'host' => config('database.connections.tenant.host'),
-                    'port' => config('database.connections.tenant.port'),
-                    'database' => config('database.connections.tenant.database'),
-                    'username' => config('database.connections.tenant.username'),
-                ],
-                'default_connection' => config('database.default'),
-                'session_tenant_id' => session('tenant_id'),
-                'context' => $context,
-            ]);
-
-            // Verificar conexiones reales
-            $mysqlReal = null;
-            $tenantReal = null;
-            $mysqlError = null;
-            $tenantError = null;
-
-            try {
-                $mysqlReal = DB::connection('mysql')->getDatabaseName();
-            } catch (\Exception $e) {
-                $mysqlError = $e->getMessage();
-            }
-
-            try {
-                $tenantReal = DB::connection('tenant')->getDatabaseName();
-            } catch (\Exception $e) {
-                $tenantError = $e->getMessage();
-            }
-
-            Log::error('🔗 CONEXIONES REALES ACTIVAS' . ($context ? " - {$context}" : ''), [
-                'mysql_real_db' => $mysqlReal,
-                'mysql_error' => $mysqlError,
-                'tenant_real_db' => $tenantReal,
-                'tenant_error' => $tenantError,
-                'mysql_matches_config' => $mysqlReal === config('database.connections.mysql.database'),
-                'tenant_matches_config' => $tenantReal === config('database.connections.tenant.database'),
-                'context' => $context,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error en logCurrentConnections', [
-                'error' => $e->getMessage(),
-                'context' => $context
-            ]);
         }
     }
 
