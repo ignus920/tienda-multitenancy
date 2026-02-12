@@ -209,7 +209,7 @@ class TransferRequestList extends Component
                 ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
                 ->where('inv_transfers.storeFromId', $this->selectedDestinationStoreId)
                 ->where('inv_detail_transfers.itemId', $detail->itemId)
-                ->where('inv_transfers.status', '!=', 'ENTREGADO')
+                ->whereIn('inv_transfers.status', ['REGISTRADO', 'EN TRANSITO'])
                 ->whereNull('inv_transfers.deleted_at')
                 ->whereNull('inv_detail_transfers.deleted_at')
                 ->sum('inv_detail_transfers.quantity');

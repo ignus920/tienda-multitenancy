@@ -69,6 +69,7 @@ class TransferList extends Component
         return InvTransfer::query()
             ->with(['storeFrom', 'storeTo'])
             ->withCount('details')
+            ->withSum('details as total_quantity', 'quantity')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('consecutive', 'like', '%' . $this->search . '%')
