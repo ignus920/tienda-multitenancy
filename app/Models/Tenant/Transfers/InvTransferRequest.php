@@ -7,6 +7,7 @@ use App\Models\Tenant\Items\InvStore;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InvTransferRequest extends Model
@@ -50,7 +51,7 @@ class InvTransferRequest extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'type',
+        'status',
         'date',
         'quoteId',
         'warehouseId',
@@ -83,6 +84,16 @@ class InvTransferRequest extends Model
         return $this->belongsTo(InvStore::class, 'warehouseId', 'id');
     }
 
+    /**
+     * Get the detail transfer requests for this transfer request.
+     *
+     * @return HasMany
+     */
+    public function detailTransferRequests(): HasMany
+    {
+        return $this->hasMany(InvDetailTransferRequest::class, 'transferRequestId', 'id');
+    }
+
     // --- Accessor Methods ---
 
     /**
@@ -108,14 +119,14 @@ class InvTransferRequest extends Model
     }
 
     /**
-     * Get the CSS class for the status badge based on the type.
+     * Get the CSS class for the status badge based on the status.
      * Returns appropriate Tailwind CSS classes for badge styling.
      *
      * @return string
      */
     public function getStatusBadgeClassAttribute(): string
     {
-        return match ($this->type) {
+        return match ($this->status) {
             'REGISTRADO' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             'EN PROGRESO' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             'ENTREGADO' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',

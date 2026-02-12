@@ -136,7 +136,7 @@
                         Usuario
                     </th>
                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Cant. Items
+                        Cantidad
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Estado
@@ -188,7 +188,7 @@
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                 </svg>
-                                {{ $transfer->details_count ?? 0 }} items
+                                {{ number_format($transfer->total_quantity ?? 0, 0, ',', '.') }} unidades
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">

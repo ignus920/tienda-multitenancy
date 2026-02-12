@@ -48,6 +48,7 @@ class TransferForm extends Component
     // Messages
     public $successMessage = '';
     public $errorMessage = '';
+    public $stockInfoMessage = '';
     
     protected $listeners = ['showTransferDetails'];
 
@@ -674,7 +675,9 @@ class TransferForm extends Component
             return collect([]);
         }
         
-        // Get items that have stock in the selected store
+        $this->ensureTenantConnection();
+        
+        // Get items that have stock in the selected store and are active (status = 1)
         return Items::where('status', 1)
             ->whereHas('invItemsStore', function($query) {
                 $query->where('storeId', $this->transferForm['storeFromId'])
@@ -853,6 +856,12 @@ class TransferForm extends Component
             $item = Items::with(['invValues', 'purchasingUnit', 'consumptionUnit'])
                 ->findOrFail($this->detailForm['itemId']);
             
+            // Verify item is active (status = 1)
+            if ($item->status != 1) {
+                $this->errorMessage = 'El item no está activo';
+                return;
+            }
+            
             $quantity = $this->detailForm['quantity'];
 
             // Check if item already exists in details
@@ -860,37 +869,48 @@ class TransferForm extends Component
                 return $detail['itemId'] == $this->detailForm['itemId'];
             });
             
+            // Get current stock from source store
+            $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
+                ->where('storeId', $this->transferForm['storeFromId'])
+                ->first();
+            
+            $physicalStock = $itemStore ? $itemStore->stock_items_store : 0;
+            
+            // Calculate committed quantity (items in transfers that are not delivered)
+            $committedQuantity = DB::connection('tenant')
+                ->table('inv_detail_transfers')
+                ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+                ->where('inv_transfers.storeFromId', $this->transferForm['storeFromId'])
+                ->where('inv_detail_transfers.itemId', $this->detailForm['itemId'])
+                ->where('inv_transfers.status', '!=', 'ENTREGADO')
+                ->whereNull('inv_transfers.deleted_at')
+                ->whereNull('inv_detail_transfers.deleted_at')
+                ->sum('inv_detail_transfers.quantity');
+            
+            // Available stock = physical stock - committed quantity
+            $availableStock = max(0, $physicalStock - $committedQuantity);
              
             if ($existingIndex !== false) {
                 // Update quantity if item already exists
                 $oldQuantity = $this->details[$existingIndex]['quantity'];
                 $newQuantity = $oldQuantity + $quantity;
-                $this->details[$existingIndex]['quantity'] = $newQuantity;
                 
-                // Validate stock
-                $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
-                    ->where('storeId', $this->transferForm['storeFromId'])
-                    ->first();
-                
-                $currentStock = $itemStore ? $itemStore->stock_items_store : 0;
-                
-                if ($currentStock < $newQuantity) {
-                    $this->errorMessage = 'Stock insuficiente en la bodega de origen';
+                // Validate available stock
+                if ($availableStock < $newQuantity) {
+                    $this->stockInfoMessage = "Stock disponible insuficiente para {$item->name}. Stock físico: {$physicalStock}, Comprometido: {$committedQuantity}, Disponible: {$availableStock}";
+                    $this->dispatch('clearStockInfoAfterDelay');
                     return;
                 }
                 
-                $this->details[$existingIndex]['currentStock'] = $currentStock;
+                $this->details[$existingIndex]['quantity'] = $newQuantity;
+                $this->details[$existingIndex]['physicalStock'] = $physicalStock;
+                $this->details[$existingIndex]['committedQuantity'] = $committedQuantity;
+                $this->details[$existingIndex]['availableStock'] = $availableStock;
             } else {
-                // Get current stock from source store
-                $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
-                    ->where('storeId', $this->transferForm['storeFromId'])
-                    ->first();
-                
-                $currentStock = $itemStore ? $itemStore->stock_items_store : 0;
-                
-                // Validate stock
-                if ($currentStock < $quantity) {
-                    $this->errorMessage = 'Stock insuficiente en la bodega de origen';
+                // Validate available stock
+                if ($availableStock < $quantity) {
+                    $this->stockInfoMessage = "Stock disponible insuficiente para {$item->name}. Stock físico: {$physicalStock}, Comprometido: {$committedQuantity}, Disponible: {$availableStock}";
+                    $this->dispatch('clearStockInfoAfterDelay');
                     return;
                 }
                 
@@ -900,7 +920,9 @@ class TransferForm extends Component
                     'itemName' => $item->name,
                     'sku' => $item->sku ?? 'N/A',
                     'quantity' => $quantity,
-                    'currentStock' => $currentStock
+                    'physicalStock' => $physicalStock,
+                    'committedQuantity' => $committedQuantity,
+                    'availableStock' => $availableStock
                 ];
             }
 
@@ -1120,6 +1142,7 @@ class TransferForm extends Component
     {
         $this->successMessage = '';
         $this->errorMessage = '';
+        $this->stockInfoMessage = '';
     }
     
     /**
