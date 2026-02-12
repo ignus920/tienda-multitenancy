@@ -528,6 +528,18 @@
                                     </span>
                                 </div>
                                 <div>
+                                    <span class="text-gray-500 dark:text-gray-400">Stock físico:</span>
+                                    <span class="ml-2 font-medium text-gray-900 dark:text-white">
+                                        {{ $itemTransferData['physicalStock'] ?? 0 }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 dark:text-gray-400">Comprometido:</span>
+                                    <span class="ml-2 font-medium text-orange-600 dark:text-orange-400">
+                                        {{ $itemTransferData['committedQuantity'] ?? 0 }}
+                                    </span>
+                                </div>
+                                <div>
                                     <span class="text-gray-500 dark:text-gray-400">Stock disponible:</span>
                                     <span class="ml-2 font-medium {{ $itemTransferData['availableStock'] < $itemTransferData['remainingToSend'] ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
                                         {{ $itemTransferData['availableStock'] }}

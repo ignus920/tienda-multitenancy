@@ -139,8 +139,17 @@ class TransferRequestList extends Component
     {
         $this->ensureTenantConnection();
         
+        // Get the destination store ID from the current request
+        $destinationStoreId = !empty($this->requestDetails['id']) 
+            ? InvTransferRequest::find($this->requestDetails['id'])->warehouseId ?? null
+            : null;
+        
         return \App\Models\Tenant\Items\InvStore::with('warehouse')
             ->where('status', 1)
+            ->when($destinationStoreId, function ($query) use ($destinationStoreId) {
+                // Exclude the destination store from the list
+                $query->where('id', '!=', $destinationStoreId);
+            })
             ->get()
             ->map(function ($store) {
                 return [
@@ -173,6 +182,12 @@ class TransferRequestList extends Component
                 return;
             }
 
+            // Verify item is active (status = 1)
+            if (!$detail->item || $detail->item->status != 1) {
+                $this->errorMessage = 'El item no está activo o no existe';
+                return;
+            }
+
             // Get the transfer request to know the destination warehouse
             $request = \App\Models\Tenant\Transfers\InvTransferRequest::find($detail->transferRequestId);
             if (!$request) {
@@ -185,7 +200,23 @@ class TransferRequestList extends Component
                 ->where('storeId', $this->selectedDestinationStoreId) // This is actually the origin
                 ->first();
 
-            $availableStock = $stockRecord ? $stockRecord->stock_items_store : 0;
+            $physicalStock = $stockRecord ? $stockRecord->stock_items_store : 0;
+
+            // Calculate committed quantity (items in transfers that are not delivered)
+            // Transfers FROM this store that are not ENTREGADO
+            $committedQuantity = DB::connection('tenant')
+                ->table('inv_detail_transfers')
+                ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+                ->where('inv_transfers.storeFromId', $this->selectedDestinationStoreId)
+                ->where('inv_detail_transfers.itemId', $detail->itemId)
+                ->where('inv_transfers.status', '!=', 'ENTREGADO')
+                ->whereNull('inv_transfers.deleted_at')
+                ->whereNull('inv_detail_transfers.deleted_at')
+                ->sum('inv_detail_transfers.quantity');
+
+            // Available stock = physical stock - committed quantity
+            $availableStock = max(0, $physicalStock - $committedQuantity);
+            
             $remainingToSend = $detail->quantity - $detail->quantitySend;
             $maxTransferable = min($remainingToSend, $availableStock);
 
@@ -196,6 +227,8 @@ class TransferRequestList extends Component
                 'requestedQuantity' => $detail->quantity,
                 'sentQuantity' => $detail->quantitySend,
                 'remainingToSend' => $remainingToSend,
+                'physicalStock' => $physicalStock,
+                'committedQuantity' => $committedQuantity,
                 'availableStock' => $availableStock,
                 'maxTransferable' => $maxTransferable,
                 'originStoreId' => $this->selectedDestinationStoreId, // Origin is what user selected
@@ -267,6 +300,12 @@ class TransferRequestList extends Component
 
             if ($this->transferQuantity > $this->itemTransferData['maxTransferable']) {
                 $this->errorMessage = 'La cantidad excede lo que falta por enviar';
+                return;
+            }
+
+            // Validate that origin and destination are different
+            if ($this->itemTransferData['originStoreId'] === $this->itemTransferData['destinationStoreId']) {
+                $this->errorMessage = 'La bodega de origen no puede ser la misma que la bodega de destino';
                 return;
             }
 

@@ -352,6 +352,41 @@
                             </button>
                         </div>
 
+                        <!-- Stock Info Message (auto-hide after 10 seconds) -->
+                        @if($stockInfoMessage)
+                            <div x-data="{ show: true }" 
+                                 x-init="setTimeout(() => { show = false; $wire.set('stockInfoMessage', '') }, 10000)"
+                                 x-show="show"
+                                 x-transition:enter="transition ease-out duration-300"
+                                 x-transition:enter-start="opacity-0 transform scale-90"
+                                 x-transition:enter-end="opacity-100 transform scale-100"
+                                 x-transition:leave="transition ease-in duration-200"
+                                 x-transition:leave-start="opacity-100 transform scale-100"
+                                 x-transition:leave-end="opacity-0 transform scale-90"
+                                 class="mb-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 p-4 border border-yellow-200 dark:border-yellow-800">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                                            {{ $stockInfoMessage }}
+                                        </p>
+                                    </div>
+                                    <div class="ml-auto pl-3">
+                                        <button @click="show = false; $wire.set('stockInfoMessage', '')" 
+                                                class="inline-flex text-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-300 focus:outline-none">
+                                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- Items Table -->
                         @if(count($details) > 0)
                         <div class="overflow-x-auto">
@@ -360,8 +395,10 @@
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SKU</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stock Actual</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Solicitud</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stock Físico</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Comprometido</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Disponible</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                                     </tr>
                                 </thead>
@@ -371,7 +408,9 @@
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ $detail['itemName'] }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $detail['sku'] }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-white text-right">{{ number_format($detail['quantity'], 2) }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">{{ number_format($detail['currentStock'], 2) }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">{{ number_format($detail['physicalStock'] ?? 0, 2) }}</td>
+                                        <td class="px-4 py-3 text-sm text-orange-600 dark:text-orange-400 text-right">{{ number_format($detail['committedQuantity'] ?? 0, 2) }}</td>
+                                        <td class="px-4 py-3 text-sm {{ ($detail['availableStock'] ?? 0) < $detail['quantity'] ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }} text-right font-medium">{{ number_format($detail['availableStock'] ?? 0, 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-center">
                                             <button wire:click="removeDetail({{ $index }})" type="button"
                                                 class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
@@ -584,7 +623,7 @@
                                 <thead class="bg-indigo-50 dark:bg-indigo-900/20">
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Item</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Cantidad</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Cantidad Pedida</th>
                                         <th class="px-4 py-3 text-right text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Cantidad Recibida</th>
                                     </tr>
                                 </thead>
