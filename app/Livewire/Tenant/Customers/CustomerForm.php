@@ -122,16 +122,27 @@ class CustomerForm extends Component
      */
     public function getCustomersProperty()
     {
-        // Log de conexión de BD para consulta de customers
-        $currentConnection = Customer::getConnectionName();
-        $databaseName = DB::connection($currentConnection)->getDatabaseName();
 
-        Log::info('🔍 CONSULTA CUSTOMERS - Conexión BD', [
-            'connection_name' => $currentConnection,
-            'database_name' => $databaseName,
-            'search_term' => $this->search,
-            'method' => 'getCustomersProperty'
-        ]);
+        // Log para verificar qué conexión está usando Customer
+        $customerConnection = Customer::getConnectionName();
+
+        try {
+            $databaseName = DB::connection($customerConnection)->getDatabaseName();
+            Log::info('🔍 CONSULTA CUSTOMERS - Verificando BD', [
+               'model' => 'Customer',
+                'connection_name' => $customerConnection,
+                'database_name' => $databaseName,
+                'search_term' => $this->search,
+                'method' => 'CustomerForm::getCustomersProperty'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL OBTENER NOMBRE DE BD EN CUSTOMERS', [
+                'connection_name' => $customerConnection,
+                'error' => $e->getMessage(),
+                'method' => 'CustomerForm::getCustomersProperty'
+            ]);
+        }
+
 
         return Customer::query()
             ->when($this->search, function ($query) {
@@ -972,6 +983,11 @@ class CustomerForm extends Component
     {
         $tenantId = session('tenant_id');
 
+        Log::info('🔄 INICIANDO ensureTenantConnection', [
+            'session_tenant_id' => $tenantId,
+            'method' => 'CustomerForm::ensureTenantConnection'
+        ]);
+
         if (!$tenantId) {
             throw new \Exception('No tenant selected');
         }
@@ -989,6 +1005,7 @@ class CustomerForm extends Component
             'tenant_name' => $tenant->name,
             'tenant_db_name' => $tenant->db_name,
             'method' => 'ensureTenantConnection'
+
         ]);
 
         // Establecer conexión tenant
@@ -996,17 +1013,26 @@ class CustomerForm extends Component
         $tenantManager->setConnection($tenant);
 
         // Log después de establecer conexión
-        $tenantConnection = DB::connection('tenant');
-        $databaseName = $tenantConnection->getDatabaseName();
+        try {
+            $connectionConfig = config('database.connections.tenant');
+            $actualDatabaseName = DB::connection('tenant')->getDatabaseName();
 
-        Log::info('✅ CONEXIÓN TENANT ESTABLECIDA', [
-            'connection_name' => 'tenant',
-            'database_name' => $databaseName,
-            'tenant_id' => $tenantId,
-            'method' => 'ensureTenantConnection'
-        ]);
+            Log::info('🔗 CONEXIÓN TENANT ESTABLECIDA EN CUSTOMERFORM', [
+                'config_database' => $connectionConfig['database'] ?? 'NULL',
+                'actual_database_name' => $actualDatabaseName,
+                'tenant_id' => $tenant->id,
+                'method' => 'CustomerForm::ensureTenantConnection'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL VERIFICAR CONEXIÓN EN CUSTOMERFORM', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'method' => 'CustomerForm::ensureTenantConnection'
+            ]);
+        }
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
     }
 }
+
