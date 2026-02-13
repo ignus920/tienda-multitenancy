@@ -310,13 +310,32 @@
 
                         <!-- Items Table -->
                         <div class="mt-6">
-                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Items de la Solicitud</h4>
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Items de la Solicitud</h4>
+                                
+                                @if($selectedDestinationStoreId && !empty($requestDetails['items']))
+                                    <button wire:click="openMultiTransferModal"
+                                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors
+                                            {{ count($selectedItems) > 0 ? 'text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600' : 'text-gray-400 bg-gray-200 dark:bg-gray-700 cursor-not-allowed' }}"
+                                        {{ count($selectedItems) > 0 ? '' : 'disabled' }}>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                        </svg>
+                                        Transferir Seleccionados ({{ count($selectedItems) }})
+                                    </button>
+                                @endif
+                            </div>
                             
                             @if(!empty($requestDetails['items']) && count($requestDetails['items']) > 0)
                                 <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                         <thead class="bg-gray-50 dark:bg-gray-900">
                                             <tr>
+                                                @if($selectedDestinationStoreId)
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Sel.
+                                                    </th>
+                                                @endif
                                                 <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                     Producto
                                                 </th>
@@ -344,8 +363,19 @@
                                                     $isComplete = $item['quantitySend'] >= $item['quantity'];
                                                     $isPartial = $item['quantitySend'] > 0 && $item['quantitySend'] < $item['quantity'];
                                                     $isPending = $item['quantitySend'] == 0;
+                                                    $isSelected = in_array($item['id'], $selectedItems);
                                                 @endphp
-                                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" wire:key="item-{{ $item['id'] }}-{{ $selectedDestinationStoreId ?? 'none' }}">
+                                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}" wire:key="item-{{ $item['id'] }}-{{ $selectedDestinationStoreId ?? 'none' }}">
+                                                    @if($selectedDestinationStoreId && !$isComplete)
+                                                        <td class="px-4 py-3">
+                                                            <input type="checkbox" 
+                                                                wire:click="toggleItemSelection({{ $item['id'] }})"
+                                                                {{ $isSelected ? 'checked' : '' }}
+                                                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                        </td>
+                                                    @elseif($selectedDestinationStoreId)
+                                                        <td class="px-4 py-3"></td>
+                                                    @endif
                                                     <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
                                                         {{ $item['itemName'] }}
                                                     </td>
@@ -474,18 +504,18 @@
         style="display: none;">
         
         <!-- Overlay -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="$wire.closeTransferModal()"></div>
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click.stop="$wire.closeTransferModal()"></div>
         
         <!-- Modal -->
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div @click.away="$wire.closeTransferModal()"
-                x-transition:enter="transition ease-out duration-300"
+        <div class="flex items-center justify-center min-h-screen p-4" @click.stop>
+            <div x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 transform scale-90"
                 x-transition:enter-end="opacity-100 transform scale-100"
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 transform scale-100"
                 x-transition:leave-end="opacity-0 transform scale-90"
-                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6">
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6"
+                @click.stop>
                 
                 <!-- Header -->
                 <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -613,4 +643,168 @@
             </div>
         </div>
     </div>
+
+    <!-- Multi-Item Transfer Modal -->
+    <div x-data="{ show: @entangle('showMultiTransferModal') }"
+        x-show="show"
+        x-cloak
+        class="fixed inset-0 z-[70] overflow-y-auto"
+        style="display: none;">
+        
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click.stop="$wire.closeMultiTransferModal()"></div>
+        
+        <!-- Modal -->
+        <div class="flex items-center justify-center min-h-screen p-4" @click.stop>
+            <div x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 transform scale-100"
+                x-transition:leave-end="opacity-0 transform scale-90"
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto"
+                @click.stop>
+                
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                        Transferir Múltiples Items
+                    </h3>
+                    <button @click="$wire.closeMultiTransferModal()"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Error Message in Modal -->
+                @if($errorMessage && $showMultiTransferModal)
+                    <div class="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-800 dark:text-red-200">{{ $errorMessage }}</p>
+                            </div>
+                            <div class="ml-auto pl-3">
+                                <button wire:click="$set('errorMessage', '')" class="inline-flex text-red-400 hover:text-red-600 dark:hover:text-red-300">
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                
+                <!-- Content -->
+                <div class="space-y-4">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p class="text-sm text-blue-800 dark:text-blue-200">
+                            <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            Especifique la cantidad a transferir para cada item seleccionado
+                        </p>
+                    </div>
+
+                    <!-- Items List -->
+                    <div class="space-y-3">
+                        @foreach($selectedItems as $detailId)
+                            @php
+                                $item = collect($requestDetails['items'] ?? [])->firstWhere('id', $detailId);
+                                if (!$item) continue;
+                                
+                                $quantity = $itemQuantities[$detailId] ?? 0;
+                                $remainingToSend = $item['quantity'] - $item['quantitySend'];
+                                
+                                // Get stock info
+                                $stockInfo = $this->selectedItemsStockInfo[$detailId] ?? null;
+                                $physicalStock = $stockInfo['physicalStock'] ?? 0;
+                                $committedQuantity = $stockInfo['committedQuantity'] ?? 0;
+                                $availableStock = $stockInfo['availableStock'] ?? 0;
+                                $maxTransferable = $stockInfo['maxTransferable'] ?? 0;
+                            @endphp
+                            
+                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {{ $item['itemName'] }}
+                                        </h4>
+                                        <div class="mt-1 space-y-1">
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                <span class="font-medium">Solicitud:</span> Pedido: {{ $item['quantity'] }} | Enviado: {{ $item['quantitySend'] }} | Falta: {{ $remainingToSend }}
+                                            </div>
+                                            <div class="text-xs text-gray-600 dark:text-gray-300">
+                                                <span class="font-medium">Stock Origen:</span> Físico: {{ $physicalStock }} | Comprometido: {{ $committedQuantity }} | 
+                                                <span class="font-semibold {{ $availableStock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                                    Disponible: {{ $availableStock }}
+                                                </span>
+                                            </div>
+                                            @if($maxTransferable <= 0)
+                                                <div class="text-xs text-red-600 dark:text-red-400 font-medium">
+                                                    ⚠ No hay stock disponible para transferir
+                                                </div>
+                                            @elseif($maxTransferable < $remainingToSend)
+                                                <div class="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                                                    ⚠ Stock insuficiente. Máximo transferible: {{ $maxTransferable }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <button wire:click="toggleItemSelection({{ $detailId }})"
+                                        class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1">
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Cantidad a transferir (máx: {{ $maxTransferable }})
+                                        </label>
+                                        <input type="number" 
+                                            wire:model.live="itemQuantities.{{ $detailId }}"
+                                            min="1"
+                                            max="{{ $maxTransferable }}"
+                                            step="1"
+                                            placeholder="Cantidad"
+                                            oninput="if(this.value < 0) this.value = 0;"
+                                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <button wire:click="setItemQuantityToMax({{ $detailId }})"
+                                        type="button"
+                                        class="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors whitespace-nowrap mt-5">
+                                        Máximo
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button @click="$wire.closeMultiTransferModal()"
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Cancelar
+                    </button>
+                    <button wire:click="executeMultiTransfer"
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                        Confirmar Transferencia ({{ count($selectedItems) }} items)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
