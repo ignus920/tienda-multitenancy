@@ -122,6 +122,17 @@ class CustomerForm extends Component
      */
     public function getCustomersProperty()
     {
+        // Log de conexión de BD para consulta de customers
+        $currentConnection = Customer::getConnectionName();
+        $databaseName = DB::connection($currentConnection)->getDatabaseName();
+
+        Log::info('🔍 CONSULTA CUSTOMERS - Conexión BD', [
+            'connection_name' => $currentConnection,
+            'database_name' => $databaseName,
+            'search_term' => $this->search,
+            'method' => 'getCustomersProperty'
+        ]);
+
         return Customer::query()
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -357,6 +368,18 @@ class CustomerForm extends Component
     private function createCustomer(): Customer
     {
         try {
+            // Log de conexión de BD antes de crear customer
+            $currentConnection = Customer::getConnectionName();
+            $databaseName = DB::connection($currentConnection)->getDatabaseName();
+
+            Log::info('💾 CREAR CUSTOMER - Conexión BD', [
+                'connection_name' => $currentConnection,
+                'database_name' => $databaseName,
+                'customer_email' => $this->email,
+                'customer_name' => $this->name,
+                'method' => 'createCustomer'
+            ]);
+
             DB::beginTransaction();
 
             $customer = Customer::create([
@@ -413,6 +436,19 @@ class CustomerForm extends Component
     private function updateCustomer(Customer $customer): Customer
     {
         try {
+            // Log de conexión de BD antes de actualizar customer
+            $currentConnection = $customer->getConnectionName();
+            $databaseName = DB::connection($currentConnection)->getDatabaseName();
+
+            Log::info('✏️ ACTUALIZAR CUSTOMER - Conexión BD', [
+                'connection_name' => $currentConnection,
+                'database_name' => $databaseName,
+                'customer_id' => $customer->id,
+                'customer_email' => $this->email,
+                'customer_name' => $this->name,
+                'method' => 'updateCustomer'
+            ]);
+
             DB::beginTransaction();
 
             $customer->update([
@@ -947,9 +983,28 @@ class CustomerForm extends Component
             throw new \Exception('Invalid tenant');
         }
 
+        // Log antes de establecer conexión
+        Log::info('🔗 CONFIGURANDO CONEXIÓN TENANT', [
+            'tenant_id' => $tenantId,
+            'tenant_name' => $tenant->name,
+            'tenant_db_name' => $tenant->db_name,
+            'method' => 'ensureTenantConnection'
+        ]);
+
         // Establecer conexión tenant
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
+
+        // Log después de establecer conexión
+        $tenantConnection = DB::connection('tenant');
+        $databaseName = $tenantConnection->getDatabaseName();
+
+        Log::info('✅ CONEXIÓN TENANT ESTABLECIDA', [
+            'connection_name' => 'tenant',
+            'database_name' => $databaseName,
+            'tenant_id' => $tenantId,
+            'method' => 'ensureTenantConnection'
+        ]);
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
