@@ -54,8 +54,11 @@ class VntQuote extends Model
     // Métodos de utilidad
     public function getSubTotalAttribute()
     {
+        // IMPORTANTE: Los valores en vnt_detail_quotes YA incluyen impuestos
+        // Por lo tanto, debemos dividir entre (1 + tax/100) para obtener el valor base SIN impuestos
         return $this->detalles->sum(function ($detalle) {
-            return $detalle->quantity * $detalle->value;
+            $valorSinImpuesto = $detalle->value / (1 + $detalle->tax / 100);
+            return $detalle->quantity * $valorSinImpuesto;
         });
     }
 

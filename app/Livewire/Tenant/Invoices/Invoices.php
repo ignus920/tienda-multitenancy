@@ -69,11 +69,12 @@ class Invoices extends Component
                 ->groupBy("invoiceId");
 
             // Subconsulta para totales de detalles de cotización
+            // NOTA: Los valores en vnt_detail_quotes YA incluyen impuestos
             $quoteTotals = DB::connection('tenant')->table("vnt_detail_quotes as dq")
                 ->select(
                     "ixs.invoiceId",
-                    DB::raw("SUM(dq.value * dq.quantity) as total_sin_impuestos"),
-                    DB::raw("SUM((dq.value + (dq.value * dq.tax / 100)) * dq.quantity) as total_con_impuestos")
+                    DB::raw("SUM((dq.value / (1 + dq.tax / 100)) * dq.quantity) as total_sin_impuestos"),
+                    DB::raw("SUM(dq.value * dq.quantity) as total_con_impuestos")
                 )
                 ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
                 ->whereNotNull("ixs.invoiceId")
