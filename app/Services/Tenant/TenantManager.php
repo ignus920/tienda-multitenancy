@@ -665,11 +665,22 @@ class TenantManager
 
     public function setConnection(Tenant $tenant): void
     {
+        // Log ANTES de configurar
+        Log::info('🔗 ANTES DE CONFIGURAR CONEXIÓN TENANT', [
+            'tenant_id' => $tenant->id,
+            'tenant_name' => $tenant->name,
+            'tenant_db_name' => $tenant->db_name,
+            'tenant_db_host' => $tenant->db_host,
+            'tenant_db_port' => $tenant->db_port,
+            'tenant_db_user' => $tenant->db_user,
+            'method' => 'TenantManager::setConnection'
+        ]);
+
         Config::set('database.connections.tenant', [
             'driver' => 'mysql',
             'host' => $tenant->db_host,
             'port' => $tenant->db_port,
-            'database' => $tenant->db_name, // Desarrollo
+            'database' => $tenant->db_name, // Usar el nombre real del tenant
             'username' => $tenant->db_user,
             'password' => $tenant->db_password,
             'charset' => 'utf8mb4',
@@ -681,6 +692,26 @@ class TenantManager
 
         DB::purge('tenant');
         DB::reconnect('tenant');
+
+        // Log DESPUÉS de configurar
+        try {
+            $actualDatabaseName = DB::connection('tenant')->getDatabaseName();
+            $connectionConfig = config('database.connections.tenant');
+
+            Log::info('✅ CONEXIÓN TENANT CONFIGURADA', [
+                'connection_name' => 'tenant',
+                'config_database' => $connectionConfig['database'] ?? 'NULL',
+                'actual_database_name' => $actualDatabaseName,
+                'tenant_id' => $tenant->id,
+                'method' => 'TenantManager::setConnection'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL VERIFICAR CONEXIÓN TENANT', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'method' => 'TenantManager::setConnection'
+            ]);
+        }
     }
 
     public function delete(Tenant $tenant, bool $deleteDatabase = false): void

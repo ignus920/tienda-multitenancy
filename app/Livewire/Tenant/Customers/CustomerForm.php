@@ -122,6 +122,26 @@ class CustomerForm extends Component
      */
     public function getCustomersProperty()
     {
+        // Log para verificar qué conexión está usando Customer
+        $customerConnection = Customer::getConnectionName();
+
+        try {
+            $databaseName = DB::connection($customerConnection)->getDatabaseName();
+            Log::info('🔍 CONSULTA CUSTOMERS - Verificando BD', [
+                'model' => 'Customer',
+                'connection_name' => $customerConnection,
+                'database_name' => $databaseName,
+                'search_term' => $this->search,
+                'method' => 'CustomerForm::getCustomersProperty'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL OBTENER NOMBRE DE BD EN CUSTOMERS', [
+                'connection_name' => $customerConnection,
+                'error' => $e->getMessage(),
+                'method' => 'CustomerForm::getCustomersProperty'
+            ]);
+        }
+
         return Customer::query()
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -936,6 +956,11 @@ class CustomerForm extends Component
     {
         $tenantId = session('tenant_id');
 
+        Log::info('🔄 INICIANDO ensureTenantConnection', [
+            'session_tenant_id' => $tenantId,
+            'method' => 'CustomerForm::ensureTenantConnection'
+        ]);
+
         if (!$tenantId) {
             throw new \Exception('No tenant selected');
         }
@@ -947,9 +972,35 @@ class CustomerForm extends Component
             throw new \Exception('Invalid tenant');
         }
 
+        Log::info('🏢 TENANT ENCONTRADO', [
+            'tenant_id' => $tenant->id,
+            'tenant_name' => $tenant->name,
+            'tenant_db_name' => $tenant->db_name,
+            'method' => 'CustomerForm::ensureTenantConnection'
+        ]);
+
         // Establecer conexión tenant
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
+
+        // Log después de establecer conexión
+        try {
+            $connectionConfig = config('database.connections.tenant');
+            $actualDatabaseName = DB::connection('tenant')->getDatabaseName();
+
+            Log::info('🔗 CONEXIÓN TENANT ESTABLECIDA EN CUSTOMERFORM', [
+                'config_database' => $connectionConfig['database'] ?? 'NULL',
+                'actual_database_name' => $actualDatabaseName,
+                'tenant_id' => $tenant->id,
+                'method' => 'CustomerForm::ensureTenantConnection'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL VERIFICAR CONEXIÓN EN CUSTOMERFORM', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'method' => 'CustomerForm::ensureTenantConnection'
+            ]);
+        }
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
