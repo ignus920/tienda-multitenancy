@@ -221,6 +221,10 @@ class CustomerForm extends Component
         Log::info('🚀 CustomerForm::save() INICIADO');
 
         try {
+            // ✅ PRIMER PASO: Asegurar conexión tenant ANTES de cualquier validación
+            Log::info('🔗 Asegurando conexión tenant al inicio de save()');
+            $this->ensureTenantConnection();
+
             // Clear previous messages
             $this->errorMessage = '';
             $this->successMessage = '';
@@ -238,6 +242,7 @@ class CustomerForm extends Component
             Log::info('✅ Validación de formulario exitosa');
 
             // PASO 1: Validar que es posible sincronizar con la API ANTES de guardar
+            Log::info('🔍 Iniciando preValidateApiSync (conexión tenant ya establecida)');
             $preValidationResult = $this->preValidateApiSync();
             if (!$preValidationResult['success']) {
                 // Cerrar modal y mostrar error con session flash para mayor visibilidad
@@ -529,8 +534,7 @@ class CustomerForm extends Component
                 ];
             }
 
-            // Verificar configuración de API
-            $this->ensureTenantConnection();
+            // Verificar configuración de API (conexión tenant ya establecida)
             $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
             if (!$optimizedConfig) {
                 return [
@@ -760,7 +764,6 @@ class CustomerForm extends Component
     private function canSyncClients(): bool
     {
         try {
-            $this->ensureTenantConnection();
             $this->initializeCompanyConfiguration();
 
             $this->clearConfigurationCache();
@@ -841,7 +844,6 @@ class CustomerForm extends Component
             Log::info('🔄 syncCustomerWithApi INICIO', ['customer_id' => $customer->id]);
 
             $authUser = Auth::user();
-            $this->ensureTenantConnection();
 
             $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
             if (!$optimizedConfig) {
