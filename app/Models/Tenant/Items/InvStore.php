@@ -2,12 +2,15 @@
 
 namespace App\Models\Tenant\Items;
 
+use App\Models\Central\VntWarehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InvStore extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $connection = 'tenant';
 
@@ -35,4 +38,15 @@ class InvStore extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Get the warehouse (sucursal) associated with this store.
+     * Note: This crosses database connections (tenant -> central)
+     *
+     * @return BelongsTo
+     */
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(VntWarehouse::class, 'warehouseId', 'id');
+    }
 }

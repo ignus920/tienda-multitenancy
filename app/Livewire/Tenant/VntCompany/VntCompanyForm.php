@@ -1689,8 +1689,8 @@ class VntCompanyForm extends Component
                 }
             }
 
-            // Verificar si facturación electrónica está habilitada usando el servicio global
-            $isElectronicEnabled = $this->companyOptionsService->isElectronicInvoicingEnabled($this->currentCompanyId);
+            // Verificar si facturación electrónica está habilitada usando el trait (option_id=8)
+            $isElectronicEnabled = $this->isOptionEnabled(8);
 
             if (!$isElectronicEnabled) {
                 return [
@@ -2949,5 +2949,93 @@ class VntCompanyForm extends Component
             $this->firstName = '';
             $this->lastName = '';
         }
+    }
+
+    /**
+     * Sobreescribir initializeCompanyConfiguration para asegurar conexión tenant
+     */
+    protected function initializeCompanyConfiguration(): void
+    {
+        if ($this->isConfigurationInitialized) {
+            Log::info('🔧 initializeCompanyConfiguration() - YA INICIALIZADO, saltando...');
+            return;
+        }
+
+        Log::info('🔧 initializeCompanyConfiguration() - INICIO');
+
+        // PRIMERO: Asegurar conexión tenant antes de cualquier otra operación
+        try {
+            $this->ensureTenantConnection();
+            Log::info('🔧 Conexión tenant asegurada antes de inicialización');
+        } catch (\Exception $e) {
+            Log::error('🔧 Error asegurando conexión tenant', ['error' => $e->getMessage()]);
+        }
+
+        $this->configService = app(\App\Services\Configuration\CompanyConfigurationService::class);
+        Log::info('🔧 ConfigService creado', ['service_exists' => $this->configService ? 'YES' : 'NO']);
+
+        // Obtener datos de la empresa actual usando el mismo validador que UpdateCompany
+        $user = Auth::user();
+        Log::info('🔧 Usuario obtenido', [
+            'user_exists' => $user ? 'YES' : 'NO',
+            'user_id' => $user->id ?? 'NULL',
+            'user_email' => $user->email ?? 'NULL'
+        ]);
+
+        if ($user) {
+            $validator = app(\App\Services\Company\CompanyDataValidator::class);
+            Log::info('🔧 Validator creado');
+
+            $company = $validator->getUserCompany($user);
+            Log::info('🔧 Empresa obtenida', [
+                'company_exists' => $company ? 'YES' : 'NO',
+                'company_id' => $company->id ?? 'NULL',
+                'company_name' => $company->businessName ?? 'NULL'
+            ]);
+
+            if ($company) {
+                $this->currentCompanyId = $company->id;
+                $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
+
+                Log::info('🔧 IDs asignados', [
+                    'currentCompanyId' => $this->currentCompanyId,
+                    'currentPlainId' => $this->currentPlainId
+                ]);
+            } else {
+                Log::warning('🔧 No se encontró empresa para el usuario');
+            }
+
+        } else {
+            Log::warning('🔧 No hay usuario autenticado');
+        }
+
+        // Precargar configuraciones comunes DESPUÉS de asegurar conexión tenant
+        if ($this->currentCompanyId && $this->currentPlainId) {
+            Log::info('🔧 Precargando configuraciones');
+            try {
+                // IMPORTANTE: Volver a asegurar conexión antes de precargar
+                $this->ensureTenantConnection();
+                $this->configService->preloadCommonConfigurations(
+                    $this->currentCompanyId,
+                    $this->currentPlainId
+                );
+                Log::info('🔧 Configuraciones precargadas exitosamente');
+            } catch (\Exception $e) {
+                Log::error('🔧 Error precargando configuraciones', ['error' => $e->getMessage()]);
+            }
+        } else {
+            Log::warning('🔧 No se pueden precargar configuraciones - faltan IDs', [
+                'currentCompanyId' => $this->currentCompanyId,
+                'currentPlainId' => $this->currentPlainId
+            ]);
+        }
+
+        $this->isConfigurationInitialized = true;
+
+        Log::info('🔧 initializeCompanyConfiguration() - FIN', [
+            'final_companyId' => $this->currentCompanyId,
+            'final_plainId' => $this->currentPlainId,
+            'final_configService' => $this->configService ? 'YES' : 'NO'
+        ]);
     }
 }

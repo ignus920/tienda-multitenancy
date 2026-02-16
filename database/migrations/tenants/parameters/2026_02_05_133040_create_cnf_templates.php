@@ -17,7 +17,8 @@ return new class extends Migration
             $table->string('remission', 1)->nullable()->default('N');
             $table->text('text');
             $table->tinyInteger('status')->default(1);
-            $table->timestamps();
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
         });
     }
 

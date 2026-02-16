@@ -20,7 +20,8 @@ return new class extends Migration
             $table->integer('inventoryAccount');
             $table->integer('inventariablePurchaseAccount');
             $table->integer('categoryAccount');
-            $table->timestamps();
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
         });
     }
 

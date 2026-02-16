@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Remissions\InvRemissions;
+use App\Models\Tenant\Invoices\VntInvoices;
+use App\Services\Facturacion\FacturacionService;
+use App\Services\Facturacion\InvoiceDataBuilder;
+use App\Services\Facturacion\TenantConfigManager;
+use Illuminate\Support\Facades\DB;
 
 
 class Quoter extends Component
@@ -370,6 +375,194 @@ class Quoter extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al preparar impresión: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Método para imprimir factura (basado en una cotización facturada)
+     * Utiliza el api_data_id si existe, o el endpoint de Vista Previa (Preview).
+     */
+    public function printInvoice($id)
+    {
+        Log::info('🖨️ printInvoice llamado', ['quote_id' => $id]);
+
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
+
+        try {
+            $quote = VntQuote::with(['detalles.item', 'customer', 'warehouse'])->findOrFail($id);
+            
+            // 🔍 Buscar factura local para obtener el ID de Alegra (api_data_id)
+            $invoice = VntInvoices::where('quoteId', $id)->first();
+            
+            Log::info('🔍 Datos de factura local encontrados', [
+                'has_invoice' => !is_null($invoice),
+                'invoice_id' => $invoice ? $invoice->id : null,
+                'api_data_id' => $invoice ? $invoice->api_data_id : null
+            ]);
+
+            // 1. Obtener configuración del tenant
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            $hasConfig = $tenant && TenantConfigManager::hasFacturacionConfig($tenant);
+            
+            Log::info('⚙️ Verificación de configuración de facturación', [
+                'has_config' => $hasConfig,
+                'tenant_id' => $tenant ? $tenant->id : 'No encontrado en sesión'
+            ]);
+
+            if ($hasConfig) {
+                $facturacionService = FacturacionService::forTenant($tenant);
+
+                // 🚀 PRIORIDAD 1: Si ya tiene api_data_id (Factura ya creada en Alegra)
+                if ($invoice && $invoice->api_data_id) {
+                    Log::info('🔗 Usando api_data_id existente para obtener PDF', ['api_id' => $invoice->api_data_id]);
+                    
+                    $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
+                    
+                    // 🔍 Analizar estructura de respuesta para depurar
+                    $respData = $apiResponse['data'] ?? [];
+                    Log::info('📦 Estructura de respuesta PDF recibida', [
+                        'success' => $apiResponse['success'] ?? false,
+                        'keys_root' => array_keys($apiResponse),
+                        'keys_data' => is_array($respData) ? array_keys($respData) : 'not_array',
+                        'has_pdf_in_data' => isset($respData['pdf']),
+                        'has_publicUrl_in_data' => isset($respData['publicUrl']),
+                        'has_publicUrl_in_nested_data' => isset($respData['data']['publicUrl'])
+                    ]);
+
+                    // Intentar obtener URL de varios posibles campos
+                    $printUrl = $respData['pdf'] ?? // Según snippet del usuario
+                                $respData['publicUrl'] ?? // Estándar Alegra
+                                ($respData['data']['publicUrl'] ?? null); // Anidado
+
+                    if ($apiResponse['success'] && !empty($printUrl)) {
+                        Log::info('✅ URL de documento encontrada', ['url' => $printUrl]);
+                        
+                        $this->dispatch('open-print-window', [
+                            'url' => $printUrl,
+                            'format' => 'carta'
+                        ]);
+                        return;
+                    } else {
+                        Log::warning('⚠️ No se obtuvo URL válida vía endpoint de PDF.', [
+                            'response' => $apiResponse
+                        ]);
+                    }
+                }
+
+                // 🚀 PRIORIDAD 2: Vista Previa (Preview) de Alegra
+                Log::info('📝 Intentando obtener vista previa (API Preview)');
+                
+                // Obtener pagos si existen
+                $paymentMethods = [];
+                if ($invoice) {
+                    $payments = DB::connection('tenant')->table('vnt_invoice_payments')
+                        ->join('vnt_method_payments', 'vnt_invoice_payments.methodPaymentId', '=', 'vnt_method_payments.id')
+                        ->where('vnt_invoice_payments.invoiceId', $invoice->id)
+                        ->select('vnt_method_payments.name as method', 'vnt_invoice_payments.value as value')
+                        ->get();
+                    
+                    foreach ($payments as $p) {
+                        $paymentMethods[] = [
+                            'descriptionFormaPago' => $p->method,
+                            'nombre' => $p->method,
+                            'valor' => $p->value,
+                            'method' => $p->method
+                        ];
+                    }
+                }
+
+                $invoiceData = InvoiceDataBuilder::buildFromQuote($quote, $paymentMethods);
+                $apiResponse = $facturacionService->getInvoicePreview($invoiceData);
+
+                if ($apiResponse['success'] && isset($apiResponse['data']['publicUrl'])) {
+                    $printUrl = $apiResponse['data']['publicUrl'];
+                    Log::info('✅ Vista previa obtenida correctamente', ['url' => $printUrl]);
+
+                    $this->dispatch('open-print-window', [
+                        'url' => $printUrl,
+                        'format' => 'carta'
+                    ]);
+                    return;
+                } else {
+                    Log::warning('❌ Falló la vista previa de Alegra', ['response' => $apiResponse]);
+                }
+            }
+
+            // 🚀 FALLBACK: Impresión local
+            Log::warning('🏠 Ejecutando caída a impresión local');
+            return $this->printInvoiceLocal($id);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error crítico en printInvoice: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->printInvoiceLocal($id);
+        }
+    }
+
+    /**
+     * Respaldo de impresión local (Generación de HTML interno)
+     */
+    private function printInvoiceLocal($id)
+    {
+        Log::info('🏠 Ejecutando impresión local de factura', ['quote_id' => $id]);
+
+        try {
+            $quote = VntQuote::findOrFail($id);
+            $quote->load(['detalles.item', 'customer']);
+
+            // Intentar obtener el número de factura real
+            $invoice = VntInvoices::where('quoteId', $id)->first();
+            if ($invoice && $invoice->invoiceNumber) {
+                $quote->consecutive = $invoice->invoiceNumber;
+            }
+
+            $company = $this->getCompanyInfo($quote);
+            $printFormat = $this->getPrintCopiesLimit();
+
+            $data = [
+                'quote' => $quote,
+                'customer' => $quote->customer,
+                'company' => $company,
+                'documentTitle' => 'FACTURA',
+                'showQR' => true,
+                'defaultObservations' => 'Factura electrónica (Copia Local)'
+            ];
+
+            $viewName = ($printFormat === 1)
+                ? 'livewire.tenant.quoter.print.print-carta'
+                : 'livewire.tenant.quoter.print.print-pos';
+
+            $html = view($viewName, $data)->render();
+
+            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
+            $tempPath = storage_path('app/temp/' . $tempFileName);
+
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            file_put_contents($tempPath, $html);
+
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+
+            $this->dispatch('open-print-window', [
+                'url' => $printUrl,
+                'format' => $printFormat === 1 ? 'carta' : 'pos'
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Factura local preparada'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en printInvoiceLocal: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al preparar impresión local: ' . $e->getMessage()
             ]);
         }
     }

@@ -19,7 +19,7 @@ return new class extends Migration
                 $table->integer('storeToId')->comment('ID del warehouse de destino (tabla central)');
                 $table->integer('consecutive');
                 $table->integer('userId')->comment('ID del usuario (tabla central)');
-                $table->tinyInteger('packing')->default(0)->comment('0=No empacado, 1=Empacado');
+                $table->string('packing', 100)->nullable()->default(null);
                 $table->index('storeFromId');
                 $table->index('storeToId');
                 $table->index('userId');

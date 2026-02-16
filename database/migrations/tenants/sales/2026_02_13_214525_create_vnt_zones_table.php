@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cnf_priceprofile', function (Blueprint $table) {
-            $table->integer('id')->autoIncrement()->primary();
-            $table->integer('price');
-            $table->integer('profile');
+        Schema::create('vnt_zones', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100);
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -23,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cnf_priceprofile');
+        Schema::dropIfExists('vnt_zones');
     }
 };

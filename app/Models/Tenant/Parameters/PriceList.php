@@ -23,8 +23,9 @@ class PriceList extends Model
     protected $fillable = [
         'title',      // Título de la lista de precios
         'value',      // Valor/multiplicador de la lista
-        'createAd',   // Fecha de creación
-        'updateAd',   // Fecha de actualización
+        'create_at',   // Fecha de creación
+        'update_at',   // Fecha de actualización
+        'delete_at',   // Fecha de eliminación
         'status',     // Estado (1=activo, 0=inactivo)
     ];
 

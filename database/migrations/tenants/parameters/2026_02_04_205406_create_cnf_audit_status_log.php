@@ -21,6 +21,8 @@ return new class extends Migration
             $table->text('campo3')->nullable();
             $table->dateTime('fecha_cambio')->useCurrent();
             $table->string('user', 60)->nullable();
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
         });
     }
 

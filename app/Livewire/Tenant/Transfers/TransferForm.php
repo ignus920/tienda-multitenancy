@@ -19,10 +19,15 @@ use Illuminate\Support\Facades\Auth;
 
 class TransferForm extends Component
 {
+    // Tab state
+    public string $activeTab = 'transfers';
+    
     // Modal state
     public $showModal = false;
     public $showDetailsModal = false;
+    public $showReceiveModal = false;
     public $transferDetails = [];
+    public $receiveDetails = [];
     // Form data
     public $transferForm = [
         'date' => '',
@@ -37,19 +42,27 @@ class TransferForm extends Component
     public $details = [];
     public $detailForm = [
         'itemId' => '',
-        'quantity' => '',
-        'unitMeasurementId' => ''
+        'quantity' => ''
     ];
     
     // Messages
     public $successMessage = '';
     public $errorMessage = '';
+    public $stockInfoMessage = '';
     
     protected $listeners = ['showTransferDetails'];
 
     public function mount()
     {
         $this->transferForm['date'] = now()->format('Y-m-d');
+    }
+
+    /**
+     * Set the active tab
+     */
+    public function setActiveTab(string $tab): void
+    {
+        $this->activeTab = $tab;
     }
 
     /**
@@ -172,21 +185,59 @@ class TransferForm extends Component
         $this->ensureTenantConnection();
         $transfer = InvTransfer::with([
             'details.item',
-            'warehouseFrom',
-            'warehouseTo'
+            'storeFrom',
+            'storeTo'
         ])->find($transferId);
         
         if ($transfer) {
+            // Determinar el título del usuario según el estado
+            $userLabel = match($transfer->status) {
+                'REGISTRADO' => 'Usuario que transfiere',
+                'EN TRANSITO' => 'Usuario que envía',
+                'ENTREGADO' => 'Usuario que recibe',
+                'ANULADO' => 'Usuario que anula',
+                default => 'Usuario'
+            };
+            
+            // Verificar si el usuario actual puede recibir esta transferencia
+            $canReceive = false;
+            $canCancel = false;
+            
+            $user = Auth::user();
+            if ($user && $user->contact_id) {
+                $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+                if ($contact && $contact->store) {
+                    $userStoreId = $contact->store;
+                    
+                    // El usuario puede recibir si su store es la store de destino y el estado es EN TRANSITO
+                    if ($transfer->status === 'EN TRANSITO') {
+                        $canReceive = ($userStoreId == $transfer->storeToId);
+                    }
+                    
+                    // El usuario puede anular si:
+                    // - Su store es la store de origen O la store de destino
+                    // - Y el estado NO es ENTREGADO
+                    if ($transfer->status !== 'ENTREGADO') {
+                        $canCancel = ($userStoreId == $transfer->storeFromId || $userStoreId == $transfer->storeToId);
+                    }
+                }
+            }
+            
             $this->transferDetails = [
                 'id' => $transfer->id,
                 'consecutive' => str_pad($transfer->consecutive, 6, '0', STR_PAD_LEFT),
                 'date' => $transfer->date->format('d/m/Y H:i'),
                 'warehouse_from' => $transfer->warehouseFrom->name ?? 'N/A',
+                'store_from' => $transfer->storeFrom->name ?? 'N/A',
                 'warehouse_to' => $transfer->warehouseTo->name ?? 'N/A',
+                'store_to' => $transfer->storeTo->name ?? 'N/A',
                 'user_name' => $transfer->user->name ?? 'N/A',
+                'user_label' => $userLabel,
                 'status' => $transfer->status,
-                'packing' => $transfer->packing,
+                'packing' => $transfer->packing ? json_decode($transfer->packing, true) : null,
                 'observations' => $transfer->observations,
+                'can_receive' => $canReceive,
+                'can_cancel' => $canCancel,
                 'details' => $transfer->details->map(function ($detail) {
                     return [
                         'item_name' => $detail->item->name ?? 'N/A',
@@ -207,6 +258,61 @@ class TransferForm extends Component
     {
         $this->showDetailsModal = false;
         $this->transferDetails = [];
+        $this->clearMessages();
+    }
+    
+    /**
+     * Open receive modal to input received quantities
+     */
+    public function openReceiveModal()
+    {
+        try {
+            if (empty($this->transferDetails['id'])) {
+                $this->errorMessage = 'No se encontró la transferencia';
+                return;
+            }
+            
+            $this->ensureTenantConnection();
+            
+            // Get transfer details
+            $transfer = InvTransfer::with('details.item')->find($this->transferDetails['id']);
+            
+            if (!$transfer) {
+                $this->errorMessage = 'Transferencia no encontrada';
+                return;
+            }
+            
+            // Prepare receive details with default values
+            $this->receiveDetails = $transfer->details->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'itemId' => $detail->itemId,
+                    'itemName' => $detail->item->name ?? 'N/A',
+                    'quantitySent' => $detail->quantity,
+                    'currentAmountReceived' => $detail->amount_received ?? 0, // Current received amount
+                    'amountReceived' => $detail->amount_received ?? $detail->quantity // Default to current or sent quantity
+                ];
+            })->toArray();
+            
+            $this->showReceiveModal = true;
+            $this->clearMessages();
+            
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al abrir el modal de recepción: ' . $e->getMessage();
+            Log::error('Error opening receive modal', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+    
+    /**
+     * Close receive modal
+     */
+    public function closeReceiveModal()
+    {
+        $this->showReceiveModal = false;
+        $this->receiveDetails = [];
         $this->clearMessages();
     }
     
@@ -232,14 +338,45 @@ class TransferForm extends Component
                     throw new \Exception('Transferencia no encontrada');
                 }
                 
-                // Check if transfer is already cancelled
-                if ($transfer->status == 0) {
-                    $this->errorMessage = 'La transferencia ya está anulada';
+                // Validar que el estado NO sea ENTREGADO
+                if ($transfer->status === 'ENTREGADO') {
+                    $this->errorMessage = 'No se pueden anular transferencias con estado ENTREGADO';
+                    DB::connection('tenant')->rollBack();
                     return;
                 }
                 
-                // Update transfer status to cancelled (0)
-                $transfer->status = 0;
+                // Check if transfer is already cancelled
+                if ($transfer->status === 'ANULADO') {
+                    $this->errorMessage = 'La transferencia ya está anulada';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                // Validar que el usuario esté en la store de origen O destino
+                $user = Auth::user();
+                if (!$user || !$user->contact_id) {
+                    $this->errorMessage = 'Usuario no tiene un contacto asociado';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+                if (!$contact || !$contact->store) {
+                    $this->errorMessage = 'Usuario no tiene una store asignada';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                // Verificar que la store del usuario sea la store de origen O destino
+                if ($contact->store != $transfer->storeFromId && $contact->store != $transfer->storeToId) {
+                    $this->errorMessage = 'Solo los usuarios de la bodega de origen o destino pueden anular esta transferencia';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                // Update transfer status to ANULADO
+                $transfer->status = 'ANULADO';
+                $transfer->userId = Auth::id(); // Usuario que anula
                 $transfer->save();
                 
                 DB::connection('tenant')->commit();
@@ -271,6 +408,162 @@ class TransferForm extends Component
     }
     
     /**
+     * Receive a transfer (change status to ENTREGADO)
+     */
+    public function receiveTransfer()
+    {
+        try {
+            if (empty($this->transferDetails['id'])) {
+                $this->errorMessage = 'No se encontró la transferencia';
+                return;
+            }
+            
+            // Validate that receiveDetails is not empty
+            if (empty($this->receiveDetails)) {
+                $this->errorMessage = 'No hay detalles de recepción';
+                return;
+            }
+            
+            $this->ensureTenantConnection();
+            
+            DB::connection('tenant')->beginTransaction();
+            
+            try {
+                $transfer = InvTransfer::find($this->transferDetails['id']);
+                
+                if (!$transfer) {
+                    throw new \Exception('Transferencia no encontrada');
+                }
+                
+                // Validar que el estado sea EN TRANSITO
+                if ($transfer->status !== 'EN TRANSITO') {
+                    $this->errorMessage = 'Solo se pueden recibir transferencias en estado EN TRÁNSITO';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                // Validar que el usuario esté en la store de destino
+                $user = Auth::user();
+                if (!$user || !$user->contact_id) {
+                    $this->errorMessage = 'Usuario no tiene un contacto asociado';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+                if (!$contact || !$contact->store) {
+                    $this->errorMessage = 'Usuario no tiene una store asignada';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                // Verificar que la store del usuario sea la store de destino
+                if ($contact->store != $transfer->storeToId) {
+                    $this->errorMessage = 'Solo el usuario de la bodega de destino puede recibir esta transferencia';
+                    DB::connection('tenant')->rollBack();
+                    return;
+                }
+                
+                // Validate received amounts
+                foreach ($this->receiveDetails as $detail) {
+                    if (!isset($detail['amountReceived']) || $detail['amountReceived'] < 0) {
+                        $this->errorMessage = 'Las cantidades recibidas deben ser mayores o iguales a 0';
+                        DB::connection('tenant')->rollBack();
+                        return;
+                    }
+                    
+                    if ($detail['amountReceived'] > $detail['quantitySent']) {
+                        $this->errorMessage = 'La cantidad recibida no puede ser mayor a la cantidad enviada';
+                        DB::connection('tenant')->rollBack();
+                        return;
+                    }
+                }
+                
+                // Update amount_received for each detail and update stock
+                foreach ($this->receiveDetails as $detail) {
+                    // Update amount_received in detail
+                    InvDetailTransfer::where('id', $detail['id'])
+                        ->update([
+                            'amount_received' => $detail['amountReceived']
+                        ]);
+                    
+                    // Update stock in origin store (decrease)
+                    $itemStoreFrom = InvItemsStore::where('itemId', $detail['itemId'])
+                        ->where('storeId', $transfer->storeFromId)
+                        ->first();
+                    
+                    if ($itemStoreFrom) {
+                        // Validate that stock doesn't go below zero
+                        $newStock = $itemStoreFrom->stock_items_store - $detail['amountReceived'];
+                        if ($newStock < 0) {
+                            $this->errorMessage = "Stock insuficiente en bodega de origen para el item: {$detail['itemName']}";
+                            DB::connection('tenant')->rollBack();
+                            return;
+                        }
+                        
+                        $itemStoreFrom->stock_items_store = $newStock;
+                        $itemStoreFrom->save();
+                    } else {
+                        $this->errorMessage = "No se encontró el item {$detail['itemName']} en la bodega de origen";
+                        DB::connection('tenant')->rollBack();
+                        return;
+                    }
+                    
+                    // Update stock in destination store (increase)
+                    $itemStoreTo = InvItemsStore::where('itemId', $detail['itemId'])
+                        ->where('storeId', $transfer->storeToId)
+                        ->first();
+                    
+                    if ($itemStoreTo) {
+                        $itemStoreTo->stock_items_store += $detail['amountReceived'];
+                        $itemStoreTo->save();
+                    } else {
+                        // Create new item store record if it doesn't exist
+                        InvItemsStore::create([
+                            'itemId' => $detail['itemId'],
+                            'storeId' => $transfer->storeToId,
+                            'stock_items_store' => $detail['amountReceived'],
+                        ]);
+                    }
+                }
+                
+                // Update transfer status to ENTREGADO and update user (quien recibe)
+                $transfer->update([
+                    'status' => 'ENTREGADO',
+                    'userId' => Auth::id()
+                ]);
+                
+                DB::connection('tenant')->commit();
+                
+                $this->successMessage = 'Transferencia recibida exitosamente. Stock actualizado.';
+                
+                Log::info('Transfer received successfully with stock update', [
+                    'transferId' => $transfer->id,
+                    'userId' => Auth::id(),
+                    'receiveDetails' => $this->receiveDetails
+                ]);
+                
+                // Close modals and refresh list
+                $this->closeReceiveModal();
+                $this->closeDetailsModal();
+                $this->dispatch('refreshTransfers');
+                
+            } catch (\Exception $e) {
+                DB::connection('tenant')->rollBack();
+                throw $e;
+            }
+            
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al recibir la transferencia: ' . $e->getMessage();
+            
+            Log::error('Error receiving transfer', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+    
+    /**
      * Computed property for warehouses
      */
     #[Computed]
@@ -293,6 +586,83 @@ class TransferForm extends Component
             ->get();
     }
     
+    /**
+     * Get the current user's warehouse name
+     */
+    #[Computed]
+    public function currentWarehouseName()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user || !$user->contact_id) {
+                return 'N/A';
+            }
+            
+            // Get contact from central DB
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            
+            if (!$contact || !$contact->store) {
+                return 'N/A';
+            }
+            
+            // Get store from tenant DB
+            $this->ensureTenantConnection();
+            $store = InvStore::on('tenant')->find($contact->store);
+            
+            if (!$store || !$store->warehouseId) {
+                return 'N/A';
+            }
+            
+            // Get warehouse from central DB
+            $warehouse = VntWarehouse::on('central')->find($store->warehouseId);
+            
+            return $warehouse ? $warehouse->name : 'N/A';
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting current warehouse name', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return 'N/A';
+        }
+    }
+    
+    /**
+     * Get the current user's store name
+     */
+    #[Computed]
+    public function currentStoreName()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user || !$user->contact_id) {
+                return 'N/A';
+            }
+            
+            // Get contact from central DB
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            
+            if (!$contact || !$contact->store) {
+                return 'N/A';
+            }
+            
+            // Get store from tenant DB
+            $this->ensureTenantConnection();
+            $store = InvStore::on('tenant')->find($contact->store);
+            
+            return $store ? $store->name : 'N/A';
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting current store name', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return 'N/A';
+        }
+    }
+    
 
     /**
      * Computed property for items filtered by store with stock
@@ -305,7 +675,9 @@ class TransferForm extends Component
             return collect([]);
         }
         
-        // Get items that have stock in the selected store
+        $this->ensureTenantConnection();
+        
+        // Get items that have stock in the selected store and are active (status = 1)
         return Items::where('status', 1)
             ->whereHas('invItemsStore', function($query) {
                 $query->where('storeId', $this->transferForm['storeFromId'])
@@ -483,7 +855,12 @@ class TransferForm extends Component
             // Get item info
             $item = Items::with(['invValues', 'purchasingUnit', 'consumptionUnit'])
                 ->findOrFail($this->detailForm['itemId']);
-            $unitMeasurement = UnitMeasurements::find($this->detailForm['unitMeasurementId']);
+            
+            // Verify item is active (status = 1)
+            if ($item->status != 1) {
+                $this->errorMessage = 'El item no está activo';
+                return;
+            }
             
             $quantity = $this->detailForm['quantity'];
 
@@ -492,34 +869,48 @@ class TransferForm extends Component
                 return $detail['itemId'] == $this->detailForm['itemId'];
             });
             
+            // Get current stock from source store
+            $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
+                ->where('storeId', $this->transferForm['storeFromId'])
+                ->first();
+            
+            $physicalStock = $itemStore ? $itemStore->stock_items_store : 0;
+            
+            // Calculate committed quantity (items in transfers that are not delivered)
+            $committedQuantity = DB::connection('tenant')
+                ->table('inv_detail_transfers')
+                ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+                ->where('inv_transfers.storeFromId', $this->transferForm['storeFromId'])
+                ->where('inv_detail_transfers.itemId', $this->detailForm['itemId'])
+                ->where('inv_transfers.status', '!=', 'ENTREGADO')
+                ->whereNull('inv_transfers.deleted_at')
+                ->whereNull('inv_detail_transfers.deleted_at')
+                ->sum('inv_detail_transfers.quantity');
+            
+            // Available stock = physical stock - committed quantity
+            $availableStock = max(0, $physicalStock - $committedQuantity);
              
             if ($existingIndex !== false) {
                 // Update quantity if item already exists
                 $oldQuantity = $this->details[$existingIndex]['quantity'];
                 $newQuantity = $oldQuantity + $quantity;
-                $this->details[$existingIndex]['quantity'] = $newQuantity;
                 
-                // Recalculate stock
-                $quantityInConsumptionUnit = $unitMeasurement->quantity * $newQuantity;
-                $this->details[$existingIndex]['quantityInConsumptionUnit'] = $quantityInConsumptionUnit;
-                
-                // Validate stock
-                if ($this->details[$existingIndex]['currentStock'] < $quantityInConsumptionUnit) {
-                    $this->errorMessage = 'Stock insuficiente en la bodega de origen';
+                // Validate available stock
+                if ($availableStock < $newQuantity) {
+                    $this->stockInfoMessage = "Stock disponible insuficiente para {$item->name}. Stock físico: {$physicalStock}, Comprometido: {$committedQuantity}, Disponible: {$availableStock}";
+                    $this->dispatch('clearStockInfoAfterDelay');
                     return;
                 }
+                
+                $this->details[$existingIndex]['quantity'] = $newQuantity;
+                $this->details[$existingIndex]['physicalStock'] = $physicalStock;
+                $this->details[$existingIndex]['committedQuantity'] = $committedQuantity;
+                $this->details[$existingIndex]['availableStock'] = $availableStock;
             } else {
-                // Get current stock from source store
-                $itemStore = InvItemsStore::where('itemId', $this->detailForm['itemId'])
-                    ->where('storeId', $this->transferForm['storeFromId'])
-                    ->first();
-                
-                $currentStock = $itemStore ? $itemStore->stock_items_store : 0;
-                $quantityInConsumptionUnit = $unitMeasurement->quantity * $quantity;
-                
-                // Validate stock
-                if ($currentStock < $quantityInConsumptionUnit) {
-                    $this->errorMessage = 'Stock insuficiente en la bodega de origen';
+                // Validate available stock
+                if ($availableStock < $quantity) {
+                    $this->stockInfoMessage = "Stock disponible insuficiente para {$item->name}. Stock físico: {$physicalStock}, Comprometido: {$committedQuantity}, Disponible: {$availableStock}";
+                    $this->dispatch('clearStockInfoAfterDelay');
                     return;
                 }
                 
@@ -529,10 +920,9 @@ class TransferForm extends Component
                     'itemName' => $item->name,
                     'sku' => $item->sku ?? 'N/A',
                     'quantity' => $quantity,
-                    'unitMeasurementId' => $this->detailForm['unitMeasurementId'],
-                    'unitMeasurementName' => $unitMeasurement->description,
-                    'quantityInConsumptionUnit' => $quantityInConsumptionUnit,
-                    'currentStock' => $currentStock
+                    'physicalStock' => $physicalStock,
+                    'committedQuantity' => $committedQuantity,
+                    'availableStock' => $availableStock
                 ];
             }
 
@@ -612,23 +1002,23 @@ class TransferForm extends Component
                 // Get next consecutive
                 $lastTransfer = InvTransfer::orderBy('consecutive', 'desc')->first();
                 $consecutive = $lastTransfer ? $lastTransfer->consecutive + 1 : 1;
-            
+                 // Get stores directly by ID
+                $storeFrom = InvStore::find($this->transferForm['storeFromId']);
+                $storeTo = InvStore::find($this->transferForm['storeToId']);
 
                 // Create transfer
                 $transfer = InvTransfer::create([
                     'date' => $this->transferForm['date'],
                     'observations' => $this->transferForm['observations'],
-                    'status' => 1,
-                    'warehouseFromId' => $this->transferForm['warehouseFromId'],
-                    'warehouseToId' => $this->transferForm['warehouseToId'],
+                    'status' => 'REGISTRADO',
+                    'storeFromId' => $this->transferForm['storeFromId'],
+                    'storeToId' => $this->transferForm['storeToId'],
                     'consecutive' => $consecutive,
                     'userId' => Auth::id(),
                     'packing' => 0,
                 ]);
                 
-                // Get stores directly by ID
-                $storeFrom = InvStore::find($this->transferForm['storeFromId']);
-                $storeTo = InvStore::find($this->transferForm['storeToId']);
+             
                 
                 if (!$storeFrom) {
                     throw new \Exception('No se encontró la bodega de origen');
@@ -644,8 +1034,7 @@ class TransferForm extends Component
                     InvDetailTransfer::create([
                         'transferId' => $transfer->id,
                         'itemId' => $detail['itemId'],
-                        'quantity' => $detail['quantity'],
-                        'unitMeasurementId' => $detail['unitMeasurementId']
+                        'quantity' => $detail['quantity']
                     ]);
 
                     // Update stock in source warehouse (decrease)
@@ -742,8 +1131,7 @@ class TransferForm extends Component
     {
         $this->detailForm = [
             'itemId' => '',
-            'quantity' => '',
-            'unitMeasurementId' => '',
+            'quantity' => ''
         ];
     }
     
@@ -754,6 +1142,7 @@ class TransferForm extends Component
     {
         $this->successMessage = '';
         $this->errorMessage = '';
+        $this->stockInfoMessage = '';
     }
     
     /**
