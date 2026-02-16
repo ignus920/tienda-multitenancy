@@ -193,7 +193,7 @@ class ManageItems extends Component
         $fieldsToValidate = [
             'category_id',
             'name',
-            'type',
+            //'type',
             'internal_code',
             'brandId',
             'houseId',
@@ -353,7 +353,6 @@ class ManageItems extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types', 'allLabelsValues']);
         $this->resetExcept(['categories', 'types', 'allLabelsValues', 'showCommand']); // No reseteamos las listas de opciones
         $this->showModal = true;
 
@@ -366,7 +365,7 @@ class ManageItems extends Component
 
         $this->clearValidationErrors();
         $this->resetForm();
-        Log::info('🔒 Show Campo Comanda: ' . $this->showCommand);
+        Log::info('🔒 Show Campo Comanda Crear: ' . $this->showCommand);
     }
 
     public function save()
@@ -1120,18 +1119,15 @@ class ManageItems extends Component
 
     public function validateMerchantType()
     {
-        $this->ensureTenantConnection();
-
-        $centralDbName = config('database.connections.central.database');
-        $userId = Auth::id(); // Get the authenticated user's ID
-
-        $exists = DB::table("{$centralDbName}.users", 'u')
-            ->join("{$centralDbName}.usr_profile_merchant as upm", 'upm.profile_id', '=', 'u.profile_id')
-            ->where('u.id', $userId)
-            ->where('upm.merchant_type_id', 5)
-            ->exists(); // Check if any record exists
-
-        $this->showCommand = $exists; // Set showCommand based on the existence check
+        $sessionTenant = $this->getTenantId();
+        // Obtener el tenant desde la base de datos usando el ID de sesión
+        $tenant = Tenant::find($sessionTenant);
+        if ($tenant->merchant_type_id === 5) {
+            $this->showCommand = true;
+        } else {
+            $this->showCommand = false;
+        }
+        Log::info('🔒 Show Campo Comanda: ' . $this->showCommand);
     }
 
     /**
@@ -1758,5 +1754,10 @@ class ManageItems extends Component
             ]);
             return false;
         }
+    }
+
+    public function updatedType($value)
+    {
+        $this->type = $value;
     }
 }

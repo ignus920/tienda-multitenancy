@@ -17,6 +17,7 @@
                         </svg>
                         Crear Nuevo Contacto
                     </button>
+                    @if($this->canUploadsEnable())
                     <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
                         <button wire:click="openRoutes"
                             class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -37,6 +38,7 @@
                             Mover Barrios
                         </button>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -636,16 +638,18 @@
                             @endif
                         </div>
 
-                        @if ($type)
-                            @if ($type == 'CLIENTE')
-                            <!--  vendedor -->
-                            @livewire('selects.route-sales-day', [
-                            'name' => 'routeId',
-                            'label' => 'Ruta',
-                            'required' => false,
-                            'placeholder' => 'Seleccione una ruta (opcional)',
-                            'routeId' => $routeId ?? ''
-                            ])
+                        @if($this->canUploadsEnable())
+                            @if ($type)
+                                @if ($type == 'CLIENTE')
+                                    <!--  vendedor -->
+                                    @livewire('selects.route-sales-day', [
+                                    'name' => 'routeId',
+                                    'label' => 'Ruta',
+                                    'required' => false,
+                                    'placeholder' => 'Seleccione una ruta (opcional)',
+                                    'routeId' => $routeId ?? ''
+                                    ])
+                                @endif
                             @endif
                         @endif
 
@@ -705,20 +709,22 @@
                                @enderror
                         </div>
 
-                        @if ($type)
-                            @if ($type == 'CLIENTE')
-                            @livewire('selects.district-select', [
-                                'districtId' => $districtId,
-                                'name' => 'districtId',
-                                'label' => 'Barrio',
-                                'placeholder' => 'Seleccionar barrio',
-                                'label' => 'Barrio',
-                                'showLabel' => true,
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
-                                'index' => 0,
-                                'city_id' => $warehouseCityId,
-                                key('district-city-'.$districtId)
-                                ])
+                        @if($this->canUploadsEnable())
+                            @if ($type)
+                                @if ($type == 'CLIENTE')
+                                @livewire('selects.district-select', [
+                                    'districtId' => $districtId,
+                                    'name' => 'districtId',
+                                    'label' => 'Barrio',
+                                    'placeholder' => 'Seleccionar barrio',
+                                    'label' => 'Barrio',
+                                    'showLabel' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                                    'index' => 0,
+                                    'city_id' => $warehouseCityId,
+                                    key('district-city-'.$districtId)
+                                    ])
+                                @endif
                             @endif
                         @endif
 

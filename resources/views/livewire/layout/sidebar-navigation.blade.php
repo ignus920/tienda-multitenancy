@@ -317,7 +317,7 @@ new class extends Component
                 <a href="#" class="block rounded-md px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">
                     Impuestos
                 </a>
-                <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
+                {{-- <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.zones') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Zonas
                 </a>
@@ -325,7 +325,7 @@ new class extends Component
                 <a href="{{ route('tenant.parameters.routes') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.routes') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Rutas
-                </a>
+                </a> --}}
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -408,10 +408,10 @@ new class extends Component
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
                 <a href="{{url('/inventory/categories')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
-                {{-- @if (PermissionHelper::getMerchantTypeXProfile() == 5)
+                @if (PermissionHelper::getMerchantType() == 5)
                 <a href="{{url('/inventory/commands')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
-                @endif --}}
+                @endif
 
                 <a href="{{url('/inventory/brands')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>

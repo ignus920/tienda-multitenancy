@@ -448,7 +448,7 @@
                             <div>
                                 <label
                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo <span class="text-red-500">*</span></label>
-                                <select wire:model="type" {{ $disabled ? 'disabled' : '' }}
+                                <select wire:model.live="type" {{ $disabled ? 'disabled' : '' }}
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
                                     @foreach($types as $k => $v)
@@ -471,17 +471,19 @@
                             </div>
                         </div>
 
-                        {{-- @if($showCommand)
-                        @livewire('tenant.items.command', [
-                        'commandId' => $commandId,
-                        'name' => 'commandId',
-                        'label' => 'Comanda',
-                        'placeholder' => 'Seleccione una comanda',
-                        'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
-                        dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
-                        focus:ring-indigo-500 focus:border-indigo-500'
-                        ])
-                        @endif --}}
+                        @if($showCommand)
+                            @if ($type == 'PRODUCIDO')  
+                                @livewire('tenant.items.command', [
+                                'commandId' => $commandId,
+                                'name' => 'commandId',
+                                'label' => 'Comanda',
+                                'placeholder' => 'Seleccione una comanda',
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
+                                dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
+                                focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                            @endif
+                        @endif
 
                         @livewire('tenant.items.brand',[
                         'brandId' => $brandId,
@@ -544,7 +546,7 @@
                                     <option value="1">SI</option>
                                     <option value="0">NO</option>
                                 </select>
-                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                @error('handles_serial') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
                             @endif
                             <div>
@@ -556,7 +558,7 @@
                                     <option value="1">SI</option>
                                     <option value="0">NO</option>
                                 </select>
-                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                @error('inventoriable') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
