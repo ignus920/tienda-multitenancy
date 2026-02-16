@@ -133,22 +133,22 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        // Prueba de migraciones individuales
-        // 'company_119_0998194a_5eea_4518_9393_0a86cdf52572' => [
-        //     'driver' => 'mysql',
-        //     'host' => '192.168.1.205', // IP/host BD
-        //     'port' => '3306',
-        //     'database' => 'company_119_0998194a_5eea_4518_9393_0a86cdf52572',
-        //     'username' => 'root',
-        //     'password' => 'marsella',
-        //     'unix_socket' => '',
-        //     'charset' => 'utf8mb4',
-        //     'collation' => 'utf8mb4_unicode_ci',
-        //     'prefix' => '',
-        //     'prefix_indexes' => true,
-        //     'strict' => true,
-        //     'engine' => null,
-        // ],
+        // Migraciones fervicom
+        'company_131_45b2d9b5_17c9_4406_b1ed_263fbabd6434' => [
+            'driver' => 'mysql',
+            'host' => '127.0.0.1', // IP/host BD
+            'port' => '3306',
+            'database' => 'company_131_45b2d9b5_17c9_4406_b1ed_263fbabd6434',
+            'username' => 'root',
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
 
         'tenant' => [
             'driver' => 'mysql',

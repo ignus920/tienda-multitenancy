@@ -37,6 +37,11 @@ class TransferRequestList extends Component
     public int $transferQuantity = 0;
     public array $itemTransferData = [];
     
+    // Multi-item transfer state
+    public bool $showMultiTransferModal = false;
+    public array $selectedItems = []; // Array of item detail IDs
+    public array $itemQuantities = []; // Array of quantities per item [detailId => quantity]
+    
     // Messages
     public string $errorMessage = '';
     public string $successMessage = '';
@@ -47,6 +52,60 @@ class TransferRequestList extends Component
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    /**
+     * Update item quantities when warehouse selection changes
+     */
+    public function updatedSelectedDestinationStoreId(): void
+    {
+        // Clear selections when warehouse changes
+        if (empty($this->selectedDestinationStoreId)) {
+            $this->selectedItems = [];
+            $this->itemQuantities = [];
+            unset($this->selectedItemsStockInfo);
+            return;
+        }
+
+        // Recalculate quantities for already selected items
+        if (!empty($this->selectedItems)) {
+            $this->ensureTenantConnection();
+            
+            foreach ($this->selectedItems as $detailId) {
+                $detail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::with('item')->find($detailId);
+                if (!$detail) {
+                    continue;
+                }
+
+                // Get available stock in the new origin warehouse
+                $stockRecord = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $detail->itemId)
+                    ->where('storeId', $this->selectedDestinationStoreId)
+                    ->first();
+
+                $physicalStock = $stockRecord ? $stockRecord->stock_items_store : 0;
+
+                // Calculate committed quantity
+                $committedQuantity = DB::connection('tenant')
+                    ->table('inv_detail_transfers')
+                    ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+                    ->where('inv_transfers.storeFromId', $this->selectedDestinationStoreId)
+                    ->where('inv_detail_transfers.itemId', $detail->itemId)
+                    ->whereIn('inv_transfers.status', ['REGISTRADO', 'EN TRANSITO'])
+                    ->whereNull('inv_transfers.deleted_at')
+                    ->whereNull('inv_detail_transfers.deleted_at')
+                    ->sum('inv_detail_transfers.quantity');
+
+                $availableStock = max(0, $physicalStock - $committedQuantity);
+                $remainingToSend = $detail->quantity - $detail->quantitySend;
+                $maxTransferable = min($remainingToSend, $availableStock);
+
+                // Update quantity to the new maximum transferable
+                $this->itemQuantities[$detailId] = $maxTransferable;
+            }
+            
+            // Force recompute of stock info
+            unset($this->selectedItemsStockInfo);
+        }
     }
 
     /**
@@ -127,8 +186,336 @@ class TransferRequestList extends Component
         $this->showDetailsModal = false;
         $this->requestDetails = [];
         $this->selectedDestinationStoreId = null;
+        $this->selectedItems = [];
+        $this->itemQuantities = [];
         $this->errorMessage = '';
         $this->successMessage = '';
+    }
+
+    /**
+     * Toggle item selection for multi-item transfer
+     */
+    public function toggleItemSelection(int $detailId): void
+    {
+        if (in_array($detailId, $this->selectedItems)) {
+            // Remove from selection
+            $this->selectedItems = array_values(array_diff($this->selectedItems, [$detailId]));
+            unset($this->itemQuantities[$detailId]);
+        } else {
+            // Add to selection
+            $this->selectedItems[] = $detailId;
+            
+            // Initialize quantity to max transferable
+            $this->ensureTenantConnection();
+            $detail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::find($detailId);
+            if ($detail) {
+                $remainingToSend = $detail->quantity - $detail->quantitySend;
+                $this->itemQuantities[$detailId] = $remainingToSend;
+            }
+        }
+    }
+
+    /**
+     * Update quantity for a specific item in multi-item transfer
+     */
+    public function updateItemQuantity(int $detailId, int $quantity): void
+    {
+        // Ensure quantity is never negative
+        $this->itemQuantities[$detailId] = max(0, $quantity);
+    }
+
+    /**
+     * Set item quantity to maximum available for multi-item transfer
+     */
+    public function setItemQuantityToMax(int $detailId): void
+    {
+        if (!$this->selectedDestinationStoreId) {
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        
+        $detail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::with('item')->find($detailId);
+        if (!$detail) {
+            return;
+        }
+
+        // Get available stock in origin warehouse
+        $stockRecord = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $detail->itemId)
+            ->where('storeId', $this->selectedDestinationStoreId)
+            ->first();
+
+        $physicalStock = $stockRecord ? $stockRecord->stock_items_store : 0;
+
+        // Calculate committed quantity
+        $committedQuantity = DB::connection('tenant')
+            ->table('inv_detail_transfers')
+            ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+            ->where('inv_transfers.storeFromId', $this->selectedDestinationStoreId)
+            ->where('inv_detail_transfers.itemId', $detail->itemId)
+            ->whereIn('inv_transfers.status', ['REGISTRADO', 'EN TRANSITO'])
+            ->whereNull('inv_transfers.deleted_at')
+            ->whereNull('inv_detail_transfers.deleted_at')
+            ->sum('inv_detail_transfers.quantity');
+
+        $availableStock = max(0, $physicalStock - $committedQuantity);
+        $remainingToSend = $detail->quantity - $detail->quantitySend;
+        $maxTransferable = min($remainingToSend, $availableStock);
+
+        $this->itemQuantities[$detailId] = $maxTransferable;
+    }
+
+    /**
+     * Open multi-item transfer modal
+     */
+    public function openMultiTransferModal(): void
+    {
+        if (empty($this->selectedItems)) {
+            $this->errorMessage = 'Debe seleccionar al menos un item';
+            return;
+        }
+
+        if (!$this->selectedDestinationStoreId) {
+            $this->errorMessage = 'Debe seleccionar una bodega de origen primero';
+            return;
+        }
+
+        $this->showMultiTransferModal = true;
+        $this->errorMessage = '';
+    }
+
+    /**
+     * Close multi-item transfer modal
+     */
+    public function closeMultiTransferModal(): void
+    {
+        $this->showMultiTransferModal = false;
+        $this->errorMessage = '';
+    }
+
+    /**
+     * Get stock information for selected items
+     */
+    #[Computed]
+    public function selectedItemsStockInfo()
+    {
+        if (empty($this->selectedItems) || !$this->selectedDestinationStoreId) {
+            return [];
+        }
+
+        $this->ensureTenantConnection();
+        
+        $stockInfo = [];
+        
+        foreach ($this->selectedItems as $detailId) {
+            $detail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::with('item')->find($detailId);
+            if (!$detail) {
+                continue;
+            }
+
+            // Get available stock in origin warehouse
+            $stockRecord = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $detail->itemId)
+                ->where('storeId', $this->selectedDestinationStoreId)
+                ->first();
+
+            $physicalStock = $stockRecord ? $stockRecord->stock_items_store : 0;
+
+            // Calculate committed quantity
+            $committedQuantity = DB::connection('tenant')
+                ->table('inv_detail_transfers')
+                ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+                ->where('inv_transfers.storeFromId', $this->selectedDestinationStoreId)
+                ->where('inv_detail_transfers.itemId', $detail->itemId)
+                ->whereIn('inv_transfers.status', ['REGISTRADO', 'EN TRANSITO'])
+                ->whereNull('inv_transfers.deleted_at')
+                ->whereNull('inv_detail_transfers.deleted_at')
+                ->sum('inv_detail_transfers.quantity');
+
+            $availableStock = max(0, $physicalStock - $committedQuantity);
+            $remainingToSend = $detail->quantity - $detail->quantitySend;
+            $maxTransferable = min($remainingToSend, $availableStock);
+
+            $stockInfo[$detailId] = [
+                'physicalStock' => $physicalStock,
+                'committedQuantity' => $committedQuantity,
+                'availableStock' => $availableStock,
+                'remainingToSend' => $remainingToSend,
+                'maxTransferable' => $maxTransferable,
+            ];
+        }
+
+        return $stockInfo;
+    }
+
+    /**
+     * Execute multi-item transfer
+     */
+    public function executeMultiTransfer(): void
+    {
+        try {
+            if (empty($this->selectedItems)) {
+                $this->errorMessage = 'Debe seleccionar al menos un item';
+                return;
+            }
+
+            if (!$this->selectedDestinationStoreId) {
+                $this->errorMessage = 'Debe seleccionar una bodega de origen';
+                return;
+            }
+
+            $this->ensureTenantConnection();
+
+            // Get the transfer request to know the destination
+            $firstDetail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::find($this->selectedItems[0]);
+            if (!$firstDetail) {
+                $this->errorMessage = 'Detalle de solicitud no encontrado';
+                return;
+            }
+
+            $request = \App\Models\Tenant\Transfers\InvTransferRequest::find($firstDetail->transferRequestId);
+            if (!$request) {
+                $this->errorMessage = 'Solicitud de transferencia no encontrada';
+                return;
+            }
+
+            // Validate that origin and destination are different
+            if ($this->selectedDestinationStoreId === $request->warehouseId) {
+                $this->errorMessage = 'La bodega de origen no puede ser la misma que la bodega de destino';
+                return;
+            }
+
+            // Validate all items and quantities
+            $itemsToTransfer = [];
+            foreach ($this->selectedItems as $detailId) {
+                $quantity = $this->itemQuantities[$detailId] ?? 0;
+                
+                // Ensure quantity is never negative
+                if ($quantity < 0) {
+                    $this->errorMessage = 'Las cantidades no pueden ser negativas';
+                    return;
+                }
+                
+                if ($quantity <= 0) {
+                    $this->errorMessage = 'Todas las cantidades deben ser mayores a cero';
+                    return;
+                }
+
+                $detail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::with('item')->find($detailId);
+                if (!$detail) {
+                    $this->errorMessage = 'Detalle de solicitud no encontrado';
+                    return;
+                }
+
+                // Verify item is active
+                if (!$detail->item || $detail->item->status != 1) {
+                    $this->errorMessage = 'El item ' . ($detail->item->name ?? 'desconocido') . ' no está activo';
+                    return;
+                }
+
+                // Get available stock
+                $stockRecord = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $detail->itemId)
+                    ->where('storeId', $this->selectedDestinationStoreId)
+                    ->first();
+
+                $physicalStock = $stockRecord ? $stockRecord->stock_items_store : 0;
+
+                // Calculate committed quantity
+                $committedQuantity = DB::connection('tenant')
+                    ->table('inv_detail_transfers')
+                    ->join('inv_transfers', 'inv_detail_transfers.transferId', '=', 'inv_transfers.id')
+                    ->where('inv_transfers.storeFromId', $this->selectedDestinationStoreId)
+                    ->where('inv_detail_transfers.itemId', $detail->itemId)
+                    ->whereIn('inv_transfers.status', ['REGISTRADO', 'EN TRANSITO'])
+                    ->whereNull('inv_transfers.deleted_at')
+                    ->whereNull('inv_detail_transfers.deleted_at')
+                    ->sum('inv_detail_transfers.quantity');
+
+                $availableStock = max(0, $physicalStock - $committedQuantity);
+                $remainingToSend = $detail->quantity - $detail->quantitySend;
+
+                if ($quantity > $availableStock) {
+                    $this->errorMessage = 'La cantidad para ' . $detail->item->name . ' excede el stock disponible (' . $availableStock . ')';
+                    return;
+                }
+
+                if ($quantity > $remainingToSend) {
+                    $this->errorMessage = 'La cantidad para ' . $detail->item->name . ' excede lo que falta por enviar (' . $remainingToSend . ')';
+                    return;
+                }
+
+                $itemsToTransfer[] = [
+                    'detailId' => $detailId,
+                    'itemId' => $detail->itemId,
+                    'quantity' => $quantity,
+                    'stockRecord' => $stockRecord,
+                ];
+            }
+
+            // Execute transfer in transaction
+            DB::connection('tenant')->transaction(function () use ($itemsToTransfer, $request) {
+                // Get next consecutive
+                $lastTransfer = \App\Models\Tenant\Transfers\InvTransfer::orderBy('consecutive', 'desc')->first();
+                $consecutive = $lastTransfer ? $lastTransfer->consecutive + 1 : 1;
+
+                // Create transfer
+                $transfer = \App\Models\Tenant\Transfers\InvTransfer::create([
+                    'date' => now(),
+                    'observations' => 'Transferencia múltiple desde solicitud #' . $request->id,
+                    'status' => 'REGISTRADO',
+                    'storeFromId' => $this->selectedDestinationStoreId,
+                    'storeToId' => $request->warehouseId,
+                    'consecutive' => $consecutive,
+                    'userId' => Auth::check() ? Auth::id() : null,
+                ]);
+
+                // Create transfer details and update stocks
+                foreach ($itemsToTransfer as $item) {
+                    // Create transfer detail
+                    \App\Models\Tenant\Transfers\InvDetailTransfer::create([
+                        'quantity' => $item['quantity'],
+                        'transferId' => $transfer->id,
+                        'itemId' => $item['itemId'],
+                        'amount_received' => 0,
+                    ]);
+
+                    // Update request detail - increment sent quantity
+                    $detail = \App\Models\Tenant\Transfers\InvDetailTransferRequest::find($item['detailId']);
+                    $detail->quantitySend += $item['quantity'];
+                    $detail->save();
+
+                    // Update stock in origin warehouse (reduce stock)
+                    if ($item['stockRecord']) {
+                        $item['stockRecord']->stock_items_store -= $item['quantity'];
+                        $item['stockRecord']->save();
+                    }
+                }
+
+                // Update request status
+                $this->updateRequestStatus($request->id);
+            });
+
+            $this->successMessage = 'Transferencia múltiple creada exitosamente';
+            
+            // Save requestId before closing
+            $requestId = $request->id;
+            
+            // Clear selections
+            $this->selectedItems = [];
+            $this->itemQuantities = [];
+            
+            $this->closeMultiTransferModal();
+            
+            // Refresh the details modal
+            $this->openDetailsModal($requestId);
+            
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al ejecutar la transferencia múltiple: ' . $e->getMessage();
+            Log::error('Error executing multi-item transfer', [
+                'selectedItems' => $this->selectedItems,
+                'itemQuantities' => $this->itemQuantities,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
