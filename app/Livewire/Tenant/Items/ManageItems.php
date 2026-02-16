@@ -71,11 +71,11 @@ class ManageItems extends Component
     public $handles_serial;
     public $inventoriable;
     public $tempValues = [];
-    
+
     // Propiedades para modal de ubicaciones
     public $showLocationsModal = false;
     public $selectedItemId;
-    
+
     // Propiedades para modal de stock
     public $showStockModal = false;
     public $selectedItemForStock;
@@ -191,9 +191,17 @@ class ManageItems extends Component
     {
         // Lista de campos que deben validarse en tiempo real
         $fieldsToValidate = [
-            'category_id', 'name', 'type', 'internal_code', 
-            'brandId', 'houseId', 'purchase_unit', 
-            'consumption_unit', 'tax', 'sku', 'description'
+            'category_id',
+            'name',
+            'type',
+            'internal_code',
+            'brandId',
+            'houseId',
+            'purchase_unit',
+            'consumption_unit',
+            'tax',
+            'sku',
+            'description'
         ];
 
         if (in_array($propertyName, $fieldsToValidate)) {
@@ -313,6 +321,7 @@ class ManageItems extends Component
         $this->disabled = true;
 
         $this->showModal = true;
+        Log::info('🔒 Show Campo Comanda: ' . $this->showCommand);
     }
 
     public function render()
@@ -357,6 +366,7 @@ class ManageItems extends Component
 
         $this->clearValidationErrors();
         $this->resetForm();
+        Log::info('🔒 Show Campo Comanda: ' . $this->showCommand);
     }
 
     public function save()
@@ -390,9 +400,9 @@ class ManageItems extends Component
             'status' => 1,
             'generic' => $this->generic,
             'taxId' => (int)$this->tax,
-          
+
         ];
-    
+
         try {
             if ($this->item_id) { // Existing item
                 $existsValue = InvValues::where('itemId', $this->item_id)->exists();
@@ -448,7 +458,7 @@ class ManageItems extends Component
                     }
 
                     $this->clearTemporaryMessage();
-                    
+
                     // Solo cerrar modal si no hay errores de sincronización
                     if (!session()->has('sync_warning') && !session()->has('sync_error')) {
                         session()->flash('success', '✅ ¡Item actualizado exitosamente! El item "' . $item->name . '" ha sido actualizado correctamente.');
@@ -468,9 +478,9 @@ class ManageItems extends Component
                     // Si NO es inventoriable, solo requiere Costo Inicial
                     $requiredPrices = ['Costo Inicial'];
                 }
-                
+
                 $missingPrices = $this->validateRequiredPrices($requiredPrices);
-                
+
                 if (!empty($missingPrices)) {
                     $this->messageValues = 'Debe registrar todos los precios requeridos: ' . implode(', ', $missingPrices);
                 } else {
@@ -577,7 +587,7 @@ class ManageItems extends Component
             $this->selectedItemName = $item->name;
             $this->selectedItemSku = $item->sku;
         }
-        
+
         $this->loadStockByWarehouse($itemId);
         $this->showStockModal = true;
     }
@@ -595,24 +605,24 @@ class ManageItems extends Component
     {
         try {
             $this->ensureTenantConnection();
-            
+
             // Obtener todos los registros de inv_items_store para este item
             $itemStores = InvItemsStore::where('itemId', $itemId)
                 ->with('store')
                 ->get();
-            
+
             $this->stockByWarehouse = [];
-            
+
             foreach ($itemStores as $itemStore) {
                 if ($itemStore->store) {
                     // Obtener el warehouse asociado al store desde la BD central
                     $warehouse = VntWarehouse::on('central')
                         ->where('id', $itemStore->store->warehouseId)
                         ->first();
-                    
+
                     if ($warehouse) {
                         $warehouseId = $warehouse->id;
-                        
+
                         // Si el warehouse no existe en el array, inicializarlo
                         if (!isset($this->stockByWarehouse[$warehouseId])) {
                             $this->stockByWarehouse[$warehouseId] = [
@@ -621,7 +631,7 @@ class ManageItems extends Component
                                 'stores' => []
                             ];
                         }
-                        
+
                         // Agregar el store con su stock
                         $this->stockByWarehouse[$warehouseId]['stores'][] = [
                             'store_id' => $itemStore->store->id,
@@ -633,12 +643,11 @@ class ManageItems extends Component
                     }
                 }
             }
-            
+
             Log::info('Stock cargado por warehouse', [
                 'item_id' => $itemId,
                 'warehouses_count' => count($this->stockByWarehouse)
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Error cargando stock por warehouse', [
                 'item_id' => $itemId,
@@ -1384,10 +1393,7 @@ class ManageItems extends Component
             if ($item->categoryId) {
                 $category = Category::find($item->categoryId);
                 $categoryAlegraId = $category ? $category->api_data_id : null;
-
-              
             } else {
-               
             }
 
             // Obtener información del store para inventory
@@ -1505,7 +1511,6 @@ class ManageItems extends Component
                     'message' => 'Error en la API de facturación: ' . $errorMessage
                 ];
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Excepción sincronizando item', [
                 'item_id' => $item->id,
@@ -1558,7 +1563,6 @@ class ManageItems extends Component
                 'inventariablePurchaseAccount' => $tax->inventariablePurchaseAccount,
                 'categoryAccount' => $tax->categoryAccount
             ];
-
         } catch (\Exception $e) {
             Log::error('Error obteniendo datos de cnf_taxes', [
                 'tax_id' => $taxId,
@@ -1706,7 +1710,6 @@ class ManageItems extends Component
                 'store_name' => $principalStore->name,
                 'inventoriable' => $item->inventoriable
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error creando registro en inv_items_store', [
                 'item_id' => $item->id,

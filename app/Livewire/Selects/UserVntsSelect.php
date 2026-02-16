@@ -36,16 +36,17 @@ class UserVntsSelect extends Component
     public function getUsersProperty()
     {
 
-         $sessionTenant = $this->getTenantId();
+        $sessionTenant = $this->getTenantId();
 
         return User::query()
             ->whereHas('tenants', function ($query) use ($sessionTenant) {
-                $query->where('tenants.id', $sessionTenant);
+                $query->where('tenants.id', $sessionTenant)
+                    ->where('user_tenants.is_active', 1);
             })
             ->with(['profile', 'contact.warehouse.company'])
             ->when(function ($query) {
                 $query->where(function ($q) {
-                     $q->where('profile_id', 4);
+                    $q->where('profile_id', 4);
                 });
             })
             ->orderBy('name')->get(['id', 'name', 'email']);
@@ -58,7 +59,7 @@ class UserVntsSelect extends Component
         ]);
     }
 
-     private function getTenantId()
+    private function getTenantId()
     {
         $tenantId = session('tenant_id');
 

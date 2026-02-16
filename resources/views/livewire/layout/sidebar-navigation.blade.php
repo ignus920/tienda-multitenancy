@@ -408,8 +408,11 @@ new class extends Component
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
                 <a href="{{url('/inventory/categories')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
+                {{-- @if (PermissionHelper::getMerchantTypeXProfile() == 5)
                 <a href="{{url('/inventory/commands')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
+                @endif --}}
+
                 <a href="{{url('/inventory/brands')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
                 <a href="{{url('/inventory/houses')}}" wire:navigate

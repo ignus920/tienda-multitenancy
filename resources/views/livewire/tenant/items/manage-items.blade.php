@@ -471,7 +471,7 @@
                             </div>
                         </div>
 
-                        @if($showCommand)
+                        {{-- @if($showCommand)
                         @livewire('tenant.items.command', [
                         'commandId' => $commandId,
                         'name' => 'commandId',
@@ -481,7 +481,7 @@
                         dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
                         focus:ring-indigo-500 focus:border-indigo-500'
                         ])
-                        @endif
+                        @endif --}}
 
                         @livewire('tenant.items.brand',[
                         'brandId' => $brandId,
