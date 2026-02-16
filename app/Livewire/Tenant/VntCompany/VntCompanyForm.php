@@ -1689,8 +1689,8 @@ class VntCompanyForm extends Component
                 }
             }
 
-            // Verificar si facturación electrónica está habilitada usando el servicio global
-            $isElectronicEnabled = $this->companyOptionsService->isElectronicInvoicingEnabled($this->currentCompanyId);
+            // Verificar si facturación electrónica está habilitada usando el trait (option_id=8)
+            $isElectronicEnabled = $this->isOptionEnabled(8);
 
             if (!$isElectronicEnabled) {
                 return [
