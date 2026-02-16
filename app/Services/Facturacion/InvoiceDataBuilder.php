@@ -16,6 +16,7 @@ use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Items\Items;
 use App\Models\Central\VntContact;
+use App\Services\Tenant\RetentionCalculatorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,15 +28,17 @@ class InvoiceDataBuilder
      *
      * @param VntQuote $quote Cotización a facturar
      * @param array $paymentMethods Métodos de pago (equivalente a formasPagoArray)
-     * @param array $retentions Retenciones aplicadas
+     * @param array $retentions Retenciones aplicadas (opcional, se calcularán automáticamente si están vacías)
      * @param int $termDays Días de término para fecha de vencimiento
+     * @param bool $calculateRetentions Si debe calcular las retenciones automáticamente
      * @return array Datos formateados para la API de Alegra
      */
     public static function buildFromQuote(
         VntQuote $quote,
         array $paymentMethods = [],
         array $retentions = [],
-        int $termDays = 0
+        int $termDays = 0,
+        bool $calculateRetentions = true
     ): array {
         // Fecha actual en formato YYYY-MM-DD (equivalente al JavaScript)
         $date = now()->format('Y-m-d');
@@ -61,6 +64,15 @@ class InvoiceDataBuilder
 
         // Procesar métodos de pago (traducir lógica del for loop de JS)
         $paymentData = self::processPaymentMethods($paymentMethods);
+
+        // Calcular retenciones automáticamente si están vacías y se solicita calcularlas
+        if ($calculateRetentions && empty($retentions)) {
+            $retentions = self::calculateRetentionsForQuote($quote);
+            Log::info('🧮 Retenciones calculadas automáticamente', [
+                'quote_id' => $quote->id,
+                'retentions' => $retentions
+            ]);
+        }
 
         // Validar retenciones (solo las válidas con amount > 0)
         $validRetentions = array_filter($retentions, function ($retention) {
@@ -156,40 +168,59 @@ class InvoiceDataBuilder
 
             $taxIdAlegra = $product->tax_api_data_id ?? $product->taxIdAlegra ?? $product->tax_id_alegra ?? $product->api_tax_id ?? null;
 
-            // Si no hay tax configurado, usar IVA 19% por defecto para Colombia (ID común en Alegra)
+            // Si no hay tax configurado, determinarlo basándose en el porcentaje del detalle
             if (!$taxIdAlegra) {
-                $taxIdAlegra = '3'; // ID estándar para IVA 19% en Alegra
-                Log::warning('⚠️  Producto sin tax ID configurado, usando IVA 19% por defecto', [
+                $taxPercentage = floatval($detalle->tax ?? 0);
+
+                // Mapear porcentaje a ID de Alegra común para Colombia
+                if ($taxPercentage == 5) {
+                    $taxIdAlegra = '2'; // ID común para IVA 5% en Alegra
+                } elseif ($taxPercentage == 19) {
+                    $taxIdAlegra = '3'; // ID común para IVA 19% en Alegra
+                } else {
+                    $taxIdAlegra = '1'; // ID común para exento/0% en Alegra
+                }
+
+                Log::info('📊 Tax ID determinado por porcentaje', [
                     'product_id' => $product->id,
                     'product_name' => $product->name ?? 'Sin nombre',
-                    'default_tax_id' => $taxIdAlegra
+                    'tax_percentage' => $taxPercentage,
+                    'assigned_tax_id' => $taxIdAlegra
                 ]);
             }
 
-            // ENFOQUE DIFERENTE: Calcular el precio base exacto que Alegra necesita
-            // Basándose en la evidencia: Alegra muestra $43,488 de subtotal para $51,750.72 total
-            // Esto significa: $43,488 * 1.19 = $51,750.72
-
+            // Calcular el precio base usando el porcentaje de IVA correcto
             $originalPriceWithIva = floatval($detalle->value ?: 0);
+            $taxPercentage = floatval($detalle->tax ?? 0);
 
-            // Para un producto de $17,250, el subtotal en Alegra debería ser $14,496
-            // Verificamos: $14,496 * 1.19 = $17,250.24 (muy cercano a $17,250)
+            if ($taxPercentage > 0) {
+                // Producto con IVA - calcular precio base sin IVA
+                $taxMultiplier = 1 + ($taxPercentage / 100);
+                $targetSubtotal = round($originalPriceWithIva / $taxMultiplier, 2);
+                $finalPrice = $targetSubtotal;
 
-            // Calculamos el precio base que Alegra necesita para este comportamiento
-            $targetSubtotal = round($originalPriceWithIva / 1.19, 0); // Redondear subtotal a entero
-            $finalPrice = $targetSubtotal;
+                // Verificación con el IVA correcto
+                $verificationTotal = $finalPrice * $taxMultiplier;
+            } else {
+                // Producto exento de IVA
+                $finalPrice = $originalPriceWithIva;
+                $verificationTotal = $finalPrice;
+                $taxMultiplier = 1;
+            }
 
-            // Log para verificar los cálculos
-            $verificationTotal = $finalPrice * 1.19;
-
-            Log::info('💰 Calculando precio sin IVA', [
+            Log::info('💰 DETALLE COMPLETO - Cálculo precio para Alegra', [
                 'product_id' => $product->id,
+                'product_name' => $product->name ?? 'Sin nombre',
+                'detalle_value_from_db' => $detalle->value,
                 'original_price_with_iva' => $originalPriceWithIva,
-                'target_subtotal' => $targetSubtotal,
-                'final_price' => $finalPrice,
+                'tax_percentage' => $taxPercentage,
+                'tax_multiplier' => $taxMultiplier,
+                'raw_division_result' => ($taxPercentage > 0) ? $originalPriceWithIva / $taxMultiplier : $originalPriceWithIva,
+                'final_price_after_round' => $finalPrice,
                 'verification_total' => $verificationTotal,
                 'difference' => $verificationTotal - $originalPriceWithIva,
-                'tax_id' => $taxIdAlegra
+                'tax_id_alegra' => $taxIdAlegra,
+                'quantity' => $detalle->quantity
             ]);
 
             $itemsAlegra[] = [
@@ -407,5 +438,155 @@ class InvoiceDataBuilder
         }
 
         Log::info('✅ Datos de factura validados correctamente');
+    }
+
+    /**
+     * Calcular retenciones automáticamente para una cotización
+     *
+     * @param VntQuote $quote Cotización para calcular retenciones
+     * @return array Array de retenciones calculadas
+     */
+    protected static function calculateRetentionsForQuote(VntQuote $quote): array
+    {
+        $retentionCalculator = new RetentionCalculatorService();
+
+        // Obtener datos del cliente
+        $customer = $quote->customer;
+
+        if (!$customer) {
+            Log::warning('⚠️ No se puede calcular retenciones: cliente no encontrado', [
+                'quote_id' => $quote->id
+            ]);
+            return [];
+        }
+
+        // Calcular subtotal dinámicamente desde los detalles (más confiable que el campo guardado)
+        $subTotal = 0;
+        foreach ($quote->detalles as $detalle) {
+            $originalPriceWithIva = floatval($detalle->value ?: 0);
+            $taxPercentage = floatval($detalle->tax ?? 0);
+
+            if ($taxPercentage > 0) {
+                // Producto con IVA - calcular precio base sin IVA
+                $priceBase = round($originalPriceWithIva / (1 + ($taxPercentage / 100)), 2);
+            } else {
+                // Producto exento
+                $priceBase = $originalPriceWithIva;
+            }
+
+            $subTotal += $priceBase * $detalle->quantity;
+        }
+        $subTotal = round($subTotal, 2);
+
+        // Obtener datos necesarios para el cálculo
+        $regimeDescription = self::getRegimeDescription($customer);
+        $fiscalResponsability = self::getFiscalResponsability($customer);
+        $city = self::getCustomerCity($customer);
+
+        Log::info('📊 Datos para cálculo de retenciones (bases oficiales 2026)', [
+            'quote_id' => $quote->id,
+            'sub_total' => $subTotal,
+            'base_fuente' => config('facturacion.retentions.base_amounts.fuente', 524000),
+            'base_ica' => config('facturacion.retentions.base_amounts.ica', 1418800),
+            'base_iva' => config('facturacion.retentions.base_amounts.iva', 300000),
+            'regime_description' => $regimeDescription,
+            'fiscal_responsability' => $fiscalResponsability,
+            'city' => $city
+        ]);
+
+        // Calcular retenciones usando el servicio con bases oficiales 2026
+        $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
+            'regime_description' => $regimeDescription,
+            'fiscal_responsability' => $fiscalResponsability,
+            'city' => $city,
+            'sub_total' => $subTotal
+        ]);
+
+        // Formatear retenciones para Alegra (formato esperado por la API)
+        // Formato: [{"id":"14","amount":12341},{"id":"11","amount":12345},{"id":"12","amount":12345}]
+        $retentions = [];
+
+        // Retención en la fuente (ID: 14)
+        if ($calculatedRetentions['retention_fuente'] > 0) {
+            $retentions[] = [
+                'id' => config('facturacion.retentions.alegra_ids.fuente', '14'),
+                'amount' => $calculatedRetentions['retention_fuente']
+            ];
+        }
+
+        // Retención ICA (ID: 11)
+        if ($calculatedRetentions['retention_ica'] > 0) {
+            $retentions[] = [
+                'id' => config('facturacion.retentions.alegra_ids.ica', '11'),
+                'amount' => $calculatedRetentions['retention_ica']
+            ];
+        }
+
+        // Retención IVA (ID: 12)
+        if ($calculatedRetentions['retention_iva'] > 0) {
+            $retentions[] = [
+                'id' => config('facturacion.retentions.alegra_ids.iva', '12'),
+                'amount' => $calculatedRetentions['retention_iva']
+            ];
+        }
+
+        Log::info('✅ Retenciones calculadas para envío a Alegra', [
+            'quote_id' => $quote->id,
+            'retention_fuente' => $calculatedRetentions['retention_fuente'],
+            'retention_ica' => $calculatedRetentions['retention_ica'],
+            'retention_iva' => $calculatedRetentions['retention_iva'],
+            'total_retentions' => count($retentions),
+            'alegra_format' => $retentions // Formato exacto que se enviará a Alegra
+        ]);
+
+        return $retentions;
+    }
+
+    /**
+     * Obtener descripción del régimen fiscal del cliente
+     */
+    protected static function getRegimeDescription($customer): string
+    {
+        // Lógica para determinar el régimen basado en el cliente
+        // Esto depende de cómo esté estructurada la información del cliente
+
+        if ($customer->company && $customer->company->regimen) {
+            return $customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME';
+        }
+
+        // Por defecto, régimen común
+        return 'COMMON_REGIME';
+    }
+
+    /**
+     * Obtener responsabilidad fiscal del cliente
+     */
+    protected static function getFiscalResponsability($customer): int
+    {
+        if ($customer->company && $customer->company->fiscal_responsibility_id) {
+            return (int) $customer->company->fiscal_responsibility_id;
+        }
+
+        if ($customer->fiscal_responsibility_id) {
+            return (int) $customer->fiscal_responsibility_id;
+        }
+
+        return 0; // Sin responsabilidad fiscal
+    }
+
+    /**
+     * Obtener ciudad del cliente
+     */
+    protected static function getCustomerCity($customer): string
+    {
+        if ($customer->company && $customer->company->city) {
+            return $customer->company->city;
+        }
+
+        if ($customer->city) {
+            return $customer->city;
+        }
+
+        return '';
     }
 }

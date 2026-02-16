@@ -524,11 +524,46 @@ $header = 'Seleccionar productos';
 
                     </div>
 
+                    <!-- Desglose de Impuestos -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4 space-y-3 text-sm">
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span class="font-medium">Subtotal (sin impuestos):</span>
+                            <span class="font-semibold">${{ number_format($subTotal, 2, ',', '.') }}</span>
+                        </div>
+
+                        @if($taxBreakdown['iva_5'] > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>IVA 5%:</span>
+                            <span>${{ number_format($taxBreakdown['iva_5'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+
+                        @if($taxBreakdown['iva_19'] > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>IVA 19%:</span>
+                            <span>${{ number_format($taxBreakdown['iva_19'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+
+                        @if($taxBreakdown['exento'] > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>Productos exentos:</span>
+                            <span>${{ number_format($taxBreakdown['exento'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+
+                        @if($totalTaxes > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300 border-t pt-3">
+                            <span class="font-medium">Total impuestos:</span>
+                            <span class="font-semibold">${{ number_format($totalTaxes, 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                    </div>
 
                     <!-- Total -->
-                    <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
+                    <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white bg-green-50 dark:bg-green-900 rounded-lg p-3">
                         <span>Total:</span>
-                        <span>${{ number_format($totalAmount, 2, ',', '.') }}</span>
+                        <span class="text-green-600 dark:text-green-400">${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
 
 
@@ -727,22 +762,60 @@ $header = 'Seleccionar productos';
                             </div>
                         </div>
 
+                        <!-- Retenciones (solo si hay retenciones) -->
+                        @if($showRetentions)
+                        <div class="bg-white rounded-lg p-4 lg:p-6 shadow border-l-4 border-orange-500">
+                            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                RETENCIONES
+                            </h3>
+                            <div class="space-y-2 text-sm lg:text-base">
+                                @if($retentions['retention_fuente'] > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">Ret. Fuente (2.5%):</span>
+                                    <span class="font-semibold text-orange-600">-${{ number_format($retentions['retention_fuente'], 2, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if($retentions['retention_ica'] > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">Ret. ICA (11.04‰):</span>
+                                    <span class="font-semibold text-orange-600">-${{ number_format($retentions['retention_ica'], 2, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if($retentions['retention_iva'] > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">Ret. IVA (15%):</span>
+                                    <span class="font-semibold text-orange-600">-${{ number_format($retentions['retention_iva'], 2, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                <div class="border-t pt-2 mt-3">
+                                    <div class="flex justify-between items-center font-bold">
+                                        <span class="text-gray-800">Total con Retenciones:</span>
+                                        <span class="text-green-600 text-lg">${{ number_format($totalWithRetentions, 2, ',', '.') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <!-- Estado del Pago -->
                         <div class="bg-white rounded-lg p-4 lg:p-6 shadow">
                             <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800">ESTADO</h3>
                             <div class="space-y-2 lg:space-y-3 text-base lg:text-lg">
                                 <div class="flex justify-between">
                                     <span>Pagado:</span>
-                                    <span class="font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</span>
+                                    <span class="font-bold text-blue-600">${{ number_format($totalPaid, 2, ',', '.') }}</span>
                                 </div>
                                 <div class="flex justify-between border-t pt-2 lg:pt-3">
                                     <span>Falta:</span>
-                                    <span class="font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</span>
+                                    <span class="font-bold text-red-600">${{ number_format($remainingBalance, 2, ',', '.') }}</span>
                                 </div>
                                 @if($changeAmount > 0)
                                 <div class="flex justify-between border-t pt-2 lg:pt-3">
                                     <span>Cambio:</span>
-                                    <span class="font-bold text-green-600">${{ number_format($changeAmount, 0, ',', '.') }}</span>
+                                    <span class="font-bold text-green-600">${{ number_format($changeAmount, 2, ',', '.') }}</span>
                                 </div>
                                 @endif
                             </div>
@@ -845,8 +918,8 @@ $header = 'Seleccionar productos';
                         <button wire:click="confirmPayment"
                                 class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg">
                             @if($changeAmount > 0)
-                                <span class="hidden lg:inline">FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})</span>
-                                <span class="lg:hidden">FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})</span>
+                                <span class="hidden lg:inline">FACTURAR (Cambio: ${{ number_format($changeAmount, 2, ',', '.') }})</span>
+                                <span class="lg:hidden">FACTURAR (Cambio: ${{ number_format($changeAmount, 2, ',', '.') }})</span>
                             @else
                                 <span class="hidden lg:inline">CONFIRMAR PAGO Y FACTURAR</span>
                                 <span class="lg:hidden">FACTURAR</span>
@@ -856,7 +929,7 @@ $header = 'Seleccionar productos';
                         <button disabled
                                 class="bg-gray-400 text-gray-200 font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg text-base lg:text-lg cursor-not-allowed">
                             @if($remainingBalance > 0)
-                                FALTA ${{ number_format($remainingBalance, 0, ',', '.') }}
+                                FALTA ${{ number_format($remainingBalance, 2, ',', '.') }}
                             @else
                                 INGRESE PAGO
                             @endif

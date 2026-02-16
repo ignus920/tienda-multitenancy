@@ -616,6 +616,42 @@ $header = 'Seleccionar productos';
                         </div>
                     </div>
 
+                    <!-- Desglose de Impuestos -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4 space-y-2 text-sm">
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>Subtotal (sin impuestos):</span>
+                            <span>${{ number_format($subTotal, 2, ',', '.') }}</span>
+                        </div>
+
+                        @if($taxBreakdown['iva_5'] > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>IVA 5%:</span>
+                            <span>${{ number_format($taxBreakdown['iva_5'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+
+                        @if($taxBreakdown['iva_19'] > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>IVA 19%:</span>
+                            <span>${{ number_format($taxBreakdown['iva_19'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+
+                        @if($taxBreakdown['exento'] > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                            <span>Productos exentos:</span>
+                            <span>${{ number_format($taxBreakdown['exento'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+
+                        @if($totalTaxes > 0)
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300 border-t pt-2">
+                            <span>Total impuestos:</span>
+                            <span>${{ number_format($totalTaxes, 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                    </div>
+
                     <!-- Total -->
                     <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
                         <span>Total:</span>
@@ -791,6 +827,44 @@ $header = 'Seleccionar productos';
             <!-- Contenido Principal -->
             <div class="flex-1 p-4 overflow-y-auto">
 
+                <!-- Retenciones (solo si hay retenciones) -->
+                @if($showRetentions)
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center mb-3">
+                        <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        <h3 class="font-bold text-orange-800 text-sm">RETENCIONES</h3>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        @if($retentions['retention_fuente'] > 0)
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Ret. Fuente:</span>
+                            <span class="font-semibold text-orange-600">-${{ number_format($retentions['retention_fuente'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if($retentions['retention_ica'] > 0)
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Ret. ICA:</span>
+                            <span class="font-semibold text-orange-600">-${{ number_format($retentions['retention_ica'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if($retentions['retention_iva'] > 0)
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Ret. IVA:</span>
+                            <span class="font-semibold text-orange-600">-${{ number_format($retentions['retention_iva'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        <div class="border-t pt-2 mt-3">
+                            <div class="flex justify-between font-bold">
+                                <span class="text-gray-800">Total con Retenciones:</span>
+                                <span class="text-green-600">${{ number_format($totalWithRetentions, 2, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Estado del Pago -->
                 <div class="bg-gray-100 rounded-lg p-4 mb-6">
                     @if($changeAmount > 0)
@@ -798,15 +872,15 @@ $header = 'Seleccionar productos';
                     <div class="grid grid-cols-3 gap-4 text-center">
                         <div>
                             <div class="text-sm text-gray-600">PAGADO</div>
-                            <div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</div>
+                            <div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 2, ',', '.') }}</div>
                         </div>
                         <div>
                             <div class="text-sm text-gray-600">TOTAL</div>
-                            <div class="text-xl font-bold text-gray-800">${{ number_format($totalAmount, 0, ',', '.') }}</div>
+                            <div class="text-xl font-bold text-gray-800">${{ number_format($totalAmount, 2, ',', '.') }}</div>
                         </div>
                         <div>
                             <div class="text-sm text-gray-600">CAMBIO</div>
-                            <div class="text-xl font-bold text-green-600">${{ number_format($changeAmount, 0, ',', '.') }}</div>
+                            <div class="text-xl font-bold text-green-600">${{ number_format($changeAmount, 2, ',', '.') }}</div>
                         </div>
                     </div>
                     @else
@@ -814,11 +888,11 @@ $header = 'Seleccionar productos';
                     <div class="grid grid-cols-2 gap-4 text-center">
                         <div>
                             <div class="text-sm text-gray-600">PAGADO</div>
-                            <div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 0, ',', '.') }}</div>
+                            <div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 2, ',', '.') }}</div>
                         </div>
                         <div>
                             <div class="text-sm text-gray-600">FALTA</div>
-                            <div class="text-xl font-bold text-red-600">${{ number_format($remainingBalance, 0, ',', '.') }}</div>
+                            <div class="text-xl font-bold text-red-600">${{ number_format($remainingBalance, 2, ',', '.') }}</div>
                         </div>
                     </div>
                     @endif
@@ -893,7 +967,7 @@ $header = 'Seleccionar productos';
                 <button wire:click="confirmPayment"
                         class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg">
                     @if($changeAmount > 0)
-                        FACTURAR (Cambio: ${{ number_format($changeAmount, 0, ',', '.') }})
+                        FACTURAR (Cambio: ${{ number_format($changeAmount, 2, ',', '.') }})
                     @else
                         FACTURAR
                     @endif
@@ -902,7 +976,7 @@ $header = 'Seleccionar productos';
                 <button disabled
                         class="flex-1 bg-gray-400 text-gray-200 font-bold py-3 rounded-lg text-sm">
                     @if($remainingBalance > 0)
-                        FALTA ${{ number_format($remainingBalance, 0, ',', '.') }}
+                        FALTA ${{ number_format($remainingBalance, 2, ',', '.') }}
                     @else
                         INGRESE PAGO
                     @endif
