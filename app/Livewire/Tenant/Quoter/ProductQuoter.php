@@ -22,6 +22,7 @@ use App\Models\Central\VntContact;
 use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
 use App\Services\Facturacion\InvoiceDataBuilder;
+use App\Services\Tenant\RetentionCalculatorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,15 @@ class ProductQuoter extends Component
     public $quoterItems = [];
     public $totalAmount = 0;
     public $showCartModal = false;
+
+    // Propiedades para desglose de impuestos
+    public $subTotal = 0; // Valor sin impuestos
+    public $taxBreakdown = [
+        'iva_5' => 0,    // IVA 5%
+        'iva_19' => 0,   // IVA 19%
+        'exento' => 0,   // Sin impuestos
+    ];
+    public $totalTaxes = 0; // Total de todos los impuestos
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $customerSearch = '';
     public $selectedCustomer = null;
@@ -70,6 +80,15 @@ class ProductQuoter extends Component
     // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
     public $customerResults = []; // Resultados de búsqueda de clientes
+
+    // Propiedades para retenciones
+    public $retentions = [
+        'retention_fuente' => 0,
+        'retention_ica' => 0,
+        'retention_iva' => 0,
+    ];
+    public $showRetentions = false; // Mostrar sección de retenciones solo si hay valores > 0
+    public $totalWithRetentions = 0; // Total después de aplicar retenciones
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -647,6 +666,14 @@ class ProductQuoter extends Component
                     'tax' => $item['tax'] ?? 0
                 ]);
 
+                Log::info('💾 GUARDANDO DETALLE en cotización', [
+                    'product_name' => $item['name'],
+                    'item_price_from_quoter' => $item['price'],
+                    'quantity' => $item['quantity'],
+                    'tax_percentage' => $item['tax'] ?? 0,
+                    'price_label' => $item['price_label'] ?? 'Precio'
+                ]);
+
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
                     'tax' => $item['tax'] ?? 0,
@@ -968,24 +995,74 @@ class ProductQuoter extends Component
 
     private function calculateTotal()
     {
-        // Calcular total imitando la lógica de Alegra:
-        // 1. Calcular subtotal (precio base sin IVA)
-        // 2. Aplicar 19% IVA
-        // Esto debe coincidir exactamente con lo que muestra Alegra
+        // Resetear valores
+        $this->subTotal = 0;
+        $this->taxBreakdown = [
+            'iva_5' => 0,
+            'iva_19' => 0,
+            'exento' => 0,
+            // Subtotales por tipo de IVA para cálculo preciso
+            'subtotal_iva_5' => 0,
+            'subtotal_iva_19' => 0,
+        ];
+        $this->totalTaxes = 0;
 
-        $totalAmount = collect($this->quoterItems)->sum(function ($item) {
-            $priceWithIva = $item['price'];
+        $totalAmount = 0;
 
-            // Calcular precio base (subtotal) como lo hace Alegra
-            $priceBase = round($priceWithIva / 1.19, 0); // Alegra parece redondear subtotal a entero
+        // Procesar cada item del cotizador
+        foreach ($this->quoterItems as $item) {
+            $priceWithTax = $item['price'];
+            $taxPercentage = (float)($item['tax'] ?? 0);
+            $quantity = $item['quantity'];
 
-            // Calcular total con IVA como Alegra: base * 1.19
-            $alegraStyleTotal = $priceBase * 1.19;
+            if ($taxPercentage > 0) {
+                // Producto con impuestos - calcular precio base sin impuestos
+                $priceBase = round($priceWithTax / (1 + ($taxPercentage / 100)), 2);
+                $subtotalThisItem = $priceBase * $quantity;
 
-            return $alegraStyleTotal * $item['quantity'];
-        });
+                // Acumular subtotales por tipo de IVA
+                if ($taxPercentage == 5) {
+                    $this->taxBreakdown['subtotal_iva_5'] += $subtotalThisItem;
+                } elseif ($taxPercentage == 19) {
+                    $this->taxBreakdown['subtotal_iva_19'] += $subtotalThisItem;
+                }
+            } else {
+                // Producto exento - el precio es el precio base
+                $priceBase = $priceWithTax;
+                $this->taxBreakdown['exento'] += $priceBase * $quantity;
+            }
 
-        $this->totalAmount = $totalAmount;
+            // Sumar al subtotal (sin impuestos)
+            $this->subTotal += $priceBase * $quantity;
+
+            // Sumar al total (con impuestos)
+            $totalAmount += $priceWithTax * $quantity;
+        }
+
+        // Calcular IVA como lo hace Alegra: porcentaje sobre el subtotal de cada tipo
+        $this->taxBreakdown['iva_5'] = round($this->taxBreakdown['subtotal_iva_5'] * 0.05, 2);
+        $this->taxBreakdown['iva_19'] = round($this->taxBreakdown['subtotal_iva_19'] * 0.19, 2);
+
+        // Calcular total de impuestos
+        $this->totalTaxes = $this->taxBreakdown['iva_5'] + $this->taxBreakdown['iva_19'];
+
+        // Redondear valores finales
+        $this->subTotal = round($this->subTotal, 2);
+        // IVA ya está redondeado en el cálculo anterior
+        $this->taxBreakdown['exento'] = round($this->taxBreakdown['exento'], 2);
+        $this->totalTaxes = round($this->totalTaxes, 2);
+
+        // IMPORTANTE: Calcular total como subtotal + impuestos (igual que Alegra)
+        // NO usar la suma de precios originales que puede tener discrepancias de redondeo
+        $this->totalAmount = round($this->subTotal + $this->totalTaxes, 2);
+
+        Log::debug('🧮 Desglose de impuestos calculado', [
+            'subtotal' => $this->subTotal,
+            'tax_breakdown' => $this->taxBreakdown,
+            'total_taxes' => $this->totalTaxes,
+            'total_amount' => $this->totalAmount,
+            'items_count' => count($this->quoterItems)
+        ]);
     }
 
     public function getQuoterCountProperty()
@@ -1617,13 +1694,112 @@ class ProductQuoter extends Component
             $this->paymentMethods[$key]['selected'] = false;
         }
 
+        // Calcular retenciones
+        $this->calculateRetentionsForModal();
+
         // Calcular balances iniciales
         $this->calculatePaymentBalances();
 
         Log::info('💳 Modal de pagos inicializado', [
             'quote_id' => $this->editingQuoteId,
             'total_amount' => $this->totalAmount,
+            'total_with_retentions' => $this->totalWithRetentions,
+            'retentions' => $this->retentions,
+            'show_retentions' => $this->showRetentions,
             'customer' => $this->selectedCustomer['businessName'] ?? $this->selectedCustomer['firstName'] ?? 'Sin nombre'
+        ]);
+    }
+
+    /**
+     * Calcular retenciones para mostrar en el modal
+     */
+    public function calculateRetentionsForModal()
+    {
+        // Resetear retenciones
+        $this->retentions = [
+            'retention_fuente' => 0,
+            'retention_ica' => 0,
+            'retention_iva' => 0,
+        ];
+        $this->showRetentions = false;
+        $this->totalWithRetentions = $this->totalAmount;
+
+        // Solo calcular si hay cliente seleccionado y configuración habilitada
+        if (!$this->selectedCustomer || !config('facturacion.retentions.auto_calculate', true)) {
+            return;
+        }
+
+        $retentionCalculator = new RetentionCalculatorService();
+
+        // Obtener datos del cliente para calcular retenciones con bases oficiales 2026
+        // Obtener régimen fiscal
+        $regimeDescription = 'COMMON_REGIME'; // Por defecto
+        if (isset($this->selectedCustomer['company']['regimen'])) {
+            $regimeDescription = $this->selectedCustomer['company']['regimen'] === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME';
+        }
+
+        // Obtener responsabilidad fiscal
+        $fiscalResponsability = 0;
+        if (isset($this->selectedCustomer['company']['fiscal_responsibility_id'])) {
+            $fiscalResponsability = (int)$this->selectedCustomer['company']['fiscal_responsibility_id'];
+        } elseif (isset($this->selectedCustomer['fiscal_responsibility_id'])) {
+            $fiscalResponsability = (int)$this->selectedCustomer['fiscal_responsibility_id'];
+        }
+
+        // Obtener ciudad
+        $city = '';
+        if (isset($this->selectedCustomer['company']['city'])) {
+            $city = $this->selectedCustomer['company']['city'];
+        } elseif (isset($this->selectedCustomer['city'])) {
+            $city = $this->selectedCustomer['city'];
+        }
+
+        // Calcular retenciones con bases oficiales 2026
+        Log::info('🔍 SUBTOTAL EXACTO para retenciones', [
+            'subTotal' => $this->subTotal,
+            'totalAmount' => $this->totalAmount,
+            'calculated_retention_2_5_percent' => $this->subTotal * 0.025,
+            'rounded_retention' => round($this->subTotal * 0.025, 2)
+        ]);
+
+        $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
+            'regime_description' => $regimeDescription,
+            'fiscal_responsability' => $fiscalResponsability,
+            'city' => $city,
+            'sub_total' => $this->subTotal
+        ]);
+
+        // Redondear retenciones para visualización, pero mantener precisión para cálculos internos
+        $this->retentions = [
+            'retention_fuente' => round($calculatedRetentions['retention_fuente'], 2),
+            'retention_ica' => round($calculatedRetentions['retention_ica'], 2),
+            'retention_iva' => round($calculatedRetentions['retention_iva'], 2),
+        ];
+
+        // Mostrar retenciones si hay alguna > 0
+        $this->showRetentions = ($calculatedRetentions['retention_fuente'] > 0 ||
+                                $calculatedRetentions['retention_ica'] > 0 ||
+                                $calculatedRetentions['retention_iva'] > 0);
+
+        // Calcular total con retenciones usando valores sin redondear para máxima precisión
+        $totalRetentions = $calculatedRetentions['retention_fuente'] +
+                          $calculatedRetentions['retention_ica'] +
+                          $calculatedRetentions['retention_iva'];
+
+        $this->totalWithRetentions = round($this->totalAmount - $totalRetentions, 2);
+
+        // Consultar saldo exacto de Alegra si hay una factura asociada
+        $this->updateWithAlegraBalance();
+
+        Log::info('💰 Retenciones calculadas para modal', [
+            'customer_id' => $this->selectedCustomer['id'] ?? null,
+            'regime' => $regimeDescription,
+            'fiscal_responsibility' => $fiscalResponsability,
+            'city' => $city,
+            'total_amount' => $this->totalAmount,
+            'retentions' => $calculatedRetentions,
+            'total_with_retentions' => $this->totalWithRetentions,
+            'show_retentions' => $this->showRetentions
         ]);
     }
 
@@ -1650,6 +1826,16 @@ class ProductQuoter extends Component
     }
 
     /**
+     * Actualizar valores con saldo exacto de Alegra para evitar residuales
+     */
+    private function updateWithAlegraBalance()
+    {
+        // Esta función solo aplica cuando hay una factura existente para procesar pago
+        // En el cotizador no hay factura aún, así que no hacer nada
+        return;
+    }
+
+    /**
      * Calcular balances de pagos
      */
     public function calculatePaymentBalances()
@@ -1657,23 +1843,37 @@ class ProductQuoter extends Component
         // Calcular total pagado sumando todos los métodos de pago
         $this->totalPaid = 0;
         foreach ($this->paymentMethods as $key => $method) {
-            $value = (float) ($method['value'] ?? 0);
+            $value = round((float) ($method['value'] ?? 0), 2);
             $this->totalPaid += $value;
         }
+        $this->totalPaid = round($this->totalPaid, 2);
+
+        // Usar el total con retenciones si hay retenciones aplicables
+        $totalToCompare = $this->showRetentions ? $this->totalWithRetentions : $this->totalAmount;
 
         // Calcular balance restante y cambio
-        if ($this->totalPaid > $this->totalAmount) {
+        if ($this->totalPaid > $totalToCompare) {
             // Si se pagó más del total, calcular el cambio
             $this->remainingBalance = 0;
-            $this->changeAmount = round($this->totalPaid - $this->totalAmount, 2);
+            $this->changeAmount = round($this->totalPaid - $totalToCompare, 2);
         } else {
             // Si falta dinero por pagar
-            $this->remainingBalance = round($this->totalAmount - $this->totalPaid, 2);
+            $this->remainingBalance = round($totalToCompare - $this->totalPaid, 2);
             $this->changeAmount = 0;
         }
 
         // Permitir proceder si hay algún pago (simplificar la lógica)
         $this->canProceedToPayment = $this->totalPaid > 0;
+
+        Log::debug('💳 Balances de pago calculados', [
+            'total_original' => $this->totalAmount,
+            'total_with_retentions' => $this->totalWithRetentions,
+            'total_used_for_calculation' => $totalToCompare,
+            'total_paid' => $this->totalPaid,
+            'remaining_balance' => $this->remainingBalance,
+            'change_amount' => $this->changeAmount,
+            'show_retentions' => $this->showRetentions
+        ]);
     }
 
     /**
@@ -1915,15 +2115,53 @@ class ProductQuoter extends Component
             // Construir datos de la factura usando el nuevo servicio
             // Usar los datos de pago recibidos si están disponibles
             $paymentMethods = $paymentData; // Datos de pago desde PaymentQuote
-            $retentions = [];     // TODO: Obtener del formulario de facturación
+            $retentions = [];     // Se calcularán automáticamente en buildFromQuote si están habilitadas
             $termDays = 0;        // TODO: Obtener del formulario de facturación
 
             $invoiceData = InvoiceDataBuilder::buildFromQuote(
                 $quote,
                 $paymentMethods,
                 $retentions,
-                $termDays
+                $termDays,
+                config('facturacion.retentions.auto_calculate', true) // Calcular retenciones automáticamente
             );
+
+            // Calcular retenciones locales para guardar en BD
+            $retentionCalculator = new RetentionCalculatorService();
+            $customer = $quote->customer;
+            $calculatedRetentions = ['retention_fuente' => 0, 'retention_ica' => 0, 'retention_iva' => 0];
+
+            if ($customer && config('facturacion.retentions.auto_calculate', true)) {
+                // Obtener datos del cliente para calcular retenciones con bases oficiales 2026
+                $regimeDescription = $customer->company && $customer->company->regimen ?
+                    ($customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME') :
+                    'COMMON_REGIME';
+                $fiscalResponsability = $customer->company && $customer->company->fiscal_responsibility_id ?
+                    (int)$customer->company->fiscal_responsibility_id :
+                    ($customer->fiscal_responsibility_id ? (int)$customer->fiscal_responsibility_id : 0);
+                $city = $customer->company && $customer->company->city ?
+                    $customer->company->city :
+                    ($customer->city ?: '');
+
+                $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
+                    'regime_description' => $regimeDescription,
+                    'fiscal_responsability' => $fiscalResponsability,
+                    'city' => $city,
+                    'sub_total' => $quote->sub_total
+                ]);
+
+                Log::info('💰 Retenciones calculadas para factura (bases 2026)', [
+                    'quote_id' => $quote->id,
+                    'customer_id' => $customer->id,
+                    'regime' => $regimeDescription,
+                    'fiscal_responsibility' => $fiscalResponsability,
+                    'city' => $city,
+                    'sub_total' => $quote->sub_total,
+                    'base_fuente' => config('facturacion.retentions.base_amounts.fuente', 524000),
+                    'base_ica' => config('facturacion.retentions.base_amounts.ica', 1418800),
+                    'calculated_retentions' => $calculatedRetentions
+                ]);
+            }
 
             // Enviar factura a la API de Alegra
             Log::info('📡 Enviando factura a API de Alegra', [
@@ -1950,9 +2188,9 @@ class ProductQuoter extends Component
                     'api_data_id' => $invoiceId,
                     'invoiceNumber' => $invoiceNumber,
                     'partialPayment' => 0.00,
-                    'retentionFuente' => 0.00,
-                    'retentionIca' => 0.00,
-                    'retentionIva' => 0.00,
+                    'retentionFuente' => $calculatedRetentions['retention_fuente'],
+                    'retentionIca' => $calculatedRetentions['retention_ica'],
+                    'retentionIva' => $calculatedRetentions['retention_iva'],
                     'creditNote' => null,
                     'orderNumber' => null,
                     'remission' => 0
@@ -2414,7 +2652,15 @@ class ProductQuoter extends Component
             // Preparar datos para envío a Alegra (similar a la función JS)
             if ($totalPayments > 0) {
                 // Obtener valor total de la factura local CON DECIMALES
-                $invoiceTotal = floatval($this->totalAmount);
+                // Si hay retenciones calculadas en el modal, el monto a pagar es menor
+                $modalRetentionsTotal = ($this->retentions['retention_fuente'] ?? 0) +
+                                      ($this->retentions['retention_ica'] ?? 0) +
+                                      ($this->retentions['retention_iva'] ?? 0);
+
+                // Redondear el total final para evitar discrepancias de centavos
+                $invoiceTotal = $modalRetentionsTotal > 0 ?
+                    round(floatval($this->totalAmount) - $modalRetentionsTotal, 2) :
+                    floatval($this->totalAmount);
                 $paymentAmount = floatval($totalPayments);
                 $changeAmount = 0;
 
@@ -2462,11 +2708,15 @@ class ProductQuoter extends Component
                         'local_final_amount' => $finalPaymentAmount
                     ]);
 
-                    // Si el saldo de Alegra es menor, usar ese
-                    if ($alegraBalance > 0 && $alegraBalance < $finalPaymentAmount) {
+                    // SIEMPRE usar el saldo exacto de Alegra para evitar centavos residuales
+                    if ($alegraBalance > 0) {
+                        $originalAmount = $finalPaymentAmount;
                         $finalPaymentAmount = $alegraBalance;
-                        Log::info('💰 Ajustando según saldo de Alegra', [
-                            'final_payment_amount' => $finalPaymentAmount
+                        Log::info('💰 Usando saldo EXACTO de Alegra para evitar residuales', [
+                            'local_calculation' => $originalAmount,
+                            'alegra_balance' => $alegraBalance,
+                            'final_payment_amount' => $finalPaymentAmount,
+                            'difference' => $originalAmount - $alegraBalance
                         ]);
                     }
                 } else {
@@ -2476,7 +2726,33 @@ class ProductQuoter extends Component
                     ]);
                 }
 
-                $alegraPaymentData = $this->buildAlegraPaymentData($paymentData, $alegraInvoiceId, $finalPaymentAmount, $paymentMethods);
+                // Asegurar que las retenciones del modal estén calculadas
+                if (!$this->showRetentions && $this->selectedCustomer) {
+                    $this->calculateRetentionsForModal();
+                }
+
+                // Usar las retenciones calculadas en el modal (valores correctos)
+                // en lugar de las guardadas en la factura (que pueden ser incorrectas)
+                // Usar valores redondeados para envío a API
+                $invoiceRetentions = [
+                    'retention_fuente' => $this->retentions['retention_fuente'] ?? 0,
+                    'retention_ica' => $this->retentions['retention_ica'] ?? 0,
+                    'retention_iva' => $this->retentions['retention_iva'] ?? 0,
+                ];
+
+                Log::info('🔍 DEBUG: Valores antes de construir JSON para Alegra', [
+                    'totalAmount' => $this->totalAmount,
+                    'subTotal' => $this->subTotal,
+                    'showRetentions' => $this->showRetentions,
+                    'totalWithRetentions' => $this->totalWithRetentions,
+                    'finalPaymentAmount_being_sent' => $finalPaymentAmount,
+                    'retentions_from_modal' => $this->retentions,
+                    'invoiceRetentions_being_sent' => $invoiceRetentions,
+                    'modalRetentionsTotal' => $modalRetentionsTotal,
+                    'calculated_total_minus_modal_retentions' => $this->totalAmount - $modalRetentionsTotal
+                ]);
+
+                $alegraPaymentData = $this->buildAlegraPaymentData($paymentData, $alegraInvoiceId, $finalPaymentAmount, $paymentMethods, $invoiceRetentions);
 
                 Log::info('📤 Enviando pago a Alegra', [
                     'payment_data' => $alegraPaymentData,
@@ -2488,9 +2764,17 @@ class ProductQuoter extends Component
                 $paymentResponse = $facturacionService->registerPayment($alegraPaymentData);
 
                 if ($paymentResponse['success'] ?? false) {
-                    Log::info('✅ Pago registrado exitosamente en Alegra', [
+                    // Actualizar el status_payment en la tabla vnt_invoices
+                    $invoice->update([
+                        'status_payment' => 'PAGADO',
+                        'api_data_id_pay' => $paymentResponse['data']['id'] ?? null
+                    ]);
+
+                    Log::info('✅ Pago registrado exitosamente en Alegra y status actualizado', [
+                        'invoice_id' => $invoice->id,
                         'alegra_payment_id' => $paymentResponse['data']['id'] ?? null,
-                        'total_amount' => $totalPayments
+                        'total_amount' => $totalPayments,
+                        'status_payment' => 'PAGADO'
                     ]);
                 } else {
                     Log::error('❌ Error registrando pago en Alegra', [
@@ -2517,12 +2801,13 @@ class ProductQuoter extends Component
     /**
      * Construir datos de pago para Alegra API
      */
-    private function buildAlegraPaymentData(array $paymentData, string $alegraInvoiceId, float $totalAmount, $paymentMethods = null): array
+    private function buildAlegraPaymentData(array $paymentData, string $alegraInvoiceId, float $totalAmount, $paymentMethods = null, array $retentions = []): array
     {
         Log::info('🔧 Construyendo datos de pago para Alegra', [
             'input_payment_data' => $paymentData,
             'alegra_invoice_id' => $alegraInvoiceId,
-            'total_amount' => $totalAmount
+            'total_amount' => $totalAmount,
+            'retentions' => $retentions
         ]);
 
         // Obtener primer método de pago para determinar bankAccount
@@ -2546,23 +2831,58 @@ class ProductQuoter extends Component
             'extracted_bank_account' => $bankAccount
         ]);
 
-        // Construir payload según formato de Alegra API
+        // Construir retenciones si existen
+        $formattedRetentions = [];
+        if (!empty($retentions)) {
+            // Retención en la fuente (ID: 14)
+            if (($retentions['retention_fuente'] ?? 0) > 0) {
+                $formattedRetentions[] = [
+                    'id' => config('facturacion.retentions.alegra_ids.fuente', '14'),
+                    'amount' => round($retentions['retention_fuente'], 2)
+                ];
+            }
+
+            // Retención ICA (ID: 11)
+            if (($retentions['retention_ica'] ?? 0) > 0) {
+                $formattedRetentions[] = [
+                    'id' => config('facturacion.retentions.alegra_ids.ica', '11'),
+                    'amount' => round($retentions['retention_ica'], 2)
+                ];
+            }
+
+            // Retención IVA (ID: 12)
+            if (($retentions['retention_iva'] ?? 0) > 0) {
+                $formattedRetentions[] = [
+                    'id' => config('facturacion.retentions.alegra_ids.iva', '12'),
+                    'amount' => round($retentions['retention_iva'], 2)
+                ];
+            }
+        }
+
+        // Construir invoice object con retenciones dentro si existen
+        $invoiceObject = [
+            'id' => $alegraInvoiceId,
+            'amount' => $totalAmount
+        ];
+
+        // Solo agregar retenciones si hay alguna con valor > 0
+        if (!empty($formattedRetentions)) {
+            $invoiceObject['retentions'] = $formattedRetentions;
+        }
+
+        // Construir payload según formato correcto de Alegra API
         $payloadData = [
             'bankAccount' => [
                 'id' => (string)$bankAccount
             ],
             'type' => 'in', // Pago entrante
             'date' => now()->format('Y-m-d'), // Fecha actual
-            'invoices' => [
-                [
-                    'id' => $alegraInvoiceId,
-                    'amount' => $totalAmount
-                ]
-            ]
+            'invoices' => [$invoiceObject] // Retenciones van dentro del invoice
         ];
 
         Log::info('📋 JSON FINAL PARA ALEGRA PAYMENTS API', [
             'payload' => $payloadData,
+            'total_retentions' => count($formattedRetentions),
             'json_string' => json_encode($payloadData, JSON_PRETTY_PRINT)
         ]);
 
