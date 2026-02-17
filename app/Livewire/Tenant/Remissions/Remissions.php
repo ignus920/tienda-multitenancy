@@ -233,7 +233,15 @@ class Remissions extends Component
             }
 
             // Obtener el cliente (todas las remisiones deben ser del mismo cliente)
-            $this->selectedCustomer = $remisiones->first()->quote->customer;
+            $customer = $remisiones->first()->quote->customer;
+            $this->selectedCustomer = [
+                'id' => $customer->id,
+                'businessName' => $customer->businessName,
+                'firstName' => $customer->firstName,
+                'lastName' => $customer->lastName,
+                'identification' => $customer->identification,
+                'customer_name' => $customer->customer_name
+            ];
 
             // Preparar datos de las remisiones para el modal
             $this->selectedRemissionsData = [];
@@ -256,8 +264,8 @@ class Remissions extends Component
 
             Log::info('📋 Preparando modal de facturación', [
                 'remisiones_count' => count($this->selectedRemissionsData),
-                'customer_id' => $this->selectedCustomer->id ?? null,
-                'customer_name' => $this->selectedCustomer->businessName ?? $this->selectedCustomer->firstName,
+                'customer_id' => $this->selectedCustomer['id'] ?? null,
+                'customer_name' => $this->selectedCustomer['businessName'] ?? $this->selectedCustomer['firstName'],
                 'total_items' => $this->totalItems
             ]);
 
@@ -330,7 +338,7 @@ class Remissions extends Component
             Log::info('🚀 Iniciando Facturación Confirmada desde Modal', [
                 'remisiones_count' => $remisiones->count(),
                 'remisiones_ids' => $this->selectedRemissions,
-                'customer_id' => $this->selectedCustomer->id ?? null,
+                'customer_id' => $this->selectedCustomer['id'] ?? null,
                 'tenant_id' => $tenant->id
             ]);
 
@@ -479,7 +487,7 @@ class Remissions extends Component
         // Usar '$remission' como el nombre de la variable local para el modelo
         $remission = InvRemissions::with([
             'quote.customer',
-            'quote.warehouse.contacts',
+            'quote.warehouse',
             'quote.branch',
             'details.item',
             'store'
@@ -844,9 +852,19 @@ class Remissions extends Component
         $storeId = null;
 
         if ($user && $user->contact_id) {
-            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
-            if ($contact) {
-                $storeId = $contact->store;
+            try {
+                $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+                if ($contact) {
+                    $storeId = $contact->store;
+                }
+            } catch (\Exception $e) {
+                Log::warning('⚠️ Error obteniendo store del usuario desde contacto', [
+                    'user_id' => $user->id,
+                    'contact_id' => $user->contact_id,
+                    'error' => $e->getMessage()
+                ]);
+                // Si hay error, mostrar todas las remisiones (sin filtrar por store)
+                $storeId = null;
             }
         }
 
