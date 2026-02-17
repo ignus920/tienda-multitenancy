@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Services\PermissionCatalogService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
+use App\Models\Auth\Tenant;
 
 class PermissionHelper
 {
@@ -47,7 +48,6 @@ class PermissionHelper
                 'show' => $accessLevels['show'],
                 default => false
             };
-
         } catch (\Exception $e) {
             return false;
         }
@@ -143,6 +143,16 @@ class PermissionHelper
         }
 
         return $viewPermissions;
+    }
+
+    public static function getMerchantType(): string
+    {
+        $tenantId = session('tenant_id');
+        $tenant = Tenant::find($tenantId);
+        return $tenant->merchant_type_id ?? 0;
+        \Illuminate\Support\Facades\Log::info('🔍 getMerchantTyp', [
+            'tenant_id' => $tenantId
+        ]);
     }
 
     /**

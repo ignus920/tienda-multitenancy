@@ -391,14 +391,14 @@ class ProductQuoter extends Component
             foreach ($products as $product) {
                 // Obtener todos los precios del producto
                 $allPrices = $product->all_prices;
-                
+
                 // Obtener específicamente Precio Regular y Precio Crédito desde inv_values
                 $precioRegular = $product->invValues()
                     ->where('type', 'precio')
                     ->where('label', 'Precio Regular')
                     ->orderBy('date', 'desc')
                     ->first();
-                
+
                 $precioCredito = $product->invValues()
                     ->where('type', 'precio')
                     ->where('label', 'Precio Crédito')
@@ -420,7 +420,7 @@ class ProductQuoter extends Component
                     'inv_values_precios' => $product->invValues()
                         ->where('type', 'precio')
                         ->get()
-                        ->map(function($value) {
+                        ->map(function ($value) {
                             return [
                                 'label' => $value->label,
                                 'value' => $value->values,
@@ -798,6 +798,7 @@ class ProductQuoter extends Component
         $this->ensureTenantConnection();
 
         $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
+            ->whereNot('type', 'PROVEEDOR') // Excluir proveedores
             ->where(function ($query) use ($value) {
                 $query->where('identification', 'like', '%' . $value . '%')
                     ->orWhere('businessName', 'like', '%' . $value . '%')
@@ -839,7 +840,7 @@ class ProductQuoter extends Component
         if (empty($this->customerSearch)) return;
 
         $this->ensureTenantConnection();
-        $customer = VntCompany::where('identification', $this->customerSearch)->first();
+        $customer = VntCompany::where('identification', $this->customerSearch)->whereNot('type', 'PROVEEDOR')->first();
 
         if ($customer) {
             $this->selectCustomer($customer->id);
@@ -1491,7 +1492,6 @@ class ProductQuoter extends Component
                 : 'tenant.quoter.desktop';
 
             return redirect()->route($routeName);
-
         } catch (\Exception $e) {
             // Revertir transacción en caso de error
             DB::connection('tenant')->rollBack();

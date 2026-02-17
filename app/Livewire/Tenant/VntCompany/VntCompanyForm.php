@@ -712,7 +712,6 @@ class VntCompanyForm extends Component
 
             Log::info('✅ Cliente eliminado exitosamente', ['company_id' => $id]);
             session()->flash('message', '🗑️ Cliente Eliminado: El registro se ha eliminado exitosamente del sistema.');
-
         } catch (\Illuminate\Database\QueryException $e) {
             Log::error('❌ Error de BD al eliminar cliente', [
                 'company_id' => $id,
@@ -720,15 +719,16 @@ class VntCompanyForm extends Component
             ]);
 
             // Verificar si es error de referencia (cliente está siendo usado)
-            if (strpos($e->getMessage(), 'foreign key constraint') !== false ||
-                strpos($e->getMessage(), 'Cannot delete') !== false) {
+            if (
+                strpos($e->getMessage(), 'foreign key constraint') !== false ||
+                strpos($e->getMessage(), 'Cannot delete') !== false
+            ) {
                 $constraintErrorMessage = $this->buildConstraintErrorMessage();
                 session()->flash('error', $constraintErrorMessage);
             } else {
                 $databaseErrorMessage = $this->buildDatabaseDeleteErrorMessage();
                 session()->flash('error', $databaseErrorMessage);
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error general eliminando cliente', [
                 'company_id' => $id,
@@ -1703,7 +1703,6 @@ class VntCompanyForm extends Component
                 'should_sync' => true,
                 'reason' => 'Configuración válida para sincronización.'
             ];
-
         } catch (\Exception $e) {
             Log::error('Error determinando si sincronizar con API', [
                 'error' => $e->getMessage()
@@ -1742,10 +1741,10 @@ class VntCompanyForm extends Component
                 return [
                     'success' => false,
                     'message' => '📊 Límite del Plan Alcanzado: Ha alcanzado el máximo número de clientes permitidos en su plan actual.\n\n' .
-                                '🔧 Soluciones:\n' .
-                                '• Actualice su plan para obtener más capacidad\n' .
-                                '• Contacte al administrador para revisar los límites\n' .
-                                '• Elimine clientes no utilizados para liberar espacio'
+                        '🔧 Soluciones:\n' .
+                        '• Actualice su plan para obtener más capacidad\n' .
+                        '• Contacte al administrador para revisar los límites\n' .
+                        '• Elimine clientes no utilizados para liberar espacio'
                 ];
             }
 
@@ -1773,7 +1772,6 @@ class VntCompanyForm extends Component
                 'success' => true,
                 'message' => 'Validación previa exitosa'
             ];
-
         } catch (\Exception $e) {
             Log::error('Error en preValidateApiSync', [
                 'error' => $e->getMessage()
@@ -1791,7 +1789,7 @@ class VntCompanyForm extends Component
     private function prepareApiData(): array
     {
         // Mapear tipos de persona a valores correctos de Alegra
-        $kindOfPersonValue = match($this->typePerson) {
+        $kindOfPersonValue = match ($this->typePerson) {
             'Juridica' => 'LEGAL_ENTITY',
             'Natural' => 'PERSON_ENTITY',
             'Otra' => 'OTHER_ENTITY',
@@ -1822,7 +1820,7 @@ class VntCompanyForm extends Component
             'kindOfPerson' => $kindOfPersonValue,
             'regime' => $this->getRegimeName($this->regimeId),
             'fiscalResponsabilities' => ($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
-                ? (function() {
+                ? (function () {
                     Log::info('🔍 Debug fiscalResponsabilityId CONDITION TRUE', [
                         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
                         'type' => gettype($this->fiscalResponsabilityId),
@@ -1840,7 +1838,7 @@ class VntCompanyForm extends Component
                     ]);
                     return $integrationId ? [$integrationId] : null;
                 })()
-                : (function() {
+                : (function () {
                     Log::info('🔍 Debug fiscalResponsabilityId CONDITION FALSE', [
                         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
                         'type' => gettype($this->fiscalResponsabilityId),
@@ -1935,13 +1933,13 @@ class VntCompanyForm extends Component
     private function getFiscalResponsabilityIntegrationId($fiscalResponsabilityId): ?string
     {
 
-    
+
         try {
             // Asegurar conexión tenant
             $this->ensureTenantConnection();
 
             // Debug: Verificar que la tabla existe
-            Log::info('🔍 VERSIÓN ACTUALIZADA - Buscando en RAP/central fiscal responsibilities id: '.$fiscalResponsabilityId );
+            Log::info('🔍 VERSIÓN ACTUALIZADA - Buscando en RAP/central fiscal responsibilities id: ' . $fiscalResponsabilityId);
 
             // Primero verificar si la tabla existe (en RAP/central)
             $tableExists = DB::connection('central')
@@ -2050,9 +2048,11 @@ class VntCompanyForm extends Component
                     ]);
 
                     // Detectar diferentes tipos de error
-                    if (strpos(strtolower($errorMessage), 'ya se encuentra') !== false ||
+                    if (
+                        strpos(strtolower($errorMessage), 'ya se encuentra') !== false ||
                         strpos(strtolower($errorMessage), 'duplicad') !== false ||
-                        strpos(strtolower($errorMessage), 'existe') !== false) {
+                        strpos(strtolower($errorMessage), 'existe') !== false
+                    ) {
 
                         return [
                             'success' => false,
@@ -2085,7 +2085,6 @@ class VntCompanyForm extends Component
                         'message' => 'Datos válidos para sincronización'
                     ];
                 }
-
             } catch (\Exception $e) {
                 set_time_limit(60); // Restaurar timeout
                 Log::error('❌ Error en validación con API', [
@@ -2098,7 +2097,6 @@ class VntCompanyForm extends Component
                     'message' => '❌ Error de Conexión API: No se pudo validar los datos con la API de facturación. Error: ' . $e->getMessage()
                 ];
             }
-
         } catch (\Exception $e) {
             Log::error('Error general en validateApiData', [
                 'api_data' => $apiData,
@@ -2167,7 +2165,6 @@ class VntCompanyForm extends Component
             ]);
 
             return $canSync;
-
         } catch (\Exception $e) {
             Log::error('Error verificando límites de clientes', [
                 'company_id' => $this->currentCompanyId,
@@ -2204,7 +2201,6 @@ class VntCompanyForm extends Component
             // Aquí puedes implementar la sincronización completa si es necesario
             // Por ahora, solo log de éxito
             session()->flash('sync_message', '✅ Cliente Sincronizado: El cliente ha sido procesado correctamente.');
-
         } catch (\Exception $e) {
             Log::error('❌ Error en syncCompanyWithApi', [
                 'company_id' => $company->id,
@@ -2280,7 +2276,6 @@ class VntCompanyForm extends Component
                 $userMessage = $this->formatApiErrorMessage($response['message'] ?? 'Error desconocido en actualización');
                 session()->flash('sync_error', '❌ Error de Sincronización: ' . $userMessage);
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Excepción actualizando cliente en API', [
                 'company_id' => $company->id,
@@ -2405,10 +2400,12 @@ class VntCompanyForm extends Component
         ]);
 
         // Errores de conexión HTTP/API
-        if ($errorClass === 'GuzzleHttp\\Exception\\ConnectException' ||
+        if (
+            $errorClass === 'GuzzleHttp\\Exception\\ConnectException' ||
             strpos($errorClass, 'ConnectException') !== false ||
             strpos($errorMessage, 'Connection refused') !== false ||
-            strpos($errorMessage, 'timeout') !== false) {
+            strpos($errorMessage, 'timeout') !== false
+        ) {
 
             Log::warning('📡 Error de conexión HTTP detectado', [
                 'error_id' => $errorId,
@@ -2433,9 +2430,11 @@ class VntCompanyForm extends Component
         }
 
         // Errores de permisos
-        if (strpos($errorMessage, 'permission') !== false ||
+        if (
+            strpos($errorMessage, 'permission') !== false ||
             strpos($errorMessage, 'Access denied') !== false ||
-            strpos($errorMessage, 'Forbidden') !== false) {
+            strpos($errorMessage, 'Forbidden') !== false
+        ) {
 
             Log::warning('🔐 Error de permisos detectado', [
                 'error_id' => $errorId,
@@ -2449,9 +2448,11 @@ class VntCompanyForm extends Component
         }
 
         // Errores de archivos y sistema de archivos
-        if (strpos($errorMessage, 'file') !== false ||
+        if (
+            strpos($errorMessage, 'file') !== false ||
             strpos($errorMessage, 'directory') !== false ||
-            strpos($errorMessage, 'fopen') !== false) {
+            strpos($errorMessage, 'fopen') !== false
+        ) {
 
             Log::error('📁 Error del sistema de archivos', [
                 'error_id' => $errorId,
@@ -2475,8 +2476,10 @@ class VntCompanyForm extends Component
         }
 
         // Errores de base de datos que llegaron hasta acá
-        if (strpos($errorClass, 'QueryException') !== false ||
-            strpos($errorClass, 'PDOException') !== false) {
+        if (
+            strpos($errorClass, 'QueryException') !== false ||
+            strpos($errorClass, 'PDOException') !== false
+        ) {
 
             Log::error('💾 Error de BD no manejado por handleDatabaseError', [
                 'error_id' => $errorId,
@@ -2804,9 +2807,9 @@ class VntCompanyForm extends Component
         $customerName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
 
         return "✅ Cliente y Ruta Creados: El cliente '{$customerName}' se registró exitosamente y se asignó a la ruta de ventas.\n\n" .
-               "📍 Detalles de la ruta:\n" .
-               "• Número de orden: {$route->sales_order}\n" .
-               "• ID de ruta: {$route->route_id}";
+            "📍 Detalles de la ruta:\n" .
+            "• Número de orden: {$route->sales_order}\n" .
+            "• ID de ruta: {$route->route_id}";
     }
 
     /**
@@ -2817,7 +2820,7 @@ class VntCompanyForm extends Component
         $customerName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
 
         return "✅ Cliente Creado con Advertencia: El cliente '{$customerName}' se registró exitosamente en el sistema.\n\n" .
-               "⚠️ Problema con Ruta: Hubo un inconveniente al asignar la ruta de ventas. La ruta se puede asignar posteriormente desde la gestión de rutas.";
+            "⚠️ Problema con Ruta: Hubo un inconveniente al asignar la ruta de ventas. La ruta se puede asignar posteriormente desde la gestión de rutas.";
     }
 
     /**
@@ -2826,10 +2829,10 @@ class VntCompanyForm extends Component
     private function buildDeleteSuccessMessage(): string
     {
         return "🗑️ Cliente Eliminado: El registro se ha eliminado exitosamente del sistema.\n\n" .
-               "💡 Información:\n" .
-               "• Los datos se eliminaron permanentemente\n" .
-               "• Los registros asociados se mantuvieron intactos\n" .
-               "• Esta acción no se puede deshacer";
+            "💡 Información:\n" .
+            "• Los datos se eliminaron permanentemente\n" .
+            "• Los registros asociados se mantuvieron intactos\n" .
+            "• Esta acción no se puede deshacer";
     }
 
     /**
@@ -2838,15 +2841,15 @@ class VntCompanyForm extends Component
     private function buildConstraintErrorMessage(): string
     {
         return "🚫 No se puede Eliminar: Este cliente está asociado a registros importantes del sistema.\n\n" .
-               "🔗 Registros que pueden estar asociados:\n" .
-               "• Facturas electrónicas emitidas\n" .
-               "• Pedidos de venta realizados\n" .
-               "• Transacciones financieras\n" .
-               "• Historial de compras\n\n" .
-               "💡 Soluciones:\n" .
-               "• Desactive el cliente en lugar de eliminarlo\n" .
-               "• Transfiera los registros a otro cliente\n" .
-               "• Contacte al administrador para realizar una eliminación segura";
+            "🔗 Registros que pueden estar asociados:\n" .
+            "• Facturas electrónicas emitidas\n" .
+            "• Pedidos de venta realizados\n" .
+            "• Transacciones financieras\n" .
+            "• Historial de compras\n\n" .
+            "💡 Soluciones:\n" .
+            "• Desactive el cliente en lugar de eliminarlo\n" .
+            "• Transfiera los registros a otro cliente\n" .
+            "• Contacte al administrador para realizar una eliminación segura";
     }
 
     /**
@@ -2855,11 +2858,11 @@ class VntCompanyForm extends Component
     private function buildDatabaseDeleteErrorMessage(): string
     {
         return "💾 Error de Base de Datos: Hubo un problema técnico al eliminar el cliente.\n\n" .
-               "🔧 Acciones recomendadas:\n" .
-               "• Intente nuevamente en unos momentos\n" .
-               "• Verifique que tiene los permisos necesarios\n" .
-               "• Contacte al administrador si el problema persiste\n\n" .
-               "💡 Alternativa: Puede desactivar el cliente temporalmente en lugar de eliminarlo.";
+            "🔧 Acciones recomendadas:\n" .
+            "• Intente nuevamente en unos momentos\n" .
+            "• Verifique que tiene los permisos necesarios\n" .
+            "• Contacte al administrador si el problema persiste\n\n" .
+            "💡 Alternativa: Puede desactivar el cliente temporalmente en lugar de eliminarlo.";
     }
 
     /**
@@ -2870,12 +2873,12 @@ class VntCompanyForm extends Component
         $errorId = substr(md5(time() . Auth::id()), 0, 8);
 
         return "⚠️ Error Inesperado: Ocurrió un problema inesperado al eliminar el cliente.\n\n" .
-               "🆔 Código de error: {$errorId}\n\n" .
-               "🔧 Qué hacer:\n" .
-               "• Intente nuevamente en unos minutos\n" .
-               "• Si persiste, contacte al soporte técnico\n" .
-               "• Proporcione el código de error al soporte\n\n" .
-               "💡 Como alternativa temporal, puede desactivar el cliente en lugar de eliminarlo.";
+            "🆔 Código de error: {$errorId}\n\n" .
+            "🔧 Qué hacer:\n" .
+            "• Intente nuevamente en unos minutos\n" .
+            "• Si persiste, contacte al soporte técnico\n" .
+            "• Proporcione el código de error al soporte\n\n" .
+            "💡 Como alternativa temporal, puede desactivar el cliente en lugar de eliminarlo.";
     }
 
     /**
@@ -2922,7 +2925,7 @@ class VntCompanyForm extends Component
         $results['validation_errors'] = !empty($validationMessages);
 
         // Calcular score de completeness
-        $completedChecks = array_sum(array_filter($results, function($key) {
+        $completedChecks = array_sum(array_filter($results, function ($key) {
             return $key !== 'completeness_score';
         }, ARRAY_FILTER_USE_KEY));
 
@@ -2951,6 +2954,21 @@ class VntCompanyForm extends Component
         }
     }
 
+    public function canUploadsEnable()
+    {
+        $result = $this->isOptionEnabled(75);
+        $value = $this->getOptionValue(75);
+
+        Log::info('🎮 canUploadsEnable() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 75,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(75) y getOptionValue(75)'
+        ]);
+        return $result;
+    }
     /**
      * Sobreescribir initializeCompanyConfiguration para asegurar conexión tenant
      */
@@ -3004,7 +3022,6 @@ class VntCompanyForm extends Component
             } else {
                 Log::warning('🔧 No se encontró empresa para el usuario');
             }
-
         } else {
             Log::warning('🔧 No hay usuario autenticado');
         }
