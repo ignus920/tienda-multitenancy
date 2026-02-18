@@ -115,6 +115,22 @@
                                 </svg>
                             </div>
                         </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                            <div class="flex items-center space-x-1">
+                                <span>FECHA</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
+                                <span>COTIZACIÓN</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
                                 <span>CLIENTE</span>
@@ -123,43 +139,19 @@
                                 </svg>
                             </div>
                         </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span>TOTAL</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                            </div>
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center space-x-1">
                                 <span>FACTURA</span>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>BODEGA</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>VENDEDOR</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>TELÉFONO</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>FECHA</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
                             </div>
                         </th>
@@ -182,47 +174,54 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                 #{{ $remission->consecutive }}
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
+                                {{ $remission->created_at->format('d/m/Y') }}
+                                <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->created_at->format('H:i') }}</small>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
+                                #{{ $remission->quote->consecutive ?? 'N/A' }}
+                            </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
                                 {{ $remission->quote->customer_name ?? 'N/A' }}
-                                @if(isset($remission->quote->customer->billingEmail))
-                                    <br><small class="text-gray-500">{{ $remission->quote->customer->billingEmail }}</small>
+                                @if(isset($remission->quote->customer->identification))
+                                    <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->identification }}</small>
                                 @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white font-medium">
+                                @php
+                                    $total = $remission->details->sum(function ($detail) {
+                                        return $detail->quantity * $detail->value;
+                                    });
+                                @endphp
+                                ${{ number_format($total, 2, ',', '.') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 @if($remission->invoice)
-                                    <div class="flex items-center space-x-2">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                            @if($remission->invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                            @elseif($remission->invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                                            @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
-                                            {{ $remission->invoice->status }}
+                                    @if($remission->invoice->status === 'FACTURADO' && $remission->invoice->invoiceNumber)
+                                        <!-- ✅ MODIFICADO: Mostrar número de factura en verde cuando esté facturado -->
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            #{{ $remission->invoice->invoiceNumber }}
                                         </span>
-                                        @if($remission->invoice->invoiceNumber)
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                #{{ $remission->invoice->invoiceNumber }}
+                                    @else
+                                        <!-- Mostrar estado para otros casos -->
+                                        <div class="flex items-center space-x-2">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                                @if($remission->invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
+                                                {{ $remission->invoice->status }}
                                             </span>
-                                        @endif
-                                    </div>
+                                            @if($remission->invoice->invoiceNumber)
+                                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                    #{{ $remission->invoice->invoiceNumber }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 @else
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                         Sin facturar
                                     </span>
                                 @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->store?->name ?? 'N/A' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->seller_name }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                @php
-                                    $contact = $remission->quote->warehouse->contacts->first();
-                                @endphp
-                                {{ $contact ? ($contact->business_phone ?? $contact->personal_phone) : 'Sin contacto' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->created_at->format('d/m/Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left static" style="position: static !important;">
@@ -272,7 +271,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
+                            <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
                                 No se encontraron remisiones.
                             </td>
                         </tr>

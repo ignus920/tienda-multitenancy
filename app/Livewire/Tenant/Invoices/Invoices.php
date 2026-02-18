@@ -11,6 +11,8 @@ use App\Models\Auth\Tenant;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Services\Facturacion\FacturacionService;
+use App\Services\Facturacion\TenantConfigManager;
 
 class Invoices extends Component
 {
@@ -52,29 +54,448 @@ class Invoices extends Component
         $this->ensureTenantConnection();
     }
 
+    /**
+     * Procesar pago de una factura enviando a Alegra
+     */
+    public function payInvoice($invoiceId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $invoice = VntInvoices::findOrFail($invoiceId);
+
+            // Validar que la factura puede ser pagada
+            if ($invoice->status_payment === 'PAGADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Esta factura ya está pagada.'
+                ]);
+                return;
+            }
+
+            if ($invoice->status_payment === 'ANULADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'No se puede pagar una factura anulada.'
+                ]);
+                return;
+            }
+
+            // Validar que tenga api_data_id (ID de Alegra)
+            if (empty($invoice->api_data_id)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Esta factura no tiene ID de Alegra. No se puede procesar el pago.'
+                ]);
+                return;
+            }
+
+            // Obtener configuración del tenant
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            if (!$tenant) {
+                throw new \Exception('No se pudo identificar el tenant');
+            }
+
+            $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
+            if (!$hasFacturacionConfig) {
+                throw new \Exception('No hay configuración de facturación para este tenant');
+            }
+
+            // Crear servicio de facturación
+            $facturacionService = FacturacionService::forTenant($tenant);
+
+            // Calcular monto total a pagar (con retenciones si aplica)
+            $totalAmount = $this->calculateInvoiceTotalWithRetentions($invoice);
+
+            // Construir datos de pago para Alegra
+            $alegraPaymentData = $this->buildAlegraPaymentData($invoice, $totalAmount);
+
+            Log::info('📤 Enviando pago a Alegra desde listado de facturas', [
+                'invoice_id' => $invoiceId,
+                'invoice_number' => $invoice->invoiceNumber,
+                'alegra_invoice_id' => $invoice->api_data_id,
+                'payment_amount' => $totalAmount,
+                'payment_data' => $alegraPaymentData
+            ]);
+
+            // Enviar pago a Alegra
+            $paymentResponse = $facturacionService->registerPayment($alegraPaymentData);
+
+            if ($paymentResponse['success'] ?? false) {
+                // Actualizar estado local de la factura
+                $invoice->update([
+                    'status_payment' => 'PAGADO',
+                    'api_data_id_pay' => $paymentResponse['data']['id'] ?? null
+                ]);
+
+                Log::info('✅ Pago procesado exitosamente en Alegra', [
+                    'invoice_id' => $invoiceId,
+                    'alegra_payment_id' => $paymentResponse['data']['id'] ?? null,
+                    'previous_status' => $invoice->getOriginal('status_payment'),
+                    'new_status' => 'PAGADO'
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "✅ Factura #{$invoice->invoiceNumber} pagada exitosamente en Alegra."
+                ]);
+            } else {
+                // Error en la API de Alegra
+                $errorMessage = $paymentResponse['message'] ?? 'Error desconocido al procesar el pago';
+                throw new \Exception("Error en Alegra: {$errorMessage}");
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error procesando pago de factura', [
+                'invoice_id' => $invoiceId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar el pago: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
+    /**
+     * Emitir una factura que quedó con status "SIN EMITIR"
+     */
+    public function emitirFactura($invoiceId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $invoice = VntInvoices::findOrFail($invoiceId);
+
+            // Validar que la factura puede ser emitida
+            if ($invoice->status === 'FACTURADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Esta factura ya está emitida.'
+                ]);
+                return;
+            }
+
+            if ($invoice->status !== 'SIN EMITIR') {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Solo se pueden emitir facturas con estado "SIN EMITIR".'
+                ]);
+                return;
+            }
+
+            // Validar que tenga api_data_id (ID de Alegra)
+            if (empty($invoice->api_data_id)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Esta factura no tiene ID de Alegra. No se puede emitir.'
+                ]);
+                return;
+            }
+
+            // Obtener configuración del tenant
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            if (!$tenant) {
+                throw new \Exception('No se pudo identificar el tenant');
+            }
+
+            $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
+            if (!$hasFacturacionConfig) {
+                throw new \Exception('No hay configuración de facturación para este tenant');
+            }
+
+            // Crear servicio de facturación
+            $facturacionService = FacturacionService::forTenant($tenant);
+
+            Log::info('📤 Intentando emitir factura desde listado de facturas', [
+                'invoice_id' => $invoiceId,
+                'invoice_number' => $invoice->invoiceNumber,
+                'alegra_invoice_id' => $invoice->api_data_id,
+                'current_status' => $invoice->status
+            ]);
+
+            // Intentar emitir (stamp) la factura en Alegra
+            $stampResponse = $facturacionService->stampInvoice($invoice->api_data_id);
+
+            if ($stampResponse['success']) {
+                // ✅ STAMP EXITOSO: Actualizar estado a FACTURADO
+                $invoice->update(['status' => 'FACTURADO']);
+
+                // ✅ Actualizar status de cotizaciones asociadas a FACTURADO
+                $this->updateRelatedQuotesToFacturado($invoice);
+
+                Log::info('✅ Factura emitida exitosamente desde listado', [
+                    'invoice_id' => $invoiceId,
+                    'invoice_number' => $invoice->invoiceNumber,
+                    'alegra_invoice_id' => $invoice->api_data_id,
+                    'previous_status' => 'SIN EMITIR',
+                    'new_status' => 'FACTURADO'
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "✅ Factura #{$invoice->invoiceNumber} emitida exitosamente."
+                ]);
+            } else {
+                // ❌ STAMP FALLÓ
+                $errorMessage = $this->extractStampErrorMessage($stampResponse);
+                throw new \Exception("Error al emitir la factura: {$errorMessage}");
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error emitiendo factura desde listado', [
+                'invoice_id' => $invoiceId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al emitir la factura: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Actualizar status de cotizaciones relacionadas con la factura a FACTURADO
+     */
+    private function updateRelatedQuotesToFacturado(VntInvoices $invoice): void
+    {
+        try {
+            // Buscar todas las remisiones asociadas a esta factura
+            $remissionIds = VntInvoicesXsales::where('invoiceId', $invoice->id)
+                ->pluck('remissionId')
+                ->toArray();
+
+            if (empty($remissionIds)) {
+                Log::info('ℹ️ No se encontraron remisiones asociadas a la factura', [
+                    'invoice_id' => $invoice->id
+                ]);
+                return;
+            }
+
+            // Buscar las cotizaciones de esas remisiones
+            $quotesToUpdate = DB::connection('tenant')
+                ->table('inv_remissions')
+                ->join('vnt_quotes', 'inv_remissions.quoteId', '=', 'vnt_quotes.id')
+                ->whereIn('inv_remissions.id', $remissionIds)
+                ->select('vnt_quotes.id', 'vnt_quotes.consecutive')
+                ->get();
+
+            $quotesUpdated = 0;
+            foreach ($quotesToUpdate as $quote) {
+                DB::connection('tenant')
+                    ->table('vnt_quotes')
+                    ->where('id', $quote->id)
+                    ->update(['status' => 'FACTURADO']);
+
+                $quotesUpdated++;
+
+                Log::info('📋 Status de cotización actualizado a FACTURADO (desde emisión)', [
+                    'quote_id' => $quote->id,
+                    'quote_consecutive' => $quote->consecutive,
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoiceNumber
+                ]);
+            }
+
+            Log::info('✅ Cotizaciones actualizadas tras emisión de factura', [
+                'invoice_id' => $invoice->id,
+                'quotes_updated' => $quotesUpdated
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error actualizando cotizaciones tras emisión de factura', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Extraer mensaje de error más legible del response de stamp
+     */
+    private function extractStampErrorMessage(array $stampResponse): string
+    {
+        $message = $stampResponse['message'] ?? 'Error desconocido';
+
+        // Mejorar mensajes comunes de la DIAN
+        if (str_contains($message, 'nombre informado no corresponde al registrado en el rut')) {
+            $message .= ' - Verifique que los datos del cliente estén actualizados en el RUT.';
+        }
+
+        return $message;
+    }
+
+    /**
+     * Calcular el total de la factura considerando retenciones - SIN REDONDEAR
+     */
+    private function calculateInvoiceTotalWithRetentions(VntInvoices $invoice): float
+    {
+        // Obtener el total con impuestos desde la query usando ROUND en SQL para precisión exacta
+        $query = VntInvoices::query()
+            ->select([
+                DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos")
+            ])
+            ->leftJoinSub($this->getRemissionTotalsSubquery(), "dr_totals", "vnt_invoices.id", "=", "dr_totals.invoiceId")
+            ->leftJoinSub($this->getQuoteTotalsSubquery(), "dq_totals", "vnt_invoices.id", "=", "dq_totals.invoiceId")
+            ->where('vnt_invoices.id', $invoice->id)
+            ->first();
+
+        // Usar números decimales exactos sin redondeo intermedio
+        $totalConImpuestos = (float)($query->total_con_impuestos ?? 0);
+        $retentionFuente = (float)($invoice->retentionFuente ?? 0);
+        $retentionIca = (float)($invoice->retentionIca ?? 0);
+        $retentionIva = (float)($invoice->retentionIva ?? 0);
+
+        // Calcular el total EXACTO sin redondeo
+        $totalAPagar = $totalConImpuestos - $retentionFuente - $retentionIca - $retentionIva;
+
+        Log::info('💰 Cálculo EXACTO de monto de pago (SIN REDONDEO)', [
+            'invoice_id' => $invoice->id,
+            'total_con_impuestos_raw' => $query->total_con_impuestos,
+            'total_con_impuestos_float' => $totalConImpuestos,
+            'retention_fuente' => $retentionFuente,
+            'retention_ica' => $retentionIca,
+            'retention_iva' => $retentionIva,
+            'total_a_pagar_exacto' => $totalAPagar,
+            'total_a_pagar_formatted' => number_format($totalAPagar, 2, '.', '')
+        ]);
+
+        // Retornar el valor EXACTO sin redondear
+        return $totalAPagar;
+    }
+
+    /**
+     * Construir datos de pago para la API de Alegra - VALORES EXACTOS
+     */
+    private function buildAlegraPaymentData(VntInvoices $invoice, float $totalAmount): array
+    {
+        // Obtener retenciones EXACTAS sin redondear
+        $retentions = [];
+        $totalRetentions = 0;
+
+        if ($invoice->retentionFuente > 0) {
+            $retentionAmount = (float)$invoice->retentionFuente;
+            $retentions[] = [
+                'id' => config('facturacion.retentions.alegra_ids.fuente', '14'),
+                'amount' => $retentionAmount  // SIN REDONDEAR
+            ];
+            $totalRetentions += $retentionAmount;
+        }
+        if ($invoice->retentionIca > 0) {
+            $retentionAmount = (float)$invoice->retentionIca;
+            $retentions[] = [
+                'id' => config('facturacion.retentions.alegra_ids.ica', '11'),
+                'amount' => $retentionAmount  // SIN REDONDEAR
+            ];
+            $totalRetentions += $retentionAmount;
+        }
+        if ($invoice->retentionIva > 0) {
+            $retentionAmount = (float)$invoice->retentionIva;
+            $retentions[] = [
+                'id' => config('facturacion.retentions.alegra_ids.iva', '12'),
+                'amount' => $retentionAmount  // SIN REDONDEAR
+            ];
+            $totalRetentions += $retentionAmount;
+        }
+
+        // Construir objeto de factura con valor EXACTO
+        $totalBruto = $totalAmount + $totalRetentions; // Total antes de retenciones
+
+        $invoiceObject = [
+            'id' => $invoice->api_data_id,
+            'amount' => $totalBruto // Total bruto EXACTO
+        ];
+
+        // Agregar retenciones si existen
+        if (!empty($retentions)) {
+            $invoiceObject['retentions'] = $retentions;
+        }
+
+        // Usar cuenta bancaria por defecto (puede configurarse según necesidades)
+        $paymentData = [
+            'bankAccount' => [
+                'id' => '1' // ID de cuenta bancaria por defecto en Alegra
+            ],
+            'type' => 'in', // Pago entrante
+            'date' => now()->format('Y-m-d'),
+            'invoices' => [$invoiceObject]
+        ];
+
+        Log::info('🔧 Datos de pago construidos para Alegra - VALORES EXACTOS', [
+            'payment_data' => $paymentData,
+            'retentions_count' => count($retentions),
+            'total_retentions_exacto' => $totalRetentions,
+            'net_amount_exacto' => $totalAmount,
+            'total_bruto_exacto' => $totalBruto,
+            'retentions_detalle' => $retentions,
+            'json_exacto' => json_encode($paymentData, JSON_PRESERVE_ZERO_FRACTION)
+        ]);
+
+        return $paymentData;
+    }
+
+    /**
+     * Obtener subconsulta de totales de remisiones - PRECISIÓN EXACTA
+     */
+    private function getRemissionTotalsSubquery()
+    {
+        return DB::connection('tenant')->table("inv_detail_remissions")
+            ->select(
+                "invoiceId",
+                DB::raw("CAST(SUM(value * quantity) AS DECIMAL(15,6)) as total_con_impuestos"),
+                DB::raw("CAST(SUM((value / (1 + tax / 100)) * quantity) AS DECIMAL(15,6)) as total_sin_impuestos")
+            )
+            ->whereNotNull("invoiceId")
+            ->groupBy("invoiceId");
+    }
+
+    /**
+     * Obtener subconsulta de totales de cotizaciones - PRECISIÓN EXACTA
+     */
+    private function getQuoteTotalsSubquery()
+    {
+        return DB::connection('tenant')->table("vnt_detail_quotes as dq")
+            ->select(
+                "ixs.invoiceId",
+                DB::raw("CAST(SUM(dq.value * dq.quantity) AS DECIMAL(15,6)) as total_con_impuestos"),
+                DB::raw("CAST(SUM((dq.value / (1 + dq.tax / 100)) * dq.quantity) AS DECIMAL(15,6)) as total_sin_impuestos")
+            )
+            ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
+            ->whereNotNull("ixs.invoiceId")
+            ->groupBy("ixs.invoiceId");
+    }
+
     public function render()
     {
         try {
             $centralDbName = config('database.connections.central.database');
             $this->ensureTenantConnection();
 
-            // Subconsulta para totales de detalles de remisión
+            // Subconsulta para totales de detalles de remisión - PRECISIÓN EXACTA con DEBUG
+            // CORRECCIÓN: El campo 'value' en inv_detail_remissions en realidad YA incluye impuestos
             $remissionTotals = DB::connection('tenant')->table("inv_detail_remissions")
                 ->select(
                     "invoiceId",
-                    DB::raw("SUM(value * quantity) as total_sin_impuestos"),
-                    DB::raw("SUM((value + (value * tax / 100)) * quantity) as total_con_impuestos")
+                    DB::raw("CAST(SUM(value * quantity) AS DECIMAL(15,6)) as total_con_impuestos"), // El 'value' YA tiene impuestos
+                    DB::raw("CAST(SUM((value / (1 + tax / 100)) * quantity) AS DECIMAL(15,6)) as total_sin_impuestos"), // Quitamos impuestos INDIVIDUALMENTE
+                    DB::raw("COUNT(DISTINCT remissionId) as remissions_count"), // Para debug: cuántas remisiones
+                    DB::raw("GROUP_CONCAT(CONCAT('R', remissionId, ':V', value, ':T', tax, ':Q', quantity) SEPARATOR '|') as debug_items") // Para debug
                 )
                 ->whereNotNull("invoiceId")
                 ->groupBy("invoiceId");
 
-            // Subconsulta para totales de detalles de cotización
+            // Subconsulta para totales de detalles de cotización - PRECISIÓN EXACTA
             // NOTA: Los valores en vnt_detail_quotes YA incluyen impuestos
             $quoteTotals = DB::connection('tenant')->table("vnt_detail_quotes as dq")
                 ->select(
                     "ixs.invoiceId",
-                    DB::raw("SUM((dq.value / (1 + dq.tax / 100)) * dq.quantity) as total_sin_impuestos"),
-                    DB::raw("SUM(dq.value * dq.quantity) as total_con_impuestos")
+                    DB::raw("CAST(SUM(dq.value * dq.quantity) AS DECIMAL(15,6)) as total_con_impuestos"),
+                    DB::raw("CAST(SUM((dq.value / (1 + dq.tax / 100)) * dq.quantity) AS DECIMAL(15,6)) as total_sin_impuestos")
                 )
                 ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
                 ->whereNotNull("ixs.invoiceId")
@@ -118,6 +539,9 @@ class Invoices extends Component
                     DB::raw("MAX(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
                     DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
                     DB::raw("MAX(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
+                    // Campos DEBUG para facturas agrupadas
+                    DB::raw("MAX(dr_totals.remissions_count) as debug_remissions_count"),
+                    DB::raw("MAX(dr_totals.debug_items) as debug_items_detail"),
                 ])
                 ->join("vnt_invoicesXsales as s", "s.invoiceId", "=", "vnt_invoices.id")
                 // Joins para la ruta de Remisión
@@ -173,6 +597,21 @@ class Invoices extends Component
             $query->orderBy($this->sortField, $this->sortDirection);
 
             $invoices = $query->paginate($this->perPage);
+
+            // LOG DEBUG: Analizar facturas con múltiples remisiones
+            foreach ($invoices as $invoice) {
+                if ($invoice->debug_remissions_count > 1) {
+                    Log::info('🔍 DEBUG: Factura con múltiples remisiones detectada', [
+                        'invoice_id' => $invoice->id,
+                        'invoice_number' => $invoice->invoiceNumber,
+                        'remissions_count' => $invoice->debug_remissions_count,
+                        'total_con_impuestos' => $invoice->total_con_impuestos,
+                        'total_sin_impuestos' => $invoice->total_sin_impuestos,
+                        'items_detail' => $invoice->debug_items_detail,
+                        'diferencia_iva' => $invoice->total_con_impuestos - $invoice->total_sin_impuestos
+                    ]);
+                }
+            }
 
             return view('livewire.tenant.invoices.invoices', [
                 'invoices' => $invoices

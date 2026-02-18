@@ -271,6 +271,36 @@
                                         class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
                                         style="display: none;">
                                         <div class="py-1" role="menu" aria-orientation="vertical">
+
+                                            {{-- Botón de Emitir - Solo para facturas SIN EMITIR --}}
+                                            @if($invoice->status === 'SIN EMITIR')
+                                                <button wire:click="emitirFactura({{ $invoice->id }})"
+                                                    wire:confirm="¿Está seguro de emitir esta factura?"
+                                                    class="w-full text-left px-4 py-2 text-sm text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    Emitir Factura
+                                                </button>
+                                            @endif
+
+                                            {{-- Botón de Pagar - Solo para facturas EMITIDAS y no pagadas --}}
+                                            @if($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO')
+                                                <button wire:click="payInvoice({{ $invoice->id }})"
+                                                    wire:confirm="¿Está seguro de marcar esta factura como PAGADA?"
+                                                    class="w-full text-left px-4 py-2 text-sm text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                    </svg>
+                                                    Marcar como Pagada
+                                                </button>
+                                            @endif
+
+                                            {{-- Separador si hay opciones --}}
+                                            @if($invoice->status === 'SIN EMITIR' || ($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO'))
+                                                <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
+                                            @endif
+
                                             {{-- <button class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
                                             <x-heroicon-o-document class="w-6 h-6 mr-1" />
                                             PDF

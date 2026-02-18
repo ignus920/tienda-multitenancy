@@ -2457,7 +2457,7 @@ class ProductQuoter extends Component
             foreach ($this->quoterItems as $item) {
                 InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
-                    'tax' => 0,
+                    'tax' => $item['tax'] ?? 0, // ✅ CORREGIDO: Usar tax del item en lugar de hardcodeado
                     'value' => $item['price'],
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],

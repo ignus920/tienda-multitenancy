@@ -344,6 +344,9 @@ class Remissions extends Component
 
             // Verificar si hay múltiples remisiones para agrupar
             if ($remisiones->count() > 1) {
+                // VALIDACIÓN PREVIA: Informar sobre items con diferentes precios
+                $this->validateItemPricingForGrouping($remisiones);
+
                 // FACTURACIÓN AGRUPADA
                 try {
                     $this->facturarRemisionesAgrupadas($remisiones, $tenant);
@@ -1040,6 +1043,16 @@ class Remissions extends Component
                 $invoice->update(['status' => 'FACTURADO']);
                 // La remisión mantiene su status original (REGISTRADO, etc.)
 
+                // ✅ NUEVO: Actualizar status de la cotización asociada a FACTURADO
+                if ($remission->quote) {
+                    $remission->quote->update(['status' => 'FACTURADO']);
+                    Log::info('📋 Status de cotización actualizado a FACTURADO', [
+                        'quote_id' => $remission->quote->id,
+                        'quote_consecutive' => $remission->quote->consecutive,
+                        'remission_id' => $remission->id
+                    ]);
+                }
+
                 Log::info('✅ Factura emitida exitosamente desde remisión', [
                     'remission_id' => $remission->id,
                     'invoice_id_alegra' => $invoiceId,
@@ -1168,11 +1181,28 @@ class Remissions extends Component
                 // ✅ STAMP EXITOSO
                 $invoice->update(['status' => 'FACTURADO']);
 
+                // ✅ NUEVO: Actualizar status de todas las cotizaciones asociadas a FACTURADO
+                $quotesUpdated = 0;
+                foreach ($remisiones as $remission) {
+                    if ($remission->quote) {
+                        $remission->quote->update(['status' => 'FACTURADO']);
+                        $quotesUpdated++;
+
+                        Log::info('📋 Status de cotización actualizado a FACTURADO (agrupada)', [
+                            'quote_id' => $remission->quote->id,
+                            'quote_consecutive' => $remission->quote->consecutive,
+                            'remission_id' => $remission->id,
+                            'invoice_number' => $invoiceNumber
+                        ]);
+                    }
+                }
+
                 Log::info('✅ Factura agrupada emitida exitosamente', [
                     'remisiones_ids' => $remissionIds,
                     'invoice_id_alegra' => $invoiceId,
                     'invoice_number' => $invoiceNumber,
-                    'remisiones_count' => $remisiones->count()
+                    'remisiones_count' => $remisiones->count(),
+                    'quotes_updated' => $quotesUpdated
                 ]);
             } else {
                 // ❌ STAMP FALLÓ
@@ -1208,33 +1238,57 @@ class Remissions extends Component
                     continue;
                 }
 
-                // Usar el ID del producto como clave para agrupar
                 $productId = $product->id;
+                $price = floatval($detail->value ?: 0);
+                $tax = floatval($detail->tax ?: 0);
 
-                if (!isset($groupedItems[$productId])) {
-                    // Primera vez que vemos este producto
-                    $groupedItems[$productId] = [
+                // ✅ NUEVA VALIDACIÓN: Crear clave única por producto + precio + tax
+                // Esto permite que el mismo producto con diferentes precios/tax sea tratado como items separados
+                $uniqueKey = $productId . '_' . $price . '_' . $tax;
+
+                if (!isset($groupedItems[$uniqueKey])) {
+                    // Primera vez que vemos esta combinación producto + precio + tax
+                    $groupedItems[$uniqueKey] = [
                         'product' => $product,
+                        'product_id' => $productId,
                         'total_quantity' => 0,
-                        'price' => floatval($detail->value ?: 0), // Usar precio del primer item
-                        'remissions' => [] // Para tracking
+                        'price' => $price,
+                        'tax' => $tax,
+                        'remissions' => [], // Para tracking
+                        'unique_key' => $uniqueKey // Para debug
                     ];
                 }
 
-                // Sumar la cantidad
-                $groupedItems[$productId]['total_quantity'] += intval($detail->quantity ?: 1);
-                $groupedItems[$productId]['remissions'][] = $remission->id;
+                // Validar que precio y tax coincidan (seguridad adicional)
+                if ($groupedItems[$uniqueKey]['price'] !== $price || $groupedItems[$uniqueKey]['tax'] !== $tax) {
+                    Log::error('❌ Inconsistencia en agrupación de items', [
+                        'product_id' => $productId,
+                        'product_name' => $product->name,
+                        'existing_price' => $groupedItems[$uniqueKey]['price'],
+                        'current_price' => $price,
+                        'existing_tax' => $groupedItems[$uniqueKey]['tax'],
+                        'current_tax' => $tax,
+                        'remission_id' => $remission->id
+                    ]);
+                    continue; // Saltar este item por inconsistencia
+                }
+
+                // Sumar la cantidad para esta combinación exacta
+                $groupedItems[$uniqueKey]['total_quantity'] += intval($detail->quantity ?: 1);
+                $groupedItems[$uniqueKey]['remissions'][] = $remission->id;
             }
         }
 
-        Log::info('📦 Items agrupados para factura', [
-            'total_productos_unicos' => count($groupedItems),
+        Log::info('📦 Items agrupados con validación precio/tax', [
+            'total_combinaciones_unicas' => count($groupedItems),
             'detalle_agrupacion' => array_map(function ($item) {
                 return [
-                    'product_id' => $item['product']->id,
+                    'product_id' => $item['product_id'],
                     'product_name' => $item['product']->name,
+                    'unique_key' => $item['unique_key'],
                     'total_quantity' => $item['total_quantity'],
                     'price' => $item['price'],
+                    'tax' => $item['tax'],
                     'from_remissions' => $item['remissions']
                 ];
             }, $groupedItems)
@@ -1293,10 +1347,11 @@ class Remissions extends Component
     {
         $itemsAlegra = [];
 
-        foreach ($groupedItems as $productId => $itemData) {
+        foreach ($groupedItems as $uniqueKey => $itemData) {
             $product = $itemData['product'];
             $quantity = $itemData['total_quantity'];
             $price = $itemData['price'];
+            $taxPercentage = $itemData['tax']; // ✅ CORREGIDO: Usar tax real del detalle de remisión
 
             // Obtener ID de Alegra del producto
             $idAlegra = $product->api_data_id ?? $product->id_alegra ?? $product->alegra_id ?? null;
@@ -1308,13 +1363,45 @@ class Remissions extends Component
                 continue;
             }
 
-            // Obtener tax ID
-            $taxIdAlegra = $product->tax_api_data_id ?? $product->taxIdAlegra ?? $product->tax_id_alegra ?? '3';
+            // Determinar tax ID basado en el porcentaje real del detalle
+            if ($taxPercentage == 5) {
+                $taxIdAlegra = '2'; // ID común para IVA 5% en Alegra
+            } elseif ($taxPercentage == 19) {
+                $taxIdAlegra = '3'; // ID común para IVA 19% en Alegra
+            } else {
+                $taxIdAlegra = '1'; // ID común para exento/0% en Alegra
+            }
 
-            // Calcular precio sin IVA (igual que en individual)
+            // ✅ CORREGIDO: Calcular precio sin IVA usando el tax real (igual que en InvoiceDataBuilder)
             $originalPriceWithIva = floatval($price);
-            $targetSubtotal = round($originalPriceWithIva / 1.19, 0);
-            $finalPrice = $targetSubtotal;
+
+            if ($taxPercentage > 0) {
+                // Producto con IVA - calcular precio base sin IVA
+                $taxMultiplier = 1 + ($taxPercentage / 100);
+                $targetSubtotal = round($originalPriceWithIva / $taxMultiplier, 2);
+                $finalPrice = $targetSubtotal;
+
+                // Verificación con el IVA correcto
+                $verificationTotal = $finalPrice * $taxMultiplier;
+            } else {
+                // Producto exento de IVA
+                $finalPrice = $originalPriceWithIva;
+                $verificationTotal = $finalPrice;
+                $taxMultiplier = 1;
+            }
+
+            Log::info('💰 FACTURACIÓN AGRUPADA - Cálculo precio para Alegra', [
+                'product_id' => $product->id,
+                'product_name' => $product->name ?? 'Sin nombre',
+                'original_price_with_iva' => $originalPriceWithIva,
+                'tax_percentage_from_remission' => $taxPercentage,
+                'tax_multiplier' => $taxMultiplier ?? 1,
+                'final_price_after_calculation' => $finalPrice,
+                'verification_total' => $verificationTotal ?? $finalPrice,
+                'difference' => ($verificationTotal ?? $finalPrice) - $originalPriceWithIva,
+                'tax_id_alegra' => $taxIdAlegra,
+                'quantity' => $quantity
+            ]);
 
             $itemsAlegra[] = [
                 'id' => (string)$idAlegra,
@@ -1381,6 +1468,81 @@ class Remissions extends Component
         }
 
         return $message;
+    }
+
+    /**
+     * Validar y notificar sobre items con diferentes precios en facturación agrupada
+     */
+    private function validateItemPricingForGrouping($remisiones): void
+    {
+        $productPriceMap = [];
+        $duplicatesWithDifferentPrices = [];
+
+        // Analizar todos los items para detectar productos con precios diferentes
+        foreach ($remisiones as $remission) {
+            foreach ($remission->details as $detail) {
+                if (!$detail->item) continue;
+
+                $productId = $detail->item->id;
+                $productName = $detail->item->name;
+                $price = floatval($detail->value ?: 0);
+                $tax = floatval($detail->tax ?: 0);
+
+                $key = $productId;
+
+                if (!isset($productPriceMap[$key])) {
+                    $productPriceMap[$key] = [
+                        'product_name' => $productName,
+                        'prices' => [$price],
+                        'taxes' => [$tax],
+                        'price_tax_combinations' => ["{$price}_{$tax}"]
+                    ];
+                } else {
+                    $combination = "{$price}_{$tax}";
+
+                    if (!in_array($combination, $productPriceMap[$key]['price_tax_combinations'])) {
+                        $productPriceMap[$key]['prices'][] = $price;
+                        $productPriceMap[$key]['taxes'][] = $tax;
+                        $productPriceMap[$key]['price_tax_combinations'][] = $combination;
+
+                        if (!isset($duplicatesWithDifferentPrices[$key])) {
+                            $duplicatesWithDifferentPrices[$key] = $productPriceMap[$key];
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!empty($duplicatesWithDifferentPrices)) {
+            Log::info('ℹ️ Items con diferentes precios/tax detectados en facturación agrupada', [
+                'duplicates_count' => count($duplicatesWithDifferentPrices),
+                'products' => array_map(function ($data, $productId) {
+                    return [
+                        'product_id' => $productId,
+                        'product_name' => $data['product_name'],
+                        'price_tax_combinations' => $data['price_tax_combinations'],
+                        'total_variations' => count($data['price_tax_combinations'])
+                    ];
+                }, $duplicatesWithDifferentPrices, array_keys($duplicatesWithDifferentPrices))
+            ]);
+
+            // Crear mensaje informativo para el usuario
+            $productNames = array_map(function ($data) {
+                return $data['product_name'];
+            }, $duplicatesWithDifferentPrices);
+
+            $message = count($productNames) === 1
+                ? "ℹ️ El producto '" . $productNames[0] . "' tiene diferentes precios/IVA entre remisiones y se facturará por separado."
+                : "ℹ️ Los productos: " . implode(', ', array_slice($productNames, 0, 3)) .
+                  (count($productNames) > 3 ? ' y otros' : '') .
+                  " tienen diferentes precios/IVA entre remisiones y se facturarán por separado.";
+
+            // Opcional: Mostrar notificación al usuario
+            // $this->dispatch('show-toast', [
+            //     'type' => 'info',
+            //     'message' => $message
+            // ]);
+        }
     }
 
     /**
