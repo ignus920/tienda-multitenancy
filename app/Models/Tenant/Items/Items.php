@@ -90,6 +90,31 @@ class Items extends Model
     {
         return $this->hasMany(InvItemsStore::class, 'itemId', 'id');
     }
+
+    /**
+     * Relación con la configuración de importación
+     */
+    public function importSetup()
+    {
+        return $this->hasOne(\App\Models\Tenant\Imports\ImpItemsSetup::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con los detalles de ajustes de inventario
+     */
+    public function inventoryAdjustmentDetails()
+    {
+        return $this->hasMany(\App\Models\Tenant\Movements\InvDetailInventoryAdjustment::class, 'itemId', 'id');
+    }
+
+    /**
+     * Relación con cantidades no confirmadas
+     */
+    public function unconfirmedQuantities()
+    {
+        return $this->hasMany(\App\Models\Tenant\Imports\InvUnconfirmedQty::class, 'item_id', 'id');
+    }
+
     /**
      * Relación con la galería de imágenes
      * Un item puede tener múltiples imágenes
