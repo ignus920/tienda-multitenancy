@@ -416,6 +416,24 @@ class ApiClient
         return $this->makeRequest('post', "invoices/stamp", ['ids' => [(string)$id]]);
     }
 
+    // =================== AJUSTES DE INVENTARIO ===================
+
+    /**
+     * Crear un ajuste de inventario
+     */
+    public function createInventoryAdjustment(array $data): array
+    {
+        return $this->makeRequest('post', 'inventory-adjustments', $data);
+    }
+
+    /**
+     * Eliminar un ajuste de inventario
+     */
+    public function deleteInventoryAdjustment(int $id): array
+    {
+        return $this->makeRequest('delete', "inventory-adjustments/{$id}");
+    }
+
     // =================== MÉTODOS GENÉRICOS ===================
 
     /**
