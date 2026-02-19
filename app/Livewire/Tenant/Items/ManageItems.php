@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\HasCompanyConfiguration;
+use Livewire\Attributes\On;
 
 class ManageItems extends Component
 {
@@ -115,6 +116,7 @@ class ManageItems extends Component
     public $validatingSku = false;
     public $showCommand = false;
     public $showSelectStore = false;
+    public $showProductionSection = false;
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -321,7 +323,6 @@ class ManageItems extends Component
         $this->disabled = true;
 
         $this->showModal = true;
-        Log::info('🔒 Show Campo Comanda: ' . $this->showCommand);
     }
 
     public function render()
@@ -397,7 +398,7 @@ class ManageItems extends Component
             'purchasing_unit' => $this->purchase_unit,
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
-            'generic' => $this->generic,
+            'generic' => 0,
             'taxId' => (int)$this->tax,
 
         ];
@@ -656,6 +657,7 @@ class ManageItems extends Component
         }
     }
 
+    #[On('closeItemsModal')]
     public function cancel()
     {
         $this->ensureTenantConnection();
@@ -1127,7 +1129,6 @@ class ManageItems extends Component
         } else {
             $this->showCommand = false;
         }
-        Log::info('🔒 Show Campo Comanda: ' . $this->showCommand);
     }
 
     /**
@@ -1759,5 +1760,30 @@ class ManageItems extends Component
     public function updatedType($value)
     {
         $this->type = $value;
+    }
+
+    public function canUseImports()
+    {
+        $result = $this->isOptionEnabled(48);
+        $value = $this->getOptionValue(48);
+
+        Log::info('🚚 canUseImports() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 48,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(48) y getOptionValue(48)'
+        ]);
+        return $result;
+    }
+
+    public function showImportSection($item_id)
+    {
+        $this->item_id = $item_id;
+        $this->showProductionSection = true;
+        // Log::info('🎈 Cargando itemId', [
+        //     'itemId' => $this->item_id
+        // ]);
     }
 }
