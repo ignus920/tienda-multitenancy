@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
+use App\Traits\HasCompanyConfiguration;
 
 class Invoices extends Component
 {
-    use WithPagination;
+    use WithPagination, HasCompanyConfiguration;
 
     public $search = '';
     public $perPage = 12;
@@ -52,6 +53,7 @@ class Invoices extends Component
     public function mount()
     {
         $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
     }
 
     /**
@@ -255,6 +257,120 @@ class Invoices extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al emitir la factura: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Método para imprimir factura (basado en una factura emitida)
+     * Utiliza el api_data_id para obtener el PDF oficial de Alegra.
+     */
+    public function printInvoice($invoiceId)
+    {
+        Log::info('🖨️ Invoices.printInvoice llamado', ['invoice_id' => $invoiceId]);
+
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
+
+        try {
+            // 1. Buscar la factura
+            $invoice = VntInvoices::findOrFail($invoiceId);
+
+            Log::info('🔍 Factura encontrada', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoiceNumber,
+                'status' => $invoice->status,
+                'api_data_id' => $invoice->api_data_id
+            ]);
+
+            // 2. Validar que la factura esté emitida
+            if ($invoice->status !== 'FACTURADO') {
+                Log::warning('⚠️ Factura no está emitida', [
+                    'invoice_id' => $invoiceId,
+                    'status' => $invoice->status
+                ]);
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Solo se pueden imprimir facturas emitidas (estado: FACTURADO).'
+                ]);
+                return;
+            }
+
+            // 3. Validar que tenga api_data_id
+            if (empty($invoice->api_data_id)) {
+                Log::warning('⚠️ Factura sin api_data_id', ['invoice_id' => $invoiceId]);
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Esta factura no tiene ID de Alegra. No se puede obtener el PDF oficial.'
+                ]);
+                return;
+            }
+
+            // 4. Obtener configuración de facturación
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            if (!$tenant) {
+                throw new \Exception('No se pudo identificar el tenant');
+            }
+
+            $facturacionService = new FacturacionService($tenant);
+            $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
+
+            // 5. Obtener PDF de Alegra
+            if ($hasFacturacionConfig && $invoice->api_data_id) {
+                Log::info('🔗 Obteniendo PDF de factura desde Alegra', ['api_id' => $invoice->api_data_id]);
+
+                $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
+
+                // Analizar estructura de respuesta
+                $respData = $apiResponse['data'] ?? [];
+
+                // Intentar obtener URL de varios posibles campos
+                $printUrl = $respData['pdf'] ??
+                            $respData['publicUrl'] ??
+                            ($respData['data']['publicUrl'] ?? null);
+
+                if ($apiResponse['success'] && !empty($printUrl)) {
+                    Log::info('✅ URL de PDF de factura obtenida', ['url' => $printUrl]);
+
+                    $this->dispatch('open-print-window', [
+                        'url' => $printUrl,
+                        'format' => 'carta'
+                    ]);
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => 'Factura #' . $invoice->invoiceNumber . ' preparada para impresión.'
+                    ]);
+                    return;
+                } else {
+                    Log::warning('⚠️ No se obtuvo URL válida de Alegra para factura', [
+                        'response' => $apiResponse,
+                        'invoice_id' => $invoiceId
+                    ]);
+                    $this->dispatch('show-toast', [
+                        'type' => 'warning',
+                        'message' => 'No se pudo obtener el PDF de la factura desde Alegra. Verifique que esté correctamente emitida.'
+                    ]);
+                }
+            } else {
+                Log::info('ℹ️ Facturación no configurada para obtener PDF', [
+                    'has_config' => $hasFacturacionConfig,
+                    'has_api_id' => !empty($invoice->api_data_id)
+                ]);
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'No se puede obtener el PDF de Alegra. Verifique la configuración de facturación.'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en Invoices.printInvoice: ' . $e->getMessage(), [
+                'invoice_id' => $invoiceId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar impresión de factura: ' . $e->getMessage()
             ]);
         }
     }

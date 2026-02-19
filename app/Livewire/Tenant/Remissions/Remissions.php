@@ -880,7 +880,7 @@ class Remissions extends Component
         ]);
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice'])
+        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel'])
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
                 $query->where('warehouseId', $storeId);
@@ -1542,6 +1542,78 @@ class Remissions extends Component
             //     'type' => 'info',
             //     'message' => $message
             // ]);
+        }
+    }
+
+    /**
+     * Cambiar el estado de una remisión
+     */
+    public function changeStatus($remissionId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $remission = InvRemissions::findOrFail($remissionId);
+
+            $currentStatus = $remission->status;
+
+            // No permitir cambios de estado si ya está ENTREGADO
+            if ($currentStatus === 'ENTREGADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No se puede cambiar el estado de una remisión ya entregada.'
+                ]);
+                return;
+            }
+
+            // Definir la secuencia de estados
+            $statusSequence = [
+                'REGISTRADO' => 'ALISTAMIENTO',
+                'ALISTAMIENTO' => 'EMPACADO',
+                'EMPACADO' => 'EN RECORRIDO',
+                'EN RECORRIDO' => 'ENTREGADO'
+            ];
+
+            $nextStatus = $statusSequence[$currentStatus] ?? null;
+
+            if (!$nextStatus) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Estado no válido para cambio.'
+                ]);
+                return;
+            }
+
+            // Actualizar el estado
+            $remission->update(['status' => $nextStatus]);
+
+            Log::info('🔄 Estado de remisión cambiado', [
+                'remission_id' => $remissionId,
+                'from_status' => $currentStatus,
+                'to_status' => $nextStatus
+            ]);
+
+            // Si el nuevo estado es ALISTAMIENTO, imprimir la remisión
+            if ($nextStatus === 'ALISTAMIENTO') {
+                $this->printRemission($remissionId);
+            }
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => "Estado cambiado de {$currentStatus} a {$nextStatus}" .
+                           ($nextStatus === 'ALISTAMIENTO' ? '. Remisión enviada a impresión.' : '')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error cambiando estado de remisión', [
+                'remission_id' => $remissionId,
+                'error' => $e->getMessage()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al cambiar el estado de la remisión: ' . $e->getMessage()
+            ]);
         }
     }
 

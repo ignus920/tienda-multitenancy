@@ -32,19 +32,21 @@ class InvInventoryAdjustment extends Model
     protected function casts(): array
     {
         return [
-            'id' => 'integer',
-            'date' => 'datetime',
-            'status' => 'integer',
+            'id'          => 'integer',
+            'date'        => 'datetime',
+            'status'      => 'integer',
             'warehouseId' => 'integer',
-            'reasonId' => 'integer',
+            'reasonId'    => 'integer',
             'consecutive' => 'integer',
-            'userId' => 'integer',
-            'supplier' => 'integer',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-            'deleted_at' => 'datetime',
+            'userId'      => 'integer',
+            'supplier'    => 'integer',
+            'api_data_id' => 'integer',
+            'created_at'  => 'datetime',
+            'updated_at'  => 'datetime',
+            'deleted_at'  => 'datetime',
         ];
     }
+
 
     // Relationships
 

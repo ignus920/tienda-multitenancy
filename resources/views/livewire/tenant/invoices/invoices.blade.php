@@ -296,8 +296,19 @@
                                                 </button>
                                             @endif
 
+                                            {{-- Botón de Imprimir - Solo para facturas EMITIDAS --}}
+                                            @if($invoice->status === 'FACTURADO')
+                                                <button wire:click="printInvoice({{ $invoice->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                                    </svg>
+                                                    Imprimir Factura
+                                                </button>
+                                            @endif
+
                                             {{-- Separador si hay opciones --}}
-                                            @if($invoice->status === 'SIN EMITIR' || ($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO'))
+                                            @if($invoice->status === 'SIN EMITIR' || ($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO') || $invoice->status === 'FACTURADO')
                                                 <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                                             @endif
 
