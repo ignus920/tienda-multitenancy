@@ -360,8 +360,10 @@ class Items extends Model
             ->orderBy('created_at', 'desc')
             ->first();
 
+        $regularPriceValue = null;
         if ($precioRegular) {
-            $prices['Precio Regular'] = $precioRegular->values;
+            $regularPriceValue = $precioRegular->values;
+            $prices['Precio Regular'] = $regularPriceValue;
         }
 
         $precioCredito = $this->invValues()
@@ -375,7 +377,24 @@ class Items extends Model
             $prices['Precio Crédito'] = $precioCredito->values;
         }
 
-        return $prices;
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
+        $filteredPrices = [];
+        foreach ($prices as $label => $value) {
+            // Excluir precios con valor 0
+            if ($value <= 0) {
+                continue;
+            }
+
+            // Si hay precio regular definido y no es el precio regular mismo,
+            // excluir precios menores al precio regular
+            if ($regularPriceValue !== null && $label !== 'Precio Regular' && $value < $regularPriceValue) {
+                continue;
+            }
+
+            $filteredPrices[$label] = $value;
+        }
+
+        return $filteredPrices;
     }
 
     /**
@@ -398,7 +417,27 @@ class Items extends Model
             $prices[$label] = $records->first()->values;
         }
 
-        return $prices;
+        // Encontrar el precio regular para usar como referencia
+        $regularPriceValue = $prices['Precio Regular'] ?? null;
+
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
+        $filteredPrices = [];
+        foreach ($prices as $label => $value) {
+            // Excluir precios con valor 0
+            if ($value <= 0) {
+                continue;
+            }
+
+            // Si hay precio regular definido y no es el precio regular mismo,
+            // excluir precios menores al precio regular
+            if ($regularPriceValue !== null && $label !== 'Precio Regular' && $value < $regularPriceValue) {
+                continue;
+            }
+
+            $filteredPrices[$label] = $value;
+        }
+
+        return $filteredPrices;
     }
 
     public function getDisplayNameAttribute()
