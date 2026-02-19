@@ -98,6 +98,9 @@ class ProductQuoter extends Component
     public $showDeliveryModal = false;
     public $requiresDeliveryDetails = false;
 
+    // Propiedad para controlar el modo de vista de productos
+    public $viewMode = 'grid'; // 'grid' (actual) o 'table' (nuevo)
+
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
         'vnt-company-saved' => 'onCustomerCreated',
@@ -1730,6 +1733,14 @@ class ProductQuoter extends Component
         $this->selectedDeliveryType = null;
         $this->deliveryDetails = '';
         $this->requiresDeliveryDetails = false;
+    }
+
+    /**
+     * Alternar entre modo grid y tabla
+     */
+    public function toggleViewMode()
+    {
+        $this->viewMode = $this->viewMode === 'grid' ? 'table' : 'grid';
     }
 
     public function invoiceOrder()
