@@ -1,6 +1,13 @@
 <div>
     <!-- Search and Filters -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+
+     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Control de etiquetas </h2>
+     
+     </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <!-- Search -->
             <div class="relative flex-1">
@@ -27,14 +34,14 @@
 
     <!-- Items List -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="overflow-hidden">
+        <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('name')">
                             <div class="flex items-center space-x-1">
-                                <span>Nombre</span>
+                                <span>Código</span>
                                 @if($sortField === 'name')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'transform rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -43,35 +50,30 @@
                             </div>
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            SKU
+                            Descripción
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Código Interno
+                            Existencias ERP hoy
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('status')">
-                            <div class="flex items-center space-x-1">
-                                <span>Estado</span>
-                                @if($sortField === 'status')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'transform rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                    </svg>
-                                @endif
-                            </div>
+                            Cantidad
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('created_at')">
-                            <div class="flex items-center space-x-1">
-                                <span>Fecha Creación</span>
-                                @if($sortField === 'created_at')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'transform rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                    </svg>
-                                @endif
-                            </div>
+                            Porcentaje
                         </th>
-                        <th scope="col" class="relative px-6 py-3">
-                            <span class="sr-only">Acciones</span>
+                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
+                            wire:click="sortBy('created_at')">
+                            Salida ERP
+                        </th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
+                            wire:click="sortBy('created_at')">
+                            Etrada ERP
+                        </th>
+                        <th scope="col"class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                            wire:click="sortBy('created_at')">
+                            EXW
                         </th>
                     </tr>
                 </thead>
@@ -89,7 +91,7 @@
                                     </div>
                                     <div class="ml-4">
                                         <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $item->name }}
+                                            {{ $item->sku ?? 'N/A' }}
                                         </div>
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
                                             ID: {{ $item->id }}
@@ -99,38 +101,46 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900 dark:text-white">
-                                    {{ $item->sku ?? 'N/A' }}
+                                    {{ $item->description ?? $item->name }}  
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900 dark:text-white">
-                                    {{ $item->internal_code ?? 'N/A' }}
+                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    {{ number_format($item->stock_items_store ?? 0, 2) }}
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                    {{ $item->status == 1 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' }}">
-                                    {{ $item->status == 1 ? 'Activo' : 'Inactivo' }}
-                                </span>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    step="1"
+                                    value="{{ $item->quantity ?? 0 }}"
+                                    wire:change="updateQuantity({{ $item->id }}, $event.target.value)"
+                                    class="block w-24 px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                                    placeholder="0">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $item->created_at->format('d/m/Y H:i') }}
+                                {{ $item->percentage ?? 0 }}%
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div class="flex items-center justify-end space-x-2">
-                                    <button class="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors duration-200">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                        Ver
-                                    </button>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="text-sm text-red-600 dark:text-red-400">
+                                     {{ number_format($item->outsideMovement ?? 0, 2) }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="text-sm text-green-600 dark:text-green-400">
+                                     {{ number_format($item->insideMovement ?? 0, 2) }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                     ${{ number_format($item->exw ?? 0, 2) }}
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center">
+                            <td colspan="8" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center">
                                     <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
