@@ -23,7 +23,7 @@ class InvRemissions extends Model
         'updated_at',
         'quoteId',
         'warehouseId',
-        'deliveryTypeId',
+        'deliveryTypeId', // Campo correcto para tipo de entrega
         'methodPaymentId',
         'userId',
         'deliveryDate',
@@ -107,6 +107,14 @@ class InvRemissions extends Model
     public function invoiceSale()
     {
         return $this->hasOne(\App\Models\Tenant\Invoices\VntInvoicesXsales::class, 'remissionId', 'id');
+    }
+
+    /**
+     * Relación con el tipo de entrega
+     */
+    public function deliveryTypeModel()
+    {
+        return $this->belongsTo(InvDeliveryType::class, 'deliveryTypeId', 'id');
     }
 
     /**

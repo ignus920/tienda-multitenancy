@@ -13,6 +13,7 @@ use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Quoter\VntDetailQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Remissions\InvDetailRemissions;
+use App\Models\Tenant\Remissions\InvDeliveryType;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Models\Tenant\Invoices\VntInvoicePayments;
@@ -89,6 +90,13 @@ class ProductQuoter extends Component
     ];
     public $showRetentions = false; // Mostrar sección de retenciones solo si hay valores > 0
     public $totalWithRetentions = 0; // Total después de aplicar retenciones
+
+    // Propiedades para selección de tipo de entrega
+    public $deliveryTypes = [];
+    public $selectedDeliveryType = null;
+    public $deliveryDetails = '';
+    public $showDeliveryModal = false;
+    public $requiresDeliveryDetails = false;
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -247,6 +255,7 @@ class ProductQuoter extends Component
         }
 
         $this->calculateTotal();
+        $this->loadDeliveryTypes();
 
         Log::info('🚀 ProductQuoter montado', [
             'viewType' => $this->viewType,
@@ -1535,6 +1544,86 @@ class ProductQuoter extends Component
             return;
         }
 
+        // Mostrar modal de selección de tipo de entrega
+        $this->showDeliveryModal = true;
+    }
+
+    /**
+     * Cargar tipos de entrega activos
+     */
+    public function loadDeliveryTypes()
+    {
+        $this->ensureTenantConnection();
+        try {
+            $types = InvDeliveryType::on('tenant')->active()->get();
+            // Convertir a array para evitar problemas de serialización de Livewire
+            $this->deliveryTypes = $types->map(function ($type) {
+                return [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'ask_details' => $type->ask_details,
+                    'detail' => $type->detail
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error cargando tipos de entrega: ' . $e->getMessage());
+            $this->deliveryTypes = [];
+        }
+    }
+
+    /**
+     * Cuando se selecciona un tipo de entrega
+     */
+    public function updatedSelectedDeliveryType($value)
+    {
+        if ($value) {
+            // Buscar en el array de tipos
+            $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $value);
+            $this->requiresDeliveryDetails = $deliveryType ? $deliveryType['ask_details'] : false;
+
+            if (!$this->requiresDeliveryDetails) {
+                $this->deliveryDetails = '';
+            }
+        } else {
+            $this->requiresDeliveryDetails = false;
+            $this->deliveryDetails = '';
+        }
+    }
+
+    /**
+     * Proceder con la creación de la remisión después de seleccionar tipo de entrega
+     */
+    public function proceedWithRemissionCreation()
+    {
+        if (!$this->selectedDeliveryType) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes seleccionar un tipo de entrega'
+            ]);
+            return;
+        }
+
+        // Buscar en el array de tipos
+        $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $this->selectedDeliveryType);
+
+        if ($deliveryType && $deliveryType['ask_details'] && empty(trim($this->deliveryDetails))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Este tipo de entrega requiere detalles adicionales'
+            ]);
+            return;
+        }
+
+        // Cerrar modal y crear remisión
+        $this->showDeliveryModal = false;
+        $this->createRemissionWithDeliveryType();
+    }
+
+    /**
+     * Crear la remisión con el tipo de entrega seleccionado
+     */
+    private function createRemissionWithDeliveryType()
+    {
         $this->ensureTenantConnection();
 
         try {
@@ -1573,17 +1662,19 @@ class ProductQuoter extends Component
             $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
 
-            // Crear Remisión
+            // Crear Remisión con tipo de entrega
             $remission = InvRemissions::create([
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'quoteId' => $quote->id,
                 'warehouseId' => $quote->warehouseId,
+                'deliveryTypeId' => $this->selectedDeliveryType, // Nuevo: tipo de entrega
                 'methodPaymentId' => 1, // Por defecto efectivo
                 'userId' => auth()->id(),
                 'deliveryDate' => now()->format('Y-m-d'),
                 'expiration' => 0,
-                'modify' => 0
+                'modify' => 0,
+                'observations_return' => $this->deliveryDetails // Nuevo: detalles de entrega
             ]);
 
             // Crear detalles de la remisión y actualizar stock
@@ -1628,6 +1719,17 @@ class ProductQuoter extends Component
                 'message' => 'Error al confirmar el pedido: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Cerrar modal de tipo de entrega
+     */
+    public function closeDeliveryModal()
+    {
+        $this->showDeliveryModal = false;
+        $this->selectedDeliveryType = null;
+        $this->deliveryDetails = '';
+        $this->requiresDeliveryDetails = false;
     }
 
     public function invoiceOrder()

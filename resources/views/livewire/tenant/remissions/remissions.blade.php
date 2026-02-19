@@ -139,11 +139,27 @@
                                 </svg>
                             </div>
                         </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
+                                <span>TIPO ENTREGA</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                                </svg>
+                            </div>
+                        </th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center justify-end space-x-1">
                                 <span>TOTAL</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
+                                <span>STATUS</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
                             </div>
                         </th>
@@ -187,6 +203,15 @@
                                     <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->identification }}</small>
                                 @endif
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
+                                @if($remission->deliveryTypeModel)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        {{ $remission->deliveryTypeModel->name }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400 dark:text-gray-500 text-xs">Sin tipo</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white font-medium">
                                 @php
                                     $total = $remission->details->sum(function ($detail) {
@@ -194,6 +219,28 @@
                                     });
                                 @endphp
                                 ${{ number_format($total, 2, ',', '.') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                @if($remission->status === 'ENTREGADO')
+                                    {{-- Estado ENTREGADO no es clickeable --}}
+                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        {{ $remission->status }}
+                                        <svg class="inline w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                @else
+                                    {{-- Estados que pueden cambiar --}}
+                                    <button wire:click="changeStatus({{ $remission->id }})"
+                                            class="px-3 py-1 text-xs font-semibold rounded-full transition-colors cursor-pointer hover:opacity-80
+                                            @if($remission->status === 'REGISTRADO') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                            @elseif($remission->status === 'ALISTAMIENTO') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            @elseif($remission->status === 'EMPACADO') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                            @elseif($remission->status === 'EN RECORRIDO') bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                            @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
+                                        {{ $remission->status }}
+                                    </button>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 @if($remission->invoice)
@@ -271,7 +318,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
                                 No se encontraron remisiones.
                             </td>
                         </tr>

@@ -943,4 +943,121 @@ $header = 'Seleccionar productos';
     </div>
     @endif
 
+    <!-- Modal de Selección de Tipo de Entrega -->
+    <div x-data="{ show: @entangle('showDeliveryModal') }"
+         x-show="show"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="display: none;"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
+
+        <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-md border border-gray-200 dark:border-slate-700"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                        </svg>
+                        Tipo de Entrega
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                        Selecciona el tipo de entrega para la remisión
+                    </p>
+                </div>
+                <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6">
+                <!-- Selección de Tipo de Entrega -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                        Tipo de Entrega <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="selectedDeliveryType"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecciona un tipo de entrega</option>
+                        @foreach($deliveryTypes as $type)
+                            <option value="{{ $type['id'] }}">{{ $type['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Campo de Detalles (si es requerido) -->
+                @if($requiresDeliveryDetails)
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                        Detalles de Entrega <span class="text-red-500">*</span>
+                    </label>
+                    <textarea wire:model="deliveryDetails"
+                              rows="3"
+                              placeholder="Ingresa los detalles específicos para este tipo de entrega..."
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+                @endif
+
+                <!-- Información del tipo seleccionado -->
+                @if($selectedDeliveryType)
+                    @php
+                        $selectedType = collect($deliveryTypes)->firstWhere('id', $selectedDeliveryType);
+                    @endphp
+                    @if($selectedType && !empty($selectedType['detail']))
+                    <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-300">Información</h4>
+                                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">{{ $selectedType['detail'] }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                @endif
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
+                <button wire:click="closeDeliveryModal"
+                        class="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium">
+                    Cancelar
+                </button>
+                <button wire:click="proceedWithRemissionCreation"
+                        wire:loading.attr="disabled"
+                        wire:target="proceedWithRemissionCreation"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center transition-colors disabled:opacity-50">
+                    <svg wire:loading.remove wire:target="proceedWithRemissionCreation" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <svg wire:loading wire:target="proceedWithRemissionCreation" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span wire:loading.remove wire:target="proceedWithRemissionCreation">Crear Remisión</span>
+                    <span wire:loading wire:target="proceedWithRemissionCreation">Creando...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
