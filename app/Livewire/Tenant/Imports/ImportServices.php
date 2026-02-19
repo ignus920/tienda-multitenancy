@@ -4,7 +4,7 @@ namespace App\Livewire\Tenant\Imports;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-// use Livewire\Attributes\On;
+use Livewire\Attributes\On;
 // use Illuminate\Support\Facades\Auth;
 // use App\Services\Tenant\TenantManager;
 
@@ -14,7 +14,8 @@ class ImportServices extends Component
 
     public $showImportList = false;
     public $selectedService = '';
-    
+    public $showModalRegisItem = false;
+
     // Servicios de importación disponibles
     public $importServices = [
         'items' => [
@@ -46,7 +47,7 @@ class ImportServices extends Component
     public function selectService($service)
     {
         $this->selectedService = $service;
-        
+
         if ($service === 'items') {
             $this->showImportList = true;
         } else {
@@ -58,6 +59,17 @@ class ImportServices extends Component
     {
         $this->showImportList = false;
         $this->selectedService = '';
+    }
+
+    public function showModalRegis()
+    {
+        $this->showModalRegisItem = true;
+    }
+
+    #[On('closeItemsImportModal')]
+    public function cancel()
+    {
+        $this->showModalRegisItem = false;
     }
 
     public function render()
