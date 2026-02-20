@@ -8,6 +8,9 @@ use Livewire\Attributes\On;
 use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use App\Models\Tenant\Imports\ImpLabels;
+use App\Models\Tenant\Imports\InvUnconfirmedQty;
+use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,10 +26,31 @@ class ImportList extends Component
     
     // Array para almacenar las cantidades seleccionadas por item
     public $selectedQuantities = [];
+  
+    // Array para almacenar los labels
+    public $allLabels = [];
 
     protected $queryString = [
         'search' => ['except' => ''],
         'page' => ['except' => 1],
+    ];
+
+     protected $listeners = [
+        'label-selected' => 'onLabelSelected',
+    ];
+
+     public function onLabelSelected($labelId, $labelName)
+    {
+        $this->selectedLabel = [
+            'id' => $labelId,
+            'name' => $labelName
+        ];
+        Log::info("Label seleccionado: ID={$labelId}, Name={$labelName}");
+    }
+
+    public $selectedLabel = [
+         'id' => '',
+         'name' => ''
     ];
 
     public function updatingSearch()
@@ -123,30 +147,108 @@ class ImportList extends Component
      */
     public function updateQuantity($itemId, $quantity)
     {
-        $this->selectedQuantities[$itemId] = $quantity;
-        
-        // Log para debug
-        Log::info("Cantidad actualizada para item {$itemId}: {$quantity}");
-        
-        // Aquí puedes agregar la lógica que necesites cuando cambie la cantidad
-        // Por ejemplo: actualizar base de datos, recalcular totales, etc.
-        
-        // Emitir evento si necesitas notificar a otros componentes
-        $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
-        
-        // Mostrar notificación al usuario (opcional)
-        session()->flash('message', "Cantidad actualizada para item #{$itemId}: {$quantity}");
+        try {
+            $this->ensureTenantConnection();
+            
+            // Convertir a entero y asegurar que no sea negativo
+            $quantity = max(0, (int) $quantity);
+            
+            // Buscar o crear el registro
+            InvUnconfirmedQty::updateOrCreate(
+                ['item_id' => $itemId],
+                [
+                    'qty' => $quantity,
+                    'status' => true
+                ]
+            );
+            
+            // Actualizar el array local
+            $this->selectedQuantities[$itemId] = $quantity;
+            $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
+            $this->dispatch('refresh-import-list');
+            
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar cantidad: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            session()->flash('error', 'Error al actualizar la cantidad: ' . $e->getMessage());
+        }
     }
 
-    public function getLabels(){
+    /**
+     * Método que se ejecuta cuando se hace clic en un item
+     */
+    public function selectItem($itemId, $quantity)
+    {
+        try {
+            $this->ensureTenantConnection();
+            
+            // Obtener información completa del item
+            $item = Items::find($itemId);
+            
+            if (!$item) {
+                Log::warning("Item no encontrado: {$itemId}");
+                return;
+            }
+            
+            // Log para debug
+            Log::info("Item seleccionado - ID: {$itemId}, Cantidad: {$quantity}");
+            Log::info("Item completo: " . json_encode($item->toArray()));
+            
+            // Emitir evento al componente padre con los datos del item
+            $this->dispatch('item-selected', [
+                'itemId' => $itemId,
+                'quantity' => $quantity,
+                'sku' => $item->sku,
+                'name' => $item->name,
+                'description' => $item->description,
+                'stock' => $item->stock_items_store ?? 0
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error al seleccionar item: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+        }
+    }
 
+    #[Computed]
+    public function labels()
+    {
+        Log::info('=== LABELS COMPUTED PROPERTY CALLED ===');
         
-
+        try {
+            $this->ensureTenantConnection();
+            Log::info('Conexión tenant establecida correctamente');
+            
+            // Verificar si hay conexión a la base de datos
+            Log::info('Intentando obtener labels de ImpLabels');
+            
+            $labels = ImpLabels::all();
+            
+            Log::info('Total de labels encontrados: ' . $labels->count());
+            
+            if ($labels->count() > 0) {
+                Log::info('Primer label de ejemplo:');
+                Log::info(json_encode($labels->first()->toArray(), JSON_PRETTY_PRINT));
+            } else {
+                Log::warning('No se encontraron labels en la tabla imp_labels');
+            }
+            
+            Log::info('=== FIN LABELS COMPUTED PROPERTY ===');
+            
+            return $labels;
+            
+        } catch (\Exception $e) {
+            Log::error('Error al obtener labels: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return collect(); // Retornar colección vacía en caso de error
+        }
     }
 
     public function render()
     {
         $items = $this->items;
+        $labels = $this->labels; 
         
         // Debug info para mostrar en la vista
         $debugInfo = [
@@ -158,13 +260,22 @@ class ImportList extends Component
             'sort_field' => $this->sortField,
             'sort_direction' => $this->sortDirection,
             'store_id' => $this->storeId,
+             'labels_count' => $labels->count(), // Agregar contador de labels
+            'has_labels' => $labels->isNotEmpty(),
         ];
-        
+        Log::info('=== RENDER METHOD ===');
+        Log::info('Items encontrados: ' . $items->count());
+        Log::info('Labels encontrados: ' . $labels->count());
+        Log::info('Debug info: ' . json_encode($debugInfo));
+        Log::info('=== FIN RENDER METHOD ===');
+
         return view('livewire.tenant.imports.components.import-list', [
             'items' => $items,
+            'labels' => $labels,
             'debugInfo' => $debugInfo
         ]);
     }
+
 
     private function ensureTenantConnection(): void
     {
