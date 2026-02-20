@@ -338,31 +338,91 @@ $header = 'Seleccionar productos';
 
                                         <!-- Precios individuales -->
                                         @php
-                                            // Mapear precios usando los keys reales: p1, p2, p3, p4, P5
-                                            $pricesByType = [
-                                                'Regular' => $allPrices['p1'] ?? null,
-                                                'Crédito' => $allPrices['p2'] ?? null,
-                                                'Lista' => $allPrices['p3'] ?? null,
-                                                '3%' => $allPrices['p4'] ?? null,
-                                                '5%' => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
-                                                '7%' => $allPrices['p6'] ?? null
-                                            ];
+                                            // Detectar automáticamente la estructura de precios
+                                            $priceKeys = array_keys($allPrices);
+                                            $pricesByType = [];
+
+                                            // Detectar si usa estructura p1, p2, p3... o nombres descriptivos
+                                            $usesNumericKeys = count(array_filter($priceKeys, fn($key) => preg_match('/^[pP]\d+$/', $key))) > 0;
+
+                                            if ($usesNumericKeys) {
+                                                // Estructura tipo: p1, p2, p3, p4, P5
+                                                $pricesByType = [
+                                                    'Regular' => $allPrices['p1'] ?? null,
+                                                    'Crédito' => $allPrices['p2'] ?? null,
+                                                    'Lista' => $allPrices['p3'] ?? null,
+                                                    '3%' => $allPrices['p4'] ?? null,
+                                                    '5%' => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
+                                                    '7%' => $allPrices['p6'] ?? $allPrices['P6'] ?? null
+                                                ];
+                                            } else {
+                                                // Estructura tipo: Lista, 3%, 5%, 7%, etc.
+                                                $columnMapping = ['Regular', 'Crédito', 'Lista', '3%', '5%', '7%'];
+
+                                                foreach($columnMapping as $column) {
+                                                    $pricesByType[$column] = null;
+
+                                                    // Buscar coincidencias flexibles
+                                                    foreach($allPrices as $priceKey => $priceValue) {
+                                                        $keyLower = strtolower($priceKey);
+                                                        $columnLower = strtolower($column);
+
+                                                        if ($keyLower === $columnLower ||
+                                                            str_contains($keyLower, $columnLower) ||
+                                                            ($column === 'Regular' && str_contains($keyLower, 'regular')) ||
+                                                            ($column === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
+                                                            ($column === 'Lista' && str_contains($keyLower, 'lista')) ||
+                                                            ($priceKey === $column)) {
+                                                            $pricesByType[$column] = $priceValue;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         @endphp
 
                                         @foreach($pricesByType as $priceType => $price)
                                             <td class="px-2 py-4 text-center">
                                                 @if($price)
                                                     @php
-                                                        // Mapear el priceType al key real del precio
-                                                        $priceKey = match($priceType) {
-                                                            'Regular' => 'p1',
-                                                            'Crédito' => 'p2',
-                                                            'Lista' => 'p3',
-                                                            '3%' => 'p4',
-                                                            '5%' => 'P5',
-                                                            '7%' => 'p6',
-                                                            default => $priceType
-                                                        };
+                                                        // Encontrar el key real del precio en el array original
+                                                        $priceKey = null;
+                                                        foreach($allPrices as $key => $value) {
+                                                            if ($value == $price) {
+                                                                // Si hay múltiples precios iguales, usar el primero que coincida con el tipo
+                                                                if ($usesNumericKeys) {
+                                                                    $expectedKey = match($priceType) {
+                                                                        'Regular' => 'p1',
+                                                                        'Crédito' => 'p2',
+                                                                        'Lista' => 'p3',
+                                                                        '3%' => 'p4',
+                                                                        '5%' => 'P5',
+                                                                        '7%' => 'p6',
+                                                                        default => null
+                                                                    };
+                                                                    if ($key === $expectedKey || ($expectedKey === 'P5' && $key === 'p5')) {
+                                                                        $priceKey = $key;
+                                                                        break;
+                                                                    }
+                                                                } else {
+                                                                    // Para estructura descriptiva, buscar coincidencia
+                                                                    $keyLower = strtolower($key);
+                                                                    $typeLower = strtolower($priceType);
+
+                                                                    if ($keyLower === $typeLower ||
+                                                                        str_contains($keyLower, $typeLower) ||
+                                                                        ($priceType === 'Regular' && str_contains($keyLower, 'regular')) ||
+                                                                        ($priceType === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
+                                                                        ($priceType === 'Lista' && str_contains($keyLower, 'lista'))) {
+                                                                        $priceKey = $key;
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Fallback: usar el priceType como key si no se encuentra
+                                                        $priceKey = $priceKey ?: $priceType;
 
                                                         $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
                                                     @endphp
