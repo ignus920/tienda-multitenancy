@@ -45,21 +45,22 @@
             </div>
 
             <!-- Programacion  -->
+            <div class="w-full sm:w-48">
                 @livewire('selects.generic-select', [
-                                            'selectedValue' => $selectedLabel['id'],
-                                            'items' => $this->labels,
-                                            'name' => 'selectedLabel.id',   
-                                            'placeholder' => 'Seleccionar',
-                                            'label' => '',
-                                            'required' => true,
-                                            'showLabel' => false,
-                                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400',
-                                            'eventName' => 'itemSelected',
-                                            'displayField' => 'name',
-                                            'valueField' => 'id',
-                                            <!-- 'searchFields' => ['name', 'sku'] -->
-                                        ], key('item-select-' . now()->timestamp))
-                 @error('selectedLabel.id') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                    'selectedValue' => null,
+                    'items' => $labels,
+                    'name' => 'selectedLabel',
+                    'placeholder' => 'Programación',
+                    'label' => '',
+                    'required' => false,
+                    'showLabel' => false,
+                    'class' => 'block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+                    'eventName' => 'labelSelected',
+                    'displayField' => 'name',
+                    'valueField' => 'id',
+                ], key('label-select-' . now()->timestamp))
+                @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+            </div>
 
             <!-- Per Page -->
             <select wire:model.live="perPage" 
