@@ -1160,7 +1160,7 @@ $header = 'Seleccionar productos';
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
                         </svg>
-                        Tipo de Entrega
+                        Tipo de Entrega y Método de Pago
                     </h3>
                 </div>
                 <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-500 transition-colors">
@@ -1185,6 +1185,32 @@ $header = 'Seleccionar productos';
                         @endforeach
                     </select>
                 </div>
+
+                <!-- Selección de Método de Pago -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Método de Pago <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="selectedMethodPayment"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base">
+                        <option value="">Selecciona un método de pago</option>
+                        @foreach($methodPayments as $method)
+                            <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Campo para especificar "Otro" tipo de entrega -->
+                @if($showOtherDeliveryInput)
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Especifica el tipo de entrega <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" wire:model="otherDeliveryDetails"
+                           placeholder="Ej: Envío por mensajería, Recogida personalizada, etc."
+                           class="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base">
+                </div>
+                @endif
 
                 <!-- Campo de Detalles (si es requerido) -->
                 @if($requiresDeliveryDetails)
