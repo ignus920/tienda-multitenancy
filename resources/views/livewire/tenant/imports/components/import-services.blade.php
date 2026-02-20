@@ -2,17 +2,30 @@
      x-data="{ 
          showLabelModal: false, 
          selectedLabel: null,
+         selectedLabelData: null,
+         selectedItemData: null,
          lastUpdate: null,
-         showUpdateNotification: false
+         showUpdateNotification: false,
+         showWarningNotification: false,
+         warningMessage: '',
+         showSuccessNotification: false,
+         successMessage: ''
      }"
      @quantity-updated.window="
-         console.log('🔔 Cantidad actualizada:', $event.detail);
+         console.log('Cantidad actualizada:', $event.detail);
          lastUpdate = $event.detail;
          showUpdateNotification = true;
          setTimeout(() => showUpdateNotification = false, 3000);
      "
      @item-selected.window="
-         console.log('🔔 Item seleccionado:', $event.detail);
+         console.log('Item seleccionado:', $event.detail);
+         selectedItemData = $event.detail[0];
+     "
+     @label-assigned.window="
+         console.log('Etiqueta asignada:', $event.detail);
+         successMessage = 'Etiqueta ' + $event.detail[0].labelName + ' asignada correctamente';
+         showSuccessNotification = true;
+         setTimeout(() => showSuccessNotification = false, 4000);
      ">
     <div class="max-w-12xl mx-auto">
         <!-- Notificación de actualización de cantidad -->
@@ -33,6 +46,56 @@
                 <template x-if="lastUpdate">
                     <span class="text-sm" x-text="'Item #' + lastUpdate.itemId + ': ' + lastUpdate.quantity"></span>
                 </template>
+            </div>
+        </div>
+
+        <!-- Notificación de advertencia (sin item seleccionado) -->
+        <div x-show="showWarningNotification"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed top-4 right-4 z-50 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg shadow-lg max-w-md"
+             style="display: none;">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div class="flex-1">
+                    <p class="font-medium text-sm" x-text="warningMessage"></p>
+                </div>
+                <button @click="showWarningNotification = false" class="flex-shrink-0 text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Notificación de éxito (etiqueta asignada) -->
+        <div x-show="showSuccessNotification"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed top-4 right-4 z-50 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-4 py-3 rounded-lg shadow-lg max-w-md"
+             style="display: none;">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1">
+                    <p class="font-medium text-sm" x-text="successMessage"></p>
+                </div>
+                <button @click="showSuccessNotification = false" class="flex-shrink-0 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
         </div>
 
@@ -142,12 +205,29 @@
                         $colors = $colorMap[$label->color] ?? $colorMap['blue'];
                     @endphp
                     <button
-                        @click="selectedLabel = {{ $label->id }}; showLabelModal = true"
+                        @click="
+                            if ({{ $selectedItemId ? 'true' : 'false' }}) {
+                                selectedLabel = {{ $label->id }};
+                                selectedLabelData = {
+                                    id: {{ $label->id }},
+                                    name: '{{ $label->name }}',
+                                    asap: {{ $label->asap ? 'true' : 'false' }},
+                                    estimated_date: '{{ $label->estimated_date ? $label->estimated_date->format('Y-m-d') : '' }}',
+                                    description: '{{ $label->description ?? '' }}'
+                                };
+                                showLabelModal = true;
+                            } else {
+                                warningMessage = 'Por favor, selecciona un item de la lista antes de asignar una etiqueta';
+                                showWarningNotification = true;
+                                setTimeout(() => showWarningNotification = false, 4000);
+                            }
+                        "
                         class="label-btn inline-flex items-center px-3 py-1.5 sm:px-5 sm:py-2 rounded-full 
                                text-xs sm:text-sm font-medium uppercase tracking-wide
                                bg-white dark:bg-gray-800 border-2 transition-all duration-200 ease-in-out
                                hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 
-                               dark:focus:ring-offset-gray-900 cursor-pointer"
+                               dark:focus:ring-offset-gray-900 cursor-pointer
+                               {{ $selectedItemId ? '' : 'opacity-60' }}"
                         style="border-color: {{ $colors['light'] }}; color: {{ $colors['light'] }};"
                         data-light-color="{{ $colors['light'] }}"
                         data-dark-color="{{ $colors['dark'] }}">
@@ -341,89 +421,107 @@
 
                     <!-- Modal Body -->
                     <div class="mt-4">
-                        <template x-if="selectedLabel">
+                        <template x-if="selectedLabelData && selectedItemData">
                             <div class="space-y-4">
-                                @foreach($labels as $label)
-                                    @php
-                                        $colorMap = [
-                                            'blue' => ['light' => '#3b82f6', 'dark' => '#60a5fa'],
-                                            'red' => ['light' => '#ef4444', 'dark' => '#f87171'],
-                                            'green' => ['light' => '#10b981', 'dark' => '#34d399'],
-                                            'yellow' => ['light' => '#f59e0b', 'dark' => '#fbbf24'],
-                                            'purple' => ['light' => '#a855f7', 'dark' => '#c084fc'],
-                                            'pink' => ['light' => '#ec4899', 'dark' => '#f472b6'],
-                                            'indigo' => ['light' => '#6366f1', 'dark' => '#818cf8'],
-                                            'gray' => ['light' => '#6b7280', 'dark' => '#9ca3af'],
-                                            'emerald' => ['light' => '#10b981', 'dark' => '#34d399'],
-                                            'cyan' => ['light' => '#06b6d4', 'dark' => '#22d3ee'],
-                                            'orange' => ['light' => '#f97316', 'dark' => '#fb923c'],
-                                        ];
-                                        $colors = $colorMap[$label->color] ?? $colorMap['blue'];
-                                    @endphp
-                                    <div x-show="selectedLabel === {{ $label->id }}" class="space-y-4">
-                                        <!-- Etiqueta Preview -->
-                                        <div class="flex items-center justify-center py-4">
-                                            <span class="label-preview inline-flex items-center px-6 py-2 sm:px-8 sm:py-3 rounded-full 
-                                                         text-base sm:text-lg font-semibold uppercase tracking-wide
-                                                         bg-white dark:bg-gray-800 border-2"
-                                                  style="border-color: {{ $colors['light'] }}; color: {{ $colors['light'] }};"
-                                                  data-light-color="{{ $colors['light'] }}"
-                                                  data-dark-color="{{ $colors['dark'] }}">
-                                                {{ $label->name }}
-                                            </span>
-                                        </div>
+                                <!-- Etiqueta Preview -->
+                                <div class="flex items-center justify-center py-4">
+                                    <span class="inline-flex items-center px-6 py-2 sm:px-8 sm:py-3 rounded-full 
+                                                 text-base sm:text-lg font-semibold uppercase tracking-wide
+                                                 bg-indigo-100 dark:bg-indigo-900/30 
+                                                 text-indigo-800 dark:text-indigo-200
+                                                 border-2 border-indigo-300 dark:border-indigo-700"
+                                          x-text="selectedLabelData.name">
+                                    </span>
+                                </div>
 
-                                        <!-- Información de la etiqueta -->
-                                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-3">
-                                            <div>
-                                                <label class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Nombre</label>
-                                                <p class="text-sm sm:text-base text-gray-900 dark:text-white mt-1">{{ $label->name }}</p>
-                                            </div>
-                                            <div>
-                                                <label class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Color</label>
-                                                <p class="text-sm sm:text-base text-gray-900 dark:text-white mt-1 capitalize">{{ $label->color }}</p>
-                                            </div>
-                                            @if(isset($label->description))
-                                            <div>
-                                                <label class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Descripción</label>
-                                                <p class="text-sm sm:text-base text-gray-900 dark:text-white mt-1">{{ $label->description }}</p>
-                                            </div>
-                                            @endif
+                                <!-- Información del item seleccionado -->
+                                <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+                                    <h4 class="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                                        </svg>
+                                        Item a etiquetar
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="text-xs font-medium text-indigo-700 dark:text-indigo-300">ID</label>
+                                            <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100" x-text="selectedItemData.itemId"></p>
                                         </div>
-
-                                        <!-- Acciones -->
-                                        <div class="flex flex-col sm:flex-row gap-2 pt-2">
-                                            <button
-                                                type="button"
-                                                class="flex-1 inline-flex items-center justify-center px-4 py-2 
-                                                       bg-yellow-100 dark:bg-yellow-900/30 
-                                                       text-yellow-800 dark:text-yellow-300 
-                                                       text-sm font-medium rounded-lg 
-                                                       hover:bg-yellow-200 dark:hover:bg-yellow-900/50 
-                                                       transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                </svg>
-                                                Editar
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="flex-1 inline-flex items-center justify-center px-4 py-2 
-                                                       bg-red-100 dark:bg-red-900/30 
-                                                       text-red-800 dark:text-red-300 
-                                                       text-sm font-medium rounded-lg 
-                                                       hover:bg-red-200 dark:hover:bg-red-900/50 
-                                                       transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                </svg>
-                                                Eliminar
-                                            </button>
+                                        <div>
+                                            <label class="text-xs font-medium text-indigo-700 dark:text-indigo-300">SKU</label>
+                                            <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100" x-text="selectedItemData.sku || 'N/A'"></p>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-medium text-indigo-700 dark:text-indigo-300">Nombre</label>
+                                            <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100" x-text="selectedItemData.name || 'N/A'"></p>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-medium text-indigo-700 dark:text-indigo-300">Cantidad</label>
+                                            <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100" x-text="selectedItemData.quantity"></p>
                                         </div>
                                     </div>
-                                @endforeach
+                                </div>
+
+                                <!-- Información de la etiqueta -->
+                                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-3">
+                                    <div>
+                                        <label class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Nombre de Programación</label>
+                                        <p class="text-sm sm:text-base text-gray-900 dark:text-white mt-1" x-text="selectedLabelData.name"></p>
+                                    </div>
+                                    <div>
+                                          <label class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Fecha estimada</label>
+                                           <p class="text-sm sm:text-base text-gray-900 dark:text-white mt-1" x-text="selectedLabelData.estimated_date || 'N/A'"></p>
+                                    </div>
+                                    
+                                    <template x-if="selectedLabelData.description">
+                                        <div>
+                                            <label class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Descripción</label>
+                                            <p class="text-sm sm:text-base text-gray-900 dark:text-white mt-1" x-text="selectedLabelData.description"></p>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- Mensaje de advertencia cuando cantidad es cero -->
+                                <template x-if="selectedItemData.quantity == 0">
+                                    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                                        <div class="flex items-start gap-2">
+                                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                            </svg>
+                                            <div class="flex-1">
+                                                <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                                                    No se puede asignar programación
+                                                </p>
+                                                <p class="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                                                    La cantidad del item debe ser mayor a cero para poder asignar una programación.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Botón de asignar etiqueta -->
+                                <div class="pt-2">
+                                    <button
+                                        type="button"
+                                        @click="
+                                            $wire.assignLabelToItem(selectedLabelData.id, selectedLabelData.name);
+                                            showLabelModal = false;
+                                        "
+                                        :disabled="selectedItemData.quantity == 0"
+                                        :class="selectedItemData.quantity == 0 ? 'opacity-50 cursor-not-allowed bg-gray-400 dark:bg-gray-600' : 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 hover:shadow-md'"
+                                        class="w-full inline-flex items-center justify-center px-4 py-3 
+                                               text-white text-sm font-semibold rounded-lg 
+                                               shadow-sm
+                                               transition-all duration-200
+                                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M7 7h.01M3 11l8.586 8.586a2 2 0 002.828 0l6.172-6.172a2 2 0 000-2.828L12 3H5a2 2 0 00-2 2v6z"/>
+                                        </svg>
+                                        Asignar Programación
+                                    </button>
+                                </div>
                             </div>
                         </template>
                     </div>
@@ -451,6 +549,28 @@
     <!-- Script para manejar colores dinámicos en modo oscuro -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Mapa de colores
+            window.colorMap = {
+                'blue': { light: '#3b82f6', dark: '#60a5fa' },
+                'red': { light: '#ef4444', dark: '#f87171' },
+                'green': { light: '#10b981', dark: '#34d399' },
+                'yellow': { light: '#f59e0b', dark: '#fbbf24' },
+                'purple': { light: '#a855f7', dark: '#c084fc' },
+                'pink': { light: '#ec4899', dark: '#f472b6' },
+                'indigo': { light: '#6366f1', dark: '#818cf8' },
+                'gray': { light: '#6b7280', dark: '#9ca3af' },
+                'emerald': { light: '#10b981', dark: '#34d399' },
+                'cyan': { light: '#06b6d4', dark: '#22d3ee' },
+                'orange': { light: '#f97316', dark: '#fb923c' }
+            };
+
+            // Función para obtener color según el modo
+            window.getColorForLabel = function(colorName, isDark) {
+                const colors = window.colorMap[colorName] || window.colorMap['blue'];
+                const mode = isDark || document.documentElement.classList.contains('dark');
+                return mode ? colors.dark : colors.light;
+            };
+
             function updateLabelColors() {
                 const isDark = document.documentElement.classList.contains('dark');
                 

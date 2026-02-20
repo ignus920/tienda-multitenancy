@@ -130,6 +130,76 @@ class ImportServices extends Component
         // Por ejemplo: actualizar cálculos, mostrar notificaciones, etc.
     }
 
+    /**
+     * Asignar etiqueta a un item
+     * Los datos del item y la etiqueta se pasan desde el componente hijo
+     */
+    /**
+     * Asignar etiqueta a un item
+     * Los datos del item y la etiqueta se pasan desde el componente hijo
+     */
+    public function assignLabelToItem($labelId, $labelName)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            // Validar que hay un item seleccionado
+            if (!$this->selectedItemId) {
+                session()->flash('error', 'No hay un item seleccionado');
+                return;
+            }
+
+            // Buscar el registro en imp_items_setup para obtener el precio
+            $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $this->selectedItemId)->first();
+
+            // Buscar el registro en inv_unconfirmed_qty para obtener la cantidad
+            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $this->selectedItemId)->first();
+            
+            if (!$unconfirmedQty) {
+                session()->flash('error', 'No se encontró la cantidad no confirmada para este item');
+                return;
+            }
+
+            // Crear registro en imp_imports
+            \App\Models\Tenant\Imports\ImpImports::create([
+                'item_id' => $this->selectedItemId,
+                'user_id' => auth()->id(),
+                'label_id' => $labelId,
+                'qty_requested' => 0,
+                'qty_shipped' => $unconfirmedQty->qty,
+                'price' => $itemSetup ? ($itemSetup->exw ?? 0) : 0,
+                'status' => 1,
+                'shipping_id' => null,
+            ]);
+
+            Log::info('=== ETIQUETA ASIGNADA Y REGISTRO CREADO ===');
+            Log::info('Item ID: ' . $this->selectedItemId);
+            Log::info('Item SKU: ' . ($this->selectedItemData['sku'] ?? 'N/A'));
+            Log::info('Label ID: ' . $labelId);
+            Log::info('Label Name: ' . $labelName);
+            Log::info('qty_shipped: ' . $unconfirmedQty->qty);
+            Log::info('price: ' . ($itemSetup ? ($itemSetup->exw ?? 0) : 0));
+            Log::info('=== FIN REGISTRO ===');
+
+            // Emitir evento para mostrar notificación de éxito
+            $this->dispatch('label-assigned', [
+                'itemId' => $this->selectedItemId,
+                'itemSku' => $this->selectedItemData['sku'] ?? 'N/A',
+                'labelId' => $labelId,
+                'labelName' => $labelName
+            ]);
+
+            session()->flash('success', "Programación '{$labelName}' asignada correctamente al item {$this->selectedItemData['sku']}");
+
+        } catch (\Exception $e) {
+            Log::error('Error al asignar etiqueta: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            session()->flash('error', 'Error al asignar la programación: ' . $e->getMessage());
+        }
+    }
+
+
     public function render()
     {
           $labels = $this->labels; 
