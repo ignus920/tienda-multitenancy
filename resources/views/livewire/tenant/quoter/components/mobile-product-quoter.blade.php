@@ -85,7 +85,7 @@ $header = 'Seleccionar productos';
                 </div>
 
                 <!-- Filtro de Categorías -->
-                <div class="w-30">
+                <div class="flex-1">
                     <select wire:model.live="selectedCategory"
                         class="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="">Todas las categorías</option>
@@ -94,22 +94,143 @@ $header = 'Seleccionar productos';
                         @endforeach
                     </select>
                 </div>
+
+                <!-- Alternar modo de vista -->
+                <button wire:click="toggleViewMode"
+                        class="flex items-center justify-center w-12 h-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    @if($viewMode === 'grid')
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    @else
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                    @endif
+                </button>
             </div>
 
         </div>
     </div>
 
-    <!-- Lista de productos en Grid de 2 columnas -->
-    <div class="px-4 py-4 grid grid-cols-2 gap-4">
+    <!-- Lista de productos -->
+    @if($viewMode === 'grid')
+        <!-- Modo Grid (2 columnas) -->
+        <div class="px-4 py-4 grid grid-cols-2 gap-4">
+    @else
+        <!-- Modo Lista (tabla mobile) -->
+        <div class="px-4 py-4 space-y-3">
+    @endif
         @forelse($products as $product)
         @php
         $quantity = $this->getProductQuantity($product->id);
         $isSelected = $quantity > 0;
         @endphp
 
-        <div @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
-            class="relative flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 shadow-sm
-                        {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[1.02]' : 'hover:border-indigo-300' }}">
+        @if($viewMode === 'grid')
+            <!-- Modo Grid (actual) -->
+            <div @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
+                class="relative flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 shadow-sm
+                            {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[1.02]' : 'hover:border-indigo-300' }}">
+        @else
+            <!-- Modo Lista (tabla mobile) -->
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4
+                        {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-indigo-300' }} transition-all">
+                <div class="flex items-center space-x-4">
+                    <!-- Imagen pequeña -->
+                    <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                        @if($product->principalImage)
+                            <img class="w-full h-full object-cover" src="{{ $product->principalImage->getImageUrl() }}" alt="{{ $product->display_name }}">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center">
+                                <span class="text-lg font-bold text-gray-400 dark:text-gray-500">
+                                    {{ strtoupper(substr($product->name, 0, 1)) }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Información del producto -->
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {{ $product->display_name }}
+                        </h3>
+                        @if($product->sku)
+                            <p class="text-xs text-gray-500 dark:text-gray-400">SKU: {{ $product->sku }}</p>
+                        @endif
+
+                        <!-- Stock -->
+                        @if($product->store_stock_details)
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                @foreach(explode(', ', $product->store_stock_details) as $storeDetail)
+                                    @php
+                                        $parts = explode(':', $storeDetail);
+                                        $storeName = $parts[0] ?? '';
+                                        $stock = $parts[1] ?? '0';
+                                    @endphp
+                                    @if($storeName)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                                            {{ $stock > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                                                         : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' }}">
+                                            {{ $storeName }}: {{ $stock }}
+                                        </span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($quantity > 0)
+                            <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mt-1">Cantidad: {{ $quantity }}</p>
+                        @endif
+                    </div>
+
+                    <!-- Cantidad badge -->
+                    @if($quantity > 0)
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white text-sm font-bold rounded-full">
+                                {{ $quantity }}
+                            </span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Precios y acciones -->
+                @php
+                $allPrices = $product->all_prices;
+                @endphp
+                @if(!empty($allPrices))
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        @foreach($allPrices as $label => $price)
+                            @php
+                                $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
+                            @endphp
+                            <button
+                                wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                wire:loading.attr="disabled"
+                                wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors
+                                    {{ $isThisPriceSelected
+                                        ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                                    }}">
+                                <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
+                                    <div class="font-medium">{{ $label === 'Precio Regular' ? 'Regular' : ($label === 'Precio Crédito' ? 'Crédito' : $label) }}</div>
+                                    <div class="font-bold">${{ number_format($price) }}</div>
+                                </div>
+                                <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="text-center">
+                                    <svg class="w-4 h-4 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                            </button>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="mt-3 text-center text-gray-400 text-sm">Sin precios disponibles</div>
+                @endif
+            </div>
+        @endif
 
             <!-- Imagen del producto (Arriba) -->
             <div class="aspect-square w-full relative bg-gray-100 dark:bg-gray-700">
@@ -286,23 +407,40 @@ $header = 'Seleccionar productos';
                             </div>
                         </div>
                     @endif
+                    </div>
                 </div>
             </div>
-        </div>
+
         @empty
-        <div class="col-span-2 text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay productos</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                @if($search)
-                No se encontraron productos que coincidan con "{{ $search }}".
-                @else
-                No hay productos disponibles en este momento.
-                @endif
-            </p>
-        </div>
+            @if($viewMode === 'grid')
+                <div class="col-span-2 text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay productos</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        @if($search)
+                        No se encontraron productos que coincidan con "{{ $search }}".
+                        @else
+                        No hay productos disponibles en este momento.
+                        @endif
+                    </p>
+                </div>
+            @else
+                <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay productos</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        @if($search)
+                        No se encontraron productos que coincidan con "{{ $search }}".
+                        @else
+                        No hay productos disponibles en este momento.
+                        @endif
+                    </p>
+                </div>
+            @endif
         @endforelse
     </div>
 
@@ -1022,7 +1160,7 @@ $header = 'Seleccionar productos';
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
                         </svg>
-                        Tipo de Entrega
+                        Tipo de Entrega y Método de Pago
                     </h3>
                 </div>
                 <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-500 transition-colors">
@@ -1047,6 +1185,32 @@ $header = 'Seleccionar productos';
                         @endforeach
                     </select>
                 </div>
+
+                <!-- Selección de Método de Pago -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Método de Pago <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="selectedMethodPayment"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base">
+                        <option value="">Selecciona un método de pago</option>
+                        @foreach($methodPayments as $method)
+                            <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Campo para especificar "Otro" tipo de entrega -->
+                @if($showOtherDeliveryInput)
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Especifica el tipo de entrega <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" wire:model="otherDeliveryDetails"
+                           placeholder="Ej: Envío por mensajería, Recogida personalizada, etc."
+                           class="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base">
+                </div>
+                @endif
 
                 <!-- Campo de Detalles (si es requerido) -->
                 @if($requiresDeliveryDetails)

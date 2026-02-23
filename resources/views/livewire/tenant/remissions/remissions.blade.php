@@ -141,7 +141,7 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center space-x-1">
-                                <span>TIPO ENTREGA</span>
+                                <span>ENTREGA Y PAGO</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
                                 </svg>
@@ -203,14 +203,48 @@
                                     <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->identification }}</small>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                @if($remission->deliveryTypeModel)
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                        {{ $remission->deliveryTypeModel->name }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-400 dark:text-gray-500 text-xs">Sin tipo</span>
-                                @endif
+                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
+                                <div class="space-y-1">
+                                    {{-- Tipo de Entrega --}}
+                                    <div class="flex items-center">
+                                        <svg class="w-3 h-3 text-blue-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                                        </svg>
+                                        @if($remission->deliveryTypeModel)
+                                            <span class="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                                {{ $remission->deliveryTypeModel->name }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 dark:text-gray-500 text-xs">Sin tipo</span>
+                                        @endif
+                                    </div>
+
+                                    {{-- Método de Pago --}}
+                                    <div class="flex items-center">
+                                        <svg class="w-3 h-3 text-green-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                        </svg>
+                                        @if($remission->methodPayment)
+                                            <span class="text-xs font-medium text-green-700 dark:text-green-300">
+                                                {{ $remission->methodPayment->name }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 dark:text-gray-500 text-xs">Sin método</span>
+                                        @endif
+                                    </div>
+
+                                    {{-- Observaciones si es tipo "Otro" --}}
+                                    @if($remission->deliveryTypeModel && strtolower($remission->deliveryTypeModel->name) === 'otro' && !empty($remission->observations_return))
+                                    <div class="flex items-start mt-1">
+                                        <svg class="w-3 h-3 text-amber-500 mr-1.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="text-xs text-amber-700 dark:text-amber-400 italic">
+                                            {{ $remission->observations_return }}
+                                        </span>
+                                    </div>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white font-medium">
                                 @php
@@ -425,6 +459,20 @@
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Fecha Entrega:</span>
                                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['delivery_date_formatted'] }}</span>
                                     </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Tipo Entrega:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['delivery_type_model']['name'] ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Método Pago:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['method_payment']['name'] ?? 'N/A' }}</span>
+                                    </div>
+                                    @if(!empty($selectedRemission['observations_return']) && isset($selectedRemission['delivery_type_model']['name']) && strtolower($selectedRemission['delivery_type_model']['name']) === 'otro')
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Observaciones:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white italic">{{ $selectedRemission['observations_return'] }}</span>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>

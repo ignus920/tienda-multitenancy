@@ -98,6 +98,15 @@ class ProductQuoter extends Component
     public $showDeliveryModal = false;
     public $requiresDeliveryDetails = false;
 
+    // Propiedades para métodos de pago en remisión
+    public $methodPayments = [];
+    public $selectedMethodPayment = null;
+    public $showOtherDeliveryInput = false;
+    public $otherDeliveryDetails = '';
+
+    // Propiedad para controlar el modo de vista de productos
+    public $viewMode = 'grid'; // 'grid' (actual) o 'table' (nuevo)
+
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
         'vnt-company-saved' => 'onCustomerCreated',
@@ -256,6 +265,7 @@ class ProductQuoter extends Component
 
         $this->calculateTotal();
         $this->loadDeliveryTypes();
+        $this->loadMethodPayments();
 
         Log::info('🚀 ProductQuoter montado', [
             'viewType' => $this->viewType,
@@ -347,12 +357,15 @@ class ProductQuoter extends Component
                 ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->where('inv_items_store.stock_items_store', '>=', 0) // Mostrar todas las bodegas, incluyendo stock 0
                 ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('inv_items.name', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.description', 'like', '%' . $this->search . '%');
-                    });
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inv_items.name', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.description', 'like', '%' . $word . '%');
+                        });
+                    }
                 })
                 ->when($this->selectedCategory, function ($query) {
                     $query->where('inv_items.categoryId', $this->selectedCategory);
@@ -1572,6 +1585,34 @@ class ProductQuoter extends Component
     }
 
     /**
+     * Cargar métodos de pago activos
+     */
+    public function loadMethodPayments()
+    {
+        $this->ensureTenantConnection();
+        try {
+            $methods = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
+                ->where('status', 1)
+                ->get();
+
+            // Convertir a array para evitar problemas de serialización de Livewire
+            $this->methodPayments = $methods->map(function ($method) {
+                return [
+                    'id' => $method->id,
+                    'name' => $method->name,
+                    'description' => $method->description,
+                    'type' => $method->type,
+                    'method' => $method->method,
+                    'bank' => $method->bank
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error cargando métodos de pago: ' . $e->getMessage());
+            $this->methodPayments = [];
+        }
+    }
+
+    /**
      * Cuando se selecciona un tipo de entrega
      */
     public function updatedSelectedDeliveryType($value)
@@ -1581,12 +1622,20 @@ class ProductQuoter extends Component
             $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $value);
             $this->requiresDeliveryDetails = $deliveryType ? $deliveryType['ask_details'] : false;
 
+            // Verificar si el tipo de entrega es "Otro" para mostrar campo adicional
+            $this->showOtherDeliveryInput = $deliveryType && strtolower($deliveryType['name']) === 'otro';
+
             if (!$this->requiresDeliveryDetails) {
                 $this->deliveryDetails = '';
+            }
+            if (!$this->showOtherDeliveryInput) {
+                $this->otherDeliveryDetails = '';
             }
         } else {
             $this->requiresDeliveryDetails = false;
             $this->deliveryDetails = '';
+            $this->showOtherDeliveryInput = false;
+            $this->otherDeliveryDetails = '';
         }
     }
 
@@ -1603,6 +1652,14 @@ class ProductQuoter extends Component
             return;
         }
 
+        if (!$this->selectedMethodPayment) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes seleccionar un método de pago'
+            ]);
+            return;
+        }
+
         // Buscar en el array de tipos
         $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $this->selectedDeliveryType);
 
@@ -1610,6 +1667,15 @@ class ProductQuoter extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Este tipo de entrega requiere detalles adicionales'
+            ]);
+            return;
+        }
+
+        // Validar campo "otro" tipo de entrega si está visible
+        if ($this->showOtherDeliveryInput && empty(trim($this->otherDeliveryDetails))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes especificar cuál es el otro tipo de entrega'
             ]);
             return;
         }
@@ -1662,19 +1728,25 @@ class ProductQuoter extends Component
             $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
 
-            // Crear Remisión con tipo de entrega
+            // Determinar las observaciones de retorno
+            $observationsReturn = $this->deliveryDetails;
+            if ($this->showOtherDeliveryInput && !empty($this->otherDeliveryDetails)) {
+                $observationsReturn = $this->otherDeliveryDetails;
+            }
+
+            // Crear Remisión con tipo de entrega y método de pago
             $remission = InvRemissions::create([
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'quoteId' => $quote->id,
                 'warehouseId' => $quote->warehouseId,
-                'deliveryTypeId' => $this->selectedDeliveryType, // Nuevo: tipo de entrega
-                'methodPaymentId' => 1, // Por defecto efectivo
+                'deliveryTypeId' => $this->selectedDeliveryType,
+                'methodPaymentId' => $this->selectedMethodPayment,
                 'userId' => auth()->id(),
                 'deliveryDate' => now()->format('Y-m-d'),
                 'expiration' => 0,
                 'modify' => 0,
-                'observations_return' => $this->deliveryDetails // Nuevo: detalles de entrega
+                'observations_return' => $observationsReturn
             ]);
 
             // Crear detalles de la remisión y actualizar stock
@@ -1730,6 +1802,17 @@ class ProductQuoter extends Component
         $this->selectedDeliveryType = null;
         $this->deliveryDetails = '';
         $this->requiresDeliveryDetails = false;
+        $this->selectedMethodPayment = null;
+        $this->showOtherDeliveryInput = false;
+        $this->otherDeliveryDetails = '';
+    }
+
+    /**
+     * Alternar entre modo grid y tabla
+     */
+    public function toggleViewMode()
+    {
+        $this->viewMode = $this->viewMode === 'grid' ? 'table' : 'grid';
     }
 
     public function invoiceOrder()

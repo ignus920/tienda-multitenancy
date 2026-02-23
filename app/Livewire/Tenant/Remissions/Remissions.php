@@ -493,7 +493,9 @@ class Remissions extends Component
             'quote.warehouse',
             'quote.branch',
             'details.item',
-            'store'
+            'store',
+            'deliveryTypeModel',
+            'methodPayment'
         ])->find($id);
 
         if ($remission) {
@@ -880,7 +882,7 @@ class Remissions extends Component
         ]);
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel'])
+        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment'])
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
                 $query->where('warehouseId', $storeId);

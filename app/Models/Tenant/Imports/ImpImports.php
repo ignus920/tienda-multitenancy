@@ -3,11 +3,12 @@
 namespace App\Models\Tenant\Imports;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class ImpItemsSetup extends Model
+class ImpImports extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The database connection that should be used by the model.
@@ -21,7 +22,7 @@ class ImpItemsSetup extends Model
      *
      * @var string
      */
-    protected $table = 'imp_items_setup';
+    protected $table = 'imp_imports';
 
     /**
      * The primary key for the model.
@@ -37,16 +38,14 @@ class ImpItemsSetup extends Model
      */
     protected $fillable = [
         'item_id',
-        'percentage',
-        'cantidad_min',
-        'supplier_id',
-        'factory_ref',
-        'exw',
-        'purchase_unit',
-        'freight_increase',
-        'pvp_factor',
-        'pvp_min_factor',
+        'user_id',
         'label_id',
+        'qty_requested',
+        'qty_shipped',
+        'price',
+        'status',
+        'shipping_id',
+        'news',
     ];
 
     /**
@@ -56,14 +55,17 @@ class ImpItemsSetup extends Model
      */
     protected $casts = [
         'item_id' => 'integer',
-        'percentage' => 'double',
-        'supplier_id' => 'integer',
-        'factory_ref' => 'string',
-        'exw' => 'double',
-        'purchase_unit' => 'integer',
-        'freight_increase' => 'double',
-        'pvp_factor' => 'double',
-        'pvp_min_factor' => 'double',
+        'user_id' => 'integer',
+        'label_id' => 'integer',
+        'qty_requested' => 'integer',
+        'qty_shipped' => 'integer',
+        'price' => 'double',
+        'status' => 'integer',
+        'shipping_id' => 'integer',
+        'news' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**
@@ -72,5 +74,21 @@ class ImpItemsSetup extends Model
     public function item()
     {
         return $this->belongsTo(\App\Models\Tenant\Items\Items::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con el usuario
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\Auth\User::class, 'user_id', 'id');
+    }
+
+    /**
+     * Relación con la etiqueta
+     */
+    public function label()
+    {
+        return $this->belongsTo(ImpLabels::class, 'label_id', 'id');
     }
 }

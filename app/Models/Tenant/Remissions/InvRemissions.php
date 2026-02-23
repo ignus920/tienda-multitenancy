@@ -118,6 +118,14 @@ class InvRemissions extends Model
     }
 
     /**
+     * Relación con el método de pago
+     */
+    public function methodPayment()
+    {
+        return $this->belongsTo(\App\Models\Tenant\MethodPayments\VntMethodPayMents::class, 'methodPaymentId', 'id');
+    }
+
+    /**
      * Getters para compatibilidad con las vistas de impresión del cotizador
      */
     public function getDetallesAttribute()

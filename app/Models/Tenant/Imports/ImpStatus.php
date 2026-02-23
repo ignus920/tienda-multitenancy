@@ -4,13 +4,38 @@ namespace App\Models\Tenant\Imports;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ImpStatus extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $connection = "tenant";
+    /**
+     * The database connection that should be used by the model.
+     *
+     * @var string
+     */
+    protected $connection = 'tenant';
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'imp_status';
+
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'id';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'translated_name',
@@ -18,18 +43,20 @@ class ImpStatus extends Model
         'function',
         'supplier',
         'edition',
-        'created_at',
-        'updated_at'
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
-        'name' => 'string',
-        'translated_name' => 'string',
-        'in_progress' => 'integer',
+        'in_progress' => 'boolean',
         'function' => 'string',
-        'supplier' => 'integer',
-        'edition' => 'integer',
+        'supplier' => 'boolean',
+        'edition' => 'boolean',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 }
