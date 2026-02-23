@@ -168,11 +168,16 @@
                                 
                                 <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 2) }}</div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
-                                <input type="number" min="0" step="1" value="{{ $item->quantity ?? 0 }}"
-                                    wire:change="updateQuantity({{ $item->id }}, $event.target.value)"
-                                    class="block w-24 px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" placeholder="0">
-                            </td>
+                           <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+    <input type="number" min="0" step="1" value="{{ $item->quantity ?? 0 }}"
+        @click="$wire.selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+        @change="
+            $wire.updateQuantity({{ $item->id }}, $event.target.value);
+            $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
+        "
+        class="block w-24 px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" 
+        placeholder="0">
+</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $item->percentage ?? 0 }}%</td>
                             <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-red-600 dark:text-red-400">{{ number_format($item->outsideMovement ?? 0, 2) }}</div></td>
                             <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-green-600 dark:text-green-400">{{ number_format($item->insideMovement ?? 0, 2) }}</div></td>
@@ -251,20 +256,26 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700" onclick="event.stopPropagation()">
-                    <div class="flex-1">
-                        <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Cantidad</label>
-                        <input type="number" min="0" step="1" value="{{ $item->quantity ?? 0 }}"
-                            wire:change="updateQuantity({{ $item->id }}, $event.target.value)"
-                            class="block w-full px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" placeholder="0">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">EXW</label>
-                        <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white">${{ number_format($item->exw ?? 0, 2) }}</p>
-                        </div>
-                    </div>
-                </div>
+             <div class="flex items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700" onclick="event.stopPropagation()">
+    <div class="flex-1">
+        <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Cantidad</label>
+        <input type="number" min="0" step="1" value="{{ $item->quantity ?? 0 }}"
+            @click="$wire.selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+            @change="
+                $wire.updateQuantity({{ $item->id }}, $event.target.value);
+                $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
+            "
+            class="block w-full px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" 
+            placeholder="0">
+    </div>
+    <div class="flex-1">
+        <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">EXW</label>
+        <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">${{ number_format($item->exw ?? 0, 2) }}</p>
+        </div>
+    </div>
+</div>
+
 
                 <div class="absolute top-2 right-2">
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">

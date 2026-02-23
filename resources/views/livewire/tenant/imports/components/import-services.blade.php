@@ -9,7 +9,8 @@
          showWarningNotification: false,
          warningMessage: '',
          showSuccessNotification: false,
-         successMessage: ''
+         successMessage: '',
+         selectedLabelId: null
      }"
      @quantity-updated.window="
          console.log('Cantidad actualizada:', $event.detail);
@@ -26,6 +27,33 @@
          successMessage = 'Etiqueta ' + $event.detail[0].labelName + ' asignada correctamente';
          showSuccessNotification = true;
          setTimeout(() => showSuccessNotification = false, 4000);
+     "
+     @quantity-input-clicked.window="
+         console.log('Input de cantidad clickeado:', $event.detail);
+         if (selectedLabelId) {
+             const btn = document.querySelector('[data-label-id=\'' + selectedLabelId + '\']');
+             const labelName = btn ? btn.getAttribute('data-label-name') : '';
+             
+             // Llamar directamente al método Livewire del componente import-services
+             const importServicesComponent = Livewire.find(document.querySelector('[wire\\\\:id]').getAttribute('wire:id'));
+             if (importServicesComponent) {
+                 importServicesComponent.call('assignLabelToItemById', $event.detail.itemId, selectedLabelId, labelName);
+             }
+         }
+     "
+     @quantity-input-changed.window="
+         console.log('Input de cantidad cambiado:', $event.detail);
+         if (selectedLabelId) {
+             const btn = document.querySelector('[data-label-id=\'' + selectedLabelId + '\']');
+             const labelName = btn ? btn.getAttribute('data-label-name') : '';
+             
+             // Llamar directamente al método Livewire del componente import-services
+             const importServicesComponent = Livewire.find(document.querySelector('[wire\\\\:id]').getAttribute('wire:id'));
+             if (importServicesComponent) {
+                 importServicesComponent.call('assignLabelToItemById', $event.detail.itemId, selectedLabelId, labelName);
+                 selectedLabelId = null;
+             }
+         }
      ">
     <div class="max-w-12xl mx-auto">
         <!-- Notificación de actualización de cantidad -->
@@ -205,33 +233,19 @@
                         $colors = $colorMap[$label->color] ?? $colorMap['blue'];
                     @endphp
                     <button
-                        @click="
-                            if ({{ $selectedItemId ? 'true' : 'false' }}) {
-                                selectedLabel = {{ $label->id }};
-                                selectedLabelData = {
-                                    id: {{ $label->id }},
-                                    name: '{{ $label->name }}',
-                                    asap: {{ $label->asap ? 'true' : 'false' }},
-                                    estimated_date: '{{ $label->estimated_date ? $label->estimated_date->format('Y-m-d') : '' }}',
-                                    description: '{{ $label->description ?? '' }}'
-                                };
-                                showLabelModal = true;
-                            } else {
-                                warningMessage = 'Por favor, selecciona un item de la lista antes de asignar una etiqueta';
-                                showWarningNotification = true;
-                                setTimeout(() => showWarningNotification = false, 4000);
-                            }
-                        "
+                        @click="selectedLabelId = {{ $label->id }}"
                         class="label-btn inline-flex items-center px-3 py-1.5 sm:px-5 sm:py-2 rounded-full 
                                text-xs sm:text-sm font-medium uppercase tracking-wide
                                bg-white dark:bg-gray-800 border-2 transition-all duration-200 ease-in-out
                                hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 
-                               dark:focus:ring-offset-gray-900 cursor-pointer
-                               {{ $selectedItemId ? '' : 'opacity-60' }}"
+                               dark:focus:ring-offset-gray-900 cursor-pointer"
+                        :class="selectedLabelId === {{ $label->id }} ? 'ring-4 ring-offset-2 !scale-110 shadow-lg' : ''"
                         style="border-color: {{ $colors['light'] }}; color: {{ $colors['light'] }};"
                         data-light-color="{{ $colors['light'] }}"
-                        data-dark-color="{{ $colors['dark'] }}">
-                        {{ $label->name }}
+                        data-dark-color="{{ $colors['dark'] }}"
+                        data-label-id="{{ $label->id }}"
+                        data-label-name="{{ $label->name }}">
+                         {{ $label->name }}
                     </button>
                 @empty
                     <div class="flex flex-col items-center justify-center w-full py-6 sm:py-8">
@@ -245,6 +259,45 @@
                     </div>
                 @endforelse
             </div>
+
+            <!-- Botón de Asignar Programación (aparece cuando se selecciona una etiqueta) -->
+            <div x-show="selectedLabelId !== null" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 style="display: none;"
+                 class="mt-4 flex justify-center">
+                <button
+                    @click="
+                        if ({{ $selectedItemId ? 'true' : 'false' }}) {
+                            const btn = document.querySelector('[data-label-id=\'' + selectedLabelId + '\']');
+                            const labelName = btn ? btn.getAttribute('data-label-name') : '';
+                            $wire.assignLabelToItem(selectedLabelId, labelName);
+                            selectedLabelId = null;
+                        } else {
+                            warningMessage = 'Por favor, selecciona un item de la lista antes de asignar una etiqueta';
+                            showWarningNotification = true;
+                            setTimeout(() => showWarningNotification = false, 4000);
+                        }
+                    "
+                    class="inline-flex items-center px-6 py-3 
+                           bg-indigo-600 hover:bg-indigo-700 
+                           dark:bg-indigo-500 dark:hover:bg-indigo-600
+                           border border-transparent rounded-lg 
+                           font-semibold text-sm text-white uppercase tracking-widest 
+                           shadow-lg hover:shadow-xl
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500 
+                           focus:ring-offset-2 dark:focus:ring-offset-gray-800 
+                           transition-all duration-200 ease-in-out
+                           transform hover:scale-105">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M7 7h.01M3 11l8.586 8.586a2 2 0 002.828 0l6.172-6.172a2 2 0 000-2.828L12 3H5a2 2 0 00-2 2v6z"/>
+                    </svg>
+                    Asignar Programación
+                </button>
+            </div>
+
             <!-- Item seleccionado (opcional - para debug) -->
             @if($selectedItemId)
             <div x-data 
@@ -519,7 +572,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                                   d="M7 7h.01M3 11l8.586 8.586a2 2 0 002.828 0l6.172-6.172a2 2 0 000-2.828L12 3H5a2 2 0 00-2 2v6z"/>
                                         </svg>
-                                        Asignar Programación
+                                       {{$label->name}}
                                     </button>
                                 </div>
                             </div>

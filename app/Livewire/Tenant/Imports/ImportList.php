@@ -211,6 +211,31 @@ class ImportList extends Component
         }
     }
 
+    /**
+     * Listener para trigger de selección desde otro componente
+     */
+    #[On('trigger-item-selection')]
+    public function triggerItemSelection($itemId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            
+            // Obtener la cantidad del item
+            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $itemId)->first();
+            $quantity = $unconfirmedQty ? $unconfirmedQty->qty : 0;
+            
+            Log::info('=== TRIGGER ITEM SELECTION ===');
+            Log::info('Item ID: ' . $itemId);
+            Log::info('Quantity: ' . $quantity);
+            
+            // Llamar al método selectItem
+            $this->selectItem($itemId, $quantity);
+            
+        } catch (\Exception $e) {
+            Log::error('Error en triggerItemSelection: ' . $e->getMessage());
+        }
+    }
+
     #[Computed]
     public function labels()
     {

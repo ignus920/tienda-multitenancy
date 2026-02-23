@@ -131,6 +131,117 @@ class ImportServices extends Component
     }
 
     /**
+     * Asignar etiqueta a un item por ID (sin necesidad de selección previa)
+     */
+    public function assignLabelToItemById($itemId, $labelId, $labelName)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            // Buscar el registro en imp_items_setup para obtener el precio
+            $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
+
+            // Buscar el registro en inv_unconfirmed_qty para obtener la cantidad
+            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $itemId)->first();
+            
+            if (!$unconfirmedQty) {
+                session()->flash('error', 'No se encontró la cantidad no confirmada para este item');
+                return;
+            }
+
+            // Obtener información del item
+            $item = \App\Models\Tenant\Items\Items::find($itemId);
+            $itemSku = $item ? $item->sku : 'N/A';
+
+            // Crear registro en imp_imports
+            \App\Models\Tenant\Imports\ImpImports::create([
+                'item_id' => $itemId,
+                'user_id' => auth()->id(),
+                'label_id' => $labelId,
+                'qty_requested' => 0,
+                'qty_shipped' => $unconfirmedQty->qty,
+                'price' => $itemSetup ? ($itemSetup->exw ?? 0) : 0,
+                'status' => 1,
+                'shipping_id' => null,
+            ]);
+
+            Log::info('=== ETIQUETA ASIGNADA POR ID ===');
+            Log::info('Item ID: ' . $itemId);
+            Log::info('Item SKU: ' . $itemSku);
+            Log::info('Label ID: ' . $labelId);
+            Log::info('Label Name: ' . $labelName);
+            Log::info('qty_shipped: ' . $unconfirmedQty->qty);
+            Log::info('price: ' . ($itemSetup ? ($itemSetup->exw ?? 0) : 0));
+            Log::info('=== FIN REGISTRO ===');
+
+            // Emitir evento para mostrar notificación de éxito
+            $this->dispatch('label-assigned', [
+                'itemId' => $itemId,
+                'itemSku' => $itemSku,
+                'labelId' => $labelId,
+                'labelName' => $labelName
+            ]);
+
+            session()->flash('success', "Programación '{$labelName}' asignada correctamente al item {$itemSku}");
+
+        } catch (\Exception $e) {
+            Log::error('Error al asignar etiqueta por ID: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            session()->flash('error', 'Error al asignar la programación: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Listener para cuando se hace clic en el input de cantidad con una etiqueta seleccionada
+     */
+    #[On('select-item-for-label')]
+    public function selectItemForLabel($itemId, $labelId, $labelName)
+    {
+        try {
+            Log::info('=== SELECT ITEM FOR LABEL ===');
+            Log::info('Item ID: ' . $itemId);
+            Log::info('Label ID: ' . $labelId);
+            Log::info('Label Name: ' . $labelName);
+            
+            // Emitir evento para que ImportList seleccione el item
+            $this->dispatch('trigger-item-selection', ['itemId' => $itemId]);
+            
+            // Asignar la etiqueta
+            $this->assignLabelToItem($labelId, $labelName);
+            
+        } catch (\Exception $e) {
+            Log::error('Error en selectItemForLabel: ' . $e->getMessage());
+            session()->flash('error', 'Error al procesar la selección: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Listener para cuando se cambia el valor del input con una etiqueta seleccionada
+     */
+    #[On('select-item-and-assign-label')]
+    public function selectItemAndAssignLabel($itemId, $labelId, $labelName)
+    {
+        try {
+            Log::info('=== SELECT ITEM AND ASSIGN LABEL ===');
+            Log::info('Item ID: ' . $itemId);
+            Log::info('Label ID: ' . $labelId);
+            Log::info('Label Name: ' . $labelName);
+            
+            // Emitir evento para que ImportList seleccione el item
+            $this->dispatch('trigger-item-selection', ['itemId' => $itemId]);
+            
+            // Esperar un momento para que se seleccione el item
+            // Luego asignar la etiqueta
+            $this->assignLabelToItem($labelId, $labelName);
+            
+        } catch (\Exception $e) {
+            Log::error('Error en selectItemAndAssignLabel: ' . $e->getMessage());
+            session()->flash('error', 'Error al procesar la asignación: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Asignar etiqueta a un item
      * Los datos del item y la etiqueta se pasan desde el componente hijo
      */
