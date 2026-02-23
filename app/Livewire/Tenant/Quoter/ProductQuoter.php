@@ -226,6 +226,7 @@ class ProductQuoter extends Component
             // 3. Configurar estado de edición
             $this->editingRemissionId = $remissionId;
             $this->isEditing = true;
+            $this->quoteHasRemission = true; // Asegurar estado para ocultar botón confirmar
 
             session(['quoter_items' => $this->quoterItems]);
             $this->cartHasChanges = false;

@@ -519,28 +519,25 @@ $header = 'Seleccionar productos';
 
 
                     @if($isEditing)
-                    <!-- Botones para edición -->
+                    {{-- Botones para edición --}}
                     <div class="flex flex-col gap-4">
 
-                        <!-- Fila superior: botones principales -->
+                        {{-- Fila superior: Actualizar / Cancelar --}}
                         <div class="flex gap-2">
                             <button wire:click="updateQuote"
                                 wire:loading.attr="disabled"
                                 wire:target="updateQuote"
                                 class="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap">
 
-                                <!-- Ícono normal (se oculta durante la carga) -->
                                 <svg wire:loading.remove wire:target="updateQuote" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
 
-                                <!-- Ícono de carga (se muestra durante la carga) -->
                                 <svg wire:loading wire:target="updateQuote" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
 
-                                <!-- Texto del botón -->
                                 <span wire:loading.remove wire:target="updateQuote">
                                     @if($editingRemissionId)
                                         Editar Remisión
@@ -555,14 +552,11 @@ $header = 'Seleccionar productos';
                                 wire:loading.attr="disabled"
                                 wire:target="cancelEditing"
                                 class="flex-1 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap">
-
                                 Cancelar
                             </button>
                         </div>
 
-                        </div>
-
-                        <!-- Fila inferior: acción final (Solo para Distribuidores durante edición) -->
+                        {{-- Fila inferior: Confirmar Pedido (Solo para Distribuidores) --}}
                         @if(auth()->user()->profile_id != 17)
                             @if($quoteHasRemission)
                                 <div class="w-full px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400
@@ -578,29 +572,24 @@ $header = 'Seleccionar productos';
                                     wire:loading.attr="disabled"
                                     wire:target="confirmarPedido"
                                     class="w-full px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
-                                    
-                                    <!-- Ícono normal -->
+
                                     <svg wire:loading.remove wire:target="confirmarPedido" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
                                     </svg>
 
-                                    <!-- Ícono de carga -->
                                     <svg wire:loading wire:target="confirmarPedido" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
 
-                                    <!-- Texto -->
                                     <span wire:loading.remove wire:target="confirmarPedido">Confirmar pedido</span>
                                     <span wire:loading wire:target="confirmarPedido">Confirmando...</span>
                                 </button>
                             @endif
                         @endif
 
-                    </div>
+                    </div>{{-- fin flex-col gap-4 --}}
 
 
                     @else
