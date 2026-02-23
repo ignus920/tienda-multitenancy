@@ -357,12 +357,15 @@ class ProductQuoter extends Component
                 ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->where('inv_items_store.stock_items_store', '>=', 0) // Mostrar todas las bodegas, incluyendo stock 0
                 ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('inv_items.name', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.description', 'like', '%' . $this->search . '%');
-                    });
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inv_items.name', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.description', 'like', '%' . $word . '%');
+                        });
+                    }
                 })
                 ->when($this->selectedCategory, function ($query) {
                     $query->where('inv_items.categoryId', $this->selectedCategory);
