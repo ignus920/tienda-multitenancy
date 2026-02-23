@@ -875,9 +875,7 @@
         </div>
     </div>
     <!-- Scripts para Offline Mode -->
-    <!-- Scripts para Offline Mode (Locales) -->
-    <script src="{{ asset('js/vendor/sweetalert2.all.min.js') }}"></script>
-    <script src="{{ asset('js/vendor/dexie.js') }}"></script>
+    <!-- Scripts para Offline Mode (Usando globales del layout) -->
     <!-- Modal de Pagos Offline (Diseño Unificado Premium) -->
     <div x-show="paymentModalOpen" 
          x-cloak
