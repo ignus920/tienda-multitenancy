@@ -3,17 +3,24 @@
 namespace App\Livewire\Tenant\Imports;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Tenant\Imports\ImpItemsSetup;
 use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\ImageGallery;
 //Servicios
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class ImportRegItem extends Component
 {
+    use WithFileUploads;
+
     public $items_setup_id;
     public $itemId;
     public $percentage;
@@ -25,7 +32,13 @@ class ImportRegItem extends Component
     public $pvp_factor;
     public $pvp_min_factor;
     public $internal_code;
-    public $descripcion;
+    public $descripcion = 'NEW_PRODUCT';
+    public $technical_sheet;
+
+    //Campos de validación
+    public $internal_codeExists = false;
+    public $validatingInternal_code = false;
+
     public $data_suppliers = [
         'supplierId' => ''
     ];
@@ -37,7 +50,8 @@ class ImportRegItem extends Component
     protected $rules = [
         'percentage' => 'required|integer',
         'cantidad_min' => 'required|integer',
-        'factor' => 'required' //,
+        'factor' => 'required',
+        'technical_sheet' => 'nullable|file|mimes:pdf|max:2048' //,
         // 'exw' => ['numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
         // 'freight_increase' => ['numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
         // 'pvp_factor' => ['numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
@@ -57,6 +71,7 @@ class ImportRegItem extends Component
     public function mount($itemId = null)
     {
         $this->itemId = $itemId;
+        $this->edit($this->itemId);
         Log::info('🎈 Cargando itemId', [
             'itemId' => $this->itemId
         ]);
@@ -83,21 +98,35 @@ class ImportRegItem extends Component
     {
         $this->ensureTenantConnection();
         $this->validate();
+        if ($this->internal_codeExists) {
+            $this->addError('internal_code', 'Este código interno ya está registrado.');
+            return;
+        }
+
+        // Validación del proveedor
+        if (empty($this->data_suppliers['supplierId'])) {
+            $this->addError('data_suppliers.supplierId', 'El proveedor es obligatorio.');
+            return;
+        }
         try {
-            // Validación del proveedor
-            if (empty($this->data_suppliers['supplierId'])) {
-                $this->addError('data_suppliers.supplierId', 'El proveedor es obligatorio.');
-                return;
-            }
             $infoItem = [
                 'name' => 'NEW_PRODUCT',
                 'internal_code' => $this->internal_code,
                 'sku' => $this->internal_code,
                 'description' => $this->descripcion,
                 'type' => 'IMPORTADO',
+                'purchasing_unit' => 35,
+                'consumption_unit' => 35,
                 'generic' => 1
             ];
             $newItem = Items::create($infoItem);
+
+            $infoItemsStore = [
+                'itemId' => $newItem->id,
+                'storeId' => 1
+            ];
+
+            InvItemsStore::create($infoItemsStore);
 
             $info = [
                 'item_id' => $newItem->id,
@@ -116,6 +145,7 @@ class ImportRegItem extends Component
             $this->resetForm();
             session()->flash('message', 'Registro realizado exitosamente.');
             Log::info('🚚 Registro item desde importación' . $newItem);
+            $this->dispatch('refresh-import-list');
             $this->closeItemsImportModal();
         } catch (\Exception $e) {
             Log::error('✂️ Error al guardar información de importación: ' . $e->getMessage());
@@ -128,28 +158,35 @@ class ImportRegItem extends Component
     {
         $this->ensureTenantConnection();
         $this->validate();
+        $info = [
+            'item_id' => $this->itemId,
+            'percentage' => $this->percentage,
+            'cantidad_min' => $this->cantidad_min,
+            'supplier_id' => !empty($this->data_suppliers['supplierId']) ? (int)$this->data_suppliers['supplierId'] : 0,
+            'factory_ref' => $this->factory_ref,
+            'exw' => $this->exw,
+            'freight_increase' => $this->freight_increase,
+            'pvp_factor' => $this->pvp_factor,
+            'pvp_min_factor' => $this->pvp_min_factor
+        ];
         try {
-            $info = [
-                'item_id' => $this->itemId,
-                'percentage' => $this->percentage,
-                'cantidad_min' => $this->cantidad_min,
-                'supplier_id' => !empty($this->data_suppliers['supplierId']) ? (int)$this->data_suppliers['supplierId'] : 0,
-                'factory_ref' => $this->factory_ref,
-                'exw' => $this->exw,
-                'freight_increase' => $this->freight_increase,
-                'pvp_factor' => $this->pvp_factor,
-                'pvp_min_factor' => $this->pvp_min_factor
-            ];
             // Validación del proveedor
             if (empty($this->data_suppliers['supplierId'])) {
                 $this->addError('data_suppliers.supplierId', 'El proveedor es obligatorio.');
                 return;
             }
-
-            ImpItemsSetup::create($info);
+            if ($this->technical_sheet) {
+                $this->uploadpdf($this->itemId, $this->technical_sheet);
+            }
+            if ($this->items_setup_id) {
+                $item_setup = ImpItemsSetup::findOrFail($this->items_setup_id);
+                $item_setup->update($info);
+                session()->flash('message', 'Registro actualizado exitosamente.');
+            } else {
+                ImpItemsSetup::create($info);
+                session()->flash('message', 'Registro realizado exitosamente.');
+            }
             $this->resetForm();
-            session()->flash('message', 'Registro realizado exitosamente.');
-            Log::info('🚚 Registro importación');
             $this->closeItemsModal();
         } catch (\Exception $e) {
             Log::error('✂️ Error al guardar información de importación: ' . $e->getMessage());
@@ -158,9 +195,40 @@ class ImportRegItem extends Component
         }
     }
 
-    public function checkItemExists()
+    public function updatedInternalCode($value)
     {
-        dd('Valida si el item existe');
+        $this->validateInternalCodeExits();
+    }
+
+    public function validateInternalCodeExits(): void
+    {
+        if (empty($this->internal_code)) {
+            $this->internal_codeExists = false;
+            $this->validatingInternal_code = false;
+            return;
+        }
+
+        $this->validatingInternal_code = true;
+
+        try {
+            $this->ensureTenantConnection();
+            $query = Items::where('internal_code', $this->internal_code);
+
+            if ($this->itemId) {
+                $query->where('id', '!=', $this->itemId);
+            }
+            $this->internal_codeExists = $query->exists();
+            Log::info('💎 Internal_code' . $this->internal_codeExists);
+        } catch (\Exception $e) {
+            // Log error but don't break the form
+            Log::error('Error validating internal_code exists', [
+                'error' => $e->getMessage(),
+                'internal_code' => $this->internal_code
+            ]);
+            $this->internal_codeExists = false;
+        } finally {
+            $this->validatingInternal_code = false;
+        }
     }
 
     public function resetForm()
@@ -174,7 +242,7 @@ class ImportRegItem extends Component
         $this->pvp_factor = '';
         $this->pvp_min_factor = '';
         $this->internal_code = '';
-        $this->descripcion = '';
+        $this->descripcion = 'NEW_PRODUCT';
         $this->data_suppliers = [
             'supplierId' => '',
         ];
@@ -228,6 +296,88 @@ class ImportRegItem extends Component
                 ];
             })
             ->toArray();
+    }
+
+    public function edit($itemId = null)
+    {
+        if (!$itemId) {
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $itemImport = ImpItemsSetup::where('item_id', $itemId)->first();
+
+        if ($itemImport) {
+            $this->items_setup_id = $itemImport->id;
+            $this->percentage = $itemImport->percentage;
+            $this->cantidad_min = $itemImport->cantidad_min;
+            $this->data_suppliers['supplierId'] = $itemImport->supplier_id;
+            $this->factory_ref = $itemImport->factory_ref;
+            $this->exw = $itemImport->exw;
+            $this->freight_increase = $itemImport->freight_increase;
+            $this->pvp_factor = $itemImport->pvp_factor;
+            $this->pvp_min_factor = $itemImport->pvp_min_factor;
+
+            // También cargamos la información del ítem base
+            $item = Items::find($itemId);
+            if ($item) {
+                $this->internal_code = $item->internal_code;
+                $this->descripcion = $item->description;
+            }
+        }
+    }
+
+    public function uploadpdf()
+    {
+        $query = ImageGallery::where('itemId', $this->itemId)->where('type', 'PDF')->first();;
+        $pdfExists = !is_null($query);
+        Log::info('🔬 Registro de PDF existe:' . $pdfExists);
+        // Guardar PDF en storage
+        $tenantId = session('tenant_id', 'default');
+        $path = $this->technical_sheet->store("items/{$tenantId}", 'public');
+        try {
+            if ($pdfExists) {
+                $query->update([
+                    'img_path' => $path,
+                    // No necesitas itemId porque ya existe
+                    // No necesitas created_at porque se actualiza automáticamente con timestamps
+                ]);
+            } else {
+                // Crear registro en base de datos
+                ImageGallery::create([
+                    'itemId' => $this->itemId,
+                    'img_path' => $path,
+                    'type' => 'PDF',
+                    'created_at' => Carbon::now(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('✂️ Error al guardar PDF: ' . $e->getMessage());
+            return;
+        }
+    }
+
+    public function getPdfItem()
+    {
+        $this->ensureTenantConnection();
+        return ImageGallery::where('itemId', $this->itemId)
+            ->where('type', 'PDF')
+            ->whereNull('deleted_at')
+            ->first();
+    }
+
+    private function removePreviousPdf()
+    {
+        $previousPdf = $this->getPdfItem();
+        if ($previousPdf) {
+            // Eliminar archivos físicos
+            if ($previousPdf->img_path && Storage::disk('public')->exists($previousPdf->img_path)) {
+                Storage::disk('public')->delete($previousPdf->img_path);
+            }
+
+            // Eliminar registro
+            $previousPdf->delete();
+        }
     }
 
     public function render()

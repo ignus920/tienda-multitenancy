@@ -119,7 +119,7 @@
                                     <!-- Etiqueta -->
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                         {{ $staticValue['label'] }}<br>
-                                        <span class="text-gray-500 dark:text-gray-600">(Precio sin IVA)</span>
+                                        <span class="text-gray-500 dark:text-gray-400">(Precio sin IVA)</span>
                                     </td>
 
                                     <!-- Tipo -->

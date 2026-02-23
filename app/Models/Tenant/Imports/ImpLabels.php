@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models\Tenant\Imports;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -8,8 +9,8 @@ class ImpLabels extends Model
 {
     use SoftDeletes;
 
-    protected $connection = "tenant"; 
-    protected $table = 'imp_labels'; 
+    protected $connection = "tenant";
+    protected $table = 'imp_labels';
     protected $fillable = [
         'name',
         'asap',
