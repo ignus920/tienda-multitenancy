@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Imports;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Imports\ImpLabels;
+use App\Models\Tenant\Imports\ImpImports;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,9 @@ class ImportServices extends Component
     public $selectedItemId = null;
     public $selectedItemQuantity = 0;
     public $selectedItemData = [];
+    
+    // Array para almacenar las asignaciones del item seleccionado
+    public $itemAssignments = [];
     
     // Servicios de importación disponibles
     public $importServices = [
@@ -77,10 +81,60 @@ class ImportServices extends Component
         } catch (\Exception $e) {
             Log::error('Error al obtener labels: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            return collect(); // Retornar colección vacía en caso de error
+            return collect();
         }
     }
 
+    /**
+     * Obtener las asignaciones existentes para el item seleccionado
+     */
+    private function loadItemAssignments()
+    {
+        try {
+            if (!$this->selectedItemId) {
+                $this->itemAssignments = [];
+                return;
+            }
+
+            $this->ensureTenantConnection();
+            
+            // Consultar imp_imports para obtener las asignaciones del item
+            $assignments = ImpImports::where('item_id', $this->selectedItemId)
+                ->where('status', 1)
+                ->whereNull('deleted_at')
+                ->get(['label_id', 'qty_requested', 'qty_shipped'])
+                ->keyBy('label_id')
+                ->toArray();
+            
+            $this->itemAssignments = $assignments;
+            
+            Log::info('=== ASIGNACIONES CARGADAS ===');
+            Log::info('Item ID: ' . $this->selectedItemId);
+            Log::info('Asignaciones: ' . json_encode($this->itemAssignments));
+            Log::info('=== FIN ASIGNACIONES ===');
+            
+        } catch (\Exception $e) {
+            Log::error('Error al cargar asignaciones: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            $this->itemAssignments = [];
+        }
+    }
+
+    /**
+     * Verificar si un label está asignado al item seleccionado
+     */
+    public function isLabelAssigned($labelId)
+    {
+        return isset($this->itemAssignments[$labelId]);
+    }
+
+    /**
+     * Obtener la cantidad solicitada para un label asignado
+     */
+    public function getAssignedQuantity($labelId)
+    {
+        return $this->itemAssignments[$labelId]['qty_requested'] ?? 0;
+    }
 
     public function hideImportList()
     {
@@ -98,7 +152,9 @@ class ImportServices extends Component
         $this->selectedItemQuantity = $data['quantity'];
         $this->selectedItemData = $data;
         
-        // Log para debug
+        // Cargar las asignaciones del item seleccionado
+        $this->loadItemAssignments();
+        
         Log::info('=== ITEM SELECCIONADO EN IMPORT SERVICES ===');
         Log::info('Item ID: ' . $this->selectedItemId);
         Log::info('Cantidad: ' . $this->selectedItemQuantity);
@@ -138,10 +194,19 @@ class ImportServices extends Component
         try {
             $this->ensureTenantConnection();
 
-            // Buscar el registro en imp_items_setup para obtener el precio
-            $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
+            // Verificar si ya existe una asignación
+            $existingAssignment = ImpImports::where('item_id', $itemId)
+                ->where('label_id', $labelId)
+                ->where('status', 1)
+                ->whereNull('deleted_at')
+                ->first();
 
-            // Buscar el registro en inv_unconfirmed_qty para obtener la cantidad
+            if ($existingAssignment) {
+                session()->flash('error', "La etiqueta '{$labelName}' ya está asignada a este item");
+                return;
+            }
+
+            $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
             $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $itemId)->first();
             
             if (!$unconfirmedQty) {
@@ -149,29 +214,30 @@ class ImportServices extends Component
                 return;
             }
 
-            // Obtener información del item
             $item = \App\Models\Tenant\Items\Items::find($itemId);
             $itemSku = $item ? $item->sku : 'N/A';
 
-            // Crear registro en imp_imports
-            \App\Models\Tenant\Imports\ImpImports::create([
+            ImpImports::create([
                 'item_id' => $itemId,
                 'user_id' => auth()->id(),
                 'label_id' => $labelId,
-                'qty_requested' => 0,
-                'qty_shipped' => $unconfirmedQty->qty,
+                'qty_requested' => $unconfirmedQty->qty,
+                'qty_shipped' => null,
                 'price' => $itemSetup ? ($itemSetup->exw ?? 0) : 0,
                 'status' => 1,
                 'shipping_id' => null,
             ]);
+
+            // Recargar asignaciones si es el item seleccionado
+            if ($this->selectedItemId == $itemId) {
+                $this->loadItemAssignments();
+            }
 
             Log::info('=== ETIQUETA ASIGNADA POR ID ===');
             Log::info('Item ID: ' . $itemId);
             Log::info('Item SKU: ' . $itemSku);
             Log::info('Label ID: ' . $labelId);
             Log::info('Label Name: ' . $labelName);
-            Log::info('qty_shipped: ' . $unconfirmedQty->qty);
-            Log::info('price: ' . ($itemSetup ? ($itemSetup->exw ?? 0) : 0));
             Log::info('=== FIN REGISTRO ===');
 
             // Emitir evento para mostrar notificación de éxito
@@ -260,7 +326,18 @@ class ImportServices extends Component
                 return;
             }
 
-            // Buscar el registro en imp_items_setup para obtener el precio
+            // Verificar si ya existe una asignación
+            $existingAssignment = ImpImports::where('item_id', $this->selectedItemId)
+                ->where('label_id', $labelId)
+                ->where('status', 1)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if ($existingAssignment) {
+                session()->flash('error', "La etiqueta '{$labelName}' ya está asignada a este item");
+                return;
+            }
+
             $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $this->selectedItemId)->first();
 
             // Buscar el registro en inv_unconfirmed_qty para obtener la cantidad
@@ -271,25 +348,25 @@ class ImportServices extends Component
                 return;
             }
 
-            // Crear registro en imp_imports
-            \App\Models\Tenant\Imports\ImpImports::create([
+            ImpImports::create([
                 'item_id' => $this->selectedItemId,
                 'user_id' => auth()->id(),
                 'label_id' => $labelId,
-                'qty_requested' => 0,
-                'qty_shipped' => $unconfirmedQty->qty,
+                'qty_requested' => $unconfirmedQty->qty,
+                'qty_shipped' => null,
                 'price' => $itemSetup ? ($itemSetup->exw ?? 0) : 0,
                 'status' => 1,
                 'shipping_id' => null,
             ]);
+
+            // Recargar asignaciones
+            $this->loadItemAssignments();
 
             Log::info('=== ETIQUETA ASIGNADA Y REGISTRO CREADO ===');
             Log::info('Item ID: ' . $this->selectedItemId);
             Log::info('Item SKU: ' . ($this->selectedItemData['sku'] ?? 'N/A'));
             Log::info('Label ID: ' . $labelId);
             Log::info('Label Name: ' . $labelName);
-            Log::info('qty_shipped: ' . $unconfirmedQty->qty);
-            Log::info('price: ' . ($itemSetup ? ($itemSetup->exw ?? 0) : 0));
             Log::info('=== FIN REGISTRO ===');
 
             // Emitir evento para mostrar notificación de éxito
@@ -310,21 +387,23 @@ class ImportServices extends Component
         }
     }
 
-
     public function render()
     {
-          $labels = $this->labels; 
-            $debugInfo = [
-             'labels_count' => $labels->count(), // Agregar contador de labels
-             'has_labels' => $labels->isNotEmpty(),
+        $labels = $this->labels; 
+        $debugInfo = [
+            'labels_count' => $labels->count(),
+            'has_labels' => $labels->isNotEmpty(),
+            'selected_item_id' => $this->selectedItemId,
+            'assignments_count' => count($this->itemAssignments),
         ];
+        
         return view('livewire.tenant.imports.components.import-services', [
             'labels' => $labels,
             'debugInfo' => $debugInfo
         ]);
     }
 
-      private function ensureTenantConnection(): void
+    private function ensureTenantConnection(): void
     {
         $tenantId = session('tenant_id');
 
