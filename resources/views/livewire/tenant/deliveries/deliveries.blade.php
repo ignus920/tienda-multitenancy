@@ -182,6 +182,7 @@
                                         <th class="px-3 py-2 text-center text-red-500">DEV</th>
                                         <th class="px-3 py-2 text-center text-orange-500">NO ENT</th>
                                         <th class="px-3 py-2 text-center">TOTAL</th>
+                                        <th class="px-3 py-2">OBSERVACIÓN</th>
                                         <th class="px-3 py-2 text-right">VALOR</th>
                                     </tr>
                                 </thead>
@@ -207,6 +208,9 @@
                                         </td>
                                         <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white">
                                             ${{ number_format($return->subtotal, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2 text-[10px] italic text-gray-500 uppercase truncate max-w-[150px]">
+                                            {{ $return->observation ?: 'N/A' }}
                                         </td>
                                     </tr>
                                     @empty
@@ -361,7 +365,8 @@
                                         <tr>
                                             <th class="px-3 py-2"># PEDIDO</th>
                                             <th class="px-3 py-2">ITEMS</th>
-                                            <th class="px-3 py-2 text-center">CANT</th>
+                                            <th class="px-3 py-2 text-center">TOTAL</th>
+                                            <th class="px-3 py-2">OBSERVACIÓN</th>
                                             <th class="px-3 py-2 text-right">VALOR</th>
                                         </tr>
                                     </thead>
@@ -372,12 +377,13 @@
                                                     <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold" x-text="'#' + ret.consecutive"></span>
                                                 </td>
                                                 <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300 truncate max-w-[120px]" x-text="ret.item_name"></td>
-                                                <td class="px-3 py-2 text-center font-bold text-red-600" x-text="ret.quantity"></td>
-                                                <td class="px-3 py-2 text-right font-black" x-text="'$' + Number(ret.subtotal || 0).toLocaleString()"></td>
+                                                <td class="px-3 py-2 text-center font-black text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/30" x-text="ret.quantity + (ret.quantity_no_ent || 0)"></td>
+                                                <td class="px-3 py-2 text-[9px] italic text-gray-500 uppercase truncate max-w-[120px]" x-text="ret.observation || 'N/A'"></td>
+                                                <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white" x-text="'$' + Number(ret.subtotal || 0).toLocaleString()"></td>
                                             </tr>
                                         </template>
                                         <tr x-show="localReturnsList.length === 0">
-                                            <td colspan="4" class="px-4 py-8 text-center text-gray-400 font-bold uppercase text-[10px]">No hay devoluciones locales registradas.</td>
+                                            <td colspan="5" class="px-4 py-8 text-center text-gray-400 font-bold uppercase text-[10px]">No hay devoluciones locales registradas.</td>
                                         </tr>
                                     </tbody>
                                     <tfoot x-show="localReturnsList.length > 0" class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
@@ -875,7 +881,9 @@
         </div>
     </div>
     <!-- Scripts para Offline Mode -->
-    <!-- Scripts para Offline Mode (Usando globales del layout) -->
+    <!-- Scripts para Offline Mode (CDNs para estabilidad en Producción) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
     <!-- Modal de Pagos Offline (Diseño Unificado Premium) -->
     <div x-show="paymentModalOpen" 
          x-cloak
@@ -1180,6 +1188,7 @@
 
                     // Inicializar base de datos (IndexedDB: deliveries_db)
                     if (!this.db) {
+                        this.db = new Dexie("deliveries_db");
                         this.db.version(5).stores({
                             cargues: 'id, deliveryman_id, created_at',
                             remisiones: 'id, delivery_id, quoteId, status, customer_name, consecutive, observations_return',
@@ -1408,12 +1417,14 @@
                                 if (existing) {
                                     await this.db.devoluciones_locales.update(existing.id, {
                                         quantity: qty,
+                                        observation: observation,
                                         synced: 0
                                     });
                                 } else {
                                     await this.db.devoluciones_locales.put({
                                         detail_id: Number(detailId),
                                         quantity: qty,
+                                        observation: observation,
                                         synced: 0
                                     });
                                 }

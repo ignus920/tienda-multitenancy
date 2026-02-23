@@ -410,11 +410,20 @@ class Deliveries extends Component
     public function syncPendingReturns($pendingReturns)
     {
         foreach ($pendingReturns as $ret) {
-            $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::find($ret['detail_id']);
+            $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::with('remission')->find($ret['detail_id']);
             if ($detail) {
+                // 1. Actualizar el detalle (cantidad devuelta)
                 $detail->update([
-                    'cant_return' => $ret['quantity']
+                    'cant_return' => $ret['quantity'],
+                    'observations_return' => $ret['observation'] ?? null
                 ]);
+
+                // 2. IMPORTANTE: Guardar la observación en la remisión principal (cabecera)
+                if ($detail->remission && !empty($ret['observation'])) {
+                    $detail->remission->update([
+                        'observations_return' => $ret['observation']
+                    ]);
+                }
             }
         }
         $this->dispatch('pedido-actualizado');
@@ -531,12 +540,15 @@ class Deliveries extends Component
             $qty_dev = (int)($detail->cant_return ?? 0);
             $qty_no_ent = 0;
 
-            // Lógica de Negocio sugerida por el diagrama de flujo:
-            // Si el pedido NO ha sido finalizado (ENTREGADO/DEVUELTO), 
-            // toda su mercancía sigue físicamente en el camión ("No Entregado").
-            if (!in_array($status, ['ENTREGADO', 'DEVUELTO'])) {
-                $qty_no_ent = $detail->quantity;
-                $qty_dev = 0; // No se cuenta como devolución hasta que se procesa el pedido
+            // Lógica de Negocio Unificada:
+            // Siempre contamos cant_return como Devolución (DEV).
+            // Si el pedido está finalizado (ENTREGADO/DEVUELTO), el NO ENT es 0.
+            // Si el pedido está PENDIENTE, el saldo es NO ENTregado.
+            
+            if (in_array($status, ['ENTREGADO', 'DEVUELTO'])) {
+                $qty_no_ent = 0;
+            } else {
+                $qty_no_ent = $detail->quantity - $qty_dev;
             }
 
             $total = $qty_dev + $qty_no_ent;
@@ -549,7 +561,8 @@ class Deliveries extends Component
                     'no_ent' => $qty_no_ent,
                     'total' => $total,
                     'value' => $detail->value,
-                    'subtotal' => $total * $detail->value
+                    'subtotal' => $total * $detail->value,
+                    'observation' => $detail->observations_return ?? $rem->observations_return
                 ];
             }
         }
