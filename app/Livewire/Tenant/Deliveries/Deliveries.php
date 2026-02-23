@@ -42,15 +42,12 @@ class Deliveries extends Component
         $this->selectedOrderData = null;
         $this->selectedOrder = null;
 
-        // Para administradores (no perfil 13), intentar obtener el cargue más reciente
-        if ($user->profile_id != 13 && !$this->selectedDeliveryId) {
-            $latestDelivery = DisDeliveries::orderBy('id', 'desc')->first();
-            if ($latestDelivery) {
-                $this->selectedDeliveryId = $latestDelivery->id;
-            }
+        // Si es administrador, ver todos los estados por defecto
+        if ($user->profile_id != 13) {
+            $this->status = 'Todos';
         }
-        // Para transportadores, por defecto no filtramos por un cargue específico 
-        // para que vean TODOS sus pedidos pendientes de todos sus cargues.
+
+        // Ya no seleccionamos un cargue por defecto para que muestre todo globalmente al inicio
     }
 
     public function updatedSelectedDeliveryId()
@@ -72,22 +69,25 @@ class Deliveries extends Component
     {
         $user = auth()->user();
         $query = DisDeliveries::orderBy('id', 'desc');
-
-        // Admin ve últimos 15 días por defecto o el que tenga seleccionado
-        if ($user->profile_id != 13) {
-            $query->where(function($q) {
-                $q->where('sale_date', '>=', now()->subDays(15)->format('Y-m-d'))
-                  ->orWhere('id', $this->selectedDeliveryId);
-            });
-        }
+        
+        // Admin y Transportador ven últimos 15 días por defecto o el que tengan seleccionado
+        $query->where(function($q) {
+            $q->where('sale_date', '>=', now()->subDays(15)->format('Y-m-d'))
+              ->orWhere('id', $this->selectedDeliveryId);
+        });
 
         if ($user->profile_id == 13) {
-            $query->where('deliveryman_id', $user->id)
-                  ->where('sale_date', now()->format('Y-m-d'))
-                  ->whereIn('status', ['ABIERTO', 'EN RECORRIDO']);
+            $query->where('deliveryman_id', $user->id);
+            // Quitamos la restricción de estado para que puedan ver su historial (cerrados)
         }
 
         return $query->get();
+    }
+
+    public function getIsCurrentDeliveryClosedProperty()
+    {
+        if (!$this->selectedDeliveryId) return false;
+        return DisDeliveries::where('id', $this->selectedDeliveryId)->where('status', 'CERRADO')->exists();
     }
 
     public function getRemissionsProperty()
@@ -108,9 +108,14 @@ class Deliveries extends Component
         }
 
         // Seguridad extra para perfil 13: ver solo lo que le pertenece
+        // Seguridad extra para perfil 13: ver solo lo que le pertenece y de la fecha actual por defecto
         if ($user->profile_id == 13) {
             $query->whereHas('delivery', function($q) use ($user) {
                 $q->where('deliveryman_id', $user->id);
+                // Si no hay búsqueda ni cargue seleccionado, restringir a hoy
+                if (!$this->selectedDeliveryId && !$this->search) {
+                    $q->where('sale_date', now()->format('Y-m-d'));
+                }
             });
         }
 
@@ -179,8 +184,7 @@ class Deliveries extends Component
                 // 2. Actualizar todos los detalles al 100% devueltos
                 foreach ($remission->details as $detail) {
                     $detail->update([
-                        'cant_return' => $detail->quantity,
-                        'observations_return' => 'Devolución Total: ' . $this->fullReturnObservation
+                        'cant_return' => $detail->quantity
                     ]);
                 }
             });
@@ -294,9 +298,7 @@ class Deliveries extends Component
                     $detail = $remission->details->where('id', $detailId)->first();
                     if ($detail) {
                         $detail->update([
-                            'cant_return' => $qty,
-                            // Ya no guardamos la observación por producto para evitar redundancia
-                            'observations_return' => $this->orderNovelty 
+                            'cant_return' => $qty
                         ]);
                     }
                 }
@@ -411,8 +413,7 @@ class Deliveries extends Component
             $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::find($ret['detail_id']);
             if ($detail) {
                 $detail->update([
-                    'cant_return' => $ret['quantity'],
-                    'observations_return' => $ret['observation']
+                    'cant_return' => $ret['quantity']
                 ]);
             }
         }
@@ -492,25 +493,68 @@ class Deliveries extends Component
 
     public function getReturnedItemsProperty()
     {
-        $query = \App\Models\Tenant\Remissions\InvDetailRemissions::where('cant_return', '>', 0)
-            ->with(['item', 'remission']);
-
+        $user = auth()->user();
+        
+        // Obtenemos los IDs de los cargues que el usuario está viendo
         if ($this->selectedDeliveryId) {
-            $query->whereHas('remission', function($q) {
-                $q->where('delivery_id', $this->selectedDeliveryId);
-            });
+            $deliveryIds = [$this->selectedDeliveryId];
         } else {
-            // Si no hay seleccionado, mostrar de todos los cargues visibles para el usuario
-            $deliveryIds = $this->deliveries->pluck('id');
-            if ($deliveryIds->isEmpty()) {
-                return collect();
-            }
-            $query->whereHas('remission', function($q) use ($deliveryIds) {
-                $q->whereIn('delivery_id', $deliveryIds);
-            });
+            $deliveryIds = $this->getDeliveriesProperty()->pluck('id')->toArray();
         }
 
-        return $query->get();
+        if (empty($deliveryIds)) return collect();
+
+        // Consultamos todos los detalles de remisiones asociadas a esos cargues
+        // Exceptuamos pedidos ANULADOS
+        $query = \App\Models\Tenant\Remissions\InvDetailRemissions::with(['item', 'remission'])
+            ->whereHas('remission', function($q) use ($deliveryIds) {
+                $q->whereIn('delivery_id', $deliveryIds)
+                  ->where('status', '!=', 'ANULADO');
+            });
+            
+        // Si es transportador, solo sus propios cargues (seguridad extra)
+        if ($user->profile_id == 13) {
+            $query->whereHas('remission.delivery', function($dq) use ($user) {
+                $dq->where('deliveryman_id', $user->id);
+            });
+        }
+            
+        $details = $query->get();
+
+        $results = [];
+
+        foreach ($details as $detail) {
+            $rem = $detail->remission;
+            if (!$rem) continue;
+            
+            $status = $rem->status;
+            $qty_dev = (int)($detail->cant_return ?? 0);
+            $qty_no_ent = 0;
+
+            // Lógica de Negocio sugerida por el diagrama de flujo:
+            // Si el pedido NO ha sido finalizado (ENTREGADO/DEVUELTO), 
+            // toda su mercancía sigue físicamente en el camión ("No Entregado").
+            if (!in_array($status, ['ENTREGADO', 'DEVUELTO'])) {
+                $qty_no_ent = $detail->quantity;
+                $qty_dev = 0; // No se cuenta como devolución hasta que se procesa el pedido
+            }
+
+            $total = $qty_dev + $qty_no_ent;
+
+            if ($total > 0) {
+                $results[] = (object)[
+                    'consecutive' => $rem->consecutive ?? $rem->id,
+                    'item_name' => $detail->item->name ?? 'N/A',
+                    'dev' => $qty_dev,
+                    'no_ent' => $qty_no_ent,
+                    'total' => $total,
+                    'value' => $detail->value,
+                    'subtotal' => $total * $detail->value
+                ];
+            }
+        }
+
+        return collect($results);
     }
 
     public function getCollectionsProperty()
@@ -535,13 +579,11 @@ class Deliveries extends Component
             return collect();
         }
 
-        // 3. Consultar VntDetailPettyCash usando esos quoteIds (invoiceId en tabla petty cash?)
-        // Revisando el código original: invoiceId se compara con quoteId.
+        // 3. Consultar VntDetailPettyCash usando esos quoteIds
         return \App\Models\Tenant\PettyCash\VntDetailPettyCash::whereIn('invoiceId', $quoteIds)
             ->where('status', 1)
-            ->with('methodPayments')
-            ->select('methodPaymentId', DB::raw('SUM(value) as system_total'), DB::raw('0 as discount_total'))
-            ->groupBy('methodPaymentId')
+            ->with(['methodPayments', 'quote.customer', 'quote.remission'])
+            ->orderBy('id', 'desc')
             ->get();
     }
 
@@ -577,6 +619,7 @@ class Deliveries extends Component
 
                 if ($balance > 1) { // Evitar redondeos mínimos
                     $credits[] = (object)[
+                        'consecutive' => $remission->consecutive ?? $remission->id,
                         'customer' => ($remission->quote->customer->businessName ?? '') ?: ($remission->quote->customer->firstName . ' ' . $remission->quote->customer->lastName),
                         'balance' => $balance
                     ];
@@ -700,8 +743,7 @@ class Deliveries extends Component
                     if ($update['status'] === 'DEVUELTO') {
                         foreach ($remission->details as $detail) {
                             $detail->update([
-                                'cant_return' => $detail->quantity,
-                                'observations_return' => 'Devolución Total (Offline): ' . $update['observation']
+                                'cant_return' => $detail->quantity
                             ]);
                         }
                     }

@@ -93,4 +93,9 @@ class VntQuote extends Model
     {
         return $this->warehouse ? $this->warehouse->name : 'Sucursal no encontrada';
     }
+
+    public function remission()
+    {
+        return $this->hasOne(\App\Models\Tenant\Remissions\InvRemissions::class, 'quoteId');
+    }
 }

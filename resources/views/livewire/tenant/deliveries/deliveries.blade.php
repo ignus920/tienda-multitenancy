@@ -92,7 +92,10 @@
                         <select wire:model.live="selectedDeliveryId" x-model="currentDeliveryId" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
                             <option value="">Seleccione un cargue</option>
                             @foreach($deliveries as $del)
-                                <option value="{{ $del->id }}">Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }})</option>
+                                <option value="{{ $del->id }}">
+                                    Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }}) 
+                                    @if($del->status == 'CERRADO') [CERRADO] @endif
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -114,7 +117,10 @@
                     <select wire:model.live="selectedDeliveryId" x-model="currentDeliveryId" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm font-bold">
                         <option value="">Ver todos mis pedidos</option>
                         @foreach($deliveries as $del)
-                            <option value="{{ $del->id }}">Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }})</option>
+                            <option value="{{ $del->id }}">
+                                Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }})
+                                @if($del->status == 'CERRADO') [CERRADO] @endif
+                            </option>
                         @endforeach
                     </select>
                     <div class="mt-4 w-full h-px bg-gray-100 dark:bg-slate-800"></div>
@@ -122,27 +128,34 @@
                 @endif
                 
                 <!-- Botones de Resumen (Visible para Todos - Global o Por Cargue) -->
-                <div class="pt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-3 gap-2">
+                <div class="pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-center items-center gap-8">
+                    <!-- Botón Cierre -->
                     <button 
                          @if(auth()->user()->profile_id != 13) wire:click="closeDeliveryLoad" @endif
-                         @if(auth()->user()->profile_id == 13) disabled @endif
-                        class="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 rounded-lg text-[10px] flex flex-col items-center justify-center transition-all">
+                         @if(auth()->user()->profile_id == 13 || $this->isCurrentDeliveryClosed) disabled @endif
+                        class="bg-green-600 hover:bg-green-700 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed text-white font-black px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all shadow-md active:scale-95 whitespace-nowrap">
                         <x-heroicon-o-check-circle class="w-5 h-5 mb-1" />
-                        Cierre
+                        <span>Cierre</span>
                     </button>
+                    
+                    <!-- Botón Recaudado -->
                     <button 
                          @click="isOnline ? $wire.toggleCollections() : toggleCollectionsView()"
-                        class="bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 rounded-lg text-[10px] flex flex-col items-center justify-center transition-all"
-                        :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'ring-2 ring-white ring-offset-2 ring-offset-yellow-500' : ''">
-                        <span class="text-base leading-none mb-1">$</span>
-                        Recaudado
+                        class="px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all font-black shadow-md active:scale-95 border-2 whitespace-nowrap"
+                        :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-yellow-50 text-yellow-800 border-yellow-200 opacity-60 hover:opacity-100'">
+                        <span class="text-sm leading-none mb-1 font-black" :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'text-white' : 'text-yellow-700'">$</span>
+                        <span :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'text-white' : 'text-yellow-800'">Recaudado</span>
                     </button>
+                    
+                    <!-- Botón Devoluciones -->
                     <button 
                         @click="isOnline ? $wire.toggleReturns() : toggleReturnsView()"
-                        class="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 rounded-lg text-[10px] flex flex-col items-center justify-center transition-all"
-                        :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'ring-2 ring-white ring-offset-2 ring-offset-green-600' : ''">
-                        <x-heroicon-o-arrow-path class="w-5 h-5 mb-1" />
-                        Devoluciones
+                        class="px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all font-black shadow-md active:scale-95 border-2 whitespace-nowrap"
+                        :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-green-50 text-green-800 border-green-200 opacity-60 hover:opacity-100'">
+                        <div :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'text-white' : 'text-green-700'">
+                            <x-heroicon-o-arrow-path class="w-5 h-5 mb-1" />
+                        </div>
+                        <span :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'text-white' : 'text-green-800'">Devoluciones</span>
                     </button>
                 </div>
 
@@ -162,28 +175,36 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
                                     <tr>
-                                        <th class="px-4 py-3"># PEDIDO</th>
-                                        <th class="px-4 py-3">ITEMS</th>
-                                        <th class="px-4 py-3 text-center">CANT</th>
-                                        <th class="px-4 py-3 text-right">VALOR</th>
+                                        <th class="px-3 py-2"># PEDIDO</th>
+                                        <th class="px-3 py-2">ITEMS</th>
+                                        <th class="px-3 py-2 text-center text-red-500">DEV</th>
+                                        <th class="px-3 py-2 text-center text-orange-500">NO ENT</th>
+                                        <th class="px-3 py-2 text-center">TOTAL</th>
+                                        <th class="px-3 py-2 text-right">VALOR</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
                                     @forelse($this->returnedItems as $return)
                                     <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td class="px-4 py-3">
-                                            <span class="bg-green-500 text-white px-2 py-1 rounded text-[10px] font-bold">
-                                                {{ $return->remission->consecutive ?? $return->remission->id }}
+                                        <td class="px-3 py-2">
+                                            <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold">
+                                                #{{ $return->consecutive }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-bold uppercase truncate max-w-[140px]">
-                                            {{ $return->item->name ?? 'N/A' }}
+                                        <td class="px-3 py-2 text-gray-700 dark:text-gray-300 font-bold uppercase truncate max-w-[120px]">
+                                            {{ $return->item_name }}
                                         </td>
-                                        <td class="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-400">
-                                            {{ $return->cant_return }}
+                                        <td class="px-3 py-2 text-center font-bold text-red-600 dark:text-red-400">
+                                            {{ $return->dev ?: '-' }}
                                         </td>
-                                        <td class="px-4 py-3 text-right font-black text-gray-900 dark:text-white">
-                                            ${{ number_format($return->cant_return * $return->value, 0, ',', '.') }}
+                                        <td class="px-3 py-2 text-center font-bold text-orange-600 dark:text-orange-400">
+                                            {{ $return->no_ent ?: '-' }}
+                                        </td>
+                                        <td class="px-3 py-2 text-center font-black text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/30">
+                                            {{ $return->total }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white">
+                                            ${{ number_format($return->subtotal, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                     @empty
@@ -197,10 +218,12 @@
                                 @if($this->returnedItems->count() > 0)
                                 <tfoot class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
                                     <tr>
-                                        <td colspan="2" class="px-4 py-3 uppercase text-[10px] tracking-widest opacity-60">TOTALES</td>
-                                        <td class="px-4 py-3 text-center font-bold">{{ $this->returnedItems->sum('cant_return') }}</td>
-                                        <td class="px-4 py-3 text-right text-xs text-green-600 dark:text-green-500">
-                                            ${{ number_format($this->returnedItems->sum(fn($r) => $r->cant_return * $r->value), 0, ',', '.') }}
+                                        <td colspan="2" class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60">TOTALES</td>
+                                        <td class="px-3 py-2 text-center font-bold text-red-600">{{ $this->returnedItems->sum('dev') }}</td>
+                                        <td class="px-3 py-2 text-center font-bold text-orange-600">{{ $this->returnedItems->sum('no_ent') }}</td>
+                                        <td class="px-3 py-2 text-center font-black">{{ $this->returnedItems->sum('total') }}</td>
+                                        <td class="px-3 py-2 text-right text-xs text-green-600 dark:text-green-500">
+                                            ${{ number_format($this->returnedItems->sum('subtotal'), 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -224,35 +247,44 @@
                                 <table class="w-full text-left text-[11px]">
                                     <thead class="bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
                                         <tr>
-                                            <th class="px-3 py-2">Forma pago</th>
-                                            <th class="px-3 py-2">Sistema</th>
-                                            <th class="px-3 py-2 text-right">Descuento</th>
+                                            <th class="px-3 py-2"># PEDIDO</th>
+                                            <th class="px-3 py-2">CLIENTE</th>
+                                            <th class="px-3 py-2">FORMA PAGO</th>
+                                            <th class="px-3 py-2">OBSERVACIÓN</th>
+                                            <th class="px-3 py-2 text-right">VALOR</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
                                         @forelse($this->collections as $col)
                                         <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td class="px-3 py-2">
+                                                <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold">
+                                                    #{{ $col->quote->remission->consecutive ?? ($col->quote->id ?? 'N/A') }}
+                                                </span>
+                                            </td>
                                             <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300">
+                                                {{ $col->quote->customer_name ?? 'N/A' }}
+                                            </td>
+                                            <td class="px-3 py-2 font-black text-gray-900 dark:text-white uppercase text-[10px]">
                                                 {{ ($col->methodPayments->description ?? 'N/A') === 'CASH' ? 'EFECTIVO' : ($col->methodPayments->description ?? 'N/A') }}
                                             </td>
-                                            <td class="px-3 py-2 font-black text-gray-900 dark:text-white">
-                                                ${{ number_format($col->system_total, 0, ',', '.') }}
+                                            <td class="px-3 py-2 text-[10px] text-gray-500 dark:text-slate-400 italic">
+                                                {{ $col->quote->remission->observations_return ?? 'Sin observaciones' }}
                                             </td>
                                             <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white">
-                                                ${{ number_format($col->discount_total, 0, ',', '.') }}
+                                                ${{ number_format($col->value, 0, ',', '.') }}
                                             </td>
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="3" class="px-3 py-4 text-center text-gray-400 dark:text-slate-500 uppercase font-bold text-[10px]">Sin recaudos</td>
+                                            <td colspan="5" class="px-3 py-4 text-center text-gray-400 dark:text-slate-500 uppercase font-bold text-[10px]">Sin recaudos registrados</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
                                     <tfoot class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
                                         <tr>
-                                            <td class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60">TOTALES</td>
-                                            <td class="px-3 py-2 font-bold">${{ number_format($this->collections->sum('system_total'), 0, ',', '.') }}</td>
-                                            <td class="px-3 py-2 text-right font-bold">${{ number_format($this->collections->sum('discount_total'), 0, ',', '.') }}</td>
+                                            <td colspan="4" class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60">TOTAL RECAUDADO</td>
+                                            <td class="px-3 py-2 text-right font-bold">${{ number_format($this->collections->sum('value'), 0, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -270,14 +302,20 @@
                                 <table class="w-full text-left text-[11px]">
                                     <thead class="bg-red-5 dark:bg-slate-800 text-red-600 dark:text-red-400 font-black uppercase tracking-wider">
                                         <tr>
-                                            <th class="px-3 py-2">Credito</th>
-                                            <th class="px-3 py-2 text-right">Valor</th>
+                                            <th class="px-3 py-2"># PEDIDO</th>
+                                            <th class="px-3 py-2">CLIENTE</th>
+                                            <th class="px-3 py-2 text-right">VALOR</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
                                         @forelse($this->credits as $credit)
                                         <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
+                                            <td class="px-3 py-2">
+                                                <span class="bg-red-500 text-white px-2 py-1 rounded text-[9px] font-bold">
+                                                    #{{ $credit->consecutive }}
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
                                                 {{ $credit->customer }}
                                             </td>
                                             <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white">
@@ -406,23 +444,17 @@
                     <div class="p-4 sm:p-6">
                         <!-- Area Clickeable: Detalles (Header e Info) -->
                         <div>
-                            <div class="flex justify-between items-start mb-4">
-                                 <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-                                     <h3 class="text-base sm:text-lg font-black tracking-widest uppercase text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
-                                        PEDIDO # {{ $remission->consecutive ?? $remission->id }} RUTA {{ $remission->quote->customer->name ?? 'N/A' }}
-                                     </h3>
-                                     
-                                     <button @click.stop="handleViewOrder({{ $remission->id }})" 
-                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
-                                         <x-heroicon-o-pencil-square class="w-3.5 h-3.5" />
-                                         Devolver por unidad
-                                     </button>
-                                 </div>
-                                 
-                                 <span class="px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors"
-                                       :class="localStatus == 'EN RECORRIDO' ? 'bg-blue-600 text-white' : (localStatus == 'ENTREGADO' ? 'bg-green-600 text-white' : (localStatus == 'REGISTRADO' ? 'bg-gray-500 text-white' : 'bg-red-600 text-white'))"
-                                       x-text="localStatus">
-                                 </span>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full justify-between">
+                                <h3 class="text-base sm:text-lg font-black tracking-widest uppercase text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                                   PEDIDO # {{ $remission->consecutive ?? $remission->id }} RUTA {{ $remission->quote->customer->name ?? 'N/A' }}
+                                </h3>
+                                
+                                <button x-show="localStatus != 'ENTREGADO'" 
+                                        @click.stop="handleViewOrder({{ $remission->id }})" 
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-yellow-500/20 active:scale-95">
+                                    <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                    Devolver por unidad
+                                </button>
                             </div>
 
                         <div class="space-y-4 text-sm sm:text-base">
@@ -443,6 +475,15 @@
                                     </p>
                                 </div>
                                 </div>
+                            </div>
+
+                            <!-- Estado del Pedido (Ahora abajo de la info) -->
+                            <div class="mt-4 flex items-center gap-2">
+                                <span class="text-xs font-bold uppercase text-gray-400 dark:text-slate-500 tracking-widest">Estado:</span>
+                                <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-sm transition-all"
+                                      :class="localStatus == 'EN RECORRIDO' ? 'bg-blue-600 text-white' : (localStatus == 'ENTREGADO' ? 'bg-green-600 text-white' : (localStatus == 'REGISTRADO' ? 'bg-gray-500 text-white' : 'bg-red-600 text-white'))"
+                                      x-text="localStatus">
+                                </span>
                             </div>
                         </div> <!-- Fin Contenido Celda -->
                         
@@ -619,6 +660,13 @@
                     </div>
 
                     <div class="bg-white dark:bg-slate-950 p-0 transform transition-all">
+                        <!-- Justificación Global por Pedido (Mantenida arriba para visibilidad) -->
+                        <div class="p-6 bg-gray-50/50 dark:bg-slate-900/40 border-b border-gray-100 dark:border-slate-800">
+                            <label class="text-[10px] font-black uppercase text-gray-400 mb-2 block tracking-[0.2em]">Observaciones del Pedido (Razón de Devolución)</label>
+                            <textarea x-model="orderNovelty" 
+                                      class="w-full px-4 py-3 rounded-2xl border-gray-200 dark:border-slate-800 dark:bg-slate-900 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500/50 transition-all resize-none h-24"
+                                      placeholder="¿Por qué se devuelven estos productos? (Obligatorio si hay devoluciones)"></textarea>
+                        </div>
                         <!-- Área de Edición de Producto (Especial Táctil) -->
                         <template x-if="order && order.details && order.details[currentItemIndex]">
                             <div class="p-6 bg-blue-50/50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/30">
@@ -651,22 +699,6 @@
                                         </button>
                                     </div>
 
-                                    <div class="w-full max-w-md space-y-3">
-                                        <div class="relative">
-                                            <label class="text-[10px] font-black uppercase text-gray-400 mb-1 block text-left">Observaciones del Pedido (Razón de Devolución)</label>
-                                            <textarea x-model="orderNovelty" 
-                                                    placeholder="¿Por qué se devuelven estos productos? (Obligatorio)"
-                                                    class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-slate-800 dark:bg-slate-900 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500/50 transition-all resize-none h-20"
-                                                    :class="Object.values(returnQuantities).some(q => q > 0) && !orderNovelty.trim() ? 'border-red-500 ring-1 ring-red-500' : ''"></textarea>
-                                        </div>
-                                        
-                                        <button @click="saveProductNovelty(order.id)"
-                                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/30 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                :disabled="Object.values(returnQuantities).some(q => q > 0) && !orderNovelty.trim()">
-                                            <x-heroicon-o-check-circle class="w-6 h-6" />
-                                            <span>GUARDAR UNIDADES DEVUELTAS</span>
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -737,13 +769,6 @@
                             </div>
                         </div>
 
-                        <!-- Justificación Global por Pedido -->
-                        <div class="mt-2 px-6 pb-4 bg-gray-50/50 dark:bg-slate-900/30">
-                            <label class="text-[10px] font-black uppercase text-gray-400 mb-2 block tracking-widest">Novedad / Justificación General</label>
-                            <textarea wire:model.blur="orderNovelty" 
-                                      class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-slate-800 dark:bg-slate-900 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500/50 transition-all resize-none h-16"
-                                      placeholder="Escriba aquí cualquier novedad..."></textarea>
-                        </div>
 
                         <div class="bg-gray-50 dark:bg-slate-900/50 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-100 dark:border-slate-800">
                             <div class="flex flex-col items-center sm:items-start text-center sm:text-left">
@@ -751,9 +776,30 @@
                                 <div class="text-2xl font-black text-green-600 dark:text-green-500" 
                                     x-text="'$ ' + (order?.details?.reduce((acc, d) => acc + ((d.quantity - (returnQuantities[d.id] || 0)) * d.value), 0) || 0).toLocaleString()"></div>
                             </div>
-                            <button @click="open = false; $wire.closeOrderModal()" class="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-black py-3 px-8 rounded-xl transition-all shadow-md active:scale-95 text-xs uppercase tracking-widest">
-                                Cerrar
-                            </button>
+                            <div class="flex items-center gap-3 w-full sm:w-auto">
+                                <button @click="handleSaveProductNovelty(order.id)"
+                                        class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-6 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs uppercase tracking-widest"
+                                        :disabled="saving || (Object.values(returnQuantities).some(q => q > 0) && !orderNovelty.trim())">
+                                    <template x-if="!saving">
+                                        <div class="flex items-center gap-2">
+                                            <x-heroicon-o-check-circle class="w-5 h-5" />
+                                            <span>GUARDAR UNIDADES</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="saving">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>GUARDANDO...</span>
+                                        </div>
+                                    </template>
+                                </button>
+                                <button @click="open = false; $wire.closeOrderModal()" class="flex-1 sm:flex-none bg-red-500 hover:bg-red-600 text-white font-black py-3 px-8 rounded-xl transition-all shadow-md active:scale-95 text-xs uppercase tracking-widest">
+                                    Cerrar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1005,6 +1051,7 @@
                     showToast: false,
                     toastMsg: '',
                     isError: false,
+                    saving: false,
 
                 // Propiedades del Modal (Entrelazadas con Livewire)
                 open: @entangle('showingOrderModal'),
@@ -1286,8 +1333,11 @@
                 async handleSaveProductNovelty(id) {
                     console.log("💾 handleSaveProductNovelty llamado para ID:", id);
                     if (this.isOnline) {
-                        console.log("🌐 Llamando a Livewire saveProductNovelty...");
-                        this.$wire.saveProductNovelty(id);
+                        this.saving = true;
+                        this.$wire.saveProductNovelty(id).then(() => {
+                            this.saving = false;
+                            this.open = false;
+                        });
                         return;
                     }
 
@@ -1314,25 +1364,22 @@
 
                             // Actualizar IndexedDB
                             const existing = await this.db.devoluciones_locales.where('detail_id').equals(Number(detailId)).first();
-                            if (existing) {
-                                await this.db.devoluciones_locales.update(existing.id, {
-                                    quantity: qty,
-                                    observation: observation,
-                                    synced: 0
-                                });
-                            } else {
-                                await this.db.devoluciones_locales.put({
-                                    detail_id: Number(detailId),
-                                    quantity: qty,
-                                    observation: observation,
-                                    synced: 0
-                                });
-                            }
+                                if (existing) {
+                                    await this.db.devoluciones_locales.update(existing.id, {
+                                        quantity: qty,
+                                        synced: 0
+                                    });
+                                } else {
+                                    await this.db.devoluciones_locales.put({
+                                        detail_id: Number(detailId),
+                                        quantity: qty,
+                                        synced: 0
+                                    });
+                                }
 
                             const detail = await this.db.detalles.get(Number(detailId));
                             if (detail) {
                                 detail.cant_return = qty;
-                                detail.observations_return = observation;
                                 await this.db.detalles.put(detail);
                             }
                         }
@@ -1347,11 +1394,14 @@
                             showConfirmButton: false
                         });
 
+                        this.open = false;
+
                     } catch (e) {
                          console.error("❌ Error offline saveProductNovelty:", e);
                          Swal.fire('Error', 'No se pudo guardar localmente: ' + e.message, 'error');
                     } finally {
                         this.syncing = false;
+                        this.saving = false;
                     }
                 },
 
