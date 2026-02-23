@@ -100,6 +100,8 @@ class PettyCash extends Component
                 $query->where($model->getTable() . '.consecutive', 'like', '%' . $this->search . '%')
                     ->orWhere('u.name', 'like', '%' . $this->search . '%');
             })
+            // La caja abierta (status=1) siempre aparece primero
+            ->orderBy($model->getTable() . '.status', 'desc')
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
@@ -143,19 +145,17 @@ class PettyCash extends Component
 
             $exists = $this->PettyCashExits($this->getwarehouse());
 
-            $exists = $this->PettyCashExits($this->getwarehouse());
-
             if ($exists) {
                 $this->addError('base', 'No se puede registrar, hay cajas abiertas');
             } else {
                 $this->resetErrorBag('base');
                 $this->validate();
 
-                // Determine the next consecutive number using dynamic model
+                // Determinar el siguiente consecutivo usando el modelo dinámico
                 $model = $this->getPettyCashModel();
-                $lastConsecutive = $model->where('warehouseId', $this->getwarehouse())->where('userIdOpen')->max('consecutive');
+                $lastConsecutive = $model->where('warehouseId', $this->getwarehouse())->max('consecutive');
 
-                $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
+                $newConsecutive = ($lastConsecutive !== null) ? $lastConsecutive + 1 : 1;
 
                 $pettyCashData = [
                     'base' => $this->base,
