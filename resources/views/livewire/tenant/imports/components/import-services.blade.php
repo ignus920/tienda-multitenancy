@@ -30,7 +30,7 @@
 
                 <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
                     <!-- Administrar Etiquetas -->
-                    <button wire:click=""
+                    <a href="{{ route('imports.imports-labels' )}}"
                         class="inline-flex items-center px-4 py-2 
                         bg-emerald-500 hover:bg-emerald-600 
                         dark:bg-emerald-600 dark:hover:bg-emerald-500
@@ -39,12 +39,9 @@
                         focus:outline-none focus:ring-2 focus:ring-emerald-400 
                         focus:ring-offset-2 dark:focus:ring-offset-gray-800
                         transition-all duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 4v16m0 0l-4-4m4 4l4-4"></path>
-                        </svg>
+                        <x-heroicon-o-tag class="w-5 h-5 mr-2" />
                         Administrar Etiquetas
-                    </button>
+                    </a>
                     <!-- Instrucciones -->
                     <button wire:click=""
                         class="inline-flex items-center px-4 py-2 

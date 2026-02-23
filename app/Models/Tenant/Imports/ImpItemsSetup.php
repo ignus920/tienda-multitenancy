@@ -58,11 +58,11 @@ class ImpItemsSetup extends Model
         'percentage' => 'double',
         'supplier_id' => 'integer',
         'factory_ref' => 'string',
-        'exw' => 'decimal',
+        'exw' => 'decimal:2',
         'purchase_unit' => 'integer',
-        'freight_increase' => 'decimal',
-        'pvp_factor' => 'decimal',
-        'pvp_min_factor' => 'decimal',
+        'freight_increase' => 'decimal:2',
+        'pvp_factor' => 'decimal:2',
+        'pvp_min_factor' => 'decimal:2',
     ];
 
     /**
