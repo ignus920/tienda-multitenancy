@@ -412,10 +412,9 @@ class Deliveries extends Component
         foreach ($pendingReturns as $ret) {
             $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::with('remission')->find($ret['detail_id']);
             if ($detail) {
-                // 1. Actualizar el detalle (cantidad devuelta)
+                // 1. Actualizar el detalle (cantidad devuelta solamente)
                 $detail->update([
-                    'cant_return' => $ret['quantity'],
-                    'observations_return' => $ret['observation'] ?? null
+                    'cant_return' => $ret['quantity']
                 ]);
 
                 // 2. IMPORTANTE: Guardar la observación en la remisión principal (cabecera)

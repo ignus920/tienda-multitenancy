@@ -182,7 +182,6 @@
                                         <th class="px-3 py-2 text-center text-red-500">DEV</th>
                                         <th class="px-3 py-2 text-center text-orange-500">NO ENT</th>
                                         <th class="px-3 py-2 text-center">TOTAL</th>
-                                        <th class="px-3 py-2">OBSERVACIÓN</th>
                                         <th class="px-3 py-2 text-right">VALOR</th>
                                     </tr>
                                 </thead>
@@ -208,9 +207,6 @@
                                         </td>
                                         <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white">
                                             ${{ number_format($return->subtotal, 0, ',', '.') }}
-                                        </td>
-                                        <td class="px-3 py-2 text-[10px] italic text-gray-500 uppercase truncate max-w-[150px]">
-                                            {{ $return->observation ?: 'N/A' }}
                                         </td>
                                     </tr>
                                     @empty
@@ -366,7 +362,6 @@
                                             <th class="px-3 py-2"># PEDIDO</th>
                                             <th class="px-3 py-2">ITEMS</th>
                                             <th class="px-3 py-2 text-center">TOTAL</th>
-                                            <th class="px-3 py-2">OBSERVACIÓN</th>
                                             <th class="px-3 py-2 text-right">VALOR</th>
                                         </tr>
                                     </thead>
@@ -378,7 +373,6 @@
                                                 </td>
                                                 <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300 truncate max-w-[120px]" x-text="ret.item_name"></td>
                                                 <td class="px-3 py-2 text-center font-black text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/30" x-text="ret.quantity + (ret.quantity_no_ent || 0)"></td>
-                                                <td class="px-3 py-2 text-[9px] italic text-gray-500 uppercase truncate max-w-[120px]" x-text="ret.observation || 'N/A'"></td>
                                                 <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white" x-text="'$' + Number(ret.subtotal || 0).toLocaleString()"></td>
                                             </tr>
                                         </template>
@@ -1359,7 +1353,6 @@
                         const detail = await this.db.detalles.get(detailId);
                         if (detail) {
                             detail.cant_return = qty;
-                            detail.observations_return = observation;
                             await this.db.detalles.put(detail);
                         }
 
