@@ -191,20 +191,35 @@ class ProductQuoter extends Component
         $this->ensureTenantConnection();
         
         try {
-            $remission = InvRemissions::with(['quote.customer', 'details.item'])->findOrFail($remissionId);
+            $remission = InvRemissions::with(['quote', 'details.item'])->findOrFail($remissionId);
             
-            // 1. Cargar Cliente
-            if ($remission->quote && $remission->quote->customer) {
-                $customer = $remission->quote->customer;
-                $this->selectedCustomer = [
-                    'id' => $customer->id,
-                    'businessName' => $customer->businessName,
-                    'firstName' => $customer->firstName,
-                    'lastName' => $customer->lastName,
-                    'identification' => $customer->identification,
-                    'billingEmail' => $customer->billingEmail,
-                ];
-                $this->customerSearch = $customer->identification;
+            // 1. Cargar Cliente (igual que loadQuoteForEditing: via VntWarehouse → VntCompany)
+            if ($remission->quote && $remission->quote->customerId) {
+                $warehouse = VntWarehouse::with('company')->find($remission->quote->customerId);
+                if ($warehouse) {
+                    $company    = $warehouse->company;
+                    $firstName  = $company->firstName ?? '';
+                    $lastName   = $company->lastName ?? '';
+
+                    // Fallback para clientes antiguos que solo tienen businessName
+                    if (empty($firstName) && ($company->typeIdentificationId ?? 1) == 1) {
+                        $parts     = explode(' ', trim($company->businessName ?? ''), 2);
+                        $firstName = $parts[0] ?? ($company->businessName ?? '');
+                        $lastName  = $parts[1] ?? '';
+                    }
+
+                    $this->selectedCustomer = [
+                        'id'             => $warehouse->id,
+                        'company_id'     => $company->id ?? null,
+                        'businessName'   => $company->businessName ?? '',
+                        'firstName'      => $firstName,
+                        'lastName'       => $lastName,
+                        'identification' => $company->identification ?? '',
+                        'billingEmail'   => $company->billingEmail ?? '',
+                    ];
+                    $this->customerSearch = $company->identification ?? '';
+                    Log::info('👤 Cliente cargado desde remisión', ['warehouse_id' => $warehouse->id]);
+                }
             }
 
             // 2. Cargar Items
