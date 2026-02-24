@@ -33,6 +33,7 @@ class ImportList extends Component
     
     // Property to track selected label for filtering
     public $selectedLabelId = null; // null = show all, number = filter by label
+    public $selectedLabelName = 'Programación'; // Nombre a mostrar en el dropdown
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -66,12 +67,23 @@ class ImportList extends Component
         
         Log::info("Label encontrado: {$labelName}");
         
-        // If "Con etiqueta" option (id = 0), show all items
-        if ($labelId == 0) {
+        // Handle different selection options
+        if ($labelId == -1) {
+            // "Programación" option - show all items without filter
             $this->selectedLabelId = null;
+            $this->selectedLabelName = 'Programación';
+            Log::info("Mostrando todos los items sin filtro (Programación seleccionado)");
+        } elseif ($labelId == 0) {
+            // "Con etiqueta" option - show all items with any label
+            $this->selectedLabelId = null;
+            $this->selectedLabelName = 'Con etiqueta';
             Log::info("Mostrando todos los items (Con etiqueta seleccionado)");
         } else {
+            // Specific label selected
             $this->selectedLabelId = $labelId;
+            // Remover el contador de items del nombre para mostrarlo limpio
+            $cleanName = preg_replace('/\s*\(\d+\s*items?\)$/', '', $labelName);
+            $this->selectedLabelName = $cleanName ?: $labelName;
             Log::info("Filtrando por label ID: {$labelId}");
         }
         
@@ -89,6 +101,7 @@ class ImportList extends Component
         $this->dispatch('$refresh');
         
         Log::info("selectedLabelId final: " . ($this->selectedLabelId ?? 'null'));
+        Log::info("selectedLabelName final: " . $this->selectedLabelName);
         Log::info("=== FIN LABEL SELECTED EVENT ===");
     }
 
@@ -123,9 +136,25 @@ class ImportList extends Component
     public function getItemsProperty()
     {
         $this->ensureTenantConnection();
-        
+
         Log::info("=== GET ITEMS - selectedLabelId: " . ($this->selectedLabelId ?? 'null') . " ===");
-        
+
+        // Debug: Si hay label seleccionado, verificar qué items existen en imp_imports
+        if ($this->selectedLabelId) {
+            $importsCheck = DB::connection('tenant')
+                ->table('imp_imports')
+                ->where('label_id', $this->selectedLabelId)
+                ->whereBetween('status', [1, 7])
+                ->whereNull('deleted_at')
+                ->get(['id', 'item_id', 'qty_requested', 'label_id', 'status']);
+
+            Log::info('DEBUG - Items en imp_imports para label ' . $this->selectedLabelId . ': ' . $importsCheck->count());
+            if ($importsCheck->count() > 0) {
+                Log::info('DEBUG - Primer registro imp_imports: ' . json_encode($importsCheck->first(), JSON_PRETTY_PRINT));
+                Log::info('DEBUG - Item IDs en imp_imports: ' . $importsCheck->pluck('item_id')->implode(', '));
+            }
+        }
+
         $query = Items::query()
             ->select([
                 'inv_items.id',
@@ -136,7 +165,7 @@ class ImportList extends Component
                 'inv_items_store.stock_items_store',
                 DB::raw($this->selectedLabelId 
                     ? 'COALESCE(imp_imports.qty_requested, 0) AS quantity'
-                    : 'COALESCE(MAX(inv_unconfirmed_qty.qty), 0) AS quantity'
+                    : 'COALESCE(MAX(imp_unconfirmed_qty.qty), 0) AS quantity'
                 ),
                 DB::raw('0 AS percentage'),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "entrada" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS insideMovement'),
@@ -148,12 +177,13 @@ class ImportList extends Component
             ->join('inv_store', 'inv_store.id', '=', 'inv_items_store.storeId')
             ->leftJoin('inv_detail_inv_adjustments', 'inv_detail_inv_adjustments.itemId', '=', 'inv_items.id')
             ->leftJoin('inv_inventory_adjustments', 'inv_inventory_adjustments.id', '=', 'inv_detail_inv_adjustments.inventoryAdjustmentId')
-            ->leftJoin('inv_unconfirmed_qty', 'inv_unconfirmed_qty.item_id', '=', 'inv_items.id')
+            ->leftJoin('imp_unconfirmed_qty', 'imp_unconfirmed_qty.item_id', '=', 'inv_items.id')
             ->when($this->selectedLabelId, function($query) {
                 // INNER JOIN imp_imports to filter only items with this label
                 $query->join('imp_imports', function($join) {
                     $join->on('imp_imports.item_id', '=', 'inv_items.id')
                          ->where('imp_imports.label_id', '=', $this->selectedLabelId)
+                         ->whereBetween('imp_imports.status', [1, 7]) // Filtrar status 1-7
                          ->whereNull('imp_imports.deleted_at');
                 });
                 // INNER JOIN imp_labels (optional, for additional label data if needed)
@@ -185,22 +215,23 @@ class ImportList extends Component
         Log::info('=== IMPORT ITEMS QUERY ===');
         Log::info('SQL: ' . $query->toSql());
         Log::info('Bindings: ' . json_encode($query->getBindings()));
-        
+
         $results = $query->paginate($this->perPage);
-        
+
         // Log de los resultados
         Log::info('Total items encontrados: ' . $results->total());
         Log::info('Items en página actual: ' . $results->count());
-        
+
         if ($results->count() > 0) {
             Log::info('Primer item de ejemplo:');
             Log::info(json_encode($results->first()->toArray(), JSON_PRETTY_PRINT));
         }
-        
+
         Log::info('=== FIN IMPORT ITEMS QUERY ===');
-        
+
         return $results;
     }
+
 
     #[On('refresh-import-list')]
     public function refreshList()
@@ -314,6 +345,9 @@ class ImportList extends Component
             // Verificar si hay conexión a la base de datos
             Log::info('Intentando obtener labels de ImpLabels con cantidad total');
             
+            // Calcular la fecha de un año desde hoy
+            $oneYearFromNow = now()->addYear();
+            
             $labels = ImpLabels::select([
                 'imp_labels.id',
                 'imp_labels.name',
@@ -329,7 +363,15 @@ class ImportList extends Component
             ])
             ->leftJoin('imp_imports', function($join) {
                 $join->on('imp_labels.id', '=', 'imp_imports.label_id')
+                     ->whereBetween('imp_imports.status', [1, 7]) // Filtrar status 1-7
                      ->whereNull('imp_imports.deleted_at');
+            })
+            ->whereBetween('imp_labels.status', [1, 7]) // Filtrar solo etiquetas con estado 1-7
+            ->where(function($query) use ($oneYearFromNow) {
+                // Filtrar etiquetas con fecha estimada dentro del próximo año o sin fecha (asap)
+                $query->where('imp_labels.estimated_date', '<=', $oneYearFromNow)
+                      ->orWhereNull('imp_labels.estimated_date')
+                      ->orWhere('imp_labels.asap', 1);
             })
             ->groupBy([
                 'imp_labels.id',
@@ -343,6 +385,7 @@ class ImportList extends Component
                 'imp_labels.updated_at',
                 'imp_labels.deleted_at'
             ])
+            ->having('total_qty_requested', '>', 0) // Solo etiquetas con cantidad mayor a 0
             ->get();
             
             Log::info('Total de labels encontrados: ' . $labels->count());
@@ -358,7 +401,22 @@ class ImportList extends Component
             $hasItemsWithLabels = ImpImports::whereNull('deleted_at')->exists();
 
             if ($hasItemsWithLabels) {
-                // Create a "Con etiqueta" option as array
+                // Create a "Programación" option as the first item
+                $programacionOption = [
+                    'id' => -1, // ID especial para "Programación"
+                    'name' => 'Programación',
+                    'asap' => null,
+                    'estimated_date' => null,
+                    'description' => null,
+                    'status' => null,
+                    'user_id' => null,
+                    'created_at' => null,
+                    'updated_at' => null,
+                    'deleted_at' => null,
+                    'total_qty_requested' => 0,
+                ];
+                
+                // Create a "Con etiqueta" option as second item
                 $allOption = [
                     'id' => 0,
                     'name' => 'Con etiqueta',
@@ -380,12 +438,13 @@ class ImportList extends Component
                         : (array) $label;
                 })->toArray();
                 
-                // Prepend the "Con etiqueta" option
+                // Prepend both options
                 array_unshift($labelsArray, $allOption);
+                array_unshift($labelsArray, $programacionOption);
                 
                 $labels = collect($labelsArray);
             } else {
-                // Convert all labels to arrays even if no "Con etiqueta" option
+                // Convert all labels to arrays even if no options
                 $labels = $labels->map(function($label) {
                     return is_object($label) && method_exists($label, 'toArray') 
                         ? $label->toArray() 

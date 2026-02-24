@@ -75,7 +75,8 @@ class ImportServices extends Component
     {
         try {
             $this->ensureTenantConnection();
-            $labels = ImpLabels::all();
+            // Filtrar solo etiquetas con estado entre 1 y 7
+            $labels = ImpLabels::whereBetween('status', [1, 7])->get();
             return $labels;
             
         } catch (\Exception $e) {
@@ -228,6 +229,9 @@ class ImportServices extends Component
                 'shipping_id' => null,
             ]);
 
+            // Eliminar el registro temporal de inv_unconfirmed_qty
+            $unconfirmedQty->delete();
+
             // Recargar asignaciones si es el item seleccionado
             if ($this->selectedItemId == $itemId) {
                 $this->loadItemAssignments();
@@ -238,6 +242,7 @@ class ImportServices extends Component
             Log::info('Item SKU: ' . $itemSku);
             Log::info('Label ID: ' . $labelId);
             Log::info('Label Name: ' . $labelName);
+            Log::info('Registro temporal eliminado de inv_unconfirmed_qty');
             Log::info('=== FIN REGISTRO ===');
 
             // Emitir evento para mostrar notificación de éxito
@@ -359,6 +364,9 @@ class ImportServices extends Component
                 'shipping_id' => null,
             ]);
 
+            // Eliminar el registro temporal de inv_unconfirmed_qty
+            $unconfirmedQty->delete();
+
             // Recargar asignaciones
             $this->loadItemAssignments();
 
@@ -367,6 +375,7 @@ class ImportServices extends Component
             Log::info('Item SKU: ' . ($this->selectedItemData['sku'] ?? 'N/A'));
             Log::info('Label ID: ' . $labelId);
             Log::info('Label Name: ' . $labelName);
+            Log::info('Registro temporal eliminado de inv_unconfirmed_qty');
             Log::info('=== FIN REGISTRO ===');
 
             // Emitir evento para mostrar notificación de éxito

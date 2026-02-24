@@ -376,53 +376,77 @@
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-blue-100 dark:divide-blue-800">
                                 <tr>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                              0
+                                            </span>
                                     </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                              0
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                              0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                             0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0 
+                                            </span>
+                                            </td>
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <input type="number" min="0" step="1" value="0" disabled
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                    </td>
+                                        <span
+                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            0  
+                                            </span>
+                                            </td>
                                 </tr>
                             </tbody>
                         </table>
