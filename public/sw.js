@@ -2,7 +2,7 @@
 * Sistema de Service Worker Manual - DOSIL ERP
 * v27 - Estrategia Ultra-Rápida (Stale-While-Revalidate)
 */
-const CACHE_NAME = 'quoter-cache-v27';
+const CACHE_NAME = 'quoter-cache-v28';
 const PRECACHE_ASSETS = [
     '/',
     '/manifest.json',
@@ -10,6 +10,8 @@ const PRECACHE_ASSETS = [
     '/logo.png',
     '/pwa-icons/icon-192x192.png',
     '/pwa-icons/icon-512x512.png',
+    '/js/dexie.min.js',
+    '/js/sweetalert2.min.js',
     '/tenant/quoter/mobile',
     '/tenant/quoter/products/mobile',
     '/tenant/remissions',
