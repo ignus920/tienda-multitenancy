@@ -1171,11 +1171,28 @@
                 },
 
                 async init() {
-                    // Verificar dependencias críticas
-                    if (typeof Dexie === 'undefined' || typeof Swal === 'undefined') {
+                    // Esperar hasta 3s a que las librerías carguen (race condition en primera navegación SPA)
+                    const libsReady = await new Promise((resolve) => {
+                        if (typeof Dexie !== 'undefined' && typeof Swal !== 'undefined') {
+                            return resolve(true);
+                        }
+                        let attempts = 0;
+                        const interval = setInterval(() => {
+                            attempts++;
+                            if (typeof Dexie !== 'undefined' && typeof Swal !== 'undefined') {
+                                clearInterval(interval);
+                                resolve(true);
+                            } else if (attempts >= 30) { // 30 x 100ms = 3 segundos máximo
+                                clearInterval(interval);
+                                resolve(false);
+                            }
+                        }, 100);
+                    });
+
+                    if (!libsReady) {
                         console.error("Error: Librerías críticas (Dexie/SweetAlert2) no cargaron. Verifique assets locales.");
                         this.isError = true;
-                        this.toastMsg = "Error de carga de sistema offline";
+                        this.toastMsg = "ERROR DE CARGA DE SISTEMA OFFLINE";
                         this.showToast = true;
                         return;
                     }
