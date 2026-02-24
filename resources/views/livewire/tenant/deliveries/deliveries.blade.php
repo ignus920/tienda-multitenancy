@@ -65,7 +65,7 @@
                 </button>
 
                 <div class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-4 py-2 rounded-lg font-bold text-lg shadow-inner">
-                    $ {{ number_format($remissions->sum('total_amount'), 0, ',', '.') }}
+                    $ <span x-text="isOnline ? '{{ number_format($remissions->sum('total_amount'), 0, ',', '.') }}' : localRemisionesList.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0).toLocaleString()"></span>
                 </div>
                 @if(auth()->user()->profile_id != 13)
                 <a href="{{ route('tenant.uploads.uploads') }}" wire:navigate class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-1">
@@ -144,20 +144,20 @@
                     <button 
                          @click="isOnline ? $wire.toggleCollections() : toggleCollectionsView()"
                         class="px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all font-black shadow-md active:scale-95 border-2 whitespace-nowrap"
-                        :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-yellow-50 text-yellow-800 border-yellow-200 opacity-60 hover:opacity-100'">
-                        <span class="text-sm leading-none mb-1 font-black" :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'text-white' : 'text-yellow-700'">$</span>
-                        <span :class="(isOnline ? @json($showCollectionsTable) : viewCollections) ? 'text-white' : 'text-yellow-800'">Recaudado</span>
+                        :class="viewCollections ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-yellow-50 text-yellow-800 border-yellow-200 opacity-60 hover:opacity-100'">
+                        <span class="text-sm leading-none mb-1 font-black" :class="viewCollections ? 'text-white' : 'text-yellow-700'">$</span>
+                        <span :class="viewCollections ? 'text-white' : 'text-yellow-800'">Recaudado</span>
                     </button>
                     
                     <!-- Botón Devoluciones -->
                     <button 
                         @click="isOnline ? $wire.toggleReturns() : toggleReturnsView()"
                         class="px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all font-black shadow-md active:scale-95 border-2 whitespace-nowrap"
-                        :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-green-50 text-green-800 border-green-200 opacity-60 hover:opacity-100'">
-                        <div :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'text-white' : 'text-green-700'">
+                        :class="viewReturns ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-green-50 text-green-800 border-green-200 opacity-60 hover:opacity-100'">
+                        <div :class="viewReturns ? 'text-white' : 'text-green-700'">
                             <x-heroicon-o-arrow-path class="w-5 h-5 mb-1" />
                         </div>
-                        <span :class="(isOnline ? @json($showReturnsTable) : viewReturns) ? 'text-white' : 'text-green-800'">Devoluciones</span>
+                        <span :class="viewReturns ? 'text-white' : 'text-green-800'">Devoluciones</span>
                     </button>
                 </div>
 
@@ -1099,10 +1099,11 @@
                 searchLocal: '',
 
                 currentDeliveryId: @entangle('selectedDeliveryId'),
-                viewCollections: false,
-                viewReturns: false,
+                viewCollections: @entangle('showCollectionsTable'),
+                viewReturns: @entangle('showReturnsTable'),
                 localCollectionsList: [],
                 localReturnsList: [],
+                localRemisionesList: [],
                 
                 async toggleCollectionsView() {
                     this.viewCollections = !this.viewCollections;
@@ -1170,6 +1171,20 @@
                      }
                 },
 
+                async loadLocalRemisiones() {
+                    if (!this.db) return;
+                    try {
+                        let query = this.db.remisiones.toCollection();
+                        if (this.currentDeliveryId) {
+                            query = this.db.remisiones.where('delivery_id').equals(Number(this.currentDeliveryId));
+                        }
+                        this.localRemisionesList = await query.toArray();
+                        console.log('📦 Remisiones locales cargadas:', this.localRemisionesList.length);
+                    } catch(e) {
+                        console.error('Error cargando remisiones locales:', e);
+                    }
+                },
+
                 async init() {
                     // Esperar hasta 3s a que las librerías carguen (race condition en primera navegación SPA)
                     const libsReady = await new Promise((resolve) => {
@@ -1226,20 +1241,14 @@
                         this.syncBackOnline();
                     });
 
-                    window.addEventListener('offline', () => { 
-                        this.isOnline = false; 
-                    });
-
-                    // Ciclo de auto-sincronización cada 5 minutos (300000ms)
-                    setInterval(() => {
-                        if (this.isOnline && !this.syncing) {
-                            console.log("🔄 Auto-sincronización periódica...");
-                            this.syncBackOnline();
+                    window.addEventListener('offline', async () => { 
+                        this.isOnline = false;
+                        await this.loadLocalRemisiones();
+                        // Si había una tabla activa, cargar sus datos locales también
+                        if (this.viewReturns || this.viewCollections) {
+                            await this.loadFinancialDetails();
                         }
-                    }, 300000);
-                    window.addEventListener('offline', () => { 
-                        this.isOnline = false; 
-                        console.log("⚠️ Estamos offline");
+                        console.log("⚠️ Modo offline activado - cargando datos locales");
                     });
 
                     // Escuchar eventos de Livewire para toast (Restaurando funcionalidad original)
