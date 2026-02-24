@@ -9,6 +9,7 @@ use App\Models\Tenant\Imports\ImpImports;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 // use Livewire\Attributes\On;
@@ -29,6 +30,9 @@ class ImportServices extends Component
     
     // Array para almacenar las asignaciones del item seleccionado
     public $itemAssignments = [];
+    
+    // Array para almacenar las cantidades mensuales del item seleccionado
+    public $monthlyQuantities = [];
     
     // Servicios de importación disponibles
     public $importServices = [
@@ -92,14 +96,20 @@ class ImportServices extends Component
     private function loadItemAssignments()
     {
         try {
+            Log::info('=== INICIO loadItemAssignments ===');
+            Log::info('Selected Item ID: ' . ($this->selectedItemId ?? 'NULL'));
+            
             if (!$this->selectedItemId) {
+                Log::info('No hay item seleccionado, limpiando asignaciones');
                 $this->itemAssignments = [];
                 return;
             }
 
             $this->ensureTenantConnection();
+            Log::info('Conexión tenant establecida');
             
             // Consultar imp_imports para obtener las asignaciones del item
+            Log::info('Consultando imp_imports para item_id: ' . $this->selectedItemId);
             $assignments = ImpImports::where('item_id', $this->selectedItemId)
                 ->where('status', 1)
                 ->whereNull('deleted_at')
@@ -111,15 +121,64 @@ class ImportServices extends Component
             
             Log::info('=== ASIGNACIONES CARGADAS ===');
             Log::info('Item ID: ' . $this->selectedItemId);
+            Log::info('Total asignaciones: ' . count($this->itemAssignments));
             Log::info('Asignaciones: ' . json_encode($this->itemAssignments));
             Log::info('=== FIN ASIGNACIONES ===');
             
         } catch (\Exception $e) {
-            Log::error('Error al cargar asignaciones: ' . $e->getMessage());
+            Log::error('=== ERROR EN loadItemAssignments ===');
+            Log::error('Mensaje: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('=== FIN ERROR ===');
             $this->itemAssignments = [];
         }
     }
+    /**
+     * Obtener las cantidades mensuales de remisiones para el item seleccionado
+     * Retorna un array con los últimos 12 meses
+     */
+    private function loadMonthlyQuantities()
+    {
+        try {
+            if (!$this->selectedItemId) {
+                return array_fill(1, 12, 0);
+            }
+
+            $this->ensureTenantConnection();
+
+            // Obtener datos de los últimos 12 meses
+            $monthlyData = DB::connection('tenant')
+                ->table('inv_remissions as ir')
+                ->join('inv_detail_remissions as idr', 'idr.remissionId', '=', 'ir.id')
+                ->select(
+                    DB::raw('YEAR(ir.updated_at) AS anio'),
+                    DB::raw('MONTH(ir.updated_at) AS mes'),
+                    DB::raw('SUM(idr.quantity) AS TotalQuantity')
+                )
+                ->where('idr.itemId', $this->selectedItemId)
+                ->where('ir.updated_at', '>=', DB::raw("DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH)"))
+                ->where('ir.updated_at', '<=', DB::raw('NOW()'))
+                ->groupBy(DB::raw('YEAR(ir.updated_at)'), DB::raw('MONTH(ir.updated_at)'))
+                ->orderBy('anio', 'ASC')
+                ->orderBy('mes', 'ASC')
+                ->get();
+
+            // Inicializar array con 0 para todos los meses
+            $quantities = array_fill(1, 12, 0);
+
+            // Llenar con los datos obtenidos
+            foreach ($monthlyData as $data) {
+                $quantities[$data->mes] = (int) $data->TotalQuantity;
+            }
+
+            return $quantities;
+
+        } catch (\Exception $e) {
+            Log::error('Error en loadMonthlyQuantities: ' . $e->getMessage());
+            return array_fill(1, 12, 0);
+        }
+    }
+
 
     /**
      * Verificar si un label está asignado al item seleccionado
@@ -149,21 +208,31 @@ class ImportServices extends Component
     #[On('item-selected')]
     public function onItemSelected($data)
     {
+        Log::info('=== INICIO onItemSelected ===');
+        Log::info('Data recibida: ' . json_encode($data));
+        
         $this->selectedItemId = $data['itemId'];
         $this->selectedItemQuantity = $data['quantity'];
         $this->selectedItemData = $data;
         
+        Log::info('Selected Item ID establecido: ' . $this->selectedItemId);
+        Log::info('Selected Item Quantity establecida: ' . $this->selectedItemQuantity);
+        
         // Cargar las asignaciones del item seleccionado
+        Log::info('Cargando asignaciones del item...');
         $this->loadItemAssignments();
+        
+        // Cargar las cantidades mensuales del item seleccionado
+        Log::info('Cargando cantidades mensuales del item...');
+        $this->monthlyQuantities = $this->loadMonthlyQuantities();
         
         Log::info('=== ITEM SELECCIONADO EN IMPORT SERVICES ===');
         Log::info('Item ID: ' . $this->selectedItemId);
         Log::info('Cantidad: ' . $this->selectedItemQuantity);
         Log::info('Datos completos: ' . json_encode($this->selectedItemData));
+        Log::info('Total asignaciones cargadas: ' . count($this->itemAssignments));
+        Log::info('Cantidades mensuales: ' . json_encode($this->monthlyQuantities));
         Log::info('=== FIN ITEM SELECCIONADO ===');
-        
-        // Aquí puedes agregar la lógica que necesites con el item seleccionado
-        // Por ejemplo: mostrar un modal, actualizar otra vista, etc.
     }
 
     /**
@@ -193,7 +262,13 @@ class ImportServices extends Component
     public function assignLabelToItemById($itemId, $labelId, $labelName)
     {
         try {
+            Log::info('=== INICIO assignLabelToItemById ===');
+            Log::info('Item ID recibido: ' . $itemId);
+            Log::info('Label ID recibido: ' . $labelId);
+            Log::info('Label Name recibido: ' . $labelName);
+            
             $this->ensureTenantConnection();
+            Log::info('Conexión tenant establecida');
 
             // Verificar si ya existe una asignación
             $existingAssignment = ImpImports::where('item_id', $itemId)
@@ -203,47 +278,107 @@ class ImportServices extends Component
                 ->first();
 
             if ($existingAssignment) {
+                Log::warning('La etiqueta ya está asignada a este item');
+                Log::info('Asignación existente: ' . json_encode($existingAssignment->toArray()));
                 session()->flash('error', "La etiqueta '{$labelName}' ya está asignada a este item");
                 return;
             }
-
+            Log::info('No existe asignación previa - OK para continuar');
+            
             $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
+            Log::info('Item Setup encontrado: ' . ($itemSetup ? 'SI' : 'NO'));
+            if ($itemSetup) {
+                Log::info('Item Setup EXW: ' . ($itemSetup->exw ?? 'NULL'));
+            }
+            
             $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $itemId)->first();
             
+            // Si no existe el registro, obtener la cantidad del item desde la query
             if (!$unconfirmedQty) {
-                session()->flash('error', 'No se encontró la cantidad no confirmada para este item');
-                return;
+                Log::warning('No se encontró registro en inv_unconfirmed_qty para item_id: ' . $itemId);
+                
+                // Obtener el item para ver su cantidad
+                $item = \App\Models\Tenant\Items\Items::find($itemId);
+                if (!$item) {
+                    Log::error('Item no encontrado: ' . $itemId);
+                    session()->flash('error', 'Item no encontrado');
+                    return;
+                }
+                
+                // Si es el item seleccionado, usar su cantidad
+                $qtyToAssign = ($this->selectedItemId == $itemId) ? $this->selectedItemQuantity : 0;
+                
+                Log::info('Cantidad a usar: ' . $qtyToAssign);
+                
+                if ($qtyToAssign <= 0) {
+                    Log::error('La cantidad a asignar es 0 o negativa');
+                    session()->flash('error', 'La cantidad del item debe ser mayor a cero');
+                    return;
+                }
+                
+                // Crear el registro en inv_unconfirmed_qty
+                Log::info('Creando registro en inv_unconfirmed_qty...');
+                $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::create([
+                    'item_id' => $itemId,
+                    'qty' => $qtyToAssign,
+                    'status' => true
+                ]);
+                Log::info('Registro inv_unconfirmed_qty creado con ID: ' . $unconfirmedQty->id);
+            } else {
+                Log::info('Registro inv_unconfirmed_qty encontrado:');
+                Log::info('  - ID: ' . $unconfirmedQty->id);
+                Log::info('  - Item ID: ' . $unconfirmedQty->item_id);
+                Log::info('  - Cantidad: ' . $unconfirmedQty->qty);
+                
+                $qtyToAssign = $unconfirmedQty->qty;
             }
+
+            Log::info('Cantidad a asignar: ' . $qtyToAssign);
 
             $item = \App\Models\Tenant\Items\Items::find($itemId);
             $itemSku = $item ? $item->sku : 'N/A';
-
-            ImpImports::create([
+            Log::info('Item SKU: ' . $itemSku);
+            
+            // Crear el registro en imp_imports
+            Log::info('Creando registro en imp_imports...');
+            $newImport = ImpImports::create([
                 'item_id' => $itemId,
                 'user_id' => auth()->id(),
                 'label_id' => $labelId,
-                'qty_requested' => $unconfirmedQty->qty,
+                'qty_requested' => $qtyToAssign,
                 'qty_shipped' => null,
                 'price' => $itemSetup ? ($itemSetup->exw ?? 0) : 0,
                 'status' => 1,
                 'shipping_id' => null,
             ]);
+            Log::info('Registro imp_imports creado con ID: ' . $newImport->id);
+            Log::info('Datos del registro: ' . json_encode($newImport->toArray()));
 
-            // Eliminar el registro temporal de inv_unconfirmed_qty
-            $unconfirmedQty->delete();
+            // Actualizar la cantidad a cero
+            Log::info('Actualizando inv_unconfirmed_qty.qty a 0...');
+            $unconfirmedQty->qty = 0;
+            $unconfirmedQty->save();
+            Log::info('Cantidad actualizada a 0 exitosamente');
+            
+            // Verificar la actualización
+            $unconfirmedQtyCheck = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $itemId)->first();
+            Log::info('Verificación - Cantidad DESPUÉS: ' . ($unconfirmedQtyCheck ? $unconfirmedQtyCheck->qty : 'REGISTRO NO ENCONTRADO'));
 
             // Recargar asignaciones si es el item seleccionado
             if ($this->selectedItemId == $itemId) {
+                Log::info('Recargando asignaciones del item seleccionado...');
                 $this->loadItemAssignments();
+                Log::info('Asignaciones recargadas. Total: ' . count($this->itemAssignments));
             }
 
-            Log::info('=== ETIQUETA ASIGNADA POR ID ===');
+            Log::info('=== ETIQUETA ASIGNADA EXITOSAMENTE (BY ID) ===');
             Log::info('Item ID: ' . $itemId);
             Log::info('Item SKU: ' . $itemSku);
             Log::info('Label ID: ' . $labelId);
             Log::info('Label Name: ' . $labelName);
-            Log::info('Registro temporal eliminado de inv_unconfirmed_qty');
-            Log::info('=== FIN REGISTRO ===');
+            Log::info('Cantidad asignada: ' . $qtyToAssign);
+            Log::info('inv_unconfirmed_qty actualizado a 0');
+            Log::info('=== FIN ASIGNACIÓN EXITOSA (BY ID) ===');
 
             // Emitir evento para mostrar notificación de éxito
             $this->dispatch('label-assigned', [
@@ -253,11 +388,31 @@ class ImportServices extends Component
                 'labelName' => $labelName
             ]);
 
+            // Emitir evento para actualizar la cantidad a 0 en el input
+            $this->dispatch('update-item-quantity', [
+                'itemId' => $itemId,
+                'quantity' => 0
+            ]);
+
+            // Si es el item seleccionado, limpiar la selección para cerrar el panel
+            if ($this->selectedItemId == $itemId) {
+                $this->selectedItemId = null;
+                $this->selectedItemQuantity = 0;
+                $this->selectedItemData = [];
+                $this->itemAssignments = [];
+                $this->monthlyQuantities = [];
+            }
+
             session()->flash('success', "Programación '{$labelName}' asignada correctamente al item {$itemSku}");
+            Log::info('=== FIN assignLabelToItemById (ÉXITO) ===');
 
         } catch (\Exception $e) {
-            Log::error('Error al asignar etiqueta por ID: ' . $e->getMessage());
+            Log::error('=== ERROR EN assignLabelToItemById ===');
+            Log::error('Mensaje: ' . $e->getMessage());
+            Log::error('Archivo: ' . $e->getFile());
+            Log::error('Línea: ' . $e->getLine());
             Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('=== FIN ERROR ===');
 
             session()->flash('error', 'Error al asignar la programación: ' . $e->getMessage());
         }
@@ -323,10 +478,18 @@ class ImportServices extends Component
     public function assignLabelToItem($labelId, $labelName)
     {
         try {
+            Log::info('=== INICIO assignLabelToItem ===');
+            Log::info('Label ID recibido: ' . $labelId);
+            Log::info('Label Name recibido: ' . $labelName);
+            Log::info('Selected Item ID: ' . $this->selectedItemId);
+            Log::info('Selected Item Data: ' . json_encode($this->selectedItemData));
+            
             $this->ensureTenantConnection();
+            Log::info('Conexión tenant establecida');
 
             // Validar que hay un item seleccionado
             if (!$this->selectedItemId) {
+                Log::warning('No hay item seleccionado');
                 session()->flash('error', 'No hay un item seleccionado');
                 return;
             }
@@ -339,58 +502,127 @@ class ImportServices extends Component
                 ->first();
 
             if ($existingAssignment) {
+                Log::warning('La etiqueta ya está asignada a este item');
+                Log::info('Asignación existente: ' . json_encode($existingAssignment->toArray()));
                 session()->flash('error', "La etiqueta '{$labelName}' ya está asignada a este item");
                 return;
             }
+            Log::info('No existe asignación previa - OK para continuar');
 
             $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $this->selectedItemId)->first();
+            Log::info('Item Setup encontrado: ' . ($itemSetup ? 'SI' : 'NO'));
+            if ($itemSetup) {
+                Log::info('Item Setup EXW: ' . ($itemSetup->exw ?? 'NULL'));
+            }
 
             // Buscar el registro en inv_unconfirmed_qty para obtener la cantidad
             $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $this->selectedItemId)->first();
             
+            // Si no existe el registro, usar la cantidad del selectedItemData
             if (!$unconfirmedQty) {
-                session()->flash('error', 'No se encontró la cantidad no confirmada para este item');
-                return;
+                Log::warning('No se encontró registro en inv_unconfirmed_qty para item_id: ' . $this->selectedItemId);
+                Log::info('Usando cantidad de selectedItemData: ' . ($this->selectedItemQuantity ?? 0));
+                
+                $qtyToAssign = $this->selectedItemQuantity ?? 0;
+                
+                if ($qtyToAssign <= 0) {
+                    Log::error('La cantidad a asignar es 0 o negativa');
+                    session()->flash('error', 'La cantidad del item debe ser mayor a cero');
+                    return;
+                }
+                
+                // Crear el registro en inv_unconfirmed_qty para futuras asignaciones
+                Log::info('Creando registro en inv_unconfirmed_qty...');
+                $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::create([
+                    'item_id' => $this->selectedItemId,
+                    'qty' => $qtyToAssign,
+                    'status' => true
+                ]);
+                Log::info('Registro inv_unconfirmed_qty creado con ID: ' . $unconfirmedQty->id);
+            } else {
+                Log::info('Registro inv_unconfirmed_qty encontrado:');
+                Log::info('  - ID: ' . $unconfirmedQty->id);
+                Log::info('  - Item ID: ' . $unconfirmedQty->item_id);
+                Log::info('  - Cantidad: ' . $unconfirmedQty->qty);
+                
+                $qtyToAssign = $unconfirmedQty->qty;
             }
 
-            ImpImports::create([
+            Log::info('Cantidad a asignar: ' . $qtyToAssign);
+
+            // Crear el registro en imp_imports
+            Log::info('Creando registro en imp_imports...');
+            $newImport = ImpImports::create([
                 'item_id' => $this->selectedItemId,
                 'user_id' => auth()->id(),
                 'label_id' => $labelId,
-                'qty_requested' => $unconfirmedQty->qty,
+                'qty_requested' => $qtyToAssign,
                 'qty_shipped' => null,
                 'price' => $itemSetup ? ($itemSetup->exw ?? 0) : 0,
                 'status' => 1,
                 'shipping_id' => null,
             ]);
+            Log::info('Registro imp_imports creado con ID: ' . $newImport->id);
+            Log::info('Datos del registro: ' . json_encode($newImport->toArray()));
 
-            // Eliminar el registro temporal de inv_unconfirmed_qty
-            $unconfirmedQty->delete();
+            // Actualizar la cantidad a cero en inv_unconfirmed_qty
+            Log::info('Actualizando inv_unconfirmed_qty.qty a 0...');
+            $unconfirmedQty->qty = 0;
+            $unconfirmedQty->save();
+            Log::info('Cantidad actualizada a 0 exitosamente');
+            
+            // Verificar la actualización
+            $unconfirmedQtyCheck = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $this->selectedItemId)->first();
+            Log::info('Verificación - Cantidad DESPUÉS: ' . ($unconfirmedQtyCheck ? $unconfirmedQtyCheck->qty : 'REGISTRO NO ENCONTRADO'));
 
             // Recargar asignaciones
+            Log::info('Recargando asignaciones del item...');
             $this->loadItemAssignments();
+            Log::info('Asignaciones recargadas. Total: ' . count($this->itemAssignments));
 
-            Log::info('=== ETIQUETA ASIGNADA Y REGISTRO CREADO ===');
+            Log::info('=== ETIQUETA ASIGNADA EXITOSAMENTE ===');
             Log::info('Item ID: ' . $this->selectedItemId);
             Log::info('Item SKU: ' . ($this->selectedItemData['sku'] ?? 'N/A'));
             Log::info('Label ID: ' . $labelId);
             Log::info('Label Name: ' . $labelName);
-            Log::info('Registro temporal eliminado de inv_unconfirmed_qty');
-            Log::info('=== FIN REGISTRO ===');
+            Log::info('Cantidad asignada: ' . $qtyToAssign);
+            Log::info('inv_unconfirmed_qty actualizado a 0');
+            Log::info('=== FIN ASIGNACIÓN EXITOSA ===');
+
+            // Guardar el SKU antes de limpiar selectedItemData
+            $itemSku = $this->selectedItemData['sku'] ?? 'N/A';
 
             // Emitir evento para mostrar notificación de éxito
             $this->dispatch('label-assigned', [
                 'itemId' => $this->selectedItemId,
-                'itemSku' => $this->selectedItemData['sku'] ?? 'N/A',
+                'itemSku' => $itemSku,
                 'labelId' => $labelId,
                 'labelName' => $labelName
             ]);
 
-            session()->flash('success', "Programación '{$labelName}' asignada correctamente al item {$this->selectedItemData['sku']}");
+            // Emitir evento para actualizar la cantidad a 0 en el input
+            $this->dispatch('update-item-quantity', [
+                'itemId' => $this->selectedItemId,
+                'quantity' => 0
+            ]);
+
+            // Limpiar el item seleccionado para cerrar el panel
+            $this->selectedItemId = null;
+            $this->selectedItemQuantity = 0;
+            $this->selectedItemData = [];
+            $this->itemAssignments = [];
+            $this->monthlyQuantities = [];
+
+            session()->flash('success', "Programación '{$labelName}' asignada correctamente al item {$itemSku}");
+            Log::info('=== FIN assignLabelToItem (ÉXITO) ===');
 
         } catch (\Exception $e) {
-            Log::error('Error al asignar etiqueta: ' . $e->getMessage());
+            Log::error('=== ERROR EN assignLabelToItem ===');
+            Log::error('Mensaje: ' . $e->getMessage());
+            Log::error('Archivo: ' . $e->getFile());
+            Log::error('Línea: ' . $e->getLine());
             Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('=== FIN ERROR ===');
 
             session()->flash('error', 'Error al asignar la programación: ' . $e->getMessage());
         }

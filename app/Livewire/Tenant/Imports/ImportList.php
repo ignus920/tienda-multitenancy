@@ -44,6 +44,7 @@ class ImportList extends Component
         'label-selected' => 'onLabelSelected',
         'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
         'testEvent' => 'testEvent',
+        'update-item-quantity' => 'onUpdateItemQuantity',
     ];
 
     #[On('labelSelected')]
@@ -103,6 +104,37 @@ class ImportList extends Component
         Log::info("selectedLabelId final: " . ($this->selectedLabelId ?? 'null'));
         Log::info("selectedLabelName final: " . $this->selectedLabelName);
         Log::info("=== FIN LABEL SELECTED EVENT ===");
+    }
+
+    /**
+     * Listener para actualizar la cantidad de un item en el input
+     */
+    #[On('update-item-quantity')]
+    public function onUpdateItemQuantity($data)
+    {
+        try {
+            Log::info('=== INICIO onUpdateItemQuantity ===');
+            Log::info('Data recibida: ' . json_encode($data));
+            
+            $itemId = $data['itemId'];
+            $quantity = $data['quantity'];
+            
+            Log::info('Item ID: ' . $itemId);
+            Log::info('Nueva cantidad: ' . $quantity);
+            
+            // Actualizar el array local
+            $this->selectedQuantities[$itemId] = $quantity;
+            
+            // Refrescar la lista para que se actualice el input
+            $this->dispatch('$refresh');
+            
+            Log::info('Cantidad actualizada en el array local');
+            Log::info('=== FIN onUpdateItemQuantity ===');
+            
+        } catch (\Exception $e) {
+            Log::error('Error en onUpdateItemQuantity: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+        }
     }
 
     public function testEvent()
@@ -236,7 +268,30 @@ class ImportList extends Component
     #[On('refresh-import-list')]
     public function refreshList()
     {
+        Log::info('=== REFRESH IMPORT LIST ===');
+        
+        // Limpiar el cache de items
+        unset($this->items);
+        
+        // Resetear paginación
         $this->resetPage();
+        
+        // Limpiar cantidades seleccionadas
+        $this->selectedQuantities = [];
+        
+        // Resetear filtro de etiquetas al estado inicial
+        $this->selectedLabelId = null;
+        $this->selectedLabelName = 'Programación';
+        $this->selectedLabel = [
+            'id' => '',
+            'name' => ''
+        ];
+        
+        // Forzar re-render
+        $this->dispatch('$refresh');
+        
+        Log::info('Lista refrescada exitosamente - Volviendo al estado inicial');
+        Log::info('=== FIN REFRESH ===');
     }
 
     /**

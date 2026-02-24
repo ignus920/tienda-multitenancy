@@ -177,9 +177,9 @@
                             <input type="number" 
                                 min="0" 
                                 step="1" 
-                                value="{{ $item->quantity ?? 0 }}"
+                                value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                                 @if($selectedLabelId) disabled @endif
-                                @click="$wire.selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+                                @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
                                 @change="
             $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
                 $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
@@ -284,9 +284,9 @@
                     <input type="number" 
                         min="0" 
                         step="1" 
-                        value="{{ $item->quantity ?? 0 }}"
+                        value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                         @if($selectedLabelId) disabled @endif
-                        @click="$wire.selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+                        @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
                         @change="
                 $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
                     $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);

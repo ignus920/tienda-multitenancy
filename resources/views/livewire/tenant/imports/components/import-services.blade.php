@@ -233,7 +233,16 @@
 
                 <div class="relative inline-flex items-center">
                     <button
-                        @click="selectedLabelId = {{ $isAssigned ? 'null' : $label->id }}"
+                        @click="
+                            console.log('=== CLICK EN ETIQUETA ===');
+                            console.log('Label ID:', {{ $label->id }});
+                            console.log('Label Name:', '{{ $label->name }}');
+                            console.log('Is Assigned:', {{ $isAssigned ? 'true' : 'false' }});
+                            console.log('selectedLabelId ANTES:', selectedLabelId);
+                            selectedLabelId = {{ $isAssigned ? 'null' : $label->id }};
+                            console.log('selectedLabelId DESPUÉS:', selectedLabelId);
+                            console.log('=== FIN CLICK ETIQUETA ===');
+                        "
                         @if($isAssigned) disabled @endif
                         class="label-btn inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-1 rounded-full 
                        text-xs sm:text-sm font-light uppercase tracking-wide
@@ -294,16 +303,31 @@
                 class="mt-4 flex justify-center mb-2">
                 <button
                     @click="
-                        if ({{ $selectedItemId ? 'true' : 'false' }}) {
+                        console.log('=== CLICK EN ASIGNAR ETIQUETA ===');
+                        console.log('selectedLabelId:', selectedLabelId);
+                        console.log('selectedItemData:', selectedItemData);
+                        console.log('selectedItemData.itemId:', selectedItemData ? selectedItemData.itemId : 'NO DATA');
+                        
+                        if (selectedItemData && selectedItemData.itemId) {
                             const btn = document.querySelector('[data-label-id=\'' + selectedLabelId + '\']');
                             const labelName = btn ? btn.getAttribute('data-label-name') : '';
-                            $wire.assignLabelToItem(selectedLabelId, labelName);
-                            selectedLabelId = null;
+                            console.log('Label Name:', labelName);
+                            console.log('Llamando a $wire.assignLabelToItem...');
+                            
+                            $wire.assignLabelToItem(selectedLabelId, labelName).then(() => {
+                                console.log('assignLabelToItem completado exitosamente');
+                                console.log('Reseteando selectedLabelId a null');
+                                selectedLabelId = null;
+                            }).catch((error) => {
+                                console.error('Error en assignLabelToItem:', error);
+                            });
                         } else {
+                            console.warn('No hay item seleccionado');
                             warningMessage = 'Por favor, selecciona un item de la lista antes de asignar una etiqueta';
                             showWarningNotification = true;
                             setTimeout(() => showWarningNotification = false, 4000);
                         }
+                        console.log('=== FIN CLICK ===');
                     "
                     class="inline-flex items-center px-3 py-2 
                            bg-indigo-600 hover:bg-indigo-700 
@@ -375,78 +399,13 @@
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-blue-100 dark:divide-blue-800">
                                 <tr>
+                                    @for($month = 1; $month <= 12; $month++)
                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                              0
-                                            </span>
+                                        <span class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            {{ $monthlyQuantities[$month] ?? 0 }}
+                                        </span>
                                     </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                              0
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                              0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                             0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0 
-                                            </span>
-                                            </td>
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span
-                                               class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            0  
-                                            </span>
-                                            </td>
+                                    @endfor
                                 </tr>
                             </tbody>
                         </table>

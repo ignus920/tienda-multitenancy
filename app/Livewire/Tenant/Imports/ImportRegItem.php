@@ -187,6 +187,7 @@ class ImportRegItem extends Component
                 session()->flash('message', 'Registro realizado exitosamente.');
             }
             $this->resetForm();
+            $this->dispatch('refresh-import-list');
             $this->closeItemsModal();
         } catch (\Exception $e) {
             Log::error('✂️ Error al guardar información de importación: ' . $e->getMessage());
