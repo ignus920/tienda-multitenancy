@@ -961,38 +961,40 @@
                                    .join(', ') || 'EFECTIVO'
                          }));
                      
-                        // 3. Devoluciones / Inventario de Ruta
-                        // Agrupar por detail_id para evitar duplicados entre inventario (synced:1) y acciones (synced:0)
-                        if(this.db.devoluciones_locales) {
-                            const returns = await this.db.devoluciones_locales.toArray();
-                            const groupedReturns = {};
-                            
-                            for(let ret of returns) {
-                                if(!ret.remission_id || !remisionIds.includes(ret.remission_id)) continue;
-                                
-                                const detailId = Number(ret.detail_id);
-                                // Si ya existe y el actual es synced:1 (servidor), no sobrescribir la acción del usuario (synced:0)
-                                if(groupedReturns[detailId] && groupedReturns[detailId].synced === 0 && ret.synced === 1) continue;
-                                
-                                const detail = await this.db.detalles.get(detailId);
-                                const unitValue = detail?.value || 0;
-                                const qtyDevuelta = Number(ret.quantity || 0);
-                                const qtyNoEnt = Number(ret.quantity_no_ent || 0);
-                                const qtyLlevada = detail?.quantity || 0;
+                        // 3. Devoluciones / Inventario de Ruta (FUENTE: Detalles de Remisiones)
+                        // Obtenemos todos los detalles que pertenecen a las remisiones de este cargue
+                        const allDetails = await this.db.detalles.where('remissionId').anyOf(remisionIds).toArray();
                         
-                                groupedReturns[detailId] = {
-                                    ...ret,
-                                    consecutive: remisionesMap[ret.remission_id]?.consecutive || ret.consecutive || ret.remission_id,
-                                    item_name: detail?.name || ret.item_name || 'Item #' + detailId,
-                                    dev: qtyDevuelta,
-                                    no_ent: qtyNoEnt,
-                                    total: qtyDevuelta + qtyNoEnt,
-                                    qty_llevada: qtyLlevada,
-                                    subtotal: (qtyDevuelta + qtyNoEnt) * unitValue
-                                };
+                        // Obtenemos las acciones de devolución (manuales o de servidor)
+                        const returns = await this.db.devoluciones_locales.where('remission_id').anyOf(remisionIds).toArray();
+                        const returnsMap = {};
+                        returns.forEach(r => {
+                            const dId = Number(r.detail_id);
+                            // Prioridad a la acción manual local (synced:0) sobre la del servidor (synced:1)
+                            if (!returnsMap[dId] || (returnsMap[dId].synced === 1 && r.synced === 0)) {
+                                returnsMap[dId] = r;
                             }
-                            this.localReturnsList = Object.values(groupedReturns);
-                        }
+                        });
+
+                        this.localReturnsList = allDetails.map(d => {
+                            const ret = returnsMap[d.id] || {};
+                            const qtyDevuelta = Number(ret.quantity || 0);
+                            const qtyNoEnt = Number(ret.quantity_no_ent || 0);
+                            const totalNov = qtyDevuelta + qtyNoEnt;
+                            
+                            return {
+                                ...ret,
+                                remission_id: d.remissionId,
+                                detail_id: d.id,
+                                consecutive: remisionesMap[d.remissionId]?.consecutive || d.remissionId,
+                                item_name: d.name || 'Producto',
+                                dev: qtyDevuelta,
+                                no_ent: qtyNoEnt,
+                                total: totalNov,
+                                qty_llevada: d.quantity,
+                                subtotal: totalNov * (d.value || 0)
+                            };
+                        });
                       // 4. Créditos
                       if(this.db.creditos_locales) {
                           const credits = await this.db.creditos_locales.toArray();
@@ -1485,6 +1487,7 @@
                                 synced: 0,
                                 customer_name: this.selectedOrderData?.customer_name,
                                 consecutive: this.selectedOrderData?.consecutive,
+                                delivery_id: Number(this.selectedOrderData?.delivery_id || currentRem?.delivery_id || 0),
                                 value: Number(this.paymentTotal) // Duplicado para compatibilidad con lista
                             };
 
@@ -1767,12 +1770,12 @@
                 initDatabase() {
                     if (this.db) return;
                     this.db = new Dexie("deliveries_db");
-                    this.db.version(6).stores({
+                    this.db.version(7).stores({
                         cargues: 'id, deliveryman_id, created_at',
                         remisiones: 'id, delivery_id, quoteId, status, customer_name, consecutive, observations_return',
                         detalles: 'id, remissionId, itemId',
-                        pagos_locales: '++id, remissionId, value, methodPaymentId, synced, customer_name, consecutive, observation',
-                        devoluciones_locales: '++id, detail_id, quantity, quantity_no_ent, observation, synced, remission_id',
+                        pagos_locales: '++id, remissionId, value, methodPaymentId, synced, customer_name, consecutive, observation, delivery_id',
+                        devoluciones_locales: '++id, detail_id, quantity, quantity_no_ent, observation, synced, remission_id, delivery_id',
                         pending_status_updates: '++id, remission_id, status, observation, synced',
                         config: 'key'
                     });
@@ -1877,6 +1880,7 @@
                                     customer_name: String(p.customer_name || 'N/A'), 
                                     observation: String(p.observation || ''), 
                                     consecutive: String(p.consecutive || 'N/A'),
+                                    delivery_id: Number(p.delivery_id || 0),
                                     timestamp: p.created_at || new Date().toISOString()
                                 });
                             });
@@ -1893,6 +1897,7 @@
                                     synced: 1, 
                                     consecutive: String(r.consecutive), 
                                     item_name: String(r.item_name), 
+                                    delivery_id: Number(r.delivery_id || 0),
                                     subtotal: Number(r.subtotal || 0)
                                 });
                             });
