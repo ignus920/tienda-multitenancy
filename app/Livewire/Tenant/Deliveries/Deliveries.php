@@ -48,21 +48,78 @@ class Deliveries extends Component
         }
 
         // Ya no seleccionamos un cargue por defecto para que muestre todo globalmente al inicio
+
+        // Automatizar sincronización inicial
+        $this->dispatchSync();
     }
 
     public function updatedSelectedDeliveryId()
     {
         $this->resetPage();
+        $this->dispatchSync();
     }
 
     public function updatedSearch()
     {
         $this->resetPage();
+        $this->dispatchSync();
     }
 
     public function updatedStatus()
     {
         $this->resetPage();
+        $this->dispatchSync();
+    }
+
+    protected function dispatchSync()
+    {
+        $this->dispatch('hydrate-local-db', $this->getSyncData());
+    }
+
+    /**
+     * Sincronizar automáticamente al cambiar de página
+     */
+    /**
+     * Calcula totales, saldos y pagos para una remisión.
+     * Compartido entre la vista normal y el Sync de IndexedDB.
+     */
+    private function processRemissionTotals($remission)
+    {
+        if (!$remission->quote) {
+            $remission->total_amount = 0;
+            $remission->paid_amount = 0;
+            $remission->balance_amount = 0;
+            return $remission;
+        }
+
+        // 1. Calcular Devoluciones
+        $returnValue = 0;
+        foreach ($remission->details as $detail) {
+            $qty = $detail->cant_return ?? 0;
+            $lineValue = $qty * $detail->value;
+            $lineTax = $lineValue * (($detail->tax ?? 0) / 100);
+            $returnValue += ($lineValue + $lineTax);
+        }
+
+        // 2. Total Neto
+        $remission->total_amount = $remission->quote->total - $returnValue;
+        
+        // 3. Pagos realizados (Caja Menor / Recaudos)
+        $paid = \App\Models\Tenant\PettyCash\VntDetailPettyCash::where('invoiceId', $remission->quoteId)
+            ->where('status', 1)
+            ->sum('value');
+        
+        $remission->paid_amount = $paid;
+        
+        // 4. Saldo Pendiente
+        $remission->balance_amount = max(0, $remission->total_amount - $paid);
+        
+        return $remission;
+    }
+
+    public function updatedPaginators()
+    {
+        $this->dispatchSync();
     }
 
     public function getDeliveriesProperty()
@@ -70,7 +127,8 @@ class Deliveries extends Component
         $user = auth()->user();
         $query = DisDeliveries::orderBy('id', 'desc');
         
-        // Admin y Transportador ven últimos 15 días por defecto o el que tengan seleccionado
+        // El select de cargues NUNCA debe filtrarse a sí mismo para que el usuario pueda saltar entre ellos.
+        // Mostramos los últimos 15 días para que la lista sea completa.
         $query->where(function($q) {
             $q->where('sale_date', '>=', now()->subDays(15)->format('Y-m-d'))
               ->orWhere('id', $this->selectedDeliveryId);
@@ -78,7 +136,6 @@ class Deliveries extends Component
 
         if ($user->profile_id == 13) {
             $query->where('deliveryman_id', $user->id);
-            // Quitamos la restricción de estado para que puedan ver su historial (cerrados)
         }
 
         return $query->get();
@@ -112,9 +169,9 @@ class Deliveries extends Component
         if ($user->profile_id == 13) {
             $query->whereHas('delivery', function($q) use ($user) {
                 $q->where('deliveryman_id', $user->id);
-                // Si no hay búsqueda ni cargue seleccionado, restringir a hoy
+                // Si no hay búsqueda ni cargue seleccionado, ampliar el rango a los últimos 15 días (no solo hoy)
                 if (!$this->selectedDeliveryId && !$this->search) {
-                    $q->where('sale_date', now()->format('Y-m-d'));
+                    $q->where('sale_date', '>=', now()->subDays(15)->format('Y-m-d'));
                 }
             });
         }
@@ -135,30 +192,9 @@ class Deliveries extends Component
 
         // Calcular totales y saldos para cada remisión
         foreach ($remissions as $remission) {
-            if ($remission->quote) {
-                // Calcular valor de devoluciones actuales en sesión
-                $returnValue = 0;
-                foreach ($remission->details as $detail) {
-                    $qty = $detail->cant_return ?? 0;
-                    $lineValue = $qty * $detail->value;
-                    $lineTax = $lineValue * (($detail->tax ?? 0) / 100);
-                    $returnValue += ($lineValue + $lineTax);
-                }
-
-                $remission->total_amount = $remission->quote->total - $returnValue;
-                
-                // Obtener lo pagado de vnt_detail_petty_cash
-                $paid = \App\Models\Tenant\PettyCash\VntDetailPettyCash::where('invoiceId', $remission->quoteId)
-                    ->where('status', 1)
-                    ->sum('value');
-                
-                $remission->paid_amount = $paid;
-                $remission->balance_amount = max(0, $remission->total_amount - $paid);
-            } else {
-                $remission->total_amount = 0;
-                $remission->paid_amount = 0;
-                $remission->balance_amount = 0;
-            }
+            $this->processRemissionTotals($remission);
+            // Asegurar que el nombre del cliente esté listo para el Blade
+            $remission->customer_full_name = $remission->quote->customer_name;
         }
 
         return $remissions;
@@ -552,18 +588,20 @@ class Deliveries extends Component
 
             $total = $qty_dev + $qty_no_ent;
 
-            if ($total > 0) {
-                $results[] = (object)[
-                    'consecutive' => $rem->consecutive ?? $rem->id,
-                    'item_name' => $detail->item->name ?? 'N/A',
-                    'dev' => $qty_dev,
-                    'no_ent' => $qty_no_ent,
-                    'total' => $total,
-                    'value' => $detail->value,
-                    'subtotal' => $total * $detail->value,
-                    'observation' => $detail->observations_return ?? $rem->observations_return
-                ];
-            }
+            $results[] = (object)[
+                'remission_id' => $rem->id,
+                'delivery_id' => $rem->delivery_id,
+                'detail_id' => $detail->id,
+                'consecutive' => $rem->consecutive ?? $rem->id,
+                'item_name' => $detail->item->name ?? 'N/A',
+                'dev' => $qty_dev,
+                'no_ent' => $qty_no_ent,
+                'qty_llevada' => $detail->quantity,
+                'total' => $total,
+                'value' => $detail->value,
+                'subtotal' => ($qty_dev + $qty_no_ent) * $detail->value,
+                'observation' => $detail->observations_return ?? $rem->observations_return
+            ];
         }
 
         return collect($results);
@@ -571,7 +609,7 @@ class Deliveries extends Component
 
     public function getCollectionsProperty()
     {
-        // 1. Obtener IDs de remisiones relevantes
+        // 1. Obtener remisiones del día y de los cargues visibles para que el recaudo sea LIMPIO
         $remissionQuery = InvRemissions::query();
         
         if ($this->selectedDeliveryId) {
@@ -582,6 +620,10 @@ class Deliveries extends Component
                  return collect();
              }
              $remissionQuery->whereIn('delivery_id', $deliveryIds);
+             // IMPORTANTE: En el resumen general, solo mostrar lo de hoy para evitar ver "falsos duplicados"
+             $remissionQuery->whereHas('delivery', function($q) {
+                 $q->where('sale_date', '>=', now()->format('Y-m-d'));
+             });
         }
 
         // 2. Obtener IDs de cotizaciones vinculadas a esas remisiones
@@ -601,13 +643,18 @@ class Deliveries extends Component
 
     public function getCreditsProperty()
     {
-        if (!$this->selectedDeliveryId) {
-            return collect();
+        $remissionQuery = InvRemissions::query();
+        if ($this->selectedDeliveryId) {
+            $remissionQuery->where('delivery_id', $this->selectedDeliveryId);
+        } else {
+             $deliveryIds = $this->deliveries->pluck('id');
+             if ($deliveryIds->isEmpty()) {
+                 return collect();
+             }
+             $remissionQuery->whereIn('delivery_id', $deliveryIds);
         }
 
-        $remissions = InvRemissions::where('delivery_id', $this->selectedDeliveryId)
-            ->with(['quote.customer'])
-            ->get();
+        $remissions = $remissionQuery->with(['quote.customer', 'details'])->get();
 
         $credits = [];
         foreach ($remissions as $remission) {
@@ -631,6 +678,8 @@ class Deliveries extends Component
 
                 if ($balance > 1) { // Evitar redondeos mínimos
                     $credits[] = (object)[
+                        'remission_id' => $remission->id,
+                        'delivery_id' => $remission->delivery_id,
                         'consecutive' => $remission->consecutive ?? $remission->id,
                         'customer' => ($remission->quote->customer->businessName ?? '') ?: ($remission->quote->customer->firstName . ' ' . $remission->quote->customer->lastName),
                         'balance' => $balance
@@ -646,16 +695,20 @@ class Deliveries extends Component
     {
         $user = auth()->user();
         
-        // 1. Obtener Cargues
+        // 1. Obtener Cargues (Ampliamos el rango para asegurar que no falten datos históricos recientes)
         $deliveriesQuery = DisDeliveries::orderBy('id', 'desc');
         if ($user->profile_id == 13) {
             $deliveriesQuery->where('deliveryman_id', $user->id);
+            // Aseguramos traer cargues de los últimos 30 días para evitar tarjetas vacías en cambios de cargue
+            $deliveriesQuery->where('sale_date', '>=', now()->subDays(30)->format('Y-m-d'));
+        } else {
+             $deliveriesQuery->limit(50); // Límite generoso para admin
         }
+        
         $deliveries = $deliveriesQuery->get();
-
         $deliveryIds = $deliveries->pluck('id');
 
-        // 2. Obtener Remisiones
+        // 2. Obtener Remisiones con TODA la metadata necesaria
         $remissions = InvRemissions::whereIn('delivery_id', $deliveryIds)
             ->with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details.item'])
             ->get();
@@ -663,10 +716,98 @@ class Deliveries extends Component
         // 3. Formas de pago y otros datos de configuración
         $paymentMethods = \App\Models\Tenant\MethodPayments\VntMethodPayMents::all();
 
+        // Formatear remisiones para incluir metadata procesada (Evita N/A en offline)
+        $remissionsData = $remissions->map(function($rem) {
+            // Procesar Totales y Saldos antes de enviar
+            $this->processRemissionTotals($rem);
+
+            // Nombre del cliente robusto
+            $customerName = 'N/A';
+            if ($rem->quote && $rem->quote->customer) {
+                $c = $rem->quote->customer;
+                $customerName = $c->businessName ?: (trim($c->firstName . ' ' . ($c->lastName ?? '')));
+            }
+            
+            // Dirección robusta
+            $address = $rem->quote->customer->address ?? 'Sin dirección';
+            if ($rem->quote && $rem->quote->branch && !empty($rem->quote->branch->address)) {
+                $address = $rem->quote->branch->address;
+            }
+
+            return [
+                'id' => $rem->id,
+                'delivery_id' => $rem->delivery_id,
+                'quoteId' => $rem->quoteId,
+                'status' => $rem->status,
+                'consecutive' => $rem->consecutive ?? $rem->id,
+                'customer_name' => $customerName,
+                'address' => $address,
+                'total_amount' => $rem->total_amount,
+                'paid_amount' => $rem->paid_amount,
+                'balance_amount' => $rem->balance_amount,
+                'observations_return' => $rem->observations_return,
+                'route_name' => $rem->quote->customer->name ?? 'N/A', // Coincide con lo usado en el Blade
+                'details' => $rem->details->map(function($d) {
+                    return [
+                        'id' => $d->id,
+                        'remissionId' => $d->remissionId,
+                        'itemId' => $d->itemId,
+                        'name' => $d->item->name ?? 'Producto desconocido',
+                        'quantity' => $d->quantity,
+                        'cant_return' => $d->cant_return ?? 0,
+                        'value' => $d->value,
+                        'tax' => $d->tax ?? 0
+                    ];
+                })
+            ];
+        });
+
+        // 4. Recaudos con nombres procesados
+        $collections = $this->getCollectionsProperty();
+        $collectionsData = $collections->map(function($col) {
+             $customerName = 'N/A';
+             $consecutive = 'N/A';
+             $remissionId = null;
+             
+             if ($col->quote) {
+                 // Usar el accessor robusto del modelo Quote
+                 $customerName = $col->quote->customer_name;
+                 
+                 // Intentar obtener de la remisión vinculada para el consecutivo
+                 if ($col->quote->remission) {
+                     $remissionId = $col->quote->remission->id;
+                     $consecutive = $col->quote->remission->consecutive ?: $col->quote->remission->id;
+                 } else {
+                     $consecutive = $col->quote->consecutive ?: $col->quote->id;
+                 }
+             }
+
+             // Limpieza de Forma de Pago (Evitar 'CASH' técnico)
+             $method = $col->methodPayments->description ?? 'EFECTIVO';
+             if (strtoupper($method) === 'CASH') $method = 'EFECTIVO';
+             
+             return [
+                'id' => $col->id,
+                'invoiceId' => $col->invoiceId, // ID de cotización
+                'remission_id' => $remissionId,  // ID de remisión (para filtrado)
+                'delivery_id' => $col->quote->remission->delivery_id ?? null,
+                'value' => $col->value,
+                'methodPaymentId' => $col->methodPaymentId,
+                'methods_summary' => $method,
+                'customer_name' => $customerName,
+                'observation' => $col->observations ?? '',
+                'consecutive' => $consecutive,
+                'created_at' => $col->created_at->toISOString()
+             ];
+        });
+
         return [
             'deliveries' => $deliveries,
-            'remissions' => $remissions,
+            'remissions' => $remissionsData,
             'paymentMethods' => $paymentMethods,
+            'collections' => $collectionsData,
+            'returnedItems' => $this->getReturnedItemsProperty(),
+            'credits' => $this->getCreditsProperty(),
             'serverTime' => now()->toIso8601String(),
             'userId' => $user->id
         ];
