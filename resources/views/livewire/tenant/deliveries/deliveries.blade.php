@@ -1104,8 +1104,10 @@
                 localCollectionsList: [],
                 localReturnsList: [],
                 localRemisionesList: [],
+                ignoreWire: false,
                 
                 async toggleCollectionsView() {
+                    this.ignoreWire = true;
                     this.viewCollections = !this.viewCollections;
                     if(this.viewCollections) {
                         this.viewReturns = false;
@@ -1113,6 +1115,7 @@
                     }
                 },
                 async toggleReturnsView() {
+                    this.ignoreWire = true;
                     this.viewReturns = !this.viewReturns;
                     if(this.viewReturns) {
                         this.viewCollections = false;
@@ -1237,18 +1240,20 @@
 
                     window.addEventListener('online', () => { 
                         this.isOnline = true; 
+                        this.ignoreWire = false; // Permitir que Livewire controle de nuevo
                         console.log("🌐 Volvimos a estar online - Iniciando auto-sync");
                         this.syncBackOnline();
                     });
 
                     window.addEventListener('offline', async () => { 
                         this.isOnline = false;
+                        this.ignoreWire = true; // Proteger estado de Alpine
                         await this.loadLocalRemisiones();
-                        // Si había una tabla activa, cargar sus datos locales también
+                        // Forzar estado previo de visibilidad si estaba activo
                         if (this.viewReturns || this.viewCollections) {
                             await this.loadFinancialDetails();
                         }
-                        console.log("⚠️ Modo offline activado - cargando datos locales");
+                        console.log("⚠️ Modo offline activado - Protegiendo vista y cargando datos locales");
                     });
 
                     // Escuchar eventos de Livewire para toast (Restaurando funcionalidad original)
