@@ -580,6 +580,7 @@ class ProductQuoter extends Component
             'internal_code' => $sku,
             'type'          => 'COMPRA NACIONAL',
             'taxId'         => $this->genericProductTaxId,
+            'categoryId'    => 1,
             'inventoriable' => 0,
             'status'        => 1,
             'generic'       => 1,
