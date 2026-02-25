@@ -71,7 +71,7 @@ class Deliveries extends Component
         $this->dispatchSync();
     }
 
-    protected function dispatchSync()
+    public function dispatchSync()
     {
         $this->dispatch('hydrate-local-db', $this->getSyncData());
     }
@@ -176,7 +176,7 @@ class Deliveries extends Component
             });
         }
 
-        $remissions = $query->with(['quote.customer.company', 'quote.warehouse', 'quote.detalles', 'quote.branch', 'details'])
+        $remissions = $query->with(['quote.customer.company', 'quote.warehouse', 'quote.detalles', 'quote.branch.activeContacts', 'details'])
             ->when($this->search, function ($query) {
                 $query->whereHas('quote.customer', function ($q) {
                     $q->where('businessName', 'like', '%' . $this->search . '%')
@@ -710,7 +710,7 @@ class Deliveries extends Component
 
         // 2. Obtener Remisiones con TODA la metadata necesaria
         $remissions = InvRemissions::whereIn('delivery_id', $deliveryIds)
-            ->with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details.item'])
+            ->with(['quote.customer.company', 'quote.customer.activeContacts', 'quote.warehouse', 'quote.branch.activeContacts', 'details.item'])
             ->get();
 
         // 3. Formas de pago y otros datos de configuración
@@ -721,11 +721,18 @@ class Deliveries extends Component
             // Procesar Totales y Saldos antes de enviar
             $this->processRemissionTotals($rem);
 
-            // Nombre del cliente robusto
+            // Nombre del cliente robusto — usar el mismo accessor que viewOrder() para consistencia online/offline
             $customerName = 'N/A';
-            if ($rem->quote && $rem->quote->customer) {
-                $c = $rem->quote->customer;
-                $customerName = $c->businessName ?: (trim($c->firstName . ' ' . ($c->lastName ?? '')));
+            if ($rem->quote) {
+                $fromAccessor = $rem->quote->customer_name ?? '';
+                if (!empty(trim($fromAccessor))) {
+                    $customerName = trim($fromAccessor);
+                } elseif ($rem->quote->customer) {
+                    // Fallback manual si el accessor devuelve vacío
+                    $c = $rem->quote->customer;
+                    $manual = $c->businessName ?: (trim($c->firstName . ' ' . ($c->lastName ?? '')));
+                    if (!empty(trim($manual))) $customerName = trim($manual);
+                }
             }
             
             // Dirección robusta
@@ -745,8 +752,10 @@ class Deliveries extends Component
                 'total_amount' => $rem->total_amount,
                 'paid_amount' => $rem->paid_amount,
                 'balance_amount' => $rem->balance_amount,
-                'observations_return' => $rem->observations_return,
-                'route_name' => $rem->quote->customer->name ?? 'N/A', // Coincide con lo usado en el Blade
+                'contact_name' => $rem->quote->branch && $rem->quote->branch->activeContacts->first() 
+                    ? $rem->quote->branch->activeContacts->first()->full_name 
+                    : ($rem->quote->customer && $rem->quote->customer->activeContacts->first() ? $rem->quote->customer->activeContacts->first()->full_name : 'N/A'),
+                'route_name' => $rem->quote->branch->name ?? 'N/A', // Coincide con lo usado en el Blade
                 'details' => $rem->details->map(function($d) {
                     return [
                         'id' => $d->id,

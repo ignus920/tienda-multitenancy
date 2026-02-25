@@ -48,24 +48,15 @@
             </div>
             
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <!-- Botón de Sincronización Offline -->
-                <button x-show="!isOnline" @click="syncOfflineData" 
-                        :disabled="syncing"
-                        class="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
-                    <template x-if="!syncing">
-                        <x-heroicon-o-cloud-arrow-down class="w-5 h-5" />
-                    </template>
-                    <template x-if="syncing">
-                        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </template>
-                    <span x-text="syncing ? 'Sincronizando...' : 'Sincronizar Offline'"></span>
-                </button>
 
-                <div class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-4 py-2 rounded-lg font-bold text-lg shadow-inner">
-                    $ <span x-text="isOnline ? '{{ number_format($remissions->sum('total_amount'), 0, ',', '.') }}' : localRemisionesList.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0).toLocaleString()"></span>
+                <div class="w-full sm:w-auto flex justify-center sm:justify-start items-center" style="background:#10b981; border:2px solid #34d399; color:#fff; border-radius:0.75rem; padding:0.4rem 1rem; gap:0.5rem; flex-shrink:0; box-shadow:0 4px 12px rgba(16,185,129,.35);">
+                    <span style="font-size:1.25rem; font-weight:900; line-height:1;">$</span>
+                    <div style="line-height:1;">
+                        <p style="font-size:0.45rem; font-weight:900; text-transform:uppercase; letter-spacing:0.12em; color:rgba(255,255,255,0.75); margin-bottom:2px;">Cargue total</p>
+                        <p style="font-size:1rem; font-weight:900; white-space:nowrap; color:#fff;">
+                            <span x-text="isOnline ? '{{ number_format($remissions->sum('total_amount'), 0, ',', '.') }}' : localRemisionesList.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0).toLocaleString()"></span>
+                        </p>
+                    </div>
                 </div>
                 @if(auth()->user()->profile_id != 13)
                 <a href="{{ route('tenant.uploads.uploads') }}" wire:navigate class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-1">
@@ -81,202 +72,177 @@
         </div>
     </div>
 
+    <!-- SELECTOR DE CARGUE: siempre primero en cualquier pantalla -->
+    <div class="w-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-4 mb-2">
+        @if(auth()->user()->profile_id != 13)
+        <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Cargue:</label>
+                <select wire:model.live="selectedDeliveryId"
+                        @change="if(!isOnline){ currentDeliveryId = $event.target.value; }"
+                        class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="">Seleccione un cargue</option>
+                    @foreach($deliveries as $del)
+                        <option value="{{ $del->id }}">
+                            Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }})
+                            @if($del->status == 'CERRADO') [CERRADO] @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estado Pedido:</label>
+                <select wire:model.live="status"
+                        @change="localStatus = $event.target.value"
+                        class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="Todos">Todos</option>
+                    <option value="EN RECORRIDO">En Recorrido</option>
+                    <option value="ENTREGADO">Entregado</option>
+                    <option value="DEVUELTO">Devuelto</option>
+                    <option value="REGISTRADO">Registrado</option>
+                </select>
+            </div>
+            @if($selectedDeliveryId && auth()->user()->profile_id != 13)
+            <div class="flex items-end">
+                <button wire:click="closeDeliveryLoad"
+                        @if($this->isCurrentDeliveryClosed) disabled @endif
+                        class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed text-white font-black py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 whitespace-nowrap">
+                    <x-heroicon-o-check-circle class="w-4 h-4" />
+                    Cerrar cargue
+                </button>
+            </div>
+            @endif
+        </div>
+        @else
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase mb-2 tracking-widest">Mis Cargues Asignados:</label>
+            <select wire:model.live="selectedDeliveryId"
+                    @change="if(!isOnline){ currentDeliveryId = $event.target.value; }"
+                    class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm font-bold">
+                <option value="">Ver todos mis pedidos</option>
+                @foreach($deliveries as $del)
+                    <option value="{{ $del->id }}">
+                        Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }})
+                        @if($del->status == 'CERRADO') [CERRADO] @endif
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        @endif
+    </div>
+
     <div class="flex flex-col lg:grid lg:grid-cols-2 gap-8 w-full items-start">
-        <!-- Sidebar de Filtros -->
-        <aside class="w-full lg:flex-shrink-0 space-y-6">
-            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-4 sticky lg:top-32">
-                @if(auth()->user()->profile_id != 13)
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Cargue:</label>
-                        <select wire:model.live="selectedDeliveryId" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
-                            <option value="">Seleccione un cargue</option>
-                            @foreach($deliveries as $del)
-                                <option value="{{ $del->id }}">
-                                    Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }}) 
-                                    @if($del->status == 'CERRADO') [CERRADO] @endif
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estado Pedido:</label>
-                        <select wire:model.live="status" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
-                            <option value="Todos">Todos</option>
-                            <option value="EN RECORRIDO">En Recorrido</option>
-                            <option value="ENTREGADO">Entregado</option>
-                            <option value="DEVUELTO">Devuelto</option>
-                            <option value="REGISTRADO">Registrado</option>
-                        </select>
-                    </div>
-                </div>
-                @else
-                <div>
-                    <label class="block text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase mb-2 tracking-widest">Mis Cargues Asignados:</label>
-                    <select wire:model.live="selectedDeliveryId" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm font-bold">
-                        <option value="">Ver todos mis pedidos</option>
-                        @foreach($deliveries as $del)
-                            <option value="{{ $del->id }}">
-                                Cargue #{{ $del->id }} ({{ $del->created_at->format('Y-m-d') }})
-                                @if($del->status == 'CERRADO') [CERRADO] @endif
-                            </option>
-                        @endforeach
-                    </select>
-                    <div class="mt-4 w-full h-px bg-gray-100 dark:bg-slate-800"></div>
-                </div>
-                @endif
-                
-                <!-- Botones de Resumen (Visible para Todos - Global o Por Cargue) -->
-                <div class="pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-center items-center gap-8">
-                    <!-- Botón Cierre -->
-                    @if(auth()->user()->profile_id != 13)
-                    <button 
-                         wire:click="closeDeliveryLoad"
-                         @if($this->isCurrentDeliveryClosed) disabled @endif
-                        class="bg-green-600 hover:bg-green-700 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed text-white font-black px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all shadow-md active:scale-95 whitespace-nowrap">
-                        <x-heroicon-o-check-circle class="w-5 h-5 mb-1" />
-                        <span>Cierre</span>
-                    </button>
-                    @endif
-                    
-                    <!-- Botón Recaudado -->
-                    <button 
-                         @click="toggleCollectionsView()"
-                        class="px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all font-black shadow-md active:scale-95 border-2 whitespace-nowrap"
-                        :class="viewCollections ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-yellow-50 text-yellow-800 border-yellow-200 opacity-60 hover:opacity-100'">
-                        <span class="text-sm leading-none mb-1 font-black" :class="viewCollections ? 'text-white' : 'text-yellow-700'">$</span>
-                        <span :class="viewCollections ? 'text-white' : 'text-yellow-800'">Recaudado</span>
-                    </button>
-                    
-                    <!-- Botón Devoluciones -->
-                    <button 
-                        @click="toggleReturnsView()"
-                        class="px-5 py-3 rounded-xl text-xs flex flex-col items-center justify-center transition-all font-black shadow-md active:scale-95 border-2 whitespace-nowrap"
-                        :class="viewReturns ? 'bg-slate-900 text-white border-slate-900 scale-110 shadow-xl' : 'bg-green-50 text-green-800 border-green-200 opacity-60 hover:opacity-100'">
-                        <div :class="viewReturns ? 'text-white' : 'text-green-700'">
-                            <x-heroicon-o-arrow-path class="w-5 h-5 mb-1" />
-                        </div>
-                        <span :class="viewReturns ? 'text-white' : 'text-green-800'">Devoluciones</span>
-                    </button>
-                </div>
-
-                <!-- SECCIÓN OFFLINE (AlpineJS / Local-Side) -->
-                <div class="mt-6 space-y-6" x-show="viewReturns || viewCollections" style="display: none;">
-                    
+        <!-- Sidebar: solo tablas resumen (orden: 2 en móvil, 1 en desktop) -->
+        @if($selectedDeliveryId)
+        <aside class="order-2 lg:order-1 w-full lg:flex-shrink-0 space-y-6">
+            <div class="sticky lg:top-32 space-y-6">
                     <!-- Tabla Devoluciones -->
-                    <template x-if="viewReturns">
-                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden">
-                            <div class="bg-green-600 px-4 py-3">
-                                <h3 class="text-white font-bold text-sm flex items-center gap-2">
-                                    <x-heroicon-o-arrow-path class="w-4 h-4 text-white" />
-                                    Devoluciones (Cargue <span x-text="currentDeliveryId ? '#' + currentDeliveryId : 'General'"></span>)
-                                </h3>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left text-xs">
-                                    <thead class="bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
-                                        <tr>
-                                            <th class="px-3 py-2"># PEDIDO</th>
-                                            <th class="px-3 py-2">ITEMS</th>
-                                            <th class="px-3 py-2 text-center text-red-500">DEV</th>
-                                            <th class="px-3 py-2 text-center text-orange-500">NO ENT</th>
-                                            <th class="px-3 py-2 text-center">TOTAL</th>
-                                            <th class="px-3 py-2 text-right">VALOR</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
-                                        <template x-for="ret in filteredReturns" :key="ret.id || ret.detail_id">
-                                            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                <td class="px-3 py-2">
-                                                    <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold" x-text="'#' + ret.consecutive"></span>
-                                                </td>
-                                                <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300 truncate max-w-[120px]" x-text="ret.item_name"></td>
-                                                <td class="px-3 py-2 text-center font-bold text-red-600 dark:text-red-400" x-text="ret.dev || '-'"></td>
-                                                <td class="px-3 py-2 text-center font-bold text-orange-600 dark:text-orange-400" x-text="ret.no_ent || '-'"></td>
-                                                <td class="px-3 py-2 text-center font-black text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/30" x-text="ret.total"></td>
-                                                <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white" x-text="'$' + Number(ret.subtotal || 0).toLocaleString()"></td>
-                                            </tr>
-                                        </template>
-                                        <tr x-show="localReturnsList.length === 0">
-                                            <td colspan="6" class="px-4 py-8 text-center text-gray-400 font-bold uppercase text-[10px]">No hay información disponible.</td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot x-show="localReturnsList.length > 0" class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
-                                        <tr>
-                                            <td colspan="2" class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60 text-right">TOTALES</td>
-                                            <td class="px-3 py-2 text-center font-bold text-red-600" x-text="localReturnsList.reduce((acc, curr) => acc + Number(curr.dev || 0), 0)"></td>
-                                            <td class="px-3 py-2 text-center font-bold text-orange-600" x-text="localReturnsList.reduce((acc, curr) => acc + Number(curr.no_ent || 0), 0)"></td>
-                                            <td class="px-3 py-2 text-center font-black" x-text="localReturnsList.reduce((acc, curr) => acc + Number(curr.total || 0), 0)"></td>
-                                            <td class="px-3 py-2 text-right text-green-600 dark:text-green-500" x-text="'$' + localReturnsList.reduce((acc, curr) => acc + Number(curr.subtotal || 0), 0).toLocaleString()"></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden">
+                        <div class="bg-blue-600 px-4 py-3">
+                            <h3 class="text-white font-bold text-sm flex items-center gap-2">
+                                <x-heroicon-o-arrow-path class="w-4 h-4 text-white" />
+                                Devoluciones (Cargue <span x-text="currentDeliveryId ? '#' + currentDeliveryId : 'General'"></span>)
+                            </h3>
                         </div>
-                    </template>
-
-                    <!-- Tabla Recaudos y Créditos -->
-                    <template x-if="viewCollections">
-                        <div class="space-y-6">
-                            <!-- Tabla Recaudo Local -->
-                            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden">
-                                <div class="bg-blue-600 px-4 py-3">
-                                    <h3 class="text-white font-bold text-[10px] uppercase tracking-widest flex items-center gap-2">
-                                        Recaudo Local de Dinero
-                                    </h3>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-left text-[11px]">
-                                        <thead class="bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
-                                            <tr>
-                                                <th class="px-3 py-2"># PEDIDO</th>
-                                                <th class="px-3 py-2">CLIENTE</th>
-                                                <th class="px-3 py-2">FORMA PAGO</th>
-                                                <th class="px-3 py-2">OBSERVACIÓN</th>
-                                                <th class="px-3 py-2 text-right">VALOR</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
-                                            <template x-for="pay in filteredCollections" :key="pay.id || Math.random()">
-                                                <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <td class="px-3 py-2">
-                                                        <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold" x-text="'#' + pay.consecutive"></span>
-                                                    </td>
-                                                    <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300" x-text="pay.customer_name || 'N/A'"></td>
-                                                    <td class="px-3 py-2 font-black text-gray-900 dark:text-white uppercase text-[10px]" x-text="pay.methods_summary"></td>
-                                                    <td class="px-3 py-2 text-[10px] text-gray-500 dark:text-slate-400 italic" x-text="pay.observation || 'Sin observaciones'"></td>
-                                                    <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white" x-text="'$' + Number(pay.value || pay.total || 0).toLocaleString()"></td>
-                                                </tr>
-                                            </template>
-                                            <tr x-show="localCollectionsList.length === 0">
-                                                <td colspan="5" class="px-4 py-8 text-center text-gray-400 font-bold uppercase text-[10px]">No hay pagos locales registrados.</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot x-show="localCollectionsList.length > 0" class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
-                                            <tr>
-                                                <td colspan="4" class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60">TOTAL RECAUDADO LOCAL</td>
-                                                <td class="px-3 py-2 text-right font-bold" x-text="'$' + localCollectionsList.reduce((acc, curr) => acc + Number(curr.value || curr.total || 0), 0).toLocaleString()"></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-
-
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
+                                    <tr>
+                                        <th class="px-3 py-2"># PEDIDO</th>
+                                        <th class="px-3 py-2">ITEMS</th>
+                                        <th class="px-3 py-2 text-center text-red-500">DEV</th>
+                                        <th class="px-3 py-2 text-center text-orange-500">NO ENT</th>
+                                        <th class="px-3 py-2 text-center">TOTAL</th>
+                                        <th class="px-3 py-2 text-right">VALOR</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-slate-800 font-medium">
+                                    <template x-for="ret in filteredReturns" :key="ret.id || ret.detail_id">
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td class="px-3 py-2">
+                                                <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold" x-text="'#' + ret.consecutive"></span>
+                                            </td>
+                                            <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300 truncate max-w-[120px]" x-text="ret.item_name"></td>
+                                            <td class="px-3 py-2 text-center font-bold text-red-600 dark:text-red-400" x-text="ret.dev || '-'"></td>
+                                            <td class="px-3 py-2 text-center font-bold text-orange-600 dark:text-orange-400" x-text="ret.no_ent || '-'"></td>
+                                            <td class="px-3 py-2 text-center font-black text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/30" x-text="ret.total"></td>
+                                            <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white" x-text="'$' + Number(ret.subtotal || 0).toLocaleString()"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="localReturnsList.length === 0">
+                                        <td colspan="6" class="px-4 py-8 text-center text-gray-400 font-bold uppercase text-[10px]">No hay información disponible.</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot x-show="localReturnsList.length > 0" class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
+                                    <tr>
+                                        <td colspan="2" class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60 text-right">TOTALES</td>
+                                        <td class="px-3 py-2 text-center font-bold text-red-600" x-text="localReturnsList.reduce((acc, curr) => acc + Number(curr.dev || 0), 0)"></td>
+                                        <td class="px-3 py-2 text-center font-bold text-orange-600" x-text="localReturnsList.reduce((acc, curr) => acc + Number(curr.no_ent || 0), 0)"></td>
+                                        <td class="px-3 py-2 text-center font-black" x-text="localReturnsList.reduce((acc, curr) => acc + Number(curr.total || 0), 0)"></td>
+                                        <td class="px-3 py-2 text-right text-green-600 dark:text-green-500" x-text="'$' + localReturnsList.reduce((acc, curr) => acc + Number(curr.subtotal || 0), 0).toLocaleString()"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
-                    </template>
-                </div>
+                    </div>
+
+                    <!-- Tabla Recaudo Local -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden">
+                        <div class="bg-blue-600 px-4 py-3">
+                            <h3 class="text-white font-bold text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                <x-heroicon-o-banknotes class="w-4 h-4 text-white" />
+                                Recaudo Local de Dinero
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-[11px]">
+                                <thead class="bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
+                                    <tr>
+                                        <th class="px-3 py-2"># PEDIDO</th>
+                                        <th class="px-3 py-2">CLIENTE</th>
+                                        <th class="px-3 py-2">FORMA PAGO</th>
+                                        <th class="px-3 py-2">OBSERVACIÓN</th>
+                                        <th class="px-3 py-2 text-right">VALOR</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-slate-800 font-medium">
+                                    <template x-for="pay in filteredCollections" :key="pay.id || Math.random()">
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td class="px-3 py-2">
+                                                <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold" x-text="'#' + pay.consecutive"></span>
+                                            </td>
+                                            <td class="px-3 py-2 font-bold uppercase text-gray-700 dark:text-gray-300" x-text="pay.customer_name || 'N/A'"></td>
+                                            <td class="px-3 py-2 font-black text-gray-900 dark:text-white uppercase text-[10px]" x-text="pay.methods_summary"></td>
+                                            <td class="px-3 py-2 text-[10px] text-gray-500 dark:text-slate-400 italic" x-text="pay.observation || 'Sin observaciones'"></td>
+                                            <td class="px-3 py-2 text-right font-black text-gray-900 dark:text-white" x-text="'$' + Number(pay.value || pay.total || 0).toLocaleString()"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="localCollectionsList.length === 0">
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-400 font-bold uppercase text-[10px]">No hay pagos locales registrados.</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot x-show="localCollectionsList.length > 0" class="bg-gray-50 dark:bg-slate-800/80 font-black text-gray-900 dark:text-white border-t-2 border-blue-100 dark:border-blue-900">
+                                    <tr>
+                                        <td colspan="4" class="px-3 py-2 uppercase text-[10px] tracking-widest opacity-60">TOTAL RECAUDADO LOCAL</td>
+                                        <td class="px-3 py-2 text-right font-bold" x-text="'$' + localCollectionsList.reduce((acc, curr) => acc + Number(curr.value || curr.total || 0), 0).toLocaleString()"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
             </div>
         </aside>
+        @endif
 
-        <!-- Lista de Pedidos (ÚNICA FUENTE: Alpine.js + IndexedDB) -->
-        <main class="w-full space-y-6">
+        <!-- Lista de Pedidos (orden: 1 en móvil, 2 en desktop) -->
+        <main class="order-1 lg:order-2 w-full space-y-6" :class="!{{ $selectedDeliveryId ? 'true' : 'false' }} ? 'lg:col-span-2' : ''">
             <!-- Barra de Búsqueda -->
             <div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
                 <div class="relative">
                     <x-heroicon-o-magnifying-glass class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                    <input type="text" wire:model.live="search" placeholder="Buscar por cliente..." 
+                    <input type="text" wire:model.live="search"
+                           @input="localSearch = $event.target.value"
+                           placeholder="Buscar por cliente..."
                            class="w-full pl-10 pr-4 py-2 rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
                 </div>
             </div>
@@ -293,9 +259,10 @@
                                         x-text="'PEDIDO # ' + (rem.consecutive || rem.id) + ' RUTA ' + (rem.route_name || 'N/A')">
                                     </h3>
                                     
-                                    <button x-show="rem.status != 'ENTREGADO'" 
-                                            @click.stop="handleViewOrder(rem.id)" 
-                                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-yellow-500/20 active:scale-95">
+                                    <!-- Botón PC: Devolver por unidad -->
+                                    <button class="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-yellow-500/20 active:scale-95"
+                                            x-show="rem.status != 'ENTREGADO'" 
+                                            @click.stop="handleViewOrder(rem.id)">
                                         <x-heroicon-o-pencil-square class="w-4 h-4" />
                                         Devolver por unidad
                                     </button>
@@ -310,10 +277,10 @@
                                             </p>
                                         </div>
                                         <div class="space-y-2">
-                                            <p class="flex flex-col">
+                                             <p class="flex flex-col">
                                                 <span class="text-gray-500 dark:text-slate-400 text-xs uppercase font-bold tracking-tighter">Contacto:</span>
-                                                 <span class="text-gray-800 dark:text-slate-100 font-semibold uppercase" x-text="rem.customer_name"></span>
-                                            </p>
+                                                 <span class="text-gray-800 dark:text-slate-100 font-semibold uppercase" x-text="rem.contact_name || 'N/A'"></span>
+                                             </p>
                                         </div>
                                     </div>
                                 </div>
@@ -328,85 +295,101 @@
                                 </div>
                             </div>
                             
-                            <div class="pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between gap-2 overflow-x-auto">
-                                <div class="text-sm sm:text-base font-black uppercase tracking-tighter flex gap-3 flex-wrap whitespace-nowrap">
+                            <!-- FOOTER DESKTOP (md+): totales + botones en una fila -->
+                            <div class="hidden md:flex pt-4 border-t border-gray-100 dark:border-slate-800 items-center justify-between gap-2">
+                                <div class="text-sm font-black uppercase tracking-tighter flex gap-3 whitespace-nowrap">
                                     <span class="text-gray-500 dark:text-slate-400">TOTAL : <span class="text-gray-900 dark:text-white" x-text="'$ ' + Number(rem.total_amount || 0).toLocaleString()"></span></span>
                                     <span class="text-blue-600 dark:text-blue-400">A PAGAR : <span class="font-bold" x-text="'$ ' + Number(rem.balance_amount || 0).toLocaleString()"></span></span>
                                 </div>
-
-                                <div class="flex items-center gap-2" x-data="{ openActions: false }">
-                                    <!-- Desktop: Botones Directos -->
-                                    <div class="hidden md:flex items-center gap-2">
-                                        <template x-if="rem.balance_amount > 0">
-                                            <div class="flex gap-2">
-                                                <button @click.stop="handlePayOrder(rem.id)" 
-                                                        class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-xs font-black uppercase transition-all shadow-md active:scale-95">
-                                                    Pagar
-                                                </button>
-                                                <button @click.stop="openFullReturnModal(rem.id)" 
-                                                        class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-black uppercase transition-all shadow-md active:scale-95">
-                                                    Devolver todo
-                                                </button>
-                                            </div>
-                                        </template>
-                                        
-                                        <span x-show="rem.balance_amount <= 0" class="bg-green-100 text-green-700 border border-green-200 py-2 px-3 rounded-lg text-xs font-black uppercase shadow-sm flex items-center gap-1">
-                                            <x-heroicon-s-check-circle class="w-4 h-4" />
-                                            Pagado
-                                        </span>
-
-                                        <!-- Botones de Impresión y Social (Solo Online) -->
-                                        <template x-if="isOnline">
-                                            <div class="flex gap-2">
-                                                <button @click.stop="$wire.printOrder(rem.id)" 
-                                                        class="bg-blue-700 hover:bg-blue-800 text-white p-2 rounded-lg transition-all shadow-md active:scale-95">
-                                                    <x-heroicon-o-printer class="w-4 h-4" />
-                                                </button>
-                                                <button @click.stop="handleShareWhatsApp(rem.id)" 
-                                                        class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-all shadow-md active:scale-95">
-                                                    <x-heroicon-o-chat-bubble-left-right class="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </template>
-                                    </div>
-
-                                    <!-- Mobile: Menú de Acciones -->
-                                    <div class="md:hidden relative">
-                                         <button @click.stop="openActions = !openActions" 
-                                                class="bg-slate-900 border border-slate-700 text-white py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg active:scale-95 transition-all">
-                                            <span>ACCIONES</span>
-                                            <x-heroicon-o-chevron-down class="w-3 h-3 transition-transform duration-300" x-bind:class="openActions ? 'rotate-180' : ''" />
-                                        </button>
-                                        
-                                        <div x-show="openActions" @click.away="openActions = false"
-                                             class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                                            <div class="p-2 space-y-1">
-                                                <button x-show="rem.balance_amount > 0"
-                                                        @click.stop="handlePayOrder(rem.id)" 
-                                                        class="w-full flex items-center gap-3 px-4 py-3 bg-green-500/10 hover:bg-green-500/20 text-green-600 rounded-xl text-xs font-black uppercase">
-                                                    <x-heroicon-s-currency-dollar class="w-5 h-5" /> Pagar
-                                                </button>
-                                                <button x-show="rem.balance_amount > 0"
-                                                        @click.stop="openFullReturnModal(rem.id)" 
-                                                        class="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl text-xs font-black uppercase">
-                                                    <x-heroicon-s-arrow-uturn-left class="w-5 h-5" /> Devolver
-                                                </button>
-                                                
-                                                <template x-if="isOnline">
-                                                    <div class="space-y-1">
-                                                        <button @click.stop="$wire.printOrder(rem.id)" 
-                                                                class="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-xl text-xs font-black uppercase">
-                                                            <x-heroicon-s-printer class="w-5 h-5" /> Imprimir
-                                                        </button>
-                                                        <button @click.stop="handleShareWhatsApp(rem.id)" 
-                                                                class="w-full flex items-center gap-3 px-4 py-3 bg-green-500/10 hover:bg-green-500/20 text-green-600 rounded-xl text-xs font-black uppercase">
-                                                            <x-heroicon-o-chat-bubble-left-right class="w-5 h-5" /> WhatsApp
-                                                        </button>
-                                                    </div>
-                                                </template>
-                                            </div>
+                                <div class="flex items-center gap-2">
+                                    <template x-if="rem.balance_amount > 0">
+                                        <div class="flex gap-2">
+                                            <button @click.stop="handlePayOrder(rem.id)"
+                                                    class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-xs font-black uppercase transition-all shadow-md active:scale-95">
+                                                Pagar
+                                            </button>
+                                            <button @click.stop="openFullReturnModal(rem.id)"
+                                                    class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-black uppercase transition-all shadow-md active:scale-95">
+                                                Devolver todo
+                                            </button>
                                         </div>
+                                    </template>
+                                    <span x-show="rem.balance_amount <= 0" class="bg-green-100 text-green-700 border border-green-200 py-2 px-3 rounded-lg text-xs font-black uppercase shadow-sm flex items-center gap-1">
+                                        <x-heroicon-s-check-circle class="w-4 h-4" /> Pagado
+                                    </span>
+                                    <template x-if="isOnline">
+                                        <div class="flex gap-2">
+                                            <button @click.stop="$wire.printOrder(rem.id)"
+                                                    class="bg-blue-700 hover:bg-blue-800 text-white p-2 rounded-lg transition-all shadow-md active:scale-95">
+                                                <x-heroicon-o-printer class="w-4 h-4" />
+                                            </button>
+                                            <button @click.stop="handleShareWhatsApp(rem.id)"
+                                                    class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-all shadow-md active:scale-95">
+                                                <x-heroicon-o-chat-bubble-left-right class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- FOOTER MÓVIL/TABLET (< md): layout vertical optimizado para touch -->
+                            <div class="md:hidden pt-4 border-t border-gray-100 dark:border-slate-800 space-y-3">
+                                <!-- Fila 1: Totales en píldoras -->
+                                <div class="flex gap-2">
+                                    <div class="flex-1 bg-gray-50 dark:bg-slate-800 rounded-xl px-3 py-2 text-center">
+                                        <p class="text-[8px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mb-0.5">Total</p>
+                                        <p class="text-sm font-black text-gray-900 dark:text-white leading-none" x-text="'$ ' + Number(rem.total_amount || 0).toLocaleString()"></p>
                                     </div>
+                                    <div class="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2 text-center">
+                                        <p class="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">A pagar</p>
+                                        <p class="text-sm font-black text-blue-600 dark:text-blue-400 leading-none" x-text="'$ ' + Number(rem.balance_amount || 0).toLocaleString()"></p>
+                                    </div>
+                                </div>
+
+                                <!-- Fila 2: Botones Principales (Pagar y Devolver por Unidad) -->
+                                <template x-if="rem.balance_amount > 0">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button @click.stop="handlePayOrder(rem.id)"
+                                                class="bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
+                                            <x-heroicon-s-currency-dollar class="w-5 h-5" />
+                                            Pagar
+                                        </button>
+                                        <button x-show="rem.status != 'ENTREGADO'" 
+                                                @click.stop="handleViewOrder(rem.id)" 
+                                                class="bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-yellow-500/20 active:scale-95 flex items-center justify-center gap-2">
+                                            <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                            Devolver
+                                        </button>
+                                    </div>
+                                </template>
+                                <span x-show="rem.balance_amount <= 0"
+                                      class="w-full flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 py-3 rounded-xl text-sm font-black uppercase">
+                                    <x-heroicon-s-check-circle class="w-5 h-5" /> Pagado
+                                </span>
+
+                                <!-- Fila 3: Botones secundarios -->
+                                <div class="flex gap-2">
+                                    <template x-if="rem.balance_amount > 0">
+                                        <button @click.stop="openFullReturnModal(rem.id)"
+                                                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5">
+                                            <x-heroicon-s-arrow-uturn-left class="w-4 h-4" />
+                                            Dev. todo
+                                        </button>
+                                    </template>
+                                    <template x-if="isOnline">
+                                        <div class="flex gap-2" :class="rem.balance_amount > 0 ? '' : 'flex-1'">
+                                            <button @click.stop="$wire.printOrder(rem.id)"
+                                                    class="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2.5 px-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs font-black uppercase">
+                                                <x-heroicon-o-printer class="w-4 h-4" />
+                                                <span class="hidden xs:inline">Imprimir</span>
+                                            </button>
+                                            <button @click.stop="handleShareWhatsApp(rem.id)"
+                                                    class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 px-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs font-black uppercase">
+                                                <x-heroicon-o-chat-bubble-left-right class="w-4 h-4" />
+                                                <span class="hidden xs:inline">WhatsApp</span>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -906,7 +889,9 @@
                     tarjeta: { value: 0 }
                 },
                 orderNovelty: @entangle('orderNovelty'),
-                searchLocal: '',
+                searchLocal: '',      // Para búsqueda de productos DENTRO del modal de pedido
+                localSearch: '',      // Para filtrar la lista de remisiones por cliente (offline)
+                localStatus: @json($status), // Espeja el estado inicial de Livewire para filtrado offline
 
                 currentDeliveryId: @entangle('selectedDeliveryId'),
                 viewCollections: @entangle('showCollectionsTable'),
@@ -955,10 +940,9 @@
                                    ? p.customer_name 
                                    : (remisionesMap[p.remissionId]?.customer_name || 'N/A'),
                                consecutive: p.consecutive || remisionesMap[p.remissionId]?.consecutive || p.remissionId,
-                               methods_summary: Object.keys(p.methods || {})
-                                   .filter(k => p.methods[k].value > 0)
-                                   .map(k => k.toUpperCase())
-                                   .join(', ') || 'EFECTIVO'
+                               methods_summary: p.methods
+                                   ? (Object.keys(p.methods).filter(k => (p.methods[k].value || 0) > 0).map(k => k.toUpperCase()).join(', ') || 'EFECTIVO')
+                                   : (p.loading_methods || p.methods_summary || 'EFECTIVO')
                          }));
                      
                         // 3. Devoluciones / Inventario de Ruta (FUENTE: Detalles de Remisiones)
@@ -977,14 +961,31 @@
                         });
 
                         this.localReturnsList = allDetails.map(d => {
+                            // FUENTE PRIMARIA de cant_return: detalles.cant_return (sincronizado desde servidor)
+                            // Este campo SIEMPRE está disponible en IndexedDB, sin importar si devoluciones_locales tiene data.
+                            // Esto espeja exactamente la lógica de getReturnedItemsProperty() en PHP.
+                            const cantReturnBase = Number(d.cant_return || 0);
+
+                            // Si existe un registro offline PENDIENTE (synced=0), usar su cantidad — es más reciente
                             const ret = returnsMap[d.id] || {};
-                            const qtyDevuelta = Number(ret.quantity || 0);
-                            const qtyNoEnt = Number(ret.quantity_no_ent || 0);
+                            const qtyDevuelta = (ret.synced === 0) ? Number(ret.quantity || 0) : cantReturnBase;
+
+                            // qty_no_ent: ítems que fueron llevados pero NO se entregaron NI devolvieron
+                            // Solo aplica para pedidos EN RECORRIDO (igual que PHP)
+                            const remisionStatus = remisionesMap[d.remissionId]?.status || 'EN RECORRIDO';
+                            let qtyNoEnt = 0;
+                            if (!['ENTREGADO', 'DEVUELTO'].includes(remisionStatus)) {
+                                qtyNoEnt = Math.max(0, (d.quantity || 0) - qtyDevuelta);
+                            }
+
                             const totalNov = qtyDevuelta + qtyNoEnt;
-                            
+                            // delivery_id desde remisionesMap — siempre disponible sin importar si ret tiene el campo
+                            const deliveryId = remisionesMap[d.remissionId]?.delivery_id || ret.delivery_id || 0;
+
                             return {
                                 ...ret,
                                 remission_id: d.remissionId,
+                                delivery_id: deliveryId,
                                 detail_id: d.id,
                                 consecutive: remisionesMap[d.remissionId]?.consecutive || d.remissionId,
                                 item_name: d.name || 'Producto',
@@ -1018,8 +1019,26 @@
 
                 // GETTERS REACTIVOS (FILTROS)
                 get filteredRemisiones() {
-                    if (!this.currentDeliveryId) return this.localRemisionesList;
-                    return this.localRemisionesList.filter(r => Number(r.delivery_id) === Number(this.currentDeliveryId));
+                    let list = this.localRemisionesList;
+
+                    // Filtrar por cargue si hay uno seleccionado
+                    if (this.currentDeliveryId) {
+                        list = list.filter(r => Number(r.delivery_id) === Number(this.currentDeliveryId));
+                    }
+
+                    // Filtrar por búsqueda de cliente (funciona online Y offline)
+                    const search = (this.localSearch || '').trim().toLowerCase();
+                    if (search) {
+                        list = list.filter(r => (r.customer_name || '').toLowerCase().includes(search));
+                    }
+
+                    // Filtrar por estado (funciona online Y offline)
+                    const status = this.localStatus || 'Todos';
+                    if (status && status !== 'Todos') {
+                        list = list.filter(r => r.status === status);
+                    }
+
+                    return list;
                 },
                 get filteredCollections() {
                     if (!this.currentDeliveryId) return this.localCollectionsList;
@@ -1051,20 +1070,38 @@
                         if (!this.db.isOpen()) await this.db.open();
                         console.log("✅ IndexedDB conectada. Modo Inicial:", this.isOnline ? 'ONLINE' : 'OFFLINE');
                         
-                        // CARGA INICIAL: Siempre intentamos cargar lo local primero (Cold Start)
-                        // Si estamos online, Livewire disparará 'hydrate-local-db' en milisegundos
-                        await this.loadLocalRemisiones();
-                        if (this.viewReturns || this.viewCollections) await this.loadFinancialDetails();
+                        // CARGA INICIAL: Separar fuente según conectividad
+                        // ONLINE → datos vienen del servidor via 'hydrate-local-db' (Livewire los emite en mount())
+                        //          NO cargar IndexedDB para evitar mostrar datos stale
+                        // OFFLINE → cargar IndexedDB porque es la única fuente disponible
+                        if (!this.isOnline) {
+                            await this.loadLocalRemisiones();
+                            await this.loadFinancialDetails();
+                        }
+                        // Cuando online: localRemisionesList queda vacío hasta que 'hydrate-local-db' lo llena con datos del servidor
                         
                     } catch (err) {
                         console.error("❌ Error inicialización DB:", err);
                     }
 
                     // 4. Listeners de Red
-                    window.addEventListener('online', () => { 
-                        this.isOnline = true; 
-                        console.log("🌐 Conexión restaurada - Iniciando sincronización de fondo");
-                        this.syncBackOnline();
+                    window.addEventListener('online', async () => {
+                        this.isOnline = true;
+                        console.log("🌐 Conexión restaurada - Sincronizando y recargando datos del servidor");
+
+                        // Paso 1: Sincronizar datos offline pendientes (pagos, devoluciones, estados)
+                        await this.syncBackOnline();
+
+                        // Paso 2: Forzar recarga de datos frescos del servidor
+                        // Esto reemplaza cualquier dato stale de IndexedDB con datos reales de MySQL
+                        if (this.isOnline) {
+                            try {
+                                await @this.dispatchSync();
+                                console.log("✅ Datos del servidor recargados tras reconexión");
+                            } catch(e) {
+                                console.warn("⚠️ No se pudo recargar del servidor:", e);
+                            }
+                        }
                     });
 
                     window.addEventListener('offline', async () => { 
@@ -1077,6 +1114,11 @@
                     // 5. Watcher para cambios de cargue (Reactividad Offline)
                     this.$watch('currentDeliveryId', async (val) => {
                         console.log('🔄 Cambio de cargue detectado (Alpine):', val);
+                        
+                        // Resetear vistas de tablas al cambiar cargue (Requerimiento de UI)
+                        this.viewCollections = false;
+                        this.viewReturns = false;
+
                         if (!this.isOnline) {
                             await this.loadLocalRemisiones();
                         }
@@ -1098,6 +1140,7 @@
                                 status: String(rem.status),
                                 consecutive: String(rem.consecutive),
                                 customer_name: String(rem.customer_name || 'N/A'),
+                                contact_name: String(rem.contact_name || 'N/A'),
                                 route_name: String(rem.route_name || 'N/A'),
                                 address: String(rem.address || 'Sin dirección'),
                                 total_amount: Number(rem.total_amount || 0),
@@ -1182,7 +1225,39 @@
                          }
                     });
 
+                    // Listener para actualizar UI tras pago/devolución offline (sin recarga completa)
+                    window.addEventListener('update-local-order', async (event) => {
+                        const { id, status, balance, total } = event.detail;
+                        const numId = Number(id);
+                        const idx = this.localRemisionesList.findIndex(r => r.id === numId);
+                        if (idx !== -1) {
+                            this.localRemisionesList[idx] = {
+                                ...this.localRemisionesList[idx],
+                                status: status,
+                                balance_amount: (balance !== undefined && balance !== null) ? balance : this.localRemisionesList[idx].balance_amount,
+                                total_amount: (total !== undefined && total !== null) ? total : this.localRemisionesList[idx].total_amount
+                            };
+                            // Forzar reactividad Alpine reemplazando la referencia del array
+                            this.localRemisionesList = [...this.localRemisionesList];
+                        }
+                        // Actualizar tablas financieras del sidebar inmediatamente
+                        await this.loadFinancialDetails();
+                    });
+
                     this.isInitialized = true;
+
+                    // GUARD ANTI-RACE-CONDITION:
+                    // mount() de PHP dispara 'hydrate-local-db' antes de que Alpine registre el listener.
+                    // Si el evento se pierde, localRemisionesList queda vacío aunque el servidor tenga datos.
+                    // Solución: después de 400ms, si online y lista vacía, re-solicitar al servidor.
+                    if (this.isOnline) {
+                        setTimeout(async () => {
+                            if (this.localRemisionesList.length === 0) {
+                                console.log('⚡ Re-solicitando datos al servidor (hydrate-local-db perdido en init)');
+                                try { await @this.dispatchSync(); } catch(e) {}
+                            }
+                        }, 400);
+                    }
                 },
 
                 async handleViewOrder(orderId) {
@@ -1201,11 +1276,14 @@
                         this.selectedOrderData = {
                             id: rem.id,
                             consecutive: rem.consecutive || rem.id,
-                            customer_name: rem.customer_name, // Ahora viene procesado desde PHP
+                            customer_name: rem.customer_name,
+                            contact_name: rem.contact_name,
                             branch_name: rem.route_name,      // Ahora viene procesado desde PHP
                             delivery_id: rem.delivery_id,
                             address: rem.address,
                             status: rem.status,
+                            total_amount: Number(rem.total_amount || 0),     // Necesario para VALOR FINAL NETO en modal
+                            balance_amount: Number(rem.balance_amount || 0), // Necesario para cálculo de pago
                             details: details
                         };
                         this.order = this.selectedOrderData;
@@ -1329,6 +1407,10 @@
                             return;
                         }
 
+                        // Obtener delivery_id de la remisión para que filteredReturns pueda filtrar por cargue
+                        const remisionForReturn = await this.db.remisiones.get(Number(id));
+                        const deliveryIdForReturn = Number(remisionForReturn?.delivery_id || 0);
+
                         // Guardar cada detalle que tenga cantidad > 0
                         for (const detailId in this.returnQuantities) {
                             const qty = this.returnQuantities[detailId];
@@ -1339,9 +1421,10 @@
                                 if (existing) {
                                     await this.db.devoluciones_locales.update(existing.id, {
                                         remission_id: Number(this.selectedOrderId),
-                                quantity: Number(qty),
-                                observation: String(observation),
-                                        synced: 0
+                                        quantity: Number(qty),
+                                        observation: String(observation),
+                                        synced: 0,
+                                        delivery_id: deliveryIdForReturn
                                     });
                                 } else {
                                     await this.db.devoluciones_locales.put({
@@ -1349,7 +1432,8 @@
                                         detail_id: Number(detailId),
                                         quantity: Number(qty),
                                         observation: String(observation),
-                                        synced: 0
+                                        synced: 0,
+                                        delivery_id: deliveryIdForReturn
                                     });
                                 }
 
@@ -1359,6 +1443,51 @@
                                 await this.db.detalles.put(detail);
                             }
                         }
+
+                        // Recalcular totales de la remisión en IndexedDB con las devoluciones aplicadas
+                        // Esto asegura que la tarjeta en la lista muestre el valor correcto inmediatamente
+                        try {
+                            const updatedDetails = await this.db.detalles.where('remissionId').equals(Number(id)).toArray();
+                            let newTotal = 0;
+                            for (const d of updatedDetails) {
+                                const eff = (d.quantity || 0) - (d.cant_return || 0);
+                                if (eff > 0) {
+                                    newTotal += eff * (d.value || 0) * (1 + ((d.tax || 0) / 100));
+                                }
+                            }
+                            newTotal = Math.round(newTotal);
+
+                            const remToUpdate = await this.db.remisiones.get(Number(id));
+                            if (remToUpdate) {
+                                remToUpdate.total_amount = newTotal;
+                                remToUpdate.balance_amount = newTotal;
+                                await this.db.remisiones.put(remToUpdate);
+                            }
+
+                            // Notificar a la lista (tarjeta) para reactividad visual inmediata
+                            window.dispatchEvent(new CustomEvent('update-local-order', {
+                                detail: {
+                                    id: Number(id),
+                                    status: remToUpdate?.status || 'EN RECORRIDO',
+                                    balance: newTotal,
+                                    total: newTotal
+                                }
+                            }));
+
+                            // Si el pedido está abierto en el panel, actualizar selectedOrderData también
+                            if (Number(this.selectedOrderId) === Number(id) && this.selectedOrderData) {
+                                this.selectedOrderData = {
+                                    ...this.selectedOrderData,
+                                    total_amount: newTotal,
+                                    balance_amount: newTotal
+                                };
+                            }
+                        } catch (recalcErr) {
+                            console.warn('⚠️ No se pudo recalcular total tras devolución:', recalcErr);
+                        }
+
+                        // Recargar tabla de devoluciones para reflejar los cambios inmediatamente
+                        await this.loadFinancialDetails();
 
                         Swal.fire({
                             title: 'Guardado Local',
@@ -1406,18 +1535,25 @@
 
                         const details = await this.db.detalles.where('remissionId').equals(Number(id)).toArray();
 
-                        // Calcular total a pagar (Total - Devoluciones)
-                        let total = 0;
-                        for(let d of details) {
-                             const effectiveQty = d.quantity - (d.cant_return || 0);
-                             if (effectiveQty > 0) {
-                                 const lineSubtotal = effectiveQty * d.value;
-                                 const lineTax = lineSubtotal * ((d.tax || 0) / 100);
-                                 total += lineSubtotal + lineTax;
-                             }
+                        // FUENTE PRIMARIA: usar balance_amount/total_amount ya calculados y almacenados en IndexedDB
+                        // Son calculados por PHP (processRemissionTotals) y representan el valor real a cobrar
+                        let paymentTotal = Number(rem.balance_amount || rem.total_amount || 0);
+
+                        // FALLBACK: si por alguna razón están en 0, recalcular desde los detalles
+                        if (paymentTotal === 0 && details.length > 0) {
+                            let calculated = 0;
+                            for(let d of details) {
+                                const effectiveQty = d.quantity - (d.cant_return || 0);
+                                if (effectiveQty > 0) {
+                                    const lineSubtotal = effectiveQty * d.value;
+                                    const lineTax = lineSubtotal * ((d.tax || 0) / 100);
+                                    calculated += lineSubtotal + lineTax;
+                                }
+                            }
+                            if (calculated > 0) paymentTotal = calculated;
                         }
 
-                        this.paymentTotal = Math.round(total);
+                        this.paymentTotal = Math.round(paymentTotal);
                         this.paymentPaid = 0;
                         this.paymentChange = 0;
                         this.paymentChangeInput = 0; // Nuevo campo para input del cliente
@@ -1478,7 +1614,10 @@
                           // Asegurar apertura
                           if (!this.db.isOpen()) await this.db.open();
 
-                           const paymentData = {
+                            // Obtener remisión actual para actualizar con seguridad
+                          const currentRem = await this.db.remisiones.get(remId);
+
+                         const paymentData = {
                                 remissionId: remId,
                                 total: Number(this.paymentTotal),
                                 methods: JSON.parse(JSON.stringify(this.paymentMethods)),
@@ -1490,9 +1629,6 @@
                                 delivery_id: Number(this.selectedOrderData?.delivery_id || currentRem?.delivery_id || 0),
                                 value: Number(this.paymentTotal) // Duplicado para compatibilidad con lista
                             };
-
-                          // Obtener remisión actual para actualizar con seguridad
-                          const currentRem = await this.db.remisiones.get(remId);
                           if (!currentRem) throw new Error("Pedido no encontrado localmente.");
 
                           currentRem.status = 'ENTREGADO';
@@ -1782,6 +1918,9 @@
                 },
 
                 async syncOfflineData() {
+                    // Guard contra ejecución concurrente (puede ser llamado desde listener pedido-actualizado)
+                    if (this.syncing) return;
+
                     if (!this.isOnline) {
                         Swal.fire({
                             title: 'Sin conexión',
@@ -1817,11 +1956,34 @@
 
                 async saveDataToIndexedDB(data) {
                     if (!data || this.isSavingToDB) return;
-                    
+
                     const actualData = Array.isArray(data) ? (data[0] || {}) : data;
                     if (!actualData.remissions && !actualData.deliveries) return;
 
                     this.isSavingToDB = true;
+
+                    // --- PROTECCIÓN: Capturar estado local pendiente antes de sobreescribir ---
+                    // Evita que datos del servidor sobreescriban cambios offline no sincronizados
+                    let existingLocalRemisiones = {};
+                    let allPendingIds = new Set();
+                    try {
+                        if (!this.db.isOpen()) await this.db.open();
+                        const pendingPaymentIds = (await this.db.pagos_locales.where('synced').equals(0).toArray())
+                            .map(p => Number(p.remissionId));
+                        const pendingStatusIds = (await this.db.pending_status_updates.where('synced').equals(0).toArray())
+                            .map(s => Number(s.remission_id));
+                        allPendingIds = new Set([...pendingPaymentIds, ...pendingStatusIds]);
+                        if (allPendingIds.size > 0) {
+                            const existing = await this.db.remisiones.bulkGet([...allPendingIds]);
+                            existing.forEach(r => { if (r) existingLocalRemisiones[r.id] = r; });
+                            console.log(`🔒 Protegiendo ${allPendingIds.size} remisiones con cambios offline pendientes`);
+                        }
+                    } catch (pendingErr) {
+                        console.warn('⚠️ No se pudo leer estado pendiente local (no crítico):', pendingErr);
+                        allPendingIds = new Set();
+                        existingLocalRemisiones = {};
+                    }
+                    // --- FIN PROTECCIÓN ---
 
                     try {
                         // 1. Asegurar base de datos abierta fuera de la transacción
@@ -1836,17 +1998,23 @@
 
                         if (actualData.remissions) {
                             actualData.remissions.forEach(rem => {
+                                const remId = Number(rem.id);
+                                const localState = existingLocalRemisiones[remId];
+                                const hasPending = allPendingIds.has(remId);
+
                                 remisionesData.push({
-                                    id: Number(rem.id), 
-                                    delivery_id: Number(rem.delivery_id), 
-                                    quoteId: Number(rem.quoteId), 
-                                    status: String(rem.status), 
+                                    id: remId,
+                                    delivery_id: Number(rem.delivery_id),
+                                    quoteId: Number(rem.quoteId),
+                                    // Preservar status/balance local si hay cambios pendientes sin sincronizar
+                                    status: (hasPending && localState) ? String(localState.status) : String(rem.status),
                                     consecutive: String(rem.consecutive),
-                                    customer_name: String(rem.customer_name || 'N/A'), 
-                                    route_name: String(rem.route_name || 'N/A'),       
+                                    customer_name: String(rem.customer_name || 'N/A'),
+                                    contact_name: String(rem.contact_name || 'N/A'),
+                                    route_name: String(rem.route_name || 'N/A'),
                                     address: String(rem.address || 'Sin dirección'),
-                                    total_amount: Number(rem.total_amount || 0), 
-                                    balance_amount: Number(rem.balance_amount || 0),
+                                    total_amount: Number(rem.total_amount || 0),
+                                    balance_amount: (hasPending && localState) ? Number(localState.balance_amount) : Number(rem.balance_amount || 0),
                                     observations_return: String(rem.observations_return || '')
                                 });
                                 
