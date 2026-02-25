@@ -575,15 +575,17 @@ class ProductQuoter extends Component
         $sku = 'GEN-' . strtoupper(substr(uniqid(), -6));
 
         $product = Items::create([
-            'name'          => $this->genericProductName,
-            'sku'           => $sku,
-            'internal_code' => $sku,
-            'type'          => 'COMPRA NACIONAL',
-            'taxId'         => $this->genericProductTaxId,
-            'categoryId'    => 1,
-            'inventoriable' => 0,
-            'status'        => 1,
-            'generic'       => 1,
+            'name'             => $this->genericProductName,
+            'sku'              => $sku,
+            'internal_code'    => $sku,
+            'type'             => 'COMPRA NACIONAL',
+            'taxId'            => $this->genericProductTaxId,
+            'categoryId'       => 1,
+            'purchasing_unit'  => 35,
+            'consumption_unit' => 35,
+            'inventoriable'    => 0,
+            'status'           => 1,
+            'generic'          => 1,
         ]);
 
         InvValues::create([
