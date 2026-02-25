@@ -21,9 +21,9 @@ $header = 'Seleccionar productos';
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
                 <div class="p-6">
                     <div class="flex flex-col lg:flex-row lg:items-center gap-4">
-                        <!-- Búsqueda -->
-                        <div class="flex-1">
-                            <div class="relative">
+                        <!-- Búsqueda + botón producto genérico -->
+                        <div class="flex-1 flex items-center gap-2">
+                            <div class="relative flex-1">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -34,6 +34,14 @@ $header = 'Seleccionar productos';
                                     placeholder="Buscar productos..."
                                     class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             </div>
+                            <button wire:click="$set('showGenericProductModal', true)"
+                                title="Crear producto genérico"
+                                class="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Genérico
+                            </button>
                         </div>
 
                         <!-- Filtro de Categorías -->
@@ -659,50 +667,42 @@ $header = 'Seleccionar productos';
                     </p>
                 </div>
                 @else
-                <div class="p-4 space-y-3 pb-4">
+                <div class="px-3 py-2 space-y-1">
                     @foreach($quoterItems as $index => $item)
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex-1">
-                                <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ $item['name'] }}</h4>
-                                <div class="flex items-center gap-3 mt-1">
-                                    @if(isset($item['price_label']))
-                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
-                                    @endif
-                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Impuesto: {{ $item['tax_label']}}</p>
-                                </div>
-                            </div>
-                            <button wire:click="removeFromQuoter({{ $index }})"
-                                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-center gap-2 py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
+                        <!-- Nombre + precio unitario -->
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-medium text-gray-900 dark:text-white truncate leading-tight" title="{{ $item['name'] }}"><span class="text-gray-400 dark:text-gray-500 font-normal">{{ $item['sku'] }} · </span>{{ $item['name'] }}</p>
+                            <p class="text-[10px] text-indigo-500 dark:text-indigo-400 leading-tight">
+                                ${{ number_format($item['price']) }} · {{ $item['tax_label'] }}
+                            </p>
                         </div>
-
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
-                                <input
-                                    id="quantity-{{ $index }}"
-                                    type="number"
-                                    wire:model.lazy="quoterItems.{{ $index }}.quantity"
-                                    wire:change="validateQuantity({{ $index }})"
-                                    min="1"
-                                    max="999999"
-                                    step="1"
-                                    inputmode="numeric"
-                                    pattern="[0-9]*"
-                                    class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    value="{{ $item['quantity'] }}"
-                                    onwheel="this.blur()"
-                                    autocomplete="off">
-                            </div>
-
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                ${{ number_format($item['price'] * $item['quantity']) }}
-                            </div>
-                        </div>
+                        <!-- Cantidad -->
+                        <input
+                            id="quantity-{{ $index }}"
+                            type="number"
+                            wire:model.lazy="quoterItems.{{ $index }}.quantity"
+                            wire:change="validateQuantity({{ $index }})"
+                            min="1"
+                            max="999999"
+                            step="1"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            class="w-12 px-1 py-0.5 text-center text-xs font-medium border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value="{{ $item['quantity'] }}"
+                            onwheel="this.blur()"
+                            autocomplete="off">
+                        <!-- Total -->
+                        <span class="text-xs font-semibold text-gray-900 dark:text-white whitespace-nowrap w-20 text-right">
+                            ${{ number_format($item['price'] * $item['quantity']) }}
+                        </span>
+                        <!-- Eliminar -->
+                        <button wire:click="removeFromQuoter({{ $index }})"
+                            class="text-red-400 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
                     </div>
                     @endforeach
                 </div>
@@ -746,35 +746,31 @@ $header = 'Seleccionar productos';
                     </div>
 
                     <!-- Desglose de Impuestos -->
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4 space-y-3 text-sm">
-                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
-                            <span class="font-medium">Subtotal (sin impuestos):</span>
-                            <span class="font-semibold">${{ number_format($subTotal, 2, ',', '.') }}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 mb-3 space-y-0.5 text-xs">
+                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                            <span>Subtotal:</span>
+                            <span>${{ number_format($subTotal, 2, ',', '.') }}</span>
                         </div>
-
                         @if($taxBreakdown['iva_5'] > 0)
-                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
                             <span>IVA 5%:</span>
                             <span>${{ number_format($taxBreakdown['iva_5'], 2, ',', '.') }}</span>
                         </div>
                         @endif
-
                         @if($taxBreakdown['iva_19'] > 0)
-                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
                             <span>IVA 19%:</span>
                             <span>${{ number_format($taxBreakdown['iva_19'], 2, ',', '.') }}</span>
                         </div>
                         @endif
-
                         @if($taxBreakdown['exento'] > 0)
-                        <div class="flex justify-between text-gray-700 dark:text-gray-300">
-                            <span>Productos exentos:</span>
+                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                            <span>Exento:</span>
                             <span>${{ number_format($taxBreakdown['exento'], 2, ',', '.') }}</span>
                         </div>
                         @endif
-
                         @if($totalTaxes > 0)
-                        <div class="flex justify-between text-gray-700 dark:text-gray-300 border-t pt-3">
+                        <div class="flex justify-between text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-gray-600 pt-1 mt-1">
                             <span class="font-medium">Total impuestos:</span>
                             <span class="font-semibold">${{ number_format($totalTaxes, 2, ',', '.') }}</span>
                         </div>
@@ -1288,5 +1284,94 @@ $header = 'Seleccionar productos';
             </div>
         </div>
     </div>
+
+    <!-- Modal Producto Genérico -->
+    @if($showGenericProductModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center">
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black/50" wire:click="$set('showGenericProductModal', false)"></div>
+
+        <!-- Modal -->
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 border border-gray-200 dark:border-gray-700">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Producto genérico</h3>
+                <button wire:click="$set('showGenericProductModal', false)"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="px-5 py-4 space-y-4">
+                <!-- Nombre -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del producto <span class="text-red-500">*</span></label>
+                    <input wire:model="genericProductName"
+                        type="text"
+                        placeholder="Ej: Servicio de instalación"
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    @error('genericProductName')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Precio -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Precio <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">$</span>
+                        <input wire:model="genericProductPrice"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            class="block w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                    </div>
+                    @error('genericProductPrice')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Impuesto -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impuesto <span class="text-red-500">*</span></label>
+                    <select wire:model="genericProductTaxId"
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="">Seleccionar impuesto...</option>
+                        @foreach(\App\Models\Tenant\CnfTaxes::where('status', 1)->get() as $tax)
+                            <option value="{{ $tax->id }}">{{ $tax->name }} ({{ $tax->percentage }}%)</option>
+                        @endforeach
+                    </select>
+                    @error('genericProductTaxId')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex justify-end gap-3 px-5 py-4 border-t border-gray-200 dark:border-gray-700">
+                <button wire:click="$set('showGenericProductModal', false)"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    Cancelar
+                </button>
+                <button wire:click="saveGenericProduct"
+                    wire:loading.attr="disabled"
+                    wire:target="saveGenericProduct"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-300 rounded-lg transition-colors flex items-center gap-2">
+                    <div wire:loading wire:target="saveGenericProduct">
+                        <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    Crear y agregar
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div>
