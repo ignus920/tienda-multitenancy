@@ -79,8 +79,8 @@ class ImportServices extends Component
     {
         try {
             $this->ensureTenantConnection();
-            // Filtrar solo etiquetas con estado entre 1 y 7
-            $labels = ImpLabels::whereBetween('status', [1, 7])->get();
+            // Filtrar solo etiquetas con estado = 1 (activas)
+            $labels = ImpLabels::where('status', 1)->get();
             return $labels;
             
         } catch (\Exception $e) {
@@ -146,19 +146,22 @@ class ImportServices extends Component
 
             $this->ensureTenantConnection();
 
-            // Obtener datos de los últimos 12 meses
+            // Calcular el rango de fechas: últimos 12 meses
+            $startDate = now()->startOfMonth()->subMonths(11)->format('Y-m-d');
+            $endDate = now()->endOfMonth()->format('Y-m-d 23:59:59');
+
+            // Usar created_at como campo principal, con fallback a updated_at
             $monthlyData = DB::connection('tenant')
                 ->table('inv_remissions as ir')
                 ->join('inv_detail_remissions as idr', 'idr.remissionId', '=', 'ir.id')
                 ->select(
-                    DB::raw('YEAR(ir.updated_at) AS anio'),
-                    DB::raw('MONTH(ir.updated_at) AS mes'),
+                    DB::raw('YEAR(COALESCE(ir.created_at, ir.updated_at)) AS anio'),
+                    DB::raw('MONTH(COALESCE(ir.created_at, ir.updated_at)) AS mes'),
                     DB::raw('SUM(idr.quantity) AS TotalQuantity')
                 )
                 ->where('idr.itemId', $this->selectedItemId)
-                ->where('ir.updated_at', '>=', DB::raw("DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH)"))
-                ->where('ir.updated_at', '<=', DB::raw('NOW()'))
-                ->groupBy(DB::raw('YEAR(ir.updated_at)'), DB::raw('MONTH(ir.updated_at)'))
+                ->whereBetween(DB::raw('COALESCE(ir.created_at, ir.updated_at)'), [$startDate, $endDate])
+                ->groupBy(DB::raw('YEAR(COALESCE(ir.created_at, ir.updated_at))'), DB::raw('MONTH(COALESCE(ir.created_at, ir.updated_at))'))
                 ->orderBy('anio', 'ASC')
                 ->orderBy('mes', 'ASC')
                 ->get();
