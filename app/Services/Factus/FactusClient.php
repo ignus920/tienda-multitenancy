@@ -198,12 +198,17 @@ class FactusClient
 
     public function getBillPdf(string $number): Response
     {
-        return $this->get("/v1/bills/{$number}/download-pdf");
+        return $this->get("/v1/bills/download-pdf/{$number}");
     }
 
     public function getBillXml(string $number): Response
     {
         return $this->get("/v1/bills/{$number}/download-xml");
+    }
+
+    public function getCreditNotePdf(string $number): Response
+    {
+        return $this->get("/v1/credit-notes/download-pdf/{$number}");
     }
 
     public function sendBillEmail(string $id, array $emailData = []): array
@@ -218,6 +223,41 @@ class FactusClient
     {
         $response = $this->post('/v1/credit-notes/validate', $data);
         return $this->handleResponse($response);
+    }
+
+    /**
+     * Devuelve el ID del rango de numeración activo para Notas Crédito.
+     * Retorna null si no encuentra rango específico (el campo es opcional en Factus
+     * cuando solo hay un rango activo).
+     */
+    public function getCreditNoteNumberingRangeId(): ?int
+    {
+        return Cache::remember('factus_credit_note_numbering_range_id', now()->addHour(), function () {
+            $response = $this->get('/v1/numbering-ranges?filter[is_active]=1');
+            $data     = $this->handleResponse($response);
+            $ranges   = $data['data'] ?? $data;
+
+            foreach ($ranges as $range) {
+                $isActive  = ($range['is_active'] ?? 0) == 1;
+                $isExpired = $range['is_expired'] ?? true;
+                $document  = strtolower($range['document'] ?? '');
+
+                if ($isActive && !$isExpired && (
+                    str_contains($document, 'cr') ||
+                    str_contains($document, 'nota') ||
+                    str_contains($document, 'note')
+                )) {
+                    Log::info('Factus: rango de nota crédito encontrado', [
+                        'id'       => $range['id'],
+                        'document' => $range['document'] ?? '',
+                    ]);
+                    return (int) $range['id'];
+                }
+            }
+
+            Log::info('Factus: no se encontró rango específico para nota crédito (campo opcional)');
+            return null;
+        });
     }
 
     public function getCreditNotes(): array

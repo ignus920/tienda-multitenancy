@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
 use App\Traits\HasCompanyConfiguration;
+use App\Services\Factus\FactusClient;
+use App\Services\Factus\FactusApiException;
 
 class Invoices extends Component
 {
@@ -26,6 +28,16 @@ class Invoices extends Component
     public $perPage = 12;
     public $sortField = 'vnt_invoices.invoiceNumber';
     public $sortDirection = 'desc';
+
+    // ─── Nota Crédito ─────────────────────────────────────────────────────────
+    public bool $showCreditNoteModal = false;
+    public ?array $creditNoteInvoiceData = null;
+    public array $creditNoteItems = [];
+    public string $correctionConceptCode = '2';
+    public string $creditNotePaymentMethod = '10';
+    public string $creditNoteObservation = '';
+    public float $creditNoteTotal = 0;
+    public bool $creditNoteLoading = false;
 
     public function boot()
     {
@@ -442,6 +454,170 @@ class Invoices extends Component
     }
 
     /**
+     * Descarga el PDF oficial de la factura desde Factus usando el invoiceNumber.
+     */
+    public function downloadFacturaPdf($invoiceId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $invoice = VntInvoices::findOrFail($invoiceId);
+
+            if ($invoice->status !== 'FACTURADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Solo se pueden descargar facturas emitidas (estado: FACTURADO).',
+                ]);
+                return;
+            }
+
+            if (empty($invoice->invoiceNumber)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Esta factura no tiene número de factura electrónica.',
+                ]);
+                return;
+            }
+
+            $client = app(FactusClient::class);
+            $response = $client->getBillPdf($invoice->invoiceNumber);
+
+            if (!$response->successful()) {
+                Log::error('Error al obtener PDF de Factus', [
+                    'invoice_id'     => $invoiceId,
+                    'invoice_number' => $invoice->invoiceNumber,
+                    'status'         => $response->status(),
+                    'body'           => $response->body(),
+                ]);
+                $this->dispatch('show-toast', [
+                    'type'    => 'error',
+                    'message' => 'Error al obtener el PDF desde Factus. Verifique que la factura esté emitida.',
+                ]);
+                return;
+            }
+
+            $json     = $response->json();
+            $b64      = $json['data']['pdf_base_64_encoded'] ?? null;
+            $fileName = $json['data']['file_name'] ?? ('factura-' . $invoice->invoiceNumber);
+
+            if (empty($b64)) {
+                Log::error('Respuesta de Factus sin pdf_base_64_encoded', [
+                    'invoice_number' => $invoice->invoiceNumber,
+                    'response'       => $json,
+                ]);
+                $this->dispatch('show-toast', [
+                    'type'    => 'error',
+                    'message' => 'Factus no devolvió el PDF. Verifique que la factura esté emitida.',
+                ]);
+                return;
+            }
+
+            $pdfContent = base64_decode($b64);
+            $filename   = $fileName . '.pdf';
+
+            Log::info('PDF de factura descargado desde Factus', [
+                'invoice_id'     => $invoiceId,
+                'invoice_number' => $invoice->invoiceNumber,
+                'file_name'      => $filename,
+            ]);
+
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error descargando PDF de factura desde Factus', [
+                'invoice_id' => $invoiceId,
+                'error'      => $e->getMessage(),
+            ]);
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'Error al descargar el PDF: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Descarga el PDF de la nota crédito desde Factus usando el creditNoteId.
+     */
+    public function downloadCreditNotePdf($invoiceId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $invoice = VntInvoices::findOrFail($invoiceId);
+
+            if (empty($invoice->creditNoteId)) {
+                $this->dispatch('show-toast', [
+                    'type'    => 'warning',
+                    'message' => 'Esta factura no tiene nota crédito registrada.',
+                ]);
+                return;
+            }
+
+            $client   = app(FactusClient::class);
+            $response = $client->getCreditNotePdf($invoice->creditNoteId);
+
+            if (!$response->successful()) {
+                Log::error('Error al obtener PDF de nota crédito desde Factus', [
+                    'invoice_id'     => $invoiceId,
+                    'credit_note_id' => $invoice->creditNoteId,
+                    'status'         => $response->status(),
+                    'body'           => $response->body(),
+                ]);
+                $this->dispatch('show-toast', [
+                    'type'    => 'error',
+                    'message' => 'Error al obtener el PDF de la nota crédito desde Factus.',
+                ]);
+                return;
+            }
+
+            $json     = $response->json();
+            $b64      = $json['data']['pdf_base_64_encoded'] ?? null;
+            $fileName = $json['data']['file_name'] ?? ('nota-credito-' . $invoice->creditNoteId);
+
+            if (empty($b64)) {
+                Log::error('Respuesta de Factus sin pdf_base_64_encoded para nota crédito', [
+                    'credit_note_id' => $invoice->creditNoteId,
+                    'response'       => $json,
+                ]);
+                $this->dispatch('show-toast', [
+                    'type'    => 'error',
+                    'message' => 'Factus no devolvió el PDF de la nota crédito.',
+                ]);
+                return;
+            }
+
+            $pdfContent = base64_decode($b64);
+            $filename   = $fileName . '.pdf';
+
+            Log::info('PDF de nota crédito descargado desde Factus', [
+                'invoice_id'     => $invoiceId,
+                'credit_note_id' => $invoice->creditNoteId,
+                'file_name'      => $filename,
+            ]);
+
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error descargando PDF de nota crédito desde Factus', [
+                'invoice_id' => $invoiceId,
+                'error'      => $e->getMessage(),
+            ]);
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'Error al descargar el PDF de la nota crédito: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Actualizar status de cotizaciones relacionadas con la factura a FACTURADO
      */
     private function updateRelatedQuotesToFacturado(VntInvoices $invoice): void
@@ -650,6 +826,272 @@ class Invoices extends Component
             ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
             ->whereNotNull("ixs.invoiceId")
             ->groupBy("ixs.invoiceId");
+    }
+
+    // ─── Nota Crédito: Abrir Modal ────────────────────────────────────────────
+    public function openCreditNoteModal(int $invoiceId): void
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            // Cargar datos de la factura con nombre del cliente
+            $invoice = DB::connection('tenant')
+                ->table('vnt_invoices')
+                ->leftJoin('vnt_invoicesXsales as ixs', 'ixs.invoiceId', '=', 'vnt_invoices.id')
+                ->leftJoin('inv_remissions as r', 'ixs.remissionId', '=', 'r.id')
+                ->leftJoin('vnt_quotes as qr', 'r.quoteId', '=', 'qr.id')
+                ->leftJoin('vnt_quotes as qd', 'ixs.quoteId', '=', 'qd.id')
+                ->leftJoin('vnt_warehouses as w', 'w.id', '=', DB::raw('COALESCE(qr.customerId, qd.customerId)'))
+                ->leftJoin('vnt_companies as c', 'c.id', '=', 'w.companyId')
+                ->where('vnt_invoices.id', $invoiceId)
+                ->whereNull('vnt_invoices.deleted_at')
+                ->groupBy([
+                    'vnt_invoices.id',
+                    'vnt_invoices.invoiceNumber',
+                    'vnt_invoices.consecutive',
+                    'vnt_invoices.status',
+                    'vnt_invoices.status_payment',
+                    'vnt_invoices.api_data_id',
+                ])
+                ->select([
+                    'vnt_invoices.id',
+                    'vnt_invoices.invoiceNumber',
+                    'vnt_invoices.consecutive',
+                    'vnt_invoices.status',
+                    'vnt_invoices.status_payment',
+                    'vnt_invoices.api_data_id',
+                    DB::raw("MAX(TRIM(CONCAT(COALESCE(c.firstName,''),' ',COALESCE(c.secondName,''),' ',COALESCE(c.lastName,''),' ',COALESCE(c.secondLastName,'')))) AS client_name"),
+                    DB::raw("MAX(COALESCE(c.businessName,'')) AS business_name"),
+                ])
+                ->first();
+
+            if (!$invoice) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Factura no encontrada.']);
+                return;
+            }
+
+            if (empty($invoice->api_data_id)) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Esta factura no tiene ID de Factus. No se puede generar nota crédito.']);
+                return;
+            }
+
+            $items = $this->loadInvoiceItemsForCreditNote($invoiceId);
+
+            if (empty($items)) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se encontraron ítems en la factura.']);
+                return;
+            }
+
+            $clientName = trim($invoice->client_name ?: $invoice->business_name);
+
+            $this->creditNoteInvoiceData = [
+                'id'             => $invoice->id,
+                'invoiceNumber'  => $invoice->invoiceNumber ?: ('#' . $invoice->consecutive),
+                'client_name'    => $clientName ?: 'N/A',
+                'status'         => $invoice->status,
+                'status_payment' => $invoice->status_payment,
+                'api_data_id'    => $invoice->api_data_id,
+            ];
+
+            $this->creditNoteItems       = $items;
+            $this->correctionConceptCode = '2';
+            $this->creditNotePaymentMethod = '10';
+            $this->creditNoteObservation = '';
+            $this->creditNoteLoading     = false;
+            $this->calculateCreditNoteTotal();
+            $this->showCreditNoteModal   = true;
+
+        } catch (\Exception $e) {
+            Log::error('Error abriendo modal nota crédito', ['invoice_id' => $invoiceId, 'error' => $e->getMessage()]);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al cargar la factura: ' . $e->getMessage()]);
+        }
+    }
+
+    public function closeCreditNoteModal(): void
+    {
+        $this->showCreditNoteModal    = false;
+        $this->creditNoteInvoiceData  = null;
+        $this->creditNoteItems        = [];
+        $this->creditNoteObservation  = '';
+        $this->creditNoteTotal        = 0;
+        $this->creditNoteLoading      = false;
+    }
+
+    // Lifecycle hook: recalcular total cuando cambia cualquier ítem
+    public function updatedCreditNoteItems(): void
+    {
+        $this->calculateCreditNoteTotal();
+    }
+
+    // Lifecycle hook: cuando cambia el motivo, auto-seleccionar todo si es Anulación
+    public function updatedCorrectionConceptCode(string $value): void
+    {
+        if ($value === '2') {
+            $this->selectAllCreditNoteItems();
+        }
+    }
+
+    public function selectAllCreditNoteItems(): void
+    {
+        foreach ($this->creditNoteItems as &$item) {
+            $item['selected'] = true;
+            $item['quantity'] = $item['max_quantity'];
+        }
+        unset($item);
+        $this->calculateCreditNoteTotal();
+    }
+
+    public function deselectAllCreditNoteItems(): void
+    {
+        foreach ($this->creditNoteItems as &$item) {
+            $item['selected'] = false;
+        }
+        unset($item);
+        $this->calculateCreditNoteTotal();
+    }
+
+    public function calculateCreditNoteTotal(): void
+    {
+        $total = 0.0;
+        foreach ($this->creditNoteItems as $item) {
+            if (!empty($item['selected'])) {
+                $qty   = max(0, (int) ($item['quantity'] ?? 0));
+                $price = (float) ($item['price'] ?? 0);
+                $total += $price * $qty;
+            }
+        }
+        $this->creditNoteTotal = $total;
+    }
+
+    public function submitCreditNote(): void
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->creditNoteInvoiceData) {
+            return;
+        }
+
+        $selectedItems = array_values(array_filter(
+            $this->creditNoteItems,
+            fn($item) => !empty($item['selected']) && (int)($item['quantity'] ?? 0) > 0
+        ));
+
+        if (empty($selectedItems)) {
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Seleccione al menos un ítem para la nota crédito.']);
+            return;
+        }
+
+        $this->creditNoteLoading = true;
+
+        try {
+            $factusClient  = app(FactusClient::class);
+            $referenceCode = 'NC' . $this->creditNoteInvoiceData['id'] . 'T' . time();
+
+            $payload = [
+                'correction_concept_code' => (int) $this->correctionConceptCode,
+                'customization_id'        => 20,
+                'bill_id'                 => (int) $this->creditNoteInvoiceData['api_data_id'],
+                'reference_code'          => $referenceCode,
+                'observation'             => mb_substr(trim($this->creditNoteObservation), 0, 250),
+                'payment_method_code'     => $this->creditNotePaymentMethod,
+                'items'                   => array_map(fn($item) => [
+                    'code_reference'    => (string) ($item['code_reference'] ?? 'SIN-COD'),
+                    'name'              => (string) ($item['name'] ?? 'Producto'),
+                    'quantity'          => (int) $item['quantity'],
+                    'discount_rate'     => 0,
+                    'price'             => (float) $item['price'],
+                    'tax_rate'          => (string) ($item['tax_rate'] ?? '19.00'),
+                    'unit_measure_id'   => (int) ($item['unit_measure_id'] ?? 70),
+                    'standard_code_id'  => (int) ($item['standard_code_id'] ?? 1),
+                    'is_excluded'       => (int) ($item['is_excluded'] ?? 0),
+                    'tribute_id'        => (int) ($item['tribute_id'] ?? 1),
+                    'withholding_taxes' => [],
+                ], $selectedItems),
+            ];
+
+            Log::info('Enviando nota crédito a Factus', ['payload' => $payload]);
+
+            $response = $factusClient->validateCreditNote($payload);
+
+            Log::info('Nota crédito creada en Factus', ['response' => $response]);
+
+            $creditNoteNumber = $response['data']['credit_note']['number'] ?? null;
+
+            $invoice = VntInvoices::find($this->creditNoteInvoiceData['id']);
+            if ($invoice) {
+                $updateData = [
+                    'creditNoteId' => $creditNoteNumber,
+                    'creditNote'   => 1,
+                ];
+                // Anulación completa → marcar pago como ANULADO
+                if ((int)$this->correctionConceptCode === 2) {
+                    $updateData['status_payment'] = 'ANULADO';
+                }
+                $invoice->update($updateData);
+            }
+
+            $this->closeCreditNoteModal();
+            $this->dispatch('show-toast', [
+                'type'    => 'success',
+                'message' => 'Nota crédito' . ($creditNoteNumber ? " #{$creditNoteNumber}" : '') . ' creada exitosamente.',
+            ]);
+
+        } catch (FactusApiException $e) {
+            Log::error('Error API Factus al crear nota crédito', ['error' => $e->getMessage()]);
+            $this->creditNoteLoading = false;
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error Factus: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear nota crédito', ['error' => $e->getMessage()]);
+            $this->creditNoteLoading = false;
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+
+    private function loadInvoiceItemsForCreditNote(int $invoiceId): array
+    {
+        // Intentar primero con detalles de remisión (invoiceId en inv_detail_remissions)
+        $rows = DB::connection('tenant')
+            ->table('inv_detail_remissions as d')
+            ->join('inv_items as i', 'i.id', '=', 'd.itemId')
+            ->where('d.invoiceId', $invoiceId)
+            ->select(['i.sku', 'i.internal_code', 'i.name', 'd.quantity', 'd.value', 'd.tax'])
+            ->get();
+
+        if ($rows->isEmpty()) {
+            // Fallback: ítems de cotización vía vnt_invoicesXsales
+            $rows = DB::connection('tenant')
+                ->table('vnt_detail_quotes as dq')
+                ->join('vnt_invoicesXsales as ixs', 'ixs.quoteId', '=', 'dq.quoteId')
+                ->join('inv_items as i', 'i.id', '=', 'dq.itemId')
+                ->where('ixs.invoiceId', $invoiceId)
+                ->whereNotNull('ixs.quoteId')
+                ->select(['i.sku', 'i.internal_code', 'i.name', 'dq.quantity', 'dq.price as value', 'dq.tax_percentage as tax'])
+                ->get();
+        }
+
+        return $rows->map(function ($row) {
+            $price   = (float) ($row->value ?? 0);
+            $qty     = max(1, (int) ($row->quantity ?? 1));
+            $taxRate = (float) ($row->tax ?? 19);
+            $priceSinIva = $taxRate > 0 ? ($price / (1 + $taxRate / 100)) : $price;
+
+            return [
+                'selected'         => true,
+                'code_reference'   => $row->sku ?: ($row->internal_code ?: 'SIN-COD'),
+                'name'             => $row->name ?? 'Producto',
+                'quantity'         => $qty,
+                'max_quantity'     => $qty,
+                'price'            => $price,
+                'price_sin_iva'    => round($priceSinIva, 2),
+                'tax_rate'         => number_format($taxRate, 2, '.', ''),
+                'unit_measure_id'  => 70,
+                'standard_code_id' => 1,
+                'is_excluded'      => $taxRate > 0 ? 0 : 1,
+                'tribute_id'       => 1,
+                'subtotal'         => round($priceSinIva * $qty, 2),
+                'total'            => round($price * $qty, 2),
+            ];
+        })->values()->toArray();
     }
 
     public function render()

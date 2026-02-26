@@ -72,7 +72,9 @@
                 </thead>
                 <tbody>
                     @forelse($invoices as $invoice)
-                        @php($paymentStatus = strtoupper(trim((string) $invoice->status_payment)))
+                        @php
+                            $paymentStatus = strtoupper(trim((string) $invoice->status_payment));
+                        @endphp
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
 
                             {{-- FACTURA # --}}
@@ -121,13 +123,20 @@
 
                             {{-- ESTADO FACTURA --}}
                             <td class="px-4 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                    @if($invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300
-                                    @elseif($invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300
-                                    @elseif($invoice->status === 'ANULADO') bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
-                                    @else bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 @endif">
-                                    {{ $invoice->status }}
-                                </span>
+                                <div class="flex flex-col gap-1">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                        @if($invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300
+                                        @elseif($invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300
+                                        @elseif($invoice->status === 'ANULADO') bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
+                                        @else bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 @endif">
+                                        {{ $invoice->status }}
+                                    </span>
+                                    @if($invoice->creditNote)
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 w-fit">
+                                            N.C. {{ $invoice->creditNoteId }}
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             {{-- ESTADO PAGO --}}
@@ -173,14 +182,25 @@
                                         style="display: none;">
                                         <div class="py-1">
 
-                                            {{-- Imprimir (solo FACTURADO) --}}
+                                            {{-- Descargar PDF (solo FACTURADO) --}}
                                             @if($invoice->status === 'FACTURADO')
-                                                <button wire:click="printInvoice({{ $invoice->id }})" @click="open = false"
-                                                    wire:loading.attr="disabled" wire:target="printInvoice({{ $invoice->id }})"
+                                                <button wire:click="downloadFacturaPdf({{ $invoice->id }})" @click="open = false"
+                                                    wire:loading.attr="disabled" wire:target="downloadFacturaPdf({{ $invoice->id }})"
                                                     class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2">
-                                                    <svg wire:loading.remove wire:target="printInvoice({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                                    <svg wire:loading wire:target="printInvoice({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                                    Imprimir / PDF
+                                                    <svg wire:loading.remove wire:target="downloadFacturaPdf({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                                    <svg wire:loading wire:target="downloadFacturaPdf({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                    Descargar PDF
+                                                </button>
+                                            @endif
+
+                                            {{-- Descargar N. Crédito --}}
+                                            @if($invoice->creditNote && $invoice->creditNoteId)
+                                                <button wire:click="downloadCreditNotePdf({{ $invoice->id }})" @click="open = false"
+                                                    wire:loading.attr="disabled" wire:target="downloadCreditNotePdf({{ $invoice->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors flex items-center gap-2">
+                                                    <svg wire:loading.remove wire:target="downloadCreditNotePdf({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                                    <svg wire:loading wire:target="downloadCreditNotePdf({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                    N. Crédito {{ $invoice->creditNoteId }}
                                                 </button>
                                             @endif
 
@@ -203,6 +223,17 @@
                                                     <svg wire:loading.remove wire:target="payInvoice({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                                                     <svg wire:loading wire:target="payInvoice({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                                                     Registrar Pago
+                                                </button>
+                                            @endif
+
+                                            {{-- Nota Crédito (solo FACTURADO y no PAGADO/ANULADO) --}}
+                                            @if($invoice->status === 'FACTURADO' && $paymentStatus !== 'PAGADO' && $paymentStatus !== 'ANULADO')
+                                                <button wire:click="openCreditNoteModal({{ $invoice->id }})" @click="open = false"
+                                                    wire:loading.attr="disabled" wire:target="openCreditNoteModal({{ $invoice->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center gap-2">
+                                                    <svg wire:loading.remove wire:target="openCreditNoteModal({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4m0 0l4-4m-4 4h11a4 4 0 010 8H7"/></svg>
+                                                    <svg wire:loading wire:target="openCreditNoteModal({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                    Nota Crédito
                                                 </button>
                                             @endif
 
@@ -231,7 +262,9 @@
         {{-- ===== TARJETAS (MOBILE) ===== --}}
         <div class="lg:hidden p-4 space-y-4">
             @forelse($invoices as $invoice)
-                @php($paymentStatus = strtoupper(trim((string) $invoice->status_payment)))
+                @php
+                    $paymentStatus = strtoupper(trim((string) $invoice->status_payment));
+                @endphp
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
 
                     {{-- Header --}}
@@ -277,7 +310,7 @@
                         </div>
 
                         {{-- Estados --}}
-                        <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50 dark:border-slate-700/50">
+                        <div class="grid grid-cols-3 gap-3 pt-2 border-t border-gray-50 dark:border-slate-700/50">
                             <div>
                                 <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">ESTADO</p>
                                 <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full
@@ -300,17 +333,35 @@
                                     </span>
                                 </span>
                             </div>
+                            <div>
+                                @if($invoice->creditNote)
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">N.C.</p>
+                                    <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+                                        {{ $invoice->creditNoteId }}
+                                    </span>
+                                @endif
+                            </div>
                         </div>
 
                         {{-- Acciones --}}
                         <div class="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-slate-700">
                             @if($invoice->status === 'FACTURADO')
-                                <button wire:click="printInvoice({{ $invoice->id }})"
-                                    wire:loading.attr="disabled" wire:target="printInvoice({{ $invoice->id }})"
+                                <button wire:click="downloadFacturaPdf({{ $invoice->id }})"
+                                    wire:loading.attr="disabled" wire:target="downloadFacturaPdf({{ $invoice->id }})"
                                     class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
-                                    <svg wire:loading.remove wire:target="printInvoice({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                    <svg wire:loading wire:target="printInvoice({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    <svg wire:loading.remove wire:target="downloadFacturaPdf({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                    <svg wire:loading wire:target="downloadFacturaPdf({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                                     PDF
+                                </button>
+                            @endif
+
+                            @if($invoice->creditNote && $invoice->creditNoteId)
+                                <button wire:click="downloadCreditNotePdf({{ $invoice->id }})"
+                                    wire:loading.attr="disabled" wire:target="downloadCreditNotePdf({{ $invoice->id }})"
+                                    class="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                                    <svg wire:loading.remove wire:target="downloadCreditNotePdf({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                    <svg wire:loading wire:target="downloadCreditNotePdf({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    N.C.
                                 </button>
                             @endif
 
@@ -333,6 +384,16 @@
                                     Pagar
                                 </button>
                             @endif
+
+                            @if($invoice->status === 'FACTURADO' && $paymentStatus !== 'PAGADO' && $paymentStatus !== 'ANULADO')
+                                <button wire:click="openCreditNoteModal({{ $invoice->id }})"
+                                    wire:loading.attr="disabled" wire:target="openCreditNoteModal({{ $invoice->id }})"
+                                    class="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                                    <svg wire:loading.remove wire:target="openCreditNoteModal({{ $invoice->id }})" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4m0 0l4-4m-4 4h11a4 4 0 010 8H7"/></svg>
+                                    <svg wire:loading wire:target="openCreditNoteModal({{ $invoice->id }})" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    NC
+                                </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -353,6 +414,259 @@
             </div>
         @endif
     </div>
+
+    {{-- ===== MODAL NOTA CRÉDITO ===== --}}
+    @if($showCreditNoteModal && $creditNoteInvoiceData)
+    <div x-data>
+    <template x-teleport="body">
+<div class="fixed inset-0 z-50 flex items-center justify-center p-6"
+     x-data
+     x-effect="document.body.style.overflow = $el.offsetParent ? 'hidden' : ''">
+
+        {{-- Overlay --}}
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" wire:click="closeCreditNoteModal"></div>
+
+        {{-- Modal Container --}}
+        <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-[900px] max-h-[90vh] flex flex-col border border-gray-200 dark:border-slate-700 overflow-hidden">
+
+            {{-- Header --}}
+            <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Crear Nota Crédito</h2>
+                <button wire:click="closeCreditNoteModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Scrollable Body --}}
+            <div class="overflow-y-auto overscroll-contain flex-1 p-4 sm:p-6 space-y-5">
+
+                @php
+                    $invoiceOriginalTotal = array_sum(array_column($creditNoteItems, 'total'));
+                @endphp
+
+                {{-- Resumen de Factura --}}
+                <div class="bg-gray-50 dark:bg-slate-700/40 rounded-lg p-4 border border-gray-200 dark:border-slate-600">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-slate-300 mb-3 uppercase tracking-wide">Resumen de Factura</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Factura No.:</span>
+                            <span class="ml-1 text-sm font-bold text-gray-900 dark:text-white">{{ $creditNoteInvoiceData['invoiceNumber'] }}</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Total Factura:</span>
+                            <span class="ml-1 text-sm font-bold text-gray-900 dark:text-white">$ {{ number_format($invoiceOriginalTotal, 0, ',', '.') }}</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Cliente:</span>
+                            <span class="ml-1 text-sm text-gray-800 dark:text-slate-200">{{ $creditNoteInvoiceData['client_name'] }}</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Estado Pago:</span>
+                            <span class="ml-1 text-sm font-semibold
+                                {{ $creditNoteInvoiceData['status_payment'] === 'REGISTRADO' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400' }}">
+                                {{ $creditNoteInvoiceData['status_payment'] }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Estado:</span>
+                            <span class="ml-1 text-sm font-semibold text-green-600 dark:text-green-400">{{ $creditNoteInvoiceData['status'] }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Motivo de la Nota Crédito --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                        Motivo de la Nota Crédito <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="correctionConceptCode"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="1">Devolución parcial de bienes / no aceptación parcial del servicio</option>
+                        <option value="2">Anulación de factura electrónica</option>
+                        <option value="3">Rebaja o descuento parcial o total</option>
+                        <option value="4">Ajuste de precio</option>
+                        <option value="5">Descuento comercial por pronto pago</option>
+                        <option value="6">Descuento comercial por volumen de ventas</option>
+                    </select>
+                    @if($correctionConceptCode === '2')
+                        <p class="mt-1.5 text-xs text-green-700 dark:text-green-400 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Anulación de factura: Todos los ítems han sido seleccionados automáticamente
+                        </p>
+                    @endif
+                </div>
+
+                {{-- Método de Pago --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Método de Pago</label>
+                    <select wire:model="creditNotePaymentMethod"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="10">Efectivo</option>
+                        <option value="42">Consignación</option>
+                        <option value="20">Cheque</option>
+                        <option value="47">Transferencia</option>
+                        <option value="48">Tarjeta Crédito</option>
+                        <option value="49">Tarjeta Débito</option>
+                        <option value="1">Medio de pago no definido</option>
+                    </select>
+                </div>
+
+                {{-- Observaciones --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Observaciones</label>
+                    <textarea wire:model="creditNoteObservation" rows="3" maxlength="250"
+                        placeholder="Describa el motivo de la nota crédito"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-400 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"></textarea>
+                    <p class="text-xs text-gray-400 mt-1">{{ strlen($creditNoteObservation) }}/250 caracteres</p>
+                </div>
+
+                {{-- Ítems de la Factura --}}
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide">Ítems de la Factura</h3>
+                        <div class="flex gap-2">
+                            <button wire:click="selectAllCreditNoteItems" type="button"
+                                class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-300 text-blue-700 dark:text-blue-400 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                Seleccionar Todos
+                            </button>
+                            <button wire:click="deselectAllCreditNoteItems" type="button"
+                                class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 dark:text-gray-400 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                Deseleccionar Todos
+                            </button>
+                        </div>
+                    </div>
+
+                    @php
+                        $selectedCount = count(array_filter($creditNoteItems, function ($i) {
+                            return !empty($i['selected']);
+                        }));
+                    @endphp
+                    <div class="overflow-auto rounded-lg border border-gray-200 dark:border-slate-600 max-h-52">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-600">
+                                    <th class="px-3 py-2.5 w-8">
+                                        <input type="checkbox"
+                                            x-data
+                                            :checked="{{ $selectedCount }} === {{ count($creditNoteItems) }}"
+                                            @change="$event.target.checked ? $wire.selectAllCreditNoteItems() : $wire.deselectAllCreditNoteItems()"
+                                            class="rounded border-gray-300 text-orange-500 focus:ring-orange-400 cursor-pointer">
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Código</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Producto</th>
+                                    <th class="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Cantidad</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Precio Unit.</th>
+                                    <th class="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">%</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Subtotal</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Total</th>
+                                    <th class="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase">Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($creditNoteItems as $index => $item)
+                                    @php
+                                        $qty      = (int)($item['quantity'] ?? 1);
+                                        $price    = (float)($item['price'] ?? 0);
+                                        $taxRate  = (float)($item['tax_rate'] ?? 19);
+                                        $priceBase = $taxRate > 0 ? ($price / (1 + $taxRate / 100)) : $price;
+                                        $subtotal = round($priceBase * $qty, 0);
+                                        $total    = round($price * $qty, 0);
+                                    @endphp
+                                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors {{ !$item['selected'] ? 'opacity-50' : '' }}">
+                                        <td class="px-3 py-2.5 text-center">
+                                            <input type="checkbox"
+                                                wire:model.live="creditNoteItems.{{ $index }}.selected"
+                                                {{ $correctionConceptCode === '2' ? 'disabled' : '' }}
+                                                class="rounded border-gray-300 text-orange-500 focus:ring-orange-400 {{ $correctionConceptCode === '2' ? 'cursor-not-allowed' : 'cursor-pointer' }}">
+                                        </td>
+                                        <td class="px-3 py-2.5">
+                                            <span class="font-mono text-xs text-gray-600 dark:text-slate-400">{{ $item['code_reference'] }}</span>
+                                        </td>
+                                        <td class="px-3 py-2.5 max-w-[160px]">
+                                            <span class="text-sm text-gray-800 dark:text-slate-200 line-clamp-2">{{ $item['name'] }}</span>
+                                        </td>
+                                        <td class="px-3 py-2.5 text-center">
+                                            <input type="number"
+                                                wire:model.live="creditNoteItems.{{ $index }}.quantity"
+                                                min="0" max="{{ $item['max_quantity'] }}"
+                                                {{ !$item['selected'] || $correctionConceptCode === '2' ? 'disabled' : '' }}
+                                                class="w-16 text-center border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-orange-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        </td>
+                                        <td class="px-3 py-2.5 text-right text-sm text-gray-700 dark:text-slate-300">
+                                            ${{ number_format($priceBase, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2.5 text-center text-sm text-gray-600 dark:text-slate-400">
+                                            {{ (int)$taxRate }}%
+                                        </td>
+                                        <td class="px-3 py-2.5 text-right text-sm text-gray-700 dark:text-slate-300">
+                                            ${{ number_format($subtotal, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2.5 text-right text-sm font-semibold text-gray-900 dark:text-white">
+                                            ${{ number_format($total, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2.5 text-center">
+                                            <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full font-medium">
+                                                PRINCIPAL
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Total Seleccionado --}}
+                    <div class="mt-3 flex justify-end">
+                        <span class="text-sm font-semibold text-gray-700 dark:text-slate-300">
+                            Total Seleccionado:
+                            <span class="text-base font-bold text-gray-900 dark:text-white ml-1">
+                                $ {{ number_format($creditNoteTotal, 0, ',', '.') }}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Valor de la Nota Crédito --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Valor de la Nota Crédito</label>
+                    <input type="text" readonly
+                        value="{{ number_format($creditNoteTotal, 2, ',', '.') }}"
+                        class="w-full border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700/50 text-gray-900 dark:text-slate-200 text-sm px-3 py-2.5 cursor-not-allowed">
+                    <p class="text-xs text-gray-400 mt-1">El valor se calcula automáticamente basado en los ítems seleccionados</p>
+                </div>
+
+            </div>
+
+            {{-- Footer --}}
+            <div class="shrink-0 flex items-center justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                <button wire:click="closeCreditNoteModal" type="button"
+                    class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                    Cancelar
+                </button>
+                <button wire:click="submitCreditNote" type="button"
+                    wire:loading.attr="disabled" wire:target="submitCreditNote"
+                    {{ $creditNoteTotal <= 0 ? 'disabled' : '' }}
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+                    <svg wire:loading.remove wire:target="submitCreditNote" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4m0 0l4-4m-4 4h11a4 4 0 010 8H7"/>
+                    </svg>
+                    <svg wire:loading wire:target="submitCreditNote" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Crear Nota Crédito
+                </button>
+            </div>
+        </div>
+    </div>
+    </template>
+    </div>
+    @endif
 
     {{-- Toast listeners (heredados del sistema global) --}}
     @push('scripts')
