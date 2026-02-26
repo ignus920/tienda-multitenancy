@@ -7,7 +7,7 @@
 
         <!-- PWA Meta Tags -->
         <meta name="theme-color" content="#ffffff">
-        <link rel="manifest" href="{{ asset('build/manifest.webmanifest') }}" crossorigin="use-credentials">
+        <link rel="manifest" href="/manifest.json">
         <link rel="apple-touch-icon" href="{{ asset('pwa-icons/icon-192x192.png') }}">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,8 +23,8 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
 
-        <!-- Dexie.js para base de datos local (Soporte Offline) -->
-        <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
+        <!-- Dexie.js para base de datos local (Soporte Offline) - LOCAL -->
+        <script src="{{ asset('js/dexie.min.js') }}"></script>
         <script>
             /**
              * Inicialización global de la base de datos IndexedDB
@@ -80,8 +80,8 @@
             }
         </script>
 
-        <!-- SweetAlert2 (Global Fallback para asegurar disponibilidad rápida) -->
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <!-- SweetAlert2 (Global Fallback para asegurar disponibilidad rápida) - LOCAL -->
+        <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
     </head>
     <body class="font-sans antialiased"
           x-data="{

@@ -198,20 +198,35 @@ class ProductQuoter extends Component
         $this->ensureTenantConnection();
         
         try {
-            $remission = InvRemissions::with(['quote.customer', 'details.item'])->findOrFail($remissionId);
+            $remission = InvRemissions::with(['quote', 'details.item'])->findOrFail($remissionId);
             
-            // 1. Cargar Cliente
-            if ($remission->quote && $remission->quote->customer) {
-                $customer = $remission->quote->customer;
-                $this->selectedCustomer = [
-                    'id' => $customer->id,
-                    'businessName' => $customer->businessName,
-                    'firstName' => $customer->firstName,
-                    'lastName' => $customer->lastName,
-                    'identification' => $customer->identification,
-                    'billingEmail' => $customer->billingEmail,
-                ];
-                $this->customerSearch = $customer->identification;
+            // 1. Cargar Cliente (igual que loadQuoteForEditing: via VntWarehouse → VntCompany)
+            if ($remission->quote && $remission->quote->customerId) {
+                $warehouse = VntWarehouse::with('company')->find($remission->quote->customerId);
+                if ($warehouse) {
+                    $company    = $warehouse->company;
+                    $firstName  = $company->firstName ?? '';
+                    $lastName   = $company->lastName ?? '';
+
+                    // Fallback para clientes antiguos que solo tienen businessName
+                    if (empty($firstName) && ($company->typeIdentificationId ?? 1) == 1) {
+                        $parts     = explode(' ', trim($company->businessName ?? ''), 2);
+                        $firstName = $parts[0] ?? ($company->businessName ?? '');
+                        $lastName  = $parts[1] ?? '';
+                    }
+
+                    $this->selectedCustomer = [
+                        'id'             => $warehouse->id,
+                        'company_id'     => $company->id ?? null,
+                        'businessName'   => $company->businessName ?? '',
+                        'firstName'      => $firstName,
+                        'lastName'       => $lastName,
+                        'identification' => $company->identification ?? '',
+                        'billingEmail'   => $company->billingEmail ?? '',
+                    ];
+                    $this->customerSearch = $company->identification ?? '';
+                    Log::info('👤 Cliente cargado desde remisión', ['warehouse_id' => $warehouse->id]);
+                }
             }
 
             // 2. Cargar Items
@@ -233,6 +248,7 @@ class ProductQuoter extends Component
             // 3. Configurar estado de edición
             $this->editingRemissionId = $remissionId;
             $this->isEditing = true;
+            $this->quoteHasRemission = true; // Asegurar estado para ocultar botón confirmar
 
             session(['quoter_items' => $this->quoterItems]);
             $this->cartHasChanges = false;
@@ -367,10 +383,14 @@ class ProductQuoter extends Component
         Log::info('📦 Iniciando sincronización segmentada de catálogo');
 
         try {
-            // 1. Obtener todos los productos activos
+            // 1. Obtener todos los productos activos (solo campos necesarios)
             $allProducts = Items::query()
+                ->select('id', 'name', 'internal_code', 'sku', 'categoryId')
                 ->active()
-                ->with(['principalImage', 'invValues'])
+                ->with([
+                    'principalImage:id,itemId,img_path,type',
+                    'invValues:id,itemId,values,type,label,date'
+                ])
                 ->get()
                 ->map(function($p) {
                     $allPrices = $p->all_prices;
@@ -448,8 +468,8 @@ class ProductQuoter extends Component
                 'customers' => $allCustomers->toArray()
             ]);
 
-            // C. Enviar Productos en paquetes de 300
-            $chunks = $allProducts->chunk(300);
+            // C. Enviar Productos en paquetes de 500
+            $chunks = $allProducts->chunk(500);
             foreach ($chunks as $index => $chunk) {
                 $this->dispatch('sync-products-chunk', [
                     'products' => $chunk->values()->toArray(),
@@ -744,6 +764,16 @@ class ProductQuoter extends Component
         $this->calculateTotal();
         $this->checkAndDisableIfHasRemission();
 
+        Log::info('🛒 [SYNC] Sincronización exitosa. Emitiendo cart-updated para confirmar.', [
+            'total_items' => count($this->quoterItems),
+            'total_amount' => $this->totalAmount
+        ]);
+
+        // Emitir de vuelta para asegurar que el frontend vea que el servidor YA tiene la data.
+        $this->dispatch('cart-updated', [
+            'items' => $this->quoterItems
+        ]);
+
         // Si se solicitó una acción específica tras la sincronización, ejecutarla
         if ($actionAfterSync) {
             if (method_exists($this, $actionAfterSync)) {
@@ -832,12 +862,13 @@ class ProductQuoter extends Component
                 'message' => 'Cotización #' . $quote->consecutive . ' creada exitosamente'
             ]);
 
-            // Redirigir
-            $routeName = $this->viewType === 'mobile'
-                ? 'tenant.quoter.mobile'
-                : 'tenant.quoter.desktop';
+            // Redirigir de forma segura para offline en móvil
+            if ($this->viewType === 'mobile') {
+                $this->dispatch('quote-saved-redirect', ['url' => '/tenant/quoter/mobile']);
+                return;
+            }
 
-            return redirect()->to(route($routeName));
+            return redirect()->to(route('tenant.quoter.desktop'));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -933,9 +964,13 @@ class ProductQuoter extends Component
                 'message' => 'Cambios guardados exitosamente'
             ]);
 
-            // Redirigir
-            $routeName = $this->viewType === 'mobile' ? 'tenant.quoter.mobile' : 'tenant.quoter.desktop';
-            return redirect()->route($routeName);
+            // Redirigir de forma segura para offline en móvil
+            if ($this->viewType === 'mobile') {
+                $this->dispatch('quote-saved-redirect', ['url' => '/tenant/quoter/mobile']);
+                return;
+            }
+
+            return redirect()->route('tenant.quoter.desktop');
 
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
@@ -1189,6 +1224,16 @@ class ProductQuoter extends Component
             // ASOCIACIÓN CRÍTICA: Vincular el cliente a la ruta del vendedor
             // Sin esto, el vendedor (perfil 4) no podrá "ver" ni seleccionar al cliente por las reglas de seguridad
             $routeIdToAssoc = $data['route_id'] ?? $data['routeId'] ?? $this->newCustomerRouteId;
+            
+            // Refuerzo para vendedores (Perfil 4): Si no hay ruta, intentar obtenerla de nuevo
+            if (!$routeIdToAssoc && auth()->user()->profile_id == 4) {
+                $sellerRoute = DB::connection('central')->table('tat_routes')
+                    ->where('salesman_id', auth()->id())
+                    ->whereNull('deleted_at')
+                    ->first();
+                $routeIdToAssoc = $sellerRoute ? $sellerRoute->id : null;
+            }
+
             if ($routeIdToAssoc) {
                 Log::info('🔗 Asociando cliente a ruta', ['company_id' => $company->id, 'route_id' => $routeIdToAssoc]);
                 
@@ -1197,6 +1242,11 @@ class ProductQuoter extends Component
                     ['company_id' => $company->id, 'route_id' => $routeIdToAssoc],
                     ['created_at' => now(), 'updated_at' => now()]
                 );
+            } else if (auth()->user()->profile_id == 4) {
+                Log::warning('⚠️ Vendedor intentó registrar cliente pero no tiene ruta asignada para vincularlo.', [
+                    'seller_id' => auth()->id(),
+                    'company_id' => $company->id
+                ]);
             }
 
             // Formatear respuesta para el frontend

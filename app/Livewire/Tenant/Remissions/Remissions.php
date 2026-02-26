@@ -16,10 +16,11 @@ use App\Models\Central\VntWarehouse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Jenssegers\Agent\Agent;
+use App\Traits\CanPrintDocuments;
 
 class Remissions extends Component
 {
-    use WithPagination, HasCompanyConfiguration;
+    use WithPagination, HasCompanyConfiguration, CanPrintDocuments;
 
     // Propiedades para búsqueda y selección
     public $search = '';
@@ -403,113 +404,6 @@ class Remissions extends Component
         return redirect()->route('tenant.quoter.products.desktop.remission', ['remissionId' => $id]);
     }
 
-    /**
-     * Método para imprimir remisión
-     */
-    public function printRemission($id)
-    {
-        Log::info('🖨️ printRemission llamado', ['remission_id' => $id]);
-
-        $this->ensureTenantConnection();
-        $this->initializeCompanyConfiguration();
-
-        try {
-            $remission = InvRemissions::with(['details.item', 'quote.customer', 'user'])->findOrFail($id);
-            Log::info('📄 Remisión cargada', ['consecutive' => $remission->consecutive]);
-
-            $company = $this->getCompanyInfo($remission);
-            $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
-
-            $data = [
-                'quote' => $remission, // Pasamos la remisión como 'quote' para reusar la vista
-                'customer' => $remission->quote->customer ?? null,
-                'company' => $company,
-                'documentTitle' => 'REMISIÓN',
-                'showQR' => true,
-                'defaultObservations' => 'Sin observaciones.'
-            ];
-
-            $viewName = ($printFormat === 1)
-                ? 'livewire.tenant.remissions.print.print-remission-carta'
-                : 'livewire.tenant.remissions.print.print-remission-pos';
-
-            $html = view($viewName, $data)->render();
-
-            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
-            $tempPath = storage_path('app/temp/' . $tempFileName);
-
-            if (!file_exists(dirname($tempPath))) {
-                mkdir(dirname($tempPath), 0755, true);
-            }
-
-            file_put_contents($tempPath, $html);
-
-            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
-
-              
-        Log::info('🔗 URL generada remisiones', ['url' => $printUrl]);
-
-            $this->dispatch('open-print-window', [
-                'url' => $printUrl,
-                'format' => $printFormat === 1 ? 'carta' : 'pos'
-            ]);
-
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error en printRemission: ' . $e->getMessage());
-            $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'Error al preparar impresión: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Obtiene el formato de impresión desde la configuración
-     */
-    public function getPrintCopiesLimit(): int
-    {
-        try {
-            return $this->getOptionValue(3) ?? 0;
-        } catch (\Exception $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Obtiene información de la empresa
-     */
-    private function getCompanyInfo($remission = null)
-    {
-        if ($remission && $remission->warehouseId) {
-            try {
-                $warehouse = VntWarehouse::find($remission->warehouseId);
-                if ($warehouse) {
-                    return (object) [
-                        'businessName' => $warehouse->name ?? 'EMPRESA',
-                        'identification' => '123456789',
-                        'billingAddress' => $warehouse->address ?? '',
-                        'phone' => '1234567890',
-                        'billingEmail' => 'test@empresa.com'
-                    ];
-                }
-            } catch (\Exception $e) {
-                Log::error('Error consultando warehouse central: ' . $e->getMessage());
-            }
-        }
-
-        return (object) [
-            'businessName' => 'EMPRESA',
-            'identification' => '123456789',
-            'billingAddress' => '',
-            'phone' => '1234567890',
-            'billingEmail' => 'test@empresa.com'
-        ];
-    }
 
     /**
      * Anula una remisión y regresa la cotización a estado REGISTRADO
