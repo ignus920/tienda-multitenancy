@@ -13,6 +13,9 @@ use Livewire\WithPagination;
 use App\Traits\Livewire\WithExport;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Tenant\Remissions\InvRemissions;
+use App\Models\Tenant\Sales\VntInvoice;
+use App\Models\Tenant\Sales\VntInvoicesXsale;
+use App\Services\Factus\QuoteToInvoiceService;
 
 class Quoter extends Component
 {
@@ -963,5 +966,143 @@ class Quoter extends Component
     protected function getExportFilename(): string
     {
         return 'cotizaciones_' . now()->format('Y-m-d_His');
+    }
+
+    /**
+     * Facturar una cotización usando la API de Factus
+     *
+     * @param int $quoteId ID de la cotización a facturar
+     */
+    public function facturarCotizacion($quoteId)
+    {
+        try {
+            Log::info('Iniciando facturación de cotización', ['quote_id' => $quoteId]);
+
+            $this->ensureTenantConnection();
+
+            $quote = VntQuote::with('detalles')->find($quoteId);
+
+            if (!$quote) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cotización no encontrada']);
+                return;
+            }
+
+            if ($quote->detalles->isEmpty()) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La cotización no tiene productos para facturar']);
+                return;
+            }
+
+            // Solo se pueden facturar cotizaciones que tengan remisión
+            $remission = InvRemissions::where('quoteId', $quoteId)->first();
+
+            if (!$remission) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo se pueden facturar cotizaciones que tengan remisión generada']);
+                return;
+            }
+
+            $quoteToInvoiceService = app(QuoteToInvoiceService::class);
+            $result = $quoteToInvoiceService->convertQuoteToInvoice($quoteId);
+
+            if ($result['success']) {
+                // Guardar en vnt_invoices
+                $consecutive = (VntInvoice::max('consecutive') ?? 0) + 1;
+
+                $invoice = VntInvoice::create([
+                    'consecutive'    => $consecutive,
+                    'status'         => 'FACTURADO',
+                    'status_payment' => 'REGISTRADO',
+                    'api_data_id'    => $result['factus_bill_id'],
+                    'quoteId'        => $quoteId,
+                    'warehouseId'    => $quote->warehouseId,
+                    'remission'      => $remission->id,
+                    'invoiceNumber'  => $result['invoice_number'] ?? '',
+                    'creditNote'     => 0,
+                ]);
+
+                // Guardar en vnt_invoicesXsales
+                VntInvoicesXsale::create([
+                    'remissionId' => $remission->id,
+                    'quoteId'     => $quoteId,
+                    'invoiceId'   => $invoice->id,
+                ]);
+
+                $quote->update(['status' => 'FACTURADO']);
+
+                Log::info('Cotización facturada y guardada', [
+                    'quote_id'       => $quoteId,
+                    'invoice_id'     => $invoice->id,
+                    'invoice_number' => $result['invoice_number'],
+                    'factus_bill_id' => $result['factus_bill_id'],
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type'    => 'success',
+                    'message' => 'Facturado exitosamente — ' . ($result['invoice_number'] ?? 'N/A'),
+                ]);
+
+                if (!empty($result['public_url'])) {
+                    $this->dispatch('open-invoice-pdf', ['url' => $result['public_url']]);
+                }
+
+                $this->render();
+
+            } else {
+                $errorMessage = $this->parseFactusError($result['message'] ?? 'Error desconocido');
+
+                Log::error('Error al facturar cotización', [
+                    'quote_id' => $quoteId,
+                    'error'    => $result['message'] ?? '',
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type'    => 'error',
+                    'message' => $errorMessage,
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Excepción al facturar cotización', [
+                'quote_id' => $quoteId,
+                'error'    => $e->getMessage(),
+                'trace'    => $e->getTraceAsString(),
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'Error interno: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Extrae los mensajes de error de validación de Factus en texto legible.
+     */
+    protected function parseFactusError(string $rawMessage): string
+    {
+        // El mensaje viene como: "Factus API Error: {json}"
+        $jsonStart = strpos($rawMessage, '{');
+        if ($jsonStart === false) {
+            return $rawMessage;
+        }
+
+        $decoded = json_decode(substr($rawMessage, $jsonStart), true);
+
+        if (!$decoded) {
+            return $rawMessage;
+        }
+
+        // Si hay errores de validación, listarlos
+        $errors = $decoded['data']['errors'] ?? [];
+        if (!empty($errors)) {
+            $messages = [];
+            foreach ($errors as $field => $fieldErrors) {
+                foreach ((array) $fieldErrors as $msg) {
+                    $messages[] = $msg;
+                }
+            }
+            return implode(' | ', $messages);
+        }
+
+        return $decoded['message'] ?? $decoded['data']['message'] ?? $rawMessage;
     }
 }

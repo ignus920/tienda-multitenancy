@@ -560,8 +560,6 @@ $header = 'Seleccionar productos';
                             </button>
                         </div>
 
-                        </div>
-
                         <!-- Fila inferior: acción final (Solo para Distribuidores durante edición) -->
                         @if(auth()->user()->profile_id != 17)
                             @if($quoteHasRemission)
@@ -574,28 +572,18 @@ $header = 'Seleccionar productos';
                                     Remisión ya generada
                                 </div>
                             @else
-                                <button type="button" wire:click.prevent="confirmarPedido"
+                                <button type="button" wire:click.prevent="abrirModalRemision"
                                     wire:loading.attr="disabled"
-                                    wire:target="confirmarPedido"
+                                    wire:target="abrirModalRemision"
                                     class="w-full px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
-                                    
-                                    <!-- Ícono normal -->
-                                    <svg wire:loading.remove wire:target="confirmarPedido" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                                    <svg wire:loading.remove wire:target="abrirModalRemision" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
                                     </svg>
-
-                                    <!-- Ícono de carga -->
-                                    <svg wire:loading wire:target="confirmarPedido" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <svg wire:loading wire:target="abrirModalRemision" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                                     </svg>
-
-                                    <!-- Texto -->
-                                    <span wire:loading.remove wire:target="confirmarPedido">Confirmar pedido</span>
-                                    <span wire:loading wire:target="confirmarPedido">Confirmando...</span>
+                                    <span wire:loading.remove wire:target="abrirModalRemision">Confirmar pedido</span>
+                                    <span wire:loading wire:target="abrirModalRemision">Verificando...</span>
                                 </button>
                             @endif
                         @endif
@@ -716,6 +704,92 @@ $header = 'Seleccionar productos';
     @if($showRoutesModal)
         @livewire('tenant.vnt-company.company-routes-modal', ['showModal' => true], key('routes-modal'))
     @endif
+
+    {{-- ====== MODAL CONFIRMAR PEDIDO — Entrega y Pago ====== --}}
+    <div x-data="{ show: @entangle('showRemisionModal') }"
+         x-show="show"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-[80] flex items-center justify-center px-4"
+         style="display:none;">
+
+        <div class="absolute inset-0 bg-black/50" @click="show = false"></div>
+
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md z-10"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 dark:text-white">Confirmar Pedido</h3>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Seleccione el tipo de entrega y método de pago</p>
+                    </div>
+                </div>
+                <button @click="show = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-5 space-y-4">
+
+                {{-- Tipo de entrega --}}
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wider mb-2">
+                        Tipo de Entrega
+                    </label>
+                    <select wire:model="selectedDeliveryTypeId"
+                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                        <option value="">— Seleccionar tipo de entrega —</option>
+                        @foreach($availableDeliveryTypes as $type)
+                            <option value="{{ $type['id'] }}">{{ $type['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Método de pago --}}
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wider mb-2">
+                        Método de Pago
+                    </label>
+                    <select wire:model="selectedMethodPaymentId"
+                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                        <option value="">— Seleccionar método de pago —</option>
+                        @foreach($availableMethodPayments as $method)
+                            <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-end gap-3">
+                <button @click="show = false"
+                    class="px-5 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                    Cancelar
+                </button>
+                <button wire:click="confirmarPedido"
+                    wire:loading.attr="disabled"
+                    class="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 rounded-lg flex items-center gap-2 transition-colors">
+                    <svg wire:loading.remove wire:target="confirmarPedido" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg wire:loading wire:target="confirmarPedido" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Confirmar Pedido
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 

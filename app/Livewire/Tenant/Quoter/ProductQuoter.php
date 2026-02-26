@@ -69,6 +69,13 @@ class ProductQuoter extends Component
     public $availableReasons = [];
     public $confirmationLoading = false;
 
+    // Propiedades para el modal de remisión (método de pago y tipo de entrega)
+    public $showRemisionModal       = false;
+    public $selectedDeliveryTypeId  = null;
+    public $selectedMethodPaymentId = null;
+    public $availableDeliveryTypes  = [];
+    public $availableMethodPayments = [];
+
     public $quoteHasRemission = false;
     public $cartHasChanges = false; // Nueva propiedad para rastrear cambios en el carrito
     public $mappedProducts = []; // Lista de productos mapeada para la vista
@@ -565,6 +572,7 @@ class ProductQuoter extends Component
                 'price_label' => $priceLabel,
                 'quantity' => $quantity,
                 'description' => $product->description,
+                'tax' => $product->tax->percentage ?? 0,
             ];
         }
 
@@ -805,7 +813,7 @@ class ProductQuoter extends Component
             foreach ($this->quoterItems as $item) {
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
-                    'tax_percentage' => 0,
+                    'tax_percentage' => $item['tax'] ?? 0,
                     'price' => $item['price'],
                     'quoteId' => $quote->id,
                     'itemId' => $item['id'],
@@ -867,7 +875,7 @@ class ProductQuoter extends Component
                         'value' => $item['price'],
                         'remissionId' => $remission->id,
                         'itemId' => $item['id'],
-                        'tax' => 0,
+                        'tax' => $item['tax'] ?? 0,
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
@@ -888,7 +896,7 @@ class ProductQuoter extends Component
                 foreach ($this->quoterItems as $item) {
                     VntDetailQuote::create([
                         'quantity' => $item['quantity'],
-                        'tax_percentage' => 0,
+                        'tax_percentage' => $item['tax'] ?? 0,
                         'price' => $item['price'],
                         'quoteId' => $quote->id,
                         'itemId' => $item['id'],
@@ -1546,8 +1554,18 @@ class ProductQuoter extends Component
 
             // Cargar información del cliente
             if ($quote->customerId) {
-                // Ahora customerId es un ID de sucursal (VntWarehouse)
+                // customerId debe ser siempre un vnt_warehouses.id
                 $warehouse = VntWarehouse::with('company')->find($quote->customerId);
+
+                // Fallback: si no se encontró warehouse o no tiene compañía,
+                // el customerId podría ser un company_id de datos antiguos
+                if (!$warehouse || !$warehouse->company) {
+                    $warehouse = VntWarehouse::with('company')
+                        ->where('companyId', $quote->customerId)
+                        ->orderByDesc('main')
+                        ->first();
+                }
+
                 if ($warehouse) {
                     $company = $warehouse->company;
                     $firstName = $company->firstName ?? '';
@@ -1585,6 +1603,7 @@ class ProductQuoter extends Component
                     'price_label' => 'Precio Registrado',
                     'quantity' => $detalle->quantity,
                     'description' => $detalle->description ?: ($item ? $item->description : ''),
+                    'tax' => $detalle->tax_percentage ?? 0,
                 ];
                 Log::info('📦 Item agregado', ['id' => $detalle->itemId, 'qty' => $detalle->quantity]);
             }
@@ -1881,6 +1900,7 @@ class ProductQuoter extends Component
                     'price_label' => 'Precio Lista',
                     'quantity' => $restockItem->quantity_request,
                     'description' => $product->description ?? '',
+                    'tax' => $product->tax->percentage ?? 0,
                 ];
             } else {
                 Log::warning("Item no encontrado para restock ID: " . $restockItem->id);
@@ -2162,7 +2182,7 @@ class ProductQuoter extends Component
                     'itemId'      => $item->itemId,
                     'quantity'    => $item->quantity_request,
                     'value'       => $productData['price'] ?? 0,
-                    'tax'         => 0, // Ajustar si se manejan impuestos en remisiones
+                    'tax'         => $productData['tax'] ?? 0,
                     'created_at'  => now(),
                     'updated_at'  => now(),
                 ]);
@@ -2397,6 +2417,7 @@ class ProductQuoter extends Component
                     'price_label' => 'Precio Lista',
                     'quantity' => $restockItem->quantity_request,
                     'description' => $product->description ?? '',
+                    'tax' => $product->tax->percentage ?? 0,
                 ];
             } else {
                 Log::warning("Item no encontrado para restock preliminar ID: " . $restockItem->id);
@@ -2591,8 +2612,19 @@ class ProductQuoter extends Component
 
         if (!empty($customer)) {
             $customer = (array) $customer[0];
+
+            // Si no hay bodega principal, buscar la primera bodega disponible del cliente
+            $warehouseId = $customer['warehouse_id'];
+            if (!$warehouseId && $customer['company_id']) {
+                $fallback = DB::selectOne(
+                    "SELECT id FROM vnt_warehouses WHERE companyId = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1",
+                    [$customer['company_id']]
+                );
+                $warehouseId = $fallback->id ?? null;
+            }
+
             $this->selectedCustomer = [
-                'id' => $customer['warehouse_id'] ?? $customer['company_id'], // Usamos el ID de sucursal como ID principal
+                'id' => $warehouseId, // Siempre debe ser vnt_warehouses.id
                 'company_id' => $customer['company_id'], // Mantenemos el ID de empresa para otros procesos
                 'businessName' => $customer['businessName'],
                 'firstName' => $customer['firstName'],
@@ -2638,6 +2670,56 @@ class ProductQuoter extends Component
      * 
      * @param int|null $quoteId ID de la cotización a confirmar (opcional)
      */
+
+    /**
+     * Abre el modal para seleccionar tipo de entrega y método de pago
+     * antes de confirmar el pedido. Ejecuta las validaciones previas.
+     */
+    public function abrirModalRemision()
+    {
+        $this->ensureTenantConnection();
+
+        // Autoguardado silencioso si hay cambios pendientes
+        if ($this->cartHasChanges && ($this->editingQuoteId || $this->editingRemissionId)) {
+            $this->saveChangesInternal();
+        }
+
+        $quoteId = $this->editingQuoteId;
+
+        // Validar: ya tiene remisión
+        if ($quoteId && InvRemissions::where('quoteId', $quoteId)->exists()) {
+            $this->quoteHasRemission = true;
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Esta cotización YA tiene una remisión generada.']);
+            return;
+        }
+
+        // Validar: carrito vacío
+        if (empty($this->quoterItems)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No hay productos para confirmar.']);
+            return;
+        }
+
+        // Validar: inventario
+        $inventoryErrors = $this->validateInventoryAvailability();
+        if (!empty($inventoryErrors)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Inventario insuficiente: ' . implode(', ', $inventoryErrors)]);
+            return;
+        }
+
+        // Cargar opciones de los selectores
+        $this->availableDeliveryTypes  = \App\Models\Tenant\Sales\VenDeliveryType::where('status', 1)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->toArray();
+
+        $this->availableMethodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::orderBy('name')
+            ->get(['id', 'name'])
+            ->toArray();
+
+        $this->selectedDeliveryTypeId  = null;
+        $this->selectedMethodPaymentId = null;
+        $this->showRemisionModal       = true;
+    }
 
     public function confirmarPedido($quoteId = null)
     {
@@ -2728,11 +2810,13 @@ class ProductQuoter extends Component
             // 3. Crear cabecera de Remisión
             // Nota: Se asume que 'reasonId' y otros campos fueron agregados al fillable como se planeó.
             $remission = InvRemissions::create([
-                'consecutive'    => $consecutive,
-                'status'         => 'REGISTRADO',
-                'userId'         => auth()->id(),
-                'warehouseId'    => session('warehouse_id', 1), // Asumiendo warehouse en sesión o default 1
-                'quoteId'        => $quoteId, // Vincular con la cotización original si existe
+                'consecutive'     => $consecutive,
+                'status'          => 'REGISTRADO',
+                'userId'          => auth()->id(),
+                'warehouseId'     => session('warehouse_id', 1),
+                'quoteId'         => $quoteId,
+                'deliveryTypeId'  => $this->selectedDeliveryTypeId  ?: null,
+                'methodPaymentId' => $this->selectedMethodPaymentId ?: null,
             ]);
 
             // 4. Crear detalles
@@ -2743,7 +2827,7 @@ class ProductQuoter extends Component
                     'itemId'      => $item['id'],
                     'quantity'    => $item['quantity'],
                     'value'       => $item['price'],
-                    'tax'         => 0, // Por defecto 0 o implementar lógica de impuestos si existe en el item
+                    'tax'         => $item['tax'] ?? 0,
                 ]);
                 $detailsCreated++;
             }

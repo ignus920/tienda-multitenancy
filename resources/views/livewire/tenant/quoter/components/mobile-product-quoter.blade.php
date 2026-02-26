@@ -1436,25 +1436,20 @@
                                     Remisión ya generada
                                 </div>
                             @else
-                                <button wire:click="confirmarPedido"
+                                <button wire:click="abrirModalRemision"
                                     wire:loading.attr="disabled"
-                                    wire:target="confirmarPedido"
+                                    wire:target="abrirModalRemision"
                                     class="w-full font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center text-sm disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white">
-                                    
-                                    <svg wire:loading.remove wire:target="confirmarPedido" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                                    <svg wire:loading.remove wire:target="abrirModalRemision" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
                                     </svg>
-                                    
-                                    <svg wire:loading wire:target="confirmarPedido" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <svg wire:loading wire:target="abrirModalRemision" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                                     </svg>
-                                    
-                                    <span wire:loading.remove wire:target="confirmarPedido">Confirmar pedido</span>
-                                    <span wire:loading wire:target="confirmarPedido">Confirmando...</span>
+                                    <span wire:loading.remove wire:target="abrirModalRemision">Confirmar pedido</span>
+                                    <span wire:loading wire:target="abrirModalRemision">Verificando...</span>
                                 </button>
                             @endif
                         @endif
@@ -1729,3 +1724,86 @@
 @if($showRoutesModal)
     @livewire('tenant.vnt-company.company-routes-modal', ['showModal' => true], key('routes-modal-mobile'))
 @endif
+
+{{-- ====== MODAL CONFIRMAR PEDIDO — Entrega y Pago (Mobile) ====== --}}
+<div x-data="{ show: @entangle('showRemisionModal') }"
+     x-show="show"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center px-0 sm:px-4"
+     style="display:none;">
+
+    <div class="absolute inset-0 bg-black/50" @click="show = false"></div>
+
+    <div class="relative bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md z-10"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0">
+
+        {{-- Handle drag (mobile) --}}
+        <div class="flex justify-center pt-3 pb-1 sm:hidden">
+            <div class="w-10 h-1 bg-gray-300 dark:bg-slate-600 rounded-full"></div>
+        </div>
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">Confirmar Pedido</h3>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">Seleccione entrega y método de pago</p>
+                </div>
+            </div>
+            <button @click="show = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        {{-- Body --}}
+        <div class="px-5 py-4 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wider mb-2">Tipo de Entrega</label>
+                <select wire:model="selectedDeliveryTypeId"
+                    class="w-full px-3 py-3 text-sm border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">— Seleccionar tipo de entrega —</option>
+                    @foreach($availableDeliveryTypes as $type)
+                        <option value="{{ $type['id'] }}">{{ $type['name'] }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wider mb-2">Método de Pago</label>
+                <select wire:model="selectedMethodPaymentId"
+                    class="w-full px-3 py-3 text-sm border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">— Seleccionar método de pago —</option>
+                    @foreach($availableMethodPayments as $method)
+                        <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        {{-- Footer --}}
+        <div class="px-5 py-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
+            <button @click="show = false"
+                class="flex-1 py-3 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+                Cancelar
+            </button>
+            <button wire:click="confirmarPedido"
+                wire:loading.attr="disabled"
+                class="flex-1 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                <svg wire:loading.remove wire:target="confirmarPedido" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <svg wire:loading wire:target="confirmarPedido" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Confirmar
+            </button>
+        </div>
+    </div>
+</div>

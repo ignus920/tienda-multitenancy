@@ -131,7 +131,7 @@ new class extends Component
 <div 
     x-data="{ 
         tooltip: false, 
-        open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'true' : 'false' }} 
+        open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.invoices') ? 'true' : 'false' }}
     }" 
     class="w-full relative"
 >
@@ -139,7 +139,7 @@ new class extends Component
     <!-- Botón principal -->
     <div
         class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200
-        {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*')
+        {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.invoices')
             ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
         :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
@@ -186,19 +186,26 @@ new class extends Component
         <a href="{{ route('tenant.remissions') }}" wire:navigate class="block px-2 py-1 hover:text-indigo-600">
             Remisiones
         </a>
+
+        <a href="{{ route('tenant.invoices') }}" wire:navigate
+            class="block px-2 py-1 hover:text-indigo-600 {{ request()->routeIs('tenant.invoices') ? 'text-indigo-600 font-semibold' : '' }}">
+            Facturas
+        </a>
     </div>
 
     <!-- Submenú desplegable (para sidebar colapsado) -->
     <div x-show="sidebarCollapsed && tooltip" x-transition
         class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
         @mouseenter="tooltip = true" @mouseleave="tooltip = false">
-        
+
         <a href="{{ route('tenant.quoter.products', ['clear' => 1]) }}" @click="startNewQuote" wire:navigate
             class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Ventas</a>
         <a href="{{ route('tenant.quoter') }}" wire:navigate
             class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Cotizaciones</a>
         <a href="{{ route('tenant.remissions') }}" wire:navigate
             class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Remisiones</a>
+        <a href="{{ route('tenant.invoices') }}" wire:navigate
+            class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Facturas</a>
     </div>
 </div>
 @endif
