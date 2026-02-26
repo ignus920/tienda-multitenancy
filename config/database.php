@@ -136,7 +136,7 @@ return [
         // Migraciones fervicom
         'company_131_45b2d9b5_17c9_4406_b1ed_263fbabd6434' => [
             'driver' => 'mysql',
-            'host' => '192.168.1.205', // IP/host BD
+            'host' => '100.91.238.113', // IP/host BD
             'port' => '3306',
             'database' => 'company_2_f8db771f_cd52_4d70_83fd_b7dbee3fd556',
             'username' => 'root',

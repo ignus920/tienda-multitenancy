@@ -329,7 +329,7 @@ class ImportRegItem extends Component
 
     public function uploadpdf()
     {
-        $query = ImageGallery::where('itemId', $this->itemId)->where('type', 'PDF')->first();;
+        $query = ImageGallery::where('itemId', $this->itemId)->where('type', 'PDF')->first();
         $pdfExists = !is_null($query);
         Log::info('🔬 Registro de PDF existe:' . $pdfExists);
         // Guardar PDF en storage

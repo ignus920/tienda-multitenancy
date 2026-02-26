@@ -82,7 +82,7 @@ class ItemImageUpload extends Component
             'galleryImages.*' => [
                 'nullable',
                 'image',
-                'mimes:jpeg,png,jpg,webp',
+                'mimes:jpeg,png,jpg,webp,pdf',
                 'max:2048'
             ],
         ];

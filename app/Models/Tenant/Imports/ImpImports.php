@@ -71,9 +71,9 @@ class ImpImports extends Model
     /**
      * Relación con el item
      */
-    public function item()
+    public function itemsSetup()
     {
-        return $this->belongsTo(\App\Models\Tenant\Items\Items::class, 'item_id', 'id');
+        return $this->belongsTo(ImpItemsSetup::class, 'item_id', 'id');
     }
 
     /**
@@ -90,5 +90,28 @@ class ImpImports extends Model
     public function label()
     {
         return $this->belongsTo(ImpLabels::class, 'label_id', 'id');
+    }
+
+    /**
+     * Relación con los estados
+     */
+    public function status()
+    {
+        return $this->belongsTo(ImpStatus::class, 'status', 'id');
+    }
+
+    /**
+     * Relación con el Item (a través de itemsSetup)
+     */
+    public function invItem()
+    {
+        return $this->hasOneThrough(
+            \App\Models\Tenant\Items\Items::class,
+            ImpItemsSetup::class,
+            'id', // Foreign key on imp_items_setup table...
+            'id', // Foreign key on items table...
+            'item_id', // Local key on imp_imports table...
+            'item_id'  // Local key on imp_items_setup table...
+        );
     }
 }

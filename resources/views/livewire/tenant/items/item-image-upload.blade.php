@@ -209,7 +209,7 @@
 
                     <div>
                         <label for="gallery-images" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Agregar imágenes a la galería (múltiples)
+                            Agregar imágenes o PDF a la galería (múltiples)
                         </label>
                         <input
                             type="file"
