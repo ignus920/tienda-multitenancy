@@ -44,6 +44,7 @@ class ImportList extends Component
         'label-selected' => 'onLabelSelected',
         'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
         'testEvent' => 'testEvent',
+        'update-item-quantity' => 'onUpdateItemQuantity',
     ];
 
     #[On('labelSelected')]
@@ -105,6 +106,37 @@ class ImportList extends Component
         Log::info("=== FIN LABEL SELECTED EVENT ===");
     }
 
+    /**
+     * Listener para actualizar la cantidad de un item en el input
+     */
+    #[On('update-item-quantity')]
+    public function onUpdateItemQuantity($data)
+    {
+        try {
+            Log::info('=== INICIO onUpdateItemQuantity ===');
+            Log::info('Data recibida: ' . json_encode($data));
+            
+            $itemId = $data['itemId'];
+            $quantity = $data['quantity'];
+            
+            Log::info('Item ID: ' . $itemId);
+            Log::info('Nueva cantidad: ' . $quantity);
+            
+            // Actualizar el array local
+            $this->selectedQuantities[$itemId] = $quantity;
+            
+            // Refrescar la lista para que se actualice el input
+            $this->dispatch('$refresh');
+            
+            Log::info('Cantidad actualizada en el array local');
+            Log::info('=== FIN onUpdateItemQuantity ===');
+            
+        } catch (\Exception $e) {
+            Log::error('Error en onUpdateItemQuantity: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+        }
+    }
+
     public function testEvent()
     {
         Log::info("TEST EVENT RECEIVED!");
@@ -144,7 +176,7 @@ class ImportList extends Component
             $importsCheck = DB::connection('tenant')
                 ->table('imp_imports')
                 ->where('label_id', $this->selectedLabelId)
-                ->whereBetween('status', [1, 7])
+                ->where('status', '<', 8) // Filtrar status < 8
                 ->whereNull('deleted_at')
                 ->get(['id', 'item_id', 'qty_requested', 'label_id', 'status']);
 
@@ -183,11 +215,14 @@ class ImportList extends Component
                 $query->join('imp_imports', function($join) {
                     $join->on('imp_imports.item_id', '=', 'inv_items.id')
                          ->where('imp_imports.label_id', '=', $this->selectedLabelId)
-                         ->whereBetween('imp_imports.status', [1, 7]) // Filtrar status 1-7
+                         ->where('imp_imports.status', '<', 8) // Filtrar status < 8
                          ->whereNull('imp_imports.deleted_at');
                 });
                 // INNER JOIN imp_labels (optional, for additional label data if needed)
-                $query->join('imp_labels', 'imp_labels.id', '=', 'imp_imports.label_id');
+                $query->join('imp_labels', function($join) {
+                    $join->on('imp_labels.id', '=', 'imp_imports.label_id')
+                         ->where('imp_labels.status', 1); // Solo etiquetas con status = 1
+                });
             })
             ->where('inv_items.status', 1)
             ->where('inv_store.id', $this->storeId)
@@ -236,7 +271,30 @@ class ImportList extends Component
     #[On('refresh-import-list')]
     public function refreshList()
     {
+        Log::info('=== REFRESH IMPORT LIST ===');
+        
+        // Limpiar el cache de items
+        unset($this->items);
+        
+        // Resetear paginación
         $this->resetPage();
+        
+        // Limpiar cantidades seleccionadas
+        $this->selectedQuantities = [];
+        
+        // Resetear filtro de etiquetas al estado inicial
+        $this->selectedLabelId = null;
+        $this->selectedLabelName = 'Programación';
+        $this->selectedLabel = [
+            'id' => '',
+            'name' => ''
+        ];
+        
+        // Forzar re-render
+        $this->dispatch('$refresh');
+        
+        Log::info('Lista refrescada exitosamente - Volviendo al estado inicial');
+        Log::info('=== FIN REFRESH ===');
     }
 
     /**
@@ -363,10 +421,10 @@ class ImportList extends Component
             ])
             ->leftJoin('imp_imports', function($join) {
                 $join->on('imp_labels.id', '=', 'imp_imports.label_id')
-                     ->whereBetween('imp_imports.status', [1, 7]) // Filtrar status 1-7
+                     ->where('imp_imports.status', '<', 8) // Filtrar status < 8
                      ->whereNull('imp_imports.deleted_at');
             })
-            ->whereBetween('imp_labels.status', [1, 7]) // Filtrar solo etiquetas con estado 1-7
+            ->where('imp_labels.status', 1) // Filtrar solo etiquetas con estado = 1
             ->where(function($query) use ($oneYearFromNow) {
                 // Filtrar etiquetas con fecha estimada dentro del próximo año o sin fecha (asap)
                 $query->where('imp_labels.estimated_date', '<=', $oneYearFromNow)

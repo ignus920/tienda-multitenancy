@@ -19,6 +19,8 @@ use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Models\Tenant\Invoices\VntInvoicePayments;
 use App\Models\Tenant\Items\Category;
 use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\InvValues;
+use App\Models\Tenant\CnfTaxes;
 use App\Models\Central\VntContact;
 use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
@@ -106,6 +108,12 @@ class ProductQuoter extends Component
 
     // Propiedad para controlar el modo de vista de productos
     public $viewMode = 'grid'; // 'grid' (actual) o 'table' (nuevo)
+
+    // Propiedades para el modal de producto genérico
+    public $showGenericProductModal = false;
+    public $genericProductName = '';
+    public $genericProductPrice = 0;
+    public $genericProductTaxId = null;
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
@@ -515,8 +523,8 @@ class ProductQuoter extends Component
                 return;
             }
 
-            // Si no existe, agregarlo con el precio seleccionado
-            $this->quoterItems[] = [
+            // Si no existe, agregarlo al inicio de la lista
+            array_unshift($this->quoterItems, [
                 'id' => $product->id,
                 'name' => $product->display_name,
                 'sku' => $product->sku,
@@ -526,7 +534,7 @@ class ProductQuoter extends Component
                 'price_label' => $priceLabel,
                 'quantity' => 1,
                 'description' => $product->description,
-            ];
+            ]);
         }
 
         // Marcar que hay cambios si estamos editando
@@ -544,6 +552,75 @@ class ProductQuoter extends Component
         $this->dispatch('show-toast', [
             'type' => 'success',
             'message' => 'Producto agregado: ' . ($product->display_name ?? 'Producto')
+        ]);
+    }
+
+    public function saveGenericProduct()
+    {
+        $this->validate([
+            'genericProductName'  => 'required|string|min:2',
+            'genericProductPrice' => 'required|numeric|min:0',
+            'genericProductTaxId' => 'required',
+        ], [
+            'genericProductName.required'  => 'El nombre es obligatorio.',
+            'genericProductName.min'       => 'El nombre debe tener al menos 2 caracteres.',
+            'genericProductPrice.required' => 'El precio es obligatorio.',
+            'genericProductPrice.numeric'  => 'El precio debe ser un número.',
+            'genericProductPrice.min'      => 'El precio no puede ser negativo.',
+            'genericProductTaxId.required' => 'Selecciona un impuesto.',
+        ]);
+
+        $this->ensureTenantConnection();
+
+        $sku = 'GEN-' . strtoupper(substr(uniqid(), -6));
+
+        $product = Items::create([
+            'name'             => $this->genericProductName,
+            'sku'              => $sku,
+            'internal_code'    => $sku,
+            'type'             => 'COMPRA NACIONAL',
+            'taxId'            => $this->genericProductTaxId,
+            'categoryId'       => 1,
+            'purchasing_unit'  => 35,
+            'consumption_unit' => 35,
+            'inventoriable'    => 0,
+            'status'           => 1,
+            'generic'          => 1,
+        ]);
+
+        InvValues::create([
+            'date'        => now(),
+            'values'      => $this->genericProductPrice,
+            'type'        => 'precio',
+            'itemId'      => $product->id,
+            'label'       => 'Precio Base',
+        ]);
+
+        $tax = CnfTaxes::find($this->genericProductTaxId);
+
+        array_unshift($this->quoterItems, [
+            'id'          => $product->id,
+            'name'        => $product->name,
+            'sku'         => $sku,
+            'price'       => (float) $this->genericProductPrice,
+            'tax'         => $tax->percentage,
+            'tax_label'   => $tax->name,
+            'price_label' => 'Precio Base',
+            'quantity'    => 1,
+            'description' => '',
+        ]);
+
+        session(['quoter_items' => $this->quoterItems]);
+        $this->calculateTotal();
+
+        $this->genericProductName  = '';
+        $this->genericProductPrice = 0;
+        $this->genericProductTaxId = null;
+        $this->showGenericProductModal = false;
+
+        $this->dispatch('show-toast', [
+            'type'    => 'success',
+            'message' => 'Producto genérico creado y agregado: ' . $product->name,
         ]);
     }
 

@@ -203,6 +203,11 @@
                             </td>
                             <td class="text-xs text-gray-500 dark:text-gray-400">
                                 {{ $it->name }}
+                                @if($it->generic)
+                                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 uppercase tracking-wide">
+                                        Genérico
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
                                 {{ $it->type }}
@@ -250,10 +255,10 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                {{ $it->purchasingUnit->description }}
+                                {{ $it->purchasingUnit->description ?? '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                {{ $it->consumptionUnit->description }}
+                                {{ $it->consumptionUnit->description ?? '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $it->tax->name ?? 'Sin impuesto' }}

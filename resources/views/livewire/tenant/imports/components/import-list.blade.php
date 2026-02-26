@@ -134,7 +134,32 @@
                                         @endif
                                         {{ $item->sku ?? 'N/A' }}
                                     </div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">ID: {{ $item->id }}</div>
+                                     <div class="text-sm text-gray-500 dark:text-gray-400">ID: {{ $item->id }}</div>
+                                    <div class="flex items-center mt-2">
+                                        <!-- Icono de imagen/galería -->
+                                        <button type="button" class="p-1 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Ver imágenes">
+                                            <svg class="w-5 h-5 text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 15l3-3 4 4M8 19h8" />
+                                            </svg>
+                                        </button>
+                                        <!-- Icono de documento -->
+                                        <button type="button" class="p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Ver documentos">
+                                            <svg class="w-5 h-5 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3v5h5M9 15h6M9 18h4" />
+                                            </svg>
+                                        </button>
+                                        <!-- Icono de historial -->
+                                        <button type="button" 
+                                                wire:click.stop="$dispatch('open-item-history', { itemId: {{ $item->id }}, labelId: {{ $selectedLabelId ?? 'null' }}, isAllMode: {{ $selectedLabelId ? 'false' : 'true' }} })"
+                                                class="p-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" 
+                                                title="Ver historial">
+                                            <svg class="w-5 h-5 text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </td>
@@ -177,9 +202,9 @@
                             <input type="number" 
                                 min="0" 
                                 step="1" 
-                                value="{{ $item->quantity ?? 0 }}"
+                                value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                                 @if($selectedLabelId) disabled @endif
-                                @click="$wire.selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+                                @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
                                 @change="
             $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
                 $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
@@ -251,12 +276,36 @@
                             <h3 class="text-base font-semibold text-gray-900 dark:text-white truncate">{{ $item->sku ?? 'N/A' }}</h3>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {{ $item->id }}</p>
+                           
                     </div>
                 </div>
             </div>
 
             <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
                 <p class="text-sm text-gray-700 dark:text-gray-300">{{ $item->description ?? $item->name }}</p>
+                <!-- Iconos de acciones móvil -->
+                <div class="flex items-center gap-2 mt-2" onclick="event.stopPropagation()">
+                    <button type="button" class="p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Ver imágenes">
+                        <svg class="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 15l3-3 4 4M8 19h8" />
+                        </svg>
+                    </button>
+                    <button type="button" class="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Ver documentos">
+                        <svg class="w-5 h-5 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3v5h5M9 15h6M9 18h4" />
+                        </svg>
+                    </button>
+                    <button type="button" 
+                            wire:click.stop="$dispatch('open-item-history', { itemId: {{ $item->id }}, labelId: {{ $selectedLabelId ?? 'null' }}, isAllMode: {{ $selectedLabelId ? 'false' : 'true' }} })"
+                            class="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" 
+                            title="Ver historial">
+                        <svg class="w-5 h-5 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-3">
@@ -284,9 +333,9 @@
                     <input type="number" 
                         min="0" 
                         step="1" 
-                        value="{{ $item->quantity ?? 0 }}"
+                        value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                         @if($selectedLabelId) disabled @endif
-                        @click="$wire.selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+                        @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
                         @change="
                 $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
                     $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
@@ -331,4 +380,7 @@
             </div>
         @endif
     </div>
+
+    <!-- Componente de Historial -->
+    @livewire('tenant.imports.import-item-history')
 </div>
