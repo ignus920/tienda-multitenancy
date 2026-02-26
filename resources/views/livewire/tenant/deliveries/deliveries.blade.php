@@ -256,7 +256,7 @@
                             <div>
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full justify-between">
                                     <h3 class="text-base sm:text-lg font-black tracking-widest uppercase text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors"
-                                        x-text="'PEDIDO # ' + (rem.consecutive || rem.id) + ' RUTA ' + (rem.route_name || 'N/A')">
+                                        x-text="'PEDIDO # ' + (rem.consecutive || rem.id) + ' - ' + (rem.route_name || 'SIN RUTA')">
                                     </h3>
                                     
                                     <!-- Botón PC: Devolver por unidad -->

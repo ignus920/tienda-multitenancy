@@ -176,7 +176,7 @@ class Deliveries extends Component
             });
         }
 
-        $remissions = $query->with(['quote.customer.company', 'quote.warehouse', 'quote.detalles', 'quote.branch.activeContacts', 'details'])
+        $remissions = $query->with(['quote.customer.company.mainWarehouse.activeContacts', 'quote.customer.company.routes.route', 'quote.customer.activeContacts', 'quote.warehouse.activeContacts', 'quote.branch.activeContacts', 'details'])
             ->when($this->search, function ($query) {
                 $query->whereHas('quote.customer', function ($q) {
                     $q->where('businessName', 'like', '%' . $this->search . '%')
@@ -195,6 +195,49 @@ class Deliveries extends Component
             $this->processRemissionTotals($remission);
             // Asegurar que el nombre del cliente esté listo para el Blade
             $remission->customer_full_name = $remission->quote->customer_name;
+            
+            // Lógica de Ruta Correcta (TAT)
+            $routeName = 'N/A';
+            if ($remission->quote && $remission->quote->customer && $remission->quote->customer->company) {
+                $firstRoute = $remission->quote->customer->company->routes->first();
+                if ($firstRoute && $firstRoute->route) {
+                    $routeName = $firstRoute->route->name;
+                }
+            }
+            $remission->route_name = $routeName;
+
+            // Lógica de Dirección y Contacto Estricta (SQL Usuario: Ruta -> Compañía -> Almacén -> Contacto)
+            $address = 'Sin dirección';
+            $contactName = 'N/A';
+
+            if ($remission->quote && $remission->quote->customer && $remission->quote->customer->company) {
+                $company = $remission->quote->customer->company;
+                
+                // Siguiendo el SQL: vnt_companies -> vnt_warehouses -> vnt_contacts
+                // Buscamos el almacén 'Principal' o el marcado como 'main' de esta compañía específica
+                $targetWarehouse = $company->mainWarehouse ?? $company->warehouses->first();
+                
+                if ($targetWarehouse) {
+                    $address = $targetWarehouse->address ?: 'Sin dirección';
+                    $firstContact = $targetWarehouse->activeContacts->first();
+                    if ($firstContact) {
+                        $contactName = $firstContact->full_name;
+                    }
+                }
+            }
+
+            // Fallback de seguridad (solo si la ruta no tiene compañía vinculada)
+            if ($address == 'Sin dirección' && $remission->quote) {
+                $q = $remission->quote;
+                $address = ($q->branch && !empty($q->branch->address)) ? $q->branch->address : ($q->warehouse->address ?? 'Sin dirección');
+            }
+            if ($contactName == 'N/A' && $remission->quote) {
+                $q = $remission->quote;
+                $contactName = ($q->branch && $q->branch->activeContacts->first()) ? $q->branch->activeContacts->first()->full_name : 'N/A';
+            }
+
+            $remission->address = $address;
+            $remission->contact_name = $contactName;
         }
 
         return $remissions;
@@ -710,7 +753,7 @@ class Deliveries extends Component
 
         // 2. Obtener Remisiones con TODA la metadata necesaria
         $remissions = InvRemissions::whereIn('delivery_id', $deliveryIds)
-            ->with(['quote.customer.company', 'quote.customer.activeContacts', 'quote.warehouse', 'quote.branch.activeContacts', 'details.item'])
+            ->with(['quote.customer.company.mainWarehouse.activeContacts', 'quote.customer.company.routes.route', 'quote.customer.activeContacts', 'quote.warehouse.activeContacts', 'quote.branch.activeContacts', 'details.item'])
             ->get();
 
         // 3. Formas de pago y otros datos de configuración
@@ -735,10 +778,27 @@ class Deliveries extends Component
                 }
             }
             
-            // Dirección robusta
-            $address = $rem->quote->customer->address ?? 'Sin dirección';
-            if ($rem->quote && $rem->quote->branch && !empty($rem->quote->branch->address)) {
-                $address = $rem->quote->branch->address;
+            // Lógica Unificada Estricta (pattern SQL usuario)
+            $address = 'Sin dirección';
+            $contactName = 'N/A';
+            if ($rem->quote && $rem->quote->customer && $rem->quote->customer->company) {
+                $company = $rem->quote->customer->company;
+                $targetWarehouse = $company->mainWarehouse ?? $company->warehouses->first();
+                if ($targetWarehouse) {
+                    $address = $targetWarehouse->address ?: 'Sin dirección';
+                    $firstContact = $targetWarehouse->activeContacts->first();
+                    if ($firstContact) {
+                        $contactName = $firstContact->full_name;
+                    }
+                }
+            }
+
+            // Fallbacks
+            if ($address == 'Sin dirección' && $rem->quote) {
+                $address = ($rem->quote->branch && !empty($rem->quote->branch->address)) ? $rem->quote->branch->address : 'Sin dirección';
+            }
+            if ($contactName == 'N/A' && $rem->quote) {
+                $contactName = ($rem->quote->branch && $rem->quote->branch->activeContacts->first()) ? $rem->quote->branch->activeContacts->first()->full_name : 'N/A';
             }
 
             return [
@@ -752,10 +812,8 @@ class Deliveries extends Component
                 'total_amount' => $rem->total_amount,
                 'paid_amount' => $rem->paid_amount,
                 'balance_amount' => $rem->balance_amount,
-                'contact_name' => $rem->quote->branch && $rem->quote->branch->activeContacts->first() 
-                    ? $rem->quote->branch->activeContacts->first()->full_name 
-                    : ($rem->quote->customer && $rem->quote->customer->activeContacts->first() ? $rem->quote->customer->activeContacts->first()->full_name : 'N/A'),
-                'route_name' => $rem->quote->branch->name ?? 'N/A', // Coincide con lo usado en el Blade
+                'contact_name' => $contactName,
+                'route_name' => $rem->quote->customer->company->routes->first()->route->name ?? 'N/A', 
                 'details' => $rem->details->map(function($d) {
                     return [
                         'id' => $d->id,
