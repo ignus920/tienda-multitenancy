@@ -124,6 +124,7 @@ class ManageItems extends Component
         'COMPRA NACIONAL' => 'Compra nacional',
         'IMPORTADO' => 'Importado',
         'PRODUCIDO' => 'Producido',
+        'INSUMO' => 'Insumo',
     ];
 
     public $allLabelsValues = [
@@ -321,6 +322,7 @@ class ManageItems extends Component
         $this->handles_serial = $item->handles_serial;
         $this->inventoriable = $item->inventoriable;
         $this->disabled = true;
+        $this->showProductionSection = false;
 
         $this->showModal = true;
     }
@@ -1106,6 +1108,7 @@ class ManageItems extends Component
         $this->messageValues = '';
         $this->temporaryErrorMessage;
         $this->showValuesModal = false;
+        $this->showProductionSection = false;
         $this->internal_codeExists = false;
         $this->validatingInternal_code = false;
         $this->skuExists = false;
@@ -1785,5 +1788,15 @@ class ManageItems extends Component
         // Log::info('🎈 Cargando itemId', [
         //     'itemId' => $this->item_id
         // ]);
+    }
+
+    public function showProductionSection($item_id)
+    {
+        Log::info('🏭 showProductionSection llamado', [
+            'item_id' => $item_id,
+            'type'    => $this->type,
+        ]);
+        $this->item_id = $item_id;
+        $this->showProductionSection = true;
     }
 }

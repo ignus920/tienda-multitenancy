@@ -391,28 +391,24 @@
                     </button>
                 </div>
                 
-                @if ($this->canUseImports())
-                    <!-- Sistema de Pestañas - Solo visible después de guardar -->
-                    @if($item_id)
+                <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
+                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO'))
                     <div class="px-6 pt-4">
                         <div class="border-b border-gray-200 dark:border-gray-700">
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                                <!-- Pestaña de Información General -->
+                                <!-- Pestaña Información General -->
                                 <button type="button" wire:click="$set('showProductionSection', false)"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection),
                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection)}">
                                     <div class="flex items-center space-x-2">
                                         <x-heroicon-o-information-circle class="w-5 h-5" />
-                                        {{-- <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg> --}}
                                         <span>Información General</span>
                                     </div>
                                 </button>
 
-                                <!-- Pestaña de Producción - Solo visible si el tipo es PRODUCIDO -->
-                                @if($type == 'IMPORTADO')
+                                <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO -->
+                                @if($this->canUseImports() && $type == 'IMPORTADO')
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
@@ -420,18 +416,25 @@
                                     <div class="flex items-center space-x-2">
                                         <x-heroicon-o-truck class="w-5 h-5" />
                                         <span>Importado</span>
-                                        @if(!$showProductionSection)
-                                        {{-- <span class="ml-2 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs px-2 py-0.5 rounded-full">
-                                            Nuevo
-                                        </span> --}}
-                                        @endif
+                                    </div>
+                                </button>
+                                @endif
+
+                                <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
+                                @if($type == 'PRODUCIDO')
+                                <button type="button" wire:click="$set('showProductionSection', true)"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-cog-6-tooth class="w-5 h-5" />
+                                        <span>Proceso de Producción</span>
                                     </div>
                                 </button>
                                 @endif
                             </nav>
                         </div>
                     </div>
-                    @endif 
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
@@ -811,8 +814,12 @@
                     </div>
                 </form>
                 @elseif($item_id && $showProductionSection)
-                <!-- PESTAÑA 2: FORMULARIO DE PRODUCCIÓN (solo cuando showProductionSection es true y el item existe) -->
+                <!-- PESTAÑA 2: Contenido según el tipo del item -->
+                @if($type == 'IMPORTADO')
                 @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key($item_id))
+                @elseif($type == 'PRODUCIDO')
+                @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
+                @endif
                 @endif
 
             </div>

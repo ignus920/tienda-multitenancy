@@ -452,6 +452,61 @@ new class extends Component
             </div>
         </div>
 
+        <!-- Producción (menú con subitems) -->
+        <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }} }" class="w-full">
+            <!-- Botón principal -->
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('production.*') ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600 dark:hover:text-amber-400' }} cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="tooltip = false" @click="open = !open">
+
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>
+                    Producción
+                </span>
+
+                <!-- Icono desplegable -->
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
+
+                <!-- Tooltip (sidebar colapsado) -->
+                <div x-show="tooltip" x-transition
+                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                    Producción
+                </div>
+            </div>
+
+            <!-- Submenú -->
+            <div x-show="open && !sidebarCollapsed" x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <a href="{{ route('production.orders') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('production.orders') ? 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'hover:text-amber-600 dark:hover:text-amber-400' }}">
+                    Órdenes
+                </a>
+                <a href="{{ route('production.processes') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('production.processes') ? 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'hover:text-amber-600 dark:hover:text-amber-400' }}">
+                    Procesos
+                </a>
+            </div>
+
+            <!-- Submenú colapsado -->
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
+                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
+                <a href="{{ route('production.orders') }}" wire:navigate
+                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Órdenes</a>
+                <a href="{{ route('production.processes') }}" wire:navigate
+                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Procesos</a>
+            </div>
+        </div>
+
          <!-- Importaciones -->
         <a href="{{ route('imports.imports') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
