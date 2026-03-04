@@ -25,6 +25,9 @@ class CampaignManager extends Component
     // Campos del formulario
     public $campaignId, $name, $description, $start_date, $end_date, $gift_quantity, $assignment_type, $status;
 
+    // Propiedades para el listado de clientes en el modal
+    public $customerSearch = '';
+
     private function ensureTenantConnection()
     {
         $tenantId = session('tenant_id');
@@ -71,12 +74,30 @@ class CampaignManager extends Component
     public function render()
     {
         $this->ensureTenantConnection();
+        
         $campaigns = Campaign::where('name', 'like', '%' . $this->search . '%')
             ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate($this->perPage);
+            ->paginate($this->perPage, ['*'], 'page');
+
+        $deliveredCustomers = collect();
+        if ($this->campaignId) {
+            $campaign = Campaign::find($this->campaignId);
+            if ($campaign) {
+                $deliveredCustomers = $campaign->customers()
+                    ->select('vnt_companies.*')
+                    ->where(function($q) {
+                        $q->where('businessName', 'like', '%' . $this->customerSearch . '%')
+                          ->orWhere('firstName', 'like', '%' . $this->customerSearch . '%')
+                          ->orWhere('lastName', 'like', '%' . $this->customerSearch . '%')
+                          ->orWhere('identification', 'like', '%' . $this->customerSearch . '%');
+                    })
+                    ->paginate(5, ['*'], 'customerPage');
+            }
+        }
 
         return view('livewire.tenant.campaigns.campaign-manager', [
-            'campaigns' => $campaigns
+            'campaigns' => $campaigns,
+            'deliveredCustomers' => $deliveredCustomers
         ])->layout('layouts.app');
     }
 

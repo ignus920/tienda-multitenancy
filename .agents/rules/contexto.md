@@ -64,3 +64,30 @@ Antes de generar cualquier código, valida mentalmente que:
 - Respeta la arquitectura
 - Usa correctamente central o tenant
 - No incluye migraciones
+
+
+
+
+
+
+
+
+
+. Estructura de Carpetas (Core)
+Modelos:
+app/Models/Central/: Datos globales y gestión de tenants.
+app/Models/Tenant/: Datos dinámicos por empresa.
+Componentes Livewire: app/Livewire/Tenant/{Modulo}/
+Vistas Blade: resources/views/livewire/tenant/{modulo}/
+Servicios: app/Services/Tenant/{Modulo}/ (Para lógica pesada y reutilizable).
+Rutas: Definidas en routes/tenants/ e incluidas en web.php.
+2. Estándares de Layout y Estilos
+Layout Base: Se utiliza resources/views/layouts/app.blade.php con soporte para Dark Mode (dark: classes).
+Tablas Premium: Uso de headers en mayúsculas, bordes suaves (rounded-lg), y estados con colores semánticos (bg-indigo-500 para acciones, bg-green-100 para estados positivos).
+Modales: Implementados con x-teleport="body", transiciones suaves de Alpine y overlays con desenfoque.
+Iconografía: Uso consistente de Heroicons (w-4 h-4 para botones de acción).
+3. Mejores Prácticas de Desarrollo
+Normalización: Utilizar Accessors en los modelos (ej: getCustomerNameAttribute) para unificar nombres de personas y empresas.
+Conexiones: Siempre asegurar la conexión tenant con ensureTenantConnection() en los componentes Livewire.
+Desacoplamiento: Separar la lógica de negocio en Services para que controladores y Livewire se mantengan limpios.
+Búsqueda Inteligente: Implementar búsquedas que incluyan múltiples campos (Nombre, NIT, Email) en consultas paginadas.

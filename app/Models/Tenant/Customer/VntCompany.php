@@ -139,4 +139,21 @@ class VntCompany extends Model
     {
         return $this->hasMany(VntCompanyRoute::class, 'company_id');
     }
+
+    /**
+     * Obtiene el nombre del cliente (Razón Social o Nombre Completo)
+     */
+    public function getCustomerNameAttribute()
+    {
+        if ($this->businessName) {
+            return $this->businessName;
+        }
+
+        return trim(implode(' ', array_filter([
+            $this->firstName,
+            $this->secondName,
+            $this->lastName,
+            $this->secondLastName
+        ])));
+    }
 }

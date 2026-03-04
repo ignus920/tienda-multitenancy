@@ -2,7 +2,7 @@
 
 namespace App\Models\Tenant\Campaigns;
 
-use App\Models\Tenant\Customer;
+use App\Models\Tenant\Customer\VntCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -47,11 +47,11 @@ class Campaign extends Model
     public function customers(): BelongsToMany
     {
         return $this->belongsToMany(
-            Customer::class,
+            VntCompany::class,
             'cmp_campaign_customers',
             'campaign_id',
             'customer_id'
-        )->withTimestamps();
+        )->withPivot('delivered_at')->withTimestamps();
     }
 
     /**
