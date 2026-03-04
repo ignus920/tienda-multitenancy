@@ -320,7 +320,10 @@
             <div class="section-title">Observaciones:</div>
             <div class="observations-content">
                 @if($quote->observations)
-                    {{ $quote->observations }}
+                    {!! nl2br(e($quote->observations)) !!}
+                    @if(isset($giftObservation))
+                        <br><strong style="color: #000;">{!! nl2br(e($giftObservation)) !!}</strong>
+                    @endif
                 @else
                     <p>{{ $defaultObservations ?? 'Sin observaciones especiales.' }}</p>
                 @endif

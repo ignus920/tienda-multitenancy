@@ -21,7 +21,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros Campañas</h1>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Campañas</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestión de registros</p>
                 </div>
                 <button wire:click="openModal" 
@@ -106,18 +106,10 @@
                                 </button>
                             </td>
                             <td class="px-6 py-4 text-center text-gray-500">
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
-                                    <button @click="open = !open" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-                                        <x-heroicon-o-ellipsis-vertical class="w-6 h-6"/>
-                                    </button>
-                                    <div x-show="open" x-transition class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-[60]">
-                                        <div class="py-1">
-                                            <button wire:click="edit({{ $campaign->id }})" class="flex items-center w-full px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20">
-                                                <x-heroicon-o-pencil-square class="w-4 h-4 mr-2"/> Editar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                <button wire:click="edit({{ $campaign->id }})" class="inline-flex items-center px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-all duration-200 group">
+                                    <x-heroicon-o-pencil-square class="w-4 h-4 mr-1.5 group-hover:scale-110 transition-transform"/>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-black dark:text-gray-100">Editar</span>
+                                </button>
                             </td>
                         </tr>
                         @empty
@@ -219,6 +211,73 @@
                         </button>
                     </div>
                 </form>
+
+                <!-- Sección: Clientes con regalo -->
+                @if($campaignId)
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/10">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                        <h4 class="text-base font-bold text-gray-800 dark:text-gray-200 uppercase">Clientes con regalo:</h4>
+                        
+                        <div class="flex items-center gap-2">
+                             <!-- Botones de exportación (Estéticos como en el ejemplo) -->
+                             <div class="hidden sm:flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 border border-gray-200 dark:border-gray-600">
+                                <button class="px-3 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all">Copy</button>
+                                <button class="px-3 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all">Excel</button>
+                                <button class="px-3 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all">PDF</button>
+                                <button class="px-3 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all">Print</button>
+                            </div>
+
+                            <div class="relative min-w-[200px]">
+                                <input wire:model.live.debounce.300ms="customerSearch" type="text" placeholder="Buscar..." 
+                                    class="w-full pl-3 pr-8 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none placeholder-gray-400">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <x-heroicon-o-magnifying-glass class="h-4 w-4 text-gray-400"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-900/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">#</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha Entrega</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                @forelse($deliveredCustomers as $index => $customer)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ $deliveredCustomers->firstItem() + $index }}</td>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ $customer->customer_name }}
+                                        <br><small class="text-xs text-gray-500">{{ $customer->identification }}</small>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-500 text-white uppercase tracking-tighter">
+                                            Entregado {{ $customer->pivot->delivered_at ? \Carbon\Carbon::parse($customer->pivot->delivered_at)->format('Y-m-d') : '-' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500 text-xs">
+                                        No se registran entregas para esta campaña aún.
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if($deliveredCustomers->hasPages())
+                    <div class="mt-4">
+                        {{ $deliveredCustomers->links() }}
+                    </div>
+                    @endif
+                </div>
+                @endif
             </div>
         </div>
     </div>
