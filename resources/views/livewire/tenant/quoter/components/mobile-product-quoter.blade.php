@@ -96,18 +96,27 @@ $header = 'Seleccionar productos';
                 </div>
 
                 <!-- Alternar modo de vista -->
-                <button wire:click="toggleViewMode"
-                        class="flex items-center justify-center w-12 h-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                    @if($viewMode === 'grid')
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                        </svg>
-                    @else
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                        </svg>
-                    @endif
-                </button>
+                <div x-data="{}"
+                    x-init="
+                        const saved = localStorage.getItem('quoter_view_mode');
+                        if (saved && saved !== '{{ $viewMode }}') {
+                            $wire.set('viewMode', saved);
+                        }
+                    ">
+                    <button wire:click="toggleViewMode"
+                            @click="localStorage.setItem('quoter_view_mode', '{{ $viewMode }}' === 'grid' ? 'table' : 'grid')"
+                            class="flex items-center justify-center w-12 h-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        @if($viewMode === 'grid')
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        @else
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                        @endif
+                    </button>
+                </div>
             </div>
 
         </div>
@@ -184,14 +193,32 @@ $header = 'Seleccionar productos';
                         @endif
                     </div>
 
-                    <!-- Cantidad badge -->
-                    @if($quantity > 0)
-                        <div class="flex-shrink-0">
+                    <!-- Cantidad badge / Acciones -->
+                    <div class="flex flex-col items-center gap-2 flex-shrink-0">
+                        @if($quantity > 0)
                             <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white text-sm font-bold rounded-full">
                                 {{ $quantity }}
                             </span>
+                        @endif
+                        <div x-data="{ open: false }" class="relative">
+                            <button @click.stop="open = !open"
+                                class="p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                                </svg>
+                            </button>
+                            <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                                class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+                                <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
+                                    class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                    <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                    </svg>
+                                    Solicitud Soporte
+                                </button>
+                            </div>
                         </div>
-                    @endif
+                    </div>
                 </div>
 
                 <!-- Precios y acciones -->
@@ -246,12 +273,32 @@ $header = 'Seleccionar productos';
                 </div>
                 @endif
 
-                <!-- Badge de cantidad (Esquina superior derecha) -->
-                @if($quantity > 0)
-                <div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg">
-                    {{ $quantity }}
+                <!-- Badge de cantidad / Acciones (Esquina superior derecha) -->
+                <div class="absolute top-2 right-2 flex flex-col gap-2 items-center z-10">
+                    @if($quantity > 0)
+                    <div class="flex items-center justify-center w-7 h-7 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg">
+                        {{ $quantity }}
+                    </div>
+                    @endif
+                    <div x-data="{ open: false }">
+                        <button @click.stop="open = !open"
+                            class="p-1.5 bg-white/90 dark:bg-gray-700/90 text-gray-600 dark:text-gray-300 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                            class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+                            <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
+                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                </svg>
+                                Solicitud Soporte
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                @endif
             </div>
 
             <!-- Información del producto (Medio) -->

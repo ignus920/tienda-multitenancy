@@ -165,4 +165,6 @@ require __DIR__ . '/tenants/transfer_request.php';
 require __DIR__ . '/tenants/imports.php';
 // Incluir rutas del módulo de campañas (regalos)
 require __DIR__ . '/tenants/campaigns.php';
+// Incluir rutas del módulo de solicitudes/tickets
+require __DIR__ . '/tenants/tickets.php';
 
