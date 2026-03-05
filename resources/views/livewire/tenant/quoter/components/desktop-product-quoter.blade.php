@@ -110,9 +110,9 @@ $header = 'Seleccionar productos';
                                         {{ $isSelected ? 'ring-2 ring-indigo-500 shadow-lg border-indigo-300 dark:border-indigo-500 cursor-pointer' : '' }}">
 
                             <!-- Menú 3 puntos (Grid) -->
-                            <div x-data="{ open: false }" class="absolute top-2 left-2 z-10">
+                            <div x-data="{ open: false }" class="absolute top-0 left-0 z-10">
                                 <button @click.stop="open = !open"
-                                    class="p-1.5 bg-white/90 dark:bg-gray-700/90 text-gray-600 dark:text-gray-300 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                    class="p-2 bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 rounded-br-xl shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors backdrop-blur-sm">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                         <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                                     </svg>
@@ -125,6 +125,13 @@ $header = 'Seleccionar productos';
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                                         </svg>
                                         Solicitud Soporte
+                                    </button>
+                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Imagen
                                     </button>
                                 </div>
                             </div>
@@ -511,6 +518,13 @@ $header = 'Seleccionar productos';
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                                                         </svg>
                                                         Solicitud Soporte
+                                                    </button>
+                                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        Imagen
                                                     </button>
                                                 </div>
                                             </div>

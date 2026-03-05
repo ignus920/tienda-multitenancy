@@ -119,7 +119,8 @@ class ProductQuoter extends Component
         'customer-created' => 'onCustomerCreated',
         'vnt-company-saved' => 'onCustomerCreated',
         'customer-updated' => 'onCustomerUpdated',
-        'customer-form-cancelled' => 'cancelCreateCustomer'
+        'customer-form-cancelled' => 'cancelCreateCustomer',
+        'refreshProductList' => '$refresh'
     ];
 
     public function updatedObservaciones()
