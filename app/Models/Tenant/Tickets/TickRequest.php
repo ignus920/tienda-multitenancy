@@ -5,7 +5,7 @@ namespace App\Models\Tenant\Tickets;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Auth\User;
-use App\Models\Tenant\Items\InvItem;
+use App\Models\Tenant\Items\Items;
 
 class TickRequest extends Model
 {
@@ -67,5 +67,13 @@ class TickRequest extends Model
     public function history()
     {
         return $this->hasMany(TickRequestHistory::class, 'request_id')->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Producto relacionado con la solicitud.
+     */
+    public function product()
+    {
+        return $this->belongsTo(Items::class, 'product_id');
     }
 }

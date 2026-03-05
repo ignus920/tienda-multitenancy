@@ -43,7 +43,12 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                 </div>
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $title }}</h3>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+                    {{ $title }}
+                    @if($productName)
+                        <span class="text-indigo-500 dark:text-indigo-400 font-normal ml-2">— {{ $productName }}</span>
+                    @endif
+                </h3>
             </div>
             <button @click="show = false" class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,6 +196,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                             <tr>
                                 <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-10">#</th>
                                 <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                                <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Depto.</th>
                                 <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Detalle</th>
                                 <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Estado</th>
                                 <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Ver</th>
@@ -202,6 +208,11 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                 <td class="px-3 py-3 font-medium text-gray-400 text-center">{{ $req->id }}</td>
                                 <td class="px-3 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                     {{ $req->created_at->format('d/m/Y H:i') }}
+                                </td>
+                                <td class="px-3 py-3">
+                                    <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                        {{ $req->department->name ?? 'N/A' }}
+                                    </span>
                                 </td>
                                 <td class="px-3 py-3 text-gray-700 dark:text-gray-200 max-w-[180px] truncate">
                                     {!! Str::words(strip_tags($req->detail), 8) !!}
@@ -220,7 +231,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" class="px-3 py-8 text-center text-gray-400 italic text-xs uppercase tracking-wider">No se encontraron entradas</td>
+                                <td colspan="6" class="px-3 py-8 text-center text-gray-400 italic text-xs uppercase tracking-wider">No se encontraron entradas</td>
                             </tr>
                             @endforelse
                         </tbody>

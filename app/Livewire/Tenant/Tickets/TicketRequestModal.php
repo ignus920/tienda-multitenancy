@@ -11,6 +11,7 @@ use App\Models\Tenant\Tickets\TickStatus;
 use App\Models\Tenant\Tickets\TickRequestHistory;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
+use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -22,6 +23,7 @@ class TicketRequestModal extends Component
     // Propiedades del Modal
     public $isOpen = false;
     public $productId = null;
+    public $productName = null;
     public $title = 'Nueva Solicitud';
     public $selectedRequestId = null; // Guardamos solo el ID para evitar errores de hidratación multitenant
 
@@ -59,6 +61,16 @@ class TicketRequestModal extends Component
     public function open($productId = null, $title = null)
     {
         $this->productId = $productId;
+        $this->productName = null;
+        
+        if ($productId) {
+            $this->ensureTenantConnection();
+            $product = Items::find($productId);
+            if ($product) {
+                $this->productName = $product->name;
+            }
+        }
+
         if ($title) $this->title = $title;
         
         $this->resetValidation();
@@ -71,15 +83,20 @@ class TicketRequestModal extends Component
         $this->isOpen = false;
     }
 
+    #[On('viewTicket')]
     public function view($id)
     {
         $this->ensureTenantConnection();
         $this->selectedRequestId = $id;
         
-        $request = TickRequest::find($id);
+        $request = TickRequest::with('product')->find($id);
         if ($request) {
             $this->title = 'Detalle de Solicitud #' . $id;
+            $this->productName = $request->product->name ?? null;
         }
+
+        $this->resetValidation();
+        $this->isOpen = true;
     }
 
     public function updateStatus($statusName)

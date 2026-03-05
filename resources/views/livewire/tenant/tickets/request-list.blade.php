@@ -183,8 +183,16 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white leading-tight uppercase">
-                                    {{ $req->detail }}
+                                    {{ strip_tags($req->detail) }}
                                 </div>
+                                @if($req->product)
+                                <div class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1 uppercase font-bold flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                    </svg>
+                                    {{ $req->product->name }}
+                                </div>
+                                @endif
                                 <div class="text-xs text-indigo-500 dark:text-indigo-400 font-medium mt-1 uppercase">
                                     DE: {{ $req->creator->name ?? 'USUARIO SISTEMA' }}
                                 </div>
@@ -202,7 +210,8 @@
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <div class="flex justify-center items-center gap-2">
-                                    <button class="p-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                    <button wire:click="$dispatchTo('tenant.tickets.ticket-request-modal', 'viewTicket', { id: {{ $req->id }} })" 
+                                            class="p-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
