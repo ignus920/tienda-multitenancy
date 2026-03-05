@@ -46,6 +46,7 @@ class ManageItems extends Component
         'category-created' => 'refreshCategories',
         'closeValuesModal' => 'closeValuesModal',
         'closeLocationsModal' => 'closeLocationsModal',
+        'refreshProductList' => '$refresh',
         //'invValuesItem-created' => 'refreshValuesItems',
     ];
 

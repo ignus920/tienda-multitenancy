@@ -113,7 +113,10 @@
         <livewire:auth.login-warehouse-selector />
 
         <!-- Modal Global de Soporte -->
-        @livewire('tenant.tickets.ticket-request-modal')
+        @livewire('tenant.components.ticket-request-modal')
+
+        <!-- Modal Global de Imágenes de Producto -->
+        @livewire('tenant.components.product-image-modal')
 
         @livewireScripts
         @stack('scripts')

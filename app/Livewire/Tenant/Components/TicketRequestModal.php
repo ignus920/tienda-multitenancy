@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tenant\Tickets;
+namespace App\Livewire\Tenant\Components;
 
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -44,6 +44,11 @@ class TicketRequestModal extends Component
         $this->dateTo = now()->format('Y-m-d');
     }
 
+    public function boot()
+    {
+        $this->ensureTenantConnection();
+    }
+
     private function ensureTenantConnection()
     {
         $tenantId = session('tenant_id');
@@ -54,7 +59,10 @@ class TicketRequestModal extends Component
 
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
-        tenancy()->initialize($tenant);
+        
+        if (!tenancy()->initialized) {
+            tenancy()->initialize($tenant);
+        }
     }
 
     #[On('openTicketModal')]
@@ -228,7 +236,7 @@ class TicketRequestModal extends Component
             ->orderBy('id', 'desc')
             ->paginate($this->perPage);
 
-        return view('livewire.tenant.tickets.ticket-request-modal', [
+        return view('livewire.tenant.components.ticket-request-modal', [
             'departments' => $departments,
             'requests' => $requests,
             'selectedRequest' => $selectedRequest
