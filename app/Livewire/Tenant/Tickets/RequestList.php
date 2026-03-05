@@ -60,7 +60,7 @@ class RequestList extends Component
             ->pluck('total', 'status_id');
 
         // Consulta de solicitudes con filtros
-        $requests = TickRequest::with(['department', 'status', 'creator'])
+        $requests = TickRequest::with(['department', 'status', 'creator', 'product'])
             ->when($this->search, function($q) {
                 $q->where('detail', 'like', '%' . $this->search . '%')
                   ->orWhere('id', 'like', '%' . $this->search . '%');
