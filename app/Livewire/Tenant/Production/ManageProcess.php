@@ -46,6 +46,8 @@ class ManageProcess extends Component
     public $fieldClass = '';
     public $fieldOptions = '';
     public $fieldStatus = 1;
+    public $fieldParentField = '';
+    public $fieldParentValue = '';
 
     public $fieldTypes = [
         'text'      => 'Texto (input)',
@@ -72,13 +74,35 @@ class ManageProcess extends Component
     protected function rulesField(): array
     {
         return [
-            'fieldName'    => 'required|string|max:100|regex:/^[a-z0-9_]+$/',
-            'fieldLabel'   => 'required|string|max:255',
-            'fieldType'    => 'required|in:text,text_area,select,number,date,checkbox',
-            'fieldClass'   => 'nullable|string|max:255',
-            'fieldOptions' => 'nullable|string',
-            'fieldStatus'  => 'required|boolean',
+            'fieldName'        => 'required|string|max:100|regex:/^[a-z0-9_]+$/',
+            'fieldLabel'       => 'required|string|max:255',
+            'fieldType'        => 'required|in:text,text_area,select,number,date,checkbox',
+            'fieldClass'       => 'nullable|string|max:255',
+            'fieldOptions'     => 'nullable|string',
+            'fieldStatus'      => 'required|boolean',
+            'fieldParentField' => 'nullable|string|max:200',
+            'fieldParentValue' => 'nullable|string|max:200',
         ];
+    }
+
+    public function getParentSelectFieldsProperty(): array
+    {
+        return collect($this->processFields)
+            ->filter(fn($f) => $f['type'] === 'select' && $f['id'] != $this->editingFieldId)
+            ->values()
+            ->toArray();
+    }
+
+    public function getParentFieldOptionsProperty(): array
+    {
+        if (!$this->fieldParentField) {
+            return [];
+        }
+        $parent = collect($this->processFields)->firstWhere('name', $this->fieldParentField);
+        if (!$parent || !$parent['options']) {
+            return [];
+        }
+        return array_map('trim', explode(',', $parent['options']));
     }
 
     protected $messages = [
@@ -240,13 +264,38 @@ class ManageProcess extends Component
     {
         $this->ensureTenantConnection();
         $field = PrdFieldsProcess::findOrFail($fieldId);
-        $this->editingFieldId = $field->id;
-        $this->fieldName      = $field->name;
-        $this->fieldLabel     = $field->label;
-        $this->fieldType      = $field->type;
-        $this->fieldClass     = $field->class ?? '';
-        $this->fieldOptions   = $field->options ?? '';
-        $this->fieldStatus    = $field->status;
+        $this->editingFieldId   = $field->id;
+        $this->fieldName        = $field->name;
+        $this->fieldLabel       = $field->label;
+        $this->fieldType        = $field->type;
+        $this->fieldClass       = $field->class ?? '';
+        $this->fieldOptions     = $field->options ?? '';
+        $this->fieldStatus      = $field->status;
+        $this->fieldParentField = $field->parent_field ?? '';
+        $this->fieldParentValue = $field->parent_value ?? '';
+    }
+
+    private function makeUniqueFieldName(string $baseName, int $processId, ?int $excludeId = null): string
+    {
+        $query = PrdFieldsProcess::where('processId', $processId)
+            ->whereNull('deleted_at');
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        if (!(clone $query)->where('name', $baseName)->exists()) {
+            return $baseName;
+        }
+
+        $counter = 2;
+        while (true) {
+            $candidate = $baseName . '_' . $counter;
+            if (!(clone $query)->where('name', $candidate)->exists()) {
+                return $candidate;
+            }
+            $counter++;
+        }
     }
 
     public function saveField()
@@ -254,14 +303,22 @@ class ManageProcess extends Component
         $this->ensureTenantConnection();
         $this->validate($this->rulesField());
 
+        $this->fieldName = $this->makeUniqueFieldName(
+            $this->fieldName,
+            $this->selectedProcessId,
+            $this->editingFieldId ?: null
+        );
+
         $data = [
-            'processId' => $this->selectedProcessId,
-            'name'      => $this->fieldName,
-            'label'     => $this->fieldLabel,
-            'type'      => $this->fieldType,
-            'class'     => $this->fieldClass ?: null,
-            'options'   => in_array($this->fieldType, ['select']) ? ($this->fieldOptions ?: null) : null,
-            'status'    => (int) $this->fieldStatus,
+            'processId'    => $this->selectedProcessId,
+            'name'         => $this->fieldName,
+            'label'        => $this->fieldLabel,
+            'type'         => $this->fieldType,
+            'class'        => $this->fieldClass ?: null,
+            'options'      => in_array($this->fieldType, ['select']) ? ($this->fieldOptions ?: null) : null,
+            'status'       => (int) $this->fieldStatus,
+            'parent_field' => $this->fieldParentField ?: null,
+            'parent_value' => $this->fieldParentField ? ($this->fieldParentValue ?: null) : null,
         ];
 
         if ($this->editingFieldId) {
@@ -310,13 +367,15 @@ class ManageProcess extends Component
 
     private function resetFieldForm()
     {
-        $this->editingFieldId = null;
-        $this->fieldName      = '';
-        $this->fieldLabel     = '';
-        $this->fieldType      = 'text';
-        $this->fieldClass     = '';
-        $this->fieldOptions   = '';
-        $this->fieldStatus    = 1;
+        $this->editingFieldId   = null;
+        $this->fieldName        = '';
+        $this->fieldLabel       = '';
+        $this->fieldType        = 'text';
+        $this->fieldClass       = '';
+        $this->fieldOptions     = '';
+        $this->fieldStatus      = 1;
+        $this->fieldParentField = '';
+        $this->fieldParentValue = '';
         $this->resetErrorBag();
     }
 

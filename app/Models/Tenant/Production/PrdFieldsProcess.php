@@ -22,6 +22,8 @@ class PrdFieldsProcess extends Model
         'class',
         'options',
         'status',
+        'parent_field',
+        'parent_value',
     ];
 
     public function process()

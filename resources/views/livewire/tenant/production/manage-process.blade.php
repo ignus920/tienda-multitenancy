@@ -438,6 +438,59 @@
                         </div>
                         @endif
 
+                        {{-- Condicional: mostrar solo cuando otro campo tenga cierto valor --}}
+                        @php
+                            $parentSelectFields = collect($processFields)
+                                ->filter(fn($f) => $f['type'] === 'select' && $f['id'] != $editingFieldId)
+                                ->values();
+                        @endphp
+                        @if($parentSelectFields->count() > 0)
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4 space-y-3">
+                            <label class="block text-sm font-medium text-blue-800 dark:text-blue-300">
+                                <x-heroicon-o-eye class="w-4 h-4 inline-block mr-1 -mt-0.5" />
+                                Mostrar solo cuando...
+                                <span class="font-normal text-blue-500">(opcional)</span>
+                            </label>
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <select wire:model.live="fieldParentField"
+                                    class="flex-1 min-w-0 px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">— Siempre visible —</option>
+                                    @foreach($parentSelectFields as $sf)
+                                        <option value="{{ $sf['name'] }}">{{ $sf['label'] }}</option>
+                                    @endforeach
+                                </select>
+                                @if($fieldParentField)
+                                    <span class="text-sm text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">sea igual a</span>
+                                    @php
+                                        $parentField = $parentSelectFields->firstWhere('name', $fieldParentField);
+                                        $parentOpts  = $parentField && $parentField['options']
+                                            ? array_map('trim', explode(',', $parentField['options']))
+                                            : [];
+                                    @endphp
+                                    @if(count($parentOpts) > 0)
+                                        <select wire:model="fieldParentValue"
+                                            class="flex-1 min-w-0 px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="">— Seleccione valor —</option>
+                                            @foreach($parentOpts as $opt)
+                                                <option value="{{ $opt }}">{{ $opt }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input wire:model="fieldParentValue" type="text" placeholder="valor exacto"
+                                            class="flex-1 min-w-0 px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    @endif
+                                @endif
+                            </div>
+                            @if($fieldParentField && $fieldParentValue)
+                                <p class="text-xs text-blue-600 dark:text-blue-400">
+                                    Este campo solo aparecerá cuando
+                                    <strong>{{ $parentSelectFields->firstWhere('name', $fieldParentField)['label'] ?? $fieldParentField }}</strong>
+                                    sea <strong>"{{ $fieldParentValue }}"</strong>.
+                                </p>
+                            @endif
+                        </div>
+                        @endif
+
                         {{-- Vista previa en tiempo real --}}
                         @if($fieldLabel)
                         <div class="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 p-4">
@@ -566,6 +619,7 @@
                                             <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Etiqueta</th>
                                             <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
                                             <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Opciones</th>
+                                            <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Condición</th>
                                             <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
                                             <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
                                         </tr>
@@ -593,6 +647,16 @@
                                             </td>
                                             <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 max-w-[180px] truncate">
                                                 {{ $field['options'] ?? '—' }}
+                                            </td>
+                                            <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+                                                @if($field['parent_field'])
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-mono whitespace-nowrap">
+                                                        <x-heroicon-o-eye class="w-3 h-3" />
+                                                        {{ $field['parent_field'] }} = {{ $field['parent_value'] }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-gray-400">—</span>
+                                                @endif
                                             </td>
                                             <td class="px-3 py-2.5 text-center">
                                                 <button wire:click="toggleFieldStatus({{ $field['id'] }})"

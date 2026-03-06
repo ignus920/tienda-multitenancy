@@ -334,15 +334,17 @@ class ManageProductionOrders extends Component
         $fields = PrdFieldsProcess::where('processId', $targetProcess->processId)
             ->where('status', 1)
             ->orderBy('id')
-            ->get(['id', 'name', 'label', 'type', 'options', 'class'])
+            ->get(['id', 'name', 'label', 'type', 'options', 'class', 'parent_field', 'parent_value'])
             ->map(function ($f) {
                 return [
-                    'id'      => $f->id,
-                    'name'    => $f->name,
-                    'label'   => $f->label,
-                    'type'    => $f->type,
-                    'class'   => $f->class ?? '',
-                    'options' => $this->parseFieldOptions($f->options),
+                    'id'           => $f->id,
+                    'name'         => $f->name,
+                    'label'        => $f->label,
+                    'type'         => $f->type,
+                    'class'        => $f->class ?? '',
+                    'options'      => $this->parseFieldOptions($f->options),
+                    'parent_field' => $f->parent_field,
+                    'parent_value' => $f->parent_value,
                 ];
             })
             ->toArray();
@@ -386,6 +388,14 @@ class ManageProductionOrders extends Component
 
         // Guardar los valores de cada campo en prd_data_process_order
         foreach ($this->processModalFields as $field) {
+            // Omitir campos cuya condición de visibilidad no se cumple
+            if (!empty($field['parent_field'])) {
+                $parentValue = $this->processFieldValues[$field['parent_field']] ?? '';
+                if ($parentValue !== $field['parent_value']) {
+                    continue;
+                }
+            }
+
             $value = $this->processFieldValues[$field['name']] ?? null;
 
             if ($value === null || $value === '') {

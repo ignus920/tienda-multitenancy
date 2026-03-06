@@ -60,6 +60,7 @@ new class extends Component
 
     <!-- Navigation -->
     <nav class="flex flex-1 flex-col p-4 space-y-1">
+        @php $isOperario = auth()->user()?->profile_id === 8; @endphp
         <!-- Dashboard
         <a href="{{ route('dashboard') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -90,6 +91,7 @@ new class extends Component
 
 
         <!-- Escritorio -->
+        @if(!$isOperario)
         <a href="{{ route('tenant.dashboard') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.select') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -117,8 +119,10 @@ new class extends Component
 
 
 
+        @endif
+
         <!-- Ventas (menú con subitems) -->
-        @if(PermissionHelper::userCanAny(['Ventas'], 'show'))
+        @if(!$isOperario && PermissionHelper::userCanAny(['Ventas'], 'show'))
         <div x-data="{ 
             tooltip: false, 
             open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'true' : 'false' }} 
@@ -190,7 +194,7 @@ new class extends Component
 
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
-        @if(PermissionHelper::userCanAny(['Usuarios'], 'show'))
+        @if(!$isOperario && PermissionHelper::userCanAny(['Usuarios'], 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -273,7 +277,7 @@ new class extends Component
         </a>-->
 
         <!-- Parámetros (menú con subitems) -->
-        @if(PermissionHelper::userCan('Parametros', 'show'))
+        @if(!$isOperario && PermissionHelper::userCan('Parametros', 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -507,6 +511,7 @@ new class extends Component
             </div>
         </div>
 
+        @if(!$isOperario)
          <!-- Importaciones -->
         <a href="{{ route('imports.imports') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -586,6 +591,7 @@ new class extends Component
                 Caja
             </div>
         </a>
+        @endif
         <!-- Spacer -->
         <div class="flex-1"></div>
 

@@ -238,10 +238,10 @@
             </div>
 
             {{-- Formulario --}}
-            <form wire:submit.prevent="saveProcessStage" class="p-6 space-y-5">
+            <form wire:submit.prevent="saveProcessStage" class="p-6 space-y-6">
 
                 @if($processModalIsLast)
-                    <div class="flex items-center gap-3 px-4 py-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                    <div class="flex items-center gap-3 px-4 py-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                         <x-heroicon-o-check-circle class="w-6 h-6 text-green-500 flex-shrink-0" />
                         <div>
                             <p class="text-sm font-medium text-green-800 dark:text-green-300">
@@ -253,70 +253,93 @@
                         </div>
                     </div>
                 @elseif(empty($processModalFields))
-                    <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
                         <x-heroicon-o-information-circle class="w-5 h-5 text-gray-400 flex-shrink-0" />
                         <p class="text-sm text-gray-500 dark:text-gray-400">Este proceso no tiene campos adicionales configurados.</p>
                     </div>
                 @else
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        @foreach($processModalFields as $field)
-                        @php
-                            $isFullWidth = in_array($field['type'], ['text_area', 'textarea']);
-                        @endphp
-                        <div class="{{ $isFullWidth ? 'sm:col-span-2' : '' }}">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {{ $field['label'] }}
-                            </label>
+                    @php
+                        $triggerFields = collect($processModalFields)
+                            ->filter(fn($f) => $f['type'] === 'select' && !$f['parent_field'])
+                            ->pluck('name')
+                            ->mapWithKeys(fn($n) => [$n => ''])
+                            ->all();
+                    @endphp
+                    <div class="bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-600 p-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-5"
+                            x-data="{ vals: @js($triggerFields) }">
+                            @foreach($processModalFields as $field)
+                            @php
+                                $isFullWidth = in_array($field['type'], ['text_area', 'textarea']);
+                            @endphp
+                            <div class="{{ $isFullWidth ? 'sm:col-span-2' : '' }}"
+                                @if($field['parent_field'])
+                                    x-show="vals['{{ $field['parent_field'] }}'] === '{{ $field['parent_value'] }}'"
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 -translate-y-1"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100 translate-y-0"
+                                    x-transition:leave-end="opacity-0 -translate-y-1"
+                                    style="display:none"
+                                @endif>
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                                    {{ $field['label'] }}
+                                </label>
 
-                            @if($field['type'] === 'text')
-                                <input type="text"
-                                    wire:model="processFieldValues.{{ $field['name'] }}"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-                            @elseif($field['type'] === 'number')
-                                <input type="number"
-                                    wire:model="processFieldValues.{{ $field['name'] }}"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-                            @elseif($field['type'] === 'date')
-                                <input type="date"
-                                    wire:model="processFieldValues.{{ $field['name'] }}"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-                            @elseif($field['type'] === 'select')
-                                <select wire:model="processFieldValues.{{ $field['name'] }}"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">— Seleccione —</option>
-                                    @foreach($field['options'] as $opt)
-                                        <option value="{{ $opt }}">{{ $opt }}</option>
-                                    @endforeach
-                                </select>
-
-                            @elseif(in_array($field['type'], ['text_area', 'textarea']))
-                                <textarea wire:model="processFieldValues.{{ $field['name'] }}" rows="3"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-
-                            @elseif($field['type'] === 'checkbox')
-                                <div class="flex items-center mt-1 gap-2">
-                                    <input type="checkbox"
+                                @if($field['type'] === 'text')
+                                    <input type="text"
                                         wire:model="processFieldValues.{{ $field['name'] }}"
-                                        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">{{ $field['label'] }}</span>
-                                </div>
+                                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
 
-                            @else
-                                <input type="text"
-                                    wire:model="processFieldValues.{{ $field['name'] }}"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            @endif
+                                @elseif($field['type'] === 'number')
+                                    <input type="number"
+                                        wire:model="processFieldValues.{{ $field['name'] }}"
+                                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+
+                                @elseif($field['type'] === 'date')
+                                    <input type="date"
+                                        wire:model="processFieldValues.{{ $field['name'] }}"
+                                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+
+                                @elseif($field['type'] === 'select')
+                                    <select wire:model="processFieldValues.{{ $field['name'] }}"
+                                        @if(!$field['parent_field'] && isset($triggerFields[$field['name']]))
+                                            @change="vals['{{ $field['name'] }}'] = $event.target.value"
+                                        @endif
+                                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+                                        <option value="">— Seleccione —</option>
+                                        @foreach($field['options'] as $opt)
+                                            <option value="{{ $opt }}">{{ $opt }}</option>
+                                        @endforeach
+                                    </select>
+
+                                @elseif(in_array($field['type'], ['text_area', 'textarea']))
+                                    <textarea wire:model="processFieldValues.{{ $field['name'] }}" rows="3"
+                                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-shadow"></textarea>
+
+                                @elseif($field['type'] === 'checkbox')
+                                    <div class="flex items-center h-10 gap-2.5">
+                                        <input type="checkbox"
+                                            wire:model="processFieldValues.{{ $field['name'] }}"
+                                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $field['label'] }}</span>
+                                    </div>
+
+                                @else
+                                    <input type="text"
+                                        wire:model="processFieldValues.{{ $field['name'] }}"
+                                        class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+                                @endif
+                            </div>
+                            @endforeach
                         </div>
-                        @endforeach
                     </div>
                 @endif
 
                 {{-- ── Consumo de materiales (si el proceso lo requiere) ── --}}
                 @if($processModalHasInventory)
-                <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-3">
+                <div class="rounded-xl border border-orange-200 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-900/10 p-5 space-y-3">
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                             <x-heroicon-o-archive-box class="w-4 h-4 text-orange-500" />

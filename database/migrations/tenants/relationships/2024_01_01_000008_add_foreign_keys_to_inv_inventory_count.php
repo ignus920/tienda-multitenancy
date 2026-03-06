@@ -11,6 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('inv_inventory_count')) {
+            return;
+        }
         Schema::table('inv_inventory_count', function (Blueprint $table) {
             $table->foreign('itemId', 'inv_inventory_count_ibfk_1')
                 ->references('id')
@@ -24,6 +27,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('inv_inventory_count')) {
+            return;
+        }
         Schema::table('inv_inventory_count', function (Blueprint $table) {
             $table->dropForeign('inv_inventory_count_ibfk_1');
         });
