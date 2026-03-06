@@ -79,35 +79,20 @@
                 <p class="text-sm">No hay procesos asignados aún.</p>
             </div>
         @else
-            <ul id="sortable-processes"
-                class="space-y-2"
-                x-data="{
-                    init() {
-                        Sortable.create(document.getElementById('sortable-processes'), {
-                            handle: '.drag-handle',
-                            animation: 150,
-                            ghostClass: 'opacity-40',
-                            onEnd: () => {
-                                const ids = [...document.querySelectorAll('#sortable-processes [data-id]')]
-                                    .map(el => parseInt(el.dataset.id));
-                                $wire.reorderProcesses(ids);
-                            }
-                        });
-                    }
-                }">
+            <ul id="sortable-processes-{{ $itemId }}" class="space-y-2">
                 @foreach($assignedProcesses as $item)
                     <li data-id="{{ $item['id'] }}"
                         class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 group transition-colors hover:border-amber-300 dark:hover:border-amber-600">
 
                         {{-- Handle de arrastre --}}
-                        <span class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 flex-shrink-0">
+                        <span class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 flex-shrink-0" title="Arrastrar para reordenar">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
                             </svg>
                         </span>
 
                         {{-- Número de orden --}}
-                        <span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full flex-shrink-0 order-badge">
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full flex-shrink-0">
                             {{ $item['process_route_order'] }}
                         </span>
 
@@ -139,6 +124,33 @@
 
 </div>
 
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
-@endpush
+@script
+<script>
+    (function () {
+        function initSortable() {
+            var listId = 'sortable-processes-{{ $itemId }}';
+            var el = document.getElementById(listId);
+            if (!el) return;
+
+            if (el._sortableInstance) {
+                el._sortableInstance.destroy();
+                el._sortableInstance = null;
+            }
+
+            el._sortableInstance = new Sortable(el, {
+                handle: '.drag-handle',
+                animation: 150,
+                ghostClass: 'opacity-40',
+                onEnd: function () {
+                    var ids = Array.from(el.querySelectorAll('[data-id]')).map(function (e) {
+                        return parseInt(e.dataset.id);
+                    });
+                    $wire.reorderProcesses(ids);
+                }
+            });
+        }
+
+        initSortable();
+    })();
+</script>
+@endscript
