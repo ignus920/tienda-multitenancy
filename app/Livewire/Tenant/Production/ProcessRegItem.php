@@ -106,6 +106,20 @@ class ProcessRegItem extends Component
         }
     }
 
+    public function reorderProcesses(array $orderedIds): void
+    {
+        $this->ensureTenantConnection();
+
+        foreach ($orderedIds as $index => $id) {
+            PrdProcessItem::where('id', $id)
+                ->where('itemId', $this->itemId)
+                ->whereNull('deleted_at')
+                ->update(['process_route_order' => $index + 1]);
+        }
+
+        $this->loadAssignedProcesses();
+    }
+
     private function ensureTenantConnection()
     {
         $tenantId = session('tenant_id');

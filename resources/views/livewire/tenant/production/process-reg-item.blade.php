@@ -61,9 +61,17 @@
         </div>
     </div>
 
-    <!-- Tabla de procesos asignados -->
+    <!-- Lista de procesos asignados con drag & drop -->
     <div>
-        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Procesos asignados</h4>
+        <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Procesos asignados</h4>
+            @if(count($assignedProcesses) > 1)
+                <span class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                    <x-heroicon-o-arrows-up-down class="w-3.5 h-3.5" />
+                    Arrastra para reordenar
+                </span>
+            @endif
+        </div>
 
         @if(count($assignedProcesses) === 0)
             <div class="text-center py-8 text-gray-400 dark:text-gray-500 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
@@ -71,53 +79,66 @@
                 <p class="text-sm">No hay procesos asignados aún.</p>
             </div>
         @else
-            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Orden
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Proceso
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Notas previas
-                            </th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach($assignedProcesses as $item)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full">
-                                        {{ $item['process_route_order'] }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                                    {{ $item['process']['name'] ?? '—' }}
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $item['process']['previous_notes'] ?? '—' }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-center">
-                                    <button type="button"
-                                        wire:click="removeProcess({{ $item['id'] }})"
-                                        wire:confirm="¿Está seguro de eliminar este proceso de la ruta?"
-                                        class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                                        title="Eliminar">
-                                        <x-heroicon-o-trash class="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+            <ul id="sortable-processes"
+                class="space-y-2"
+                x-data="{
+                    init() {
+                        Sortable.create(document.getElementById('sortable-processes'), {
+                            handle: '.drag-handle',
+                            animation: 150,
+                            ghostClass: 'opacity-40',
+                            onEnd: () => {
+                                const ids = [...document.querySelectorAll('#sortable-processes [data-id]')]
+                                    .map(el => parseInt(el.dataset.id));
+                                $wire.reorderProcesses(ids);
+                            }
+                        });
+                    }
+                }">
+                @foreach($assignedProcesses as $item)
+                    <li data-id="{{ $item['id'] }}"
+                        class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 group transition-colors hover:border-amber-300 dark:hover:border-amber-600">
+
+                        {{-- Handle de arrastre --}}
+                        <span class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+                            </svg>
+                        </span>
+
+                        {{-- Número de orden --}}
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full flex-shrink-0 order-badge">
+                            {{ $item['process_route_order'] }}
+                        </span>
+
+                        {{-- Nombre del proceso --}}
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {{ $item['process']['name'] ?? '—' }}
+                            </p>
+                            @if(!empty($item['process']['previous_notes']))
+                                <p class="text-xs text-gray-400 dark:text-gray-500 truncate">
+                                    {{ $item['process']['previous_notes'] }}
+                                </p>
+                            @endif
+                        </div>
+
+                        {{-- Botón eliminar --}}
+                        <button type="button"
+                            wire:click="removeProcess({{ $item['id'] }})"
+                            wire:confirm="¿Está seguro de eliminar este proceso de la ruta?"
+                            class="flex-shrink-0 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Eliminar">
+                            <x-heroicon-o-trash class="w-4 h-4" />
+                        </button>
+                    </li>
+                @endforeach
+            </ul>
         @endif
     </div>
 
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+@endpush
