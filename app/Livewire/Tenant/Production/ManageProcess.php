@@ -127,8 +127,11 @@ class ManageProcess extends Component
 
     private function loadOperatorUsers()
     {
+        $tenantId = session('tenant_id');
+
         $this->operatorUsers = User::on('central')
             ->where('profile_id', 8)
+            ->whereHas('tenants', fn($q) => $q->where('tenants.id', $tenantId))
             ->orderBy('name')
             ->get(['id', 'name', 'email'])
             ->toArray();
