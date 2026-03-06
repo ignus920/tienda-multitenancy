@@ -314,11 +314,19 @@
     </div>
 
     <!-- Observations -->
-    @if($quote->observations)
+    @if($quote->observations || isset($giftObservation))
         <div class="separator"></div>
         <div class="observations-section">
             <div class="observations-title">Observaciones:</div>
-            <div class="observations-text">{{ $quote->observations }}</div>
+            <div class="observations-text">
+                @if($quote->observations)
+                    {!! nl2br(e($quote->observations)) !!}
+                @endif
+                @if(isset($giftObservation))
+                    @if($quote->observations) <br> @endif
+                    <div style="font-weight: bold; margin-top: 1mm;">{!! nl2br(e($giftObservation)) !!}</div>
+                @endif
+            </div>
         </div>
     @endif
 

@@ -23,9 +23,15 @@ class ImageGallery extends Model
         'itemId',       // ID del item al que pertenece la imagen
         'img_path',     // Ruta de la imagen en storage
         'type',         // Tipo: PRINCIPAL o GALERIA
+        'wp_media_id',  // ID de la imagen en WordPress (WooCommerce)
+        'sync_to_wp',   // Si la imagen debe sincronizarse con WordPress
         'created_at',   // Fecha de creación
         'updated_at',   // Fecha de actualización
         'deleted_at',   // Fecha de eliminación (soft delete)
+    ];
+
+    protected $casts = [
+        'sync_to_wp' => 'boolean',
     ];
 
     // Habilitar timestamps automáticos
