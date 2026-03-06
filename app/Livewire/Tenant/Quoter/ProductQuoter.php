@@ -362,9 +362,12 @@ class ProductQuoter extends Component
                 )
                 ->where('inv_items.status', 1)
                 ->with(['principalImage', 'invValues', 'tax'])
-                ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
-                ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
-                ->where('inv_items_store.stock_items_store', '>=', 0) // Mostrar todas las bodegas, incluyendo stock 0
+                ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+                ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+                ->where(function ($q) {
+                    $q->whereNull('inv_items_store.itemId') // Items no inventariables (sin registros en bodega)
+                      ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
+                })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
                     foreach ($words as $word) {
