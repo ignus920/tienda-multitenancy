@@ -318,9 +318,7 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.pricelists') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Listas de Precios
                 </a>
-                <a href="#" class="block rounded-md px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">
-                    Impuestos
-                </a>
+               
                 <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.campaigns.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Campañas
@@ -346,7 +344,7 @@ new class extends Component
                 @mouseenter="tooltip = true" @mouseleave="tooltip = false">
                 <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate
                     class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Listas de Precios</a>
-                <a href="#" class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Impuestos</a>
+           
                 <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
                     class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Campañas</a>
             </div>
