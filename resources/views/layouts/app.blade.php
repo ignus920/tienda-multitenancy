@@ -113,7 +113,9 @@
         <livewire:auth.login-warehouse-selector />
 
         <!-- Modal Global de Soporte -->
+        @if(!request()->routeIs('company.setup', 'company.*', 'register', 'login'))
         @livewire('tenant.components.ticket-request-modal')
+        @endif
 
         <!-- Modal Global de Imágenes de Producto -->
         @livewire('tenant.components.product-image-modal')
