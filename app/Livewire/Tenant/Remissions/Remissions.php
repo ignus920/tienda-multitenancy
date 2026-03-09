@@ -17,6 +17,7 @@ use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\InvoiceDataBuilder;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
+use App\Services\Tenant\Campaigns\CampaignService;
 
 class Remissions extends Component
 {
@@ -616,13 +617,19 @@ class Remissions extends Component
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
 
+            // Validar y asignar regalo de campaña
+            $campaignService = app(CampaignService::class);
+            $assignedCampaign = $campaignService->checkAndAssignGift($remission);
+            $giftObservation = $assignedCampaign ? "\n*** OBSEQUIO: {$assignedCampaign->name} ***" : "";
+
             $data = [
                 'quote' => $remission, // Pasamos la remisión como 'quote' para reusar la vista
                 'customer' => $remission->quote->customer ?? null,
                 'company' => $company,
                 'documentTitle' => 'REMISIÓN',
                 'showQR' => true,
-                'defaultObservations' => 'Sin observaciones.'
+                'defaultObservations' => 'Sin observaciones.' . $giftObservation,
+                'giftObservation' => $giftObservation
             ];
             Log::info('📝 Datos preparados para la vista');
 

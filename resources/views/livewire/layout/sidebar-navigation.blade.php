@@ -60,6 +60,7 @@ new class extends Component
 
     <!-- Navigation -->
     <nav class="flex flex-1 flex-col p-4 space-y-1">
+        @php $isOperario = auth()->user()?->profile_id === 8; @endphp
         <!-- Dashboard
         <a href="{{ route('dashboard') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -90,6 +91,7 @@ new class extends Component
 
 
         <!-- Escritorio -->
+        @if(!$isOperario)
         <a href="{{ route('tenant.dashboard') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.select') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -117,8 +119,10 @@ new class extends Component
 
 
 
+        @endif
+
         <!-- Ventas (menú con subitems) -->
-        @if(PermissionHelper::userCanAny(['Ventas'], 'show'))
+        @if(!$isOperario && PermissionHelper::userCanAny(['Ventas'], 'show'))
         <div x-data="{ 
             tooltip: false, 
             open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'true' : 'false' }} 
@@ -190,7 +194,7 @@ new class extends Component
 
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
-        @if(PermissionHelper::userCanAny(['Usuarios'], 'show'))
+        @if(!$isOperario && PermissionHelper::userCanAny(['Usuarios'], 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -273,7 +277,7 @@ new class extends Component
         </a>-->
 
         <!-- Parámetros (menú con subitems) -->
-        @if(PermissionHelper::userCan('Parametros', 'show'))
+        @if(!$isOperario && PermissionHelper::userCan('Parametros', 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -314,8 +318,14 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.pricelists') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Listas de Precios
                 </a>
-                <a href="#" class="block rounded-md px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">
-                    Impuestos
+               
+                <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.campaigns.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Campañas
+                </a>
+                <a href="{{ route('tenant.tickets') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.tickets') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Solicitudes
                 </a>
                 {{-- <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.zones') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
@@ -334,7 +344,9 @@ new class extends Component
                 @mouseenter="tooltip = true" @mouseleave="tooltip = false">
                 <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate
                     class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Listas de Precios</a>
-                <a href="#" class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Impuestos</a>
+           
+                <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
+                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Campañas</a>
             </div>
         </div>
         @endif
@@ -454,8 +466,63 @@ new class extends Component
         </div>
         @endif
 
-        <!-- Importaciones -->
-        @if(PermissionHelper::userCan('Compras', 'show'))
+        <!-- Producción (menú con subitems) -->
+        <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }} }" class="w-full">
+            <!-- Botón principal -->
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('production.*') ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600 dark:hover:text-amber-400' }} cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="tooltip = false" @click="open = !open">
+
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>
+                    Producción
+                </span>
+
+                <!-- Icono desplegable -->
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
+
+                <!-- Tooltip (sidebar colapsado) -->
+                <div x-show="tooltip" x-transition
+                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                    Producción
+                </div>
+            </div>
+
+            <!-- Submenú -->
+            <div x-show="open && !sidebarCollapsed" x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <a href="{{ route('production.orders') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('production.orders') ? 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'hover:text-amber-600 dark:hover:text-amber-400' }}">
+                    Órdenes
+                </a>
+                <a href="{{ route('production.processes') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('production.processes') ? 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'hover:text-amber-600 dark:hover:text-amber-400' }}">
+                    Procesos
+                </a>
+            </div>
+
+            <!-- Submenú colapsado -->
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
+                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
+                <a href="{{ route('production.orders') }}" wire:navigate
+                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Órdenes</a>
+                <a href="{{ route('production.processes') }}" wire:navigate
+                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Procesos</a>
+            </div>
+        </div>
+
+        @if(!$isOperario)
+         <!-- Importaciones -->
         <a href="{{ route('imports.imports') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -481,38 +548,8 @@ new class extends Component
                 Importaciones
             </div>
         </a>
-        @endif
-        
-        <!-- Ordenes -->
-        @if(PermissionHelper::userCan('Compras', 'show'))
-        <a href="{{ route('imports-orders') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-                </svg>
-
-
-            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
-                class="ml-3">
-                Ordenes
-            </span>
-
-            <!-- Tooltip -->
-            <div x-show="tooltip" x-transition
-                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                Ordenes
-            </div>
-        </a>
-        @endif
-
-        <!-- Caja -->
-        @if(PermissionHelper::userCan('Caja', 'show'))
+            <!-- Caja -->
         <a href="{{ route('petty-cash.petty-cash') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('petty-cash.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"

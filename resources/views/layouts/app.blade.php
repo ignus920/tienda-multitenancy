@@ -17,6 +17,13 @@
 
         <!-- SweetAlert2 -->
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+        <!-- Quill.js -->
+        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+        <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+        <!-- SortableJS -->
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
     </head>
     <body class="font-sans antialiased"
           x-data="{
@@ -107,6 +114,14 @@
         
         <!-- Login Warehouse Selector Modal - Para selección de bodega después del login -->
         <livewire:auth.login-warehouse-selector />
+
+        <!-- Modal Global de Soporte -->
+        @if(!request()->routeIs('company.setup', 'company.*', 'register', 'login'))
+        @livewire('tenant.components.ticket-request-modal')
+        @endif
+
+        <!-- Modal Global de Imágenes de Producto -->
+        @livewire('tenant.components.product-image-modal')
 
         @livewireScripts
         @stack('scripts')

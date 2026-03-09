@@ -149,16 +149,12 @@ Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->grou
 
 
 require __DIR__ . '/auth.php';
-
 // Incluir rutas del módulo de parámetros del tenant
 require __DIR__ . '/tenants/parameters.php';
 // Incluir rutas del módulo de pagos de cotizacion 
 require __DIR__ . '/tenants/payments.php';
-
-
 // Incluir rutas del módulo de remisiones 
 require __DIR__ . '/tenants/remissions.php';
-
 //Incluir rutas del módelo de facturas
 require __DIR__ . '/tenants/invoices.php';
 // Incluir rutas del módulo de usuarios
@@ -167,3 +163,10 @@ require __DIR__ . '/tenants/users.php';
 require __DIR__ . '/tenants/transfer_request.php';
 // Incluir rutas del módulo de importaciones
 require __DIR__ . '/tenants/imports.php';
+// Incluir rutas del módulo de producción
+require __DIR__ . '/tenants/production.php';
+// Incluir rutas del módulo de campañas (regalos)
+require __DIR__ . '/tenants/campaigns.php';
+// Incluir rutas del módulo de solicitudes/tickets
+require __DIR__ . '/tenants/tickets.php';
+

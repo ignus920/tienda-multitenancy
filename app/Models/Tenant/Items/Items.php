@@ -265,20 +265,24 @@ class Items extends Model
      */
     private function getPriceWithPriceList()
     {
-        // Buscar el Precio Base
-        $basePriceRecord = $this->invValues()
+        // Usar la relación cargada (colección) en lugar de disparar una nueva consulta
+        $basePriceRecord = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Base')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         if (!$basePriceRecord) {
             return 0;
         }
 
-        // Obtener la lista de precios activa (primera activa por simplicidad)
-        $priceList = CnfPricelist::active()->first();
+        // Obtener la lista de precios activa (Cacheada estáticamente por request)
+        static $cachedPriceList = null;
+        if ($cachedPriceList === null) {
+            $cachedPriceList = CnfPricelist::active()->first() ?: false;
+        }
+        $priceList = $cachedPriceList === false ? null : $cachedPriceList;
 
         if (!$priceList) {
             // Sin multiplicador, pero aún aplicar IVA si existe
@@ -307,11 +311,11 @@ class Items extends Model
      */
     private function getPriceFromInventory()
     {
-        // Buscar el precio más reciente (cualquier label de precio)
-        $priceRecord = $this->invValues()
+        // Buscar el precio más reciente usando la colección cargada
+        $priceRecord = $this->invValues
             ->where('type', 'precio')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         return $priceRecord ? $priceRecord->values : 0;
@@ -346,12 +350,12 @@ class Items extends Model
      */
     private function getAllPricesWithPriceList()
     {
-        // Buscar el Precio Base
-        $basePriceRecord = $this->invValues()
+        // Usar la relación cargada (colección)
+        $basePriceRecord = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Base')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         if (!$basePriceRecord) {
@@ -367,8 +371,12 @@ class Items extends Model
             $taxPercentage = $this->tax->percentage / 100; // Convertir a decimal (19% = 0.19)
         }
 
-        // Obtener TODAS las listas de precios activas
-        $priceLists = CnfPricelist::active()->get();
+        // Obtener TODAS las listas de precios activas (Cacheada estáticamente por request)
+        static $cachedActiveLists = null;
+        if ($cachedActiveLists === null) {
+            $cachedActiveLists = CnfPricelist::active()->get();
+        }
+        $priceLists = $cachedActiveLists;
 
         foreach ($priceLists as $priceList) {
             // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
@@ -377,12 +385,12 @@ class Items extends Model
             $prices[$priceList->title] = $priceWithIva;
         }
 
-        // AGREGAR: Incluir "Precio Regular" y "Precio Crédito" desde inv_values
-        $precioRegular = $this->invValues()
+        // Obtener Regular y Crédito desde la colección cargada
+        $precioRegular = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Regular')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         $regularPriceValue = null;
@@ -391,11 +399,11 @@ class Items extends Model
             $prices['Precio Regular'] = $regularPriceValue;
         }
 
-        $precioCredito = $this->invValues()
+        $precioCredito = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Crédito')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         if ($precioCredito) {
@@ -428,12 +436,11 @@ class Items extends Model
      */
     private function getAllPricesFromInventory()
     {
-        // Obtener TODOS los precios del producto ordenados por fecha
-        $priceRecords = $this->invValues()
+        // Obtener TODOS los precios desde la colección cargada
+        $priceRecords = $this->invValues
             ->where('type', 'precio')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->sortByDesc('date')
+            ->sortByDesc('created_at');
 
         $prices = [];
 

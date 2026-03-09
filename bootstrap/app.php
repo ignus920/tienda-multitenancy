@@ -10,27 +10,27 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: function (){
-              Route::middleware('web')
+        then: function () {
+            Route::middleware(['web', 'tenant'])
                 ->group(base_path('routes/tenants/customers.php'));
 
-             Route::middleware('web')
+            Route::middleware(['web', 'tenant'])
                 ->group(base_path('routes/tenants/items.php'));
 
-             Route::middleware('web')
+            Route::middleware(['web', 'tenant'])
                 ->group(base_path('routes/tenants/petty_cash.php'));
 
-             Route::middleware('web')
+            Route::middleware(['web', 'tenant'])
                 ->group(base_path('routes/tenants/quoter.php'));
 
-             Route::middleware('web')
-                ->group(base_path('routes/tenants/users.php'));      
-        
-             Route::middleware('web')
-                ->group(base_path('routes/tenants/movements.php')); 
+            Route::middleware(['web', 'tenant'])
+                ->group(base_path('routes/tenants/users.php'));
 
-             Route::middleware('web')
-                ->group(base_path('routes/tenants/transfers.php')); 
+            Route::middleware(['web', 'tenant'])
+                ->group(base_path('routes/tenants/movements.php'));
+
+            Route::middleware(['web', 'tenant'])
+                ->group(base_path('routes/tenants/transfers.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

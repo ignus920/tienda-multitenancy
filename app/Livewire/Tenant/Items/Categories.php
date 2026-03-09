@@ -143,8 +143,8 @@ class Categories extends Component
 
         try {
 
-            $categoryService = app(CategoriesService::class);
             $this->ensureTenantConnection();
+            $categoryService = app(CategoriesService::class);
             $category = $categoryService->createCategory([
                 'name' => $this->newCategoryName,
                 'status' => 1,

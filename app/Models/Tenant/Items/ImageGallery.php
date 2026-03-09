@@ -22,11 +22,57 @@ class ImageGallery extends Model
     protected $fillable = [
         'itemId',       // ID del item al que pertenece la imagen
         'img_path',     // Ruta de la imagen en storage
-        'type',         // Tipo: PRINCIPAL o GALERIA
+        'type',         // Tipo: PRINCIPAL, GALERIA, PDF
         'created_at',   // Fecha de creación
         'updated_at',   // Fecha de actualización
         'deleted_at',   // Fecha de eliminación (soft delete)
     ];
+
+    /**
+     * Relación con los datos de sincronización de WordPress.
+     */
+    public function wpSync()
+    {
+        return $this->hasOne(\App\Models\Tenant\WordPress\InvWordpressImage::class, 'image_id', 'id');
+    }
+
+    /**
+     * Accessor para mantener compatibilidad con el código que busca wp_media_id directamente.
+     */
+    public function getWpMediaIdAttribute()
+    {
+        return $this->wpSync ? $this->wpSync->wp_media_id : null;
+    }
+
+    /**
+     * Mutador para sincronizar automáticamente con la tabla externa de WordPress.
+     */
+    public function setWpMediaIdAttribute($value)
+    {
+        $this->wpSync()->updateOrCreate(
+            ['image_id' => $this->id],
+            ['itemId' => $this->itemId, 'wp_media_id' => $value]
+        );
+    }
+
+    /**
+     * Accessor para mantener compatibilidad con el código que busca sync_to_wp directamente.
+     */
+    public function getSyncToWpAttribute()
+    {
+        return $this->wpSync ? $this->wpSync->sync_to_wp : false;
+    }
+
+    /**
+     * Mutador para sincronizar automáticamente con la tabla externa de WordPress.
+     */
+    public function setSyncToWpAttribute($value)
+    {
+        $this->wpSync()->updateOrCreate(
+            ['image_id' => $this->id],
+            ['itemId' => $this->itemId, 'sync_to_wp' => $value]
+        );
+    }
 
     // Habilitar timestamps automáticos
     public $timestamps = true;

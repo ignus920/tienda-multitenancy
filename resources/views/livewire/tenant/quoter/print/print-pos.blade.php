@@ -254,13 +254,17 @@
 
     <!-- Customer Info -->
     <div class="customer-section">
-        <div class="customer-line bold">Cliente: {{ Str::limit($customer->businessName ?: $customer->firstName . ' ' . $customer->lastName, 35) }}</div>
-        <div class="customer-line">{{ $customer->identification }}</div>
-        @if($customer->phone)
-            <div class="customer-line">Tel: {{ $customer->phone }}</div>
-        @endif
-        @if($customer->billingEmail)
-            <div class="customer-line">{{ Str::limit($customer->billingEmail, 30) }}</div>
+        @if($customer)
+            <div class="customer-line bold">Cliente: {{ Str::limit($customer->businessName ?: $customer->firstName . ' ' . $customer->lastName, 35) }}</div>
+            <div class="customer-line">{{ $customer->identification }}</div>
+            @if($customer->phone)
+                <div class="customer-line">Tel: {{ $customer->phone }}</div>
+            @endif
+            @if($customer->billingEmail)
+                <div class="customer-line">{{ Str::limit($customer->billingEmail, 30) }}</div>
+            @endif
+        @else
+            <div class="customer-line bold">Cliente: —</div>
         @endif
     </div>
 
@@ -279,12 +283,12 @@
             @endphp
 
             <div class="product-item">
-                @if($detalle->item->sku)
+                @if($detalle->item?->sku)
                     <div class="product-code">{{ $detalle->item->sku }}</div>
                 @endif
 
                 <div class="product-name">
-                    {{ Str::limit($detalle->item->name ?? $detalle->item->display_name, 35) }}
+                    {{ Str::limit($detalle->item?->name ?? $detalle->item?->display_name ?? 'Producto no encontrado', 35) }}
                 </div>
 
                 <div class="quantity-price">
@@ -314,11 +318,19 @@
     </div>
 
     <!-- Observations -->
-    @if($quote->observations)
+    @if($quote->observations || isset($giftObservation))
         <div class="separator"></div>
         <div class="observations-section">
             <div class="observations-title">Observaciones:</div>
-            <div class="observations-text">{{ $quote->observations }}</div>
+            <div class="observations-text">
+                @if($quote->observations)
+                    {!! nl2br(e($quote->observations)) !!}
+                @endif
+                @if(isset($giftObservation))
+                    @if($quote->observations) <br> @endif
+                    <div style="font-weight: bold; margin-top: 1mm;">{!! nl2br(e($giftObservation)) !!}</div>
+                @endif
+            </div>
         </div>
     @endif
 

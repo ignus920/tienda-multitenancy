@@ -308,6 +308,13 @@
                                                 <x-heroicon-o-pencil-square class="w-6 h-6" />
                                                 Editar
                                             </button>
+                                            <button @click.stop="$dispatch('openTicketModal', { productId: {{ $it->id }} }); open = false"
+                                                class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                                </svg>
+                                                Solicitud Soporte
+                                            </button>
                                             <button wire:click="openLocationsModal({{ $it->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
@@ -391,28 +398,24 @@
                     </button>
                 </div>
                 
-                @if ($this->canUseImports())
-                    <!-- Sistema de Pestañas - Solo visible después de guardar -->
-                    @if($item_id)
+                <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
+                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO'))
                     <div class="px-6 pt-4">
                         <div class="border-b border-gray-200 dark:border-gray-700">
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                                <!-- Pestaña de Información General -->
+                                <!-- Pestaña Información General -->
                                 <button type="button" wire:click="$set('showProductionSection', false)"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection),
                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection)}">
                                     <div class="flex items-center space-x-2">
                                         <x-heroicon-o-information-circle class="w-5 h-5" />
-                                        {{-- <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg> --}}
                                         <span>Información General</span>
                                     </div>
                                 </button>
 
-                                <!-- Pestaña de Producción - Solo visible si el tipo es PRODUCIDO -->
-                                @if($type == 'IMPORTADO')
+                                <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO -->
+                                @if($this->canUseImports() && $type == 'IMPORTADO')
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
@@ -420,18 +423,25 @@
                                     <div class="flex items-center space-x-2">
                                         <x-heroicon-o-truck class="w-5 h-5" />
                                         <span>Importado</span>
-                                        @if(!$showProductionSection)
-                                        {{-- <span class="ml-2 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs px-2 py-0.5 rounded-full">
-                                            Nuevo
-                                        </span> --}}
-                                        @endif
+                                    </div>
+                                </button>
+                                @endif
+
+                                <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
+                                @if($type == 'PRODUCIDO')
+                                <button type="button" wire:click="$set('showProductionSection', true)"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-cog-6-tooth class="w-5 h-5" />
+                                        <span>Proceso de Producción</span>
                                     </div>
                                 </button>
                                 @endif
                             </nav>
                         </div>
                     </div>
-                    @endif 
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
@@ -761,16 +771,20 @@
                         <!-- Sección de Galería de Imágenes -->
                         @if ($item_id)
                         <div class="border-t border-gray-300 dark:border-gray-600 my-6"></div>
-                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                </path>
-                            </svg>
-                            Imágenes del Producto
-                        </h3>
-                        @livewire('tenant.items.item-image-upload', ['itemId' => $item_id],
-                        key('image-upload-'.$item_id))
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Imágenes del Producto
+                            </h3>
+                            <button type="button" @click="$dispatch('openImageModal', { productId: {{ $item_id }} })"
+                                class="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg hover:bg-indigo-200 transition-colors">
+                                Gestionar Galería
+                            </button>
+                        </div>
                         @endif
 
                         <!-- Mensajes -->
@@ -811,8 +825,12 @@
                     </div>
                 </form>
                 @elseif($item_id && $showProductionSection)
-                <!-- PESTAÑA 2: FORMULARIO DE PRODUCCIÓN (solo cuando showProductionSection es true y el item existe) -->
+                <!-- PESTAÑA 2: Contenido según el tipo del item -->
+                @if($type == 'IMPORTADO')
                 @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key($item_id))
+                @elseif($type == 'PRODUCIDO')
+                @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
+                @endif
                 @endif
 
             </div>
@@ -1029,4 +1047,5 @@
         </div>
     </div>
     @endif
+
 </div>
