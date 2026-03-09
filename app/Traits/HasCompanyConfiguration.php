@@ -10,102 +10,60 @@ use Illuminate\Support\Facades\Log;
 trait HasCompanyConfiguration
 {
     /**
-     * Instancia del servicio de configuración
+     * Instancia del servicio de configuración (Compartido)
      */
-    protected ?CompanyConfigurationService $configService = null;
+    protected static ?CompanyConfigurationService $staticConfigService = null;
 
     /**
-     * Datos de configuración cacheados en la instancia
+     * Datos de configuración cacheados (Compartido)
      */
-    protected array $cachedConfig = [];
+    protected static array $staticCachedConfig = [];
 
     /**
-     * ID de la empresa actual
+     * ID de la empresa actual (Compartido)
      */
-    protected ?int $currentCompanyId = null;
+    protected static ?int $sharedCompanyId = null;
 
     /**
-     * ID del plan actual
+     * ID del plan actual (Compartido)
      */
-    protected ?int $currentPlainId = null;
+    protected static ?int $sharedPlainId = null;
 
     /**
-     * Flag para controlar si ya fue inicializado
+     * Flag para controlar si ya fue inicializado (Compartido)
      */
-    private bool $isConfigurationInitialized = false;
+    private static bool $isStaticInitialized = false;
 
     /**
      * Inicializa la configuración de la empresa
      */
     protected function initializeCompanyConfiguration(): void
     {
-        if ($this->isConfigurationInitialized) {
-            Log::info('🔧 initializeCompanyConfiguration() - YA INICIALIZADO, saltando...');
+        if (self::$isStaticInitialized && self::$staticConfigService && self::$sharedCompanyId) {
             return;
         }
 
-        Log::info('🔧 initializeCompanyConfiguration() - INICIO');
+        self::$staticConfigService = app(CompanyConfigurationService::class);
 
-        $this->configService = app(CompanyConfigurationService::class);
-        Log::info('🔧 ConfigService creado', ['service_exists' => $this->configService ? 'YES' : 'NO']);
-
-        // Obtener datos de la empresa actual usando el mismo validador que UpdateCompany
         $user = Auth::user();
-        Log::info('🔧 Usuario obtenido', [
-            'user_exists' => $user ? 'YES' : 'NO',
-            'user_id' => $user->id ?? 'NULL',
-            'user_email' => $user->email ?? 'NULL'
-        ]);
 
         if ($user) {
             $validator = app(CompanyDataValidator::class);
-            Log::info('🔧 Validator creado');
-
             $company = $validator->getUserCompany($user);
-            Log::info('🔧 Empresa obtenida', [
-                'company_exists' => $company ? 'YES' : 'NO',
-                'company_id' => $company->id ?? 'NULL',
-                'company_name' => $company->businessName ?? 'NULL'
-            ]);
 
             if ($company) {
-                $this->currentCompanyId = $company->id;
-                $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
+                self::$sharedCompanyId = $company->id;
+                self::$sharedPlainId = $this->getUserPlainId($user);
 
-                Log::info('🔧 IDs asignados', [
-                    'currentCompanyId' => $this->currentCompanyId,
-                    'currentPlainId' => $this->currentPlainId
-                ]);
-            } else {
-                Log::warning('🔧 No se encontró empresa para el usuario');
+                // Precargar configuraciones comunes
+                self::$staticConfigService->preloadCommonConfigurations(
+                    self::$sharedCompanyId,
+                    self::$sharedPlainId
+                );
             }
-
-        } else {
-            Log::warning('🔧 No hay usuario autenticado');
         }
 
-        // Precargar configuraciones comunes
-        if ($this->currentCompanyId && $this->currentPlainId) {
-            Log::info('🔧 Precargando configuraciones');
-            $this->configService->preloadCommonConfigurations(
-                $this->currentCompanyId,
-                $this->currentPlainId
-            );
-            Log::info('🔧 Configuraciones precargadas exitosamente');
-        } else {
-            Log::warning('🔧 No se pueden precargar configuraciones - faltan IDs', [
-                'currentCompanyId' => $this->currentCompanyId,
-                'currentPlainId' => $this->currentPlainId
-            ]);
-        }
-
-        $this->isConfigurationInitialized = true;
-
-        Log::info('🔧 initializeCompanyConfiguration() - FIN', [
-            'final_companyId' => $this->currentCompanyId,
-            'final_plainId' => $this->currentPlainId,
-            'final_configService' => $this->configService ? 'YES' : 'NO'
-        ]);
+        self::$isStaticInitialized = true;
     }
 
     /**
@@ -115,13 +73,13 @@ trait HasCompanyConfiguration
     {
         $this->ensureConfigurationInitialized();
 
-        if (!$this->configService || !$this->currentCompanyId || !$this->currentPlainId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId || !self::$sharedPlainId) {
             return false;
         }
 
-        return $this->configService->shouldShowField(
-            $this->currentCompanyId,
-            $this->currentPlainId,
+        return self::$staticConfigService->shouldShowField(
+            self::$sharedCompanyId,
+            self::$sharedPlainId,
             $modulName,
             $optionName
         );
@@ -132,15 +90,8 @@ trait HasCompanyConfiguration
      */
     private function ensureConfigurationInitialized(): void
     {
-        if (!$this->configService || !$this->currentCompanyId) {
-            Log::warning('🔄 Estado perdido - Re-inicializando configuración...');
-            $this->isConfigurationInitialized = false; // Resetear flag
+        if (!self::$isStaticInitialized || !self::$staticConfigService || !self::$sharedCompanyId) {
             $this->initializeCompanyConfiguration();
-
-            Log::info('🔄 Estado después de re-inicialización', [
-                'companyId' => $this->currentCompanyId ?? 'NULL',
-                'configService_exists' => isset($this->configService) ? 'YES' : 'NO'
-            ]);
         }
     }
 
@@ -151,11 +102,11 @@ trait HasCompanyConfiguration
     {
         $this->ensureConfigurationInitialized();
 
-        if (!$this->configService || !$this->currentCompanyId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId) {
             return false;
         }
 
-        return $this->configService->isOptionEnabled($this->currentCompanyId, $optionId);
+        return self::$staticConfigService->isOptionEnabled(self::$sharedCompanyId, $optionId);
     }
 
     /**
@@ -163,11 +114,11 @@ trait HasCompanyConfiguration
      */
     protected function areOptionsEnabled(array $optionIds): array
     {
-        if (!$this->configService || !$this->currentCompanyId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId) {
             return array_fill_keys($optionIds, false);
         }
 
-        return $this->configService->areOptionsEnabled($this->currentCompanyId, $optionIds);
+        return self::$staticConfigService->areOptionsEnabled(self::$sharedCompanyId, $optionIds);
     }
 
     /**
@@ -175,11 +126,11 @@ trait HasCompanyConfiguration
      */
     protected function getEnabledOptions(): array
     {
-        if (!$this->configService || !$this->currentCompanyId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId) {
             return [];
         }
 
-        return $this->configService->getEnabledOptions($this->currentCompanyId);
+        return self::$staticConfigService->getEnabledOptions(self::$sharedCompanyId);
     }
 
     /**
@@ -189,11 +140,11 @@ trait HasCompanyConfiguration
     {
         $this->ensureConfigurationInitialized();
 
-        if (!$this->configService || !$this->currentCompanyId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId) {
             return null;
         }
 
-        return $this->configService->getOptionValue($this->currentCompanyId, $optionId);
+        return self::$staticConfigService->getOptionValue(self::$sharedCompanyId, $optionId);
     }
 
     /**
@@ -201,13 +152,13 @@ trait HasCompanyConfiguration
      */
     protected function getConfigValue(string $modulName, string $optionName, $default = null)
     {
-        if (!$this->configService || !$this->currentCompanyId || !$this->currentPlainId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId || !self::$sharedPlainId) {
             return $default;
         }
 
-        return $this->configService->getConfigValue(
-            $this->currentCompanyId,
-            $this->currentPlainId,
+        return self::$staticConfigService->getConfigValue(
+            self::$sharedCompanyId,
+            self::$sharedPlainId,
             $modulName,
             $optionName,
             $default
@@ -219,23 +170,21 @@ trait HasCompanyConfiguration
      */
     protected function getModuleConfig(string $modulName): array
     {
-        if (!$this->configService || !$this->currentCompanyId || !$this->currentPlainId) {
+        if (!self::$staticConfigService || !self::$sharedCompanyId || !self::$sharedPlainId) {
             return [];
         }
 
         $cacheKey = "module_config_{$modulName}";
 
-        if (!isset($this->cachedConfig[$cacheKey])) {
-            $this->cachedConfig[$cacheKey] = $this->configService->getModuleConfiguration(
-                $this->currentCompanyId,
-                $this->currentPlainId,
+        if (!isset(self::$staticCachedConfig[$cacheKey])) {
+            self::$staticCachedConfig[$cacheKey] = self::$staticConfigService->getModuleConfiguration(
+                self::$sharedCompanyId,
+                self::$sharedPlainId,
                 $modulName
             );
-
-            
         }
 
-        return $this->cachedConfig[$cacheKey];
+        return self::$staticCachedConfig[$cacheKey];
     }
 
     /**
@@ -303,10 +252,10 @@ trait HasCompanyConfiguration
      */
     protected function clearConfigurationCache(): void
     {
-        if ($this->configService && $this->currentCompanyId && $this->currentPlainId) {
-            $this->configService->clearCache($this->currentCompanyId, $this->currentPlainId);
+        if (self::$staticConfigService && self::$sharedCompanyId && self::$sharedPlainId) {
+            self::$staticConfigService->clearCache(self::$sharedCompanyId, self::$sharedPlainId);
         }
 
-        $this->cachedConfig = [];
+        self::$staticCachedConfig = [];
     }
 }

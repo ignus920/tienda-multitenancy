@@ -214,8 +214,10 @@ class ProductQuoter extends Component
 
     public function boot()
     {
-        // Establecer conexión tenant lo más pronto posible (antes de la hidratación de modelos)
-        $this->ensureTenantConnection();
+        // Establecer conexión tenant solo si no está inicializada
+        if (!tenancy()->initialized) {
+            $this->ensureTenantConnection();
+        }
     }
 
     public function updatingSearch()
@@ -308,7 +310,9 @@ class ProductQuoter extends Component
      */
     public function hydrate()
     {
-        $this->ensureTenantConnection();
+        if (!tenancy()->initialized) {
+            $this->ensureTenantConnection();
+        }
     }
 
     private function ensureTenantConnection()
@@ -351,7 +355,9 @@ class ProductQuoter extends Component
     public function render()
     {
         try {
-            $this->ensureTenantConnection();
+            if (!tenancy()->initialized) {
+                $this->ensureTenantConnection();
+            }
             $userStoreId = $this->getUserStoreId();
 
             $query = Items::query()
@@ -405,62 +411,6 @@ class ProductQuoter extends Component
                 ->orderBy('inv_items.' . $this->sortField, $this->sortDirection);
 
             $products = $query->paginate($this->perPage);
-
-            Log::info('✅ Productos cargados', [
-                'total' => $products->total(),
-                'current_page' => $products->currentPage(),
-                'per_page' => $products->perPage(),
-                'last_page' => $products->lastPage(),
-                'productos_en_pagina' => $products->count(),
-                'productos_ids' => $products->pluck('id')->toArray(),
-                'productos_nombres' => $products->pluck('name')->toArray(),
-                'productos_stock_detalles' => $products->pluck('store_stock_details')->toArray(),
-                'productos_stock_total' => $products->pluck('total_stock')->toArray()
-            ]);
-
-            // LOG DETALLADO DE PRECIOS POR PRODUCTO
-            foreach ($products as $product) {
-                // Obtener todos los precios del producto
-                $allPrices = $product->all_prices;
-
-                // Obtener específicamente Precio Regular y Precio Crédito desde inv_values
-                $precioRegular = $product->invValues()
-                    ->where('type', 'precio')
-                    ->where('label', 'Precio Regular')
-                    ->orderBy('date', 'desc')
-                    ->first();
-
-                $precioCredito = $product->invValues()
-                    ->where('type', 'precio')
-                    ->where('label', 'Precio Crédito')
-                    ->orderBy('date', 'desc')
-                    ->first();
-
-                Log::info('💰 Precios del producto', [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'all_prices_count' => count($allPrices),
-                    'all_prices' => $allPrices,
-                    'precio_regular_exists' => $precioRegular ? 'SÍ' : 'NO',
-                    'precio_regular_value' => $precioRegular ? $precioRegular->values : null,
-                    'precio_regular_label' => $precioRegular ? $precioRegular->label : null,
-                    'precio_credito_exists' => $precioCredito ? 'SÍ' : 'NO',
-                    'precio_credito_value' => $precioCredito ? $precioCredito->values : null,
-                    'precio_credito_label' => $precioCredito ? $precioCredito->label : null,
-                    'inv_values_total' => $product->invValues->count(),
-                    'inv_values_precios' => $product->invValues()
-                        ->where('type', 'precio')
-                        ->get()
-                        ->map(function ($value) {
-                            return [
-                                'label' => $value->label,
-                                'value' => $value->values,
-                                'date' => $value->date
-                            ];
-                        })
-                        ->toArray()
-                ]);
-            }
 
             // Si estamos en una página que no existe, resetear a la página 1
             if ($products->currentPage() > $products->lastPage() && $products->total() > 0) {
