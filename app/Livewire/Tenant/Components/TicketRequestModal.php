@@ -69,6 +69,11 @@ class TicketRequestModal extends Component
         }
 
         // Verificar en la tabla central vnt_merchant_moduls si el módulo marketing está activo para este merchant
+        if (!$tenant->merchant_type_id) {
+            $this->isModuleActive = false;
+            return;
+        }
+
         $this->isModuleActive = DB::connection('mysql')->table('vnt_merchant_moduls')
             ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
             ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
