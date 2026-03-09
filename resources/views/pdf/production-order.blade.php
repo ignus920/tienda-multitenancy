@@ -168,6 +168,11 @@
         .bold { font-weight: bold; }
         .mt-4 { margin-top: 4px; }
         .no-data { color: #888; font-style: italic; font-size: 8px; }
+
+        @page { size: letter portrait; margin: 0.5in; }
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
     </style>
 </head>
 <body>
@@ -338,5 +343,10 @@
         </div>
     </div>
 
+<script>
+    window.onload = function() {
+        setTimeout(function() { window.print(); }, 500);
+    };
+</script>
 </body>
 </html>

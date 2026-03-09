@@ -10,8 +10,6 @@ use App\Models\Tenant\Production\PrdDataProcessOrder;
 use App\Models\Tenant\Production\PrdMaterialItems;
 use App\Models\Tenant\Items\UnitMeasurements;
 use App\Services\Tenant\TenantManager;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 
 class ProductionOrderPdfController extends Controller
 {
@@ -69,20 +67,9 @@ class ProductionOrderPdfController extends Controller
 
         $html = view('pdf.production-order', $data)->render();
 
-        $options = new Options();
-        $options->set('defaultFont', 'sans-serif');
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', false);
-        $options->set('dpi', 120);
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('letter', 'portrait');
-        $dompdf->render();
-
-        return response($dompdf->output(), 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => "inline; filename=\"orden-produccion-{$data['orderNumber']}.pdf\"",
+        return response($html, 200, [
+            'Content-Type'  => 'text/html; charset=utf-8',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
         ]);
     }
 }
