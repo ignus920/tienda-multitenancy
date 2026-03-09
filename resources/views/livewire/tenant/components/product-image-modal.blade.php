@@ -23,7 +23,7 @@
             
             <div class="flex items-center gap-2">
                 <!-- Botón de Sincronización WordPress -->
-                @if($productId)
+                @if($productId && $hasWpProduct)
                     <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })" 
                             class="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-all border border-indigo-200 dark:border-indigo-800">
                         <i class="fab fa-wordpress text-lg"></i>

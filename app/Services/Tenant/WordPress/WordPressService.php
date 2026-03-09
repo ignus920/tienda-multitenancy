@@ -54,7 +54,7 @@ class WordPressService
      */
     public function findProductBySku($sku)
     {
-        if (!$this->isConfigured()) return null;
+        if (!$this->isConfigured() || empty($sku)) return null;
 
         try {
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
