@@ -12,6 +12,7 @@ return new class extends Migration
             Schema::create('prd_material_items', function (Blueprint $table) {
                 $table->integer('id')->autoIncrement()->primary();
                 $table->double('qty')->nullable();
+                $table->integer('unit_measurement')->nullable();
                 // material_itemId referencia inv_items (módulo externo, sin FK constraint)
                 $table->integer('material_itemId')->nullable();
                 $table->integer('production_order_id')->nullable();
