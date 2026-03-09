@@ -23,11 +23,13 @@
             
             <div class="flex items-center gap-2">
                 <!-- Botón de Sincronización WordPress -->
-                <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })" 
-                        class="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-all border border-indigo-200 dark:border-indigo-800">
-                    <i class="fab fa-wordpress text-lg"></i>
-                    Sincronizar WP
-                </button>
+                @if($productId)
+                    <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })" 
+                            class="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-all border border-indigo-200 dark:border-indigo-800">
+                        <i class="fab fa-wordpress text-lg"></i>
+                        Sincronizar WP
+                    </button>
+                @endif
 
                 <button @click="$wire.close()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -14,6 +14,7 @@ use App\Models\Auth\Tenant;
 use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class TicketRequestModal extends Component
