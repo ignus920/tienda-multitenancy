@@ -257,21 +257,25 @@
     <div class="quote-details">
         <div class="customer-info">
             <div class="section-title">Señores:</div>
-            <div class="info-line"><strong>{{ $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName }}</strong></div>
-            <div class="info-line">Atención: {{ $customer->firstName }} {{ $customer->lastName }}</div>
-            <div class="info-line">NIT: {{ $customer->identification }}</div>
-            @if($customer->billingAddress)
-                <div class="info-line">Dirección: {{ $customer->billingAddress }}</div>
-            @endif
-            @if($customer->phone)
-                <div class="info-line">Teléfono: {{ $customer->phone }}</div>
+            @if($customer)
+                <div class="info-line"><strong>{{ $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName }}</strong></div>
+                <div class="info-line">Atención: {{ $customer->firstName }} {{ $customer->lastName }}</div>
+                <div class="info-line">NIT: {{ $customer->identification }}</div>
+                @if($customer->billingAddress)
+                    <div class="info-line">Dirección: {{ $customer->billingAddress }}</div>
+                @endif
+                @if($customer->phone)
+                    <div class="info-line">Teléfono: {{ $customer->phone }}</div>
+                @endif
+            @else
+                <div class="info-line"><strong>Cliente no encontrado</strong></div>
             @endif
         </div>
 
         <div class="quote-meta">
             <div class="info-line"><strong>Fecha:</strong> {{ $quote->created_at->format('Y-m-d') }}</div>
             <div class="info-line"><strong>Entrega:</strong> {{ $quote->created_at->addDays(3)->format('Y-m-d') }}</div>
-            <div class="info-line"><strong>Vendedor:</strong> {{ $quote->user->name ?? 'Sistema' }}</div>
+            <div class="info-line"><strong>Vendedor:</strong> {{ $quote->seller_name }}</div>
             <div class="info-line"><strong>Forma de Pago:</strong> Contado</div>
         </div>
     </div>
