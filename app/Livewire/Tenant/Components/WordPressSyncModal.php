@@ -99,7 +99,8 @@ class WordPressSyncModal extends Component
 
     public function calculateComparison()
     {
-        $localImages = ImageGallery::where('itemId', $this->itemId)
+        $localImages = ImageGallery::with('wpSync')
+            ->where('itemId', $this->itemId)
             ->whereNull('deleted_at')
             ->get();
 
@@ -220,7 +221,8 @@ class WordPressSyncModal extends Component
     {
         $images = collect();
         if ($this->itemId) {
-            $images = ImageGallery::where('itemId', $this->itemId)
+            $images = ImageGallery::with('wpSync')
+                ->where('itemId', $this->itemId)
                 ->whereNull('deleted_at')
                 ->get();
         }

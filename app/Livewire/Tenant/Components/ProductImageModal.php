@@ -28,7 +28,7 @@ class ProductImageModal extends Component
 
     protected $rules = [
         'mainImage' => 'nullable|image|max:2048', // 2MB max
-        'galleryImages.*' => 'image|max:2048',
+        'galleryImages.*' => 'nullable|mimes:jpg,jpeg,png,webp,pdf|max:2048',
     ];
 
     public function mount(\App\Services\Tenant\WordPress\WordPressService $wpService, $productId = null)
@@ -91,7 +91,7 @@ class ProductImageModal extends Component
 
     public function updatedGalleryImages()
     {
-        $this->validate(['galleryImages.*' => 'image|max:2048']);
+        $this->validate(['galleryImages.*' => 'mimes:jpg,jpeg,png,webp,pdf|max:2048']);
         $this->saveGalleryImages();
     }
 
@@ -125,19 +125,23 @@ class ProductImageModal extends Component
         $this->ensureTenantConnection();
         
         $tenantId = session('tenant_id', 'default');
-        foreach ($this->galleryImages as $image) {
-            $path = $image->store("items/{$tenantId}", 'public');
+        foreach ($this->galleryImages as $file) {
+            $path = $file->store("items/{$tenantId}", 'public');
+            
+            // Determinar el tipo según la extensión
+            $extension = strtolower($file->getClientOriginalExtension());
+            $type = ($extension === 'pdf') ? 'PDF' : 'GALERIA';
 
             ImageGallery::create([
                 'itemId' => $this->productId,
                 'img_path' => $path,
-                'type' => 'GALERIA',
+                'type' => $type,
             ]);
         }
 
         $this->galleryImages = [];
         $this->dispatch('refreshProductList');
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Galería actualizada']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Archivos agregados a la galería']);
     }
 
     public function deleteImage($imageId)
@@ -179,7 +183,8 @@ class ProductImageModal extends Component
         
         $images = [];
         if ($this->productId) {
-            $images = ImageGallery::where('itemId', $this->productId)
+            $images = ImageGallery::with('wpSync')
+                ->where('itemId', $this->productId)
                 ->whereNull('deleted_at')
                 ->orderBy('type', 'asc')
                 ->get();

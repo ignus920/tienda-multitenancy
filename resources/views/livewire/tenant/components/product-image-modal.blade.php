@@ -99,17 +99,35 @@
                         <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
-                        <h4 class="font-bold text-gray-900 dark:text-white">Galería de Imágenes ({{ collect($images)->where('type', 'GALERIA')->count() }})</h4>
+                        <h4 class="font-bold text-gray-900 dark:text-white">Galería de Archivos ({{ collect($images)->whereIn('type', ['GALERIA', 'PDF'])->count() }})</h4>
                     </div>
                 </div>
 
                 <!-- Grid de Galería -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                    @foreach(collect($images)->where('type', 'GALERIA') as $galImage)
+                    @foreach(collect($images)->whereIn('type', ['GALERIA', 'PDF']) as $galImage)
                         <div class="relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-sm transition-transform hover:scale-105 group flex flex-col">
-                            <div class="flex-1 min-h-0 relative">
-                                <img src="{{ $galImage->getImageUrl() }}" class="w-full h-full object-cover">
-                            </div>
+                            <!-- Enlace para ver/abrir archivo -->
+                            <a href="{{ $galImage->getImageUrl() }}" target="_blank" class="flex-1 min-h-0 relative flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                                @if($galImage->type === 'PDF' || str_ends_with(strtolower($galImage->img_path), '.pdf'))
+                                    <div class="flex flex-col items-center gap-2">
+                                        <!-- Icono SVG de PDF -->
+                                        <svg class="w-12 h-12 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
+                                            <path d="M3 8a2 2 0 012-2h2v10H5a2 2 0 01-2-2V8z" />
+                                        </svg>
+                                        <span class="text-[9px] font-bold text-gray-500 dark:text-gray-400 truncate w-24 text-center px-1" title="{{ basename($galImage->img_path) }}">
+                                            {{ basename($galImage->img_path) }}
+                                        </span>
+                                    </div>
+                                @else
+                                    <img src="{{ $galImage->getImageUrl() }}" class="w-full h-full object-cover rounded-md">
+                                    <!-- Overlay de lupa al hacer hover -->
+                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center transition-all">
+                                        <i class="fas fa-search-plus text-white opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all"></i>
+                                    </div>
+                                @endif
+                            </a>
                             
                             <!-- Footer de la imagen: Checkbox y Delete -->
                             <div class="p-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between gap-1">
@@ -121,7 +139,7 @@
                                     <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase leading-none">Web</span>
                                 </label>
 
-                                <button wire:confirm="¿Eliminar esta imagen?" wire:click="deleteImage({{ $galImage->id }})" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
+                                <button wire:confirm="¿Eliminar este archivo?" wire:click="deleteImage({{ $galImage->id }})" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -132,7 +150,7 @@
 
                     <!-- Botón Agregar a Galería -->
                     <label class="relative aspect-square rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-900/5 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all hover:border-emerald-500">
-                        <input type="file" wire:model.live="galleryImages" multiple class="hidden">
+                        <input type="file" wire:model.live="galleryImages" multiple accept=".pdf,image/*" class="hidden">
                         <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -152,7 +170,7 @@
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Nota: Formatos permitidos: JPG, PNG, WEBP. Tamaño máximo: 2MB por imagen.
+                Nota: Formatos permitidos: JPG, PNG, WEBP, PDF. Tamaño máximo: 2MB por archivo.
             </p>
         </div>
 
