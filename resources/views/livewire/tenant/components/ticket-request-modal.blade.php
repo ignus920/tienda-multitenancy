@@ -240,7 +240,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 </div>
 
                 <!-- Footer Paginacion -->
-                @if(method_exists($requests, 'hasPages') && $requests->hasPages())
+                @if($requests instanceof \Illuminate\Pagination\LengthAwarePaginator && $requests->hasPages())
                     <div class="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 rounded-b-xl flex-shrink-0">
                         {{ $requests->links() }}
                     </div>

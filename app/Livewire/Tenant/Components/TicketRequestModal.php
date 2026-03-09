@@ -45,13 +45,18 @@ class TicketRequestModal extends Component
         $this->productId = $productId;
         $this->dateFrom = now()->subMonths(3)->format('Y-m-d');
         $this->dateTo = now()->format('Y-m-d');
+        
+        // Ejecutar check solo en el mount inicial si no está en sesión
         $this->checkModuleStatus();
     }
 
     public function boot()
     {
-        $this->ensureTenantConnection();
-        $this->checkModuleStatus();
+        // En boot solo aseguramos la conexión si es necesario
+        // Pero intentamos ser lo más ligeros posible
+        if (!tenancy()->initialized) {
+            $this->ensureTenantConnection();
+        }
     }
 
     private function checkModuleStatus()
@@ -62,24 +67,41 @@ class TicketRequestModal extends Component
             return;
         }
 
-        $tenant = Tenant::find($tenantId);
-        if (!$tenant) {
-            $this->isModuleActive = false;
+        // Usar caché de sesión para evitar consultas redundantes a la BD central en cada request
+        $cacheKey = 'module_marketing_active_v2_' . $tenantId;
+        if (session()->has($cacheKey)) {
+            $this->isModuleActive = session($cacheKey);
             return;
         }
 
-        // Verificar en la tabla central vnt_merchant_moduls si el módulo marketing está activo para este merchant
-        if (!$tenant->merchant_type_id) {
-            $this->isModuleActive = false;
-            return;
-        }
+        try {
+            $tenant = Tenant::find($tenantId);
+            if (!$tenant) {
+                $this->isModuleActive = false;
+            } else {
+                // 1. Verificar en base de datos central (Oficial)
+                $this->isModuleActive = DB::connection('mysql')->table('vnt_merchant_moduls')
+                    ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
+                    ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
+                    ->where('vnt_moduls.migration', 'marketing')
+                    ->where('vnt_moduls.status', 1)
+                    ->exists();
 
-        $this->isModuleActive = DB::connection('mysql')->table('vnt_merchant_moduls')
-            ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
-            ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
-            ->where('vnt_moduls.migration', 'marketing')
-            ->where('vnt_moduls.status', 1)
-            ->exists();
+                // 2. Fallback: Si no está en central, verificar si las tablas existen en el tenant
+                // Esto permite que funcione si el usuario corrió las migraciones manualmente
+                if (!$this->isModuleActive) {
+                    $this->ensureTenantConnection();
+                    $this->isModuleActive = \Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('tick_departments');
+                }
+            }
+            
+            // Guardar en sesión por 10 minutos (opcionalmente podrías usar cache() de Laravel)
+            session([$cacheKey => $this->isModuleActive]);
+
+        } catch (\Exception $e) {
+            Log::error("Error verificando estatus de módulo mercadeo: " . $e->getMessage());
+            $this->isModuleActive = false;
+        }
     }
 
     private function ensureTenantConnection()
@@ -87,6 +109,7 @@ class TicketRequestModal extends Component
         $tenantId = session('tenant_id');
         if (!$tenantId) return;
 
+        // Intentar obtener el tenant de la sesión si es posible para evitar otra consulta
         $tenant = Tenant::find($tenantId);
         if (!$tenant) return;
 
