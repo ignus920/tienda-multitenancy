@@ -33,7 +33,6 @@ class ImportRegItem extends Component
     public $pvp_min_factor;
     public $internal_code;
     public $descripcion = 'NEW_PRODUCT';
-    public $technical_sheet;
 
     //Campos de validación
     public $internal_codeExists = false;
@@ -50,8 +49,8 @@ class ImportRegItem extends Component
     protected $rules = [
         'percentage' => 'required|integer',
         'cantidad_min' => 'required|integer',
-        'factor' => 'required',
-        'technical_sheet' => 'nullable|file|mimes:pdf|max:2048' //,
+        'factor' => 'required' //,
+        //'technical_sheet' => 'nullable|file|mimes:pdf|max:2048',
         // 'exw' => ['numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
         // 'freight_increase' => ['numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
         // 'pvp_factor' => ['numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
@@ -175,9 +174,7 @@ class ImportRegItem extends Component
                 $this->addError('data_suppliers.supplierId', 'El proveedor es obligatorio.');
                 return;
             }
-            if ($this->technical_sheet) {
-                $this->uploadpdf($this->itemId, $this->technical_sheet);
-            }
+
             if ($this->items_setup_id) {
                 $item_setup = ImpItemsSetup::findOrFail($this->items_setup_id);
                 $item_setup->update($info);
@@ -325,36 +322,6 @@ class ImportRegItem extends Component
                 $this->internal_code = $item->internal_code;
                 $this->descripcion = $item->description;
             }
-        }
-    }
-
-    public function uploadpdf()
-    {
-        $query = ImageGallery::where('itemId', $this->itemId)->where('type', 'PDF')->first();
-        $pdfExists = !is_null($query);
-        Log::info('🔬 Registro de PDF existe:' . $pdfExists);
-        // Guardar PDF en storage
-        $tenantId = session('tenant_id', 'default');
-        $path = $this->technical_sheet->store("items/{$tenantId}", 'public');
-        try {
-            if ($pdfExists) {
-                $query->update([
-                    'img_path' => $path,
-                    // No necesitas itemId porque ya existe
-                    // No necesitas created_at porque se actualiza automáticamente con timestamps
-                ]);
-            } else {
-                // Crear registro en base de datos
-                ImageGallery::create([
-                    'itemId' => $this->itemId,
-                    'img_path' => $path,
-                    'type' => 'PDF',
-                    'created_at' => Carbon::now(),
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('✂️ Error al guardar PDF: ' . $e->getMessage());
-            return;
         }
     }
 

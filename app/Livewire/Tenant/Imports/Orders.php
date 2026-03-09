@@ -7,7 +7,10 @@ use Livewire\WithPagination;
 use App\Models\Tenant\Imports\ImpStatus;
 use App\Models\Tenant\Imports\ImpImports;
 use App\Models\Tenant\Imports\ImpComments;
+use App\Models\Tenant\Imports\ImpStatusHistory;
+use App\Models\Tenant\Imports\ImpPacking;
 use App\Models\Auth\Tenant;
+use App\Models\Auth\User;
 use App\Services\Tenant\TenantManager;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
@@ -21,16 +24,54 @@ class Orders extends Component
     use WithPagination;
 
     public $filterStatus = '';
+    public $filterNews = '';
+    public $filterPacking = '';
     public $search = '';
     public $perPage = 10;
+    public $selectedOrders = [];
+    public $selectedPackingIds = [];
     public $selectedLabelId = null;
     public $selectedLabelName = 'Programming';
     public $allLabels = [];
+    public $showModalHistory = false;
+    public $showModalChangeQuantity = false;
+    public $showModalAcceptNew = false;
+    public $showModalConfirmPrice = false;
+    public $showModalJustifyChangePrice = false;
+    public $showModalConfirmProduction = false;
+    public $showButtonShipping = false;
+    public $showModalChangeQtyShip = false;
+
+    public $import_id;
+    public $oldQty;
+    public $newQty;
+    public $commentChangeQuantity;
+    public $commentAccept;
+    public $price;
+    public $commentJustifyPrice;
+    public $commentChangeQtyShip;
 
     protected $listeners = [
         'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
         'testEvent' => 'testEvent',
     ];
+
+    protected $rules = [
+        'commentChangeQuantity' => 'required',
+        'commentAccept' => 'required',
+        'commentChangeQtyShip' => 'required'
+    ];
+
+    protected $messages = [
+        'commentChangeQuantity.required' => 'Debe ingresar un comentario',
+        'commentAccept.required' => 'Debe ingresar un comentario',
+        'commentChangeQtyShip.required' => 'You must enter a comment'
+    ];
+
+    public function boot()
+    {
+        $this->ensureTenantConnection();
+    }
 
     public function mount()
     {
@@ -40,23 +81,64 @@ class Orders extends Component
     #[Computed]
     public function status()
     {
-        $this->ensureTenantConnection();
-        return DB::connection('tenant')
+        // Primera consulta: Registros agrupados por estado
+        $estados = DB::connection('tenant')
             ->table('imp_imports as i')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
-            ->select('s.name as Nombre del Estado', DB::raw('COUNT(i.id) as cant'), 's.id')
-            ->groupBy('s.id', 's.name')
-            ->orderBy('s.id')
+            ->select('s.name as nombre_estado', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
+            ->groupBy('s.id', 's.name');
+
+        // Segunda consulta: Solo novedades
+        $novedades = DB::connection('tenant')
+            ->table('imp_imports as i')
+            ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
+            ->select(DB::raw("'Novedades' as nombre_estado"), DB::raw('COUNT(i.id) as cantidad'), DB::raw("10 as id"))
+            ->where('i.news', 1);
+
+        // Unir las consultas y ordenar
+        return $estados
+            ->unionAll($novedades)
+            ->orderBy('id', 'asc')
+            ->orderBy('nombre_estado', 'asc')
             ->get();
     }
 
     public function putFilter($statusId)
     {
-        // Si se hace clic en el mismo estado, se limpia el filtro (opcional)
-        if ($this->filterStatus == $statusId) {
-            $this->filterStatus = '';
+        if ($statusId == 10) {
+            // Si ya estamos filtrando por novedades, lo limpiamos
+            if ($this->filterNews == 1) {
+                $this->filterNews = '';
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'Filtro de novedades limpiado'
+                ]);
+            } else {
+                // Si no, activamos novedades y limpiamos el filtro de estado
+                $this->filterNews = 1;
+                $this->filterStatus = '';
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Filtro de novedades aplicado'
+                ]);
+            }
         } else {
-            $this->filterStatus = $statusId;
+            // Si se hace clic en el mismo estado, se limpia el filtro
+            if ($this->filterStatus == $statusId) {
+                $this->filterStatus = '';
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'Filtro de estado limpiado'
+                ]);
+            } else {
+                // Aplicamos el nuevo estado y limpiamos novedades
+                $this->filterStatus = $statusId;
+                $this->filterNews = '';
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Filtro de estado aplicado'
+                ]);
+            }
         }
         $this->resetPage();
     }
@@ -64,7 +146,6 @@ class Orders extends Component
     #[Computed]
     public function orders()
     {
-        $this->ensureTenantConnection();
         return DB::connection('tenant')
             ->table('imp_imports as i')
             ->select([
@@ -75,14 +156,28 @@ class Orders extends Component
                 'i.qty_requested',
                 'il.name AS label',
                 'ist.translated_name',
-                'i.qty_shipped'
+                'i.status',
+                'i.qty_shipped',
+                'i.news',
+                'i.price',
+                'pk.number_packing as packing_number'
             ])
             ->join('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'iis.item_id', '=', 'iv.id')
             ->join('imp_labels as il', 'i.label_id', '=', 'il.id')
             ->join('imp_status as ist', 'i.status', '=', 'ist.id')
+            ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
             ->when($this->filterStatus, function ($query) {
                 return $query->where('i.status', $this->filterStatus);
+            })
+            ->when($this->filterNews, function ($query) {
+                return $query->where('i.news', $this->filterNews);
+            })
+            ->when($this->selectedLabelId, function ($query) {
+                return $query->where('i.label_id', $this->selectedLabelId);
+            })
+            ->when($this->filterPacking, function ($query) {
+                return $query->where('i.packing_id', $this->filterPacking);
             })
             ->paginate($this->perPage);
     }
@@ -93,14 +188,10 @@ class Orders extends Component
         Log::info('=== LABELS COMPUTED PROPERTY CALLED ===');
 
         try {
-            $this->ensureTenantConnection();
-            Log::info('Conexión tenant establecida correctamente');
-
-            // Verificar si hay conexión a la base de datos
             Log::info('Intentando obtener labels de ImpLabels con cantidad total');
 
             $labels = ImpImports::select([
-                'imp_imports.label_id',
+                'imp_imports.label_id as id',
                 'imp_labels.name'
             ])
                 ->join('imp_labels', function ($join) {
@@ -111,9 +202,10 @@ class Orders extends Component
                     'imp_imports.label_id',
                     'imp_labels.name'
                 ])
-                ->get();
+                ->get()
+                ->toArray();
 
-            Log::info('Total de labels encontrados: ' . $labels->count());
+            Log::info('Total de labels encontrados: ' . count($labels));
 
 
             Log::info('=== FIN LABELS COMPUTED PROPERTY ===');
@@ -122,7 +214,7 @@ class Orders extends Component
         } catch (\Exception $e) {
             Log::error('Error al obtener labels: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            return collect(); // Retornar colección vacía en caso de error
+            return []; // Retornar array vacío en caso de error
         }
     }
 
@@ -160,16 +252,91 @@ class Orders extends Component
         }
     }
 
-    public function viewHistoryComment($idImport)
+    public function updatedSelectedOrders($value)
     {
-        dd('Comentario de la importación:' . $idImport);
+        $this->ensureTenantConnection();
+        if (empty($this->selectedPackingIds)) {
+            $this->selectedOrders = [];
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'Seleccione uno o más PACKS primero'
+            ]);
+            return;
+        }
+
+        if (empty($value)) return;
+
+        $ids = is_array($value) ? $value : [$value];
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+            foreach ($ids as $id) {
+                $import = ImpImports::find($id);
+                if ($import && $import->status != 6) {
+                    $oldStatus = $import->status;
+                    // Asignar al primer packing seleccionado
+                    $packingId = $this->selectedPackingIds[0];
+                    $import->update([
+                        'packing_id' => $packingId,
+                        'status' => 6
+                    ]);
+                    ImpStatusHistory::create([
+                        'import_id' => $id,
+                        'previous_state' => $oldStatus,
+                        'new_state' => 6,
+                        'user_id' => Auth::id()
+                    ]);
+                }
+            }
+            DB::connection('tenant')->commit();
+            $this->selectedOrders = [];
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Registros asociados al PACK correctamente'
+            ]);
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error("Error al asociar PACK: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo realizar la asociación'
+            ]);
+        }
+    }
+
+    #[Computed]
+    public function historyComments()
+    {
+        if (!$this->import_id) {
+            return collect();
+        }
+
+        $centralDbName = config('database.connections.central.database');
+        return ImpComments::query()
+            ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
+            ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
+            ->where('imp_comments.import_id', $this->import_id)
+            ->orderBy('imp_comments.created_at', 'DESC')
+            ->get();
+    }
+
+    #[Computed]
+    public function initiatorCanFinish()
+    {
+        if (!$this->import_id) {
+            return false;
+        }
+        $initiator = ImpComments::with('import')->where('import_id', $this->import_id)->where('initiator', 1)->first();
+
+        if (!$initiator || !$initiator->import) {
+            return false;
+        }
+        return $initiator->import->news == 1 && $initiator->user_id == Auth::id();
     }
 
     #[On('labelSelected')]
     public function onLabelSelected($labelId)
     {
-        dd('llego');
-        $this->ensureTenantConnection();
         Log::info("=== LABEL SELECTED EVENT ===");
         Log::info("Label ID recibido: {$labelId}");
         Log::info("Tipo de dato: " . gettype($labelId));
@@ -178,8 +345,8 @@ class Orders extends Component
         $labelName = '';
         $labelsCollection = $this->labels;
 
-        if ($labelsCollection && $labelsCollection->count() > 0) {
-            $selectedLabel = $labelsCollection->firstWhere('id', $labelId);
+        if ($labelsCollection && count($labelsCollection) > 0) {
+            $selectedLabel = collect($labelsCollection)->firstWhere('id', $labelId);
             if ($selectedLabel) {
                 $labelName = is_array($selectedLabel) ? $selectedLabel['name'] : $selectedLabel->name;
             }
@@ -212,10 +379,15 @@ class Orders extends Component
             'name' => $labelName
         ];
 
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Filtro aplicado: ' . $this->selectedLabelName
+        ]);
+
         $this->resetPage(); // Reset pagination when filter changes
 
         // Clear the computed property cache to force re-evaluation
-        unset($this->items);
+        unset($this->orders);
 
         // Force Livewire to re-render
         $this->dispatch('$refresh');
@@ -230,6 +402,437 @@ class Orders extends Component
         'name' => ''
     ];
 
+    public function cancel()
+    {
+        $this->showModalHistory = false;
+        $this->showModalChangeQuantity = false;
+        $this->showModalAcceptNew = false;
+        $this->showModalConfirmPrice = false;
+        $this->showModalJustifyChangePrice = false;
+        $this->showModalConfirmProduction = false;
+        $this->showModalChangeQtyShip = false;
+    }
+
+    // #[Computed]
+    // public function getLastComment($importId)
+    // {
+    //     return ImpComments::where('import_id', $importId)->latest()->first();
+    // }
+
+    public function getProfileUserProperty()
+    {
+        return Auth::user()?->profile_id;
+    }
+
+    public function updateQty($importId, $quantity)
+    {
+        $this->ensureTenantConnection();
+        // 1. Buscamos el registro en la base de datos.
+        $import = ImpImports::findOrFail($importId);
+
+        // 2. La cantidad que tiene actualmente es la "anterior"
+        $oldQty = $import->qty_requested;
+
+        // 3. La cantidad que recibimos por parámetro es la "nueva" (la que se digitó)
+        $newQty = $quantity;
+
+        if ($oldQty == $newQty) {
+            return;
+        } else {
+            $this->oldQty = $oldQty;
+            $this->newQty = $newQty;
+            $this->import_id = $importId;
+
+            $this->showModalChangeQuantity = true;
+        }
+    }
+
+    public function saveChangeQuantity()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'commentChangeQuantity' => 'required'
+        ]);
+
+        try {
+            $import = ImpImports::findOrFail($this->import_id);
+
+            $structuredData = json_encode([
+                'type' => 'qty_change',
+                'old' => $this->oldQty,
+                'new' => $this->newQty,
+                'note' => $this->commentChangeQuantity
+            ]);
+
+            $import->update([
+                'qty_requested' => $this->newQty
+            ]);
+
+            // 3. Guardamos el comentario con un mensaje de éxito personalizado
+            $customMessage = "¡Cantidad actualizada correctamente de {$this->oldQty} a {$this->newQty}!";
+            $this->saveComment($this->import_id, $structuredData, $customMessage);
+
+            $this->showModalChangeQuantity = false;
+            $this->resetForm();
+        } catch (\Exception $e) {
+            Log::error("Error al actualizar cantidad: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo actualizar la cantidad'
+            ]);
+        }
+    }
+
+    public function updatePriceQ($importId, $price)
+    {
+        $this->ensureTenantConnection();
+        try {
+            $import = ImpImports::findOrFail($importId);
+
+            $oldStatus = $import->status;
+
+            if ($oldStatus == 2 || $oldStatus == 4 || $oldStatus == 6) {
+                $this->price = $price;
+                $this->import_id = $importId;
+                $this->showModalJustifyChangePrice = true;
+            } else {
+                $newStatus = 2;
+
+                $dataStatus = [
+                    'import_id' => $importId,
+                    'previous_state' => $oldStatus,
+                    'new_state' => $newStatus,
+                    'user_id' => Auth::id()
+                ];
+
+                ImpStatusHistory::create($dataStatus);
+
+                $import->update(['price' => $price, 'status' => 2]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Se actualizo el precio'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("Error al actualizar precio: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo actualizar el precio'
+            ]);
+        }
+    }
+
+    public function openModalAcceptNew($import_id)
+    {
+        $this->import_id = $import_id;
+        $this->showModalHistory = false;
+        $this->showModalAcceptNew = true;
+    }
+
+    public function finishConversation()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'commentAccept' => 'required'
+        ]);
+        try {
+            $import = ImpImports::findOrFail($this->import_id);
+
+            $dataFinish = [
+                'import_id' => $this->import_id,
+                'comment' => $this->commentAccept,
+                'user_id' => Auth::id(),
+                'initiator' => 0
+            ];
+
+            ImpComments::create($dataFinish);
+
+            $import->update(['news' => 0]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Novedad aceptada',
+            ]);
+
+            $this->showModalAcceptNew = false;
+            $this->resetForm();
+        } catch (\Exception $e) {
+            Log::error("Error al finalizar la conversación: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo finalizar la conversación'
+            ]);
+        }
+    }
+
+    #[Computed]
+    public function historyStatus()
+    {
+        if (!$this->import_id) {
+            return collect();
+        }
+
+        $centralDbName = config('database.connections.central.database');
+        return ImpStatusHistory::query()->with(['previousStatus', 'newStatus'])
+            ->select('imp_status_history.created_at', 'imp_status_history.previous_state', 'imp_status_history.new_state', 'u.name')
+            ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_status_history.user_id')
+            ->where('imp_status_history.import_id', $this->import_id)
+            ->orderBy('imp_status_history.created_at', 'DESC')
+            ->get();
+    }
+
+    public function openModalConfirmPrice($importId)
+    {
+        $this->import_id = $importId;
+        $this->showModalConfirmPrice = true;
+    }
+
+    #[Computed]
+    public function infoPrice()
+    {
+        if (!$this->import_id) {
+            return null;
+        }
+
+        $this->ensureTenantConnection();
+
+        $import = DB::connection('tenant')
+            ->table('imp_imports', 'i')
+            ->join('inv_items as it', 'i.item_id', '=', 'it.id')
+            ->select('it.internal_code', 'i.qty_requested', 'i.price')
+            ->where('i.id', $this->import_id)
+            ->first();
+
+        return [
+            'internal_code' => $import->internal_code,
+            'qty_requested' => $import->qty_requested,
+            'price' => $import->price
+        ];
+    }
+
+    public function approvePrice($importId)
+    {
+        $this->ensureTenantConnection();
+        try {
+            $import = ImpImports::findOrFail($importId);
+
+            $oldStatus = $import->status;
+
+            $newStatus = 4;
+
+            $dataStatus = [
+                'import_id' => $importId,
+                'previous_state' => $oldStatus,
+                'new_state' => $newStatus,
+                'user_id' => Auth::id()
+            ];
+
+            ImpStatusHistory::create($dataStatus);
+
+            $import->update(['status' => $newStatus]);
+
+            $this->showModalConfirmPrice = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Se actualizo el estado'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error al aprobar el precio: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo aprobar el precio'
+            ]);
+        }
+    }
+
+    public function saveChangePrice()
+    {
+        $this->ensureTenantConnection();
+        try {
+            $import = ImpImports::findOrFail($this->import_id);
+
+            $oldPrice = $import->price;
+
+            $structuredData = json_encode([
+                'type' => 'price_change',
+                'old' => $oldPrice,
+                'new' => $this->price,
+                'note' => $this->commentJustifyPrice
+            ]);
+
+            $import->update([
+                'price' => $this->price
+            ]);
+
+            $customMessage = "¡Precio actualizado y comentario registrado!";
+            $this->saveComment($this->import_id, $structuredData, $customMessage);
+
+            $this->showModalJustifyChangePrice = false;
+            $this->resetForm();
+        } catch (\Exception $e) {
+            Log::error("Error al actualizar precio: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo actualizar el precio'
+            ]);
+        }
+    }
+
+    public function openModalConfirmProduction($importId)
+    {
+        $this->import_id = $importId;
+        $this->showModalConfirmProduction = true;
+    }
+
+    public function saveSendProduction()
+    {
+        $this->ensureTenantConnection();
+        try {
+            $import = ImpImports::findOrFail($this->import_id);
+
+            $oldStatus = $import->status;
+
+            $newStatus = 5;
+
+            $dataStatus = [
+                'import_id' => $this->import_id,
+                'previous_state' => $oldStatus,
+                'new_state' => $newStatus,
+                'user_id' => Auth::id()
+            ];
+
+            ImpStatusHistory::create($dataStatus);
+
+            $import->update(['status' => $newStatus]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Update production successfully'
+            ]);
+            $this->showModalConfirmProduction = false;
+            $this->resetForm();
+        } catch (\Exception $e) {
+            Log::error("Error al enviar a producción: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo enviar a producción'
+            ]);
+        }
+    }
+
+    #[Computed]
+    public function packings()
+    {
+        $this->ensureTenantConnection();
+        return ImpPacking::select('id', 'number_packing')
+            ->addSelect([
+                'imports_count' => ImpImports::selectRaw('count(*)')
+                    ->whereColumn('packing_id', 'imp_packing.id')
+                    ->whereNull('deleted_at')
+            ])
+            ->where(function ($query) {
+                $query->whereHas('imports', function ($q) {
+                    $q->whereIn('status', [5, 6]);
+                })->orWhereDoesntHave('imports');
+            })
+            ->get();
+    }
+
+    public function openModalHistory($import_id)
+    {
+        $this->import_id = $import_id;
+        $this->showModalHistory = true;
+    }
+
+    public function togglePacking($packingId)
+    {
+        if (in_array($packingId, $this->selectedPackingIds)) {
+            $this->selectedPackingIds = array_filter($this->selectedPackingIds, function ($id) use ($packingId) {
+                return $id != $packingId;
+            });
+            $this->dispatch('show-toast', [
+                'type' => 'info',
+                'message' => 'PACK deseleccionado'
+            ]);
+        } else {
+            $this->selectedPackingIds[] = $packingId;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'PACK seleccionado correctamente'
+            ]);
+        }
+
+        $this->resetPage();
+    }
+
+    public function putFilterPacking($packingId)
+    {
+        $this->filterPacking = $packingId;
+        $this->showButtonShipping = true;
+        $this->selectedPackingIds[] = $packingId;
+        Log::info('selectedPackingIds: ' . implode(', ', $this->selectedPackingIds));
+    }
+
+    public function updateQtyShip($importId, $qtyShip)
+    {
+        $this->ensureTenantConnection();
+
+        // 1. Buscamos el registro en la base de datos.
+        $import = ImpImports::findOrFail($importId);
+
+        // 2. La cantidad que tiene actualmente es la "anterior"
+        $oldQty = $import->qty_requested;
+
+        // 3. La cantidad que recibimos por parámetro es la "nueva" (la que se digitó)
+        $newQty = $qtyShip;
+
+        if ($oldQty == $newQty) {
+            return;
+        } else {
+            $this->oldQty = $oldQty;
+            $this->newQty = $newQty;
+            $this->import_id = $importId;
+
+            $this->showModalChangeQtyShip = true;
+        }
+    }
+
+    public function saveChangeQtyShip()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'commentChangeQtyShip' => 'required'
+        ]);
+        try {
+            $import = ImpImports::findOrFail($this->import_id);
+
+            $structuredData = json_encode([
+                'type' => 'qty_change',
+                'old' => $this->oldQty,
+                'new' => $this->newQty,
+                'note' => $this->commentChangeQtyShip
+            ]);
+
+            $import->update([
+                'qty_shipped' => $this->newQty
+            ]);
+
+            // 3. Guardamos el comentario con un mensaje de éxito personalizado
+            $customMessage = "¡Cantidad actualizada correctamente de {$this->oldQty} a {$this->newQty}!";
+            $this->saveComment($this->import_id, $structuredData, $customMessage);
+
+            $this->showModalChangeQtyShip = false;
+            $this->resetForm();
+        } catch (\Exception $e) {
+            Log::error("Error al actualizar cantidad: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo actualizar la cantidad'
+            ]);
+        }
+    }
+
     public function render()
     {
         $labels = $this->labels;
@@ -237,6 +840,7 @@ class Orders extends Component
             'livewire.tenant.imports.orders',
             [
                 'labels' => $labels,
+                'profileUser' => $this->getProfileUserProperty()
             ]
         )
             ->layout('layouts.app', ['header' => 'Gestión de Ordenes']);
@@ -263,5 +867,15 @@ class Orders extends Component
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+    }
+
+    private function resetForm()
+    {
+        $this->commentChangeQuantity = '';
+        $this->oldQty = '';
+        $this->newQty = '';
+        $this->import_id = '';
+        $this->price = '';
+        $this->commentAccept = '';
     }
 }

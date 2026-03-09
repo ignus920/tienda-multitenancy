@@ -372,6 +372,7 @@ new class extends Component
         </div> -->
 
         <!-- Inventario (menú con subitems) -->
+        @if(PermissionHelper::userCan('Inventario', 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -451,8 +452,10 @@ new class extends Component
             <a href="{{ route('transfers.transfers') }}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Transferencias</a>
             </div>
         </div>
+        @endif
 
-         <!-- Importaciones -->
+        <!-- Importaciones -->
+        @if(PermissionHelper::userCan('Compras', 'show'))
         <a href="{{ route('imports.imports') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -478,8 +481,10 @@ new class extends Component
                 Importaciones
             </div>
         </a>
-
-         <!-- Ordenes -->
+        @endif
+        
+        <!-- Ordenes -->
+        @if(PermissionHelper::userCan('Compras', 'show'))
         <a href="{{ route('imports-orders') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -504,7 +509,10 @@ new class extends Component
                 Ordenes
             </div>
         </a>
-            <!-- Caja -->
+        @endif
+
+        <!-- Caja -->
+        @if(PermissionHelper::userCan('Caja', 'show'))
         <a href="{{ route('petty-cash.petty-cash') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('petty-cash.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -531,6 +539,7 @@ new class extends Component
                 Caja
             </div>
         </a>
+        @endif
         <!-- Spacer -->
         <div class="flex-1"></div>
 

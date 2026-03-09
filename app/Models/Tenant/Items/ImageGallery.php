@@ -134,6 +134,34 @@ class ImageGallery extends Model
     }
 
     /**
+     * Obtener la URL pública del archivo (PDF o imagen)
+     *
+     * @return string
+     */
+    public function getFileUrl()
+    {
+        if ($this->img_path) {
+            $cleanPath = $this->cleanMalformedUrl($this->img_path);
+            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+                return $cleanPath;
+            }
+            if (Storage::disk('public')->exists($cleanPath)) {
+                $url = Storage::disk('public')->url($cleanPath);
+                return $this->cleanMalformedUrl($url);
+            }
+        }
+        // Retornar placeholder si no existe
+        return asset('images/placeholder-item.png');
+    }
+
+    public function getOriginalName()
+    {
+        // Si tienes un campo específico para el nombre original, usa ese.
+        // Si no, usa el nombre base del path.
+        return basename($this->img_path);
+    }
+
+    /**
      * Obtener la ruta del thumbnail
      * 
      * @return string Ruta del thumbnail

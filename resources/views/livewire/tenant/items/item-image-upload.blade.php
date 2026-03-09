@@ -146,6 +146,35 @@
             </div>
         </div>
 
+        
+        {{-- <!-- Archivos PDF Adjuntos -->
+        @if(isset($pdfFilesData) && $pdfFilesData->count() > 0)
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mt-6">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Archivos PDF ({{ $pdfFilesData->count() }})
+                </h4>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                @foreach($pdfFilesData as $pdf)
+                    <div class="flex flex-col items-center bg-gray-50 dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                        <a href="{{ $pdf->getFileUrl() }}" target="_blank" class="block mb-2">
+                            <div class="w-16 h-20 flex items-center justify-center bg-red-100 dark:bg-red-900 rounded shadow">
+                                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 18V2h10l4 4v12H4zM14 3v4h4L14 3z" />
+                                </svg>
+                            </div>
+                        </a>
+                        <span class="text-xs text-gray-700 dark:text-gray-200 truncate w-full text-center">{{ $pdf->getOriginalName() }}</span>
+                        <a href="{{ $pdf->getFileUrl() }}" target="_blank" class="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Ver/Descargar</a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif --}}
         <!-- Galería de Imágenes -->
         <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between mb-3">
@@ -158,8 +187,9 @@
             </div>
 
             <!-- Grid de galeria -->
-            @if($galleryImagesData->count() > 0)
+            @if($galleryImagesData->count() > 0 || $pdfFilesData->count() > 0)
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-4">
+                    <!-- Bucle imagenes -->
                     @foreach($galleryImagesData as $image)
                         <div class="relative group">
                             <!-- Imagen con borde visible y tamaño uniforme fijo -->
@@ -170,11 +200,11 @@
                             </div>
 
                             <!-- Botón de eliminar siempre visible en esquina superior derecha -->
-                                <button type="button"
-                                    wire:click="deleteImage({{ $image->id }})"
-                                    wire:confirm="¿Eliminar esta imagen?"
-                                    title="Eliminar imagen"
-                                    class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow transition-all z-10 border-2 border-white dark:border-gray-800">
+                            <button type="button"
+                                wire:click="deleteImage({{ $image->id }})"
+                                wire:confirm="¿Eliminar esta imagen?"
+                                title="Eliminar imagen"
+                                class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow transition-all z-10 border-2 border-white dark:border-gray-800">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
@@ -193,13 +223,38 @@
                             </div>
                         </div>
                     @endforeach
+                    <!-- Bucle archivos PDF -->
+                    @foreach($pdfFilesData as $pdf)
+                        <div class="relative group h-20 w-20">
+                            <!-- Contenedor PDF con mismo tamaño que las imágenes -->
+                            <div class="h-20 w-20 rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-500 shadow-sm bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 flex flex-col items-center justify-center">
+                                <a href="{{ $pdf->getFileUrl() }}" target="_blank" class="flex flex-col items-center justify-center w-full h-full">
+                                    <svg class="w-8 h-8 text-red-500 dark:text-red-400 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 18V2h10l4 4v12H4zM14 3v4h4L14 3z" />
+                                    </svg>
+                                    <span class="text-[10px] text-gray-700 dark:text-gray-300 font-medium truncate max-w-[70px] text-center">{{ $pdf->getOriginalName() }}</span>
+                                </a>
+                            </div>
+            
+                            <!-- Botón de eliminar para PDF (mismo estilo que imágenes) -->
+                            <button type="button"
+                                wire:click="deletePdf({{ $pdf->id }})"
+                                wire:confirm="¿Eliminar este PDF?"
+                                title="Eliminar PDF"
+                                class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow transition-all z-10 border-2 border-white dark:border-gray-800">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    @endforeach
                 </div>
             @else
                 <div class="text-center py-8 text-gray-500 dark:text-gray-400">
                     <svg class="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    <p class="text-sm">No hay imágenes en la galería</p>
+                    <p class="text-sm">No hay imágenes o archivos PDF en la galería</p>
                 </div>
             @endif
 
@@ -215,7 +270,7 @@
                             type="file"
                             wire:model="galleryImages"
                             id="gallery-images"
-                            accept="image/*"
+                            accept="image/*,.pdf"
                             multiple
                             class="block w-full text-sm text-gray-500 dark:text-gray-400
                                    file:mr-4 file:py-2 file:px-4
@@ -254,9 +309,20 @@
                                     @foreach($galleryImages as $image)
                                         @if($image)
                                             <div class="relative">
-                                                <img class="h-16 w-16 rounded-md object-cover border-2 border-green-300 dark:border-green-600"
-                                                     src="{{ $image->temporaryUrl() }}"
-                                                     alt="Vista previa">
+                                                @if(str_contains($image->getMimeType(), 'image'))
+                                                    <img class="h-16 w-16 rounded-md object-cover border-2 border-green-300 dark:border-green-600"
+                                                         src="{{ $image->temporaryUrl() }}"
+                                                         alt="Vista previa">
+                                                @else
+                                                    <div class="h-16 w-16 rounded-md border-2 border-green-300 dark:border-green-600 bg-white dark:bg-gray-700 flex flex-col items-center justify-center p-1">
+                                                        <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M4 18V2h10l4 4v12H4zM14 3v4h4L14 3z" />
+                                                        </svg>
+                                                        <span class="text-[8px] font-bold text-gray-500 uppercase truncate w-full text-center">
+                                                            {{ $image->getClientOriginalExtension() }}
+                                                        </span>
+                                                    </div>
+                                                @endif
                                             </div>
                                         @endif
                                     @endforeach
@@ -295,7 +361,7 @@
         </div>
 
         <p class="text-xs text-gray-500 dark:text-gray-400">
-            <strong>Nota:</strong> Formatos permitidos: JPG, PNG, WEBP. Tamaño máximo: 2MB por imagen.
+            <strong>Nota:</strong> Formatos permitidos: JPG, PNG, WEBP, PDF. Tamaño máximo: 2MB por archivo.
         </p>
     </div>
 </section>

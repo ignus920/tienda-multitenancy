@@ -6,6 +6,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
+use App\Models\Auth\User;
+use App\Models\Auth\UserTenant;
 use App\Models\Tenant\Customer\VntCompanyRoute;
 use App\Livewire\Tenant\VntCompany\Services\CompanyService;
 use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
@@ -14,6 +16,7 @@ use App\Livewire\Tenant\VntCompany\Services\CompanyValidationService;
 use App\Livewire\Tenant\VntCompany\Services\ExportService;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\Hash;
 
 // Imports para sincronización API
 use Illuminate\Support\Facades\Auth;
@@ -131,9 +134,19 @@ class VntCompanyForm extends Component
     // Propiedad para rastrear errores de validación
     public $formHasErrors = false;
 
+    // Propiedad para verificar si el contacto ya tiene usuario
+    public $hasExistingUser = false;
+    // Email del usuario existente (si existe)
+    public $existingUserEmail = '';
+
     public $routeId = '';
     public $createUser = false;
     public $districtId = '';
+
+    // Propiedades para mostrar credenciales del usuario creado
+    public $showUserCredentials = false;
+    public $userCredentialsEmail = '';
+    public $userCredentialsPassword = '12345678';
 
     public function boot(
         CompanyService $companyService,
@@ -352,13 +365,18 @@ class VntCompanyForm extends Component
             $this->evaluateWarehousePermissions();
         }
 
+        // Verificar si el cliente ya tiene un usuario asignado
+        $this->checkExistingUser();
+
         // Log final antes de mostrar el modal para verificar el estado
         Log::info('Final state before showing modal', [
             'company_id' => $id,
             'typePerson' => $this->typePerson,
             'typeIdentificationId' => $this->typeIdentificationId,
             'showNaturalPersonFields' => $this->showNaturalPersonFields,
-            'verification_digit' => $this->verification_digit
+            'verification_digit' => $this->verification_digit,
+            'hasExistingUser' => $this->hasExistingUser,
+            'existingUserEmail' => $this->existingUserEmail
         ]);
 
         $this->showModal = true;
@@ -611,6 +629,36 @@ class VntCompanyForm extends Component
                     VntCompanyRoute::where('company_id', $this->editingId)->delete();
                     Log::info('Route removed for company', ['companyId' => $this->editingId]);
                 }
+
+                // Crear usuario si está marcado el checkbox y no existe usuario
+                if ($this->createUser && $company && !$this->hasExistingUser) {
+                    try {
+                        Log::info('Creating user for existing company during edit', [
+                            'companyId' => $this->editingId,
+                            'createUser' => $this->createUser
+                        ]);
+
+                        $this->createUserFromCompany($company);
+
+                        // Verificar si hubo advertencia de productos
+                        if (session()->has('warning')) {
+                            $message = session()->pull('warning');
+                        } else {
+                            $message = 'Registro actualizado y usuario creado exitosamente.';
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error creating user during edit', ['error' => $e->getMessage()]);
+                        $message = 'Registro actualizado exitosamente, pero hubo un error al crear el usuario: ' . $e->getMessage();
+                    }
+                } else {
+                    Log::info('Skipping user creation during edit', [
+                        'createUser' => $this->createUser,
+                        'hasExistingUser' => $this->hasExistingUser,
+                        'hasCompany' => $company !== null
+                    ]);
+                }
+
+                session()->flash('message', $message);
             } else {
                 Log::info('📝 Creando nuevo company');
 
@@ -663,6 +711,31 @@ class VntCompanyForm extends Component
                         'hasCompany' => $company !== null
                     ]);
                 }
+
+                // Crear usuario si está marcado el checkbox
+                if ($this->createUser && $company) {
+                    try {
+                        Log::info('Creating user for company', ['createUser' => $this->createUser]);
+                        $this->createUserFromCompany($company);
+
+                        // Verificar si hubo advertencia de productos
+                        if (session()->has('warning')) {
+                            $message = session()->pull('warning');
+                        } else {
+                            $message = 'Registro y usuario creados exitosamente.';
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error creating user', ['error' => $e->getMessage()]);
+                        $message = 'Registro creado exitosamente, pero hubo un error al crear el usuario: ' . $e->getMessage();
+                    }
+                } else {
+                    Log::info('Skipping user creation', [
+                        'createUser' => $this->createUser,
+                        'hasCompany' => $company !== null
+                    ]);
+                }
+
+                session()->flash('message', $message);
 
                 // Disparar evento para componentes que escuchan
                 if ($company && isset($company->id)) {
@@ -859,6 +932,13 @@ class VntCompanyForm extends Component
         // Reset form validation state
         $this->formHasErrors = false;
 
+        // Reset create user checkbox
+        $this->createUser = false;
+
+        // Reset existing user check
+        $this->hasExistingUser = false;
+        $this->existingUserEmail = '';
+
         $this->resetErrorBag();
         $this->resetValidation();
     }
@@ -873,6 +953,61 @@ class VntCompanyForm extends Component
 
         // Emitir evento para notificar al componente padre que se canceló
         $this->dispatch('customer-form-cancelled');
+    }
+
+    /**
+     * Limpiar las credenciales del usuario después de 20 segundos
+     */
+    public function clearUserCredentials()
+    {
+        $this->showUserCredentials = false;
+        $this->userCredentialsEmail = '';
+        $this->userCredentialsPassword = '12345678';
+    }
+
+    /**
+     * Verificar si el cliente ya tiene un usuario asignado
+     * Se llama al cargar un cliente para edición y cuando cambia el email
+     */
+    public function checkExistingUser(): void
+    {
+        // Si no hay email, no puede haber usuario
+        if (empty($this->billingEmail)) {
+            $this->hasExistingUser = false;
+            $this->existingUserEmail = '';
+            // NO deshabilitamos el checkbox aquí, solo limpiamos las banderas
+            return;
+        }
+
+        try {
+            // Buscar si existe un usuario con este email
+            $existingUser = User::where('email', $this->billingEmail)->first();
+
+            if ($existingUser) {
+                $this->hasExistingUser = true;
+                $this->existingUserEmail = $existingUser->email;
+                $this->createUser = false; // Deshabilitar el checkbox solo si existe usuario
+
+                Log::info('Usuario existente encontrado para cliente', [
+                    'company_id' => $this->editingId,
+                    'email' => $this->billingEmail,
+                    'user_id' => $existingUser->id
+                ]);
+            } else {
+                $this->hasExistingUser = false;
+                $this->existingUserEmail = '';
+                // No modificamos createUser, dejamos que el usuario decida
+            }
+        } catch (\Exception $e) {
+            Log::error('Error verificando usuario existente', [
+                'error' => $e->getMessage(),
+                'email' => $this->billingEmail
+            ]);
+
+            // En caso de error, asumir que no hay usuario
+            $this->hasExistingUser = false;
+            $this->existingUserEmail = '';
+        }
     }
 
     public function updateTypeIdentification($typeIdentificationId)
@@ -1014,6 +1149,12 @@ class VntCompanyForm extends Component
         if ($propertyName === 'billingEmail' && !empty($this->billingEmail)) {
             $this->validateEmailUniqueness();
         }
+
+        // Validar checkbox createUser si se cambia cuando ya hay email duplicado
+        if ($propertyName === 'createUser' && $this->createUser && ($this->emailExists || $this->hasExistingUser)) {
+            $this->createUser = false;
+            session()->flash('error', 'No se puede crear un usuario con un email que ya existe.');
+        }
     }
 
     /**
@@ -1034,6 +1175,11 @@ class VntCompanyForm extends Component
         $this->validateOnly('billingEmail');
         $this->validateEmailUniqueness();
 
+        // Desmarcar checkbox de crear usuario si el email existe
+        if ($this->emailExists && $this->createUser) {
+            $this->createUser = false;
+        }
+
         // Re-validar identificación después de cambiar email
         if (!empty($this->identification) && !empty($this->typeIdentificationId)) {
             $this->validateIdentificationUniqueness();
@@ -1047,7 +1193,6 @@ class VntCompanyForm extends Component
             'value' => $value,
             'type' => $this->type,
         ]);
-
         // Si es PROVEEDOR, inhabilitar el checkbox de crear usuario
         if ($this->type === 'PROVEEDOR') {
             $this->validatingType = true;  // TRUE para inhabilitar el checkbox
@@ -1390,6 +1535,74 @@ class VntCompanyForm extends Component
         ]);
 
         return $route;
+    }
+
+    /**
+     * Crear usuario a partir de los datos del cliente
+     */
+    private function createUserFromCompany($company)
+    {
+        try {
+            // Obtener el contacto principal
+            $mainWarehouse = $company->mainWarehouse;
+            $mainContact = $mainWarehouse ? $mainWarehouse->contacts->first() : null;
+
+            // Preparar datos del usuario
+            $userName = $this->firstName && $this->lastName
+                ? trim($this->firstName . ' ' . $this->lastName)
+                : $this->businessName;
+
+            $userData = [
+                'name' => $userName,
+                'email' => $this->billingEmail,
+                'password' => Hash::make('12345678'), // Contraseña por defecto
+                'profile_id' => 17, // Perfil "Tienda"
+                'contact_id' => $mainContact ? $mainContact->id : null,
+                'phone' => $this->business_phone ?: $this->personal_phone,
+            ];
+
+            // Verificar que el email no exista en usuarios
+            $existingUser = User::where('email', $this->billingEmail)->first();
+
+            if ($existingUser) {
+                throw new \Exception('Ya existe un usuario con este email.');
+            }
+
+            // Crear el usuario
+            $newUser = User::create($userData);
+
+            UserTenant::create([
+                'user_id' => $newUser->id,
+                'tenant_id' => session('tenant_id'),
+                'role_id' => 17, // Rol "Proveedor"
+                'is_active' => 1,
+            ]);
+
+            // Guardar las credenciales para mostrar en el modal
+            $this->userCredentialsEmail = $this->billingEmail;
+            $this->userCredentialsPassword = '12345678';
+            $this->showUserCredentials = true;
+
+            Log::info('Usuario creado exitosamente', [
+                'user_id' => $newUser->id,
+                'company_id' => $company->id,
+                'email' => $this->billingEmail
+            ]);
+
+            Log::info('✅ Usuario creado exitosamente');
+
+            // Mensaje informativo para el usuario
+            session()->flash('info', 'Usuario creado exitosamente.');
+        } catch (\Exception $e) {
+            // Log del error pero no lanzar excepción
+            Log::error('❌ Error al crear el usuario', [
+                'error' => $e->getMessage()
+            ]);
+
+            // Agregar mensaje informativo sin fallar
+            session()->flash('warning', 'Error al crear el usuario' . $e->getMessage());
+        }
+        return $newUser;
     }
 
     private function getFormData(): array

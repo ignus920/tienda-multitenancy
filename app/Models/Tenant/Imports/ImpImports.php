@@ -44,7 +44,7 @@ class ImpImports extends Model
         'qty_shipped',
         'price',
         'status',
-        'shipping_id',
+        'packing_id',
         'news',
     ];
 
@@ -61,7 +61,7 @@ class ImpImports extends Model
         'qty_shipped' => 'integer',
         'price' => 'double',
         'status' => 'integer',
-        'shipping_id' => 'integer',
+        'packing_id' => 'integer',
         'news' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -113,5 +113,10 @@ class ImpImports extends Model
             'item_id', // Local key on imp_imports table...
             'item_id'  // Local key on imp_items_setup table...
         );
+    }
+
+    public function packing()
+    {
+        return $this->belongsTo(ImpPacking::class, 'packing_id');
     }
 }
