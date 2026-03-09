@@ -31,10 +31,10 @@ class ProductImageModal extends Component
         'galleryImages.*' => 'image|max:2048',
     ];
 
-    public function mount($productId = null)
+    public function mount(\App\Services\Tenant\WordPress\WordPressService $wpService, $productId = null)
     {
         if ($productId) {
-            $this->open($productId);
+            $this->open($productId, $wpService);
         }
     }
 
@@ -63,8 +63,10 @@ class ProductImageModal extends Component
         config(['database.connections.tenant.database' => $tenant->tenancy_db_name]);
     }
 
+    public $hasWpProduct = false;
+
     #[On('openImageModal')]
-    public function open($productId)
+    public function open($productId, \App\Services\Tenant\WordPress\WordPressService $wpService)
     {
         $this->ensureTenantConnection();
         $this->productId = $productId;
@@ -73,6 +75,9 @@ class ProductImageModal extends Component
         if ($product) {
             $this->productName = $product->name;
             $this->isOpen = true;
+            
+            // Validar si existe en WordPress
+            $this->hasWpProduct = !empty($product->sku) && $wpService->findProductBySku($product->sku) !== null;
         }
     }
 

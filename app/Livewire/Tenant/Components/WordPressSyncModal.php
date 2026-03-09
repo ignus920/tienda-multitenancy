@@ -82,7 +82,7 @@ class WordPressSyncModal extends Component
             return;
         }
 
-        $this->productSku = $item->codigo; // Asumiendo que 'codigo' es el SKU en el ERP
+        $this->productSku = $item->sku; // Se usa el campo 'sku' definido en el modelo Items
         
         $wpService = app(WordPressService::class);
         $this->wpProduct = $wpService->findProductBySku($this->productSku);
