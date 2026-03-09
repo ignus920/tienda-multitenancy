@@ -10,9 +10,15 @@ use App\Models\Tenant\Production\PrdFieldsProcess;
 use App\Models\Tenant\Production\PrdDataProcessOrder;
 use App\Models\Tenant\Production\PrdMaterialItems;
 use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\UnitMeasurements;
+use App\Models\Tenant\Movements\InvStore;
 use App\Models\Tenant\Customer\VntContacts;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ManageProductionOrders extends Component
 {
@@ -72,6 +78,8 @@ class ManageProductionOrders extends Component
     public array  $processModalFields       = [];
     public array  $processFieldValues       = [];
     public array  $materialItems            = [];
+    public array  $unitMeasurements         = [];
+    public string $processModalError        = '';
     public array  $materialConsumptions     = [];
 
     protected $queryString = [
@@ -324,7 +332,7 @@ class ManageProductionOrders extends Component
 
             if ($this->processModalHasInventory) {
                 $this->loadMaterialItems();
-                $this->materialConsumptions = [['material_itemId' => '', 'qty' => '']];
+                $this->materialConsumptions = [['material_itemId' => '', 'qty' => '', 'unit_measurement' => '']];
             }
 
             $this->showProcessModal = true;
@@ -362,7 +370,7 @@ class ManageProductionOrders extends Component
 
         if ($this->processModalHasInventory) {
             $this->loadMaterialItems();
-            $this->materialConsumptions = [['material_itemId' => '', 'qty' => '']];
+            $this->materialConsumptions = [['material_itemId' => '', 'qty' => '', 'unit_measurement' => '']];
         }
 
         $this->showProcessModal = true;
@@ -371,9 +379,16 @@ class ManageProductionOrders extends Component
     public function saveProcessStage(): void
     {
         $this->ensureTenantConnection();
+        $this->processModalError = '';
 
+        // Validar stock antes de proceder
+        if ($this->processModalHasInventory && !$this->validateMaterialStock()) {
+            return;
+        }
+
+        try {
         if ($this->processModalIsLast) {
-            // Guardar consumo de materiales si aplica
+            // Guardar consumo de materiales si aplica (descuenta stock)
             $this->saveMaterialConsumptions();
 
             // Último proceso → finalizar la orden
@@ -409,7 +424,7 @@ class ManageProductionOrders extends Component
             ]);
         }
 
-        // Guardar consumo de materiales si aplica
+        // Guardar consumo de materiales si aplica (descuenta stock)
         $this->saveMaterialConsumptions();
 
         // Avanzar la etapa y marcar "En proceso"
@@ -420,6 +435,55 @@ class ManageProductionOrders extends Component
 
         $this->resetProcessModal();
         session()->flash('success', 'Etapa de producción avanzada correctamente.');
+
+        } catch (\Exception $e) {
+            Log::error('❌ [Producción] Error al guardar etapa de proceso', [
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Error al guardar el proceso: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Valida que haya stock suficiente para cada material antes de descontar.
+     * Retorna true si todo está bien, false si algún item no tiene stock.
+     */
+    private function validateMaterialStock(): bool
+    {
+        $storeId = $this->getUserStoreId();
+
+        if (!$storeId) {
+            $this->processModalError = 'No se encontró una bodega asignada al usuario. No se puede verificar el stock.';
+            return false;
+        }
+
+        foreach ($this->materialConsumptions as $row) {
+            if (empty($row['material_itemId']) || empty($row['qty'])) {
+                continue;
+            }
+
+            // Calcular cantidad en unidad de consumo base
+            $unit      = collect($this->unitMeasurements)->firstWhere('id', (int) ($row['unit_measurement'] ?? 0));
+            $factor    = $unit ? floatval($unit['quantity']) : 1;
+            $requested = floatval($row['qty']) * $factor;
+
+            $itemStore = InvItemsStore::where('itemId', $row['material_itemId'])
+                ->where('storeId', $storeId)
+                ->first();
+
+            $available = $itemStore ? floatval($itemStore->stock_items_store) : 0;
+
+            if ($available < $requested) {
+                $item     = Items::find($row['material_itemId']);
+                $itemName = $item?->name ?? "Item #{$row['material_itemId']}";
+                $unitLabel = $unit ? $unit['description'] : 'unidades base';
+                $this->processModalError = "Stock insuficiente para \"{$itemName}\". "
+                    . "Disponible: {$available} unidades base, Requerido: {$requested} ({$row['qty']} {$unitLabel}).";
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function saveMaterialConsumptions(): void
@@ -428,18 +492,85 @@ class ManageProductionOrders extends Component
             return;
         }
 
-        foreach ($this->materialConsumptions as $row) {
-            if (empty($row['material_itemId']) || empty($row['qty'])) {
-                continue;
+        // Obtener la bodega del usuario autenticado para descontar stock
+        $storeId = $this->getUserStoreId();
+
+        DB::connection('tenant')->beginTransaction();
+        try {
+            foreach ($this->materialConsumptions as $row) {
+                if (empty($row['material_itemId']) || empty($row['qty'])) {
+                    continue;
+                }
+
+                $unitId = !empty($row['unit_measurement']) ? (int) $row['unit_measurement'] : null;
+                $unit   = $unitId ? collect($this->unitMeasurements)->firstWhere('id', $unitId) : null;
+                $factor = $unit ? floatval($unit['quantity']) : 1;
+
+                PrdMaterialItems::create([
+                    'production_order_id' => $this->processModalOrderId,
+                    'process_id'          => $this->processModalId,
+                    'material_itemId'     => $row['material_itemId'],
+                    'qty'                 => $row['qty'],
+                    'unit_measurement' => $unitId,
+                ]);
+
+                // Descontar stock (qty × factor de unidad) en la bodega del usuario
+                if ($storeId) {
+                    $itemStore = InvItemsStore::where('itemId', $row['material_itemId'])
+                        ->where('storeId', $storeId)
+                        ->first();
+
+                    if ($itemStore) {
+                        $newStock = $itemStore->stock_items_store - (floatval($row['qty']) * $factor);
+                        $itemStore->stock_items_store = max(0, $newStock);
+                        $itemStore->save();
+                    }
+
+                    Log::info('📦 [Producción] Stock descontado por consumo de material', [
+                        'material_itemId'     => $row['material_itemId'],
+                        'qty'                 => $row['qty'],
+                        'storeId'             => $storeId,
+                        'production_order_id' => $this->processModalOrderId,
+                        'process_id'          => $this->processModalId,
+                    ]);
+                }
             }
 
-            PrdMaterialItems::create([
-                'production_order_id' => $this->processModalOrderId,
-                'process_id'          => $this->processModalId,
-                'material_itemId'     => $row['material_itemId'],
-                'qty'                 => $row['qty'],
+            DB::connection('tenant')->commit();
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ [Producción] Error al descontar stock por consumo de materiales', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+            throw $e;
         }
+    }
+
+    /**
+     * Obtiene el ID de la bodega (store) asignada al usuario autenticado.
+     * Si el almacén tiene más de una bodega activa, retorna la primera.
+     */
+    private function getUserStoreId(): ?int
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->contact_id) {
+            return null;
+        }
+
+        $contact = \App\Models\Central\VntContact::with('warehouse')->find($user->contact_id);
+
+        if (!$contact || !$contact->warehouseId) {
+            return null;
+        }
+
+        $store = InvStore::where('warehouseId', $contact->warehouseId)
+            ->where('status', 1)
+            ->orderBy('id')
+            ->first();
+
+        return $store?->id;
     }
 
     private function loadMaterialItems(): void
@@ -450,11 +581,16 @@ class ManageProductionOrders extends Component
             ->orderBy('name')
             ->get(['id', 'name', 'internal_code'])
             ->toArray();
+
+        $this->unitMeasurements = UnitMeasurements::where('status', 1)
+            ->orderBy('description')
+            ->get(['id', 'description', 'quantity'])
+            ->toArray();
     }
 
     public function addMaterialRow(): void
     {
-        $this->materialConsumptions[] = ['material_itemId' => '', 'qty' => ''];
+        $this->materialConsumptions[] = ['material_itemId' => '', 'qty' => '', 'unit_measurement' => ''];
     }
 
     public function removeMaterialRow(int $index): void
@@ -484,6 +620,7 @@ class ManageProductionOrders extends Component
         $this->processFieldValues       = [];
         $this->materialItems            = [];
         $this->materialConsumptions     = [];
+        $this->processModalError        = '';
     }
 
     private function resetForm(): void

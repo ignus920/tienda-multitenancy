@@ -15,6 +15,7 @@ class PrdMaterialItems extends Model
 
     protected $fillable = [
         'qty',
+        'unit_measurement',
         'material_itemId',
         'production_order_id',
         'process_id',
