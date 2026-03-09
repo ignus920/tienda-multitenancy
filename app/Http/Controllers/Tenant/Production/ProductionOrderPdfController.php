@@ -10,7 +10,8 @@ use App\Models\Tenant\Production\PrdDataProcessOrder;
 use App\Models\Tenant\Production\PrdMaterialItems;
 use App\Models\Tenant\Items\UnitMeasurements;
 use App\Services\Tenant\TenantManager;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class ProductionOrderPdfController extends Controller
 {
@@ -66,15 +67,22 @@ class ProductionOrderPdfController extends Controller
             'orderNumber'  => str_pad($order->id, 4, '0', STR_PAD_LEFT),
         ];
 
-        $pdf = Pdf::loadView('pdf.production-order', $data)
-            ->setPaper('letter', 'portrait')
-            ->setOptions([
-                'defaultFont' => 'sans-serif',
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => false,
-                'dpi' => 120,
-            ]);
+        $html = view('pdf.production-order', $data)->render();
 
-        return $pdf->stream("orden-produccion-{$data['orderNumber']}.pdf");
+        $options = new Options();
+        $options->set('defaultFont', 'sans-serif');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+        $options->set('dpi', 120);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"orden-produccion-{$data['orderNumber']}.pdf\"",
+        ]);
     }
 }
