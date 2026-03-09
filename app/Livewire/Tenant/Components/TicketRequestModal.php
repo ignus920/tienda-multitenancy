@@ -37,16 +37,44 @@ class TicketRequestModal extends Component
     public $search = '';
     public $perPage = 5;
 
+    // Estado del módulo
+    public $isModuleActive = false;
+
     public function mount($productId = null)
     {
         $this->productId = $productId;
         $this->dateFrom = now()->subMonths(3)->format('Y-m-d');
         $this->dateTo = now()->format('Y-m-d');
+        $this->checkModuleStatus();
     }
 
     public function boot()
     {
         $this->ensureTenantConnection();
+        $this->checkModuleStatus();
+    }
+
+    private function checkModuleStatus()
+    {
+        $tenantId = session('tenant_id');
+        if (!$tenantId) {
+            $this->isModuleActive = false;
+            return;
+        }
+
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant) {
+            $this->isModuleActive = false;
+            return;
+        }
+
+        // Verificar en la tabla central vnt_merchant_moduls si el módulo marketing está activo para este merchant
+        $this->isModuleActive = DB::connection('mysql')->table('vnt_merchant_moduls')
+            ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
+            ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
+            ->where('vnt_moduls.migration', 'marketing')
+            ->where('vnt_moduls.status', 1)
+            ->exists();
     }
 
     private function ensureTenantConnection()
@@ -68,6 +96,8 @@ class TicketRequestModal extends Component
     #[On('openTicketModal')]
     public function open($productId = null, $title = null)
     {
+        if (!$this->isModuleActive) return;
+
         $this->productId = $productId;
         $this->productName = null;
         
@@ -94,6 +124,8 @@ class TicketRequestModal extends Component
     #[On('viewTicket')]
     public function view($id)
     {
+        if (!$this->isModuleActive) return;
+
         $this->ensureTenantConnection();
         $this->selectedRequestId = $id;
         
@@ -109,6 +141,8 @@ class TicketRequestModal extends Component
 
     public function updateStatus($statusName)
     {
+        if (!$this->isModuleActive) return;
+
         $this->ensureTenantConnection();
         if (!$this->selectedRequestId) return;
 
@@ -158,6 +192,8 @@ class TicketRequestModal extends Component
 
     public function save()
     {
+        if (!$this->isModuleActive) return;
+
         $this->ensureTenantConnection();
         $this->validate([
             'department_id' => [
@@ -216,30 +252,41 @@ class TicketRequestModal extends Component
     {
         $this->ensureTenantConnection();
 
-        $departments = TickDepartment::where('status', 1)->orderBy('name')->get();
-
+        $departments = collect();
+        $requests = collect();
         $selectedRequest = null;
-        if ($this->selectedRequestId) {
-            $selectedRequest = TickRequest::with(['status', 'department', 'creator', 'history.status', 'history.user'])
-                ->find($this->selectedRequestId);
-        }
 
-        $requests = TickRequest::with(['status', 'department', 'creator'])
-            ->when($this->productId, function($q) {
-                return $q->where('product_id', $this->productId);
-            })
-            ->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
-            ->where(function($q) {
-                $q->where('detail', 'like', '%' . $this->search . '%')
-                  ->orWhere('id', 'like', '%' . $this->search . '%');
-            })
-            ->orderBy('id', 'desc')
-            ->paginate($this->perPage);
+        if ($this->isModuleActive) {
+            try {
+                $departments = TickDepartment::where('status', 1)->orderBy('name')->get();
+
+                if ($this->selectedRequestId) {
+                    $selectedRequest = TickRequest::with(['status', 'department', 'creator', 'history.status', 'history.user'])
+                        ->find($this->selectedRequestId);
+                }
+
+                $requests = TickRequest::with(['status', 'department', 'creator'])
+                    ->when($this->productId, function($q) {
+                        return $q->where('product_id', $this->productId);
+                    })
+                    ->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
+                    ->where(function($q) {
+                        $q->where('detail', 'like', '%' . $this->search . '%')
+                        ->orWhere('id', 'like', '%' . $this->search . '%');
+                    })
+                    ->orderBy('id', 'desc')
+                    ->paginate($this->perPage);
+            } catch (\Exception $e) {
+                Log::error("Error consultando tablas de tickets: " . $e->getMessage());
+                $this->isModuleActive = false; // Desactivar si hay error de tabla inexistente
+            }
+        }
 
         return view('livewire.tenant.components.ticket-request-modal', [
             'departments' => $departments,
             'requests' => $requests,
-            'selectedRequest' => $selectedRequest
+            'selectedRequest' => $selectedRequest,
+            'isModuleActive' => $this->isModuleActive
         ]);
     }
 }
