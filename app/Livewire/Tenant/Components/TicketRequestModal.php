@@ -68,7 +68,7 @@ class TicketRequestModal extends Component
         }
 
         // Usar caché de sesión para evitar consultas redundantes a la BD central en cada request
-        $cacheKey = 'module_marketing_active_' . $tenantId;
+        $cacheKey = 'module_marketing_active_v2_' . $tenantId;
         if (session()->has($cacheKey)) {
             $this->isModuleActive = session($cacheKey);
             return;
@@ -76,15 +76,23 @@ class TicketRequestModal extends Component
 
         try {
             $tenant = Tenant::find($tenantId);
-            if (!$tenant || !$tenant->merchant_type_id) {
+            if (!$tenant) {
                 $this->isModuleActive = false;
             } else {
+                // 1. Verificar en base de datos central (Oficial)
                 $this->isModuleActive = DB::connection('mysql')->table('vnt_merchant_moduls')
                     ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
                     ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
                     ->where('vnt_moduls.migration', 'marketing')
                     ->where('vnt_moduls.status', 1)
                     ->exists();
+
+                // 2. Fallback: Si no está en central, verificar si las tablas existen en el tenant
+                // Esto permite que funcione si el usuario corrió las migraciones manualmente
+                if (!$this->isModuleActive) {
+                    $this->ensureTenantConnection();
+                    $this->isModuleActive = \Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('tick_departments');
+                }
             }
             
             // Guardar en sesión por 10 minutos (opcionalmente podrías usar cache() de Laravel)

@@ -35,11 +35,19 @@ trait HasCompanyConfiguration
     private static bool $isStaticInitialized = false;
 
     /**
+     * Propiedades de instancia (Compatibilidad legacy)
+     */
+    protected ?CompanyConfigurationService $configService = null;
+    protected ?int $currentCompanyId = null;
+    protected ?int $currentPlainId = null;
+
+    /**
      * Inicializa la configuración de la empresa
      */
     protected function initializeCompanyConfiguration(): void
     {
         if (self::$isStaticInitialized && self::$staticConfigService && self::$sharedCompanyId) {
+            $this->syncInstanceProperties();
             return;
         }
 
@@ -64,6 +72,17 @@ trait HasCompanyConfiguration
         }
 
         self::$isStaticInitialized = true;
+        $this->syncInstanceProperties();
+    }
+
+    /**
+     * Sincroniza las propiedades de la instancia con el estado estático compartido
+     */
+    private function syncInstanceProperties(): void
+    {
+        $this->configService = self::$staticConfigService;
+        $this->currentCompanyId = self::$sharedCompanyId;
+        $this->currentPlainId = self::$sharedPlainId;
     }
 
     /**
@@ -92,6 +111,8 @@ trait HasCompanyConfiguration
     {
         if (!self::$isStaticInitialized || !self::$staticConfigService || !self::$sharedCompanyId) {
             $this->initializeCompanyConfiguration();
+        } else {
+            $this->syncInstanceProperties();
         }
     }
 
