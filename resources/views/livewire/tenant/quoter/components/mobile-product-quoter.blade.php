@@ -11,6 +11,7 @@
         showCart: false, // Control manual (Principalmente Offline)
         showCartModal: $wire.entangle('showCartModal'), // Sincronizado con Livewire
         showObservations: $wire.entangle('showObservations'), // Sincronizado para observaciones
+        observaciones: $wire.entangle('observaciones'), // Sincronizado para notas del pedido
         displayProducts: @js($mappedProducts), // Inyectar datos iniciales de forma segura con Livewire 3
         localSearch: '',
         showOfflineCreateForm: false, // Control del formulario offline
@@ -217,7 +218,12 @@
                 this.runInQueue(async () => {
                     this.syncing = false;
                     this.lastSync = new Date().toISOString();
-                    console.timeEnd('🧪 [Sync Full]');
+                    try {
+                        await this.persistState();
+                        await this.syncPendingOrders();
+                    } finally {
+                        try { console.timeEnd('🧪 [Sync Full]'); } catch(e) {}
+                    }
                     
                     // Solo recargar productos locales si estamos realmente offline o forzando offline
                     if (!this.isOnline || this.forceOffline) {
@@ -428,25 +434,28 @@
         },
 
         async saveLocalOrder() {
+            console.log('🚀 [OfflineSave] Iniciando proceso de guardado local...');
+            
             if (this.localCart.length === 0) {
+                console.warn('⚠️ [OfflineSave] Carrito vacío');
                 Swal.fire('Carrito vacío', 'Agrega productos antes de finalizar.', 'warning');
                 return;
             }
+
             if (!this.selectedLocalCustomer && @json(auth()->user()->profile_id) != 17) {
+                console.warn('⚠️ [OfflineSave] Cliente no seleccionado');
                 Swal.fire('Cliente requerido', 'Selecciona un cliente para continuar.', 'warning');
                 return;
             }
-            const result = await Swal.fire({
-                title: '¿Finalizar pedido local?',
-                text: 'El pedido se guardará en el celular y se enviará cuando recuperes internet.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, guardar localmente',
-                cancelButtonText: 'Cancelar'
-            });
-            if (!result.isConfirmed) return;
+
+            console.log('📂 [OfflineSave] Obteniendo base de datos...');
             const db = await this.getDb();
-            if (!db) return;
+            if (!db) {
+                console.error('❌ [OfflineSave] No se pudo obtener la base de datos (window.db)');
+                Swal.fire('Error de sistema', 'La base de datos local no está disponible.', 'error');
+                return;
+            }
+
             const orderUuid = this.currentQuoteUuid || ('local-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9));
             const orderData = {
                 uuid: orderUuid,
@@ -455,26 +464,38 @@
                 customer: this.selectedLocalCustomer ? JSON.parse(JSON.stringify(this.selectedLocalCustomer)) : null,
                 total: this.localCart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
                 sincronizado: 0,
-                observaciones: $wire.get('observaciones') || '',
+                observaciones: this.observaciones || '',
                 estado: 'edited'
             };
-            try {
-                console.log('💾 Guardando pedido local...', orderData);
-                const id = await db.pedidos.put(orderData);
-                console.log('✅ Pedido guardado en IndexedDB con ID/UUID:', id);
 
-                await Swal.fire({ icon: 'success', title: '¡Pedido Guardado!', timer: 1500, showConfirmButton: false });
+            console.log('💾 [OfflineSave] Intentando guardar en IndexedDB...', orderData);
+            
+            try {
+                const id = await db.pedidos.put(orderData);
+                console.log('✅ [OfflineSave] Guardado exitoso con ID:', id);
+
+                await Swal.fire({ 
+                    icon: 'success', 
+                    title: '¡Pedido Guardado!', 
+                    text: 'El pedido quedó guardado en el celular.',
+                    timer: 2000, 
+                    showConfirmButton: false 
+                });
                 
-                // Limpiar ANTES de redirigir para asegurar que el estado quede limpio
                 this.localCart = [];
                 this.selectedLocalCustomer = null; 
                 this.currentQuoteUuid = null;
                 await this.persistState();
                 
+                console.log('🚚 [OfflineSave] Redirigiendo...');
                 window.location.href = "/tenant/quoter/mobile";
-            } catch (e) {
-                console.error('❌ Error guardando pedido local:', e);
-                Swal.fire('Error', 'No se pudo guardar el pedido localmente.', 'error');
+            } catch (err) {
+                console.error('❌ [OfflineSave] Error crítico al escribir en IndexedDB:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al guardar',
+                    text: 'Error técnico: ' + err.message
+                });
             }
         },
 
@@ -1479,7 +1500,7 @@
 
                         <div wire:key="cart-observations-input-box" x-show="showObservations" x-transition class="mt-3">
                             <textarea
-                                wire:model="observaciones"
+                                x-model="observaciones"
                                 rows="4"
                                 placeholder="Escribe observaciones adicionales..."
                                 class="block w-full p-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300
@@ -1709,12 +1730,28 @@
         const data = event.detail;
         const payload = Array.isArray(data) ? data[0] : data;
         console.log('Mobile Toast triggered:', payload);
-        Swal.fire({
+        
+        // Usar un Mixin para evitar cerrar modales abiertos si es posible, 
+        // o simplemente no disparar el toast si hay un modal de confirmación crítico.
+        const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
             timer: 2000,
             timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        // Verificamos si hay un modal abierto que no sea un toast
+        if (Swal.isVisible() && !Swal.isTimerRunning()) {
+            console.warn('⚠️ [Toast] Saltando toast para no cerrar modal abierto');
+            return;
+        }
+
+        Toast.fire({
             icon: payload.type || 'info',
             title: payload.message,
             background: '#ffffff',
