@@ -9,7 +9,10 @@ use App\Models\Tenant\Production\PrdProcessItem;
 use App\Models\Tenant\Production\PrdDataProcessOrder;
 use App\Models\Tenant\Production\PrdMaterialItems;
 use App\Models\Tenant\Items\UnitMeasurements;
+use App\Models\Central\VntContact;
 use App\Services\Tenant\TenantManager;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ProductionOrderPdfController extends Controller
 {
@@ -23,6 +26,15 @@ class ProductionOrderPdfController extends Controller
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
         tenancy()->initialize($tenant);
+
+        // Nombre de la empresa del usuario logueado
+        $companyName = DB::connection('central')
+            ->table('vnt_contacts as c')
+            ->join('vnt_warehouses as w', 'c.warehouseId', '=', 'w.id')
+            ->join('vnt_companies as cm', 'w.companyId', '=', 'cm.id')
+            ->join('users as u', 'u.contact_id', '=', 'c.id')
+            ->where('u.id', Auth::id())
+            ->value('cm.businessName');
 
         // Cargar la orden con todas las relaciones necesarias
         $order = PrdProductionOrder::with(['item', 'contact', 'productiveProcess'])
@@ -63,6 +75,7 @@ class ProductionOrderPdfController extends Controller
             'processData'  => $processData,
             'materials'    => $materials,
             'orderNumber'  => str_pad($order->id, 4, '0', STR_PAD_LEFT),
+            'companyName'  => $companyName ?? '—',
         ];
 
         $html = view('pdf.production-order', $data)->render();

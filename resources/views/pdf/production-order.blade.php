@@ -181,7 +181,7 @@
     <div class="header">
         <div class="header-top">
             <div class="header-top-left">
-                <div class="company-name">Sistema de Producción</div>
+                <div class="company-name">{{ $companyName }}</div>
                 <div style="font-size:8px; color:#555; margin-top:2px;">
                     Fecha recibido: <strong>{{ $order->date->format('d/m/Y') }}</strong>
                     &nbsp;&nbsp;|&nbsp;&nbsp;
