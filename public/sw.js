@@ -1,8 +1,8 @@
 /*
 * Sistema de Service Worker Manual - DOSIL ERP
-* v29 - Offline robusto con fallback HTML
+* v30 - Fix fallback mobile solo para URLs mobile
 */
-const CACHE_NAME = 'quoter-cache-v29';
+const CACHE_NAME = 'quoter-cache-v30';
 const PRECACHE_ASSETS = [
     '/',
     '/manifest.json',
@@ -104,12 +104,14 @@ self.addEventListener('fetch', (event) => {
                         const cached = await caches.match(event.request, { ignoreSearch: true });
                         if (cached) return cached;
 
-                        // Fallback a URL base sin query params
-                        const baseUrl = url.pathname.includes('/products/mobile')
-                            ? '/tenant/quoter/products/mobile'
-                            : '/tenant/quoter/mobile';
-                        const baseCached = await caches.match(baseUrl);
-                        if (baseCached) return baseCached;
+                        // Solo usar fallback mobile si la URL original era para la versión mobile
+                        if (url.pathname.includes('/mobile')) {
+                            const baseUrl = url.pathname.includes('/products/mobile')
+                                ? '/tenant/quoter/products/mobile'
+                                : '/tenant/quoter/mobile';
+                            const baseCached = await caches.match(baseUrl);
+                            if (baseCached) return baseCached;
+                        }
 
                         return offlineFallback();
                     } catch (e) {
@@ -136,17 +138,19 @@ self.addEventListener('fetch', (event) => {
                         const cached = await caches.match(event.request, { ignoreSearch: true });
                         if (cached) return cached;
 
-                        if (url.pathname.includes('/products/mobile')) {
-                            const c = await caches.match('/tenant/quoter/products/mobile');
-                            if (c) return c;
-                        }
-                        if (url.pathname.includes('/quoter')) {
-                            const c = await caches.match('/tenant/quoter/mobile');
-                            if (c) return c;
+                        // Solo usar fallback mobile si la URL era para versión mobile
+                        if (url.pathname.includes('/mobile')) {
+                            if (url.pathname.includes('/products/mobile')) {
+                                const c = await caches.match('/tenant/quoter/products/mobile');
+                                if (c) return c;
+                            }
+                            if (url.pathname.includes('/quoter')) {
+                                const c = await caches.match('/tenant/quoter/mobile');
+                                if (c) return c;
+                            }
                         }
 
-                        const root = await caches.match('/');
-                        return root || offlineFallback();
+                        return offlineFallback();
                     } catch (e) {
                         return offlineFallback();
                     }
