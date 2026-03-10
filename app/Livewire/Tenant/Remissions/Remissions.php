@@ -118,6 +118,15 @@ class Remissions extends Component
     }
 
     /**
+     * Acceso directo desde mobile: selecciona una sola remisión y abre el modal de facturación.
+     */
+    public function facturarRemisionMobile($id)
+    {
+        $this->selectedRemissions = [(string) $id];
+        $this->prepareFacturacion();
+    }
+
+    /**
      * Prepara el modal de confirmación de facturación para las remisiones seleccionadas.
      * Valida que sean del mismo cliente y construye el preview.
      */

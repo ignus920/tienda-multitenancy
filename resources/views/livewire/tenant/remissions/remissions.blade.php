@@ -329,10 +329,19 @@
         <!-- Vista de Tarjetas (Mobile) -->
         <div class="lg:hidden p-4 space-y-4">
             @forelse($remissions as $remission)
+                @php $invoiceMobile = $remission->invoiceXsale?->invoice ?? null; @endphp
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
                     <!-- Header Tarjeta Dark -->
                     <div class="bg-slate-900 dark:bg-slate-950 px-4 py-3 flex justify-between items-center">
-                        <div class="flex flex-col">
+                        <div class="flex items-center gap-3">
+                            @if(!$invoiceMobile && !in_array($remission->status, ['DEVUELTO', 'ANULADO', 'VENCIDO']))
+                                <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
+                                    class="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500 h-5 w-5 cursor-pointer">
+                            @elseif($invoiceMobile)
+                                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-900/40 border border-emerald-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                    ✓ Facturada
+                                </span>
+                            @endif
                             <span class="text-white font-bold text-base">Remisión #{{ $remission->consecutive }}</span>
                         </div>
                         <div class="text-right">
@@ -443,6 +452,12 @@
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                             </button>
 
+                            @if($invoiceMobile && $invoiceMobile->invoiceNumber)
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1.5 rounded-xl whitespace-nowrap">
+                                    #{{ $invoiceMobile->invoiceNumber }}
+                                </span>
+                            @endif
+
                             @if(!in_array($remission->status, ['ANULADO', 'ENTREGADO']))
                                 <button @click="confirmAnnul({{ $remission->id }}, '{{ $remission->consecutive }}')"
                                     class="bg-red-500 hover:bg-red-600 text-white p-2.5 rounded-xl transition-all active:scale-95 shadow-sm shadow-red-100"
@@ -463,6 +478,19 @@
             @endforelse
         </div>
     </div>
+
+    {{-- Botón flotante mobile: aparece cuando hay remisiones seleccionadas --}}
+    @if(count($selectedRemissions) > 0)
+    <div class="lg:hidden fixed bottom-6 left-0 right-0 px-4 z-[50]">
+        <button wire:click="prepareFacturacion"
+            wire:loading.attr="disabled"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/40 transition-all active:scale-95">
+            <svg wire:loading.remove wire:target="prepareFacturacion" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <svg wire:loading wire:target="prepareFacturacion" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            Facturar {{ count($selectedRemissions) }} remisión{{ count($selectedRemissions) > 1 ? 'es' : '' }}
+        </button>
+    </div>
+    @endif
 
         <script>
             function confirmAnnul(id, consecutive) {
