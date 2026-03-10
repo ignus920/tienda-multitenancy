@@ -1701,7 +1701,6 @@
 </div>
 </div>
     @include('livewire.tenant.quoter.components.customer-quick-form')
-</div>
 
 
 @script
@@ -1929,4 +1928,5 @@
             </button>
         </div>
     </div>
+</div>
 </div>
