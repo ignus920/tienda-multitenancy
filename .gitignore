@@ -1,5 +1,4 @@
 *.log
-/bootstrap/cache/*.php
 *.qodo
 *.kiro
 *.claude
