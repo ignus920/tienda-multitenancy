@@ -34,14 +34,14 @@
         :aria-expanded="open" 
         :aria-controls="$id('dropdown-button')" 
         type="button" 
-        class="{{ $class }} flex items-center justify-between bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+        class="{{ $class }} flex items-center justify-between bg-white dark:bg-gray-800 {{ $selectedValue ? 'border-indigo-500 ring-1 ring-indigo-500 text-indigo-700 dark:text-indigo-300' : 'border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100' }}"
         id="select_{{ $name }}"
     >
-        <span class="block truncate">
+        <span class="block truncate {{ $selectedValue ? 'font-semibold' : '' }}">
             {{ $this->selectedItemName ?? $placeholder }}
         </span>
 
-        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <svg class="h-6 w-6 {{ $selectedValue ? 'text-indigo-500' : '' }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
         </svg>
     </button>
@@ -71,30 +71,31 @@
         <ul class="max-h-60 overflow-auto py-1 text-base ring-1 ring-black ring-opacity-5 dark:ring-gray-700 focus:outline-none sm:text-sm">
             <!-- Opción vacía / Reset -->
             <li 
-                class="text-gray-900 dark:text-gray-100 relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500"
+                class="relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 {{ !$selectedValue ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-200' : 'text-gray-900 dark:text-gray-100' }}"
                 role="option" 
                 x-on:click="$wire.selectItem(''); close($refs.button)"
             >
-                <span class="font-normal block truncate">{{ $placeholder }}</span>
+                <span class="font-normal block truncate {{ !$selectedValue ? 'font-semibold' : '' }}">{{ $placeholder }}</span>
             </li>
 
             @forelse($this->filteredItems as $item)
                 @php
                     $itemValue = is_array($item) ? $item[$valueField] : $item->{$valueField};
                     $itemDisplay = is_array($item) ? $item[$displayField] : $item->{$displayField};
+                    $isSelected = $selectedValue == $itemValue;
                 @endphp
                 <li 
                     wire:key="item-{{ $itemValue }}"
-                    class="text-gray-900 dark:text-gray-100 relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 group"
+                    class="relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 group {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-200' : 'text-gray-900 dark:text-gray-100' }}"
                     role="option" 
                     x-on:click="$wire.selectItem('{{ $itemValue }}'); close($refs.button)"
                 >
-                    <span class="font-normal block truncate {{ $selectedValue == $itemValue ? 'font-semibold' : '' }}">
+                    <span class="block truncate {{ $isSelected ? 'font-semibold' : 'font-normal' }}">
                         {{ $itemDisplay }}
                     </span>
 
                     <!-- Checkmark si está seleccionado -->
-                    @if($selectedValue == $itemValue)
+                    @if($isSelected)
                         <span class="text-indigo-600 dark:text-indigo-400 absolute inset-y-0 right-0 flex items-center pr-4 group-hover:text-white">
                             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />

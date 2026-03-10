@@ -12,6 +12,7 @@ use App\Helpers\ImageHelper;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Validate;
 use Carbon\Carbon;
+use Illuminate\Container\Attributes\Log;
 
 /**
  * Componente Livewire para gestionar la galería de imágenes de un item
@@ -81,8 +82,8 @@ class ItemImageUpload extends Component
             ],
             'galleryImages.*' => [
                 'nullable',
-                'image',
-                'mimes:jpeg,png,jpg,webp',
+                'file',
+                'mimes:jpeg,png,jpg,webp,pdf',
                 'max:2048'
             ],
         ];
@@ -106,7 +107,7 @@ class ItemImageUpload extends Component
 
             // Mensajes para cada imagen en el array
             'galleryImages.*.image' => 'Todos los archivos deben ser imágenes válidas.',
-            'galleryImages.*.mimes' => 'Las imágenes deben ser en formato JPEG, PNG, JPG o WebP.',
+            'galleryImages.*.mimes' => 'Los archivos deben ser en formato JPEG, PNG, JPG, WebP o PDF.',
             'galleryImages.*.max' => 'Cada imagen de la galería no debe superar 2MB.',
             'galleryImages.*.max.file' => 'Cada imagen de la galería no debe superar 2MB.', // Específico para error de tamaño de archivo
         ];
@@ -175,6 +176,19 @@ class ItemImageUpload extends Component
         $this->ensureTenantConnection();
         return ImageGallery::where('itemId', $this->itemId)
             ->where('type', 'GALERIA')
+            ->whereNull('deleted_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function getPdfFilesProperty()
+    {
+        $this->ensureTenantConnection();
+        \Log::info('🔍 Obteniendo archivos PDF para el item', [
+            'item_id' => $this->itemId
+        ]);
+        return ImageGallery::where('itemId', $this->itemId)
+            ->where('type', 'PDF')
             ->whereNull('deleted_at')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -262,8 +276,8 @@ class ItemImageUpload extends Component
             ],
             'galleryImages.*' => [
                 'required',
-                'image',
-                'mimes:jpeg,png,jpg,webp',
+                'file',
+                'mimes:jpeg,png,jpg,webp,pdf',
                 'max:2048'
             ]
         ], $this->messages());
@@ -289,6 +303,14 @@ class ItemImageUpload extends Component
 
             foreach ($this->galleryImages as $image) {
                 if ($image) {
+
+                    $extension = $image->getClientOriginalExtension();
+
+                    if ($extension == 'pdf') {
+                        $type = 'PDF';
+                    } else {
+                        $type = 'GALERIA';
+                    }
                     // Guardar imagen en storage
                     $path = $image->store("items/{$tenantId}", 'public');
 
@@ -302,7 +324,7 @@ class ItemImageUpload extends Component
                     ImageGallery::create([
                         'itemId' => $this->itemId,
                         'img_path' => $path,
-                        'type' => 'GALERIA',
+                        'type' => $type,
                         'created_at' => Carbon::now(),
                     ]);
 
@@ -407,6 +429,7 @@ class ItemImageUpload extends Component
         return view('livewire.tenant.items.item-image-upload', [
             'principalImageData' => $this->getPrincipalImageProperty(),
             'galleryImagesData' => $this->getGalleryImagesProperty(),
+            'pdfFilesData' => $this->getPdfFilesProperty(),
             'canAddMore' => $this->canAddMoreImages(),
             'maxImages' => self::MAX_GALLERY_IMAGES,
         ]);

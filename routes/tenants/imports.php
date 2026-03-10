@@ -15,5 +15,5 @@ Route::middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantCon
 });
 
 Route::middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantConnection::class])->group(function () {
-    Route::get('/imports-orders', Orders::class)->name('imports.imports-orders');
+    Route::get('/imports-orders', Orders::class)->name('imports-orders');
 });

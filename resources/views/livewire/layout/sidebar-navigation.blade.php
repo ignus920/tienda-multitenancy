@@ -384,6 +384,7 @@ new class extends Component
         </div> -->
 
         <!-- Inventario (menú con subitems) -->
+        @if(PermissionHelper::userCan('Inventario', 'show'))
         <div x-data="{ tooltip: false, open: false }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -463,6 +464,7 @@ new class extends Component
             <a href="{{ route('transfers.transfers') }}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Transferencias</a>
             </div>
         </div>
+        @endif
 
         <!-- Producción (menú con subitems) -->
         <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }} }" class="w-full">

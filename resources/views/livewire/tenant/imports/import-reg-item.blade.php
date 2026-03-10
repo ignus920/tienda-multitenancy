@@ -114,36 +114,6 @@
                 @error('pvp_min_factor') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
         </div>
-        <div class="border-t border-gray-300 my-6"></div>
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Documento PDF</h3>
-        <div class="mb-3">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Subir Archivo (PDF)
-            </label>
-            <div class="flex items-center space-x-4">
-                <div class="flex-1">
-                    <input 
-                        type="file" 
-                        wire:model="technical_sheet" 
-                        accept=".pdf,application/pdf"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900/50"
-                    >
-                    @error('technical_sheet') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
-                    
-                    @if ($technical_sheet)
-                        <div class="mt-2 flex items-center text-sm text-gray-600 dark:text-gray-400">
-                            <svg class="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Archivo seleccionado: {{ $technical_sheet->getClientOriginalName() }}
-                        </div>
-                    @endif
-                </div>
-            </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Formatos permitidos: PDF. Tamaño máximo: 2MB
-            </p>
-        </div>
         <div class="px-6 pt-4">
             <!-- Mensaje de éxito general -->
             @if (session()->has('message'))
