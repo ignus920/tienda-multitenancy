@@ -1,12 +1,10 @@
 /*
 * Sistema de Service Worker Manual - DOSIL ERP
-* v31 - Caché de páginas persistente + migración de versiones anteriores
+* v29 - Offline robusto con fallback HTML
 */
-const CACHE_NAME = 'quoter-cache-v31';
-// Caché separado para páginas visitadas — NO se borra al actualizar el SW
-const PAGES_CACHE = 'dosil-pages-cache';
-
+const CACHE_NAME = 'quoter-cache-v122';
 const PRECACHE_ASSETS = [
+    '/',
     '/manifest.json',
     '/Logo_DosilERPFinal.png',
     '/logo.png',
@@ -14,19 +12,11 @@ const PRECACHE_ASSETS = [
     '/pwa-icons/icon-512x512.png',
     '/js/dexie.min.js',
     '/js/sweetalert2.min.js',
-];
-
-// Páginas que se intentan cachear en instalación (requieren sesión activa)
-const PRECACHE_PAGES = [
     '/tenant/quoter/mobile',
     '/tenant/quoter/products/mobile',
-    '/tenant/quoter/products',
-    '/tenant/quoter',
     '/tenant/remissions',
     '/tenant/tat-quoter',
-    '/tenant/tat-sales',
-    '/tenant/dashboard',
-    '/',
+    '/tenant/tat-sales'
 ];
 
 const OFFLINE_HTML = `<!DOCTYPE html>
@@ -61,54 +51,30 @@ function offlineFallback() {
 }
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(Promise.all([
-        // Cachear activos estáticos
+    event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
+            console.log('📦 Precargando v29...');
             return Promise.allSettled(
                 PRECACHE_ASSETS.map(asset =>
-                    cache.add(asset).catch(err => console.warn(`⚠️ Error precargando asset ${asset}:`, err))
+                    cache.add(asset).catch(err => console.warn(`⚠️ Error precargando ${asset}:`, err))
                 )
             );
-        }),
-        // Cachear páginas en PAGES_CACHE (no se borra en actualizaciones)
-        caches.open(PAGES_CACHE).then((cache) => {
-            return Promise.allSettled(
-                PRECACHE_PAGES.map(page =>
-                    cache.add(page).catch(err => console.warn(`⚠️ Error precargando página ${page}:`, err))
-                )
-            );
-        }),
-    ]));
+        })
+    );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then(async (cacheNames) => {
-            const newCache = await caches.open(PAGES_CACHE);
-            for (const cacheName of cacheNames) {
-                // Migrar páginas de cachés viejas al PAGES_CACHE antes de borrarlas
-                if (cacheName !== CACHE_NAME && cacheName !== PAGES_CACHE) {
-                    try {
-                        const oldCache = await caches.open(cacheName);
-                        const keys = await oldCache.keys();
-                        for (const request of keys) {
-                            // Solo migrar navegaciones HTML (no assets)
-                            if (!request.url.includes('/build/') && !request.url.match(/\.(js|css|png|jpg|svg|ico|woff)$/)) {
-                                const response = await oldCache.match(request);
-                                if (response) {
-                                    const existing = await newCache.match(request, { ignoreSearch: true });
-                                    if (!existing) {
-                                        await newCache.put(request, response).catch(() => {});
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {}
-                    console.log('🧹 Limpiando caché antigua:', cacheName);
-                    await caches.delete(cacheName);
-                }
-            }
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        console.log('🧹 Limpiando caché antigua:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
         })
     );
     self.clients.claim();
@@ -121,33 +87,29 @@ self.addEventListener('fetch', (event) => {
     const isLivewire = event.request.headers.get('X-Livewire');
     const isNavigation = event.request.mode === 'navigate';
 
-    // 1. NAVEGACIONES - Network First, fallback a PAGES_CACHE
-    if (isNavigation) {
+    // 1. RUTAS CRÍTICAS (Cotizador y Productos) - NETWORK FIRST
+    if (isNavigation && (url.pathname.includes('/quoter') || url.pathname.includes('/products/mobile'))) {
         event.respondWith(
             fetch(event.request)
                 .then((networkResponse) => {
                     if (networkResponse && networkResponse.status === 200) {
-                        // Guardar en PAGES_CACHE al visitar online
                         const copy = networkResponse.clone();
-                        caches.open(PAGES_CACHE).then((cache) => cache.put(event.request, copy));
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
                     }
                     return networkResponse;
                 })
                 .catch(async () => {
                     try {
-                        // Buscar en PAGES_CACHE ignorando query params (?clear=1, etc.)
-                        const pagesCache = await caches.open(PAGES_CACHE);
-                        const cached = await pagesCache.match(event.request, { ignoreSearch: true });
+                        // Intentar con ignoreSearch (cubre ?clear=1 y otros query params)
+                        const cached = await caches.match(event.request, { ignoreSearch: true });
                         if (cached) return cached;
 
-                        // Fallback por tipo de URL (solo versiones mobile para URLs mobile)
-                        if (url.pathname.includes('/mobile')) {
-                            const baseUrl = url.pathname.includes('/products/mobile')
-                                ? '/tenant/quoter/products/mobile'
-                                : '/tenant/quoter/mobile';
-                            const baseCached = await pagesCache.match(baseUrl);
-                            if (baseCached) return baseCached;
-                        }
+                        // Fallback a URL base sin query params
+                        const baseUrl = url.pathname.includes('/products/mobile')
+                            ? '/tenant/quoter/products/mobile'
+                            : '/tenant/quoter/mobile';
+                        const baseCached = await caches.match(baseUrl);
+                        if (baseCached) return baseCached;
 
                         return offlineFallback();
                     } catch (e) {
@@ -158,15 +120,37 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. LIVEWIRE - Network First (no cachear)
-    if (isLivewire) {
+    // 2. OTROS NAVEGACIONES Y LIVEWIRE - Network First
+    if (isNavigation || isLivewire) {
         event.respondWith(
-            fetch(event.request).catch(() =>
-                new Response('{"message":"offline"}', {
-                    status: 503,
-                    headers: { 'Content-Type': 'application/json' }
+            fetch(event.request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const copy = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+                    }
+                    return networkResponse;
                 })
-            )
+                .catch(async () => {
+                    try {
+                        const cached = await caches.match(event.request, { ignoreSearch: true });
+                        if (cached) return cached;
+
+                        if (url.pathname.includes('/products/mobile')) {
+                            const c = await caches.match('/tenant/quoter/products/mobile');
+                            if (c) return c;
+                        }
+                        if (url.pathname.includes('/quoter')) {
+                            const c = await caches.match('/tenant/quoter/mobile');
+                            if (c) return c;
+                        }
+
+                        const root = await caches.match('/');
+                        return root || offlineFallback();
+                    } catch (e) {
+                        return offlineFallback();
+                    }
+                })
         );
         return;
     }
