@@ -1,8 +1,8 @@
 /*
 * Sistema de Service Worker Manual - DOSIL ERP
-* v27 - Estrategia Ultra-Rápida (Stale-While-Revalidate)
+* v29 - Offline robusto con fallback HTML
 */
-const CACHE_NAME = 'quoter-cache-v28';
+const CACHE_NAME = 'quoter-cache-v29';
 const PRECACHE_ASSETS = [
     '/',
     '/manifest.json',
@@ -19,10 +19,41 @@ const PRECACHE_ASSETS = [
     '/tenant/tat-sales'
 ];
 
+const OFFLINE_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sin conexión - DOSIL ERP</title>
+<style>
+  body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center;
+         justify-content: center; min-height: 100vh; margin: 0; background: #f3f4f6; text-align: center; padding: 1rem; }
+  .icon { font-size: 4rem; margin-bottom: 1rem; }
+  h1 { color: #1f2937; font-size: 1.5rem; margin-bottom: 0.5rem; }
+  p { color: #6b7280; margin-bottom: 1.5rem; }
+  button { background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem;
+           border-radius: 0.5rem; font-size: 1rem; cursor: pointer; }
+</style>
+</head>
+<body>
+  <div class="icon">📶</div>
+  <h1>Sin conexión</h1>
+  <p>No hay internet. La página se cargará cuando recuperes la conexión.</p>
+  <button onclick="window.location.reload()">Reintentar</button>
+</body>
+</html>`;
+
+function offlineFallback() {
+    return new Response(OFFLINE_HTML, {
+        status: 503,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('📦 Precargando v27...');
+            console.log('📦 Precargando v29...');
             return Promise.allSettled(
                 PRECACHE_ASSETS.map(asset =>
                     cache.add(asset).catch(err => console.warn(`⚠️ Error precargando ${asset}:`, err))
@@ -56,7 +87,7 @@ self.addEventListener('fetch', (event) => {
     const isLivewire = event.request.headers.get('X-Livewire');
     const isNavigation = event.request.mode === 'navigate';
 
-    // 1. RUTAS CRÍTICAS (Cotizador y Productos) - NETWORK FIRST (Asegura CSRF fresco)
+    // 1. RUTAS CRÍTICAS (Cotizador y Productos) - NETWORK FIRST
     if (isNavigation && (url.pathname.includes('/quoter') || url.pathname.includes('/products/mobile'))) {
         event.respondWith(
             fetch(event.request)
@@ -68,8 +99,22 @@ self.addEventListener('fetch', (event) => {
                     return networkResponse;
                 })
                 .catch(async () => {
-                    return await caches.match(event.request, { ignoreSearch: true }) ||
-                        new Response("Offline (No Cache)", { status: 503 });
+                    try {
+                        // Intentar con ignoreSearch (cubre ?clear=1 y otros query params)
+                        const cached = await caches.match(event.request, { ignoreSearch: true });
+                        if (cached) return cached;
+
+                        // Fallback a URL base sin query params
+                        const baseUrl = url.pathname.includes('/products/mobile')
+                            ? '/tenant/quoter/products/mobile'
+                            : '/tenant/quoter/mobile';
+                        const baseCached = await caches.match(baseUrl);
+                        if (baseCached) return baseCached;
+
+                        return offlineFallback();
+                    } catch (e) {
+                        return offlineFallback();
+                    }
                 })
         );
         return;
@@ -87,19 +132,30 @@ self.addEventListener('fetch', (event) => {
                     return networkResponse;
                 })
                 .catch(async () => {
-                    const cached = await caches.match(event.request, { ignoreSearch: true });
-                    if (cached) return cached;
+                    try {
+                        const cached = await caches.match(event.request, { ignoreSearch: true });
+                        if (cached) return cached;
 
-                    if (url.pathname.includes('/products/mobile')) return await caches.match('/tenant/quoter/products/mobile');
-                    if (url.pathname.includes('/quoter')) return await caches.match('/tenant/quoter/mobile');
+                        if (url.pathname.includes('/products/mobile')) {
+                            const c = await caches.match('/tenant/quoter/products/mobile');
+                            if (c) return c;
+                        }
+                        if (url.pathname.includes('/quoter')) {
+                            const c = await caches.match('/tenant/quoter/mobile');
+                            if (c) return c;
+                        }
 
-                    return await caches.match('/') || new Response("Offline", { status: 503 });
+                        const root = await caches.match('/');
+                        return root || offlineFallback();
+                    } catch (e) {
+                        return offlineFallback();
+                    }
                 })
         );
         return;
     }
 
-    // 3. ACTIVOS (CSS, JS, Imágenes)
+    // 3. ACTIVOS (CSS, JS, Imágenes) - Cache First
     const isAsset =
         url.pathname.includes('/build/') ||
         event.request.destination === 'style' ||
