@@ -8,6 +8,7 @@
         isOnline: navigator.onLine,
         forceOffline: false, // Permitir forzar modo offline para pruebas
         syncing: false,
+        savingOrder: false,
         showCart: false, // Control manual (Principalmente Offline)
         showCartModal: $wire.entangle('showCartModal'), // Sincronizado con Livewire
         showObservations: $wire.entangle('showObservations'), // Sincronizado para observaciones
@@ -435,15 +436,18 @@
 
         async saveLocalOrder() {
             console.log('🚀 [OfflineSave] Iniciando proceso de guardado local...');
-            
+            this.savingOrder = true;
+
             if (this.localCart.length === 0) {
                 console.warn('⚠️ [OfflineSave] Carrito vacío');
+                this.savingOrder = false;
                 Swal.fire('Carrito vacío', 'Agrega productos antes de finalizar.', 'warning');
                 return;
             }
 
             if (!this.selectedLocalCustomer && @json(auth()->user()->profile_id) != 17) {
                 console.warn('⚠️ [OfflineSave] Cliente no seleccionado');
+                this.savingOrder = false;
                 Swal.fire('Cliente requerido', 'Selecciona un cliente para continuar.', 'warning');
                 return;
             }
@@ -474,28 +478,24 @@
                 const id = await db.pedidos.put(orderData);
                 console.log('✅ [OfflineSave] Guardado exitoso con ID:', id);
 
-                await Swal.fire({ 
-                    icon: 'success', 
-                    title: '¡Pedido Guardado!', 
-                    text: 'El pedido quedó guardado en el celular.',
-                    timer: 2000, 
-                    showConfirmButton: false 
-                });
-                
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { type: 'success', message: '¡Pedido guardado en el celular!' }
+                }));
+
                 this.localCart = [];
-                this.selectedLocalCustomer = null; 
+                this.selectedLocalCustomer = null;
                 this.currentQuoteUuid = null;
                 await this.persistState();
-                
+
                 console.log('🚚 [OfflineSave] Redirigiendo...');
-                window.location.href = "/tenant/quoter/mobile";
+                setTimeout(() => { window.location.href = "/tenant/quoter/mobile"; }, 1500);
             } catch (err) {
                 console.error('❌ [OfflineSave] Error crítico al escribir en IndexedDB:', err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error al guardar',
-                    text: 'Error técnico: ' + err.message
-                });
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { type: 'error', message: 'Error al guardar: ' + err.message }
+                }));
+            } finally {
+                this.savingOrder = false;
             }
         },
 
@@ -1646,12 +1646,20 @@
 
                         <!-- MODO OFFLINE (CON CLIENTE) -->
                         <div x-show="(!isOnline || forceOffline) && selectedLocalCustomer" class="contents" wire:key="save-offline-btn-box">
-                            <button @click="saveLocalOrder()"
-                                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center shadow-lg active:scale-95 transition-all">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                                </svg>
-                                Guardar Orden Offline
+                            <button @click="saveLocalOrder()" :disabled="savingOrder"
+                                class="w-full bg-green-600 hover:bg-green-700 disabled:opacity-70 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                                <template x-if="savingOrder">
+                                    <svg class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                    </svg>
+                                </template>
+                                <template x-if="!savingOrder">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                    </svg>
+                                </template>
+                                <span x-text="savingOrder ? 'Guardando...' : 'Guardar Orden Offline'"></span>
                             </button>
                         </div>
 
