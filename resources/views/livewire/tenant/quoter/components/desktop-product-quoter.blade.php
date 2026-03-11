@@ -134,28 +134,28 @@ $header = 'Seleccionar productos';
                                         Imagen
                                     </button>
 
-                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                                     <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false"
                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                         Observaciones
                                     </button>
-
-                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+ 
+                                     <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                         </svg>
-                                        Calculos
+                                        Cálculos
                                     </button>
-
-                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+ 
+                                     <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); open = false"
                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        Sol confirmacion
+                                        Sol confirmación
                                     </button>
                                 </div>
                             </div>
@@ -550,26 +550,29 @@ $header = 'Seleccionar productos';
                                                         </svg>
                                                         Imagen
                                                     </button>
-                                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+
+                                                    <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false"
                                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                                         <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                         </svg>
                                                         Observaciones
                                                     </button>
-                                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+
+                                                    <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
                                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                                         <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                                         </svg>
-                                                        Calculos
+                                                        Cálculos
                                                     </button>
-                                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+
+                                                    <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); open = false"
                                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                       Sol confirmacion
+                                                       Sol confirmación
                                                     </button>
                                                 </div>
                                             </div>
@@ -798,20 +801,7 @@ $header = 'Seleccionar productos';
                             inputmode="numeric"
                             pattern="[0-9]*"
                             class="w-12 px-1 py-0.5 text-center text-xs font-medium border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            value="{{ $item['quantity'] }}"
-                            onwheel="this.blur()"
-                            autocomplete="off">
-                        <!-- Total -->
-                        <span class="text-xs font-semibold text-gray-900 dark:text-white whitespace-nowrap w-20 text-right">
-                            ${{ number_format($item['price'] * $item['quantity']) }}
-                        </span>
-                        <!-- Eliminar -->
-                        <button wire:click="removeFromQuoter({{ $index }})"
-                            class="text-red-400 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
+                        >
                     </div>
                     @endforeach
                 </div>

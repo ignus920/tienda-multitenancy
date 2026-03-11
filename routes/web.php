@@ -170,3 +170,6 @@ require __DIR__ . '/tenants/campaigns.php';
 // Incluir rutas del módulo de solicitudes/tickets
 require __DIR__ . '/tenants/tickets.php';
 
+// Incluir rutas del módulo de observacionesitems
+require __DIR__ . '/tenants/ItemObservation.php';
+

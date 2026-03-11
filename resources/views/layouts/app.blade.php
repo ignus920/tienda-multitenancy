@@ -108,10 +108,8 @@
             {{ $slot }}
             </main>
         </div>
-
         <!-- Warehouse Selector Modal -->
         <livewire:warehouse-selector />
-        
         <!-- Login Warehouse Selector Modal - Para selección de bodega después del login -->
         <livewire:auth.login-warehouse-selector />
 
@@ -119,9 +117,12 @@
         @if(!request()->routeIs('company.setup', 'company.*', 'register', 'login'))
         @livewire('tenant.components.ticket-request-modal')
         @endif
-
         <!-- Modal Global de Imágenes de Producto -->
         @livewire('tenant.components.product-image-modal')
+        <!-- Modal Global de Observaciones de Producto -->
+       @livewire('tenant.items.item-observation')
+
+     
 
         @livewireScripts
         @stack('scripts')
