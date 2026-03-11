@@ -115,6 +115,21 @@ class ProductQuoter extends Component
     public $genericProductPrice = 0;
     public $genericProductTaxId = null;
 
+    // Propiedad para el modo de copia
+    public $isCopyMode = false;
+
+    public function toggleCopyMode()
+    {
+        $this->isCopyMode = !$this->isCopyMode;
+        
+        $this->dispatch('show-toast', [
+            'type' => $this->isCopyMode ? 'success' : 'info',
+            'message' => $this->isCopyMode ? 'Modo Copia Activado' : 'Modo Cotización Activado'
+        ]);
+        
+        Log::info('🔄 Cambio de modo', ['isCopyMode' => $this->isCopyMode]);
+    }
+
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
         'vnt-company-saved' => 'onCustomerCreated',
