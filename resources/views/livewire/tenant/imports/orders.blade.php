@@ -205,7 +205,7 @@
                                 @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                             </div>
                             @if ($showButtonShipping)
-                                <button wire:click="putFilter({{ $stat->{'id'} }})" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
+                                <button wire:click="openModalShipping({{ $filterPacking }})" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
                             @endif
                         </div>
                     </div>
@@ -1214,6 +1214,157 @@
                                     <span>Guardando...</span>
                                 </span>
                             </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal registro información Shipping -->
+    @if ($showModalShipping)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+            x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0">
+            <div class="relative min-h-screen flex items-center justify-center p-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                    x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Assign Shipping Data</h2>
+                        <button wire:click="cancel" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <x-heroicon-o-x-mark class="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <!-- Form -->
+                    <form wire:submit="saveShippingData" class="p-4 md:p-6 space-y-4 md:space-y-6">
+                        <!-- PACK SELECTED -->
+                        <div class="bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/40 dark:to-indigo-900/20 rounded-xl p-5 border border-indigo-200 dark:border-indigo-800/50 shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="p-1.5 bg-indigo-500 rounded-lg">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="font-medium text-indigo-900 dark:text-indigo-200">Selected Packings</h3>
+                            </div>
+                    
+                            <div class="grid grid-cols-2 gap-3">
+                                <!-- Resumen de packs seleccionados -->
+                                @foreach ($this->infoPacking as $ip)
+                                <div class="bg-white dark:bg-gray-800/80 rounded-lg p-2 shadow-sm border border-indigo-200/50 dark:border-indigo-800/30">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-0">Packings</p>
+                                        <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ $ip->number_packing ?? 0 }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Total productos -->
+                                <div class="bg-white dark:bg-gray-800/80 rounded-lg p-2 shadow-sm border border-indigo-200/50 dark:border-indigo-800/30">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-1">Total Products</p>
+                                        <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ $ip->imports_count ?? 0 }}</span>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                    
+                            {{-- <!-- Lista detallada de packs (opcional) -->
+                            @if(!empty($selectedPacks))
+                                <div class="mt-3 pt-3 border-t border-indigo-200 dark:border-indigo-800/30">
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mb-2">Packings list:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($selectedPacks as $pack)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-800 rounded-md text-xs border border-indigo-200 dark:border-indigo-800">
+                                                <span class="font-mono font-medium text-indigo-700 dark:text-indigo-300">#{{ str_pad($pack->number_packing, 3, '0', STR_PAD_LEFT) }}</span>
+                                                <span class="w-1 h-1 rounded-full bg-indigo-300 dark:bg-indigo-600"></span>
+                                                <span class="text-indigo-600 dark:text-indigo-400">{{ $pack->products_count }} items</span>
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif --}}
+                        </div>
+
+                        <div class="space-y-5">
+                            <!-- ETD -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    ETD <span class="text-red-500">*</span>
+                                </label>
+                                <input wire:model="etd" type="date" 
+                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
+                                @error('etd') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                            </div>
+
+                            <!-- OPERATION NUMBER -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    OPERATION NUMBER <span class="text-red-500">*</span>
+                                </label>
+                                <input wire:model="operation_number" type="text" 
+                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm"
+                                    placeholder="e.g., OP-2024-001">
+                                @error('operation_number')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
+                            </div>
+
+                            <!-- VIA -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    VIA <span class="text-red-500">*</span>
+                                </label>
+                                <select wire:model.live="way"
+                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center]">
+                                    <option value="">Select route</option>
+                                    <option value="Aerea" class="py-2">AIR</option>
+                                    <option value="Maritima" class="py-2">MARITIME</option>
+                                </select>
+                                @error('way')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
+                            </div>
+                            <!-- Conveyor -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    CONVEYOR
+                                </label>
+                                <input wire:model="conveyor" type="text" id="conveyor"
+                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
+                            </div>
+                            <!-- Observations -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    OBSERVATIONS
+                                </label>
+                                <textarea wire:model="observations"
+                                    rows="4"
+                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm resize-none"
+                                    placeholder="Add any additional notes or instructions...">
+                                </textarea>
+                            </div>
+                            <div class="border-t border-gray-200 dark:border-gray-700 pt-6 flex flex-col sm:flex-row justify-end gap-3">
+                                <button type="button" wire:click="cancel"
+                                    class="w-full sm:w-auto px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-all duration-200 hover:shadow focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 order-2 sm:order-1">
+                                    Cancel
+                                </button>
+                                <button type="submit" wire:loading.attr="disabled"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-all duration-200 hover:shadow-lg focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 order-1 sm:order-2">
+                                    <span wire:loading.remove wire:target="save">Save Changes</span>
+                                    <span wire:loading wire:target="save" class="flex items-center gap-2">
+                                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Saving...</span>
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>

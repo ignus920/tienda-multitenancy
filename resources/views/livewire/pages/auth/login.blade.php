@@ -87,11 +87,11 @@ new #[Layout('layouts.guest')] class extends Component
                 }
                 
                 // Marcar que necesita seleccionar sucursal
-                Session::put('needs_warehouse_selection', true);
-                Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
+                //Session::put('needs_warehouse_selection', true);
+                //Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
                 
                 // Redirigir a tenant.select (el modal se abrirá automáticamente)
-                $this->redirect(route('tenant.select'), navigate: true);
+                $this->redirect(route('imports-orders'), navigate: true);
                 return;
             }
 
