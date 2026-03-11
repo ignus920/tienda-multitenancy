@@ -2,7 +2,7 @@
 * Sistema de Service Worker Manual - DOSIL ERP
 * v29 - Offline robusto con fallback HTML
 */
-const CACHE_NAME = 'quoter-cache-v122';
+const CACHE_NAME = 'quoter-cache-v123';
 const PRECACHE_ASSETS = [
     '/',
     '/manifest.json',
@@ -16,7 +16,9 @@ const PRECACHE_ASSETS = [
     '/tenant/quoter/products/mobile',
     '/tenant/remissions',
     '/tenant/tat-quoter',
-    '/tenant/tat-sales'
+    '/tenant/tat-sales',
+    '/tenant/quoter/desktop',
+    '/tenant/quoter/products/desktop'
 ];
 
 const OFFLINE_HTML = `<!DOCTYPE html>
@@ -53,7 +55,7 @@ function offlineFallback() {
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('📦 Precargando v29...');
+            console.log('📦 Precargando activos...');
             return Promise.allSettled(
                 PRECACHE_ASSETS.map(asset =>
                     cache.add(asset).catch(err => console.warn(`⚠️ Error precargando ${asset}:`, err))
@@ -87,75 +89,56 @@ self.addEventListener('fetch', (event) => {
     const isLivewire = event.request.headers.get('X-Livewire');
     const isNavigation = event.request.mode === 'navigate';
 
-    // 1. RUTAS CRÍTICAS (Cotizador y Productos) - NETWORK FIRST
-    if (isNavigation && (url.pathname.includes('/quoter') || url.pathname.includes('/products/mobile'))) {
-        event.respondWith(
-            fetch(event.request)
-                .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const copy = networkResponse.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-                    }
-                    return networkResponse;
-                })
-                .catch(async () => {
-                    try {
-                        // Intentar con ignoreSearch (cubre ?clear=1 y otros query params)
-                        const cached = await caches.match(event.request, { ignoreSearch: true });
-                        if (cached) return cached;
-
-                        // Fallback a URL base sin query params
-                        const baseUrl = url.pathname.includes('/products/mobile')
-                            ? '/tenant/quoter/products/mobile'
-                            : '/tenant/quoter/mobile';
-                        const baseCached = await caches.match(baseUrl);
-                        if (baseCached) return baseCached;
-
-                        return offlineFallback();
-                    } catch (e) {
-                        return offlineFallback();
-                    }
-                })
-        );
-        return;
-    }
-
-    // 2. OTROS NAVEGACIONES Y LIVEWIRE - Network First
+    // 1. ESTRATEGIA PARA NAVEGACIÓN Y LIVEWIRE (Stale-While-Revalidate)
     if (isNavigation || isLivewire) {
         event.respondWith(
-            fetch(event.request)
-                .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const copy = networkResponse.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-                    }
-                    return networkResponse;
-                })
-                .catch(async () => {
-                    try {
-                        const cached = await caches.match(event.request, { ignoreSearch: true });
-                        if (cached) return cached;
+            caches.open(CACHE_NAME).then((cache) => {
+                // ignoreSearch: true permite que /products?clear=1 coincida con /products
+                return cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+                    const fetchPromise = fetch(event.request)
+                        .then((networkResponse) => {
+                            // SOLO CACHEAR SI ES EXITOSO Y NO ES UNA REDIRECCIÓN
+                            // Caching de redirecciones puede causar ERR_FAILED en algunos navegadores
+                            if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
+                                cache.put(event.request, networkResponse.clone());
+                            }
+                            return networkResponse;
+                        })
+                        .catch(async (error) => {
+                            // Si falla la red y no hay caché, intentamos fallbacks inteligentes
+                            if (!cachedResponse) {
+                                const path = url.pathname;
+                                // Detección simple de dispositivo en el SW
+                                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-                        if (url.pathname.includes('/products/mobile')) {
-                            const c = await caches.match('/tenant/quoter/products/mobile');
-                            if (c) return c;
-                        }
-                        if (url.pathname.includes('/quoter')) {
-                            const c = await caches.match('/tenant/quoter/mobile');
-                            if (c) return c;
-                        }
+                                // REDIRECCIÓN LOCAL OFFLINE:
+                                // En lugar de servir el contenido directamente, redirigimos (302)
+                                // para que la URL en el navegador cambie a la ruta que SÍ está en caché.
+                                // Esto evita errores de CSRF o "Página Expirada".
+                                if (path.includes('/quoter/products')) {
+                                    const target = isMobile ? '/tenant/quoter/products/mobile' : '/tenant/quoter/products/desktop';
+                                    console.log('🔄 Offline: Redirigiendo localmente a:', target);
+                                    return Response.redirect(target, 302);
+                                }
+                                if (path.includes('/quoter')) {
+                                    const target = isMobile ? '/tenant/quoter/mobile' : '/tenant/quoter/desktop';
+                                    console.log('🔄 Offline: Redirigiendo localmente a:', target);
+                                    return Response.redirect(target, 302);
+                                }
+                                // Fallback final
+                                return (await cache.match('/')) || offlineFallback();
+                            }
+                            return cachedResponse;
+                        });
 
-                        const root = await caches.match('/');
-                        return root || offlineFallback();
-                    } catch (e) {
-                        return offlineFallback();
-                    }
-                })
+                    return cachedResponse || fetchPromise;
+                });
+            })
         );
         return;
     }
 
-    // 3. ACTIVOS (CSS, JS, Imágenes) - Cache First
+    // 2. ACTIVOS (CSS, JS, Imágenes) - Cache First con actualización en background
     const isAsset =
         url.pathname.includes('/build/') ||
         event.request.destination === 'style' ||

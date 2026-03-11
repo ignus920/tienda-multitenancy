@@ -53,17 +53,6 @@ class Quoter extends Component
 
         // Inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
-
-        // DEBUG: Limpiar caché para testing
-        $this->clearConfigurationCache();
-
-        // DEBUG: Log para verificar inicialización
-        Log::info('🔍 Quoter mount() ejecutado', [
-            'viewType' => $this->viewType,
-            'currentCompanyId' => $this->currentCompanyId,
-            'currentPlainId' => $this->currentPlainId,
-            'configService_exists' => $this->configService ? 'YES' : 'NO'
-        ]);
     }
 
     /**
@@ -136,15 +125,11 @@ class Quoter extends Component
     public function verDetalles($id)
     {
         try {
-            Log::info('🔍 Iniciando verDetalles', ['quote_id' => $id]);
             // Mostrar el modal
             $this->showDetailsModal = true;
             // Asegurar conexión tenant
             $this->ensureTenantConnection();
-            Log::info('✅ Conexión tenant establecida');
 
-            // Cargar la cotización con todas sus relaciones
-            Log::info('🔄 Cargando cotización...');
             $this->selectedQuote = VntQuote::with([
                 'detalles.item',
                 'customer.company.routes.route',
@@ -155,37 +140,10 @@ class Quoter extends Component
 
             Log::info('✅ Cotización cargada', [
                 'consecutive' => $this->selectedQuote->consecutive,
-                'has_customer' => $this->selectedQuote->customer ? 'YES' : 'NO',
                 'detalles_count' => $this->selectedQuote->detalles->count()
             ]);
 
-
-            Log::info('✅ Modal activado', ['showDetailsModal' => $this->showDetailsModal]);
-
-            // Log detallado para debug
-            Log::info('📋 Detalles de cotización cargados', [
-                'quote_id' => $id,
-                'consecutive' => $this->selectedQuote->consecutive,
-                'detalles_count' => $this->selectedQuote->detalles->count(),
-                'customer_loaded' => $this->selectedQuote->customer ? 'YES' : 'NO',
-                'customer_name' => $this->selectedQuote->customer_name ?? 'N/A',
-                'customer_id' => $this->selectedQuote->customerId ?? 'N/A',
-                'warehouse_loaded' => $this->selectedQuote->warehouse ? 'YES' : 'NO',
-                'warehouse_name' => $this->selectedQuote->warehouse->name ?? 'N/A'
-            ]);
-
-            // Log de cada detalle
-            foreach ($this->selectedQuote->detalles as $index => $detalle) {
-                Log::info("📦 Detalle #{$index}", [
-                    'item_id' => $detalle->itemId,
-                    'item_loaded' => $detalle->item ? 'YES' : 'NO',
-                    'item_name' => $detalle->item->name ?? 'N/A',
-                    'quantity' => $detalle->quantity,
-                    'price' => $detalle->value
-                ]);
-            }
-
-            Log::info('✅ verDetalles completado exitosamente');
+            Log::info('✅ verDetalles completado');
 
             // Forzar actualización del DOM
             $this->js('console.log("Modal should be visible now", ' . json_encode(['showDetailsModal' => $this->showDetailsModal]) . ')');
@@ -562,7 +520,8 @@ class Quoter extends Component
             'warehouse.contacts',
             'branch',
             'detalles',
-            'user'
+            'user',
+            'remissions'
         ])
             ->when(Auth::user()->profile_id != 2, function ($query) {
                 return $query->where('userId', Auth::id());
@@ -633,25 +592,22 @@ class Quoter extends Component
 
     public function validateRemision($quoteId)
     {
-        // Obtener todas las remisiones de esta cotización para depurar
-        $allRemissions = InvRemissions::where('quoteId', $quoteId)->get();
+        // 1. Intentar obtener de la relación ya cargada (para evitar N+1 en el render)
+        if ($this->selectedQuote && $this->selectedQuote->id == $quoteId) {
+            $remissions = $this->selectedQuote->remissions;
+        } else {
+            // Fallback para cuando se llama fuera del loop de renderizado (poco común)
+            // Buscamos la cotización en la colección actual si es posible
+            $remissions = InvRemissions::where('quoteId', $quoteId)->get();
+        }
         
-        // Filtramos las que NO están anuladas (asegurando el string exacto)
-        $activeRemissions = $allRemissions->filter(function($rem) {
-            return trim(strtoupper($rem->status)) !== 'ANULADO';
+        // Filtramos las que NO están anuladas
+        $activeRemissions = $remissions->filter(function($rem) {
+            $status = trim(strtoupper($rem->status ?? ''));
+            return $status !== 'ANULADO' && $status !== '';
         });
 
-        if ($activeRemissions->isNotEmpty()) {
-            Log::info("🚫 Cotización {$quoteId} bloqueada por remisiones activas", [
-                'total_found' => $allRemissions->count(),
-                'active_count' => $activeRemissions->count(),
-                'active_statuses' => $activeRemissions->pluck('status')->toArray()
-            ]);
-            return false;
-        }
-
-        Log::info("✅ Cotización {$quoteId} permitida (remisiones anuladas o inexistentes)");
-        return true;
+        return $activeRemissions->isEmpty();
     }
 
     /**
