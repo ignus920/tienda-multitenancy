@@ -147,6 +147,7 @@ class VntCompanyForm extends Component
     public $showUserCredentials = false;
     public $userCredentialsEmail = '';
     public $userCredentialsPassword = '12345678';
+    public $isConfigurationInitialized = false;
 
     public function boot(
         CompanyService $companyService,
