@@ -312,10 +312,16 @@
                                                 <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                                             @endif
 
-                                            {{-- <button class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
-                                            <x-heroicon-o-document class="w-6 h-6 mr-1" />
-                                            PDF
-                                            </button> --}}
+                                            {{-- Nota Crédito - Solo para facturas FACTURADAS, sin nota crédito y NO pagadas --}}
+                                            @if($invoice->status === 'FACTURADO' && !$invoice->creditNote && $invoice->status_payment !== 'PAGADO')
+                                                <button wire:click="openCreditNoteModal({{ $invoice->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4m0 0l4-4m-4 4h16M15 10l4 4m0 0l-4 4"/>
+                                                    </svg>
+                                                    Crear Nota Crédito
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -340,4 +346,216 @@
             </div>
         @endif
     </div>
+
+    {{-- ══════════════════════════════════════════════════════
+         MODAL: CREAR NOTA CRÉDITO
+    ══════════════════════════════════════════════════════ --}}
+    @if($showCreditNoteModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         x-data
+         x-on:keydown.escape.window="$wire.closeCreditNoteModal()">
+
+        {{-- Overlay --}}
+        <div class="absolute inset-0 bg-black/50" wire:click="closeCreditNoteModal"></div>
+
+        {{-- Panel --}}
+        <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+
+            {{-- Header --}}
+            <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Crear Nota Crédito</h2>
+                <button wire:click="closeCreditNoteModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Body (scrollable) --}}
+            <div class="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+
+                {{-- Resumen de Factura --}}
+                <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 text-sm">
+                    <p class="font-semibold text-gray-700 dark:text-slate-300 mb-3 uppercase tracking-wide text-xs">Resumen de Factura</p>
+                    <div class="grid grid-cols-2 gap-x-8 gap-y-1">
+                        <div><span class="text-gray-500 dark:text-slate-400">Factura No.:</span>
+                            <span class="font-semibold ml-1 text-gray-900 dark:text-white">{{ $creditNoteInvoice['invoiceNumber'] ?? '—' }}</span></div>
+                        <div><span class="text-gray-500 dark:text-slate-400">Total Factura:</span>
+                            <span class="font-semibold ml-1 text-gray-900 dark:text-white">$ {{ number_format($creditNoteInvoice['total'] ?? 0, 0, ',', '.') }}</span></div>
+                        <div><span class="text-gray-500 dark:text-slate-400">Cliente:</span>
+                            <span class="ml-1 text-gray-900 dark:text-white">{{ $creditNoteInvoice['client_name'] ?? '—' }}</span></div>
+                        <div><span class="text-gray-500 dark:text-slate-400">Estado Pago:</span>
+                            <span class="ml-1 font-medium text-blue-600 dark:text-blue-400">{{ $creditNoteInvoice['status_payment'] ?? '—' }}</span></div>
+                        <div><span class="text-gray-500 dark:text-slate-400">Estado:</span>
+                            <span class="ml-1 font-medium text-green-600 dark:text-green-400">{{ $creditNoteInvoice['status'] ?? '—' }}</span></div>
+                    </div>
+                </div>
+
+                {{-- Motivo --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Motivo de la Nota Crédito <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="creditNoteReason"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Anulación de factura electrónica">Anulación de factura electrónica</option>
+                        <option value="Descuento comercial">Descuento comercial</option>
+                        <option value="Devolución de mercancía">Devolución de mercancía</option>
+                        <option value="Rebaja en el precio">Rebaja en el precio</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    @if($creditNoteReason === 'Anulación de factura electrónica')
+                        <p class="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Anulación de factura: Todos los ítems han sido seleccionados automáticamente
+                        </p>
+                    @endif
+                </div>
+
+                {{-- Método de Pago --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Método de Pago</label>
+                    <select wire:model="creditNotePayment"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Transferencia">Transferencia</option>
+                        <option value="Tarjeta crédito">Tarjeta crédito</option>
+                        <option value="Tarjeta débito">Tarjeta débito</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+
+                {{-- Observaciones --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Observaciones</label>
+                    <textarea wire:model="creditNoteObs" rows="3" maxlength="250"
+                        placeholder="Describa el motivo de la nota crédito"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ strlen($creditNoteObs) }}/250 caracteres</p>
+                </div>
+
+                {{-- Ítems --}}
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide text-xs">Ítems de la Factura</p>
+                        <div class="flex gap-2">
+                            <button wire:click="selectAllCreditNoteItems"
+                                class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-200 transition-colors">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                Seleccionar Todos
+                            </button>
+                            <button wire:click="deselectAllCreditNoteItems"
+                                class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                Deseleccionar Todos
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 dark:bg-slate-700">
+                                <tr>
+                                    <th class="w-8 px-3 py-2"></th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Código</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Producto</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Cantidad</th>
+                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Precio Unit.</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">%</th>
+                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Subtotal</th>
+                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Total</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                                @forelse($creditNoteItems as $index => $item)
+                                <tr class="{{ $item['selected'] ? 'bg-white dark:bg-slate-800' : 'bg-gray-50 dark:bg-slate-800/50 opacity-60' }}">
+                                    <td class="px-3 py-2 text-center">
+                                        <input type="checkbox"
+                                            wire:click="toggleCreditNoteItem({{ $index }})"
+                                            {{ $item['selected'] ? 'checked' : '' }}
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                                    </td>
+                                    <td class="px-3 py-2 text-gray-600 dark:text-slate-400 font-mono text-xs">{{ $item['code'] }}</td>
+                                    <td class="px-3 py-2 text-gray-900 dark:text-white font-medium">{{ $item['name'] }}</td>
+                                    <td class="px-3 py-2 text-center">
+                                        <input type="number"
+                                            wire:model.blur="creditNoteItems.{{ $index }}.quantity"
+                                            min="0.01" max="{{ $item['max_qty'] }}" step="0.01"
+                                            class="w-20 text-center border border-gray-300 dark:border-slate-600 rounded px-2 py-1 text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                    </td>
+                                    <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
+                                        ${{ number_format($item['unit_price'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-3 py-2 text-center text-gray-600 dark:text-slate-400">{{ $item['tax'] }}%</td>
+                                    <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
+                                        ${{ number_format($item['subtotal'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">
+                                        ${{ number_format($item['total'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-3 py-2 text-center">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                            {{ $item['type'] }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="9" class="px-3 py-6 text-center text-sm text-gray-400 dark:text-slate-500">
+                                        No se encontraron ítems para esta factura.
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end mt-2">
+                        <span class="text-sm text-gray-600 dark:text-slate-400">Total Seleccionado:
+                            <span class="font-bold text-gray-900 dark:text-white ml-1">$ {{ number_format($creditNoteTotal, 0, ',', '.') }}</span>
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Valor de la Nota Crédito --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Valor de la Nota Crédito</label>
+                    <input type="text" readonly
+                        value="{{ number_format($creditNoteTotal, 2, ',', '.') }}"
+                        class="w-full border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-slate-700/50 text-gray-900 dark:text-white font-semibold focus:outline-none cursor-not-allowed">
+                    <p class="mt-1 text-xs text-gray-400 dark:text-slate-500">El valor se calcula automáticamente basado en los ítems seleccionados</p>
+                </div>
+
+            </div>{{-- /body --}}
+
+            {{-- Footer --}}
+            <div class="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+                <button wire:click="closeCreditNoteModal"
+                    class="px-5 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                    Cancelar
+                </button>
+                <button wire:click="submitCreditNote"
+                    wire:loading.attr="disabled"
+                    class="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-60">
+                    <span wire:loading.remove wire:target="submitCreditNote">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4m0 0l4-4m-4 4h16"/>
+                        </svg>
+                    </span>
+                    <span wire:loading wire:target="submitCreditNote">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                    </span>
+                    Crear Nota Crédito
+                </button>
+            </div>
+
+        </div>{{-- /panel --}}
+    </div>{{-- /modal --}}
+    @endif
+
 </div>

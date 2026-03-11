@@ -434,6 +434,22 @@ class ApiClient
         return $this->makeRequest('delete', "inventory-adjustments/{$id}");
     }
 
+    // =================== NOTAS CRÉDITO ===================
+
+    /**
+     * Crear una nota crédito
+     * El endpoint requiere el ID de la factura en Alegra como parámetro de ruta
+     */
+    public function createCreditNote(int|string $invoiceApiId, array $data): array
+    {
+        return $this->makeRequest('post', "credit-notes/{$invoiceApiId}", $data);
+    }
+
+    public function getBaseUrl(): string
+    {
+        return $this->baseUrl ?? '';
+    }
+
     // =================== MÉTODOS GENÉRICOS ===================
 
     /**
