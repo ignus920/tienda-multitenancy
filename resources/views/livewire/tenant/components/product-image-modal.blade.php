@@ -1,4 +1,4 @@
-<div x-data="{ isOpen: @entangle('isOpen') }" 
+<div x-data="{ isOpen: @entangle('isOpen').live }" 
      x-show="isOpen" 
      x-transition:enter="transition ease-out duration-300"
      x-transition:enter-start="opacity-0"
@@ -9,6 +9,7 @@
      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
      x-cloak>
     
+    @if($isOpen)
     <div @click.away="$wire.close()" 
          class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all border border-gray-200 dark:border-gray-700">
         
@@ -180,6 +181,7 @@
             </button>
         </div>
     </div>
+    @endif
 
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -189,5 +191,7 @@
     </style>
 
     <!-- Componente de Sincronización WordPress -->
-    <livewire:tenant.components.word-press-sync-modal />
+    @if($isOpen)
+        <livewire:tenant.components.word-press-sync-modal />
+    @endif
 </div>

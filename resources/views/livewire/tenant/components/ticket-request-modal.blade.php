@@ -1,11 +1,11 @@
 <div>
 <template x-teleport="body">
 <div x-data="{
-    show: @entangle('isOpen'),
+    show: @entangle('isOpen').live,
     quill: null,
     initQuill() {
-        if (this.quill) return;
-        this.quill = new Quill($refs.editor, {
+        if (this.quill || !this.$refs.editor) return;
+        this.quill = new Quill(this.$refs.editor, {
             theme: 'snow',
             placeholder: 'Escribe aquí los detalles de tu solicitud...',
             modules: {
@@ -28,6 +28,7 @@ x-cloak
 style="display:none;"
 class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
 
+    @if($isOpen)
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="show = false"></div>
 
@@ -73,8 +74,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                     @php
                                         $statusName = $history->status->name ?? 'Estado N/A';
                                         $statusColor = $history->status->color ?? 'gray';
-                                        // Mapeo simple de colores comunes de DB a Tailwind HEX o clases si se prefiere
-                                        // Pero para style, mejor HEX o nombres CSS válidos
                                         $colorMap = [
                                             'indigo' => '#4f46e5',
                                             'green' => '#16a34a',
@@ -137,8 +136,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <!-- Botones -->
                 <div class="flex justify-end items-center gap-2 pt-1 flex-wrap">
                     @if($selectedRequest)
-                        <!-- Botones de Estado (Modo Ver) -->
-                    
                         <button wire:click="updateStatus('Reactivar')"
                             class="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5">
                             <x-heroicon-o-arrow-path class="w-3.5 h-3.5"/>
@@ -155,7 +152,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                             Imposibilidad
                         </button>
                     @else
-                        <!-- Botones de Guardar (Modo Nuevo) -->
                         <button @click="show = false"
                             class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                             Cancelar
@@ -174,7 +170,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Historial de Solicitudes</p>
 
-                    <!-- Filtros -->
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">Desde</label>
@@ -189,7 +184,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         </div>
                     </div>
 
-                    <!-- Tabla -->
                     <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
@@ -239,7 +233,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     </div>
                 </div>
 
-                <!-- Footer Paginacion -->
                 @if($requests instanceof \Illuminate\Pagination\LengthAwarePaginator && $requests->hasPages())
                     <div class="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 rounded-b-xl flex-shrink-0">
                         {{ $requests->links() }}
@@ -247,9 +240,11 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 @endif
             @endif
         </div>
-
     </div>
+    @endif
+
 </div>
+</template>
 
 <style>
     [x-cloak] { display: none !important; }
@@ -262,5 +257,4 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
     .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
 </style>
-</template>
 </div>
