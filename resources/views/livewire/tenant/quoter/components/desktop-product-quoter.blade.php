@@ -34,14 +34,59 @@ $header = 'Seleccionar productos';
                                     placeholder="Buscar productos..."
                                     class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             </div>
-                            <button wire:click="$set('showGenericProductModal', true)"
-                                title="Crear producto genérico"
-                                class="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Genérico
-                            </button>
+                            <!-- Dropdown de Acciones Rápidas -->
+                            <div x-data="{ open: false }" class="relative inline-block text-left">
+                                <button @click="open = !open"
+                                    type="button"
+                                    class="flex items-center gap-1.5 px-3 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap shadow-sm active:scale-95 {{ $isCopyMode ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20' }}">
+                                    <span>{{ $isCopyMode ? 'Modo Copia' : 'Opciones' }}</span>
+                                    <svg class="w-4 h-4 ml-0.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+
+                                <!-- Menú desplegable -->
+                                <div x-show="open"
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                    x-transition:leave-end="transform opacity-0 scale-95"
+                                    @click.away="open = false"
+                                    x-cloak
+                                    class="absolute left-0 mt-2 w-56 rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-[60] border border-gray-100 dark:border-gray-700 py-1 overflow-hidden">
+                                     <!-- Producto generico -->
+                                    <button @click="open = false; $wire.set('showGenericProductModal', true)"
+                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group">
+                                        <div class="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col items-start leading-tight">
+                                            <span class="font-semibold">Producto Genérico</span>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Crear item sin catálogo</span>
+                                        </div>
+                                    </button>
+
+                                     <!-- Modo copia -->
+                                    <button wire:click="toggleCopyMode" @click="open = false"
+                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group">
+                                        <div class="p-1.5 {{ $isCopyMode ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600' }} rounded-lg group-hover:bg-opacity-100 group-hover:text-white transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col items-start leading-tight">
+                                            <span class="font-semibold">{{ $isCopyMode ? 'Desactivar Modo Copia' : 'Modo Copia' }}</span>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Copiar datos al portapapeles</span>
+                                        </div>
+                                    </button>
+
+                                    <!-- Otras opciones futuras pueden ir aquí -->
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Filtro de Categorías -->
@@ -257,9 +302,13 @@ $header = 'Seleccionar productos';
                                             };
                                         @endphp
                                         <button
-                                            wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                            wire:loading.attr="disabled"
-                                            wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                            @if($isCopyMode)
+                                                @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                            @else
+                                                wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                                wire:loading.attr="disabled"
+                                                wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                            @endif
                                             class="relative w-full py-1 px-2 rounded-lg border transition-colors overflow-hidden group {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
 
                                             <!-- Contenido Normal -->
@@ -496,9 +545,13 @@ $header = 'Seleccionar productos';
                                                         $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
                                                     @endphp
                                                     <button
-                                                        wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
-                                                        wire:loading.attr="disabled"
-                                                        wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
+                                                        @if($isCopyMode)
+                                                            @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                                        @else
+                                                            wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
+                                                            wire:loading.attr="disabled"
+                                                            wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
+                                                        @endif
                                                         class="px-2 py-1 text-xs rounded-lg border-2 transition-colors font-medium min-w-20
                                                             {{ $isThisPriceSelected
                                                                 ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
@@ -1462,8 +1515,7 @@ $header = 'Seleccionar productos';
                     class="px-4 py-2 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-300 rounded-lg transition-colors flex items-center gap-2">
                     <div wire:loading wire:target="saveGenericProduct">
                         <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </div>
                     Crear y agregar
@@ -1474,3 +1526,54 @@ $header = 'Seleccionar productos';
     @endif
 
 </div>
+
+<script>
+    function copyProductToClipboard(sku, price, name, id) {
+        const priceFormatted = new Intl.NumberFormat().format(Math.round(price));
+        const link = `https://www.fervicom.com/producto/${sku.toLowerCase()}`;
+        
+        // Formato solicitado: Código - $Precio incluido iva \n Descripción \n Detalles en: [Link]
+        const textToCopy = `${sku} - $${priceFormatted} incluido iva\n${name}\nDetalles en:\n${link}`;
+
+        // Usar la API moderna de portapapeles
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showCopyFeedback();
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+                fallbackCopyToClipboard(textToCopy);
+            });
+        } else {
+            fallbackCopyToClipboard(textToCopy);
+        }
+    }
+
+    function fallbackCopyToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showCopyFeedback();
+        } catch (err) {
+            console.error('Fallback error:', err);
+        }
+        document.body.removeChild(textArea);
+    }
+
+    function showCopyFeedback() {
+        // Usar el sistema de brindado por el componente para consistencia
+        if (window.Livewire) {
+            Livewire.dispatch('show-toast', {
+                type: 'success',
+                message: '¡Texto copiado al portapapeles!'
+            });
+        }
+        console.log('Copiado exitosamente');
+    }
+</script>
