@@ -141,7 +141,7 @@ class VntCompanyForm extends Component
 
     public $routeId = '';
     public $createUser = false;
-    public $districtId = '';
+    public $districtId = null;
 
     // Propiedades para mostrar credenciales del usuario creado
     public $showUserCredentials = false;
@@ -565,7 +565,7 @@ class VntCompanyForm extends Component
             'postcode' => $this->warehousePostcode,
             'cityId' => $this->warehouseCityId,
             'main' => true, // Siempre es la sucursal principal
-            'district' => $this->districtId,
+            'district' => $this->districtId ?: null,
         ]];
         // dd($warehouses);
         try {
@@ -1098,7 +1098,7 @@ class VntCompanyForm extends Component
 
     public function updateDistrict($districtId)
     {
-        $this->districtId = $districtId;
+        $this->districtId = $districtId ?: null;
     }
 
     public function toggleStatus()
@@ -1198,14 +1198,14 @@ class VntCompanyForm extends Component
         if ($this->type === 'PROVEEDOR') {
             $this->validatingType = true;  // TRUE para inhabilitar el checkbox
             $this->createUser = false;  // Desmarcar el checkbox
-            $this->districtId = '000'; // Asignar '000' al campo district
+            $this->districtId = null; // PROVEEDOR no requiere district
             Log::info('Contact type changed to PROVEEDOR, createUser disabled and district set to 000', ['validatingContactType' => $this->validatingType, 'district' => $this->districtId]);
         } else {
             // Para otros tipos
             $this->validatingType = false;  // FALSE para habilitar el checkbox
             // Si el distrito fue establecido a '000' por la lógica de PROVEEDOR, lo reseteamos
-            if ($this->districtId === '000') {
-                $this->districtId = ''; // Permitir que el usuario ingrese un valor o quede vacío
+            if ($this->districtId === null) {
+                $this->districtId = null; // Permitir que el usuario ingrese un valor o quede vacío
                 Log::info('Contact type changed from PROVEEDOR, district reset to empty', ['district' => $this->districtId]);
             }
             Log::info('Contact type changed to ' . $this->type . ', createUser available', ['validatingType' => $this->validatingType]);

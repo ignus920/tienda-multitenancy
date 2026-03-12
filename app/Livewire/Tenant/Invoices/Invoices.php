@@ -6,11 +6,11 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
+use App\Models\Tenant\Remissions\InvRemissions;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
 use App\Traits\HasCompanyConfiguration;
@@ -23,6 +23,15 @@ class Invoices extends Component
     public $perPage = 12;
     public $sortField = 'vnt_invoices.invoiceNumber';
     public $sortDirection = 'desc';
+
+    // ── Nota Crédito ──────────────────────────────────────────
+    public bool  $showCreditNoteModal = false;
+    public array $creditNoteInvoice   = [];
+    public array $creditNoteItems     = [];
+    public string $creditNoteReason   = '';
+    public string $creditNotePayment  = 'Efectivo';
+    public string $creditNoteObs      = '';
+    public float  $creditNoteTotal    = 0;
 
     public function boot()
     {
@@ -740,6 +749,336 @@ class Invoices extends Component
             ])->layout('layouts.app', ['header' => 'Gestión de Facturas']);
         }
     }
+
+    // ── Nota Crédito ─────────────────────────────────────────────────────────
+
+    public function openCreditNoteModal(int $invoiceId): void
+    {
+        $this->ensureTenantConnection();
+
+        $invoice = VntInvoices::findOrFail($invoiceId);
+
+        if ($invoice->status_payment === 'PAGADO') {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se puede crear una nota crédito a una factura ya pagada.']);
+            return;
+        }
+
+        if ($invoice->creditNote) {
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Esta factura ya tiene una nota crédito asociada.']);
+            return;
+        }
+
+        // Cargar TODOS los registros de ventas vinculados a esta factura
+        $sales           = VntInvoicesXsales::where('invoiceId', $invoiceId)->get();
+        $clientName      = '—';
+        $customerApiId   = null;
+        $total           = 0;
+        // Usamos item_id como clave para agrupar productos iguales de distintas remisiones
+        $grouped         = [];
+
+        foreach ($sales as $sale) {
+            if ($sale->remissionId) {
+                $remission = InvRemissions::with(['quote.customer', 'details.item'])->find($sale->remissionId);
+
+                if ($clientName === '—' && $remission?->quote?->customer) {
+                    $clientName = trim(collect([
+                        $remission->quote->customer->firstName,
+                        $remission->quote->customer->secondName,
+                        $remission->quote->customer->lastName,
+                        $remission->quote->customer->secondLastName,
+                    ])->filter()->implode(' '));
+                    $customerApiId = $remission->quote->customer->api_data_id ?? null;
+                }
+
+                foreach ($remission?->details ?? [] as $detail) {
+                    $unitPrice = $detail->tax > 0
+                        ? $detail->value / (1 + $detail->tax / 100)
+                        : $detail->value;
+                    $qty      = (float) $detail->quantity;
+                    $key      = 'item_' . ($detail->itemId ?? 'x_' . $detail->id);
+
+                    if (isset($grouped[$key])) {
+                        $grouped[$key]['quantity'] += $qty;
+                        $grouped[$key]['max_qty']  += $qty;
+                        $grouped[$key]['subtotal']  = round($grouped[$key]['unit_price'] * $grouped[$key]['quantity'], 2);
+                        $grouped[$key]['total']     = round($grouped[$key]['unit_price'] * (1 + $grouped[$key]['tax'] / 100) * $grouped[$key]['quantity'], 2);
+                    } else {
+                        $grouped[$key] = [
+                            'selected'    => true,
+                            'code'        => $detail->item?->sku ?? '—',
+                            'name'        => $detail->item?->name ?? 'Producto no encontrado',
+                            'quantity'    => $qty,
+                            'max_qty'     => $qty,
+                            'unit_price'  => round($unitPrice, 2),
+                            'tax'         => (float) $detail->tax,
+                            'subtotal'    => round($unitPrice * $qty, 2),
+                            'total'       => round($detail->value * $qty, 2),
+                            'type'        => 'PRINCIPAL',
+                            'detail_type' => 'remission',
+                            'detail_id'   => $detail->id,
+                            'item_id'     => $detail->itemId,
+                            'item_api_id' => $detail->item?->api_data_id ?? null,
+                        ];
+                    }
+                }
+            } elseif ($sale->quoteId) {
+                $quote = \App\Models\Tenant\Quoter\VntQuote::with(['customer', 'detalles.item'])->find($sale->quoteId);
+
+                if ($clientName === '—' && $quote?->customer) {
+                    $clientName = trim(collect([
+                        $quote->customer->firstName,
+                        $quote->customer->secondName,
+                        $quote->customer->lastName,
+                        $quote->customer->secondLastName,
+                    ])->filter()->implode(' '));
+                    $customerApiId = $customerApiId ?? ($quote->customer->api_data_id ?? null);
+                }
+
+                foreach ($quote?->detalles ?? [] as $detalle) {
+                    $unitPrice = $detalle->tax > 0
+                        ? $detalle->value / (1 + $detalle->tax / 100)
+                        : $detalle->value;
+                    $qty      = (float) $detalle->quantity;
+                    $key      = 'item_' . ($detalle->itemId ?? 'x_' . $detalle->id);
+
+                    if (isset($grouped[$key])) {
+                        $grouped[$key]['quantity'] += $qty;
+                        $grouped[$key]['max_qty']  += $qty;
+                        $grouped[$key]['subtotal']  = round($grouped[$key]['unit_price'] * $grouped[$key]['quantity'], 2);
+                        $grouped[$key]['total']     = round($grouped[$key]['unit_price'] * (1 + $grouped[$key]['tax'] / 100) * $grouped[$key]['quantity'], 2);
+                    } else {
+                        $grouped[$key] = [
+                            'selected'    => true,
+                            'code'        => $detalle->item?->sku ?? '—',
+                            'name'        => $detalle->item?->name ?? 'Producto no encontrado',
+                            'quantity'    => $qty,
+                            'max_qty'     => $qty,
+                            'unit_price'  => round($unitPrice, 2),
+                            'tax'         => (float) $detalle->tax,
+                            'subtotal'    => round($unitPrice * $qty, 2),
+                            'total'       => round($detalle->value * $qty, 2),
+                            'type'        => 'PRINCIPAL',
+                            'detail_type' => 'quote',
+                            'detail_id'   => $detalle->id,
+                            'item_id'     => $detalle->itemId,
+                            'item_api_id' => $detalle->item?->api_data_id ?? null,
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Convertir el array agrupado a lista plana y calcular total general
+        $this->creditNoteItems = array_values($grouped);
+        foreach ($this->creditNoteItems as $item) {
+            $total += $item['total'];
+        }
+
+        $this->creditNoteInvoice = [
+            'id'                  => $invoice->id,
+            'invoiceNumber'       => $invoice->invoiceNumber,
+            'status'              => $invoice->status,
+            'status_payment'      => $invoice->status_payment,
+            'client_name'         => $clientName,
+            'total'               => $total,
+            'invoice_api_data_id' => $invoice->api_data_id,
+            'customer_api_id'     => $customerApiId,
+        ];
+
+        $this->creditNoteTotal   = $total;
+        $this->creditNoteReason  = 'Anulación de factura electrónica';
+        $this->creditNotePayment = 'Efectivo';
+        $this->creditNoteObs     = '';
+        $this->showCreditNoteModal = true;
+    }
+
+    public function closeCreditNoteModal(): void
+    {
+        $this->showCreditNoteModal = false;
+        $this->creditNoteInvoice  = [];
+        $this->creditNoteItems    = [];
+        $this->creditNoteTotal    = 0;
+        $this->creditNoteReason   = '';
+        $this->creditNotePayment  = 'Efectivo';
+        $this->creditNoteObs      = '';
+    }
+
+    public function toggleCreditNoteItem(int $index): void
+    {
+        $this->creditNoteItems[$index]['selected'] = !$this->creditNoteItems[$index]['selected'];
+        $this->recalcCreditNoteTotal();
+    }
+
+    public function selectAllCreditNoteItems(): void
+    {
+        foreach ($this->creditNoteItems as &$item) {
+            $item['selected'] = true;
+        }
+        $this->recalcCreditNoteTotal();
+    }
+
+    public function deselectAllCreditNoteItems(): void
+    {
+        foreach ($this->creditNoteItems as &$item) {
+            $item['selected'] = false;
+        }
+        $this->creditNoteTotal = 0;
+    }
+
+    public function updatedCreditNoteItems(): void
+    {
+        foreach ($this->creditNoteItems as &$item) {
+            $qty = max(0, min((float)($item['quantity'] ?? 0), $item['max_qty']));
+            $item['quantity'] = $qty;
+            $item['subtotal'] = round($item['unit_price'] * $qty, 2);
+            $item['total']    = round($item['unit_price'] * (1 + $item['tax'] / 100) * $qty, 2);
+        }
+        $this->recalcCreditNoteTotal();
+    }
+
+    private function recalcCreditNoteTotal(): void
+    {
+        $this->creditNoteTotal = collect($this->creditNoteItems)
+            ->where('selected', true)
+            ->sum('total');
+    }
+
+    public function submitCreditNote(): void
+    {
+        $this->ensureTenantConnection();
+
+        $invoice = VntInvoices::find($this->creditNoteInvoice['id'] ?? 0);
+        if (!$invoice || $invoice->status_payment === 'PAGADO') {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se puede crear una nota crédito a una factura ya pagada.']);
+            $this->closeCreditNoteModal();
+            return;
+        }
+
+        $this->validate([
+            'creditNoteReason'  => 'required|string',
+            'creditNotePayment' => 'required|string',
+            'creditNoteItems'   => 'required|array|min:1',
+        ]);
+
+        $selectedItems = collect($this->creditNoteItems)->where('selected', true);
+
+        if ($selectedItems->isEmpty()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Debe seleccionar al menos un ítem.']);
+            return;
+        }
+
+        try {
+            // Marcar la factura: creditNote = valor total, creditNoteId se actualizará con el ID de Alegra
+            VntInvoices::where('id', $this->creditNoteInvoice['id'])
+                ->update(['creditNote' => (int) $this->creditNoteTotal, 'creditNoteId' => null]);
+
+            // ── Integración con Alegra ──────────────────────────────────────
+            $invoiceApiId  = $this->creditNoteInvoice['invoice_api_data_id'] ?? null;
+            $customerApiId = $this->creditNoteInvoice['customer_api_id'] ?? null;
+
+            Log::info('🔍 Datos para nota crédito Alegra', [
+                'invoice_id'      => $this->creditNoteInvoice['id'] ?? null,
+                'invoice_api_id'  => $invoiceApiId,
+                'customer_api_id' => $customerApiId,
+                'items_count'     => $selectedItems->count(),
+            ]);
+
+            if ($invoiceApiId) {
+                try {
+                    $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+
+                    if ($tenant && TenantConfigManager::hasFacturacionConfig($tenant)) {
+                        $facturacionService = FacturacionService::forTenant($tenant);
+
+                        // Si no tenemos el cliente local, consultamos la factura en Alegra para obtenerlo
+                        if (!$customerApiId) {
+                            $alegraInvoice = $facturacionService->getApiClient()->getInvoice($invoiceApiId);
+                            Log::info('🔍 Respuesta completa factura Alegra', [
+                                'invoice_api_id' => $invoiceApiId,
+                                'response_data'  => $alegraInvoice['data'] ?? null,
+                            ]);
+                            $customerApiId = $alegraInvoice['data']['client']['id']
+                                ?? $alegraInvoice['data']['contact']['id']
+                                ?? null;
+                            Log::info('🔍 Cliente obtenido desde factura Alegra', [
+                                'invoice_api_id'  => $invoiceApiId,
+                                'customer_api_id' => $customerApiId,
+                            ]);
+                        }
+
+                        if (!$customerApiId) {
+                            Log::warning('⚠️ No se pudo obtener customer_api_id para nota crédito', [
+                                'invoice_api_id' => $invoiceApiId,
+                            ]);
+                        } else {
+                        $today = now()->format('Y-m-d');
+
+                        $alegraItems = $selectedItems
+                            ->filter(fn($item) => !empty($item['item_api_id']))
+                            ->map(fn($item) => [
+                                'id'       => $item['item_api_id'],
+                                'price'    => (float) $item['unit_price'],
+                                'quantity' => (float) $item['quantity'],
+                            ])
+                            ->values()
+                            ->toArray();
+
+                        Log::info('🔍 Items para Alegra', [
+                            'total_items'  => $selectedItems->count(),
+                            'alegra_items' => count($alegraItems),
+                            'items_detail' => $alegraItems,
+                        ]);
+
+                        if (!empty($alegraItems)) {
+                            $alegraPayload = [
+                                'date'    => $today,
+                                'dueDate' => $today,
+                                'client'  => ['id' => $customerApiId],
+                                'items'   => $alegraItems,
+                            ];
+
+                            $apiClient = $facturacionService->getApiClient();
+                            Log::info('📤 Enviando nota crédito a Alegra', [
+                                'endpoint'        => "POST credit-notes/{$invoiceApiId}",
+                                'url_completa'    => rtrim($apiClient->getBaseUrl(), '/') . "/credit-notes/{$invoiceApiId}",
+                                'json_enviado'    => json_encode($alegraPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+                            ]);
+
+                            $alegraResponse = $facturacionService->createCreditNote($invoiceApiId, $alegraPayload);
+
+                            if ($alegraResponse['success'] ?? false) {
+                                $alegraId = $alegraResponse['data']['id'] ?? null;
+
+                                VntInvoices::where('id', $this->creditNoteInvoice['id'])
+                                    ->update(['creditNoteId' => $alegraId]);
+
+                                Log::info('✅ Nota crédito creada en Alegra', [
+                                    'alegra_credit_note_id' => $alegraId,
+                                ]);
+                            } else {
+                                Log::warning('⚠️ No se pudo crear la nota crédito en Alegra', [
+                                    'response' => $alegraResponse,
+                                ]);
+                            }
+                        }
+                        } // end if ($customerApiId)
+                    }
+                } catch (\Exception $alegraEx) {
+                    Log::error('❌ Error al enviar nota crédito a Alegra: ' . $alegraEx->getMessage());
+                }
+            }
+            // ───────────────────────────────────────────────────────────────
+
+            $this->closeCreditNoteModal();
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Nota crédito creada exitosamente.']);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error creando nota crédito: ' . $e->getMessage());
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear la nota crédito: ' . $e->getMessage()]);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     private function ensureTenantConnection()
     {

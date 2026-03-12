@@ -137,7 +137,7 @@ class WarehouseManagementModal extends Component
                     'branch_type' => $this->warehouseForm['branch_type'],
                     'main' => 0,
                     'status' => 1,
-                    'district' => $this->districtId
+                    'district' => $this->districtId ?: null
                 ]);
 
                 $this->successMessage = 'Sucursal agregada exitosamente';
@@ -158,7 +158,7 @@ class WarehouseManagementModal extends Component
                     'postcode' => $this->warehouseForm['postcode'],
                     'branch_type' => $this->warehouseForm['branch_type'],
                     'main' => 0,
-                    'district' => $this->districtId
+                    'district' => $this->districtId ?: null
                 ]);
 
                 $this->successMessage = 'Sucursal actualizada exitosamente';
@@ -222,7 +222,7 @@ class WarehouseManagementModal extends Component
 
     public function updateDistrict($districtId, $index = null)
     {
-        $this->districtId = $districtId;
+        $this->districtId = $districtId ?: null;
     }
 
     public function toggleWarehouseStatus($warehouseId)
