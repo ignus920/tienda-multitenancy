@@ -934,6 +934,15 @@ $header = 'Seleccionar productos';
                 route_id: @js($newCustomerRouteId)
             },
             init() {
+                // 0. Limpieza forzada vía señal local (Ej: desde Sidebar)
+                if (localStorage.getItem('quoter_clear') === '1') {
+                    console.log('🧹 Detectada señal de limpieza local (Desktop)...');
+                    localStorage.removeItem('quoter_clear'); // Consumir la señal
+                    
+                    // Limpiar sesión en servidor
+                    @this.clearQuoter();
+                }
+
                 // Escuchar evento de carga de datos para edición
                 window.addEventListener('load-customer-data', (event) => {
                     const data = event.detail.customer || event.detail[0]?.customer || event.detail;

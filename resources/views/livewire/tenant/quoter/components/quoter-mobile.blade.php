@@ -1,5 +1,16 @@
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 " x-data="quoterListOffline">
+    <style>
+        .swal2-container {
+            z-index: 999999 !important;
+        }
+        /* Forzar que el toast nativo esté por encima de TODO */
+        [x-cloak] { display: none !important; }
+        .fixed.z-\[2000\] {
+            z-index: 1000000 !important;
+        }
+    </style>
+
     <div class="max-w-4xl mx-auto">
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
@@ -12,8 +23,28 @@
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="-translate-y-full"
              x-transition:enter-end="translate-y-0"
-             class="bg-red-600 text-white text-[10px] py-1 text-center font-bold sticky top-0  flex items-center justify-center gap-2">
+             class="bg-red-600 text-white text-[10px] py-1 text-center font-bold sticky top-0  flex items-center justify-center gap-2 z-[1000]">
             <span>⚠️ MODO OFFLINE ACTIVADO</span>
+        </div>
+
+        <!-- Toast Compacto Superior Centro (Diseño Pill Premium - Adaptado de Deliveries) -->
+        <div x-show="showToast" 
+             x-transition:enter="transition ease-out duration-350 transform" 
+             x-transition:enter-start="-translate-y-12 opacity-0 scale-95" 
+             x-transition:enter-end="translate-y-0 opacity-100 scale-100" 
+             x-transition:leave="transition ease-in duration-200 transform" 
+             x-transition:leave-start="translate-y-0 opacity-100 scale-100" 
+             x-transition:leave-end="-translate-y-12 opacity-0 scale-95"
+             class="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 border backdrop-blur-md"
+             :class="isError ? 'bg-red-600/95 border-red-500 text-white' : 'bg-slate-900/95 border-slate-700 text-white'"
+             style="display: none;">
+            <div class="flex items-center justify-center">
+                <div class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="isError ? 'bg-white' : 'bg-green-400'"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2" :class="isError ? 'bg-white' : 'bg-green-500'"></span>
+                </div>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-[0.15em] whitespace-nowrap" x-text="toastMsg"></span>
         </div>
 
         <!-- Search Input and Add Button - Sticky -->
@@ -485,6 +516,12 @@
         isOnline: navigator.onLine,
         filteredQuotes: [], // Para búsqueda local
         loadingNewQuote: false, // Estado de carga para nueva cotización
+        
+        // Estados para Notificación de Sincronización (Tipo Deliveries)
+        showToast: false,
+        toastMsg: '',
+        isError: false,
+        syncing: false,
 
         async init() {
             // Escuchar cambios de conexión
@@ -634,8 +671,7 @@
             this.currentQuoteUuid = null;
             
             // 2. Redirigir a ruta móvil directamente (Offline Safe)
-            // ?clear=1 fuerza al servidor a limpiar la sesión si hay internet
-            window.location.href = "/tenant/quoter/products/mobile?clear=1";
+            window.location.href = "/tenant/quoter/products/mobile";
         },
 
         async editOfflineQuote(quote) {
@@ -663,7 +699,7 @@
         },
 
         async syncPendingOrders() {
-            if (!this.isOnline) return;
+            if (!this.isOnline || this.syncing) return;
             
             const db = await this.getDb();
             if (!db) return;
@@ -671,68 +707,72 @@
             const pending = await db.pedidos.where('sincronizado').equals(0).toArray();
             if (pending.length === 0) return;
 
+            this.syncing = true;
             console.log(`🔄 [Lista] Sincronizando ${pending.length} pedidos pendientes...`);
 
-            // Mostrar toast de inicio de sincronización
             const validPedidos = pending.filter(p => p.items && p.items.length > 0);
             
             if (validPedidos.length > 0) {
-                    Swal.fire({
-                    title: 'Sincronizando...',
-                    text: 'Subiendo pedidos offline al servidor',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 3000,
-                    showConfirmButton: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-            }
-
-            for (const order of validPedidos) {
-                try {
-                    // Llamar al endpoint de Livewire para procesar
-                    const response = await $wire.processOfflineOrder(order);
-                    
-                    if (response && response.success) {
-                        // Marcar como sincronizado en local
-                        await db.pedidos.update(order.id || order.uuid, { sincronizado: 1 });
-                        console.log('✅ [Lista] Pedido sincronizado:', order.uuid);
+                const label = validPedidos.length === 1 ? 'pedido' : 'pedidos';
+                this.toastMsg = 'Sincronizando ' + validPedidos.length + ' ' + label + '...';
+                this.isError = false;
+                this.showToast = true;
+                
+                for (const order of validPedidos) {
+                    try {
+                        const response = await $wire.processOfflineOrder(order);
+                        if (response && response.success) {
+                            await db.pedidos.update(order.id || order.uuid, { sincronizado: 1 });
+                            console.log('✅ [Lista] Pedido sincronizado:', order.uuid);
+                        }
+                    } catch (e) {
+                        console.error('❌ [Lista] Error sincronizando pedido:', e);
                     }
-                } catch (e) {
-                    console.error('❌ [Lista] Error sincronizando pedido:', e);
                 }
+                
+                // Recargar listas
+                await this.loadOfflineQuotes();
+                $wire.dispatch('refresh-component'); 
+                $wire.$refresh();
+                
+                this.toastMsg = '¡Sincronización Completada!';
+                this.isError = false;
+                setTimeout(() => { this.showToast = false; }, 3000);
             }
             
-            // Recargar lista local (deberían desaparecer de la sección naranja)
-            await this.loadOfflineQuotes();
-            
-            // Recargar lista del servidor (Livewire) para que aparezcan en blanco
-            $wire.dispatch('refresh-component'); 
-            $wire.$refresh();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Sincronización Completada!',
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false
-            });
+            this.syncing = false;
         }
     }));
 
     document.addEventListener('livewire:initialized', () => {
+        // Manejador Global de Errores Livewire (Evita "This page has expired")
+        Livewire.hook('request', ({ fail }) => {
+            fail(({ status, preventDefault }) => {
+                if (status === 419) { // CSRF Token mismatch / Session expired
+                    console.warn('⚠️ Sesión expirada o token inválido. Recargando...');
+                    preventDefault();
+                    window.location.reload();
+                    return false;
+                }
+            });
+        });
+
         window.addEventListener('show-toast', (event) => {
             const data = event.detail;
             const payload = Array.isArray(data) ? data[0] : data;
             Swal.fire({
                 toast: true,
-                position: 'top-end',
+                position: 'top',
                 showConfirmButton: false,
                 timer: 6000,
                 timerProgressBar: true,
                 icon: payload.type,
                 title: payload.message,
+                background: '#1e293b',
+                color: '#fff',
+                customClass: {
+                    popup: 'rounded-xl shadow-2xl border border-gray-700'
+                }
             });
         });
 

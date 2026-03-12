@@ -699,10 +699,16 @@ class ProductQuoter extends Component
         $this->quoterItems = [];
         $this->quoteHasRemission = false; // Resetear el estado de remisión
         $this->editingQuoteId = null; // Limpiar ID de cotización en edición
+        $this->editingRemissionId = null; 
+        $this->editingRestockOrder = null;
         $this->isEditing = false; // Limpiar estado de edición
+        $this->totalAmount = 0;
+        $this->observaciones = null;
         session()->forget('quoter_items');
         $this->calculateTotal();
         $this->showCartModal = false;
+
+        Log::info('🧹 Carrito limpiado (Unificado)');
 
         $this->dispatch('show-toast', [
             'type' => 'info',
@@ -3300,6 +3306,7 @@ class ProductQuoter extends Component
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al cargar datos']);
         }
     }
+
 
 
 

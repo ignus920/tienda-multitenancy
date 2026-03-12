@@ -1,4 +1,5 @@
 <div>
+
 @script
 <script>
     /**
@@ -15,6 +16,9 @@
         displayProducts: @js($mappedProducts), // Inyectar datos iniciales de forma segura con Livewire 3
         localSearch: '',
         showOfflineCreateForm: false, // Control del formulario offline
+        showConfirmSave: false, // Control del modal de confirmación nativo
+        showSuccessSave: false, // Control del modal de éxito nativo
+        showConfirmClear: false, // Control del modal de confirmación de limpieza
         newOfflineCustomer: { // Datos para el nuevo cliente offline
             id: null,
             typeIdentificationId: 1,
@@ -61,14 +65,18 @@
         },
 
         async init() {
-            // 0. Limpieza forzada vía parámetro URL (Ej: desde Sidebar)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('clear')) {
-                console.log('🧹 Detectada bandera "clear", limpiando estado local...');
+            // 0. Limpieza forzada vía señal local (Ej: desde Sidebar)
+            if (localStorage.getItem('quoter_clear') === '1') {
+                console.log('🧹 Detectada señal de limpieza local, vaciando estado...');
+                localStorage.removeItem('quoter_clear'); // Consumir la señal
+                
                 const db = await this.getDb();
                 if (db) {
                     await db.estado_quoter.delete('actual');
-                    // Limpiar también variables reactivas en memoria
+                    // Limpiar sesión en servidor
+                    await $wire.clearQuoter();
+                    
+                    // Limpiar variables reactivas en memoria
                     this.localCart = [];
                     this.selectedLocalCustomer = null;
                     this.currentQuoteUuid = null;
@@ -438,15 +446,23 @@
             
             if (this.localCart.length === 0) {
                 console.warn('⚠️ [OfflineSave] Carrito vacío');
-                Swal.fire('Carrito vacío', 'Agrega productos antes de finalizar.', 'warning');
+                alert('Carrito vacío: Agrega productos antes de finalizar.');
                 return;
             }
 
             if (!this.selectedLocalCustomer && @json(auth()->user()->profile_id) != 17) {
                 console.warn('⚠️ [OfflineSave] Cliente no seleccionado');
-                Swal.fire('Cliente requerido', 'Selecciona un cliente para continuar.', 'warning');
+                alert('Cliente requerido: Selecciona un cliente para continuar.');
                 return;
             }
+
+            // 1. Mostrar modal de confirmación nativo
+            this.showConfirmSave = true;
+        },
+
+        async doSaveLocalOrder() {
+            this.showConfirmSave = false;
+            console.log('🚀 [OfflineSave] Procesando guardado local definitivo...');
 
             console.log('📂 [OfflineSave] Obteniendo base de datos...');
             const db = await this.getDb();
@@ -474,28 +490,23 @@
                 const id = await db.pedidos.put(orderData);
                 console.log('✅ [OfflineSave] Guardado exitoso con ID:', id);
 
-                await Swal.fire({ 
-                    icon: 'success', 
-                    title: '¡Pedido Guardado!', 
-                    text: 'El pedido quedó guardado en el celular.',
-                    timer: 2000, 
-                    showConfirmButton: false 
-                });
+                // Mostramos el modal de éxito nativo
+                this.showSuccessSave = true;
                 
+                // Limpieza de estado
                 this.localCart = [];
                 this.selectedLocalCustomer = null; 
                 this.currentQuoteUuid = null;
                 await this.persistState();
-                
-                console.log('🚚 [OfflineSave] Redirigiendo...');
-                window.location.href = "/tenant/quoter/mobile";
+
+                // Redirección después de 2 segundos (tiempo para ver el éxito)
+                setTimeout(() => {
+                    window.location.href = "/tenant/quoter/mobile";
+                }, 2000);
+
             } catch (err) {
                 console.error('❌ [OfflineSave] Error crítico al escribir en IndexedDB:', err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error al guardar',
-                    text: 'Error técnico: ' + err.message
-                });
+                alert('Error al guardar: ' + err.message);
             }
         },
 
@@ -790,7 +801,7 @@
 
 
     {{-- Contenedor con lógica offline --}}
-    <div wire:key="mobile-quoter-root-container" x-data="quoterOffline" 
+    <div wire:key="mobile-quoter-root-container" id="mobile-quoter-root-container" x-data="quoterOffline" 
          class="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden transition-all duration-300"
          :class="showOfflineCreateForm ? 'z-[9999]' : 'z-[35]'">
         
@@ -1772,6 +1783,98 @@
     </div>
 </div>
 </div>
+
+{{-- MODAL NATIVO DE CONFIRMACIÓN OFFLINE --}}
+<div x-show="showConfirmSave" 
+     style="display: none;"
+     class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0 scale-95"
+     x-transition:enter-end="opacity-100 scale-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100 scale-100"
+     x-transition:leave-end="opacity-0 scale-95">
+    
+    <div @click.away="showConfirmSave = false" 
+         class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all">
+        
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                <svg class="h-8 w-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Confirmar pedido?</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                ¿Deseas finalizar este pedido y guardarlo localmente en el dispositivo?
+            </p>
+        </div>
+        
+        <div class="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex flex-col gap-3">
+            <button @click="doSaveLocalOrder()" 
+                    class="w-full bg-[#10b981] hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                <span>Sí, finalizar pedido</span>
+            </button>
+            
+            <button @click="showConfirmSave = false" 
+                    class="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750 transition-all active:scale-95">
+                Regresar
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL NATIVO DE ÉXITO OFFLINE --}}
+
+<div x-show="showSuccessSave" 
+     style="display: none;"
+     class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100">
+    
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform text-center p-8">
+        <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
+            <svg class="h-10 w-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">¡Pedido Guardado!</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">El pedido quedó registrado en el celular con éxito.</p>
+    </div>
+</div>
+
+{{-- MODAL NATIVO DE LIMPIEZA DE CARRITO --}}
+<div x-show="showConfirmClear" 
+     style="display: none;"
+     class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0 scale-95"
+     x-transition:enter-end="opacity-100 scale-100">
+    
+    <div @click.away="showConfirmClear = false" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                <svg class="h-8 w-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Limpiar carrito?</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Se eliminarán todos los productos. El cliente seleccionado se mantendrá.</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex flex-col gap-3">
+            <button @click="showConfirmClear = false; $wire.call('clearCart')" 
+                class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95">
+                Sí, limpiar carrito
+            </button>
+            <button @click="showConfirmClear = false" 
+                class="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750 transition-all active:scale-95">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>
 </div>
     @include('livewire.tenant.quoter.components.customer-quick-form')
 
@@ -1836,22 +1939,16 @@
 
     // Función global para confirmar limpiar carrito (llamada desde Alpine/HTML)
     window.confirmClearCart = function() {
-        Swal.fire({
-            title: '¿Limpiar carrito?',
-            text: 'Se eliminarán todos los productos del carrito. El cliente seleccionado se mantendrá.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Sí, limpiar',
-            cancelButtonText: 'Cancelar',
-            background: '#ffffff',
-            color: '#111827'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $wire.call('clearCart');
+        // Obtenemos una referencia al alcance de Alpine para activar el modal nativo
+        const el = document.querySelector('[x-data="quoterOffline"]');
+        if (el && el.__x && el.__x.$data) {
+            el.__x.$data.showConfirmClear = true;
+        } else {
+            // Fallback si Alpine no está listo
+            if (confirm('¿Deseas limpiar el carrito?')) {
+                Livewire.dispatch('clearCart');
             }
-        });
+        }
     }
 
     // Función global para manejar Enter en búsqueda de productos
