@@ -21,6 +21,8 @@ class Quoter extends Component
 {
     use WithPagination, WithExport, HasCompanyConfiguration;
 
+    protected $listeners = ['refresh-component' => '$refresh'];
+
     public $search = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
