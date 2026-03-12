@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
+use App\Auth\Livewire\Logout;
 
 class SelectTenant extends Component
 {
@@ -61,6 +62,12 @@ class SelectTenant extends Component
 
         // NO redirigir, solo recargar el componente para que el modal se abra
         $this->dispatch('$refresh');
+    }
+
+    public function logout(Logout $logout)
+    {
+        $logout();
+        return redirect()->route('login');
     }
 
     #[Layout('layouts.app')]
