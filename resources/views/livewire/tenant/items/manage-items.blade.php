@@ -399,15 +399,15 @@
                 </div>
                 
                 <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
-                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO'))
+                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1))
                     <div class="px-6 pt-4">
                         <div class="border-b border-gray-200 dark:border-gray-700">
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
-                                <button type="button" wire:click="$set('showProductionSection', false)"
+                                <button type="button" wire:click="showGeneralInfo"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection),
-                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection)}">
+                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection),
+                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection)}">
                                     <div class="flex items-center space-x-2">
                                         <x-heroicon-o-information-circle class="w-5 h-5" />
                                         <span>Información General</span>
@@ -439,13 +439,26 @@
                                     </div>
                                 </button>
                                 @endif
+
+                                <!-- Pestaña de dimensiones para los productos inventoriables -->
+                                @if ($inventoriable === 1)
+                                <button type="button" wire:click="activateDimensionSection({{$item_id}})"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-cube class="w-5 h-5" />
+                                        <span>Medidas</span>
+                                    </div>
+                                </button>
+                                @endif
                             </nav>
                         </div>
                     </div>
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
-                @if(!$item_id || !$showProductionSection)
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection))
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -824,13 +837,17 @@
                         </div>
                     </div>
                 </form>
-                @elseif($item_id && $showProductionSection)
-                <!-- PESTAÑA 2: Contenido según el tipo del item -->
-                @if($type == 'IMPORTADO')
-                @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key($item_id))
-                @elseif($type == 'PRODUCIDO')
-                @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
-                @endif
+                @elseif($item_id && ($showProductionSection || $showDimensionSection))
+                    <!-- PESTAÑA 2: Contenido según el tipo del item -->
+                    @if($showProductionSection)
+                        @if($type == 'IMPORTADO')
+                            @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
+                        @elseif($type == 'PRODUCIDO')
+                            @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
+                        @endif
+                    @elseif($showDimensionSection)
+                        @livewire('tenant.items.manage-dimensions', ['itemId' => $item_id], key('dim-'.$item_id))
+                    @endif
                 @endif
 
             </div>

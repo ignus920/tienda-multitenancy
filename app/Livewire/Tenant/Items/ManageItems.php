@@ -118,6 +118,7 @@ class ManageItems extends Component
     public $showCommand = false;
     public $showSelectStore = false;
     public $showProductionSection = false;
+    public $showDimensionSection = false;
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -324,6 +325,7 @@ class ManageItems extends Component
         $this->inventoriable = $item->inventoriable;
         $this->disabled = true;
         $this->showProductionSection = false;
+        $this->showDimensionSection = false;
 
         $this->showModal = true;
     }
@@ -1110,6 +1112,7 @@ class ManageItems extends Component
         $this->temporaryErrorMessage;
         $this->showValuesModal = false;
         $this->showProductionSection = false;
+        $this->showDimensionSection = false;
         $this->internal_codeExists = false;
         $this->validatingInternal_code = false;
         $this->skuExists = false;
@@ -1782,13 +1785,17 @@ class ManageItems extends Component
         return $result;
     }
 
+    public function showGeneralInfo()
+    {
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+    }
+
     public function showImportSection($item_id)
     {
         $this->item_id = $item_id;
         $this->showProductionSection = true;
-        // Log::info('🎈 Cargando itemId', [
-        //     'itemId' => $this->item_id
-        // ]);
+        $this->showDimensionSection = false;
     }
 
     public function showProductionSection($item_id)
@@ -1799,5 +1806,18 @@ class ManageItems extends Component
         ]);
         $this->item_id = $item_id;
         $this->showProductionSection = true;
+        $this->showDimensionSection = false;
+    }
+
+    public function  activateDimensionSection($item_id)
+    {
+        Log::info('📏 showDimensionSection llamado', [
+            'item_id' => $item_id,
+            'type'    => $this->type,
+            'inventoriable' => $this->inventoriable,
+        ]);
+        $this->item_id = $item_id;
+        $this->showDimensionSection = true;
+        $this->showProductionSection = false;
     }
 }

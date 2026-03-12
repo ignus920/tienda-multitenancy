@@ -41,6 +41,7 @@ class Orders extends Component
     public $showModalConfirmProduction = false;
     public $showButtonShipping = false;
     public $showModalChangeQtyShip = false;
+    public $showModalShipping = false;
 
     public $import_id;
     public $oldQty;
@@ -50,6 +51,11 @@ class Orders extends Component
     public $price;
     public $commentJustifyPrice;
     public $commentChangeQtyShip;
+    public $etd;
+    public $operation_number;
+    public $way;
+    public $conveyor;
+    public $observations;
 
     protected $listeners = [
         'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
@@ -65,7 +71,10 @@ class Orders extends Component
     protected $messages = [
         'commentChangeQuantity.required' => 'Debe ingresar un comentario',
         'commentAccept.required' => 'Debe ingresar un comentario',
-        'commentChangeQtyShip.required' => 'You must enter a comment'
+        'commentChangeQtyShip.required' => 'You must enter a comment',
+        'etd.required' => 'Please complete all required fields (*)',
+        'operation_number.required' => 'Please complete all required fields (*)',
+        'way.required' => 'Please complete all required fields (*)'
     ];
 
     public function boot()
@@ -223,7 +232,7 @@ class Orders extends Component
         $this->resetPage();
     }
 
-    public function saveComment($idImport, $comment)
+    public function saveComment($idImport, $comment, $toastMessage = 'Comentario registrado')
     {
         $this->ensureTenantConnection();
         $query = ImpComments::where('import_id', $idImport)->where('initiator', 1)->first();
@@ -244,7 +253,10 @@ class Orders extends Component
                     'initiator' => 1
                 ]);
             }
-            Log::info('Dispatching $refresh after saving comment');
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => $toastMessage
+            ]);
             $this->dispatch('$refresh');
         } catch (\Exception $e) {
             Log::error('❌ Error al guardar el comentario: ' . $e->getMessage());
@@ -411,6 +423,7 @@ class Orders extends Component
         $this->showModalJustifyChangePrice = false;
         $this->showModalConfirmProduction = false;
         $this->showModalChangeQtyShip = false;
+        $this->resetForm();
     }
 
     // #[Computed]
@@ -774,6 +787,18 @@ class Orders extends Component
         Log::info('selectedPackingIds: ' . implode(', ', $this->selectedPackingIds));
     }
 
+    #[Computed]
+    public function infoPacking()
+    {
+        if (empty($this->selectedPackingIds)) {
+            return collect();
+        }
+
+        return ImpPacking::whereIn('id', $this->selectedPackingIds)
+            ->withCount('imports')
+            ->get();
+    }
+
     public function updateQtyShip($importId, $qtyShip)
     {
         $this->ensureTenantConnection();
@@ -818,10 +843,17 @@ class Orders extends Component
                 'qty_shipped' => $this->newQty
             ]);
 
-            // 3. Guardamos el comentario con un mensaje de éxito personalizado
-            $customMessage = "¡Cantidad actualizada correctamente de {$this->oldQty} a {$this->newQty}!";
-            $this->saveComment($this->import_id, $structuredData, $customMessage);
+            ImpComments::create([
+                'import_id' => $this->import_id,
+                'comment' => $structuredData,
+                'user_id' => Auth::id(),
+                'initiator' => 0
+            ]);
 
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Success update quantity'
+            ]);
             $this->showModalChangeQtyShip = false;
             $this->resetForm();
         } catch (\Exception $e) {
@@ -829,6 +861,37 @@ class Orders extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'No se pudo actualizar la cantidad'
+            ]);
+        }
+    }
+
+    public function openModalShipping()
+    {
+        $this->showModalShipping = true;
+    }
+
+    public function saveShippingData()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'etd' => 'required',
+            'operation_number' => 'required',
+            'way' => 'required'
+        ]);
+        try {
+            dd([
+                'consecutive' => '?',
+                'etd' => $this->etd,
+                'operation_number' => $this->operation_number,
+                'way' => $this->way,
+                'conveyor' => $this->conveyor,
+                'obs' => $this->observations
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error al guardar la información: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Shipping information could not be saved'
             ]);
         }
     }
@@ -877,5 +940,11 @@ class Orders extends Component
         $this->import_id = '';
         $this->price = '';
         $this->commentAccept = '';
+        $this->commentChangeQtyShip = '';
+        $this->etd = '';
+        $this->operation_number = '';
+        $this->way = '';
+        $this->conveyor = '';
+        $this->observations = '';
     }
 }
