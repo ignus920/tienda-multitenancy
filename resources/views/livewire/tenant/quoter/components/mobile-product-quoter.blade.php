@@ -19,8 +19,25 @@ $header = 'Seleccionar productos';
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
 
-                    <span>Regresar cotizaciones</span>
+                    <span class="text-sm">Regresar</span>
                 </a>
+
+                <!-- Switch Premium de Modo Copia (Mobile) -->
+                <div class="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all">
+                    <div class="flex flex-col leading-none">
+                        <span class="text-[8px] uppercase font-black tracking-tight {{ $isCopyMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">
+                            {{ $isCopyMode ? 'COPIAR' : 'COTIZAR' }}
+                        </span>
+                    </div>
+                    <button 
+                        type="button"
+                        wire:click="toggleCopyMode"
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $isCopyMode ? 'bg-emerald-500' : 'bg-red-500' }}">
+                        <span 
+                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isCopyMode ? 'translate-x-5' : 'translate-x-0' }}">
+                        </span>
+                    </button>
+                </div>
 
                 <div class="flex items-center gap-1">
                     @if($this->quoterCount > 0)
@@ -138,13 +155,17 @@ $header = 'Seleccionar productos';
 
         @if($viewMode === 'grid')
             <!-- Modo Grid (actual) -->
-            <div @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
-                class="relative flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 shadow-sm
-                            {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[1.02]' : 'hover:border-indigo-300' }}">
+            <div x-data="{ openMenu: false }" 
+                 :class="openMenu ? 'z-[60]' : 'z-10'"
+                 @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
+                 class="relative flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 transition-all duration-200 shadow-sm
+                             {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[1.02]' : 'hover:border-indigo-300' }}">
         @else
             <!-- Modo Lista (tabla mobile) -->
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4
-                        {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-indigo-300' }} transition-all">
+            <div x-data="{ openMenu: false }"
+                 :class="openMenu ? 'z-[60]' : 'z-10'"
+                 class="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4
+                         {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-indigo-300' }} transition-all">
                 <div class="flex items-center space-x-4">
                     <!-- Imagen pequeña -->
                     <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
@@ -200,44 +221,44 @@ $header = 'Seleccionar productos';
                                 {{ $quantity }}
                             </span>
                         @endif
-                        <div x-data="{ open: false }" class="relative">
-                            <button @click.stop="open = !open"
+                        <div class="relative">
+                            <button @click.stop="openMenu = !openMenu"
                                 class="p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                     <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                                 </svg>
                             </button>
-                            <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                            <div x-show="openMenu" @click.away="openMenu = false" @click.stop x-cloak
                                 class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
-                                <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
+                                <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                                     </svg>
                                     Solicitud Soporte
                                 </button>
-                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     Imagen
                                 </button>
-                                <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false"
+                                <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                     Observaciones
                                 </button>
-                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                     </svg>
                                     Calculos
                                 </button>
-                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -260,9 +281,13 @@ $header = 'Seleccionar productos';
                                 $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
                             @endphp
                             <button
-                                wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                wire:loading.attr="disabled"
-                                wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                @if($isCopyMode)
+                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                @else
+                                    wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                    wire:loading.attr="disabled"
+                                    wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                @endif
                                 class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors
                                     {{ $isThisPriceSelected
                                         ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
@@ -291,7 +316,7 @@ $header = 'Seleccionar productos';
             <!-- Imagen del producto (Arriba) -->
             <div class="aspect-square w-full relative bg-gray-100 dark:bg-gray-700">
                 @if($product->principalImage)
-                <img class="w-full h-full object-cover"
+                <img class="w-full h-full object-cover rounded-t-xl"
                     src="{{ $product->principalImage->getImageUrl() }}"
                     alt="{{ $product->display_name }}">
                 @else
@@ -301,52 +326,51 @@ $header = 'Seleccionar productos';
                     </span>
                 </div>
                 @endif
-
-                <!-- Badge de cantidad / Acciones (Esquina superior derecha) -->
+                             <!-- Badge de cantidad / Acciones (Esquina superior derecha) -->
                 <div class="absolute top-2 right-2 flex flex-col gap-2 items-center z-10">
                     @if($quantity > 0)
                     <div class="flex items-center justify-center w-7 h-7 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg">
                         {{ $quantity }}
                     </div>
                     @endif
-                    <div x-data="{ open: false }" class="absolute top-0 right-0">
-                        <button @click.stop="open = !open"
+                    <div class="absolute top-0 right-0">
+                        <button @click.stop="openMenu = !openMenu"
                             class="p-2 bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 rounded-bl-xl shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors backdrop-blur-sm">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                             </svg>
                         </button>
-                        <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                        <div x-show="openMenu" @click.away="openMenu = false" @click.stop x-cloak
                             class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
-                            <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
+                            <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                                 </svg>
                                 Solicitud Soporte
                             </button>
-                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" />
                                 </svg>
                                 Imagen
                             </button>
-                            <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false"
+                            <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                                 Observaciones
                             </button>
-                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                 </svg>
                                 Calculos
                             </button>
-                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); open = false"
+                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -432,9 +456,13 @@ $header = 'Seleccionar productos';
                                 };
                             @endphp
                             <button
-                                wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                wire:loading.attr="disabled"
-                                wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                @if($isCopyMode)
+                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                @else
+                                    wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                    wire:loading.attr="disabled"
+                                    wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                @endif
                                 class="relative w-full py-1.5 px-2 rounded-lg border transition-colors overflow-hidden {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
                                 
                                 <!-- Contenido Normal -->
@@ -1376,3 +1404,71 @@ $header = 'Seleccionar productos';
     </div>
 
 </div>
+
+<script>
+    if (typeof copyProductToClipboard === 'undefined') {
+        function copyProductToClipboard(sku, price, name, id) {
+            const priceFormatted = new Intl.NumberFormat().format(Math.round(price));
+            const link = `https://www.fervicom.com/producto/${sku.toLowerCase()}`;
+            const textToCopy = `${sku} - $${priceFormatted} incluido iva\n${name}\nDetalles en:\n${link}`;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showCopyFeedback();
+                }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    fallbackCopyToClipboard(textToCopy);
+                });
+            } else {
+                fallbackCopyToClipboard(textToCopy);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showCopyFeedback();
+            } catch (err) {
+                console.error('Fallback error:', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showCopyFeedback() {
+            if (window.Livewire) {
+                Livewire.dispatch('show-toast', {
+                    type: 'success',
+                    message: '¡Texto copiado al portapapeles!'
+                });
+            }
+        }
+
+        // Listener específico para móviles para asegurar visibilidad del toast
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('show-toast', (event) => {
+                const data = Array.isArray(event) ? event[0] : event;
+                if (window.Swal) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top', 
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true,
+                        icon: data.type || 'success',
+                        title: data.message,
+                        background: '#1f2937',
+                        color: '#f9fafb'
+                    });
+                }
+            });
+        });
+    }
+</script>

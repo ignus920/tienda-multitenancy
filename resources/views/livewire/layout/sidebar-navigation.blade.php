@@ -550,8 +550,8 @@ new class extends Component
         </a>
 
         <!-- Ordenes -->
-        <a href="{{ route('imports-orders') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+        <a href="{{ route('imports.imports-orders') }}" wire:navigate
+            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -562,13 +562,13 @@ new class extends Component
                 x-transition:leave="transition ease-in duration-150"
                 x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
                 class="ml-3">
-                Orders
+                Órdenes
             </span>
 
             <!-- Tooltip -->
             <div x-show="tooltip" x-transition
                 class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                Orders
+                Órdenes
             </div>
         </a>
 
