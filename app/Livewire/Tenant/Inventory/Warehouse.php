@@ -12,10 +12,11 @@ use App\Models\Auth\Tenant;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Traits\HasCompanyConfiguration;
 
 class Warehouse extends Component
 {
-    use WithPagination, \App\Traits\Livewire\WithExport;
+    use WithPagination, \App\Traits\Livewire\WithExport, HasCompanyConfiguration;
 
     protected $listeners = ['city-changed' => 'updatedCityId', 'city-valid' => 'cityValidate'];
 
@@ -39,6 +40,7 @@ class Warehouse extends Component
     public $storesToDelete = [];
     public $editingStoreIndex = null;
     public $editingStoreName = '';
+    public $storeError = '';
 
     // Datos para selects
     public $companies = [];
@@ -79,6 +81,7 @@ class Warehouse extends Component
     public function mount()
     {
         $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
         $this->loadCompanies();
         $this->loadCities();
         $this->is_credit = false;
@@ -265,7 +268,8 @@ class Warehouse extends Component
         $this->storesToDelete = [];
         $this->editingStoreIndex = null;
         $this->editingStoreName = '';
-        
+        $this->storeError = '';
+
         // Obtener el companyId del usuario logueado
         $user = auth()->user();
         if ($user->contact_id) {
@@ -280,6 +284,19 @@ class Warehouse extends Component
     {
         if (empty($this->newStoreName)) {
             return;
+        }
+
+        $this->storeError = '';
+        $this->ensureTenantConnection();
+        $storeLimit = $this->getOptionValue(27);
+        if ($storeLimit !== null) {
+            // Al crear: PRINCIPAL(1) + pending; al editar: existing + pending
+            $principalCount = $this->warehouse_id ? 0 : 1;
+            $totalAfterAdd  = count($this->existingStores) + count($this->additionalStores) + $principalCount + 1;
+            if ($totalAfterAdd > $storeLimit) {
+                $this->storeError = "Ha alcanzado el límite de {$storeLimit} bodega(s) por sucursal según su plan.";
+                return;
+            }
         }
 
         $this->additionalStores[] = [
@@ -383,7 +400,34 @@ class Warehouse extends Component
             'main' => 2, // Siempre secundario por defecto
         ];
 
-        // Usar transacciones para asegurar consistencia entre BD central y tenant
+        // ── Verificar límite de sucursales (option_id = 26) ──────────────
+        if (!$this->warehouse_id) {
+            $limit = $this->getOptionValue(26);
+            if ($limit !== null) {
+                $currentCount = VntWarehouse::where('companyId', $this->companyId)->where('status', 1)->count();
+                if ($currentCount >= $limit) {
+                    session()->flash('error', "Ha alcanzado el límite de {$limit} sucursal(es) permitidas por su plan.");
+                    return;
+                }
+            }
+        }
+
+        // ── Verificar límite de bodegas (option_id = 27) ─────────────────
+        $storeLimit = $this->getOptionValue(27);
+        if ($storeLimit !== null) {
+            if ($this->warehouse_id) {
+                // Editando: existentes + nuevas no debe superar el límite
+                $total = count($this->existingStores) + count($this->additionalStores);
+            } else {
+                // Creando: PRINCIPAL + adicionales
+                $total = 1 + count($this->additionalStores);
+            }
+            if ($total > $storeLimit) {
+                session()->flash('error', "Ha superado el límite de {$storeLimit} bodega(s) por sucursal según su plan.");
+                return;
+            }
+        }
+
         DB::connection('central')->beginTransaction();
         DB::connection('tenant')->beginTransaction();
 
@@ -532,8 +576,17 @@ class Warehouse extends Component
                 ->get();
         }
 
+        $warehouseLimit = $this->getOptionValue(26);
+        $warehouseCount = $this->companyId
+            ? VntWarehouse::where('companyId', $this->companyId)->where('status', 1)->count()
+            : 0;
+
         return view('livewire.tenant.inventory.warehouse', [
-            'warehouses' => $warehouses
+            'warehouses'      => $warehouses,
+            'warehouseLimit'  => $warehouseLimit,
+            'warehouseCount'  => $warehouseCount,
+            'limitReached'    => $warehouseLimit !== null && $warehouseCount >= $warehouseLimit,
+            'storeLimit'      => $this->getOptionValue(27),
         ]);
     }
 
