@@ -125,6 +125,8 @@
        @livewire('tenant.components.import-cost-calculator')
        <!-- Modal Global de Cálculo de Potencia -->
        @livewire('tenant.components.product-bundle-power-calculator')
+       <!-- Modal Global de Detalle de Corte de Items -->
+       @livewire('tenant.components.inv-items-cut-details')
 
      
 
@@ -146,6 +148,13 @@
             @keyframes swal2-slide-out-right {
                 from { transform: translateX(0); opacity: 1; }
                 to { transform: translateX(100%); opacity: 0; }
+            }
+            .animate-pulse-subtle {
+                animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            @keyframes pulse-subtle {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.85; shadow: 0 0 10px rgba(239, 68, 68, 0.1); }
             }
         </style>
 
@@ -189,10 +198,19 @@
                         text: data.text || '',
                         confirmButtonColor: '#4f46e5',
                         background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                        color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                        color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827',
+                        customClass: {
+                            container: 'swal-z-index-fix'
+                        }
                     });
                 });
             });
         </script>
+
+        <style>
+            .swal-z-index-fix {
+                z-index: 999999 !important;
+            }
+        </style>
     </body>
 </html>

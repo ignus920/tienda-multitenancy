@@ -104,7 +104,23 @@ $header = 'Seleccionar productos';
                                         </div>
                                     </button>
 
+                                    <!-- Detalles de Corte -->
+                                    <button @click="open = false; $dispatch('openCutDetails')"
+                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group border-t border-gray-100 dark:border-gray-700/50">
+                                        <div class="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758l5.758-5.758"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col items-start leading-tight">
+                                            <span class="font-semibold">Detalles de Corte</span>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Planificación de cortes de ítems</span>
+                                        </div>
+                                    </button>
+
                                     <!-- Otras opciones futuras pueden ir aquí -->
+
+                                    
 
                                 </div>
                             </div>
