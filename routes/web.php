@@ -171,7 +171,9 @@ require __DIR__ . '/tenants/campaigns.php';
 require __DIR__ . '/tenants/tickets.php';
 // Incluir rutas del módulo de observacionesitems
 require __DIR__ . '/tenants/ItemObservation.php';
-
 // Incluir rutas del calculador de costos de importación
 require __DIR__ . '/tenants/import-cost-calculator.php';
+require __DIR__ . '/tenants/product-bundle-power-calculator.php';
+
+
 
