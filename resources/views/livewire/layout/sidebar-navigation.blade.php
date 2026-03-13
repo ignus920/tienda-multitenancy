@@ -91,7 +91,7 @@ new class extends Component
 
 
         <!-- Escritorio -->
-        @if(!$isOperario)
+        @if(!$isOperario && Auth::user()?->profile_id != 17)
         <a href="{{ route('tenant.dashboard') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.select') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -467,6 +467,7 @@ new class extends Component
         @endif
 
         <!-- Producción (menú con subitems) -->
+        @if (PermissionHelper::userCan('Produccion', 'show'))   
         <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }} }" class="w-full">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('production.*') ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600 dark:hover:text-amber-400' }} cursor-pointer"
@@ -520,9 +521,10 @@ new class extends Component
                     class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Procesos</a>
             </div>
         </div>
+        @endif
 
-        @if(!$isOperario)
-         <!-- Importaciones -->
+        <!-- Importaciones -->
+        @if(!$isOperario && PermissionHelper::userCan('Compras', 'show') && Auth::user()?->profile_id !=17)
         <a href="{{ route('imports.imports') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -548,10 +550,12 @@ new class extends Component
                 Importaciones
             </div>
         </a>
+        @endif
 
         <!-- Ordenes -->
-        <a href="{{ route('imports.imports-orders') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+        @if (!$isOperario && PermissionHelper::userCan('Compras', 'show'))
+        <a href="{{ route('imports-orders') }}" wire:navigate
+            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -570,9 +574,12 @@ new class extends Component
                 class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
                 Órdenes
             </div>
-        </a>
+        </a>    
+        @endif
+        
 
         <!-- Caja -->
+        @if (!$isOperario && PermissionHelper::userCan('Caja', 'show'))
         <a href="{{ route('petty-cash.petty-cash') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('petty-cash.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
@@ -598,8 +605,9 @@ new class extends Component
                 class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
                 Caja
             </div>
-        </a>
+        </a>    
         @endif
+        
         <!-- Spacer -->
         <div class="flex-1"></div>
 
