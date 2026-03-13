@@ -90,8 +90,22 @@ $header = 'Seleccionar productos';
                                             <span class="text-[10px] text-gray-500 dark:text-gray-400">Crear item sin catálogo</span>
                                         </div>
                                     </button>
+                                    <!-- Calcular Potencia -->
+                                    <button @click="open = false; $dispatch('openPowerCalculator')"
+                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group">
+                                        <div class="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col items-start leading-tight">
+                                            <span class="font-semibold">Calcular Potencia</span>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Cálculo de amperaje y watts</span>
+                                        </div>
+                                    </button>
 
                                     <!-- Otras opciones futuras pueden ir aquí -->
+
                                 </div>
                             </div>
                         </div>
