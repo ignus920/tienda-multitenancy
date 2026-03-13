@@ -38,7 +38,8 @@ class VntQuote extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(VntContacts::class, 'customerId');
+        // customerId almacena el warehouseId del contacto (vnt_contacts.warehouseId = vnt_quotes.customerId)
+        return $this->belongsTo(VntContacts::class, 'customerId', 'warehouseId');
     }
 
     public function warehouse(): BelongsTo

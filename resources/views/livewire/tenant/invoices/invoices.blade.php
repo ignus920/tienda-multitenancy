@@ -399,30 +399,11 @@
                     </label>
                     <select wire:model.live="creditNoteReason"
                         class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="Anulación de factura electrónica">Anulación de factura electrónica</option>
-                        <option value="Descuento comercial">Descuento comercial</option>
-                        <option value="Devolución de mercancía">Devolución de mercancía</option>
-                        <option value="Rebaja en el precio">Rebaja en el precio</option>
-                        <option value="Otros">Otros</option>
-                    </select>
-                    @if($creditNoteReason === 'Anulación de factura electrónica')
-                        <p class="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                            Anulación de factura: Todos los ítems han sido seleccionados automáticamente
-                        </p>
-                    @endif
-                </div>
-
-                {{-- Método de Pago --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Método de Pago</label>
-                    <select wire:model="creditNotePayment"
-                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="Efectivo">Efectivo</option>
-                        <option value="Transferencia">Transferencia</option>
-                        <option value="Tarjeta crédito">Tarjeta crédito</option>
-                        <option value="Tarjeta débito">Tarjeta débito</option>
-                        <option value="Cheque">Cheque</option>
+                        <option value="VOID_ELECTRONIC_INVOICE">Anulación de factura electrónica</option>
+                        <option value="REDUCTION_DISCOUNT_PARTIAL_TOTAL">Rebaja o descuento parcial o total</option>
+                        <option value="PARTIALL_DEVOLUTION">Devolución de parte de los bienes</option>
+                        <option value="PRICE_ADJUSTMENT">Ajuste de precio</option>
+                        <option value="OTHER">Otros</option>
                     </select>
                 </div>
 
@@ -435,89 +416,156 @@
                     <p class="text-xs text-gray-400 mt-0.5">{{ strlen($creditNoteObs) }}/250 caracteres</p>
                 </div>
 
-                {{-- Ítems --}}
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide text-xs">Ítems de la Factura</p>
-                        <div class="flex gap-2">
-                            <button wire:click="selectAllCreditNoteItems"
-                                class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-200 transition-colors">
-                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                Seleccionar Todos
-                            </button>
-                            <button wire:click="deselectAllCreditNoteItems"
-                                class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 transition-colors">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                Deseleccionar Todos
-                            </button>
+                {{-- ── ANULACIÓN: sin selección de ítems ── --}}
+                @if($creditNoteReason === 'VOID_ELECTRONIC_INVOICE')
+                    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-amber-800 dark:text-amber-300">Anulación total de factura</p>
+                                <p class="text-amber-700 dark:text-amber-400 mt-1">Se acreditará el total completo de la factura. No es posible hacer anulación parcial con este tipo.</p>
+                                <p class="mt-2 font-bold text-amber-800 dark:text-amber-200">
+                                    Valor a acreditar: $ {{ number_format($creditNoteTotal, 2, ',', '.') }}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="border border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50 dark:bg-slate-700">
-                                <tr>
-                                    <th class="w-8 px-3 py-2"></th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Código</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Producto</th>
-                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Cantidad</th>
-                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Precio Unit.</th>
-                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">%</th>
-                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Subtotal</th>
-                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Total</th>
-                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Tipo</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
-                                @forelse($creditNoteItems as $index => $item)
-                                <tr class="{{ $item['selected'] ? 'bg-white dark:bg-slate-800' : 'bg-gray-50 dark:bg-slate-800/50 opacity-60' }}">
-                                    <td class="px-3 py-2 text-center">
-                                        <input type="checkbox"
-                                            wire:click="toggleCreditNoteItem({{ $index }})"
-                                            {{ $item['selected'] ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                                    </td>
-                                    <td class="px-3 py-2 text-gray-600 dark:text-slate-400 font-mono text-xs">{{ $item['code'] }}</td>
-                                    <td class="px-3 py-2 text-gray-900 dark:text-white font-medium">{{ $item['name'] }}</td>
-                                    <td class="px-3 py-2 text-center">
-                                        <input type="number"
-                                            wire:model.blur="creditNoteItems.{{ $index }}.quantity"
-                                            min="0.01" max="{{ $item['max_qty'] }}" step="0.01"
-                                            class="w-20 text-center border border-gray-300 dark:border-slate-600 rounded px-2 py-1 text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                    </td>
-                                    <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
-                                        ${{ number_format($item['unit_price'], 0, ',', '.') }}
-                                    </td>
-                                    <td class="px-3 py-2 text-center text-gray-600 dark:text-slate-400">{{ $item['tax'] }}%</td>
-                                    <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
-                                        ${{ number_format($item['subtotal'], 0, ',', '.') }}
-                                    </td>
-                                    <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">
-                                        ${{ number_format($item['total'], 0, ',', '.') }}
-                                    </td>
-                                    <td class="px-3 py-2 text-center">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                            {{ $item['type'] }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="9" class="px-3 py-6 text-center text-sm text-gray-400 dark:text-slate-500">
-                                        No se encontraron ítems para esta factura.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                {{-- ── REBAJA / AJUSTE DE PRECIO: precio unitario editable ── --}}
+                @elseif(in_array($creditNoteReason, ['REDUCTION_DISCOUNT_PARTIAL_TOTAL', 'PRICE_ADJUSTMENT']))
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide text-xs mb-2">Ítems de la Factura</p>
+                        <div class="border border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-slate-700">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Código</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Producto</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Cant.</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Precio Unit. (Nuevo)</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">%</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Subtotal</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                                    @forelse($creditNoteItems as $index => $item)
+                                    <tr class="bg-white dark:bg-slate-800">
+                                        <td class="px-3 py-2 text-gray-600 dark:text-slate-400 font-mono text-xs">{{ $item['code'] }}</td>
+                                        <td class="px-3 py-2 text-gray-900 dark:text-white font-medium">{{ $item['name'] }}</td>
+                                        <td class="px-3 py-2 text-center text-gray-700 dark:text-slate-300">{{ $item['quantity'] }}</td>
+                                        <td class="px-3 py-2 text-right">
+                                            <input type="number"
+                                                wire:model.blur="creditNoteItems.{{ $index }}.unit_price"
+                                                min="0" step="0.01"
+                                                class="w-32 text-right border border-indigo-300 dark:border-indigo-600 rounded px-2 py-1 text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                        </td>
+                                        <td class="px-3 py-2 text-center text-gray-600 dark:text-slate-400">{{ $item['tax'] }}%</td>
+                                        <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
+                                            ${{ number_format($item['subtotal'], 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">
+                                            ${{ number_format($item['total'], 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="px-3 py-6 text-center text-sm text-gray-400 dark:text-slate-500">
+                                            No se encontraron ítems para esta factura.
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="flex justify-end mt-2">
+                            <span class="text-sm text-gray-600 dark:text-slate-400">Total Nota Crédito:
+                                <span class="font-bold text-gray-900 dark:text-white ml-1">$ {{ number_format($creditNoteTotal, 0, ',', '.') }}</span>
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="flex justify-end mt-2">
-                        <span class="text-sm text-gray-600 dark:text-slate-400">Total Seleccionado:
-                            <span class="font-bold text-gray-900 dark:text-white ml-1">$ {{ number_format($creditNoteTotal, 0, ',', '.') }}</span>
-                        </span>
+                {{-- ── DEVOLUCIÓN PARCIAL / OTROS: selección de ítems + cantidad ── --}}
+                @else
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide text-xs">Ítems de la Factura</p>
+                            <div class="flex gap-2">
+                                <button wire:click="selectAllCreditNoteItems"
+                                    class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-200 transition-colors">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                    Seleccionar Todos
+                                </button>
+                                <button wire:click="deselectAllCreditNoteItems"
+                                    class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 transition-colors">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Deseleccionar Todos
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-slate-700">
+                                    <tr>
+                                        <th class="w-8 px-3 py-2"></th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Código</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Producto</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Cantidad</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Precio Unit.</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">%</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Subtotal</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                                    @forelse($creditNoteItems as $index => $item)
+                                    <tr class="{{ $item['selected'] ? 'bg-white dark:bg-slate-800' : 'bg-gray-50 dark:bg-slate-800/50 opacity-60' }}">
+                                        <td class="px-3 py-2 text-center">
+                                            <input type="checkbox"
+                                                wire:click="toggleCreditNoteItem({{ $index }})"
+                                                {{ $item['selected'] ? 'checked' : '' }}
+                                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                                        </td>
+                                        <td class="px-3 py-2 text-gray-600 dark:text-slate-400 font-mono text-xs">{{ $item['code'] }}</td>
+                                        <td class="px-3 py-2 text-gray-900 dark:text-white font-medium">{{ $item['name'] }}</td>
+                                        <td class="px-3 py-2 text-center">
+                                            <input type="number"
+                                                wire:model.blur="creditNoteItems.{{ $index }}.quantity"
+                                                min="0.01" max="{{ $item['max_qty'] }}" step="0.01"
+                                                class="w-20 text-center border border-gray-300 dark:border-slate-600 rounded px-2 py-1 text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                        </td>
+                                        <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
+                                            ${{ number_format($item['unit_price'], 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2 text-center text-gray-600 dark:text-slate-400">{{ $item['tax'] }}%</td>
+                                        <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">
+                                            ${{ number_format($item['subtotal'], 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">
+                                            ${{ number_format($item['total'], 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-400 dark:text-slate-500">
+                                            No se encontraron ítems para esta factura.
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex justify-end mt-2">
+                            <span class="text-sm text-gray-600 dark:text-slate-400">Total Seleccionado:
+                                <span class="font-bold text-gray-900 dark:text-white ml-1">$ {{ number_format($creditNoteTotal, 0, ',', '.') }}</span>
+                            </span>
+                        </div>
                     </div>
-                </div>
+                @endif
 
                 {{-- Valor de la Nota Crédito --}}
                 <div>

@@ -688,7 +688,8 @@ class Quoter extends Component
         ]);
 
         // Cargar cotizaciones con sus relaciones, filtrando por store (warehouseId en vnt_quotes)
-        $quotes = VntQuote::with(['customer', 'warehouse.contacts', 'branch', 'detalles'])
+        // JOIN equivalente: vnt_contacts c ON c.warehouseId = q.customerId
+        $quotes = VntQuote::with(['customer', 'branch', 'detalles'])
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en vnt_quotes = store del contacto)
                 $query->where('warehouseId', $storeId);
@@ -703,15 +704,13 @@ class Quoter extends Component
                     ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
                     ->orWhere('observations', 'like', '%' . $this->search . '%')
                     ->orWhereHas('customer', function ($q) {
-                        $q->where('businessName', 'like', '%' . $this->search . '%')
-                          ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                        $q->where('firstName', 'like', '%' . $this->search . '%')
+                          ->orWhere('secondName', 'like', '%' . $this->search . '%')
                           ->orWhere('lastName', 'like', '%' . $this->search . '%')
-                          ->orWhere('identification', 'like', '%' . $this->search . '%')
-                          ->orWhere('billingEmail', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhereHas('warehouse', function ($q) {
-                        $q->where('name', 'like', '%' . $this->search . '%')
-                          ->orWhere('address', 'like', '%' . $this->search . '%');
+                          ->orWhere('secondLastName', 'like', '%' . $this->search . '%')
+                          ->orWhere('email', 'like', '%' . $this->search . '%')
+                          ->orWhere('business_phone', 'like', '%' . $this->search . '%')
+                          ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
                     });
             })
             ->orderBy('created_at', 'desc')
