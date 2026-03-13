@@ -280,9 +280,9 @@ class ImportRegItem extends Component
     {
         $this->ensureTenantConnection();
 
-        return \App\Models\Tenant\Customer\VntContacts::select('vnt_companies.id', 'vnt_contacts.firstName')
-            ->join('vnt_companies', 'vnt_contacts.email', '=', 'vnt_companies.billingEmail')
-            ->where('vnt_companies.type', 'PROVEEDOR')
+        return \App\Models\Auth\User::select('users.id', 'users.name')
+            ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+            ->where('users.profile_id', 17)
             ->where('vnt_contacts.status', 1)
             ->whereNull('vnt_contacts.deleted_at')
             ->distinct()
@@ -290,7 +290,7 @@ class ImportRegItem extends Component
             ->map(function ($supplier) {
                 return [
                     'id' => $supplier->id,
-                    'firstName' => $supplier->firstName
+                    'firstName' => $supplier->name
                 ];
             })
             ->toArray();

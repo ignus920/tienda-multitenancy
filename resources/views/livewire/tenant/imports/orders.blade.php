@@ -61,7 +61,11 @@
                         <x-heroicon-o-document-text class="w-8 h-8 {{ $filterStatus == $stat->{'id'} ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}" />
                     </div>
                     <div>
-                        <div class="text-gray-500 dark:text-gray-400 font-semibold text-sm">{{ $stat->{'nombre_estado'} }}</div>
+                        @if (Auth::user()?->profile_id == 17)
+                            <div class="text-gray-500 dark:text-gray-400 font-semibold text-sm">{{ $stat->{'translated_name'} }}</div>
+                        @else
+                            <div class="text-gray-500 dark:text-gray-400 font-semibold text-sm">{{ $stat->{'nombre_estado'} }}</div>
+                        @endif
                         <div class="text-xl font-bold text-gray-900 dark:text-white">
                             {{ $stat->{'cantidad'} }}
                         </div>
@@ -79,8 +83,9 @@
             <div class="flex flex-wrap gap-3">
                 @forelse($this->packings as $packing)
                     <div wire:click="togglePacking({{ $packing->id }})"
-                        class="flex flex-col items-center justify-center px-4 py-2 rounded-lg shadow border transition-all cursor-pointer min-w-[110px]"
+                        class="flex flex-col items-center justify-center px-4 py-2 rounded-lg shadow border transition-all cursor-pointer min-w-[110px] hover:shadow-md"
                         :class="{{ in_array($packing->id, $selectedPackingIds) ? 'border-indigo-600 ring-2 ring-indigo-200 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800' }}">
+
                         <div class="font-semibold {{ in_array($packing->id, $selectedPackingIds) ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200' }} text-base mb-1">
                             {{ str_pad($packing->number_packing, 3, '0', STR_PAD_LEFT) }}
                         </div>
@@ -160,7 +165,7 @@
             @endforelse
             <div class="flex items-center gap-3 text-sm font-medium text-gray-600 dark:text-gray-300">
                 <x-heroicon-o-information-circle class="w-6 h-6 flex-shrink-0" />
-                <b class="flex-1">Select one or more packages. The selected ones will be displayed in yellow. and select products with the check mark.</b>
+                <b class="flex-1">Select one or more packages. The selected ones will be displayed in purple. and select products with the check mark.</b>
             </div>
         </div>
     @endif
@@ -190,22 +195,33 @@
                         <div class="flex items-center gap-4">
                             <div class="w-full sm:w-48">
                                 @livewire('selects.generic-select', [
-                                    'selectedValue' => null,
+                                    'selectedValue' => $selectedLabelId,
                                     'items' => $labels,
                                     'name' => 'selectedLabel',
                                     'placeholder' => $selectedLabelName,
                                     'label' => '',
                                     'required' => false,
                                     'showLabel' => false,
-                                    'class' => 'block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+                                    'class' => 'block w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ' . ($selectedLabelId ? 'bg-indigo-50 border-indigo-500 text-indigo-900 dark:bg-indigo-900/30 dark:border-indigo-400 dark:text-indigo-200 ring-1 ring-indigo-500' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'),
                                     'eventName' => 'labelSelected',
                                     'displayField' => 'name',
                                     'valueField' => 'id',
-                                ], key('label-select-' . now()->timestamp))
+                                ], key('label-select-' . ($selectedLabelId ?? 'none') . '-' . now()->timestamp))
                                 @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                             </div>
                             @if ($showButtonShipping)
                                 <button wire:click="openModalShipping({{ $filterPacking }})" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
+                            @endif
+                            @if ($filterStatus == 7)
+                                <select wire:model.live="selectedShipp"
+                                    class="block w-96 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="0">Select shippment</option>
+                                    @forelse ($this->shippments as $sp)
+                                        <option value="{{ $sp->id }}">{{ $sp->way }} - {{ $sp->operation_number }} (#{{ $sp->consecutive }})</option>
+                                    @empty
+                                        <option value=""></option>
+                                    @endforelse
+                                </select>
                             @endif
                         </div>
                     </div>
@@ -274,7 +290,7 @@
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse ($this->orders as $order)
-                            <tr wire:key="order-{{ $order->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : '' }}">
+                            <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : '' }}">
                                 <td class="px-6 py-4">
                                     <input type="checkbox" 
                                         wire:model.live="selectedOrders" 
@@ -295,15 +311,15 @@
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm font-semibold text-indigo-600 dark:text-indigo-400"
                                     x-data="{ qtyOrdered: {{ $order->qty_requested ?? 0 }} }">
-                                    @if ($profileUser == '17')
-                                        {{ $order-> qty_requested ?? 0}}
-                                    @else
+                                    @if ($profileUser != '17' && ($order->status == 1 || $order->status == 2 ||$order->status == 4 || $order->status == 5 || $order->status == 6))
                                         <input type="number"
                                         x-model="qtyOrdered"
                                         @change="$wire.updateQty({{ $order->id }}, qtyOrdered)"
                                         @keydown.enter="$wire.updateQty({{ $order->id }}, qtyOrdered)"
                                         class="block w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                         placeholder="{{ $order->qty_requested ?? 0 }}">
+                                    @else
+                                        {{ $order-> qty_requested ?? 0}}
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -311,7 +327,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
                                     x-data="{ priceQ: {{ $order->price ?? 0 }} }">
-                                    @if ($profileUser == '17' && ($order->status == 2 || $order->status == 4 ||$order->status == 1 || $order->status == 6))
+                                    @if ($profileUser == '17' && ($order->status == 2 || $order->status == 4 ||$order->status == 1 || $order->status == 6 || $order->status == 7))
                                         <input type="number" x-model="priceQ"
                                         @change="$wire.updatePriceQ({{ $order->id }}, priceQ)"
                                         @keydown.enter="$wire.updatePriceQ({{ $order->id }}, priceQ)"
@@ -371,9 +387,9 @@
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                                     <b>Pack: </b>{{ $order->packing_number ?? '' }} <br>
-                                    <b>O.N: </b> <br>
-                                    <b>ETD: </b> <br>
-                                    <b>Via:</b> #- <br>
+                                    <b>O.N: </b> {{ $order->operation_number }}<br>
+                                    <b>ETD: </b> {{ $order->etd}}<br>
+                                    <b>Via:</b> {{ $order->way }}<br>
                                     <b>Rec: </b>
                                 </td>
                             </tr>
@@ -580,7 +596,7 @@
                                 <button wire:click="openModalAcceptNew({{ $import_id }})"
                                     class="inline-flex items-center px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors shadow-sm hover:shadow">
                                     <x-heroicon-o-check-circle class="w-5 h-5 mr-2" />
-                                    Finalizar Importación
+                                    Finalizar
                                 </button>
                             </div>
                         @endif
@@ -1018,31 +1034,51 @@
                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                     
                     <!-- Header -->
-                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            Precio Modificado
-                        </h3>
+                    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center gap-3 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                        <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                            <x-heroicon-o-currency-dollar class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" />
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                Precio Modificado
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                Esta acción quedará registrada en el historial
+                            </p>
+                        </div>
+                        <button type="button" wire:click="cancel" class="ml-auto text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <x-heroicon-o-x-mark class="w-5 h-5" />
+                        </button>
                     </div>
 
                     <form wire:submit.prevent="saveChangePrice" class="p-6 space-y-6">
                         <!-- Campo de comentario -->
-                        <div class="pt-2">
+                        <div class="space-y-2">
                             <label for="comment" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Por favor justifica el cambio de precio:
                             </label>
                             <textarea wire:model="commentJustifyPrice"
                                 rows="3"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm resize-none"
                                 placeholder="Escribe el comentario aquí..."></textarea>
+
+                            @error('commentJustifyPrice') 
+                                <p class="text-sm text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
                         <!-- Footer con botones -->
-                        <div class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+                        <div class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-700/30 flex flex-col sm:flex-row justify-end gap-3 rounded-b-lg">
                             <button type="button" wire:click="cancel"
-                                class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors">
+                                class="w-full sm:w-auto px-5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-all duration-200 hover:shadow focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 order-2 sm:order-1">
                                 Cancelar
                             </button>
                             <button type="submit" wire:loading.attr="disabled"
-                                class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-colors order-1 sm:order-2">
+                                class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent rounded-lg font-medium text-sm text-white transition-all duration-200 hover:shadow-lg focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 order-1 sm:order-2">
                                 Guardar
                             </button>
                         </div>
@@ -1097,7 +1133,7 @@
                                     </div>
                                     <div class="text-right">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">Requested quantity</p>
-                                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ number_format($this->infoPrice['qty_requested']) }}</p>
+                                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ number_format($this->infoPrice['qty_requested']) }} units</p>
                                     </div>
                                 </div>
 

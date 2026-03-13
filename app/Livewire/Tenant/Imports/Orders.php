@@ -16,6 +16,7 @@ use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Tenant\Imports\ImpLabels;
+use App\Models\Tenant\Imports\ImpShippments;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,6 +33,7 @@ class Orders extends Component
     public $selectedPackingIds = [];
     public $selectedLabelId = null;
     public $selectedLabelName = 'Programming';
+    public $selectedShipp = 0;
     public $allLabels = [];
     public $showModalHistory = false;
     public $showModalChangeQuantity = false;
@@ -42,6 +44,7 @@ class Orders extends Component
     public $showButtonShipping = false;
     public $showModalChangeQtyShip = false;
     public $showModalShipping = false;
+    public $refreshCounter = 0;
 
     public $import_id;
     public $oldQty;
@@ -65,13 +68,15 @@ class Orders extends Component
     protected $rules = [
         'commentChangeQuantity' => 'required',
         'commentAccept' => 'required',
-        'commentChangeQtyShip' => 'required'
+        'commentChangeQtyShip' => 'required',
+        'commentJustifyPrice' => 'required'
     ];
 
     protected $messages = [
         'commentChangeQuantity.required' => 'Debe ingresar un comentario',
         'commentAccept.required' => 'Debe ingresar un comentario',
         'commentChangeQtyShip.required' => 'You must enter a comment',
+        'commentJustifyPrice.required' => 'Debes escribir un comentario.',
         'etd.required' => 'Please complete all required fields (*)',
         'operation_number.required' => 'Please complete all required fields (*)',
         'way.required' => 'Please complete all required fields (*)'
@@ -94,15 +99,20 @@ class Orders extends Component
         $estados = DB::connection('tenant')
             ->table('imp_imports as i')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
-            ->select('s.name as nombre_estado', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
-            ->groupBy('s.id', 's.name');
+            ->select('s.name as nombre_estado', 's.translated_name', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
+            ->groupBy('s.id', 's.name', 's.translated_name');
 
         // Segunda consulta: Solo novedades
         $novedades = DB::connection('tenant')
             ->table('imp_imports as i')
-            ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
-            ->select(DB::raw("'Novedades' as nombre_estado"), DB::raw('COUNT(i.id) as cantidad'), DB::raw("10 as id"))
-            ->where('i.news', 1);
+            ->select(
+                DB::raw("'Novedades' as nombre_estado"),
+                DB::raw("'Novedades' as translated_name"),
+                DB::raw('COUNT(i.id) as cantidad'),
+                DB::raw("10 as id")
+            )
+            ->where('i.news', 1)
+            ->groupBy('i.news');
 
         // Unir las consultas y ordenar
         return $estados
@@ -169,13 +179,20 @@ class Orders extends Component
                 'i.qty_shipped',
                 'i.news',
                 'i.price',
-                'pk.number_packing as packing_number'
+                'pk.number_packing as packing_number',
+                's.operation_number',
+                's.etd',
+                DB::raw("CONCAT('#',s.consecutive,' ', s.way) AS way")
             ])
             ->join('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'iis.item_id', '=', 'iv.id')
             ->join('imp_labels as il', 'i.label_id', '=', 'il.id')
             ->join('imp_status as ist', 'i.status', '=', 'ist.id')
             ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
+            ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
+            ->when(Auth::user()->profile_id == 17, function ($query) {
+                return $query->where('iis.supplier_id', Auth::id());
+            })
             ->when($this->filterStatus, function ($query) {
                 return $query->where('i.status', $this->filterStatus);
             })
@@ -187,6 +204,9 @@ class Orders extends Component
             })
             ->when($this->filterPacking, function ($query) {
                 return $query->where('i.packing_id', $this->filterPacking);
+            })
+            ->when($this->selectedShipp > 0, function ($query) {
+                return $query->where('pk.shipping_id', $this->selectedShipp);
             })
             ->paginate($this->perPage);
     }
@@ -252,6 +272,8 @@ class Orders extends Component
                     'user_id' => Auth::id(),
                     'initiator' => 1
                 ]);
+                $import = ImpImports::findOrFail($idImport);
+                $import->update(['news' => 1]);
             }
             $this->dispatch('show-toast', [
                 'type' => 'success',
@@ -279,6 +301,8 @@ class Orders extends Component
         if (empty($value)) return;
 
         $ids = is_array($value) ? $value : [$value];
+        $packing = ImpPacking::find($this->selectedPackingIds[0]);
+        $packingName =  $packing ? $packing->number_packing : 'PACK';
 
         try {
             DB::connection('tenant')->beginTransaction();
@@ -304,7 +328,7 @@ class Orders extends Component
             $this->selectedOrders = [];
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Registros asociados al PACK correctamente'
+                'message' => 'Added to ' . $packingName
             ]);
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
@@ -424,6 +448,7 @@ class Orders extends Component
         $this->showModalConfirmProduction = false;
         $this->showModalChangeQtyShip = false;
         $this->resetForm();
+        $this->refreshCounter++;
     }
 
     // #[Computed]
@@ -524,7 +549,7 @@ class Orders extends Component
 
                 $this->dispatch('show-toast', [
                     'type' => 'success',
-                    'message' => 'Se actualizo el precio'
+                    'message' => 'Price update correctly'
                 ]);
             }
         } catch (\Exception $e) {
@@ -551,7 +576,7 @@ class Orders extends Component
         ]);
         try {
             $import = ImpImports::findOrFail($this->import_id);
-
+            $commentIniatiator = ImpComments::where('import_id', $this->import_id)->where('initiator', 1)->first();
             $dataFinish = [
                 'import_id' => $this->import_id,
                 'comment' => $this->commentAccept,
@@ -559,6 +584,7 @@ class Orders extends Component
                 'initiator' => 0
             ];
 
+            $commentIniatiator->update(['initiator' => 0]);
             ImpComments::create($dataFinish);
 
             $import->update(['news' => 0]);
@@ -662,6 +688,9 @@ class Orders extends Component
     public function saveChangePrice()
     {
         $this->ensureTenantConnection();
+        $this->validate([
+            'commentJustifyPrice' => 'required'
+        ]);
         try {
             $import = ImpImports::findOrFail($this->import_id);
 
@@ -743,6 +772,7 @@ class Orders extends Component
                 'imports_count' => ImpImports::selectRaw('count(*)')
                     ->whereColumn('packing_id', 'imp_packing.id')
                     ->whereNull('deleted_at')
+                    ->whereNull('shipping_id')
             ])
             ->where(function ($query) {
                 $query->whereHas('imports', function ($q) {
@@ -879,14 +909,69 @@ class Orders extends Component
             'way' => 'required'
         ]);
         try {
-            dd([
-                'consecutive' => '?',
+            $lastConsecutive = ImpShippments::where('way', $this->way)->max('consecutive');
+            $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
+            $shippingData = [
+                'consecutive' => $newConsecutive,
                 'etd' => $this->etd,
                 'operation_number' => $this->operation_number,
                 'way' => $this->way,
                 'conveyor' => $this->conveyor,
                 'obs' => $this->observations
+            ];
+
+            // Registro de la información de envio
+            $newShipping = ImpShippments::create($shippingData);
+
+            // Busqueda del packing seleccionado
+            $packing = ImpPacking::findOrFail($this->filterPacking);
+
+            // Modificación del campo shipping_id en la tabla imp_packing 
+            $packing->update(['shipping_id' => $newShipping->id]);
+
+            //Busqueda de las importaciones asociadas al packing seleccionado
+            $imports = ImpImports::where('packing_id', $this->filterPacking);
+
+            // Cambio de estado a "En transito"
+            $imports = ImpImports::where('packing_id', $this->filterPacking)->get();
+
+            foreach ($imports as $import) {
+                $oldStatus = $import->status;
+
+                $import->update(['status' => 7]);
+
+                ImpStatusHistory::create([
+                    'import_id' => $import->id,
+                    'previous_state' => $oldStatus,
+                    'new_state' => 7,
+                    'user_id' => Auth::id()
+                ]);
+            }
+
+            // Crear el NUEVO PACK
+            $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
+            $nextNumber = 1;
+
+            if ($lastPacking) {
+                $lastNumber = (int) filter_var($lastPacking->number_packing, FILTER_SANITIZE_NUMBER_INT);
+                $nextNumber = $lastNumber + 1;
+            }
+
+            $newPackingName = 'PACK' . $nextNumber;
+
+            ImpPacking::create([
+                'number_packing' => $newPackingName
             ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Shipping data assigned successfully. Packing processed: ' . $packing->number_packing . 'Consecutive: ' . $newConsecutive
+            ]);
+            $this->showModalShipping = false;
+            $this->resetForm();
+            $this->resetPage();
         } catch (\Exception $e) {
             Log::error("Error al guardar la información: " . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -894,6 +979,13 @@ class Orders extends Component
                 'message' => 'Shipping information could not be saved'
             ]);
         }
+    }
+
+    #[Computed]
+    public function shippments()
+    {
+        $this->ensureTenantConnection();
+        return ImpShippments::select(['id', DB::raw("CONCAT('ID=',consecutive,' - ', way) AS way")])->get();
     }
 
     public function render()
