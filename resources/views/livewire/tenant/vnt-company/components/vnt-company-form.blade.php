@@ -757,19 +757,19 @@
                                     {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'disabled' : '' }}
                                     class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'opacity-50 cursor-not-allowed' : '' }}">
                                 <label for="createUser" class="text-sm font-medium flex-1 {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300' }}">
-                                    <span class="font-semibold">{{ $editingId ? 'Crear Usuario para este Cliente' : 'Convertir en Usuario' }}</span>
+                                    <span class="font-semibold">{{ $editingId ? 'Crear Usuario para este ' . ucfirst(strtolower($type ?: 'Cliente')) : 'Convertir en Usuario' }}</span>
                                     <p class="text-xs mt-1 {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'text-gray-400 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400' }}">
                                         @if(empty($billingEmail))
                                         Ingrese un email de facturación válido para habilitar esta opción
                                         @elseif($emailExists)
                                         No disponible: el email ya está registrado
                                         @else
-                                        Crear automáticamente un usuario para acceder al sistema con perfil de Proveedor
+                                        Crear automáticamente un usuario para acceder al sistema con perfil de {{ ucfirst(strtolower($type ?: 'Cliente')) }}
                                         @endif
                                     </p>
                                 </label>
                                 <div class="text-xs px-2 py-1 rounded {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300' }}">
-                                    Perfil: Proveedor
+                                    Perfil: {{ ucfirst(strtolower($type ?: 'Cliente')) }}
                                 </div>    
                             </div>
                         </div>

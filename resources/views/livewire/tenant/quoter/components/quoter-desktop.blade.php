@@ -193,11 +193,8 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
                                 @if($quote->customer)
                                     {{ $quote->customer_name }}
-                                    @if($quote->customer->billingEmail)
-                                        <br><small class="text-gray-500">{{ $quote->customer->billingEmail }}</small>
-                                    @endif
-                                    @if($quote->customer->identification)
-                                        <br><small class="text-gray-500">{{ $quote->customer->identification }}</small>
+                                    @if($quote->customer->email)
+                                        <br><small class="text-gray-500">{{ $quote->customer->email }}</small>
                                     @endif
                                 @else
                                     <span class="text-gray-400">Sin cliente asignado</span>
@@ -240,18 +237,10 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                @if($quote->warehouse && $quote->warehouse->contacts && $quote->warehouse->contacts->isNotEmpty())
-                                    @foreach($quote->warehouse->contacts->take(2) as $contact)
-                                        @if($contact->business_phone)
-                                            {{ $contact->business_phone }}
-                                            @if(!$loop->last)<br>@endif
-                                        @elseif($contact->personal_phone)
-                                            {{ $contact->personal_phone }}
-                                            @if(!$loop->last)<br>@endif
-                                        @endif
-                                    @endforeach
+                                @if($quote->customer && $quote->customer->primary_phone)
+                                    {{ $quote->customer->primary_phone }}
                                 @else
-                                    <span class="text-gray-400">Sin contacto</span>
+                                    <span class="text-gray-400">Sin teléfono</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
@@ -441,16 +430,12 @@
                                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer_name }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500 dark:text-slate-400">Identificación:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer->identification ?? 'N/A' }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500 dark:text-slate-400">Tipo persona:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">Natural</span>
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Teléfono:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer->primary_phone ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Email:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer->billingEmail ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $this->selectedQuote->customer->email ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>

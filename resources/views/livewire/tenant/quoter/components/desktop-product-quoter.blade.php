@@ -7,14 +7,35 @@ $header = 'Seleccionar productos';
     <div class="flex">
         <!-- Área principal de productos -->
         <div class="flex-1 p-6">
-            <!-- Botón de regresar -->
-            <div class="mb-6">
+            <!-- Cabecera con Botón de regresar y Switch de Modo Copia -->
+            <div class="flex flex-wrap items-center gap-4 mb-6">
                 <a href="{{ route('tenant.quoter') }}" class="inline-flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 font-medium" wire:navigate.hover>
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
                     Regresar cotizaciones
                 </a>
+
+                <!-- Switch Premium de Modo Copia -->
+                <div class="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:shadow-md">
+                    <div class="flex flex-col leading-none">
+                        <span class="text-[10px] uppercase font-bold tracking-wider {{ $isCopyMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">
+                            {{ $isCopyMode ? 'Modo Copia' : 'Modo Cotización' }}
+                        </span>
+                        <span class="text-[8px] text-gray-500 dark:text-gray-400">
+                            {{ $isCopyMode ? 'Click para cotizar' : 'Click para copiar' }}
+                        </span>
+                    </div>
+                    
+                    <button 
+                        type="button"
+                        wire:click="toggleCopyMode"
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $isCopyMode ? 'bg-emerald-500' : 'bg-red-500' }}">
+                        <span 
+                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isCopyMode ? 'translate-x-5' : 'translate-x-0' }}">
+                        </span>
+                    </button>
+                </div>
             </div>
 
             <!-- Barra de búsqueda y filtros -->
@@ -38,8 +59,8 @@ $header = 'Seleccionar productos';
                             <div x-data="{ open: false }" class="relative inline-block text-left">
                                 <button @click="open = !open"
                                     type="button"
-                                    class="flex items-center gap-1.5 px-3 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap shadow-sm active:scale-95 {{ $isCopyMode ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20' }}">
-                                    <span>{{ $isCopyMode ? 'Modo Copia' : 'Opciones' }}</span>
+                                    class="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap shadow-sm active:scale-95 shadow-indigo-500/20">
+                                    <span>Opciones</span>
                                     <svg class="w-4 h-4 ml-0.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                     </svg>
@@ -69,22 +90,22 @@ $header = 'Seleccionar productos';
                                             <span class="text-[10px] text-gray-500 dark:text-gray-400">Crear item sin catálogo</span>
                                         </div>
                                     </button>
-
-                                     <!-- Modo copia -->
-                                    <button wire:click="toggleCopyMode" @click="open = false"
-                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group">
-                                        <div class="p-1.5 {{ $isCopyMode ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600' }} rounded-lg group-hover:bg-opacity-100 group-hover:text-white transition-colors">
+                                    <!-- Calcular Potencia -->
+                                    <button @click="open = false; $dispatch('openPowerCalculator')"
+                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group">
+                                        <div class="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                             </svg>
                                         </div>
                                         <div class="flex flex-col items-start leading-tight">
-                                            <span class="font-semibold">{{ $isCopyMode ? 'Desactivar Modo Copia' : 'Modo Copia' }}</span>
-                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Copiar datos al portapapeles</span>
+                                            <span class="font-semibold">Calcular Potencia</span>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Cálculo de amperaje y watts</span>
                                         </div>
                                     </button>
 
                                     <!-- Otras opciones futuras pueden ir aquí -->
+
                                 </div>
                             </div>
                         </div>

@@ -44,3 +44,4 @@ Route::prefix('/inventory')->group(function () {
 Route::prefix('/inventory')->group(function () {
     Route::get('/warehouses', [WarehousesController::class, 'homeWarehouses'])->name('warehouses');
 });
+

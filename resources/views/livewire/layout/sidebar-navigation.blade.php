@@ -566,13 +566,13 @@ new class extends Component
                 x-transition:leave="transition ease-in duration-150"
                 x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
                 class="ml-3">
-                Orders
+                Órdenes
             </span>
 
             <!-- Tooltip -->
             <div x-show="tooltip" x-transition
                 class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                Orders
+                Órdenes
             </div>
         </a>    
         @endif

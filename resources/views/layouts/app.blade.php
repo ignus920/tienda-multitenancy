@@ -121,6 +121,10 @@
         @livewire('tenant.components.product-image-modal')
         <!-- Modal Global de Observaciones de Producto -->
        @livewire('tenant.items.item-observation')
+       <!-- Modal Global de Cálculo de Costo -->
+       @livewire('tenant.components.import-cost-calculator')
+       <!-- Modal Global de Cálculo de Potencia -->
+       @livewire('tenant.components.product-bundle-power-calculator')
 
      
 
@@ -173,6 +177,19 @@
                         title: data.message,
                         background: '#1f2937', // Gray-800
                         color: '#f9fafb', // Gray-50
+                    });
+                });
+
+                // Alertas generales de Swal
+                Livewire.on('swal', (event) => {
+                    const data = Array.isArray(event) ? event[0] : event;
+                    Swal.fire({
+                        icon: data.icon || 'info',
+                        title: data.title || '',
+                        text: data.text || '',
+                        confirmButtonColor: '#4f46e5',
+                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                        color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
                     });
                 });
             });

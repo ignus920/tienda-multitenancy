@@ -6,14 +6,37 @@
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Almacenes</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Administración de sucursales y bodegas</p>
+                    @if($warehouseLimit !== null)
+                        <div class="mt-2 flex items-center gap-2">
+                            <span class="text-sm {{ $limitReached ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400' }}">
+                                Sucursales: {{ $warehouseCount }} / {{ $warehouseLimit }}
+                            </span>
+                            @if($limitReached)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                    Límite alcanzado
+                                </span>
+                            @endif
+                        </div>
+                    @endif
                 </div>
-                <button wire:click="create" 
-                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Crear Sucursal
-                </button>
+                <div class="flex flex-col items-end gap-1">
+                    <button wire:click="create"
+                        @if($limitReached) disabled title="Ha alcanzado el límite de {{ $warehouseLimit }} sucursal(es) de su plan" @endif
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150
+                            {{ $limitReached
+                                ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-60'
+                                : 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600' }}">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Crear Sucursal
+                    </button>
+                    @if($limitReached)
+                        <p class="text-xs text-red-500 dark:text-red-400">
+                            Límite de {{ $warehouseLimit }} sucursal(es) alcanzado según su plan.
+                        </p>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -377,6 +400,12 @@
                     </div>
 
                     <!-- Bodegas -->
+                    @php
+                        $currentStoreCount = $warehouse_id
+                            ? count($existingStores) + count($additionalStores)
+                            : 1 + count($additionalStores);
+                        $storeLimitReached = isset($storeLimit) && $storeLimit !== null && $currentStoreCount >= $storeLimit;
+                    @endphp
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
@@ -388,14 +417,32 @@
                                         Se creará automáticamente una bodega "PRINCIPAL". Puedes agregar más bodegas.
                                     @endif
                                 </p>
+                                @if(isset($storeLimit) && $storeLimit !== null)
+                                    <div class="mt-1 flex items-center gap-2">
+                                        <span class="text-xs {{ $storeLimitReached ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500' }}">
+                                            Bodegas: {{ $currentStoreCount }} / {{ $storeLimit }}
+                                        </span>
+                                        @if($storeLimitReached)
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                                Límite alcanzado
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
-                            <button type="button" wire:click="toggleAddStoreInput"
-                                class="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-medium rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                Agregar Bodega
-                            </button>
+                            <div class="flex flex-col items-end gap-1">
+                                <button type="button" wire:click="toggleAddStoreInput"
+                                    @if($storeLimitReached) disabled title="Límite de {{ $storeLimit }} bodega(s) alcanzado" @endif
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
+                                        {{ $storeLimitReached
+                                            ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60'
+                                            : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50' }}">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Agregar Bodega
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Lista de bodegas -->
@@ -483,6 +530,16 @@
                                 </button>
                             </div>
                             @endforeach
+
+                            <!-- Error de límite de bodegas (dentro del modal) -->
+                            @if($storeError)
+                            <div class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                {{ $storeError }}
+                            </div>
+                            @endif
 
                             <!-- Input para agregar nueva bodega -->
                             @if($showAddStoreInput)
