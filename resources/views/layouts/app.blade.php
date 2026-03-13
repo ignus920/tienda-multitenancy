@@ -121,6 +121,8 @@
         @livewire('tenant.components.product-image-modal')
         <!-- Modal Global de Observaciones de Producto -->
        @livewire('tenant.items.item-observation')
+       <!-- Modal Global de Cálculo de Costo -->
+       @livewire('tenant.components.import-cost-calculator')
 
      
 
