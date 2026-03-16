@@ -463,7 +463,7 @@
                                                     <input type="number" wire:model.live.debounce.150ms="cuts.{{ $index }}" 
                                                            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm p-3 focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none transition-all shadow-inner"
                                                            placeholder="0">
-                                                    <button wire:click="removeCut({{ $index }})" class="absolute top-1/2 -right-1 -translate-y-1/2 p-1.5 bg-red-100 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white">
+                                                    <button wire:click="removeCut({{ $index }})" class="absolute -top-2 -right-2 p-1.5 bg-red-100 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm border border-white dark:border-gray-700 z-10" title="Eliminar corte">
                                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                                     </button>
                                                 </div>
@@ -481,9 +481,7 @@
                                             
                                             <button wire:click="save" 
                                                     wire:loading.attr="disabled"
-                                                    x-bind:disabled="! (accumulated > 0 && (remissionId || (justification && justification.trim().length > 0)))"
-                                                    x-bind:class="!(accumulated > 0 && (remissionId || (justification && justification.trim().length > 0))) ? 'bg-gray-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
-                                                    class="px-8 py-2.5 text-white rounded-xl text-xs font-black uppercase shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+                                                    class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
                                                 <span wire:loading.remove>Guardar Plan de Corte</span>
                                                 <span wire:loading class="flex items-center gap-2">
                                                     <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>

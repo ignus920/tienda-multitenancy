@@ -376,17 +376,41 @@ class ItemImageUpload extends Component
             $image = ImageGallery::find($imageId);
 
             if (!$image || $image->itemId != $this->itemId) {
-                session()->flash('image-error', 'Imagen no encontrada.');
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Imagen no encontrada.']);
                 return;
             }
 
             // Soft delete
             $image->softDelete();
 
-            session()->flash('image-message', 'Imagen eliminada exitosamente.');
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Imagen eliminada']);
         } catch (\Exception $e) {
             \Log::error('Error eliminando imagen: ' . $e->getMessage());
-            session()->flash('image-error', 'Error al eliminar la imagen.');
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al eliminar la imagen.']);
+        }
+    }
+
+    /**
+     * Eliminar PDF (soft delete)
+     */
+    public function deletePdf($pdfId)
+    {
+        $this->ensureTenantConnection();
+        try {
+            $pdf = ImageGallery::find($pdfId);
+
+            if (!$pdf || $pdf->itemId != $this->itemId) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Archivo no encontrado.']);
+                return;
+            }
+
+            // Soft delete
+            $pdf->softDelete();
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Archivo eliminado']);
+        } catch (\Exception $e) {
+            \Log::error('Error eliminando PDF: ' . $e->getMessage());
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al eliminar el archivo.']);
         }
     }
 

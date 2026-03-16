@@ -136,7 +136,6 @@
                         @if($principalImageData)
                             <button type="button"
                                     wire:click="deleteImage({{ $principalImageData->id }})"
-                                    wire:confirm="¿Estás seguro de que quieres eliminar la imagen principal?"
                                     class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition-colors">
                                 Eliminar imagen principal
                             </button>
@@ -201,8 +200,7 @@
 
                             <!-- Botón de eliminar siempre visible en esquina superior derecha -->
                             <button type="button"
-                                wire:click="deleteImage({{ $image->id }})"
-                                wire:confirm="¿Eliminar esta imagen?"
+                                @click="$wire.deleteImage({{ $image->id }})"
                                 title="Eliminar imagen"
                                 class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow transition-all z-10 border-2 border-white dark:border-gray-800">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,8 +236,7 @@
             
                             <!-- Botón de eliminar para PDF (mismo estilo que imágenes) -->
                             <button type="button"
-                                wire:click="deletePdf({{ $pdf->id }})"
-                                wire:confirm="¿Eliminar este PDF?"
+                                @click="$wire.deletePdf({{ $pdf->id }})"
                                 title="Eliminar PDF"
                                 class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow transition-all z-10 border-2 border-white dark:border-gray-800">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -188,15 +188,24 @@ class InvItemsCutDetails extends Component
                 'profileLength' => 'required',
                 'cuts' => 'required|array|min:1',
                 'justification' => $this->remissionId ? 'nullable' : 'required',
+            ], [
+                'selectedItemId.required' => 'Debe seleccionar un producto.',
+                'customerId.required' => 'Debe seleccionar un cliente.',
+                'justification.required' => 'Debe proporcionar una justificación o seleccionar una remisión.',
+                'cuts.required' => 'Debe configurar al menos un segmento de corte.'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->all();
+            $errorMessage = implode(' ', $errors);
+            
             \Log::error('Error de Validación al guardar Plan de Corte', [
                 'errors' => $e->validator->errors()->toArray()
             ]);
             
             $this->dispatch('swal', [
                 'icon' => 'error',
-                'text' => 'Por favor complete la justificación o seleccione una remisión.'
+                'title' => 'Datos incompletos',
+                'text' => $errorMessage
             ]);
             return;
         }
