@@ -85,7 +85,7 @@ class InvItemsCutDetails extends Component
         $this->isNew = false;
     }
 
-    public function createNew()
+    public function openCreate()
     {
         $this->isNew = true;
         $this->resetForm();
