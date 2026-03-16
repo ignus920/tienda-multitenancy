@@ -4,7 +4,11 @@
     show: @entangle('isOpen').live,
     quill: null,
     initQuill() {
-        if (this.quill || !this.$refs.editor) return;
+        if (!this.$refs.editor) return;
+        
+        // Si ya hay una instancia, la destruimos para evitar duplicados o referencias muertas
+        this.quill = null;
+        
         this.quill = new Quill(this.$refs.editor, {
             theme: 'snow',
             placeholder: 'Escribe aquí los detalles de tu solicitud...',
@@ -17,13 +21,24 @@
                 ]
             }
         });
+
+        // Establecer contenido inicial desde Livewire
+        const initialContent = $wire.get('detail') || '';
+        this.quill.root.innerHTML = initialContent;
+
         this.quill.on('text-change', () => {
             $wire.set('detail', this.quill.root.innerHTML);
         });
     }
 }"
 x-show="show"
-x-init="$watch('show', value => { if(value) { setTimeout(() => initQuill(), 100); } })"
+x-init="$watch('show', value => { 
+    if(value) { 
+        setTimeout(() => initQuill(), 100); 
+    } else {
+        if(quill) quill = null;
+    }
+})"
 x-cloak
 style="display:none;"
 class="fixed inset-0 z-[9999] flex items-center justify-center p-4">

@@ -291,14 +291,18 @@ class ImageGallery extends Model
             return $url;
         }
 
-        // Remover duplicaciones de protocolo
+        // Remover duplicaciones de protocolo (http:https://, etc)
         $url = preg_replace('/^https?:https?:\/\//', 'https://', $url);
         $url = preg_replace('/^https?:http:\/\//', 'https://', $url);
         $url = preg_replace('/^http:https:\/\//', 'https://', $url);
 
-        // Asegurar que use https en producción
-        if (str_contains($url, 'erp.dosil.com.co')) {
-            $url = str_replace('http:', 'https:', $url);
+        // Asegurar que use https en dominios conocidos de producción
+        $productionDomains = ['erp.dosil.com.co', 'cloud.ticsia.com'];
+        foreach ($productionDomains as $domain) {
+            if (str_contains($url, $domain)) {
+                $url = str_replace('http:', 'https:', $url);
+                break;
+            }
         }
 
         return $url;
