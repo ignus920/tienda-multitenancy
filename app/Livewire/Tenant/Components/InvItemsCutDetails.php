@@ -328,16 +328,10 @@ class InvItemsCutDetails extends Component
             ->limit(20)
             ->get();
             
-        // Preseleccionar el grupo más reciente si no hay ninguno seleccionado y hay grupos disponibles
-        if ($this->selectedCutGroupId === null && $cutGroups->isNotEmpty()) {
-            $this->selectedCutGroupId = $cutGroups->first()->cut_id;
-        }
 
         $cutDetails = CutDetail::on('tenant')
             ->with(['item', 'customer'])
-            ->when($this->selectedCutGroupId, function($query) {
-                $query->where('cut_id', $this->selectedCutGroupId);
-            })
+            ->where('cut_id', $this->selectedCutGroupId) // Forzamos que coincida con el ID seleccionado (será vacío si no hay selección)
             ->where(function($query) {
                 $query->whereHas('item', function($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')

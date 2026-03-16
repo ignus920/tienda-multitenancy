@@ -62,11 +62,24 @@
                             Detalles de Corte de Ítems
                         </h3>
                     </div>
-                    <button @click="show = false" class="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+                    
+                    <div class="flex items-center gap-4">
+                        <!-- Bloque de Conversión Permanente -->
+                        <div class="hidden sm:flex items-center gap-4 text-[10px] font-black text-indigo-100 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner">
+                            <div class="flex items-center gap-1.5">
+                                <span class="opacity-60 uppercase">Manual:</span>
+                                <span>1000mm = 100cm</span>
+                                <div class="w-1 h-1 bg-indigo-400 rounded-full mx-1"></div>
+                                <span>3050mm = 305cm</span>
+                            </div>
+                        </div>
+
+                        <button @click="show = false" class="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Content Area -->
@@ -84,11 +97,16 @@
                                     </h4>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <button class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-bold transition-colors flex items-center gap-1 shadow-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                        Imprimir
-                                    </button>
-                                    <button wire:click="createNew" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold transition-colors flex items-center gap-2 shadow-sm">
+                            @if($selectedCutGroupId)
+                                <button onclick="window.open('{{ route('tenant.components.inv-items-cut-details.print', ['cutId' => $selectedCutGroupId]) }}', '_blank')" class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all shadow-md group">
+                                    <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                    </svg>
+                                    <span class="font-bold uppercase text-xs">Imprimir</span>
+                                </button>
+                            @endif
+
+                            <button wire:click="openCreate" class="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all shadow-md group">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                         Nuevo Registro
                                     </button>
@@ -182,7 +200,7 @@
                                                 <div class="flex flex-wrap items-center gap-2 max-w-full">
                                                     @foreach(explode(', ', $detail->plan_centimeters) as $cm)
                                                         @if(trim($cm) !== '')
-                                                            <div class="px-4 py-1.5 border border-[#ef4444] rounded-full text-sm font-medium text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow-sm min-w-[3rem] text-center">
+                                                            <div class="px-4 py-1.5 border border-gray-800 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow-sm min-w-[3rem] text-center">
                                                                 {{ trim($cm) }}
                                                             </div>
                                                         @endif
@@ -200,7 +218,7 @@
                                                 <div class="flex flex-wrap items-center gap-2 max-w-full">
                                                     @foreach(explode(', ', $detail->plan_millimeters) as $mm)
                                                         @if(trim($mm) !== '')
-                                                            <div class="px-4 py-1.5 border border-[#ef4444] rounded-full text-sm font-medium text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow-sm min-w-[3rem] text-center">
+                                                            <div class="px-4 py-1.5 border border-gray-800 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow-sm min-w-[3rem] text-center">
                                                                 {{ trim($mm) }}
                                                             </div>
                                                         @endif
@@ -235,11 +253,6 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                                 Volver al listado
                             </button>
-                            <div class="flex items-center gap-4 text-xs font-bold text-gray-500 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
-                                <span>1000mm = 100cm</span>
-                                <div class="w-[1px] h-3 bg-gray-300"></div>
-                                <span>3050mm = 305cm</span>
-                            </div>
                         </div>
 
                         <div class="grid grid-cols-12 gap-6">
