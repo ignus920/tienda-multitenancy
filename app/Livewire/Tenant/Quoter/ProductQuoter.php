@@ -83,6 +83,8 @@ class ProductQuoter extends Component
     // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
     public $customerResults = []; // Resultados de búsqueda de clientes
+    public $branches = []; // Sucursales de la empresa seleccionada
+    public $selectedBranchId = null; // ID de la sucursal seleccionada
 
     // Propiedades para retenciones
     public $retentions = [
@@ -716,11 +718,11 @@ class ProductQuoter extends Component
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
-                'customerId' => $contact->warehouseId, // warehouseId del contacto en vnt_contacts
-                'warehouseId' => session('warehouse_id', $userStoreId),
+                'customerId' => $this->selectedBranchId ?: $contact->warehouseId, // warehouseId del contacto en vnt_contacts
+                'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
-                'branchId' => session('branch_id', $userStoreId) // Usar userStoreId como fallback
+                'branchId' => $this->selectedBranchId ?: $contact->warehouseId // Sucursal seleccionada del cliente
             ]);
 
             // Crear los detalles de la cotización
@@ -868,7 +870,10 @@ class ProductQuoter extends Component
         $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
             ->whereNot('type', 'PROVEEDOR') // Excluir proveedores
             ->where(function ($query) use ($value) {
+                // Limpiar el valor de búsqueda para ser más flexible con NITs
+                $cleanValue = preg_replace('/[^0-9a-zA-Z]/', '', $value);
                 $query->where('identification', 'like', '%' . $value . '%')
+                    ->orWhere('identification', 'like', '%' . $cleanValue . '%')
                     ->orWhere('businessName', 'like', '%' . $value . '%')
                     ->orWhere('firstName', 'like', '%' . $value . '%')
                     ->orWhere('lastName', 'like', '%' . $value . '%');
@@ -881,25 +886,61 @@ class ProductQuoter extends Component
     public function selectCustomer($customerId)
     {
         $this->ensureTenantConnection();
-        $customer = VntCompany::find($customerId);
+        $customer = VntCompany::with(['warehouses' => function($q) {
+            $q->where('status', 1)->with('city');
+        }])->find($customerId);
 
         if ($customer) {
             $this->selectedCustomer = $customer->toArray();
+            $this->branches = $customer->warehouses->toArray();
             $this->customerResults = [];
-            $this->customerSearch = ''; // Opcional: limpiar búsqueda al seleccionar
+            $this->customerSearch = '';
             $this->showCreateCustomerButton = false;
+
+            if (count($this->branches) > 1) {
+                // Si tiene más de una sucursal, el usuario debe elegir una
+                $this->selectedBranchId = null;
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'El cliente tiene varias sedes. Por favor selecciona una.'
+                ]);
+            } elseif (count($this->branches) === 1) {
+                // Si tiene solo una, seleccionarla automáticamente
+                $this->selectBranch($this->branches[0]['id']);
+            } else {
+                // Si no tiene sucursales (no debería pasar), finalizar selección
+                $this->finalizeCustomerSelection();
+            }
 
             // Marcar que hay cambios si estamos editando
             if ($this->isEditing) {
                 $this->hasChanges = true;
             }
-
-            $name = $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName);
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Cliente seleccionado: ' . $name
-            ]);
         }
+    }
+
+    public function selectBranch($branchId)
+    {
+        $this->selectedBranchId = $branchId;
+        $branch = collect($this->branches)->firstWhere('id', $branchId);
+
+        if ($branch) {
+            $this->finalizeCustomerSelection($branch);
+        }
+    }
+
+    private function finalizeCustomerSelection($branch = null)
+    {
+        $name = $this->selectedCustomer['businessName'] ?: ($this->selectedCustomer['firstName'] . ' ' . $this->selectedCustomer['lastName']);
+        $branchName = $branch ? " ({$branch['name']})" : "";
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Cliente seleccionado: ' . $name . $branchName
+        ]);
+
+        // Si la sucursal tiene una lista de precios específica, podríamos aplicarla aquí
+        // Por ahora mantenemos la lógica base de precios del componente
     }
 
     // Mantener searchCustomer por compatibilidad o si se presiona Enter, pero adaptado
@@ -930,6 +971,8 @@ class ProductQuoter extends Component
     public function clearCustomer()
     {
         $this->selectedCustomer = null;
+        $this->branches = [];
+        $this->selectedBranchId = null;
         $this->customerSearch = '';
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
@@ -1474,11 +1517,11 @@ class ProductQuoter extends Component
 
             // Actualizar la cotización
             $updateData = [
-                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO (Referencia a vnt_contacts)
+                'customerId' => $this->selectedBranchId ?: $contact->warehouseId, // USAR EL warehouseId DEL CONTACTO para mantener consistencia con saveQuote
                 'observations' => $this->observaciones,
-                'warehouseId' => session('warehouse_id', $userStoreId),
+                'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
-                'branchId' => session('branch_id', $userStoreId)
+                'branchId' => $this->selectedBranchId ?: $contact->warehouseId // Sucursal seleccionada del cliente
             ];
 
             Log::info('💾 Datos que se van a actualizar en vnt_quotes', [

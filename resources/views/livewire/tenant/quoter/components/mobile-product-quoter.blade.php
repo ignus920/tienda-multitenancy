@@ -656,6 +656,43 @@ $header = 'Seleccionar productos';
                                 </button>
                             </div>
                         </div>
+
+                         <!-- Selector de Sucursales (si aplica) -->
+                         @if(!empty($branches) && count($branches) > 1)
+                         <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
+                             <label class="block text-[10px] font-bold text-green-700 dark:text-green-300 uppercase mb-1">
+                                 Sede / Agencia de Venta
+                             </label>
+                             <select 
+                                 wire:model.live="selectedBranchId"
+                                 wire:change="selectBranch($event.target.value)"
+                                 class="block w-full text-sm py-2.5 border-green-300 dark:border-green-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                             >
+                                 <option value="">-- Seleccione sede --</option>
+                                 @foreach($branches as $branch)
+                                     <option value="{{ $branch['id'] }}">
+                                         {{ $branch['name'] }}
+                                     </option>
+                                 @endforeach
+                             </select>
+                             
+                             @if($selectedBranchId)
+                             <div class="mt-2 text-[10px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1.5 justify-center bg-white/50 dark:bg-white/5 py-1 rounded-md">
+                                 <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                 </svg>
+                                 <span>Agencia vinculada a la venta</span>
+                             </div>
+                             @else
+                             <div class="mt-2 text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5 justify-center animate-bounce">
+                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                 </svg>
+                                 <span>Por favor elija la sede</span>
+                             </div>
+                             @endif
+                         </div>
+                         @endif
                     </div>
                     @endif
 
