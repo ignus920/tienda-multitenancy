@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('imp_imports', function (Blueprint $table) {
-            $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
-            $table->timestamps();
+        Schema::table('inv_purchase_request_details', function (Blueprint $table) {
+            $table->foreign('itemId')->references('id')->on('inv_items');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('imp_imports');
+        Schema::table('inv_purchase_request_details', function (Blueprint $table) {
+            //
+        });
     }
 };
