@@ -91,7 +91,7 @@ new #[Layout('layouts.guest')] class extends Component
                 //Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
                 
                 // Redirigir a tenant.select (el modal se abrirá automáticamente)
-                $this->redirect(route('imports-orders'), navigate: true);
+                $this->redirect(route('imports.imports-orders'), navigate: true);
                 return;
             }
 

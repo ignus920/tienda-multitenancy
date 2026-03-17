@@ -173,7 +173,10 @@ require __DIR__ . '/tenants/tickets.php';
 require __DIR__ . '/tenants/ItemObservation.php';
 // Incluir rutas del calculador de costos de importación
 require __DIR__ . '/tenants/import-cost-calculator.php';
+// Incluir rutas del calculador de potencia 
 require __DIR__ . '/tenants/product-bundle-power-calculator.php';
+// Incluir rutas del detalle de corte de items
+require __DIR__ . '/tenants/inv-items-cut-details.php';
 
 
 

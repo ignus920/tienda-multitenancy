@@ -104,7 +104,23 @@ $header = 'Seleccionar productos';
                                         </div>
                                     </button>
 
+                                    <!-- Detalles de Corte -->
+                                    <button @click="open = false; $dispatch('openCutDetails')"
+                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group border-t border-gray-100 dark:border-gray-700/50">
+                                        <div class="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758l5.758-5.758"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col items-start leading-tight">
+                                            <span class="font-semibold">Detalles de Corte</span>
+                                            <span class="text-[10px] text-gray-500 dark:text-gray-400">Planificación de cortes de ítems</span>
+                                        </div>
+                                    </button>
+
                                     <!-- Otras opciones futuras pueden ir aquí -->
+
+                                    
 
                                 </div>
                             </div>
@@ -767,6 +783,43 @@ $header = 'Seleccionar productos';
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Selector de Sucursales (si aplica) -->
+                        @if(!empty($branches) && count($branches) > 1)
+                        <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
+                            <label class="block text-[10px] font-bold text-green-700 dark:text-green-300 uppercase mb-1">
+                                Seleccionar Agencia/Sucursal
+                            </label>
+                            <select 
+                                wire:model.live="selectedBranchId"
+                                wire:change="selectBranch($event.target.value)"
+                                class="block w-full text-xs border-green-300 dark:border-green-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                            >
+                                <option value="">-- Seleccione una sucursal --</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch['id'] }}">
+                                        {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            
+                            @if($selectedBranchId)
+                            <div class="mt-2 flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400 font-medium bg-green-100/50 dark:bg-green-900/30 p-1.5 rounded-md">
+                                <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span>Sucursal lista para facturar</span>
+                            </div>
+                            @else
+                            <div class="mt-2 flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold animate-pulse">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <span>Debe seleccionar una sucursal</span>
+                            </div>
+                            @endif
+                        </div>
+                        @endif
                     </div>
                     @endif
 
