@@ -437,21 +437,35 @@ class UserRapForm extends Component
                 'status' => 'active'
             ];
 
-            // PASO 3: Validar datos con API (puede crear temporalmente para validar)
-            $apiValidationResult = $this->validateApiData($tempApiData);
-            if (!$apiValidationResult['success']) {
-                // Cerrar modal y mostrar error con session flash para mayor visibilidad
-                $this->closeModal();
-                session()->flash('sync_error', $apiValidationResult['message']);
-                return;
-            }
-
-            // Verificar si la validación ya creó un registro temporal en la API
-            $tempApiId = $apiValidationResult['temp_api_id'] ?? null;
+            // Variable para controlar si procedemos con la sincronización API
+            $shouldSync = $preValidationResult['sync_required'] ?? false;
 
             $user = null;
+            $tempApiId = null;
 
-            // PASO 4: Guardar en base de datos local solo si API validó correctamente
+            if ($shouldSync) {
+                // PASO 2: Preparar datos de API ANTES de crear usuario para validar duplicados
+                $tempApiData = [
+                    'name' => $this->concatenateFullName(),
+                    'identification' => $this->phone, // Usar teléfono como identificación
+                    'observations' => 'vendedor',
+                    'status' => 'active'
+                ];
+
+                // PASO 3: Validar datos con API (puede crear temporalmente para validar)
+                $apiValidationResult = $this->validateApiData($tempApiData);
+                if (!$apiValidationResult['success']) {
+                    // Si la validación de API falla y la sincronización es requerida, bloquear
+                    $this->closeModal();
+                    session()->flash('sync_error', $apiValidationResult['message']);
+                    return;
+                }
+
+                // Verificar si la validación ya creó un registro temporal en la API
+                $tempApiId = $apiValidationResult['temp_api_id'] ?? null;
+            }
+
+            // PASO 4: Guardar en base de datos local
             if ($this->editingId) {
                 // Update mode
                 $user = User::findOrFail($this->editingId);
@@ -461,8 +475,8 @@ class UserRapForm extends Component
                 $user = $this->createUserWithContact();
             }
 
-            // PASO 5: Finalizar sincronización con API
-            if ($user) {
+            // PASO 5: Finalizar sincronización con API (SI ES REQUERIDA)
+            if ($user && $shouldSync) {
                 try {
                     set_time_limit(45); // Aumentar a 45 segundos para sincronización API
 
@@ -488,7 +502,7 @@ class UserRapForm extends Component
                     if ($syncResult['success']) {
                         session()->flash('sync_message', '✅ Vendedor Sincronizado: El usuario ha sido creado/actualizado exitosamente y sincronizado con la API de facturación electrónica.');
                     } else {
-                        // Si falla sincronización después de validar, eliminar usuario creado
+                        // Si falla sincronización después de validar, eliminar usuario creado (solo en creación)
                         if (!$this->editingId) {
                             $user->delete();
                         }
@@ -511,6 +525,9 @@ class UserRapForm extends Component
                     session()->flash('sync_error', '❌ Error de Conexión API: Falló la comunicación con la API de facturación. Error: ' . $e->getMessage());
                     return;
                 }
+            } elseif ($user && !$shouldSync) {
+                // Si no se requería sincronización, solo mostrar mensaje de éxito local
+                session()->flash('sync_message', '✅ Usuario guardado exitosamente. La sincronización con la API de facturación electrónica está deshabilitada.');
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1219,9 +1236,12 @@ class UserRapForm extends Component
             // Verificar si facturación electrónica está habilitada
             $isElectronicEnabled = $this->isElectronicInvoicingEnabled($this->currentCompanyId);
             if (!$isElectronicEnabled) {
+                // SI ESTÁ DESHABILITADA, CONTINUAMOS PERO INDICAMOS QUE NO SE REQUIERE SYNC
+                Log::info('ℹ️ Sincronización API omitida: Facturación electrónica desactivada.');
                 return [
-                    'success' => false,
-                    'message' => '⚠️ Facturación Electrónica Deshabilitada: Para sincronizar vendedores con la API de facturación, debe activar el módulo de facturación electrónica en la configuración de la empresa.'
+                    'success' => true,
+                    'sync_required' => false,
+                    'message' => 'Sincronización omitida por configuración'
                 ];
             }
 
@@ -1254,6 +1274,7 @@ class UserRapForm extends Component
 
             return [
                 'success' => true,
+                'sync_required' => true,
                 'message' => 'Validación previa exitosa'
             ];
 
