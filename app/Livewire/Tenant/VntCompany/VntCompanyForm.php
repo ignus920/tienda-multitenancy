@@ -57,6 +57,8 @@ class VntCompanyForm extends Component
         if ($this->simplified && $this->reusable && empty($this->type)) {
             $this->type = 'CLIENTE';
         }
+        // $this->initializeCompanyConfiguration();
+        // $this->clearConfigurationCache();
     }
 
     public $search = '';
@@ -664,6 +666,7 @@ class VntCompanyForm extends Component
                 Log::info('📝 Creando nuevo company');
 
                 $company = $this->companyService->create($data, $warehouses);
+                $message = 'Registro creado exitosamente.';
 
                 // Sincronizar con API después de crear (solo si está habilitado y es nuevo cliente)
                 if ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId) {
@@ -3168,8 +3171,9 @@ class VntCompanyForm extends Component
         }
     }
 
-    public function canUploadsEnable()
+    public function canUploadsEnable(): bool
     {
+        $this->initializeCompanyConfiguration();
         $result = $this->isOptionEnabled(75);
         $value = $this->getOptionValue(75);
 

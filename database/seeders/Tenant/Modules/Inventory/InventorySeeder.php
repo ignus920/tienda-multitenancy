@@ -36,6 +36,10 @@ class InventorySeeder extends Seeder
             $this->call(ImpStatusSeeder::class);
         }
 
+        if ($this->tableExists('imp_labels')) {
+            $this->call(ImpLabelsSeeder::class);
+        }
+
         Log::info('✅ InventorySeeder completado');
     }
 
