@@ -575,7 +575,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                                   d="M7 7h.01M3 11l8.586 8.586a2 2 0 002.828 0l6.172-6.172a2 2 0 000-2.828L12 3H5a2 2 0 00-2 2v6z"/>
                                         </svg>
-                                       {{$label->name}}
+                                        <span x-text="selectedLabelData.name"></span>
                                     </button>
                                 </div>
                             </div>
