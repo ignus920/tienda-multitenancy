@@ -17,7 +17,7 @@
                         </svg>
                         Crear Nuevo Contacto
                     </button>
-                    @if($this->canUploadsEnable())
+                    {{-- @if($this->canUploadsEnable()) --}}
                     <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
                         <button wire:click="openRoutes"
                             class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -38,7 +38,7 @@
                             Mover Barrios
                         </button>
                     </div>
-                    @endif
+                    {{-- @endif --}}
                 </div>
             </div>
         </div>

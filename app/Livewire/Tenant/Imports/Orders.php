@@ -182,7 +182,13 @@ class Orders extends Component
                 'pk.number_packing as packing_number',
                 's.operation_number',
                 's.etd',
-                DB::raw("CONCAT('#',s.consecutive,' ', s.way) AS way")
+                DB::raw("CONCAT('#',s.consecutive,' ', s.way) AS way"),
+                DB::raw("(SELECT comment 
+                        FROM imp_comments 
+                        WHERE import_id = i.id 
+                        ORDER BY created_at DESC 
+                        LIMIT 1
+                    ) AS ultimo_comentario")
             ])
             ->join('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'iis.item_id', '=', 'iv.id')
@@ -451,12 +457,6 @@ class Orders extends Component
         $this->refreshCounter++;
     }
 
-    // #[Computed]
-    // public function getLastComment($importId)
-    // {
-    //     return ImpComments::where('import_id', $importId)->latest()->first();
-    // }
-
     public function getProfileUserProperty()
     {
         return Auth::user()?->profile_id;
@@ -529,7 +529,7 @@ class Orders extends Component
 
             $oldStatus = $import->status;
 
-            if ($oldStatus == 2 || $oldStatus == 4 || $oldStatus == 6) {
+            if ($oldStatus == 2 || $oldStatus == 4 || $oldStatus == 6 || $oldStatus == 7) {
                 $this->price = $price;
                 $this->import_id = $importId;
                 $this->showModalJustifyChangePrice = true;
@@ -731,23 +731,24 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         try {
-            $import = ImpImports::findOrFail($this->import_id);
+            DB::connection('tenant')->transaction(function () {
+                $import = ImpImports::findOrFail($this->import_id);
 
-            $oldStatus = $import->status;
+                $oldStatus = $import->status;
 
-            $newStatus = 5;
+                $newStatus = 5;
 
-            $dataStatus = [
-                'import_id' => $this->import_id,
-                'previous_state' => $oldStatus,
-                'new_state' => $newStatus,
-                'user_id' => Auth::id()
-            ];
+                $dataStatus = [
+                    'import_id' => $this->import_id,
+                    'previous_state' => $oldStatus,
+                    'new_state' => $newStatus,
+                    'user_id' => Auth::id()
+                ];
 
-            ImpStatusHistory::create($dataStatus);
+                ImpStatusHistory::create($dataStatus);
 
-            $import->update(['status' => $newStatus]);
-
+                $import->update(['status' => $newStatus, 'qty_shipped' => $import->qty_requested]);
+            });
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Update production successfully'
@@ -776,7 +777,8 @@ class Orders extends Component
             ])
             ->where(function ($query) {
                 $query->whereHas('imports', function ($q) {
-                    $q->whereIn('status', [5, 6]);
+                    $q->whereIn('status', [5, 6])->whereNull('deleted_at')
+                        ->whereNull('shipping_id');
                 })->orWhereDoesntHave('imports');
             })
             ->get();
@@ -791,15 +793,13 @@ class Orders extends Component
     public function togglePacking($packingId)
     {
         if (in_array($packingId, $this->selectedPackingIds)) {
-            $this->selectedPackingIds = array_filter($this->selectedPackingIds, function ($id) use ($packingId) {
-                return $id != $packingId;
-            });
+            $this->selectedPackingIds = [];
             $this->dispatch('show-toast', [
                 'type' => 'info',
                 'message' => 'PACK deseleccionado'
             ]);
         } else {
-            $this->selectedPackingIds[] = $packingId;
+            $this->selectedPackingIds = [$packingId];
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'PACK seleccionado correctamente'
@@ -813,7 +813,7 @@ class Orders extends Component
     {
         $this->filterPacking = $packingId;
         $this->showButtonShipping = true;
-        $this->selectedPackingIds[] = $packingId;
+        $this->selectedPackingIds = [$packingId];
         Log::info('selectedPackingIds: ' . implode(', ', $this->selectedPackingIds));
     }
 

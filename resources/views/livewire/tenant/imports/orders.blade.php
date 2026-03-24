@@ -76,17 +76,16 @@
 	</div>
 
     <!-- PACKINGS CARDS (Tarjetas de Packs) -->
-    @if($filterStatus == 5)
+    @if($filterStatus == 5 && $profileUser == 17)
     <div class="mb-6">
         <div class="inline-block bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 px-6 py-4">
             <div class="font-bold text-lg mb-2 text-gray-900 dark:text-white">Selected PACK(s):</div>
             <div class="flex flex-wrap gap-3">
                 @forelse($this->packings as $packing)
                     <div wire:click="togglePacking({{ $packing->id }})"
-                        class="flex flex-col items-center justify-center px-4 py-2 rounded-lg shadow border transition-all cursor-pointer min-w-[110px] hover:shadow-md"
-                        :class="{{ in_array($packing->id, $selectedPackingIds) ? 'border-indigo-600 ring-2 ring-indigo-200 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800' }}">
+                        class="flex flex-col items-center justify-center px-4 py-2 rounded-lg shadow border transition-all cursor-pointer min-w-[110px] hover:shadow-md {{ in_array($packing->id, $selectedPackingIds) ? 'border-indigo-600 ring-2 ring-indigo-200 bg-indigo-300 dark:bg-indigo-900/30 dark:ring-indigo-900' : 'border-gray-200 dark:border-gray-700  dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800' }}">
 
-                        <div class="font-semibold {{ in_array($packing->id, $selectedPackingIds) ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200' }} text-base mb-1">
+                        <div class="font-semibold {{ in_array($packing->id, $selectedPackingIds) ? 'text-indigo-600 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200' }} text-base mb-1">
                             {{ str_pad($packing->number_packing, 3, '0', STR_PAD_LEFT) }}
                         </div>
                         <div class="text-xs font-medium mb-1">
@@ -246,151 +245,254 @@
             </div>
 
             <!-- Tabla -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-900">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                    <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <tr>
-                            <th class="px-6 py-3 text-left">
+                            <th class="px-4 py-4 text-left w-12">
                                 <!-- Columna para selección -->
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Item
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Factory Ref
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 $ Last
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Qty Ordered
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Label
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Quoted price
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Coment
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Action
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Status
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Qty Shipped
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Shipping Information
                             </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse ($this->orders as $order)
-                            <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : '' }}">
-                                <td class="px-6 py-4">
+                            <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
+                                <td class="px-4 py-4">
                                     <input type="checkbox" 
                                         wire:model.live="selectedOrders" 
                                         value="{{ $order->id }}"
-                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                        class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                     >
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                <td class="px-4 py-4 max-w-[200px]">
+                                    <div class="text-xs font-medium text-gray-900 dark:text-white line-clamp-2">
                                         {{ $order->item}}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $order->factory_ref ?? 'N/A' }}
+                                <td class="px-4 py-4">
+                                    <div class="text-sm text-gray-600 dark:text-gray-300 font-mono">
+                                        {{ $order->factory_ref ?? 'N/A' }}
+                                    </div>
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $order->exw ?? '0.00' }}
+                                <td class="px-4 py-4 text-center">
+                                    <span class="text-sm font-mono text-gray-600 dark:text-gray-300">
+                                        ${{ number_format($order->exw ?? 0, 2) }}
+                                    </span>
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm font-semibold text-indigo-600 dark:text-indigo-400"
-                                    x-data="{ qtyOrdered: {{ $order->qty_requested ?? 0 }} }">
-                                    @if ($profileUser != '17' && ($order->status == 1 || $order->status == 2 ||$order->status == 4 || $order->status == 5 || $order->status == 6))
+                                <td class="px-4 py-4 text-center"
+                                    x-data="{ qtyOrdered: {{ $order->qty_requested ?? 0 }} }"
+                                    x-effect="if (document.activeElement !== $refs.qtyInput) qtyOrdered = {{ $order->qty_requested ?? 0 }}">
+                                    @if ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
                                         <input type="number"
+                                        wire:key="qty-input-{{ $order->id }}-{{ $refreshCounter }}"
+                                        x-ref="qtyInput"
                                         x-model="qtyOrdered"
                                         @change="$wire.updateQty({{ $order->id }}, qtyOrdered)"
                                         @keydown.enter="$wire.updateQty({{ $order->id }}, qtyOrdered)"
-                                        class="block w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
                                         placeholder="{{ $order->qty_requested ?? 0 }}">
                                     @else
-                                        {{ $order-> qty_requested ?? 0}}
+                                        <span class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                                            {{ number_format($order->qty_requested ?? 0) }}
+                                        </span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $order->label ?? 'N/A' }}
+                                <td class="px-4 py-4 text-center">
+                                    <span class="text-sm text-gray-600 dark:text-gray-300">
+                                        {{ $order->label ?? 'N/A' }}
+                                    </span>
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                                    x-data="{ priceQ: {{ $order->price ?? 0 }} }">
-                                    @if ($profileUser == '17' && ($order->status == 2 || $order->status == 4 ||$order->status == 1 || $order->status == 6 || $order->status == 7))
-                                        <input type="number" x-model="priceQ"
-                                        @change="$wire.updatePriceQ({{ $order->id }}, priceQ)"
-                                        @keydown.enter="$wire.updatePriceQ({{ $order->id }}, priceQ)"
-                                        class="block w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="{{ $order->price ?? 0 }}">
+                                <td class="px-4 py-4 text-center"
+                                    x-data="{ priceQ: {{ $order->price ?? 0 }} }"
+                                    x-effect="if (document.activeElement !== $refs.priceInput) priceQ = {{ $order->price ?? 0 }}">
+                                    @if ($profileUser == '17' && in_array($order->status, [1,2,4,6,7]))
+                                        <div class="flex justify-center">
+                                            <input type="number" 
+                                            wire:key="price-input-{{ $order->id }}-{{ $refreshCounter }}"
+                                            x-ref="priceInput"
+                                            x-model="priceQ"
+                                            @change="$wire.updatePriceQ({{ $order->id }}, priceQ)"
+                                            @keydown.enter="$wire.updatePriceQ({{ $order->id }}, priceQ)"
+                                            class="w-28 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
+                                            placeholder="{{ $order->price ?? 0 }}"
+                                            step="0.01">
+                                        </div>
                                     @else
-                                        ${{ number_format($order->price,2)  ?? 0}}
+                                        <span class="text-sm font-mono text-gray-600 dark:text-gray-300">
+                                            ${{ number_format($order->price ?? 0, 2) }}
+                                        </span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    <div x-data="{ comment: '' }" class="flex items-center gap-2 max-w-xs mx-auto relative">
-                                        <input type="text" 
-                                            x-model="comment"
-                                            @change="$wire.saveComment({{ $order->id }}, comment); comment = ''"
-                                            @keydown.enter="$wire.saveComment({{ $order->id }}, comment); comment = ''"
-                                            class="block w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="Añadir comentario...">
-                                        <button 
-                                            @click="$wire.openModalHistory({{ $order->id }})"
-                                            class="inline-flex items-center justify-center p-1.5 border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                            <x-heroicon-o-eye class="w-4 h-4" />
-                                        </button>
-                                        @if(isset($order->news) && $order->news == 1)
-                                            <span class="absolute -top-2 -left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-200 text-yellow-800 dark:bg-yellow-400 dark:text-yellow-900 shadow"><x-heroicon-o-chat-bubble-left-ellipsis class="w-3 h-3" /></span>
+                                <td class="px-4 py-4">
+                                    <div class="space-y-2 min-w-[200px]">
+                                        <div x-data="{ comment: '' }" class="flex items-center gap-1">
+                                            <input type="text" 
+                                                x-model="comment"
+                                                @change="$wire.saveComment({{ $order->id }}, comment); comment = ''"
+                                                @keydown.enter="$wire.saveComment({{ $order->id }}, comment); comment = ''"
+                                                class="flex-1 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                placeholder="Añadir comentario...">
+                                            <button 
+                                                @click="$wire.openModalHistory({{ $order->id }})"
+                                                class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                title="Ver historial">
+                                                <x-heroicon-o-eye class="w-4 h-4" />
+                                            </button>
+                                            @if(isset($order->news) && $order->news == 1)
+                                                <span class="relative flex">
+                                                    <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                                                    </span>
+                                                    <x-heroicon-o-chat-bubble-left-ellipsis class="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
+                                        @php
+                                        $data = is_string($order->ultimo_comentario) ? json_decode($order->ultimo_comentario, true) : null;
+                                        @endphp
+
+                                        @if(is_array($data) && isset($data['type']))
+                                            <div class="text-xs bg-gray-50 dark:bg-gray-700/30 p-2 rounded border border-gray-200 dark:border-gray-600">
+                                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ $data['type'] === 'qty_change' ? 'Cambio de Cantidad' : 'Cambio de Precio' }}</span>
+                                                <div class="flex items-center gap-1 mt-1 font-mono">
+                                                    @if ($data['type'] === 'qty_change')
+                                                        <span class="text-gray-500 line-through">{{ $data['old'] }}</span>
+                                                    @elseif ($data['type'] === 'price_change')
+                                                        <span class="text-gray-500 line-through">${{ number_format($data['old'], 2) }}</span>
+                                                    @endif
+
+                                                    <x-heroicon-o-arrow-right class="w-3 h-3 text-gray-400" />
+
+                                                    @if ($data['type'] === 'qty_change')
+                                                        <span class="text-green-600 dark:text-green-400 font-semibold">{{ $data['new'] }}</span>
+                                                    @elseif ($data['type'] === 'price_change')
+                                                        <span class="text-green-600 dark:text-green-400 font-semibold">${{ number_format($data['new'], 2) }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @elseif($order->ultimo_comentario)
+                                            <div class="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 p-2 rounded border border-gray-200 dark:border-gray-600 truncate" title="{{ $order->ultimo_comentario }}">
+                                                {{ Str::limit($order->ultimo_comentario, 50) }}
+                                            </div>
                                         @endif
-                                    </div>
+                                    </div> 
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                <td class="px-4 py-4 text-center">
                                     @if($order->status == 2 && $order->news == 0 && $profileUser != '17')
-                                        <button wire:click="openModalConfirmPrice({{ $order->id }})" class="inline-flex items-center justify-center p-1 text-xs border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        <button wire:click="openModalConfirmPrice({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                             <x-heroicon-o-check class="w-4 h-4" /> Approve price
                                         </button>
                                     @elseif($order->status == 4 && $order->news == 0 && $profileUser == '17')
-                                        <button wire:click="openModalConfirmProduction({{ $order->id }})" class="inline-flex items-center justify-center p-1 text-xs border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        <button wire:click="openModalConfirmProduction({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                             <x-heroicon-o-check class="w-4 h-4" /> Production
                                         </button>
                                     @else
-                                    N/A
+                                        <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <td class="px-4 py-4 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                         {{ $order->translated_name ?? 'N/A' }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                                    x-data="{ qtyShip: {{ $order->qty_requested ?? 0 }} }">
+                                <td class="px-4 py-4 text-center"
+                                    x-data="{ qtyShip: {{ $order->qty_shipped ?? $order->qty_requested ?? 0 }} }"
+                                    x-effect="if (document.activeElement !== $refs.qtyShipInput) qtyShip = {{ $order->qty_shipped ?? $order->qty_requested ?? 0 }}">
                                     @if ($profileUser == '17' && ($order->status == 6))
-                                        <input type="number" x-model="qtyShip"
-                                            @change="$wire.updateQtyShip({{ $order->id }}, qtyShip)"
-                                            @keydown.enter="$wire.updateQtyShip({{ $order->id }}, qtyShip)"
-                                            class="block w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="{{ $order->qty_requested ?? 0 }}">
+                                        <div class="flex justify-center">
+                                            <input type="number" 
+                                                wire:key="qty-ship-input-{{ $order->id }}-{{ $refreshCounter }}"
+                                                x-ref="qtyShipInput"
+                                                x-model="qtyShip"
+                                                @change="$wire.updateQtyShip({{ $order->id }}, qtyShip)"
+                                                @keydown.enter="$wire.updateQtyShip({{ $order->id }}, qtyShip)"
+                                                class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
+                                                placeholder="{{ $order->qty_requested ?? 0 }}">
+                                        </div>
                                     @else
-                                        {{ $order->qty_shipped ?? $order->qty_requested ?? 0 }}
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            {{ $order->qty_shipped ?? $order->qty_requested ?? 0 }}
+                                        </span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    <b>Pack: </b>{{ $order->packing_number ?? '' }} <br>
-                                    <b>O.N: </b> {{ $order->operation_number }}<br>
-                                    <b>ETD: </b> {{ $order->etd}}<br>
-                                    <b>Via:</b> {{ $order->way }}<br>
-                                    <b>Rec: </b>
+                                <td class="px-4 py-4">
+                                    <div class="space-y-1 text-xs min-w-[200px]">
+                                        @if($order->packing_number)
+                                            <div class="flex items-center gap-1">
+                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Pack:</span>
+                                                <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ $order->packing_number }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if($order->operation_number)
+                                            <div class="flex items-center gap-1">
+                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">O.N:</span>
+                                                <span class="font-mono">{{ $order->operation_number }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if($order->etd)
+                                            <div class="flex items-center gap-1">
+                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">ETD:</span>
+                                                <span>{{ \Carbon\Carbon::parse($order->etd)->format('d/m/Y') }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if($order->way)
+                                            <div class="flex items-center gap-1">
+                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Via:</span>
+                                                <span class="flex items-center gap-1">
+                                                    @if($order->way == 'Aerea')
+                                                        Air
+                                                    @elseif($order->way == 'Maritima')
+                                                        Maritime
+                                                    @else
+                                                        {{ $order->way }}
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        @endif
+
+                                        <div class="flex items-center gap-1">
+                                            <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Rec:</span>
+                                            <span class="text-gray-400 dark:text-gray-500">—</span>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
