@@ -525,7 +525,11 @@ class Deliveries extends Component
 
         // Redirigir al componente de pago existente si es posible
         if ($remission && $remission->quoteId) {
-            return redirect()->route('tenant.payment.quote', ['quoteId' => $remission->quoteId, 'from' => 'deliveries']);
+            return redirect()->route('tenant.payment.quote', [
+                'quoteId' => $remission->quoteId,
+                'from' => 'deliveries',
+                'deliveryId' => $remission->delivery_id ?? $this->selectedDeliveryId,
+            ]);
         }
     }
 
