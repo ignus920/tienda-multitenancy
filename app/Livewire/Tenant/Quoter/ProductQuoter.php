@@ -2225,6 +2225,7 @@ class ProductQuoter extends Component
                 'quoteId'        => $quote->id,
                 'userId'         => auth()->id(),
                 'warehouseId'    => $quote->warehouseId ?? session('warehouse_id', 1),
+                'systemOrder'    => 1,
             ]);
 
             // 3. Crear detalles (inv_detail_remissions)

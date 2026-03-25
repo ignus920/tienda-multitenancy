@@ -34,6 +34,7 @@ class InvRemissions extends Model
         'expiration',
         'modify',
         'observations_return',
+        'systemOrder',
         'deliveryman_id',
         'closed_at',
         'sale_date',
