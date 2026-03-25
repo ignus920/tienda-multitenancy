@@ -20,7 +20,7 @@ class SalesReport extends Component
 
     // Propiedades para la tabla
     public $search = '';
-    public $sortField = 'uv.name';
+    public $sortField = 'vendedor';
     public $sortDirection = 'asc';
     public $perPage = 10;
 
@@ -128,8 +128,37 @@ class SalesReport extends Component
 
         $query->groupBy('uv.id', 'uv.name');
 
+        // Consulta para las ventas realizadas por el sistema (al 4%)
+        $unionQuery = DB::table('inv_detail_remissions as idr')
+            ->join('inv_remissions as sta', 'sta.id', '=', 'idr.remissionId')
+            ->select(
+                DB::raw('0 as vendedor_id'),
+                DB::raw("'Ventas por Sistema' as vendedor"),
+                DB::raw("SUM(CASE WHEN sta.status = 'DEVOLUCION' THEN -(idr.quantity * idr.value) ELSE (idr.quantity * idr.value) END) as total")
+            )
+            ->where('sta.systemOrder', 1);
+
+        // Aplicar filtro de fechas a las ventas de sistema
+        if ($this->startDate) {
+            $unionQuery->whereDate('sta.created_at', '>=', $this->startDate);
+        }
+
+        if ($this->endDate) {
+            $unionQuery->whereDate('sta.created_at', '<=', $this->endDate);
+        }
+
+        $unionQuery->groupBy('sta.systemOrder');
+
+        // Unir las consultas
+        $query->unionAll($unionQuery);
+
+        // Validar campos de ordenamiento por si quedan rastros viejos de "uv.name" en estado
+        $sortField = $this->sortField;
+        if ($sortField === 'uv.name') $sortField = 'vendedor';
+        if ($sortField === 'uv.id') $sortField = 'vendedor_id';
+
         // Aplicar ordenamiento
-        $query->orderBy($this->sortField, $this->sortDirection);
+        $query->orderBy($sortField, $this->sortDirection);
 
         return $paginate ? $query->paginate($this->perPage) : $query->get();
     }
@@ -139,6 +168,39 @@ class SalesReport extends Component
      */
     protected function getSalesDetail($salesmanId)
     {
+        if ($salesmanId == 0) {
+            $query = DB::table('inv_detail_remissions as idr')
+                ->join('inv_items as ii', 'ii.id', '=', 'idr.itemId')
+                ->join('inv_remissions as sta', 'sta.id', '=', 'idr.remissionId')
+                ->leftJoin('vnt_quotes as vq', 'vq.id', '=', 'sta.quoteId')
+                ->leftJoin('vnt_companies as vntc', 'vntc.id', '=', 'vq.customerId')
+                ->select(
+                    DB::raw("'SIS' as pedido"),
+                    'sta.id as remission_id',
+                    'sta.status as estado',
+                    DB::raw("'Ventas por Sistema' as vendedor"),
+                    DB::raw("COALESCE(vntc.firstName, 'Sistema') as cliente"),
+                    'sta.created_at as fecha',
+                    DB::raw("SUM(CASE WHEN sta.status = 'DEVOLUCION' THEN (idr.quantity - idr.cant_return) * idr.value ELSE idr.quantity * idr.value END) as subtotal"),
+                    DB::raw("CASE WHEN sta.status = 'DEVOLUCION' THEN 1 ELSE 0 END as devolucion")
+                )
+                ->where('sta.systemOrder', 1);
+
+            // Aplicar filtro de fechas
+            if ($this->startDate) {
+                $query->whereDate('sta.created_at', '>=', $this->startDate);
+            }
+
+            if ($this->endDate) {
+                $query->whereDate('sta.created_at', '<=', $this->endDate);
+            }
+
+            $query->groupBy('sta.id', 'sta.status', 'vntc.firstName', 'sta.created_at');
+            $query->orderBy('sta.created_at', 'desc');
+
+            return $query->get();
+        }
+
         $query = DB::table('inv_detail_remissions as idr')
             ->join('inv_items as ii', 'ii.id', '=', 'idr.itemId')
             ->join('inv_remissions as sta', 'sta.id', '=', 'idr.remissionId')
@@ -153,7 +215,7 @@ class SalesReport extends Component
                 'uv.name as vendedor',
                 'vntc.firstName as cliente',
                 'dd.sale_date as fecha',
-                DB::raw('SUM(idr.quantity * idr.value) as subtotal'),
+                DB::raw("SUM(CASE WHEN sta.status = 'DEVOLUCION' THEN (idr.quantity - idr.cant_return) * idr.value ELSE idr.quantity * idr.value END) as subtotal"),
                 DB::raw("CASE WHEN sta.status = 'DEVOLUCION' THEN 1 ELSE 0 END as devolucion")
             )
             ->whereNotNull('sta.delivery_id')
