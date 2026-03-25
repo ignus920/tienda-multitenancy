@@ -183,98 +183,67 @@
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Vendedor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Ruta</th>
-                                    <th
-                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Vendedores</th>
-                                    <th
-                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Total Pedidos</th>
-                                    <th
-                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Total Ventas</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Pedidos</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Estado</th>
-                                    <th
-                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Cargar/Eliminar
-                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                @php $lastRoute = null; @endphp
                                 @forelse($remissions as $remission)
+                                    {{-- Fila separadora por ruta --}}
+                                    @if($remission->route_id !== $lastRoute)
+                                        @php $lastRoute = $remission->route_id; @endphp
+                                        <tr class="bg-gray-100 dark:bg-gray-700/50">
+                                            <td colspan="5" class="px-6 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                                {{ $remission->ruta }}
+                                                <button wire:click="cargarRuta({{ $remission->route_id }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="cargarRuta({{ $remission->route_id }})"
+                                                    class="ml-3 inline-flex items-center px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-colors disabled:opacity-50">
+                                                    <x-heroicon-o-arrow-up-tray class="w-3 h-3 mr-1" />
+                                                    <span wire:loading.remove wire:target="cargarRuta({{ $remission->route_id }})">Cargar toda la ruta</span>
+                                                    <span wire:loading wire:target="cargarRuta({{ $remission->route_id }})">Cargando...</span>
+                                                </button>
+                                                <button wire:click="eliminarRuta({{ $remission->route_id }})"
+                                                    class="ml-1 inline-flex items-center px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors">
+                                                    <x-heroicon-o-trash class="w-3 h-3 mr-1" />
+                                                    Limpiar ruta
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endif
                                 <tr wire:key="remission-{{ $loop->index }}"
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                    class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $remission->existe === 'SI' ? 'bg-green-50/40 dark:bg-green-900/10' : '' }}">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ $remission->vendedor }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                         {{ $remission->ruta }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">
-                                        {{ $remission->cantidad_vendedores }} vendedor{{ $remission->cantidad_vendedores != 1 ? 'es' : '' }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900 dark:text-white">
+                                        ${{ number_format($remission->total_ventas, 0, ',', '.') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">
-                                        {{ $remission->cantidad_pedidos }} pedido{{ $remission->cantidad_pedidos != 1 ? 's' : '' }}
+                                        {{ $remission->cantidad_pedidos }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                        @if($remission->existe == "NO")
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                                                Sin cargar
-                                            </span>
-                                        @elseif($remission->existe == "PARCIAL")
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                                Parcialmente cargado
+                                        @if($remission->existe === 'SI')
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                Marcado
                                             </span>
                                         @else
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                Completamente cargado
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                                Sin marcar
                                             </span>
                                         @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                        <div class="flex items-center justify-center gap-2">
-                                            @if($remission->existe == "NO")
-                                            <button wire:click="cargarRuta({{ $remission->route_id }})"
-                                                wire:loading.attr="disabled"
-                                                wire:target="cargarRuta({{ $remission->route_id }})"
-                                                class="inline-flex items-center px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors disabled:opacity-50">
-                                                <x-heroicon-o-arrow-up-tray class="w-5 h-4" />
-                                                <span wire:loading.remove
-                                                    wire:target="cargarRuta({{ $remission->route_id }})">Cargar Ruta</span>
-                                                <span wire:loading wire:target="cargarRuta({{ $remission->route_id }})"
-                                                    class="flex items-center">
-                                                    <svg class="animate-spin h-3 w-3 mr-1"
-                                                        xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10"
-                                                            stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor"
-                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                                        </path>
-                                                    </svg>
-                                                    Cargando...
-                                                </span>
-                                            </button>
-                                            @elseif($remission->existe == "PARCIAL")
-                                            <button wire:click="cargarRuta({{ $remission->route_id }})"
-                                                wire:loading.attr="disabled"
-                                                wire:target="cargarRuta({{ $remission->route_id }})"
-                                                class="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50">
-                                                <x-heroicon-o-arrow-up-tray class="w-5 h-4" />
-                                                Completar Cargue
-                                            </button>
-                                            <button wire:click="eliminarRuta({{ $remission->route_id }})"
-                                                class="inline-flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
-                                                <x-heroicon-o-trash class="w-5 h-4" />
-                                                Limpiar
-                                            </button>
-                                            @else
-                                            <button wire:click="eliminarRuta({{ $remission->route_id }})"
-                                                class="inline-flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
-                                                <x-heroicon-o-trash class="w-5 h-4" />
-                                                Eliminar Ruta
-                                            </button>
-                                            @endif
-                                        </div>
                                     </td>
                                 </tr>
                                 @empty
@@ -288,7 +257,7 @@
                                                 </path>
                                             </svg>
                                             <p class="text-lg font-medium">No hay registros</p>
-                                            <p class="text-sm">Selecciona una fecha para ver los datos</p>
+                                            <p class="text-sm">Selecciona un día de venta para ver los datos</p>
                                         </div>
                                     </td>
                                 </tr>

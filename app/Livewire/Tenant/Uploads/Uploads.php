@@ -169,37 +169,30 @@ class Uploads extends Component
             return [];
         }
 
-        // Consulta principal con la nueva estructura de relaciones y el campo existe
-        $query = DB::table('vnt_quotes as q')
+        $results = DB::table('vnt_quotes as q')
             ->join('inv_remissions as r', 'q.id', '=', 'r.quoteId')
+            ->join('inv_detail_remissions as d', 'd.remissionId', '=', 'r.id')
             ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
             ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
             ->join('tat_companies_routes as cXr', 'com.id', '=', 'cXr.company_id')
             ->join('tat_routes as rt', 'cXr.route_id', '=', 'rt.id')
-            ->leftJoin('dis_deliveries_list as dl', 'q.userId', '=', 'dl.salesman_id')
             ->select(
-                'rt.name as ruta',
-                'rt.id as route_id',
-                DB::raw('COUNT(DISTINCT q.userId) as cantidad_vendedores'),
-                DB::raw('COUNT(*) as cantidad_pedidos'),
-                DB::raw('CASE
-                    WHEN COUNT(DISTINCT CASE WHEN dl.salesman_id IS NOT NULL THEN q.userId END) = 0 THEN "NO"
-                    WHEN COUNT(DISTINCT CASE WHEN dl.salesman_id IS NOT NULL THEN q.userId END) = COUNT(DISTINCT q.userId) THEN "COMPLETO"
-                    ELSE "PARCIAL"
-                END as existe')
+                DB::raw('q.userId as user_id'),
+                DB::raw('(SELECT us.name FROM users us WHERE us.id = q.userId LIMIT 1) as vendedor'),
+                DB::raw('rt.id as route_id'),
+                DB::raw('rt.name as ruta'),
+                DB::raw('COUNT(DISTINCT r.id) as cantidad_pedidos'),
+                DB::raw('SUM(d.quantity * d.value) as total_ventas'),
+                DB::raw("CASE WHEN EXISTS (
+                    SELECT 1 FROM dis_deliveries_list dl WHERE dl.salesman_id = q.userId
+                ) THEN 'SI' ELSE 'NO' END as existe")
             )
             ->where('r.status', 'REGISTRADO')
             ->where('rt.sale_day', $saleDay)
-            ->groupBy('rt.id', 'rt.name')
-            ->orderBy('rt.name');
-
-        $results = $query->get();
-
-        // Log para depurar
-        Log::info('Remisiones por día:', [
-            'sale_day' => $saleDay,
-            'results' => $results->toArray()
-        ]);
+            ->groupBy(DB::raw('q.userId, rt.id, rt.name'))
+            ->orderBy('rt.name')
+            ->orderBy('vendedor')
+            ->get();
 
         return $results;
     }
@@ -511,7 +504,7 @@ class Uploads extends Component
                 }
 
                 $this->clearListUpload();
-                // Si no hay faltantes, proceder con la lógica de confirmación
+                $this->resetAfterConfirm();
                 session()->flash('message', 'Cargue confirmado exitosamente.');
             } catch (\Exception $e) {
                 Log::error($e);
@@ -586,6 +579,20 @@ class Uploads extends Component
             Log::error($e);
             session()->flash('error', "Error al eliminar los registros: " . $e->getMessage());
         }
+    }
+
+    public function resetAfterConfirm()
+    {
+        $this->selectedDeliveryMan = '';
+        $this->selectedSaleDay = '';
+        $this->remissions = [];
+        $this->showPreviewCharge = false;
+        $this->previewItems = [];
+        $this->showScares = false;
+        $this->scarceUnits = [];
+        $this->showConfirmModal = false;
+        $this->showFooter = true;
+        $this->showClearOptions = false;
     }
 
     public function showPreCharge()
