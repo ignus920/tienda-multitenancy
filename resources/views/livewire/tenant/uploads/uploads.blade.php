@@ -193,6 +193,8 @@
                                         Pedidos</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Estado</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -202,7 +204,7 @@
                                     @if($remission->route_id !== $lastRoute)
                                         @php $lastRoute = $remission->route_id; @endphp
                                         <tr class="bg-gray-100 dark:bg-gray-700/50">
-                                            <td colspan="5" class="px-6 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                            <td colspan="6" class="px-6 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                                                 {{ $remission->ruta }}
                                                 <button wire:click="cargarRuta({{ $remission->route_id }})"
                                                     wire:loading.attr="disabled"
@@ -243,6 +245,27 @@
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                                 Sin marcar
                                             </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                        @if($remission->existe === 'SI')
+                                            <button wire:click="eliminar({{ $remission->user_id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="eliminar({{ $remission->user_id }})"
+                                                class="inline-flex items-center px-2 py-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors disabled:opacity-50">
+                                                <x-heroicon-o-trash class="w-3 h-3 mr-1" />
+                                                <span wire:loading.remove wire:target="eliminar({{ $remission->user_id }})">Quitar</span>
+                                                <span wire:loading wire:target="eliminar({{ $remission->user_id }})">...</span>
+                                            </button>
+                                        @else
+                                            <button wire:click="cargar({{ $remission->user_id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="cargar({{ $remission->user_id }})"
+                                                class="inline-flex items-center px-2 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-colors disabled:opacity-50">
+                                                <x-heroicon-o-arrow-up-tray class="w-3 h-3 mr-1" />
+                                                <span wire:loading.remove wire:target="cargar({{ $remission->user_id }})">Cargar</span>
+                                                <span wire:loading wire:target="cargar({{ $remission->user_id }})">...</span>
+                                            </button>
                                         @endif
                                     </td>
                                 </tr>
