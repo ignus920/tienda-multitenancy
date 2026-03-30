@@ -249,5 +249,19 @@
 
         @livewireScripts
         @stack('scripts')
+
+        <!-- Manejo inteligente de expiración de página (CSRF Error 419) -->
+        <script>
+            document.addEventListener('livewire:init', () => {
+                Livewire.hook('request', ({ fail }) => {
+                    fail(({ status, preventDefault }) => {
+                        if (status === 419) {
+                            preventDefault();
+                            window.location.reload(); 
+                        }
+                    });
+                });
+            });
+        </script>
     </body>
 </html>
