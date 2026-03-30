@@ -936,11 +936,15 @@ $header = 'Seleccionar productos';
             init() {
                 // 0. Limpieza forzada vía señal local (Ej: desde Sidebar)
                 if (localStorage.getItem('quoter_clear') === '1') {
-                    console.log('🧹 Detectada señal de limpieza local (Desktop)...');
-                    localStorage.removeItem('quoter_clear'); // Consumir la señal
-                    
-                    // Limpiar sesión en servidor
-                    @this.clearQuoter();
+                    localStorage.removeItem('quoter_clear'); // Consumir la señal siempre
+
+                    // Solo limpiar si NO estamos editando una cotización/remisión
+                    if (!@js($isEditing)) {
+                        console.log('🧹 Detectada señal de limpieza local (Desktop)...');
+                        @this.clearQuoter();
+                    } else {
+                        console.log('🛡️ Señal de limpieza ignorada — modo edición activo.');
+                    }
                 }
 
                 // Escuchar evento de carga de datos para edición
