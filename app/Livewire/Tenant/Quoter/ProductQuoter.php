@@ -870,7 +870,7 @@ class ProductQuoter extends Component
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS', // Valor por defecto para este flujo
                 'customerId' => $this->selectedCustomer['id'],
-                'warehouseId' => session('warehouse_id', 1),
+                'warehouseId' => 1,
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
                 'branchId' => session('branch_id', 1)
@@ -2889,7 +2889,7 @@ class ProductQuoter extends Component
                 'consecutive'     => $consecutive,
                 'status'          => 'REGISTRADO',
                 'userId'          => auth()->id(),
-                'warehouseId'     => session('warehouse_id', 1),
+                'warehouseId'     => 1,
                 'quoteId'         => $quoteId,
                 'deliveryTypeId'  => $this->selectedDeliveryTypeId  ?: null,
                 'methodPaymentId' => $this->selectedMethodPaymentId ?: null,
