@@ -131,7 +131,7 @@ new class extends Component
 <div 
     x-data="{ 
         tooltip: false, 
-        open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.invoices') ? 'true' : 'false' }}
+        open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions*') || request()->routeIs('tenant.invoices*') ? 'true' : 'false' }}
     }" 
     class="w-full relative"
 >
@@ -139,7 +139,7 @@ new class extends Component
     <!-- Botón principal -->
     <div
         class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200
-        {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.invoices')
+        {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions*') || request()->routeIs('tenant.invoices*')
             ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
         :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
