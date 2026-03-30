@@ -1813,8 +1813,11 @@
         
         <div class="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex flex-col gap-3">
             <button @click="doSaveLocalOrder()" 
-                    class="w-full bg-[#10b981] hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                <span>Sí, finalizar pedido</span>
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-base transition-all active:scale-95 ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>SÍ, FINALIZAR PEDIDO</span>
             </button>
             
             <button @click="showConfirmSave = false" 

@@ -249,5 +249,57 @@
 
         @livewireScripts
         @stack('scripts')
+
+        <!-- Manejo inteligente de expiración de página (CSRF Error 419) -->
+        <script>
+            document.addEventListener('livewire:init', () => {
+                Livewire.hook('request', ({ fail }) => {
+                    fail(({ status, preventDefault }) => {
+                        if (status === 419) {
+                            preventDefault();
+                            window.location.reload(); 
+                        }
+                    });
+                });
+            });
+        </script>
+
+        {{-- Alertas y Redirecciones Inteligentes (Livewire + SweetAlert2) --}}
+        <script>
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('swal-redirect', (data) => {
+                    const eventData = Array.isArray(data) ? data[0] : data;
+                    Swal.fire({
+                        icon: eventData.type || 'success',
+                        title: eventData.title || '¡Hecho!',
+                        text: eventData.message,
+                        confirmButtonColor: '#4f46e5',
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        if (eventData.url) {
+                            window.location.href = eventData.url;
+                        }
+                    });
+                });
+            });
+        </script>
+
+        {{-- Soporte para alertas de sesión adicionales --}}
+        @if (session()->has('swal'))
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const data = @json(session('swal'));
+                    Swal.fire({
+                        icon: data.type || 'success',
+                        title: data.title || '¡Registrado!',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5',
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                });
+            </script>
+        @endif
     </body>
 </html>

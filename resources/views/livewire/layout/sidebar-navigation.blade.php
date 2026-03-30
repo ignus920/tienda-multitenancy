@@ -120,15 +120,19 @@ new class extends Component {
 
 
 
-        @if(auth()->user()->profile_id !== 17 && auth()->user()->profile_id != 6 && auth()->user()->profile_id != 7 && PermissionHelper::userCanAny(['Ventas'], 'show'))
-            <div x-data="{ 
-                                tooltip: false, 
-                                open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.invoices') ? 'true' : 'false' }}
-                            }" class="w-full relative">
+@if(auth()->user()->profile_id !== 17 && auth()->user()->profile_id != 6 && auth()->user()->profile_id != 7 && PermissionHelper::userCanAny(['Ventas'], 'show'))
+<div 
+    x-data="{ 
+        tooltip: false, 
+        open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions*') || request()->routeIs('tenant.invoices*') ? 'true' : 'false' }}
+    }" 
+    class="w-full relative"
+>
 
-                <!-- Botón principal -->
-                <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200
-                                {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.invoices')
+    <!-- Botón principal -->
+    <div
+        class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200
+        {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions*') || request()->routeIs('tenant.invoices*')
             ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
                     :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"

@@ -863,18 +863,12 @@ class ProductQuoter extends Component
             // Limpiar
             $this->clearQuoter();
 
-            $this->dispatch('show-toast', [
+            $this->dispatch('swal-redirect', [
                 'type' => 'success',
-                'message' => 'Cotización #' . $quote->consecutive . ' creada exitosamente'
+                'title' => '¡Registrado!',
+                'message' => 'Cotización #' . $quote->consecutive . ' registrada exitosamente',
+                'url' => route('tenant.quoter')
             ]);
-
-            // Redirigir de forma segura para offline en móvil
-            if ($this->viewType === 'mobile') {
-                $this->dispatch('quote-saved-redirect', ['url' => '/tenant/quoter/mobile']);
-                return;
-            }
-
-            return redirect()->to(route('tenant.quoter.desktop'));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -965,18 +959,12 @@ class ProductQuoter extends Component
             // Limpiar
             $this->clearQuoter();
 
-            $this->dispatch('show-toast', [
+            $this->dispatch('swal-redirect', [
                 'type' => 'success',
-                'message' => 'Cambios guardados exitosamente'
+                'title' => '¡Registrado!',
+                'message' => 'Cambios guardados exitosamente',
+                'url' => route('tenant.quoter')
             ]);
-
-            // Redirigir de forma segura para offline en móvil
-            if ($this->viewType === 'mobile') {
-                $this->dispatch('quote-saved-redirect', ['url' => '/tenant/quoter/mobile']);
-                return;
-            }
-
-            return redirect()->route('tenant.quoter.desktop');
 
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
@@ -2917,17 +2905,16 @@ class ProductQuoter extends Component
             session()->forget('quoter_items');
             $this->confirmationLoading = false;
 
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Pedido confirmado. Remisión #' . $consecutive . ' creada.'
-            ]);
-
             // Sincronizar con Alpine.js/IndexedDB para limpiar memoria local
             $this->dispatch('cart-updated', items: []);
             $this->dispatch('customer-selected', customer: null);
 
-            // Redirigir a la lista de cotizaciones (o remisiones si se prefiere)
-            return redirect()->route('tenant.quoter');
+            $this->dispatch('swal-redirect', [
+                'type' => 'success',
+                'title' => '¡Confirmado!',
+                'message' => 'Remisión #' . $consecutive . ' creada exitosamente.',
+                'url' => route('tenant.quoter')
+            ]);
         } catch (\Exception $e) {
             Log::error('Error en confirmarPedido (Automático): ' . $e->getMessage());
             $this->confirmationLoading = false;
