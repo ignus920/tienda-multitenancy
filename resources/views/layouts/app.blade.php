@@ -263,5 +263,22 @@
                 });
             });
         </script>
+
+        {{-- Alertas persistentes para redirecciones (Ventas/Cotizaciones) --}}
+        @if (session()->has('swal'))
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const data = @json(session('swal'));
+                    Swal.fire({
+                        icon: data.type || 'success',
+                        title: data.type === 'success' ? '¡Registrado!' : 'Información',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5',
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                });
+            </script>
+        @endif
     </body>
 </html>

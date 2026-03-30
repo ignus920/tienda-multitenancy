@@ -863,18 +863,12 @@ class ProductQuoter extends Component
             // Limpiar
             $this->clearQuoter();
 
-            $this->dispatch('show-toast', [
+            session()->flash('swal', [
                 'type' => 'success',
-                'message' => 'Cotización #' . $quote->consecutive . ' creada exitosamente'
+                'message' => 'Cotización #' . $quote->consecutive . ' registrada exitosamente'
             ]);
 
-            // Redirigir de forma segura para offline en móvil
-            if ($this->viewType === 'mobile') {
-                $this->dispatch('quote-saved-redirect', ['url' => '/tenant/quoter/mobile']);
-                return;
-            }
-
-            return redirect()->to(route('tenant.quoter.desktop'));
+            return redirect()->route('tenant.quoter');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -965,18 +959,12 @@ class ProductQuoter extends Component
             // Limpiar
             $this->clearQuoter();
 
-            $this->dispatch('show-toast', [
+            session()->flash('swal', [
                 'type' => 'success',
                 'message' => 'Cambios guardados exitosamente'
             ]);
 
-            // Redirigir de forma segura para offline en móvil
-            if ($this->viewType === 'mobile') {
-                $this->dispatch('quote-saved-redirect', ['url' => '/tenant/quoter/mobile']);
-                return;
-            }
-
-            return redirect()->route('tenant.quoter.desktop');
+            return redirect()->route('tenant.quoter');
 
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
