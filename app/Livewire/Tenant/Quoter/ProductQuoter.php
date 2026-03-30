@@ -374,10 +374,40 @@ class ProductQuoter extends Component
     }
 
     /**
+     * Verifica si el catálogo cambió desde la última sincronización del cliente.
+     * Si la versión del cliente es igual a la del servidor, despacha 'sync-not-needed'.
+     * Si difieren (o no hay versión local), ejecuta la sincronización completa.
+     */
+    public function syncIfNeeded(string $clientVersion = null)
+    {
+        $this->ensureTenantConnection();
+
+        $cacheKey = 'catalog_v:' . tenant()->id . ':' . auth()->user()->profile_id;
+
+        // Versión = max updated_at de productos activos, cacheada 10 min para no golpear DB en cada acceso
+        $serverVersion = \Cache::remember($cacheKey, now()->addMinutes(10), function () {
+            return (string) (Items::active()->max('updated_at') ?? now()->toDateTimeString());
+        });
+
+        if ($clientVersion && $clientVersion === $serverVersion) {
+            Log::info('✅ [Sync] Catálogo sin cambios, sincronización omitida', ['version' => $serverVersion]);
+            $this->dispatch('sync-not-needed', ['version' => $serverVersion]);
+            return;
+        }
+
+        Log::info('🔄 [Sync] Versión cambió, sincronizando', [
+            'client' => $clientVersion,
+            'server' => $serverVersion,
+        ]);
+
+        $this->syncFullCatalog($serverVersion);
+    }
+
+    /**
      * Sincroniza TODO el catálogo de productos y clientes para uso Offline.
      * Envía los datos en paquetes (chunks) para asegurar la descarga completa de los 1000+ items.
      */
-    public function syncFullCatalog()
+    public function syncFullCatalog(string $serverVersion = null)
     {
         $this->ensureTenantConnection();
         Log::info('📦 Iniciando sincronización segmentada de catálogo');
@@ -480,7 +510,8 @@ class ProductQuoter extends Component
 
             // D. Fin: Avisar que todo terminó correctamente
             $this->dispatch('sync-finished', [
-                'total' => $totalProducts
+                'total' => $totalProducts,
+                'version' => $serverVersion,
             ]);
 
         } catch (\Exception $e) {
