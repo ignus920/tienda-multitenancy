@@ -2056,7 +2056,7 @@ class ProductQuoter extends Component
                 'consecutive' => $nextConsecutive,
                 'status' => auth()->user()->profile_id == 17 ? 'REMISIÓN' : 'REGISTRADO',
                 'typeQuote' => 'POS', // Para TAT es institucional/POS
-                'customerId' => $companyId, // La tienda TAT como cliente
+                'customerId' => $warehouseId, // La sucursal TAT como cliente (vnt_warehouses.id)
                 'warehouseId' => $warehouseId,
                 'userId' => $userId,
                 'observations' => $observations,
