@@ -45,6 +45,11 @@ class PettyCash extends Component
     public $sortDirection = 'desc';
     public $perPage = 10;
 
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
     //Messages
     public $errorMessage = '';
 
