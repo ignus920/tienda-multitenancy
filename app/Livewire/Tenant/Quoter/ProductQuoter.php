@@ -2088,7 +2088,7 @@ class ProductQuoter extends Component
                 'status' => auth()->user()->profile_id == 17 ? 'REMISIÓN' : 'REGISTRADO',
                 'typeQuote' => 'POS', // Para TAT es institucional/POS
                 'customerId' => $warehouseId, // La sucursal TAT como cliente (vnt_warehouses.id)
-                'warehouseId' => $warehouseId,
+                'warehouseId' => 1,
                 'userId' => $userId,
                 'observations' => $observations,
                 'branchId' => session('branch_id', 1)
