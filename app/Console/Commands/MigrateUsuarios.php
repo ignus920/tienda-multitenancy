@@ -73,8 +73,15 @@ class MigrateUsuarios extends Command
         $this->info("========================================");
 
         $handle  = fopen($archivo, 'r');
+
+        // Eliminar BOM UTF-8 si existe (\xEF\xBB\xBF)
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
         $headers = fgetcsv($handle, 0, $separador);
-        $headers = array_map('trim', $headers);
+        $headers = array_map(fn($h) => trim(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $h)), $headers);
 
         $fila = 1;
         while (($row = fgetcsv($handle, 0, $separador)) !== false) {
@@ -94,16 +101,19 @@ class MigrateUsuarios extends Command
             try {
                 $resultado = $this->migrarUsuario($data, $tenantId, $dryRun);
 
+                $nombre = $data['nombre'] ?? 'N/A';
+                $cargo  = $data['cargo']  ?? 'N/A';
+
                 if ($resultado === 'omitido') {
                     $this->omitidos++;
-                    $this->line("  <fg=yellow>[OMITIDO]</> Fila {$fila}: {$data['nombre']} ({$data['email']}) — ya existe");
+                    $this->line("  <fg=yellow>[OMITIDO]</> Fila {$fila}: {$nombre} — ya existe");
                 } else {
                     $this->importados++;
-                    $this->line("  <fg=green>[OK]</> Fila {$fila}: {$data['nombre']} — {$data['cargo']}");
+                    $this->line("  <fg=green>[OK]</> Fila {$fila}: {$nombre} — {$cargo}");
                 }
             } catch (\Exception $e) {
                 $this->errores++;
-                $msg = "Fila {$fila}: {$data['nombre']} — " . $e->getMessage();
+                $msg = "Fila {$fila}: " . ($data['nombre'] ?? 'N/A') . " — " . $e->getMessage();
                 $this->logErrores[] = $msg;
                 $this->error("  [ERROR] {$msg}");
             }
@@ -133,10 +143,17 @@ class MigrateUsuarios extends Command
 
     private function migrarUsuario(array $data, string $tenantId, bool $dryRun): string
     {
-        // Usar email o login como identificador único
-        $email = !empty($data['email']) ? $data['email'] : ($data['login'] ?? null);
+        // Usar email si es válido, si no construir uno desde el login
+        $emailRaw = trim($data['email'] ?? '');
+        $login    = trim($data['login'] ?? '');
 
-        if (empty($email)) {
+        if (!empty($emailRaw) && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) {
+            $email = $emailRaw;
+        } elseif (!empty($login)) {
+            // Construir email placeholder desde el login
+            $slug  = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $login));
+            $email = $slug . '@migrado.local';
+        } else {
             throw new \Exception("Sin email ni login para identificar el usuario");
         }
 

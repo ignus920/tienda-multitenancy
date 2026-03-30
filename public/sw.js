@@ -2,7 +2,7 @@
 * Sistema de Service Worker Manual - DOSIL ERP
 * v29 - Offline robusto con fallback HTML
 */
-const CACHE_NAME = 'quoter-cache-v123';
+const CACHE_NAME = 'quoter-cache-v124';
 const PRECACHE_ASSETS = [
     '/',
     '/manifest.json',
@@ -89,50 +89,44 @@ self.addEventListener('fetch', (event) => {
     const isLivewire = event.request.headers.get('X-Livewire');
     const isNavigation = event.request.mode === 'navigate';
 
-    // 1. ESTRATEGIA PARA NAVEGACIÓN Y LIVEWIRE (Stale-While-Revalidate)
+    // 1. ESTRATEGIA PARA NAVEGACIÓN Y LIVEWIRE (Network-First con fallback offline)
+    // Las páginas dinámicas NUNCA se sirven desde caché si hay red disponible.
+    // La caché solo se usa como fallback cuando no hay conexión.
     if (isNavigation || isLivewire) {
         event.respondWith(
             caches.open(CACHE_NAME).then((cache) => {
-                // ignoreSearch: true permite que /products?clear=1 coincida con /products
-                return cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-                    const fetchPromise = fetch(event.request)
-                        .then((networkResponse) => {
-                            // SOLO CACHEAR SI ES EXITOSO Y NO ES UNA REDIRECCIÓN
-                            // Caching de redirecciones puede causar ERR_FAILED en algunos navegadores
-                            if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
-                                cache.put(event.request, networkResponse.clone());
-                            }
-                            return networkResponse;
-                        })
-                        .catch(async (error) => {
-                            // Si falla la red y no hay caché, intentamos fallbacks inteligentes
-                            if (!cachedResponse) {
-                                const path = url.pathname;
-                                // Detección simple de dispositivo en el SW
-                                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-                                // REDIRECCIÓN LOCAL OFFLINE:
-                                // En lugar de servir el contenido directamente, redirigimos (302)
-                                // para que la URL en el navegador cambie a la ruta que SÍ está en caché.
-                                // Esto evita errores de CSRF o "Página Expirada".
-                                if (path.includes('/quoter/products')) {
-                                    const target = isMobile ? '/tenant/quoter/products/mobile' : '/tenant/quoter/products/desktop';
-                                    console.log('🔄 Offline: Redirigiendo localmente a:', target);
-                                    return Response.redirect(target, 302);
-                                }
-                                if (path.includes('/quoter')) {
-                                    const target = isMobile ? '/tenant/quoter/mobile' : '/tenant/quoter/desktop';
-                                    console.log('🔄 Offline: Redirigiendo localmente a:', target);
-                                    return Response.redirect(target, 302);
-                                }
-                                // Fallback final
-                                return (await cache.match('/')) || offlineFallback();
-                            }
+                return fetch(event.request)
+                    .then((networkResponse) => {
+                        // SOLO CACHEAR SI ES EXITOSO Y NO ES UNA REDIRECCIÓN
+                        if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
+                            cache.put(event.request, networkResponse.clone());
+                        }
+                        return networkResponse;
+                    })
+                    .catch(async () => {
+                        // Sin red: intentar servir desde caché
+                        const cachedResponse = await cache.match(event.request, { ignoreSearch: true });
+                        if (cachedResponse) {
                             return cachedResponse;
-                        });
+                        }
 
-                    return cachedResponse || fetchPromise;
-                });
+                        const path = url.pathname;
+                        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                        // REDIRECCIÓN LOCAL OFFLINE
+                        if (path.includes('/quoter/products')) {
+                            const target = isMobile ? '/tenant/quoter/products/mobile' : '/tenant/quoter/products/desktop';
+                            console.log('🔄 Offline: Redirigiendo localmente a:', target);
+                            return Response.redirect(target, 302);
+                        }
+                        if (path.includes('/quoter')) {
+                            const target = isMobile ? '/tenant/quoter/mobile' : '/tenant/quoter/desktop';
+                            console.log('🔄 Offline: Redirigiendo localmente a:', target);
+                            return Response.redirect(target, 302);
+                        }
+                        // Fallback final
+                        return (await cache.match('/')) || offlineFallback();
+                    });
             })
         );
         return;
