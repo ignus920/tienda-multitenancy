@@ -222,30 +222,46 @@
                 });
             });
 
-            window.addEventListener('sync-finished', async () => {
+            window.addEventListener('sync-finished', async (event) => {
                 this.runInQueue(async () => {
                     this.syncing = false;
                     this.lastSync = new Date().toISOString();
+
+                    // Guardar versión del catálogo para evitar re-sync innecesario
+                    const syncData = event.detail || (Array.isArray(event.detail) ? event.detail[0] : {});
+                    const newVersion = syncData.version || null;
+                    if (newVersion) {
+                        localStorage.setItem('catalog_version', newVersion);
+                        console.log('💾 Versión de catálogo guardada:', newVersion);
+                    }
+
                     try {
                         await this.persistState();
                         await this.syncPendingOrders();
                     } finally {
                         try { console.timeEnd('🧪 [Sync Full]'); } catch(e) {}
                     }
-                    
+
                     // Solo recargar productos locales si estamos realmente offline o forzando offline
                     if (!this.isOnline || this.forceOffline) {
                         await this.loadLocalProducts();
                     }
-                    
+
                     await this.persistState();
 
-                    // Si está online, refrescar Livewire para asegurar que la sesión del servidor 
+                    // Si está online, refrescar Livewire para asegurar que la sesión del servidor
                     // y el estado de Alpine sean idénticos
                     if (this.isOnline) {
                         $wire.$refresh();
                     }
                 });
+            });
+
+            // Si el servidor confirma que el catálogo no cambió, no hacer nada
+            window.addEventListener('sync-not-needed', (event) => {
+                const data = event.detail || (Array.isArray(event.detail) ? event.detail[0] : {});
+                console.log('✅ [Sync] Catálogo actualizado, omitiendo sincronización.', data.version || '');
+                this.syncing = false;
             });
 
             window.addEventListener('products-updated', async (event) => {
@@ -791,9 +807,10 @@
         },
 
         async syncFullCatalogAuto() {
-            if (this.isOnline && !this.syncing) {
-                await $wire.syncFullCatalog();
-            }
+            if (!this.isOnline || this.syncing) return;
+            // Pasar la versión local al servidor; si coincide, el servidor omite el sync
+            const localVersion = localStorage.getItem('catalog_version') || null;
+            await $wire.syncIfNeeded(localVersion);
         }
     }));
 </script>
