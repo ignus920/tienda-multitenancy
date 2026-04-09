@@ -20,6 +20,7 @@ return new class extends Migration
                 $table->integer('user_id')->nullable();
                 $table->tinyInteger('initiator')->nullable();
                 $table->timestamps();
+                $table->index(['import_id', 'created_at']);
                 $table->softDeletes();
             });
         }
