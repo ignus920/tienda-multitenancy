@@ -603,12 +603,11 @@ class VntCompanyForm extends Component
                     ]);
                 }
 
-                // Mensaje de éxito diferente según si se sincronizó con API o no
-                if ($company && $company->api_data_id) {
-                    session()->flash('message', '✅ Cliente Actualizado: Los cambios se guardaron localmente y se sincronizaron con el sistema de facturación.');
-                } else {
-                    session()->flash('message', '✅ Cliente Actualizado: Los cambios se guardaron exitosamente en el sistema local.');
-                }
+                // Mensaje de éxito inicial
+                $message = ($company && $company->api_data_id)
+                    ? '✅ Cliente Actualizado: Los cambios se guardaron localmente y se sincronizaron con el sistema de facturación.'
+                    : '✅ Cliente Actualizado: Los cambios se guardaron exitosamente en el sistema local.';
+
                 // Disparar evento para componentes que escuchan
                 $this->dispatch('customer-updated', customerId: $this->editingId);
 
@@ -670,12 +669,10 @@ class VntCompanyForm extends Component
                     $this->syncCompanyWithApi($company, $tempApiId);
                 }
 
-                // Mensaje de éxito diferente según el tipo de sincronización
-                if ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId) {
-                    session()->flash('message', '✅ Cliente Creado: El cliente se registró exitosamente y se sincronizó con el sistema de facturación.');
-                } else {
-                    session()->flash('message', '✅ Cliente Creado: El cliente se registró exitosamente en el sistema local.');
-                }
+                // Mensaje de éxito inicial
+                $message = ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId)
+                    ? '✅ Cliente Creado: El cliente se registró exitosamente y se sincronizó con el sistema de facturación.'
+                    : '✅ Cliente Creado: El cliente se registró exitosamente en el sistema local.';
 
                 // Crear ruta si se ha seleccionado una ruta
                 Log::info('Checking route creation', [
@@ -697,14 +694,14 @@ class VntCompanyForm extends Component
                             'company_id' => $route->company_id ?? 'unknown',
                             'sales_order' => $route->sales_order ?? 'unknown'
                         ]);
-                        session()->flash('message', 'Registro y ruta creados exitosamente.');
+                        $message = 'Registro y ruta creados exitosamente.';
                     } catch (\Exception $e) {
                         // Log error but don't fail operation
                         Log::error('Error creando ruta', [
                             'error' => $e->getMessage(),
                             'trace' => $e->getTraceAsString()
                         ]);
-                        session()->flash('message', 'Registro creado exitosamente, pero hubo un error al crear la ruta.');
+                        $message = 'Registro creado exitosamente, pero hubo un error al crear la ruta.';
                     }
                 } else {
                     Log::info('Skipping route creation', [
@@ -1892,24 +1889,37 @@ class VntCompanyForm extends Component
     private function shouldSyncWithApi(): array
     {
         try {
+            Log::info('🔄 Verificando si se debe sincronizar con API...');
+
+            // Asegurar que la configuración esté inicializada y con datos frescos
+            $this->clearConfigurationCache();
+            $this->initializeCompanyConfiguration();
+
             // Verificar que tenemos company_id válido
             if (!$this->currentCompanyId) {
-                $this->initializeCompanyConfiguration();
-                if (!$this->currentCompanyId) {
-                    return [
-                        'should_sync' => false,
-                        'reason' => 'No se pudo obtener la configuración de la empresa.'
-                    ];
-                }
+                Log::warning('⚠️ Sincronización API saltada: No se pudo obtener currentCompanyId', [
+                    'config_initialized' => $this->isConfigurationInitialized,
+                    'config_service_exists' => $this->configService ? 'YES' : 'NO'
+                ]);
+                return [
+                    'should_sync' => false,
+                    'reason' => 'No se pudo obtener la configuración de la empresa.'
+                ];
             }
 
             // Verificar si facturación electrónica está habilitada usando el trait (option_id=8)
             $isElectronicEnabled = $this->isOptionEnabled(8);
+            
+            Log::info('📊 Estado de configuración para sincronización', [
+                'company_id' => $this->currentCompanyId,
+                'option_8_enabled' => $isElectronicEnabled ? 'SI' : 'NO',
+                'configService_exists' => $this->configService ? 'YES' : 'NO'
+            ]);
 
             if (!$isElectronicEnabled) {
                 return [
                     'should_sync' => false,
-                    'reason' => 'La facturación electrónica no está habilitada para esta empresa.'
+                    'reason' => 'La facturación electrónica no está habilitada (opción 8) para esta empresa.'
                 ];
             }
 
@@ -1918,8 +1928,9 @@ class VntCompanyForm extends Component
                 'reason' => 'Configuración válida para sincronización.'
             ];
         } catch (\Exception $e) {
-            Log::error('Error determinando si sincronizar con API', [
-                'error' => $e->getMessage()
+            Log::error('❌ Error determinando si sincronizar con API', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return [
                 'should_sync' => false,
@@ -3188,8 +3199,9 @@ class VntCompanyForm extends Component
      */
     protected function initializeCompanyConfiguration(): void
     {
-        if ($this->isConfigurationInitialized) {
-            Log::info('🔧 initializeCompanyConfiguration() - YA INICIALIZADO, saltando...');
+        // Solo saltar si YA ESTÁ inicializado Y tenemos el servicio y el ID (para evitar fallos por pérdida de estado en Livewire)
+        if ($this->isConfigurationInitialized && $this->configService && $this->currentCompanyId) {
+            Log::info('🔧 initializeCompanyConfiguration() - YA INICIALIZADO con datos, saltando...');
             return;
         }
 
@@ -3229,9 +3241,16 @@ class VntCompanyForm extends Component
                 $this->currentCompanyId = $company->id;
                 $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
 
-                Log::info('🔧 IDs asignados', [
+                // Sincronizar con el estado estático del Trait para que funcionen los métodos auxiliares
+                self::$sharedCompanyId = $this->currentCompanyId;
+                self::$sharedPlainId = $this->currentPlainId;
+                self::$staticConfigService = $this->configService;
+                self::$isStaticInitialized = true;
+
+                Log::info('🔧 IDs asignados y sincronizados con Trait', [
                     'currentCompanyId' => $this->currentCompanyId,
-                    'currentPlainId' => $this->currentPlainId
+                    'currentPlainId' => $this->currentPlainId,
+                    'sharedCompanyId' => self::$sharedCompanyId
                 ]);
             } else {
                 Log::warning('🔧 No se encontró empresa para el usuario');

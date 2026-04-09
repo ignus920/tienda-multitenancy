@@ -32,7 +32,7 @@ trait HasCompanyConfiguration
     /**
      * Flag para controlar si ya fue inicializado (Compartido)
      */
-    private static bool $isStaticInitialized = false;
+    protected static bool $isStaticInitialized = false;
 
     /**
      * Propiedades de instancia (Compatibilidad legacy)

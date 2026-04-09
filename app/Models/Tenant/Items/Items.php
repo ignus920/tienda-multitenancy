@@ -4,6 +4,7 @@ namespace App\Models\Tenant\Items;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Tenant\Items\Brand;
 use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\ImageGallery;
@@ -14,7 +15,7 @@ use App\Traits\HasCompanyConfiguration;
 
 class Items extends Model
 {
-    use HasFactory, HasCompanyConfiguration;
+    use HasFactory, SoftDeletes, HasCompanyConfiguration;
 
     protected $connection = 'tenant';
     protected $table = 'inv_items';
