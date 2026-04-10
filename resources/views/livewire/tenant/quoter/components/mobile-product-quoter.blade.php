@@ -873,6 +873,17 @@ $header = 'Seleccionar productos';
                                             pattern="[0-9]*"
                                             class="w-12 px-1 py-0.5 text-center text-sm font-bold border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
                                             value="{{ $item['quantity'] }}">
+
+                                        <!-- Botón Eliminar -->
+                                        <button 
+                                            wire:click="removeFromQuoter({{ $index }})"
+                                            wire:loading.attr="disabled"
+                                            class="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                            title="Eliminar item">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
                                     </div>
 
                                     <div class="text-sm font-black text-indigo-700 dark:text-indigo-300">
