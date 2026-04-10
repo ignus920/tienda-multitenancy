@@ -35,7 +35,7 @@ new class extends Component
     }
 }; ?>
 
-<div class="flex h-full flex-col overflow-y-auto">
+<div class="flex h-full flex-col" :class="sidebarCollapsed ? 'overflow-visible' : 'overflow-y-auto'">
     <!-- Logo -->
     <div class="flex shrink-0 items-center px-4 py-4 border-b border-gray-200 dark:border-gray-700"
         :class="sidebarCollapsed ? 'justify-center' : 'justify-start'">
@@ -93,7 +93,7 @@ new class extends Component
         <!-- Escritorio -->
         @if(!$isOperario && Auth::user()?->profile_id != 17)
         <a href="{{ route('tenant.dashboard') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.select') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.select') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -112,7 +112,7 @@ new class extends Component
 
             <!-- Tooltip -->
             <div x-show="tooltip" x-transition
-                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                 Escritorio
             </div>
         </a>
@@ -123,14 +123,15 @@ new class extends Component
 
         <!-- Ventas (menú con subitems) -->
         @if(!$isOperario && PermissionHelper::userCanAny(['Ventas'], 'show'))
-        <div x-data="{ 
-            tooltip: false, 
-            open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'true' : 'false' }} 
-        }" class="w-full">
+        <div x-data="{
+            tooltip: false,
+            open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'true' : 'false' }},
+            _t: null
+        }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
-                @mouseleave="tooltip = false" @click="open = !open">
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -149,11 +150,6 @@ new class extends Component
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
 
-                <!-- Tooltip (solo cuando está colapsado) -->
-                <div x-show="tooltip" x-transition
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Ventas
-                </div>
             </div>
 
             <!-- Submenú -->
@@ -179,14 +175,17 @@ new class extends Component
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
             <div x-show="sidebarCollapsed && tooltip" x-transition
-                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
-                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Ventas</div>
                 <a href="{{ route('tenant.quoter.products') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Ventas</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Ventas</a>
                 <a href="{{ route('tenant.quoter') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Cotizaciones</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Cotizaciones</a>
                 <a href="{{ route('tenant.remissions') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Remisiones</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Remisiones</a>
+                <a href="{{ route('tenant.invoices') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Facturas</a>
             </div>
         </div>
         @endif
@@ -195,11 +194,11 @@ new class extends Component
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
         @if(!$isOperario && PermissionHelper::userCanAny(['Usuarios'], 'show'))
-        <div x-data="{ tooltip: false, open: false }" class="w-full">
+        <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
-                @mouseleave="tooltip = false" @click="open = !open">
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
                 <!-- Icono de Parámetros (sliders/ajustes) -->
                 <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -218,11 +217,6 @@ new class extends Component
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
 
-                <!-- Tooltip (solo cuando está colapsado) -->
-                <div x-show="tooltip" x-transition
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Gestión de contactos
-                </div>
             </div>
 
             <!-- Submenú -->
@@ -240,11 +234,12 @@ new class extends Component
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
             <div x-show="sidebarCollapsed && tooltip" x-transition
-                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
-                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Gestión de contactos</div>
                 <a href="{{ route('customers.customers') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Gestión Clientes</a>
-                <a href="{{ route('users.users') }}" class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Gestión Usuarios</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión Contactos</a>
+                <a href="{{ route('users.users') }}" class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión Usuarios</a>
             </div>
         </div>
         @endif
@@ -278,11 +273,11 @@ new class extends Component
 
         <!-- Parámetros (menú con subitems) -->
         @if(!$isOperario && PermissionHelper::userCan('Parametros', 'show'))
-        <div x-data="{ tooltip: false, open: false }" class="w-full">
+        <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
-                @mouseleave="tooltip = false" @click="open = !open">
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
                 <!-- Icono de Parámetros (sliders/ajustes) -->
                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,11 +296,6 @@ new class extends Component
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
 
-                <!-- Tooltip (solo cuando está colapsado) -->
-                <div x-show="tooltip" x-transition
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Parámetros
-                </div>
             </div>
 
             <!-- Submenú -->
@@ -318,7 +308,7 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.pricelists') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Listas de Precios
                 </a>
-               
+
                 <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.campaigns.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Campañas
@@ -340,13 +330,21 @@ new class extends Component
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
             <div x-show="sidebarCollapsed && tooltip" x-transition
-                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
-                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Parámetros</div>
+                <a href="{{ route('tenant.parameters.company-information') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Empresa</a>
                 <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Listas de Precios</a>
-           
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Listas de Precios</a>
                 <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Campañas</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Campañas</a>
+                <a href="{{ route('tenant.tickets') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Solicitudes</a>
+                <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Zonas</a>
+                <a href="{{ route('tenant.parameters.routes') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Rutas</a>
             </div>
         </div>
         @endif
@@ -355,41 +353,15 @@ new class extends Component
 
 
 
-        <!-- Configuración -->
-        <!-- <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
-            x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed"
-            @mouseleave="tooltip = false">
-
-            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-
-            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
-                class="ml-3">
-                Configuración
-            </span> -->
-
-        <!-- Tooltip -->
-        <!-- <div x-show="tooltip" x-transition class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                Configuración
-            </div>
-        </div> -->
+      
 
         <!-- Inventario (menú con subitems) -->
         @if(PermissionHelper::userCan('Inventario', 'show'))
-        <div x-data="{ tooltip: false, open: false }" class="w-full">
+        <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
-                @mouseleave="tooltip = false" @click="open = !open">
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
                 <svg class="h-5 w-5 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                     width="24" height="24" fill="none" viewBox="0 0 24 24">
                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -400,18 +372,11 @@ new class extends Component
                     Inventario
                 </span>
 
-                <!-- Icono desplegable -->
                 <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
                     class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
                     stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
-
-                <!-- Tooltip (solo cuando está colapsado) -->
-                <div x-show="tooltip" x-transition
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Inventario
-                </div>
             </div>
 
             <!-- Submenú -->
@@ -447,32 +412,43 @@ new class extends Component
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
-           <div
-             x-show="sidebarCollapsed && tooltip"
-             x-transition
-             class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
-             @mouseenter="tooltip = true"
-             @mouseleave="tooltip = false"
-            >
-             <a href="{{url('/inventory/categories')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Categorías</a>
-             <a href="{{url('/items/items')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Ítems</a>
-             <a href="{{url('/inventory/brands')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Marcas</a>
-             <a href="{{url('/inventory/commands')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Comandas</a>
-             <a href="{{url('/inventory/units')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Unidades de Medida</a>
-             <a href="{{url('/inventory/houses')}}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Casas</a>
-             <a href="{{ route('movements.movements') }}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Gestión movimientos</a>
-            <a href="{{ route('transfers.transfers') }}" wire:navigate class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Transferencias</a>
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Inventario</div>
+                <a href="{{url('/items/items')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Ítems</a>
+                <a href="{{url('/inventory/categories')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Categorías</a>
+                @if (PermissionHelper::getMerchantType() == 5)
+                <a href="{{url('/inventory/commands')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Comandas</a>
+                @endif
+                <a href="{{url('/inventory/brands')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Marcas</a>
+                <a href="{{url('/inventory/houses')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Casas</a>
+                <a href="{{url('/inventory/units')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Unidades de Medida</a>
+                <a href="{{ route('movements.movements') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión movimientos</a>
+                <a href="{{ route('transfers.transfers') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Transferencias</a>
+                <a href="{{ route('tenant.transfer_requests') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Solicitud de stock</a>
+                <a href="{{url('/inventory/warehouses')}}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Bodegas</a>
             </div>
         </div>
         @endif
 
         <!-- Producción (menú con subitems) -->
         @if (PermissionHelper::userCan('Produccion', 'show'))   
-        <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }} }" class="w-full">
+        <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }}, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('production.*') ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600 dark:hover:text-amber-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
-                @mouseleave="tooltip = false" @click="open = !open">
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -484,18 +460,11 @@ new class extends Component
                     Producción
                 </span>
 
-                <!-- Icono desplegable -->
                 <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
                     class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
                     stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
-
-                <!-- Tooltip (sidebar colapsado) -->
-                <div x-show="tooltip" x-transition
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
-                    Producción
-                </div>
             </div>
 
             <!-- Submenú -->
@@ -513,12 +482,13 @@ new class extends Component
 
             <!-- Submenú colapsado -->
             <div x-show="sidebarCollapsed && tooltip" x-transition
-                class="absolute left-full ml-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-[9999] py-1 whitespace-nowrap"
-                @mouseenter="tooltip = true" @mouseleave="tooltip = false">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Producción</div>
                 <a href="{{ route('production.orders') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Órdenes</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Órdenes</a>
                 <a href="{{ route('production.processes') }}" wire:navigate
-                    class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600">Procesos</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Procesos</a>
             </div>
         </div>
         @endif
@@ -526,7 +496,7 @@ new class extends Component
         <!-- Importaciones -->
         @if(!$isOperario && PermissionHelper::userCan('Compras', 'show') && Auth::user()?->profile_id !=17)
         <a href="{{ route('imports.imports') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -546,7 +516,7 @@ new class extends Component
 
             <!-- Tooltip -->
             <div x-show="tooltip" x-transition
-                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                 Importaciones
             </div>
         </a>
@@ -555,7 +525,7 @@ new class extends Component
         <!-- Ordenes -->
         @if (!$isOperario && PermissionHelper::userCan('Compras', 'show'))
         <a href="{{ route('imports.imports-orders') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.imports-orders') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -571,7 +541,7 @@ new class extends Component
 
             <!-- Tooltip -->
             <div x-show="tooltip" x-transition
-                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                 Órdenes
             </div>
         </a>    
@@ -581,7 +551,7 @@ new class extends Component
         <!-- Caja -->
         @if (!$isOperario && PermissionHelper::userCan('Caja', 'show'))
         <a href="{{ route('petty-cash.petty-cash') }}" wire:navigate
-            class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('petty-cash.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('petty-cash.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
             @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -602,7 +572,7 @@ new class extends Component
 
             <!-- Tooltip -->
             <div x-show="tooltip" x-transition
-                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                 Caja
             </div>
         </a>    
@@ -614,7 +584,7 @@ new class extends Component
         <!-- Logout -->
         <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
             <button wire:click="logout"
-                class="group flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                class="group relative flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
                 @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
 
@@ -634,7 +604,7 @@ new class extends Component
 
                 <!-- Tooltip -->
                 <div x-show="tooltip" x-transition
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                    class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                     Cerrar Sesión
                 </div>
             </button>
