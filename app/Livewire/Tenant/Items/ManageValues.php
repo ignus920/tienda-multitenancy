@@ -116,6 +116,7 @@ class ManageValues extends Component
             'Precio Base' => 'precio',
             'Precio Regular' => 'precio',
             'Precio Crédito' => 'precio',
+            'Precio unitario x caja' => 'precio',
         ];
 
         $type = $typeMap[$label] ?? 'costo';

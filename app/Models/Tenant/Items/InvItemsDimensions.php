@@ -43,7 +43,8 @@ class InvItemsDimensions extends Model
         'width',
         'voltage',
         'power',
-        'weight'
+        'weight',
+        'quntityxbox'
     ];
 
     /**

@@ -138,6 +138,7 @@ class ManageItems extends Component
             'Precio Base' => 'Precio Base',
             'Precio Regular' => 'Precio Regular',
             'Precio Crédito' => 'Precio Crédito',
+            'Precio unitario x caja' => 'Precio unitario x caja',
         ],
     ];
 

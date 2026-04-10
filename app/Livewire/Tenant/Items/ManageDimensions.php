@@ -18,6 +18,7 @@ class ManageDimensions extends Component
     public $voltage;
     public $power;
     public $weight;
+    public $quntityxbox;
 
     public function mount($itemId)
     {
@@ -33,10 +34,11 @@ class ManageDimensions extends Component
             'item_id' => $this->itemId,
             'high' => $this->high,
             'long' => $this->long,
-            'width' => $this->voltage,
+            'width' => $this->width,
             'voltage' => $this->voltage,
             'power' => $this->power,
-            'weight' => $this->weight
+            'weight' => $this->weight,
+            'quntityxbox' => $this->quntityxbox
         ];
         //dd($infoItem);
         try {
@@ -79,6 +81,7 @@ class ManageDimensions extends Component
             $this->voltage = $itemDimension->voltage;
             $this->power = $itemDimension->power;
             $this->weight = $itemDimension->weight;
+            $this->quntityxbox = $itemDimension->quntityxbox;
         }
     }
 
@@ -116,6 +119,7 @@ class ManageDimensions extends Component
         $this->voltage = '';
         $this->power = '';
         $this->weight = '';
+        $this->quntityxbox = '';
         $this->itemId = '';
         $this->dimensions_id = '';
     }

@@ -96,6 +96,7 @@
                                     ['label' => 'Precio Base', 'type' => 'Precio'],
                                     ['label' => 'Precio Regular', 'type' => 'Precio'],
                                     ['label' => 'Precio Crédito', 'type' => 'Precio'],
+                                    ['label' => 'Precio unitario x caja', 'type' => 'Precio'],
                                 ];
                                 
                                 // Obtener valores existentes indexados por label
