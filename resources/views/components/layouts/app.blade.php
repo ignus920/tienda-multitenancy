@@ -25,7 +25,6 @@
                   if (value) document.body.style.overflow = 'hidden';
                   else document.body.style.overflow = 'auto';
               });
-              $watch('sidebarCollapsed', value => localStorage.setItem('sidebarCollapsed', value));
               $watch('darkMode', value => localStorage.setItem('darkMode', value));
           "
           :class="darkMode ? 'dark' : ''">
@@ -43,8 +42,10 @@
         </div>
 
         <!-- Desktop sidebar -->
-        <div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300"
-             :class="sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'">
+        <div class="hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300"
+             :class="sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'"
+             @mouseenter="if(sidebarCollapsed) sidebarCollapsed = false"
+             @mouseleave="sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'">
             <div class="flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900 shadow-xl border-r border-gray-200 dark:border-gray-700">
                 <livewire:layout.sidebar-navigation />
             </div>
@@ -57,7 +58,8 @@
             <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
                 <div class="flex h-16 items-center gap-x-4 px-4 sm:gap-x-6 sm:px-6 lg:px-8">
                     <!-- Desktop sidebar toggle -->
-                    <button type="button" class="hidden lg:block -m-2.5 p-2.5 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400" @click="sidebarCollapsed = !sidebarCollapsed">
+                    <button type="button" class="hidden lg:block -m-2.5 p-2.5 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400"
+                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed)">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                         </svg>
