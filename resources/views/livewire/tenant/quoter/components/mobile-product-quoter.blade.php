@@ -972,10 +972,26 @@ $header = 'Seleccionar productos';
                     </div>
 
                     <!-- Total -->
-                    <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
+                    <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white mb-2">
                         <span>Total:</span>
                         <span>${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
+
+                    <!-- Flete y Peso -->
+                    @if($totalWeight > 0 || $estimatedFreight > 0)
+                    <div class="bg-indigo-50 dark:bg-indigo-900/40 rounded-lg px-3 py-2 text-sm mt-2 mb-4 border border-indigo-200 dark:border-indigo-800">
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-indigo-800 dark:text-indigo-300">
+                                <span class="font-medium">Peso Total:</span>
+                                <span>{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
+                            </div>
+                            <div class="flex justify-between text-indigo-800 dark:text-indigo-300">
+                                <span class="font-medium">Valor Flete Estimado:</span>
+                                <span>${{ number_format($estimatedFreight, 2, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     <!-- Botones ---->
                     @if($isEditing || $isEditingRemission)
