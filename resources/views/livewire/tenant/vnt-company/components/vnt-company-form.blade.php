@@ -692,6 +692,7 @@
                         @endif
                         <!-- Ciudad de la Sucursal -->
                         <div>
+
                             @livewire('selects.city-select', [
                             'cityId' => $warehouseCityId ?? '',
                             'countryId' => 48,
@@ -706,7 +707,16 @@
 
                             @error('warehouseCityId')
                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                               @enderror
+                            @enderror
+                        </div>
+
+                        <!-- Dirección de la Sucursal -->
+                        <div class="md:col-span-2">
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal *</label>
+                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ej: Calle 123 #45-67">
+                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         @if($this->canUploadsEnable())
@@ -739,12 +749,7 @@
 
                         <!-- Dirección de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal *</label>
-                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ej: Calle 123 #45-67">
-                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                        </div>
+                        <!-- ...existing code... -->
 
                         <!-- Crear Usuario Checkbox -->
                         <div class="md:col-span-2">
@@ -1090,6 +1095,15 @@
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        <!-- Dirección de la Sucursal -->
+                        <div class="md:col-span-2">
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal *</label>
+                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ej: Calle 123 #45-67">
+                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
                         @endif
 
                         @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
@@ -1142,6 +1156,32 @@
                                 </div>
                             </div>
 
+                        </div>
+                        <!-- Ciudad para sucursal principal -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ciudad <span class="text-red-500">*</span>
+                            </label>
+                            @livewire('selects.city-select', [
+                            'cityId' => $warehouseCityId,
+                            'name' => 'warehouseCityId',
+                            'label' => '',
+                            'showLabel' => false,
+                            'placeholder' => 'Seleccionar ciudad',
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('warehouseCityId')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Dirección de la Sucursal -->
+                        <div class="md:col-span-2">
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal *</label>
+                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ej: Calle 123 #45-67">
+                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
                         @endif
                         @else()
