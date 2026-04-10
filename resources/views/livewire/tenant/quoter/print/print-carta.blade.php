@@ -304,9 +304,11 @@
                     <td class="description">{{ $detalle->item ? ($detalle->item->name ?? $detalle->item->display_name) : 'Producto no encontrado' }}</td>
                     <td>
                         @if($detalle->item && $detalle->item->principalImage)
-                            Sin imagen
+                            <img src="{{ $detalle->item->getPrincipalThumbnailUrl() }}" 
+                                 alt="{{ $detalle->item->name }}" 
+                                 style="max-width: 60px; max-height: 60px; object-fit: contain; display: block; margin: 0 auto;">
                         @else
-                            Sin imagen
+                            <span style="color: #999; font-size: 8pt;">Sin imagen</span>
                         @endif
                     </td>
                     <td class="quantity">{{ $detalle->quantity }}</td>
