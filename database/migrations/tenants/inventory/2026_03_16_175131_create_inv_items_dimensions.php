@@ -21,6 +21,7 @@ return new class extends Migration
             $table->decimal('voltage', 10, 2)->nullable()->default(0.00);
             $table->decimal('power', 10, 2)->nullable()->default(0.00);
             $table->decimal('weight', 10, 2)->nullable()->default(0.00);
+            $table->integer('quntityxbox')->nullable()->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
