@@ -766,6 +766,27 @@ $header = 'Seleccionar productos';
 
                 <!-- Contenido del carrito -->
                 <div class="flex-1 overflow-y-auto px-4 py-4 min-h-0">
+                    
+                    <!-- Bar de Flete Slim Interactivo - Móvil -->
+                    @if($totalWeight > 0 || $estimatedFreight > 0)
+                    <div 
+                        wire:click="applyFreightToQuoter"
+                        class="mb-3 flex items-center justify-between px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-700 rounded-lg cursor-pointer active:scale-95 transition-all shadow-sm">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-tight">Valor Flete Estimado:</span>
+                            <span class="text-sm font-black text-indigo-900 dark:text-white">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-gray-400">{{ number_format($totalWeight, 1, ',', '.') }} Kg</span>
+                            <div class="bg-indigo-600 text-white p-1.5 rounded-md shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     @if(empty($quoterItems))
 
                     <div class="text-center py-8">
@@ -977,21 +998,8 @@ $header = 'Seleccionar productos';
                         <span>${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
 
-                    <!-- Flete y Peso -->
-                    @if($totalWeight > 0 || $estimatedFreight > 0)
-                    <div class="bg-indigo-50 dark:bg-indigo-900/40 rounded-lg px-3 py-2 text-sm mt-2 mb-4 border border-indigo-200 dark:border-indigo-800">
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-indigo-800 dark:text-indigo-300">
-                                <span class="font-medium">Peso Total:</span>
-                                <span>{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
-                            </div>
-                            <div class="flex justify-between text-indigo-800 dark:text-indigo-300">
-                                <span class="font-medium">Valor Flete Estimado:</span>
-                                <span>${{ number_format($estimatedFreight, 2, ',', '.') }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
+
+                    <!-- Botones ---->
 
                     <!-- Botones ---->
                     @if($isEditing || $isEditingRemission)

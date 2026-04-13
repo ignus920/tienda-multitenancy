@@ -823,6 +823,28 @@ $header = 'Seleccionar productos';
                     </div>
                     @endif
 
+
+
+                    <!-- Bar de Flete Slim Interactivo -->
+                    @if($totalWeight > 0 || $estimatedFreight > 0)
+                    <div 
+                        wire:click="applyFreightToQuoter"
+                        class="mt-2 flex items-center justify-between px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-700 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all group shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-indigo-800 dark:text-indigo-300">Valor Flete Estimado:</span>
+                            <span class="text-sm font-black text-indigo-900 dark:text-white">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-[11px] font-bold text-indigo-500/70 dark:text-indigo-400/70">{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
+                            <div class="bg-indigo-600 text-white p-1 rounded-md group-hover:bg-indigo-700 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     @if($showCreateCustomerButton || $showCreateCustomerForm)
                     <!-- Formulario para crear/editar cliente -->
 
@@ -1021,20 +1043,6 @@ $header = 'Seleccionar productos';
                     </div>
 
                     <!-- Flete y Peso -->
-                    @if($totalWeight > 0 || $estimatedFreight > 0)
-                    <div class="bg-indigo-50 dark:bg-indigo-900/40 rounded-lg px-3 py-2 text-sm mt-3 border border-indigo-200 dark:border-indigo-800">
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-indigo-800 dark:text-indigo-300">
-                                <span class="font-medium">Peso Total:</span>
-                                <span>{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
-                            </div>
-                            <div class="flex justify-between text-indigo-800 dark:text-indigo-300">
-                                <span class="font-medium">Valor Flete Estimado:</span>
-                                <span>${{ number_format($estimatedFreight, 2, ',', '.') }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
 
                     @if($isEditing || $isEditingRemission)
                     <!-- Botones para edición -->

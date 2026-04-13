@@ -1109,6 +1109,62 @@ class ProductQuoter extends Component
         return false;
     }
 
+    public function applyFreightToQuoter()
+    {
+        if ($this->estimatedFreight <= 0) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'No hay flete estimado para aplicar'
+            ]);
+            return;
+        }
+
+        // Redondear al mil más cercano
+        $valorRedondeado = round($this->estimatedFreight / 1000) * 1000;
+
+        // Nombre del ítem
+        $itemName = "FLETE (Logística y Envío)";
+
+        // Buscar si ya existe en el cotizador para actualizarlo
+        $existingIndex = false;
+        foreach ($this->quoterItems as $index => $item) {
+            if ($item['name'] === $itemName) {
+                $existingIndex = $index;
+                break;
+            }
+        }
+
+        if ($existingIndex !== false) {
+            // Actualizar valor existente
+            $this->quoterItems[$existingIndex]['price'] = $valorRedondeado;
+            $this->quoterItems[$existingIndex]['quantity'] = 1;
+        } else {
+            // Agregar como nuevo ítem (como producto genérico)
+            $this->quoterItems[] = [
+                'id' => '999999' . time(), // ID ficticio para evitar colisiones
+                'sku' => 'FLETE-ENVIO',
+                'name' => $itemName,
+                'price' => $valorRedondeado,
+                'quantity' => 1,
+                'tax' => 0,
+                'tax_label' => 'Exento',
+                'weight' => 0,
+                'category_id' => 0,
+            ];
+        }
+
+        // Recalcular totales generales
+        $this->calculateTotal();
+        
+        // Guardar en sesión para persistencia
+        session(['quoter_items' => $this->quoterItems]);
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Flete aplicado correctamente: $' . number_format($valorRedondeado, 0, ',', '.')
+        ]);
+    }
+
     private function calculateTotal()
     {
         // Resetear valores
