@@ -322,6 +322,10 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.routes') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Rutas
                 </a>
+                <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.parameters.access-control') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Control de Acceso
+                </a>
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -339,6 +343,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Zonas</a>
                 <a href="{{ route('tenant.parameters.routes') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Rutas</a>
+                <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Control Acceso</a>
             </div>
         </div>
         @endif
