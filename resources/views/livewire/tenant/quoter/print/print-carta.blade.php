@@ -425,12 +425,88 @@
                 <span>IVA $:</span>
                 <span class="amount">${{ number_format($iva, 0) }}</span>
             </div>
+            <!-- Retenciones (solo si existen y superan el tope) -->
+            @php
+                // Lógica igual a ProductQuoter.php
+                $regimeDescription = 'COMMON_REGIME';
+                if (isset($customer) && isset($customer->company) && isset($customer->company->regimen)) {
+                    $regimeDescription = $customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME';
+                }
+                $fiscalResponsability = 0;
+                if (isset($customer) && isset($customer->company) && isset($customer->company->fiscal_responsibility_id)) {
+                    $fiscalResponsability = (int)$customer->company->fiscal_responsibility_id;
+                } elseif (isset($customer) && isset($customer->fiscal_responsibility_id)) {
+                    $fiscalResponsability = (int)$customer->fiscal_responsibility_id;
+                }
+                $city = '';
+                if (isset($customer) && isset($customer->company) && isset($customer->company->city)) {
+                    $city = $customer->company->city;
+                } elseif (isset($customer) && isset($customer->city)) {
+                    $city = $customer->city;
+                }
+                $subTotal = $subtotal;
+            
+                // Topes y porcentajes desde config
+                $baseFuente = config('facturacion.retentions.base_amounts.fuente', 524000);
+                $porcFuente = config('facturacion.retentions.percentages.fuente', 0.025);
+                $baseIca = config('facturacion.retentions.base_amounts.ica', 1418800);
+                $porcIca = config('facturacion.retentions.percentages.ica', 0.001104);
+                $icaCities = config('facturacion.retentions.ica_cities', ['Bogotá, D.C.']);
+                $baseIva = config('facturacion.retentions.base_amounts.iva', 300000);
+                $porcIva = config('facturacion.retentions.percentages.iva', 0.15);
+                $ivaResponsibilities = config('facturacion.retentions.iva_fiscal_responsibilities', [5]);
+            
+                // Calculo fuente
+                $ret_fuente = 0;
+                if ($subTotal >= $baseFuente && $regimeDescription && (
+                    $regimeDescription === 'COMMON_REGIME' ||
+                    ($regimeDescription === 'SPECIAL_REGIME' && $fiscalResponsability === 5)
+                )) {
+                    $ret_fuente = round($subTotal * $porcFuente, 2);
+                }
+            
+                // Calculo ICA
+                $ret_ica = 0;
+                if ($subTotal >= $baseIca && in_array($city, $icaCities) && $regimeDescription && (
+                    $regimeDescription === 'COMMON_REGIME' || $regimeDescription === 'SPECIAL_REGIME'
+                )) {
+                    $ret_ica = round($subTotal * $porcIca, 2);
+                }
+            
+                // Calculo IVA
+                $ret_iva = 0;
+                if ($subTotal >= $baseIva && in_array($fiscalResponsability, $ivaResponsibilities)) {
+                    $ret_iva = round($subTotal * $porcIva, 2);
+                }
+            
+                $showRetentions = ($ret_fuente > 0 || $ret_ica > 0 || $ret_iva > 0);
+            @endphp
+            @if($showRetentions)
+                <div class="total-line">RETENCIONES</div>
+                @if($ret_fuente > 0)
+                    <span>Ret. Fuente (2.5%):</span>
+                    <span class="amount">-${{ number_format($ret_fuente, 0) }}</span>
+                @endif
+                @if($ret_ica > 0)
+                    <span>Ret. ICA (11.04‰):</span>
+                    <span class="amount">-${{ number_format($ret_ica, 0) }}</span>
+                @endif
+                @if($ret_iva > 0)
+                    <span>Ret. IVA (15%):</span>
+                    <span class="amount">-${{ number_format($ret_iva, 0) }}</span>
+                @endif
+                <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid black; margin-top: 6px; padding-top: 4px;">
+                    <span>Total con Retenciones:</span>
+                    <span style="color: black;">${{ number_format($total - $ret_fuente - $ret_ica - $ret_iva, 0) }}</span>
+                </div>
+            @endif
             <div class="total-line final">
                 <span>Total:</span>
                 <span class="amount">${{ number_format($total, 0) }}</span>
             </div>
         </div>
     </div>
+
 
     <!-- Footer -->
     <div class="footer">
