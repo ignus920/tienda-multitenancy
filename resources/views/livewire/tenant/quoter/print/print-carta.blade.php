@@ -143,6 +143,63 @@
             font-weight: bold;
         }
 
+        /* Images page */
+        .images-page {
+            page-break-before: always;
+        }
+
+        .images-page-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #000;
+        }
+
+        .images-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: flex-start;
+        }
+
+        .image-card {
+            width: 150px;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .image-card img {
+            width: 130px;
+            height: 130px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 6px auto;
+        }
+
+        .image-card .product-name {
+            font-size: 8pt;
+            font-weight: bold;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+
+        .image-card .no-image-placeholder {
+            width: 130px;
+            height: 130px;
+            background-color: #f5f5f5;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 6px auto;
+            font-size: 8pt;
+            color: #999;
+        }
+
         .totals-section {
             margin-top: 15px;
             display: flex;
@@ -288,7 +345,6 @@
                 <th>Código</th>
                 <th>Unidad</th>
                 <th>Descripción</th>
-                <th>Imágenes</th>
                 <th>Cantidad</th>
                 <th>Valor Unitario</th>
                 <th>Descuento</th>
@@ -303,13 +359,6 @@
                     <td class="code">{{ $detalle->item ? ($detalle->item->sku ?? 'N/A') : 'N/A' }}</td>
                     <td class="unit">Unidad</td>
                     <td class="description">{{ $detalle->item ? ($detalle->item->name ?? $detalle->item->display_name) : 'Producto no encontrado' }}</td>
-                    <td>
-                        @if($detalle->item && $detalle->item->principalImage)
-                            Sin imagen
-                        @else
-                            Sin imagen
-                        @endif
-                    </td>
                     <td class="quantity">{{ $detalle->quantity }}</td>
                     <td class="price">${{ number_format($detalle->value, 0) }}</td>
                     <td>
@@ -395,6 +444,29 @@
             <div style="width: 100px; height: 100px; border: 1px solid #000; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                 QR CODE
             </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Images Page -->
+    @php
+        $detallesConImagen = $quote->detalles->filter(fn($d) => $d->item);
+    @endphp
+    @if($detallesConImagen->count() > 0)
+    <div class="images-page">
+        <div class="images-page-title">Imágenes de Productos</div>
+        <div class="images-grid">
+            @foreach($detallesConImagen as $detalle)
+                <div class="image-card">
+                    @if($detalle->item->principalImage)
+                        <img src="{{ $detalle->item->getPrincipalThumbnailUrl() }}"
+                             alt="{{ $detalle->item->name ?? $detalle->item->display_name }}">
+                    @else
+                        <div class="no-image-placeholder">Sin imagen</div>
+                    @endif
+                    <div class="product-name">{{ $detalle->item->name ?? $detalle->item->display_name }}</div>
+                </div>
+            @endforeach
         </div>
     </div>
     @endif

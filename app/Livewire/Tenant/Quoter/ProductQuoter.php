@@ -41,6 +41,8 @@ class ProductQuoter extends Component
     public $selectedProducts = [];
     public $quoterItems = [];
     public $totalAmount = 0;
+    public $totalWeight = 0;
+    public $estimatedFreight = 0;
     public $showCartModal = false;
 
     // Propiedades para desglose de impuestos
@@ -94,7 +96,7 @@ class ProductQuoter extends Component
     ];
     public $showRetentions = false; // Mostrar sección de retenciones solo si hay valores > 0
     public $totalWithRetentions = 0; // Total después de aplicar retenciones
-    
+
     // Array reactivo para acumular en tiempo real las etiquetas de descuento de la sesión
     public $appliedDiscounts = [];
 
@@ -126,12 +128,12 @@ class ProductQuoter extends Component
     public function toggleCopyMode()
     {
         $this->isCopyMode = !$this->isCopyMode;
-        
+
         $this->dispatch('show-toast', [
             'type' => $this->isCopyMode ? 'success' : 'info',
             'message' => $this->isCopyMode ? 'Modo Copia Activado' : 'Modo Cotización Activado'
         ]);
-        
+
         Log::info('🔄 Cambio de modo', ['isCopyMode' => $this->isCopyMode]);
     }
 
@@ -392,7 +394,7 @@ class ProductQuoter extends Component
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->where(function ($q) {
                     $q->whereNull('inv_items_store.itemId') // Items no inventariables (sin registros en bodega)
-                      ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
+                        ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
                 })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
@@ -487,7 +489,7 @@ class ProductQuoter extends Component
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
-            $product = Items::with('tax')->find($productId);
+            $product = Items::with(['tax', 'dimensions'])->find($productId);
 
             if (!$product) {
                 $this->dispatch('show-toast', [
@@ -508,6 +510,8 @@ class ProductQuoter extends Component
                 'price_label' => $priceLabel,
                 'quantity' => 1,
                 'description' => $product->description,
+                'weight' => $product->dimensions->weight ?? 0,
+                'category_id' => $product->categoryId,
             ]);
         }
 
@@ -889,7 +893,7 @@ class ProductQuoter extends Component
     public function selectCustomer($customerId)
     {
         $this->ensureTenantConnection();
-        $customer = VntCompany::with(['warehouses' => function($q) {
+        $customer = VntCompany::with(['warehouses' => function ($q) {
             $q->where('status', 1)->with('city');
         }])->find($customerId);
 
@@ -983,7 +987,7 @@ class ProductQuoter extends Component
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
         $this->editingCustomerId = null;
-        
+
         // Al eliminar el cliente, recalcular/eliminar retenciones
         $this->calculateRetentionsForModal();
     }
@@ -1114,6 +1118,62 @@ class ProductQuoter extends Component
         return false;
     }
 
+    public function applyFreightToQuoter()
+    {
+        if ($this->estimatedFreight <= 0) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'No hay flete estimado para aplicar'
+            ]);
+            return;
+        }
+
+        // Redondear al mil más cercano
+        $valorRedondeado = round($this->estimatedFreight / 1000) * 1000;
+
+        // Nombre del ítem
+        $itemName = "FLETE (Logística y Envío)";
+
+        // Buscar si ya existe en el cotizador para actualizarlo
+        $existingIndex = false;
+        foreach ($this->quoterItems as $index => $item) {
+            if ($item['name'] === $itemName) {
+                $existingIndex = $index;
+                break;
+            }
+        }
+
+        if ($existingIndex !== false) {
+            // Actualizar valor existente
+            $this->quoterItems[$existingIndex]['price'] = $valorRedondeado;
+            $this->quoterItems[$existingIndex]['quantity'] = 1;
+        } else {
+            // Agregar como nuevo ítem (como producto genérico)
+            $this->quoterItems[] = [
+                'id' => '999999' . time(), // ID ficticio para evitar colisiones
+                'sku' => 'FLETE-ENVIO',
+                'name' => $itemName,
+                'price' => $valorRedondeado,
+                'quantity' => 1,
+                'tax' => 0,
+                'tax_label' => 'Exento',
+                'weight' => 0,
+                'category_id' => 0,
+            ];
+        }
+
+        // Recalcular totales generales
+        $this->calculateTotal();
+
+        // Guardar en sesión para persistencia
+        session(['quoter_items' => $this->quoterItems]);
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Flete aplicado correctamente: $' . number_format($valorRedondeado, 0, ',', '.')
+        ]);
+    }
+
     private function calculateTotal()
     {
         // Resetear valores
@@ -1129,12 +1189,26 @@ class ProductQuoter extends Component
         $this->totalTaxes = 0;
 
         $totalAmount = 0;
+        $pesoTotal = 0;
+        $hayFactor3 = false;
 
         // Procesar cada item del cotizador
         foreach ($this->quoterItems as $item) {
             $priceWithTax = $item['price'];
             $taxPercentage = (float)($item['tax'] ?? 0);
             $quantity = $item['quantity'];
+
+            // Calculamos factor y recargo de peso (Categoría 3 era el equivalente a factor=3 en el antiguo sistema)
+            $pesoProducto = isset($item['weight']) ? (float)$item['weight'] : 0.0;
+            $categoryId = $item['category_id'] ?? 0;
+            $factorPeso = ($categoryId == 3) ? 2 : 1;
+
+            if ($categoryId == 3) {
+                $hayFactor3 = true;
+            }
+
+            $pesoLinea = $pesoProducto * $quantity * $factorPeso;
+            $pesoTotal += $pesoLinea;
 
             if ($taxPercentage > 0) {
                 // Producto con impuestos - calcular precio base sin impuestos
@@ -1180,7 +1254,7 @@ class ProductQuoter extends Component
         // Calcular etiquetas de descuentos para la vista
         $this->appliedDiscounts = collect($this->quoterItems)
             ->pluck('price_label')
-            ->filter(function($label) {
+            ->filter(function ($label) {
                 if (empty($label)) return false;
                 $l = trim(mb_strtolower($label, 'UTF-8'));
                 return !in_array($l, ['precio regular', 'regular', 'precio base', 'precio', 'lista', 'crédito', 'precio crédito', 'precio remisión', 'precio seleccionado']);
@@ -1191,12 +1265,47 @@ class ProductQuoter extends Component
 
         // Calcular retenciones en tiempo real
         $this->calculateRetentionsForModal();
+        // -- CALCULO DE FLETE --
+        $fleteTotal = 10000.0;
+        $recargo = $hayFactor3 ? 10000 : 0;
+
+        if ($this->subTotal < 1000000) {
+            if ($pesoTotal * 1.7 > 10000) {
+                $fleteTotal = $pesoTotal * 1.7;
+            }
+        } elseif ($this->subTotal >= 1000000 && $this->subTotal < 5000000) {
+            if ($pesoTotal * 1.4 > 10000) {
+                $fleteTotal = $pesoTotal * 1.4;
+            }
+        } elseif ($this->subTotal >= 5000000 && $this->subTotal < 15000000) {
+            if ($pesoTotal * 1.2 > 10000) {
+                $fleteTotal = $pesoTotal * 1.2;
+            }
+        } elseif ($this->subTotal >= 15000000) {
+            if ($pesoTotal * 0.96 > 10000) {
+                $fleteTotal = $pesoTotal * 0.96;
+            }
+        }
+
+        $fleteTotal += $recargo;
+
+        // Calcular Seguro (0.7% del subtotal sin IVA)
+        $valorSinIva = $this->subTotal;
+        $seguro = $valorSinIva * 0.007;
+
+        $fleteTotal += $seguro;
+
+        // Asignamos a propiedades publicas del componente para poder pintarlas en frontend
+        $this->totalWeight = round($pesoTotal, 2);
+        $this->estimatedFreight = round($fleteTotal, 2);
 
         Log::debug('🧮 Desglose de impuestos calculado', [
             'subtotal' => $this->subTotal,
             'tax_breakdown' => $this->taxBreakdown,
             'total_taxes' => $this->totalTaxes,
             'total_amount' => $this->totalAmount,
+            'pesoTotal' => $this->totalWeight,
+            'flete_estimado' => $this->estimatedFreight,
             'items_count' => count($this->quoterItems)
         ]);
     }
@@ -1405,10 +1514,10 @@ class ProductQuoter extends Component
                     'detalle_completo' => $detalle->toArray()
                 ]);
 
-                $product = Items::with('tax')->find($detalle->itemId);
+                $product = Items::with(['tax', 'dimensions'])->find($detalle->itemId);
                 if ($product) {
                     $priceLabel = $detalle->price_label;
-                    
+
                     if (empty($priceLabel) || $priceLabel === 'NO EXISTE EN BD' || $priceLabel === 'Precio seleccionado') {
                         $priceLabel = 'Precio seleccionado';
                         $productPrices = $product->all_prices;
@@ -1432,6 +1541,8 @@ class ProductQuoter extends Component
                         'description' => $product->description,
                         'tax' => $product->tax->percentage ?? 0,
                         'tax_label' => $product->tax->name ?? 'IVA',
+                        'weight' => $product->dimensions->weight ?? 0,
+                        'category_id' => $product->categoryId,
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -2091,13 +2202,13 @@ class ProductQuoter extends Component
 
         // Mostrar retenciones si hay alguna > 0
         $this->showRetentions = ($calculatedRetentions['retention_fuente'] > 0 ||
-                                $calculatedRetentions['retention_ica'] > 0 ||
-                                $calculatedRetentions['retention_iva'] > 0);
+            $calculatedRetentions['retention_ica'] > 0 ||
+            $calculatedRetentions['retention_iva'] > 0);
 
         // Calcular total con retenciones usando valores sin redondear para máxima precisión
         $totalRetentions = $calculatedRetentions['retention_fuente'] +
-                          $calculatedRetentions['retention_ica'] +
-                          $calculatedRetentions['retention_iva'];
+            $calculatedRetentions['retention_ica'] +
+            $calculatedRetentions['retention_iva'];
 
         $this->totalWithRetentions = round($this->totalAmount - $totalRetentions, 2);
 
@@ -2450,11 +2561,9 @@ class ProductQuoter extends Component
                     ($customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME') :
                     'COMMON_REGIME';
                 $fiscalResponsability = $customer->company && $customer->company->fiscal_responsibility_id ?
-                    (int)$customer->company->fiscal_responsibility_id :
-                    ($customer->fiscal_responsibility_id ? (int)$customer->fiscal_responsibility_id : 0);
+                    (int)$customer->company->fiscal_responsibility_id : ($customer->fiscal_responsibility_id ? (int)$customer->fiscal_responsibility_id : 0);
                 $city = $customer->company && $customer->company->city ?
-                    $customer->company->city :
-                    ($customer->city ?: '');
+                    $customer->company->city : ($customer->city ?: '');
 
                 $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
                     'regime_description' => $regimeDescription,
@@ -2682,7 +2791,7 @@ class ProductQuoter extends Component
     {
         $this->ensureTenantConnection();
         try {
-            $remission = InvRemissions::with(['details.item', 'quote.customer'])->findOrFail($remissionId);
+            $remission = InvRemissions::with(['details.item.dimensions', 'quote.customer'])->findOrFail($remissionId);
 
             $this->editingRemissionId = $remissionId;
             $this->isEditingRemission = true;
@@ -2718,6 +2827,8 @@ class ProductQuoter extends Component
                         'description' => $detalle->item->description,
                         'tax' => $detalle->tax ?? 0,
                         'tax_label' => $detalle->tax_label ?? 'N/A',
+                        'weight' => $detalle->item->dimensions->weight ?? 0,
+                        'category_id' => $detalle->item->categoryId,
                     ];
                 }
             }
@@ -2967,8 +3078,8 @@ class ProductQuoter extends Component
                 // Obtener valor total de la factura local CON DECIMALES
                 // Si hay retenciones calculadas en el modal, el monto a pagar es menor
                 $modalRetentionsTotal = ($this->retentions['retention_fuente'] ?? 0) +
-                                      ($this->retentions['retention_ica'] ?? 0) +
-                                      ($this->retentions['retention_iva'] ?? 0);
+                    ($this->retentions['retention_ica'] ?? 0) +
+                    ($this->retentions['retention_iva'] ?? 0);
 
                 // Redondear el total final para evitar discrepancias de centavos
                 $invoiceTotal = $modalRetentionsTotal > 0 ?

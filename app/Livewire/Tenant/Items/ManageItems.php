@@ -119,6 +119,7 @@ class ManageItems extends Component
     public $showSelectStore = false;
     public $showProductionSection = false;
     public $showDimensionSection = false;
+    public $showAccesoriosSection = false;
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
@@ -138,6 +139,7 @@ class ManageItems extends Component
             'Precio Base' => 'Precio Base',
             'Precio Regular' => 'Precio Regular',
             'Precio Crédito' => 'Precio Crédito',
+            'Precio unitario x caja' => 'Precio unitario x caja',
         ],
     ];
 
@@ -326,6 +328,7 @@ class ManageItems extends Component
         $this->disabled = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
 
         $this->showModal = true;
     }
@@ -1113,6 +1116,7 @@ class ManageItems extends Component
         $this->showValuesModal = false;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
         $this->internal_codeExists = false;
         $this->validatingInternal_code = false;
         $this->skuExists = false;
@@ -1789,6 +1793,15 @@ class ManageItems extends Component
     {
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+    }
+
+    public function activateAccesoriosSection(int $item_id): void
+    {
+        $this->item_id = $item_id;
+        $this->showAccesoriosSection = true;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
     }
 
     public function showImportSection($item_id)
@@ -1796,6 +1809,7 @@ class ManageItems extends Component
         $this->item_id = $item_id;
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
     }
 
     public function showProductionSection($item_id)
@@ -1807,6 +1821,7 @@ class ManageItems extends Component
         $this->item_id = $item_id;
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
     }
 
     public function  activateDimensionSection($item_id)
@@ -1819,5 +1834,6 @@ class ManageItems extends Component
         $this->item_id = $item_id;
         $this->showDimensionSection = true;
         $this->showProductionSection = false;
+        $this->showAccesoriosSection = false;
     }
 }

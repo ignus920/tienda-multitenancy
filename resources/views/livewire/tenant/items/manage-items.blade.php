@@ -399,7 +399,7 @@
                 </div>
                 
                 <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
-                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1))
+                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1 || $item_id))
                     <div class="px-6 pt-4">
                         <div class="border-b border-gray-200 dark:border-gray-700">
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
@@ -440,6 +440,17 @@
                                 </button>
                                 @endif
 
+                                <!-- Pestaña Accesorios - Visible para todos los items guardados -->
+                                <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-puzzle-piece class="w-5 h-5" />
+                                        <span>Accesorios</span>
+                                    </div>
+                                </button>
+
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
                                 @if ($inventoriable === 1)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
@@ -458,7 +469,7 @@
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection))
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -740,6 +751,7 @@
                                                 ['label' => 'Precio Base', 'type' => 'Precio'],
                                                 ['label' => 'Precio Regular', 'type' => 'Precio'],
                                                 ['label' => 'Precio Crédito', 'type' => 'Precio'],
+                                                ['label' => 'Precio unitario x caja', 'type' => 'Precio'],
                                             ];
                                         @endphp
                                         @foreach ($staticValues as $index => $staticValue)
@@ -837,7 +849,7 @@
                         </div>
                     </div>
                 </form>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection))
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
                     <!-- PESTAÑA 2: Contenido según el tipo del item -->
                     @if($showProductionSection)
                         @if($type == 'IMPORTADO')
@@ -847,6 +859,8 @@
                         @endif
                     @elseif($showDimensionSection)
                         @livewire('tenant.items.manage-dimensions', ['itemId' => $item_id], key('dim-'.$item_id))
+                    @elseif($showAccesoriosSection)
+                        @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @endif
                 @endif
 

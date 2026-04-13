@@ -93,6 +93,14 @@ class Items extends Model
     }
 
     /**
+     * Relación con las dimensiones e información física
+     */
+    public function dimensions()
+    {
+        return $this->hasOne(\App\Models\Tenant\Items\InvItemsDimensions::class, 'item_id', 'id');
+    }
+
+    /**
      * Relación con la configuración de importación
      */
     public function importSetup()
