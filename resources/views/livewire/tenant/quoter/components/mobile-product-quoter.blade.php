@@ -976,12 +976,12 @@ $header = 'Seleccionar productos';
                             <span>Subtotal (sin impuestos):</span>
                             <span>${{ number_format($subTotal, 2, ',', '.') }}</span>
                         </div>
-                        @foreach($discountPercents as $discount)
+                        {{-- @foreach($discountPercents as $discount)
                         <div class="flex flex-wrap items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium w-full">
                             <span class="flex-shrink-0">Descuento:</span>
                             <span class="text-right truncate ml-2 max-w-[60%]">{{ $discount }}</span>
                         </div>
-                        @endforeach
+                        @endforeach --}}
 
                         @if($taxBreakdown['iva_5'] > 0)
                         <div class="flex justify-between text-gray-700 dark:text-gray-300">
