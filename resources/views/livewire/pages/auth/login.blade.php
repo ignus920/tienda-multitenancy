@@ -83,14 +83,31 @@ new #[Layout('layouts.guest')] class extends Component
                 
                 // Si solo tiene un tenant, establecerlo automáticamente
                 if ($userTenants->count() === 1) {
-                    Session::put('tenant_id', $userTenants->first()->id);
+                    $tenant = $userTenants->first();
+                    Session::put('tenant_id', $tenant->id);
+
+                    // --- VALIDACIÓN DE CONTROL DE ACCESO ---
+                    if (!auth()->user()->isSuperAdmin()) {
+                        $accessResult = $tenant->run(function () use ($user, $tenant) {
+                            app(\App\Services\Tenant\TenantManager::class)->setConnection($tenant);
+                            $accessService = new \App\Services\Tenant\Auth\AccessControlService();
+                            return $accessService->checkAccess($user);
+                        });
+                        
+                        if (!$accessResult['status']) {
+                            auth()->logout();
+                            Session::invalidate();
+                            $this->dispatch('login-error', [
+                                'title' => 'Acceso restringido',
+                                'message' => $accessResult['message'],
+                                'icon' => 'error'
+                            ]);
+                            return;
+                        }
+                    }
                 }
                 
-                // Marcar que necesita seleccionar sucursal
-                //Session::put('needs_warehouse_selection', true);
-                //Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
-                
-                // Redirigir a tenant.select (el modal se abrirá automáticamente)
+                // Redirigir a la ruta de importaciones
                 $this->redirect(route('imports.imports-orders'), navigate: true);
                 return;
             }
@@ -100,14 +117,35 @@ new #[Layout('layouts.guest')] class extends Component
             
             // Si solo tiene un tenant, establecerlo automáticamente
             if ($userTenants->count() === 1) {
-                Session::put('tenant_id', $userTenants->first()->id);
+                $tenant = $userTenants->first();
+                Session::put('tenant_id', $tenant->id);
+
+                // --- VALIDACIÓN DE CONTROL DE ACCESO ---
+                if (!auth()->user()->isSuperAdmin()) {
+                    $accessResult = $tenant->run(function () use ($user, $tenant) {
+                        app(\App\Services\Tenant\TenantManager::class)->setConnection($tenant);
+                        $accessService = new \App\Services\Tenant\Auth\AccessControlService();
+                        return $accessService->checkAccess($user);
+                    });
+                    
+                    if (!$accessResult['status']) {
+                        auth()->logout();
+                        Session::invalidate();
+                        $this->dispatch('login-error', [
+                            'title' => 'Acceso restringido',
+                            'message' => $accessResult['message'],
+                            'icon' => 'error'
+                        ]);
+                        return;
+                    }
+                }
             }
             
             // Marcar que necesita seleccionar sucursal
             Session::put('needs_warehouse_selection', true);
             Session::put('warehouse_redirect_route', 'tenant.select');
             
-            // Redirigir a tenant.select (el modal se abrirá automáticamente)
+            // Redirigir a tenant.select
             $this->redirect(route('tenant.select'), navigate: true);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Si hay 2FA habilitado, redirigir a verificación
