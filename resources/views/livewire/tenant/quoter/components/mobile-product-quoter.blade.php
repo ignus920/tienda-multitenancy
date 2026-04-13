@@ -753,7 +753,10 @@ $header = 'Seleccionar productos';
                                         {{ $result['businessName'] ?: ($result['firstName'] . ' ' . $result['lastName']) }}
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                                        {{ $result['identification'] }} • {{ $result['billingEmail'] }}
+                                        {{ $result['identification'] }}
+                                        @if(isset($result['billingEmail']) && $result['billingEmail'])
+                                            • {{ $result['billingEmail'] }}
+                                        @endif
                                     </div>
                                 </button>
                                 @endforeach
@@ -937,10 +940,26 @@ $header = 'Seleccionar productos';
 
                     <!-- Desglose de Impuestos -->
                     <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4 space-y-2 text-sm">
+                        @php
+                            // Buscar todos los descuentos aplicados (3%, 5%, 7%) y listarlos una sola vez
+                            $discountPercents = collect($quoterItems)
+                                ->pluck('price_label')
+                                ->filter(function($label) {
+                                    return in_array(trim($label), ['3%', '5%', '7%']);
+                                })
+                                ->unique()
+                                ->values();
+                        @endphp
                         <div class="flex justify-between text-gray-700 dark:text-gray-300">
                             <span>Subtotal (sin impuestos):</span>
                             <span>${{ number_format($subTotal, 2, ',', '.') }}</span>
                         </div>
+                        @foreach($discountPercents as $discount)
+                        <div class="flex flex-wrap items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium w-full">
+                            <span class="flex-shrink-0">Descuento:</span>
+                            <span class="text-right truncate ml-2 max-w-[60%]">{{ $discount }}</span>
+                        </div>
+                        @endforeach
 
                         @if($taxBreakdown['iva_5'] > 0)
                         <div class="flex justify-between text-gray-700 dark:text-gray-300">
@@ -976,6 +995,37 @@ $header = 'Seleccionar productos';
                         <span>Total:</span>
                         <span>${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
+
+                    @if($showRetentions)
+                    <!-- Resumen de Retenciones -->
+                    <div class="bg-orange-50 dark:bg-orange-900/30 rounded-lg px-3 py-2 mb-3 mt-3 border border-orange-200 dark:border-orange-800 space-y-1 text-xs">
+                        <div class="font-bold text-orange-700 dark:text-orange-400 border-b border-orange-200 dark:border-orange-800 pb-1 mb-1">
+                            RETENCIONES
+                        </div>
+                        @if($retentions['retention_fuente'] > 0)
+                        <div class="flex flex-wrap items-center justify-between text-gray-700 dark:text-gray-300 w-full">
+                            <span class="flex-shrink-0">Ret. Fuente (2.5%):</span>
+                            <span class="text-orange-600 dark:text-orange-400 font-semibold text-right truncate ml-2 max-w-[60%]">-${{ number_format($retentions['retention_fuente'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if($retentions['retention_ica'] > 0)
+                        <div class="flex flex-wrap items-center justify-between text-gray-700 dark:text-gray-300 w-full">
+                            <span class="flex-shrink-0">Ret. ICA (11.04‰):</span>
+                            <span class="text-orange-600 dark:text-orange-400 font-semibold text-right truncate ml-2 max-w-[60%]">-${{ number_format($retentions['retention_ica'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if($retentions['retention_iva'] > 0)
+                        <div class="flex flex-wrap items-center justify-between text-gray-700 dark:text-gray-300 w-full">
+                            <span class="flex-shrink-0">Ret. IVA (15%):</span>
+                            <span class="text-orange-600 dark:text-orange-400 font-semibold text-right truncate ml-2 max-w-[60%]">-${{ number_format($retentions['retention_iva'], 2, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        <div class="flex justify-between font-bold text-gray-800 dark:text-white border-t border-orange-200 dark:border-orange-800 pt-1 mt-1">
+                            <span>Total con Retenciones:</span>
+                            <span class="text-green-600 dark:text-green-400">${{ number_format($totalWithRetentions, 2, ',', '.') }}</span>
+                        </div>
+                    </div>
+                    @endif
 
                     <!-- Botones ---->
                     @if($isEditing || $isEditingRemission)

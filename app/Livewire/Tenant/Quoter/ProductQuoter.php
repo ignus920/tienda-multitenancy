@@ -94,6 +94,9 @@ class ProductQuoter extends Component
     ];
     public $showRetentions = false; // Mostrar sección de retenciones solo si hay valores > 0
     public $totalWithRetentions = 0; // Total después de aplicar retenciones
+    
+    // Array reactivo para acumular en tiempo real las etiquetas de descuento de la sesión
+    public $appliedDiscounts = [];
 
     // Propiedades para selección de tipo de entrega
     public $deliveryTypes = [];
@@ -941,6 +944,9 @@ class ProductQuoter extends Component
 
         // Si la sucursal tiene una lista de precios específica, podríamos aplicarla aquí
         // Por ahora mantenemos la lógica base de precios del componente
+
+        // Calcular retenciones en caso de que ya hayan productos en el carrito
+        $this->calculateRetentionsForModal();
     }
 
     // Mantener searchCustomer por compatibilidad o si se presiona Enter, pero adaptado
@@ -977,6 +983,9 @@ class ProductQuoter extends Component
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
         $this->editingCustomerId = null;
+        
+        // Al eliminar el cliente, recalcular/eliminar retenciones
+        $this->calculateRetentionsForModal();
     }
 
     /**
@@ -1167,6 +1176,21 @@ class ProductQuoter extends Component
         // IMPORTANTE: Calcular total como subtotal + impuestos (igual que Alegra)
         // NO usar la suma de precios originales que puede tener discrepancias de redondeo
         $this->totalAmount = round($this->subTotal + $this->totalTaxes, 2);
+
+        // Calcular etiquetas de descuentos para la vista
+        $this->appliedDiscounts = collect($this->quoterItems)
+            ->pluck('price_label')
+            ->filter(function($label) {
+                if (empty($label)) return false;
+                $l = trim(mb_strtolower($label, 'UTF-8'));
+                return !in_array($l, ['precio regular', 'regular', 'precio base', 'precio', 'lista', 'crédito', 'precio crédito', 'precio remisión', 'precio seleccionado']);
+            })
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Calcular retenciones en tiempo real
+        $this->calculateRetentionsForModal();
 
         Log::debug('🧮 Desglose de impuestos calculado', [
             'subtotal' => $this->subTotal,
@@ -1383,12 +1407,27 @@ class ProductQuoter extends Component
 
                 $product = Items::with('tax')->find($detalle->itemId);
                 if ($product) {
+                    $priceLabel = $detalle->price_label;
+                    
+                    if (empty($priceLabel) || $priceLabel === 'NO EXISTE EN BD' || $priceLabel === 'Precio seleccionado') {
+                        $priceLabel = 'Precio seleccionado';
+                        $productPrices = $product->all_prices;
+                        if (!empty($productPrices)) {
+                            foreach ($productPrices as $label => $priceValue) {
+                                if (round((float)$priceValue, 2) === round((float)$detalle->value, 2)) {
+                                    $priceLabel = $label;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
                     $itemData = [
                         'id' => $product->id,
                         'name' => $product->display_name,
                         'sku' => $product->sku,
                         'price' => $detalle->value,
-                        'price_label' => $detalle->price_label ?? 'Precio seleccionado', // Recuperar el label guardado
+                        'price_label' => $priceLabel,
                         'quantity' => $detalle->quantity,
                         'description' => $product->description,
                         'tax' => $product->tax->percentage ?? 0,
