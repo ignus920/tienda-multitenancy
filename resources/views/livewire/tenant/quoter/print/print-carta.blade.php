@@ -347,6 +347,7 @@
                 <th>Descripción</th>
                 <th>Cantidad</th>
                 <th>Valor Unitario</th>
+                <th>Descuento</th>
                 <th>IVA %</th>
                 <th>Subtotal</th>
             </tr>
@@ -360,6 +361,13 @@
                     <td class="description">{{ $detalle->item ? ($detalle->item->name ?? $detalle->item->display_name) : 'Producto no encontrado' }}</td>
                     <td class="quantity">{{ $detalle->quantity }}</td>
                     <td class="price">${{ number_format($detalle->value, 0) }}</td>
+                    <td>
+                        @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
+                            {{ $detalle->price_label }}
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td class="iva">0</td>
                     <td class="subtotal">${{ number_format($detalle->value * $detalle->quantity, 0) }}</td>
                 </tr>

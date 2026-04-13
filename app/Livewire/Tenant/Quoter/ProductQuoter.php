@@ -97,6 +97,9 @@ class ProductQuoter extends Component
     public $showRetentions = false; // Mostrar sección de retenciones solo si hay valores > 0
     public $totalWithRetentions = 0; // Total después de aplicar retenciones
 
+    // Array reactivo para acumular en tiempo real las etiquetas de descuento de la sesión
+    public $appliedDiscounts = [];
+
     // Propiedades para selección de tipo de entrega
     public $deliveryTypes = [];
     public $selectedDeliveryType = null;
@@ -125,12 +128,12 @@ class ProductQuoter extends Component
     public function toggleCopyMode()
     {
         $this->isCopyMode = !$this->isCopyMode;
-        
+
         $this->dispatch('show-toast', [
             'type' => $this->isCopyMode ? 'success' : 'info',
             'message' => $this->isCopyMode ? 'Modo Copia Activado' : 'Modo Cotización Activado'
         ]);
-        
+
         Log::info('🔄 Cambio de modo', ['isCopyMode' => $this->isCopyMode]);
     }
 
@@ -391,7 +394,7 @@ class ProductQuoter extends Component
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->where(function ($q) {
                     $q->whereNull('inv_items_store.itemId') // Items no inventariables (sin registros en bodega)
-                      ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
+                        ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
                 })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
@@ -890,7 +893,7 @@ class ProductQuoter extends Component
     public function selectCustomer($customerId)
     {
         $this->ensureTenantConnection();
-        $customer = VntCompany::with(['warehouses' => function($q) {
+        $customer = VntCompany::with(['warehouses' => function ($q) {
             $q->where('status', 1)->with('city');
         }])->find($customerId);
 
@@ -945,6 +948,9 @@ class ProductQuoter extends Component
 
         // Si la sucursal tiene una lista de precios específica, podríamos aplicarla aquí
         // Por ahora mantenemos la lógica base de precios del componente
+
+        // Calcular retenciones en caso de que ya hayan productos en el carrito
+        $this->calculateRetentionsForModal();
     }
 
     // Mantener searchCustomer por compatibilidad o si se presiona Enter, pero adaptado
@@ -981,6 +987,9 @@ class ProductQuoter extends Component
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
         $this->editingCustomerId = null;
+
+        // Al eliminar el cliente, recalcular/eliminar retenciones
+        $this->calculateRetentionsForModal();
     }
 
     /**
@@ -1155,7 +1164,7 @@ class ProductQuoter extends Component
 
         // Recalcular totales generales
         $this->calculateTotal();
-        
+
         // Guardar en sesión para persistencia
         session(['quoter_items' => $this->quoterItems]);
 
@@ -1193,7 +1202,7 @@ class ProductQuoter extends Component
             $pesoProducto = isset($item['weight']) ? (float)$item['weight'] : 0.0;
             $categoryId = $item['category_id'] ?? 0;
             $factorPeso = ($categoryId == 3) ? 2 : 1;
-            
+
             if ($categoryId == 3) {
                 $hayFactor3 = true;
             }
@@ -1242,6 +1251,20 @@ class ProductQuoter extends Component
         // NO usar la suma de precios originales que puede tener discrepancias de redondeo
         $this->totalAmount = round($this->subTotal + $this->totalTaxes, 2);
 
+        // Calcular etiquetas de descuentos para la vista
+        $this->appliedDiscounts = collect($this->quoterItems)
+            ->pluck('price_label')
+            ->filter(function ($label) {
+                if (empty($label)) return false;
+                $l = trim(mb_strtolower($label, 'UTF-8'));
+                return !in_array($l, ['precio regular', 'regular', 'precio base', 'precio', 'lista', 'crédito', 'precio crédito', 'precio remisión', 'precio seleccionado']);
+            })
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Calcular retenciones en tiempo real
+        $this->calculateRetentionsForModal();
         // -- CALCULO DE FLETE --
         $fleteTotal = 10000.0;
         $recargo = $hayFactor3 ? 10000 : 0;
@@ -1493,12 +1516,27 @@ class ProductQuoter extends Component
 
                 $product = Items::with(['tax', 'dimensions'])->find($detalle->itemId);
                 if ($product) {
+                    $priceLabel = $detalle->price_label;
+
+                    if (empty($priceLabel) || $priceLabel === 'NO EXISTE EN BD' || $priceLabel === 'Precio seleccionado') {
+                        $priceLabel = 'Precio seleccionado';
+                        $productPrices = $product->all_prices;
+                        if (!empty($productPrices)) {
+                            foreach ($productPrices as $label => $priceValue) {
+                                if (round((float)$priceValue, 2) === round((float)$detalle->value, 2)) {
+                                    $priceLabel = $label;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
                     $itemData = [
                         'id' => $product->id,
                         'name' => $product->display_name,
                         'sku' => $product->sku,
                         'price' => $detalle->value,
-                        'price_label' => $detalle->price_label ?? 'Precio seleccionado', // Recuperar el label guardado
+                        'price_label' => $priceLabel,
                         'quantity' => $detalle->quantity,
                         'description' => $product->description,
                         'tax' => $product->tax->percentage ?? 0,
@@ -2164,13 +2202,13 @@ class ProductQuoter extends Component
 
         // Mostrar retenciones si hay alguna > 0
         $this->showRetentions = ($calculatedRetentions['retention_fuente'] > 0 ||
-                                $calculatedRetentions['retention_ica'] > 0 ||
-                                $calculatedRetentions['retention_iva'] > 0);
+            $calculatedRetentions['retention_ica'] > 0 ||
+            $calculatedRetentions['retention_iva'] > 0);
 
         // Calcular total con retenciones usando valores sin redondear para máxima precisión
         $totalRetentions = $calculatedRetentions['retention_fuente'] +
-                          $calculatedRetentions['retention_ica'] +
-                          $calculatedRetentions['retention_iva'];
+            $calculatedRetentions['retention_ica'] +
+            $calculatedRetentions['retention_iva'];
 
         $this->totalWithRetentions = round($this->totalAmount - $totalRetentions, 2);
 
@@ -2523,11 +2561,9 @@ class ProductQuoter extends Component
                     ($customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME') :
                     'COMMON_REGIME';
                 $fiscalResponsability = $customer->company && $customer->company->fiscal_responsibility_id ?
-                    (int)$customer->company->fiscal_responsibility_id :
-                    ($customer->fiscal_responsibility_id ? (int)$customer->fiscal_responsibility_id : 0);
+                    (int)$customer->company->fiscal_responsibility_id : ($customer->fiscal_responsibility_id ? (int)$customer->fiscal_responsibility_id : 0);
                 $city = $customer->company && $customer->company->city ?
-                    $customer->company->city :
-                    ($customer->city ?: '');
+                    $customer->company->city : ($customer->city ?: '');
 
                 $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
                     'regime_description' => $regimeDescription,
@@ -3042,8 +3078,8 @@ class ProductQuoter extends Component
                 // Obtener valor total de la factura local CON DECIMALES
                 // Si hay retenciones calculadas en el modal, el monto a pagar es menor
                 $modalRetentionsTotal = ($this->retentions['retention_fuente'] ?? 0) +
-                                      ($this->retentions['retention_ica'] ?? 0) +
-                                      ($this->retentions['retention_iva'] ?? 0);
+                    ($this->retentions['retention_ica'] ?? 0) +
+                    ($this->retentions['retention_iva'] ?? 0);
 
                 // Redondear el total final para evitar discrepancias de centavos
                 $invoiceTotal = $modalRetentionsTotal > 0 ?

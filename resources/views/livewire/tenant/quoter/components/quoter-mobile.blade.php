@@ -84,9 +84,9 @@
                         <div class="mb-3">
                             <div class="flex items-center justify-between mb-2">
                                 <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{{ $quote->customer_name }}
-                                @if($quote->customer->billingEmail)
-                                        <br><small class="text-gray-500">{{ $quote->customer->billingEmail }}</small>
-                                    @endif
+                                @if($quote->customer && $quote->customer->billingEmail)
+                                    <br><small class="text-gray-500">{{ $quote->customer->billingEmail }}</small>
+                                @endif
                                 </p>
                                 
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full

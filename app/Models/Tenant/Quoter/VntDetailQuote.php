@@ -18,7 +18,8 @@ class VntDetailQuote extends Model
         'quoteId',
         'itemId',
         'description',
-        'priceList'
+        'priceList',
+        'price_label',
     ];
 
     protected $casts = [
