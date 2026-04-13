@@ -825,25 +825,7 @@ $header = 'Seleccionar productos';
 
 
 
-                    <!-- Bar de Flete Slim Interactivo -->
-                    @if($totalWeight > 0 || $estimatedFreight > 0)
-                    <div 
-                        wire:click="applyFreightToQuoter"
-                        class="mt-2 flex items-center justify-between px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-700 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all group shadow-sm">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-medium text-indigo-800 dark:text-indigo-300">Valor Flete Estimado:</span>
-                            <span class="text-sm font-black text-indigo-900 dark:text-white">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-[11px] font-bold text-indigo-500/70 dark:text-indigo-400/70">{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
-                            <div class="bg-indigo-600 text-white p-1 rounded-md group-hover:bg-indigo-700 transition-colors">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
+
 
                     @if($showCreateCustomerButton || $showCreateCustomerForm)
                     <!-- Formulario para crear/editar cliente -->
@@ -929,6 +911,25 @@ $header = 'Seleccionar productos';
                 </div>
                 @else
                 <div class="px-3 py-2 space-y-1">
+                    <!-- Bar de Flete Slim Interactivo -->
+                    @if($totalWeight > 0 || $estimatedFreight > 0)
+                    <div 
+                        wire:click="applyFreightToQuoter"
+                        class="mb-2 flex items-center justify-between px-4 py-2 bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all group shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">Valor Flete Estimado:</span>
+                            <span class="text-xs font-black text-indigo-800 dark:text-white">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-indigo-500/60 dark:text-indigo-400/60">{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
+                            <div class="bg-indigo-600 text-white p-1 rounded-md group-hover:bg-indigo-700 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     @foreach($quoterItems as $index => $item)
                     <div class="flex items-center gap-2 py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
                         <!-- Nombre + precio unitario -->
