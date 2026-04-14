@@ -23,6 +23,7 @@ class ImageGallery extends Model
         'itemId',       // ID del item al que pertenece la imagen
         'img_path',     // Ruta de la imagen en storage
         'type',         // Tipo: PRINCIPAL, GALERIA, PDF
+        'type_show',    // Clasificación: COMERCIAL, BODEGA
         'created_at',   // Fecha de creación
         'updated_at',   // Fecha de actualización
         'deleted_at',   // Fecha de eliminación (soft delete)

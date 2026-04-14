@@ -23,6 +23,9 @@ class ProductImageModal extends Component
     public $mainImage;
     public $galleryImages = [];
     
+    public $activeTab = 'COMERCIAL';
+    public $userProfileId;
+    
     // Lista de imágenes actuales (se carga en render para evitar errores de hidratación)
     // public $images = []; 
 
@@ -76,6 +79,17 @@ class ProductImageModal extends Component
             $this->productName = $product->name;
             $this->isOpen = true;
             
+            // Perfil del usuario
+            $this->userProfileId = auth()->user()->profile_id;
+            
+            // Establecer pestaña inicial según perfil
+            // 6: Almacen, 4: Vendedor POS
+            if ($this->userProfileId == 6) {
+                $this->activeTab = 'BODEGA';
+            } else {
+                $this->activeTab = 'COMERCIAL';
+            }
+
             // Validar si existe en WordPress
             $this->hasWpProduct = !empty($product->sku) && $wpService->findProductBySku($product->sku) !== null;
         }
@@ -112,6 +126,7 @@ class ProductImageModal extends Component
                 'itemId' => $this->productId,
                 'img_path' => $path,
                 'type' => 'PRINCIPAL',
+                'type_show' => $this->activeTab,
             ]);
 
             $this->mainImage = null;
@@ -136,6 +151,7 @@ class ProductImageModal extends Component
                 'itemId' => $this->productId,
                 'img_path' => $path,
                 'type' => $type,
+                'type_show' => $this->activeTab,
             ]);
         }
 
@@ -183,10 +199,12 @@ class ProductImageModal extends Component
         
         $images = [];
         if ($this->productId) {
-            $images = ImageGallery::with('wpSync')
+            $query = ImageGallery::with('wpSync')
                 ->where('itemId', $this->productId)
                 ->whereNull('deleted_at')
-                ->orderBy('type', 'asc')
+                ->where('type_show', $this->activeTab);
+            
+            $images = $query->orderBy('type', 'asc')
                 ->get();
         }
 
