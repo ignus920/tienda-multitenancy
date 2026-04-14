@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Livewire\Tenant\Quoter;
+
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Quoter\VntQuote;
@@ -15,18 +16,18 @@ use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\InvoiceDataBuilder;
 use App\Services\Facturacion\TenantConfigManager;
 use Illuminate\Support\Facades\DB;
-
+use App\Traits\Livewire\HasDynamicButtons;
 
 class Quoter extends Component
 {
-    use WithPagination, HasCompanyConfiguration;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
 
     public $search = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
     public $showDetailModal = false;
     public $selectedQuoteId = null;
-
+    public $moduleKey = 'quoter';
 
 
 
@@ -89,12 +90,12 @@ class Quoter extends Component
 
         $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])
             ->find($this->selectedQuoteId);
-        
+
         // Agregar el storage_name al modelo
         if ($quote) {
             $quote->storage_name = $quote->getStorageName();
         }
-        
+
         return $quote;
     }
 
@@ -112,7 +113,7 @@ class Quoter extends Component
     {
         // Limpiar el carrito de la sesión para que el cotizador empiece vacío
         session()->forget('quoter_items');
-        
+
         return redirect('/tenant/quoter/products');
     }
 
@@ -213,7 +214,6 @@ class Quoter extends Component
             ]);
 
             return $finalValue;
-
         } catch (\Exception $e) {
             Log::error('❌ getPrintCopiesLimit() - Error al obtener valor', [
                 'error' => $e->getMessage(),
@@ -222,7 +222,7 @@ class Quoter extends Component
 
             return 0; // Default a POS en caso de error
         }
-     }
+    }
 
     public function viewDetails($id)
     {
@@ -240,7 +240,7 @@ class Quoter extends Component
 
 
 
-     
+
 
     /**
      * Método para imprimir cotización
@@ -370,7 +370,6 @@ class Quoter extends Component
                 'type' => 'success',
                 'message' => 'Cotización #' . $quote->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
             ]);
-
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -392,10 +391,10 @@ class Quoter extends Component
 
         try {
             $quote = VntQuote::with(['detalles.item', 'customer', 'warehouse'])->findOrFail($id);
-            
+
             // 🔍 Buscar factura local para obtener el ID de Alegra (api_data_id)
             $invoice = VntInvoices::where('quoteId', $id)->first();
-            
+
             Log::info('🔍 Datos de factura local encontrados', [
                 'has_invoice' => !is_null($invoice),
                 'invoice_id' => $invoice ? $invoice->id : null,
@@ -405,7 +404,7 @@ class Quoter extends Component
             // 1. Obtener configuración del tenant
             $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
             $hasConfig = $tenant && TenantConfigManager::hasFacturacionConfig($tenant);
-            
+
             Log::info('⚙️ Verificación de configuración de facturación', [
                 'has_config' => $hasConfig,
                 'tenant_id' => $tenant ? $tenant->id : 'No encontrado en sesión'
@@ -417,9 +416,9 @@ class Quoter extends Component
                 // 🚀 PRIORIDAD 1: Si ya tiene api_data_id (Factura ya creada en Alegra)
                 if ($invoice && $invoice->api_data_id) {
                     Log::info('🔗 Usando api_data_id existente para obtener PDF', ['api_id' => $invoice->api_data_id]);
-                    
+
                     $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
-                    
+
                     // 🔍 Analizar estructura de respuesta para depurar
                     $respData = $apiResponse['data'] ?? [];
                     Log::info('📦 Estructura de respuesta PDF recibida', [
@@ -433,12 +432,12 @@ class Quoter extends Component
 
                     // Intentar obtener URL de varios posibles campos
                     $printUrl = $respData['pdf'] ?? // Según snippet del usuario
-                                $respData['publicUrl'] ?? // Estándar Alegra
-                                ($respData['data']['publicUrl'] ?? null); // Anidado
+                        $respData['publicUrl'] ?? // Estándar Alegra
+                        ($respData['data']['publicUrl'] ?? null); // Anidado
 
                     if ($apiResponse['success'] && !empty($printUrl)) {
                         Log::info('✅ URL de documento encontrada', ['url' => $printUrl]);
-                        
+
                         $this->dispatch('open-print-window', [
                             'url' => $printUrl,
                             'format' => 'carta'
@@ -453,7 +452,7 @@ class Quoter extends Component
 
                 // 🚀 PRIORIDAD 2: Vista Previa (Preview) de Alegra
                 Log::info('📝 Intentando obtener vista previa (API Preview)');
-                
+
                 // Obtener pagos si existen
                 $paymentMethods = [];
                 if ($invoice) {
@@ -462,7 +461,7 @@ class Quoter extends Component
                         ->where('vnt_invoice_payments.invoiceId', $invoice->id)
                         ->select('vnt_method_payments.name as method', 'vnt_invoice_payments.value as value')
                         ->get();
-                    
+
                     foreach ($payments as $p) {
                         $paymentMethods[] = [
                             'descriptionFormaPago' => $p->method,
@@ -493,7 +492,6 @@ class Quoter extends Component
             // 🚀 FALLBACK: Impresión local
             Log::warning('🏠 Ejecutando caída a impresión local');
             return $this->printInvoiceLocal($id);
-
         } catch (\Exception $e) {
             Log::error('❌ Error crítico en printInvoice: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -557,7 +555,6 @@ class Quoter extends Component
                 'type' => 'success',
                 'message' => 'Factura local preparada'
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error en printInvoiceLocal: ' . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -639,7 +636,7 @@ class Quoter extends Component
     }
 
 
-      private function ensureTenantConnection()
+    private function ensureTenantConnection()
     {
         $tenantId = session('tenant_id');
 
@@ -705,12 +702,12 @@ class Quoter extends Component
                     ->orWhere('observations', 'like', '%' . $this->search . '%')
                     ->orWhereHas('customer', function ($q) {
                         $q->where('firstName', 'like', '%' . $this->search . '%')
-                          ->orWhere('secondName', 'like', '%' . $this->search . '%')
-                          ->orWhere('lastName', 'like', '%' . $this->search . '%')
-                          ->orWhere('secondLastName', 'like', '%' . $this->search . '%')
-                          ->orWhere('email', 'like', '%' . $this->search . '%')
-                          ->orWhere('business_phone', 'like', '%' . $this->search . '%')
-                          ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
+                            ->orWhere('secondName', 'like', '%' . $this->search . '%')
+                            ->orWhere('lastName', 'like', '%' . $this->search . '%')
+                            ->orWhere('secondLastName', 'like', '%' . $this->search . '%')
+                            ->orWhere('email', 'like', '%' . $this->search . '%')
+                            ->orWhere('business_phone', 'like', '%' . $this->search . '%')
+                            ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
                     });
             })
             ->orderBy('created_at', 'desc')
@@ -732,7 +729,7 @@ class Quoter extends Component
             ]);
 
             $storageName = $quote->getStorageName();
-            
+
             Log::info('✅ Storage name obtenido', [
                 'quote_id' => $quote->id,
                 'storage_name' => $storageName
