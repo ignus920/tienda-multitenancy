@@ -36,6 +36,7 @@ $header = 'Seleccionar productos';
                         </span>
                     </button>
                 </div>
+                @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
             </div>
 
             <!-- Barra de búsqueda y filtros -->

@@ -29,6 +29,7 @@
                     </div>
                     <span>Nueva Cotización</span>
                 </button>
+                @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
             </div>
         </div>
     </div>

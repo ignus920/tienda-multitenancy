@@ -18,10 +18,11 @@ use App\Services\Facturacion\InvoiceDataBuilder;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Services\Tenant\Campaigns\CampaignService;
+use App\Traits\Livewire\HasDynamicButtons;
 
 class Remissions extends Component
 {
-    use WithPagination, HasCompanyConfiguration;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
 
     // Propiedades para búsqueda y selección
     public $search = '';
@@ -46,6 +47,7 @@ class Remissions extends Component
     public $selectedCustomer = null;
     public $selectedRemissionsData = [];
     public $totalItems = 0;
+    public $moduleKey = 'remissions';
 
     protected $paginationTheme = 'tailwind';
 
@@ -523,7 +525,6 @@ class Remissions extends Component
                 'consecutive' => $remission->consecutive ?? 'N/A',
                 'seller_name' => $seller ? ($seller->name . ' ' . ($seller->lastName ?? '')) : 'N/A'
             ]);
-
         } else {
             $this->selectedRemission = null;
         }
@@ -725,20 +726,20 @@ class Remissions extends Component
             // 3. Lógica de impresión (Prioridad Alegra)
             if ($hasFacturacionConfig && $invoice->api_data_id) {
                 Log::info('🔗 Usando api_data_id de Alegra para obtener PDF', ['api_id' => $invoice->api_data_id]);
-                
+
                 $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
-                
+
                 // Analizar estructura de respuesta para depurar (igual que en Quoter)
                 $respData = $apiResponse['data'] ?? [];
-                
+
                 // Intentar obtener URL de varios posibles campos
-                $printUrl = $respData['pdf'] ?? 
-                            $respData['publicUrl'] ?? 
-                            ($respData['data']['publicUrl'] ?? null);
+                $printUrl = $respData['pdf'] ??
+                    $respData['publicUrl'] ??
+                    ($respData['data']['publicUrl'] ?? null);
 
                 if ($apiResponse['success'] && !empty($printUrl)) {
                     Log::info('✅ URL de documento Alegra encontrada', ['url' => $printUrl]);
-                    
+
                     $this->dispatch('open-print-window', [
                         'url' => $printUrl,
                         'format' => 'carta'
@@ -760,7 +761,6 @@ class Remissions extends Component
                     'message' => 'La factura no está en Alegra todavía. Se requiere emisión previa.'
                 ]);
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error en Remissions.printInvoice: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -1543,8 +1543,8 @@ class Remissions extends Component
             $message = count($productNames) === 1
                 ? "ℹ️ El producto '" . $productNames[0] . "' tiene diferentes precios/IVA entre remisiones y se facturará por separado."
                 : "ℹ️ Los productos: " . implode(', ', array_slice($productNames, 0, 3)) .
-                  (count($productNames) > 3 ? ' y otros' : '') .
-                  " tienen diferentes precios/IVA entre remisiones y se facturarán por separado.";
+                (count($productNames) > 3 ? ' y otros' : '') .
+                " tienen diferentes precios/IVA entre remisiones y se facturarán por separado.";
 
             // Opcional: Mostrar notificación al usuario
             // $this->dispatch('show-toast', [
@@ -1610,9 +1610,8 @@ class Remissions extends Component
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => "Estado cambiado de {$currentStatus} a {$nextStatus}" .
-                           ($nextStatus === 'ALISTAMIENTO' ? '. Remisión enviada a impresión.' : '')
+                    ($nextStatus === 'ALISTAMIENTO' ? '. Remisión enviada a impresión.' : '')
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error cambiando estado de remisión', [
                 'remission_id' => $remissionId,

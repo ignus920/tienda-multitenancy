@@ -5,6 +5,7 @@ use App\Livewire\Tenant\Parameters\PriceList;
 use App\Livewire\Tenant\Parameters\Zones;
 use App\Livewire\Tenant\Parameters\Routes;
 use App\Livewire\Tenant\Parameters\CompanyInformation;
+use App\Livewire\Tenant\Parameters\Buttons;
 
 /**
  * Rutas para el módulo de Parámetros del Tenant
@@ -27,6 +28,8 @@ Route::prefix('/parameters')->middleware('tenant')->group(function () {
     Route::get('/company-information', CompanyInformation::class)
         ->name('tenant.parameters.company-information');
 
+    Route::get('/buttons', Buttons::class)
+        ->name('tenant.parameters.buttons');
     Route::get('/access-control', \App\Livewire\Tenant\Parameters\AccessControlManager::class)
         ->name('tenant.parameters.access-control');
 
