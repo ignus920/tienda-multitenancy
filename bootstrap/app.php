@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'company.complete' => \App\Http\Middleware\EnsureCompanyDataComplete::class,
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'warehouse.selected' => \App\Http\Middleware\EnsureWarehouseSelected::class,
+            'access.control' => \App\Http\Middleware\CheckTenantAccessControl::class,
         ]);
 
         // Aplicar middleware tenant a rutas de Livewire cuando sea necesario
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth',
             'company.complete',
             \App\Auth\Middleware\SetTenantConnection::class,
+            \App\Http\Middleware\CheckTenantAccessControl::class,
         ]);
 
         // DESHABILITADO TEMPORALMENTE - Causaba loop de redirección

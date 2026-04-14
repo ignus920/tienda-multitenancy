@@ -180,11 +180,24 @@
             margin: 0 auto 6px auto;
         }
 
+        .image-card .product-code {
+            font-size: 7pt;
+            color: #666;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .image-card .product-name {
             font-size: 8pt;
             font-weight: bold;
-            word-wrap: break-word;
             line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: calc(8pt * 1.3 * 2);
         }
 
         .image-card .no-image-placeholder {
@@ -534,6 +547,9 @@
         <div class="images-grid">
             @foreach($detallesConImagen as $detalle)
                 <div class="image-card">
+                    @if($detalle->item->internal_code)
+                        <div class="product-code">{{ $detalle->item->internal_code }}</div>
+                    @endif
                     @if($detalle->item->principalImage)
                         <img src="{{ $detalle->item->getPrincipalThumbnailUrl() }}"
                              alt="{{ $detalle->item->name ?? $detalle->item->display_name }}">

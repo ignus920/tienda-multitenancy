@@ -313,10 +313,6 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.campaigns.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Campañas
                 </a>
-                <a href="{{ route('tenant.tickets') }}" wire:navigate
-                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.tickets') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
-                    Solicitudes
-                </a>
                 <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.zones') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Zonas
@@ -329,6 +325,9 @@ new class extends Component
                 <a href="{{ route('tenant.parameters.buttons') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.buttons') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Botones
+                <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.parameters.access-control') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Control de Acceso
                 </a>
             </div>
 
@@ -343,15 +342,36 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Listas de Precios</a>
                 <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Campañas</a>
-                <a href="{{ route('tenant.tickets') }}" wire:navigate
-                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Solicitudes</a>
                 <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Zonas</a>
                 <a href="{{ route('tenant.parameters.routes') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Rutas</a>
+                <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Control Acceso</a>
             </div>
         </div>
         @endif
+
+        <!-- Solicitudes -->
+        <a href="{{ route('tenant.tickets') }}" wire:navigate
+            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.tickets') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+            x-data="{ tooltip: false }" @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
+
+            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+
+            <span x-show="!sidebarCollapsed" class="ml-3" x-transition>
+                Solicitudes
+            </span>
+
+            <div x-show="tooltip" x-transition
+                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                Solicitudes
+            </div>
+        </a>
 
 
 

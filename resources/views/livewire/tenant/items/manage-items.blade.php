@@ -443,7 +443,8 @@
                                 </button>
                                 @endif
 
-                                <!-- Pestaña Accesorios - Visible para todos los items guardados -->
+                                <!-- Pestaña Accesorios - No visible para items tipo INSUMO -->
+                                @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
@@ -453,6 +454,7 @@
                                         <span>Accesorios</span>
                                     </div>
                                 </button>
+                                @endif
 
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
                                 @if ($inventoriable === 1)
