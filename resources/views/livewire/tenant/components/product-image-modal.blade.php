@@ -42,6 +42,33 @@
 
         <div class="p-6 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
             
+            <!-- Pestañas de Navegación -->
+            @php
+                $isAdmin = in_array($userProfileId, [1, 2]);
+                $isAlmacen = $userProfileId == 6;
+                $isVendedor = $userProfileId == 4;
+            @endphp
+
+            @if($isAdmin)
+                <div class="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl mb-6">
+                    <button wire:click="$set('activeTab', 'COMERCIAL')" 
+                            class="flex-1 py-2 text-sm font-bold rounded-lg transition-all {{ $activeTab === 'COMERCIAL' ? 'bg-white dark:bg-gray-800 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300' }}">
+                        <i class="fas fa-shopping-cart mr-2"></i> COMERCIAL
+                    </button>
+                    <button wire:click="$set('activeTab', 'BODEGA')" 
+                            class="flex-1 py-2 text-sm font-bold rounded-lg transition-all {{ $activeTab === 'BODEGA' ? 'bg-white dark:bg-gray-800 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300' }}">
+                        <i class="fas fa-warehouse mr-2"></i> BODEGA
+                    </button>
+                </div>
+            @else
+                <!-- Si no es admin, mostrar solo el indicador de en qué sección está -->
+                <div class="flex items-center gap-2 mb-6 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                    <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                        MODO: {{ $activeTab }}
+                    </span>
+                </div>
+            @endif
+            
             <!-- Sección Imagen Principal -->
             <div class="bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800">
                 <div class="flex items-center gap-3 mb-4">
