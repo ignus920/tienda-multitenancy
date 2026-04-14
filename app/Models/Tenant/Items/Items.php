@@ -149,6 +149,7 @@ class Items extends Model
     {
         return $this->hasOne(ImageGallery::class, 'itemId', 'id')
             ->where('type', 'PRINCIPAL')
+            ->where('type_show', 'COMERCIAL')
             ->whereNull('deleted_at');
     }
 
