@@ -28,11 +28,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\HasCompanyConfiguration;
 use Livewire\Attributes\On;
+use App\Traits\Livewire\HasDynamicButtons;
 
 class ManageItems extends Component
 {
 
-    use WithPagination, HasCompanyConfiguration, WithExport;
+    use WithPagination, HasCompanyConfiguration, WithExport, HasDynamicButtons;
 
     protected $listeners = [
         'command-changed' => 'onCommandSelected',
@@ -120,6 +121,7 @@ class ManageItems extends Component
     public $showProductionSection = false;
     public $showDimensionSection = false;
     public $showAccesoriosSection = false;
+    public $moduleKey = 'items';
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [

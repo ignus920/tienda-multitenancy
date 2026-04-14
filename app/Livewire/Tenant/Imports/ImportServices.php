@@ -12,17 +12,19 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use App\Traits\Livewire\HasDynamicButtons;
 // use Livewire\Attributes\On;
 // use Illuminate\Support\Facades\Auth;
 // use App\Services\Tenant\TenantManager;
 
 class ImportServices extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicButtons;
 
     public $showImportList = false;
     public $selectedService = '';
     public $showModalRegisItem = false;
+    public $moduleKey = 'imports';
 
     // Variables para el item seleccionado
     public $selectedItemId = null;

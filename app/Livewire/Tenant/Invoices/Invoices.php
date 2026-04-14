@@ -15,15 +15,17 @@ use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
 use App\Traits\HasCompanyConfiguration;
 use App\Models\Tenant\Items\InvItemsStore;
+use App\Traits\Livewire\HasDynamicButtons;
 
 class Invoices extends Component
 {
-    use WithPagination, HasCompanyConfiguration;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
 
     public $search = '';
     public $perPage = 12;
     public $sortField = 'vnt_invoices.invoiceNumber';
     public $sortDirection = 'desc';
+    public $moduleKey = 'invoices';
 
     // ── Nota Crédito ──────────────────────────────────────────
     public bool  $showCreditNoteModal = false;
@@ -156,7 +158,6 @@ class Invoices extends Component
                 $errorMessage = $paymentResponse['message'] ?? 'Error desconocido al procesar el pago';
                 throw new \Exception("Error en Alegra: {$errorMessage}");
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error procesando pago de factura', [
                 'invoice_id' => $invoiceId,
@@ -256,7 +257,6 @@ class Invoices extends Component
                 $errorMessage = $this->extractStampErrorMessage($stampResponse);
                 throw new \Exception("Error al emitir la factura: {$errorMessage}");
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error emitiendo factura desde listado', [
                 'invoice_id' => $invoiceId,
@@ -336,8 +336,8 @@ class Invoices extends Component
 
                 // Intentar obtener URL de varios posibles campos
                 $printUrl = $respData['pdf'] ??
-                            $respData['publicUrl'] ??
-                            ($respData['data']['publicUrl'] ?? null);
+                    $respData['publicUrl'] ??
+                    ($respData['data']['publicUrl'] ?? null);
 
                 if ($apiResponse['success'] && !empty($printUrl)) {
                     Log::info('✅ URL de PDF de factura obtenida', ['url' => $printUrl]);
@@ -372,7 +372,6 @@ class Invoices extends Component
                     'message' => 'No se puede obtener el PDF de Alegra. Verifique la configuración de facturación.'
                 ]);
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error en Invoices.printInvoice: ' . $e->getMessage(), [
                 'invoice_id' => $invoiceId,
@@ -432,7 +431,6 @@ class Invoices extends Component
                 'invoice_id' => $invoice->id,
                 'quotes_updated' => $quotesUpdated
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error actualizando cotizaciones tras emisión de factura', [
                 'invoice_id' => $invoice->id,
@@ -1132,7 +1130,6 @@ class Invoices extends Component
                 'type'    => 'success',
                 'message' => 'Nota crédito creada exitosamente' . ($alegraId ? " (ID Alegra: {$alegraId})" : '') . '.',
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error creando nota crédito: ' . $e->getMessage());
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear la nota crédito: ' . $e->getMessage()]);

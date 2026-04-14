@@ -29,10 +29,11 @@ use App\Services\Tenant\RetentionCalculatorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\Livewire\HasDynamicButtons;
 
 class ProductQuoter extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicButtons;
 
     public $search = '';
     public $perPage = 12;
@@ -44,6 +45,7 @@ class ProductQuoter extends Component
     public $totalWeight = 0;
     public $estimatedFreight = 0;
     public $showCartModal = false;
+    public $moduleKey = 'products';
 
     // Propiedades para desglose de impuestos
     public $subTotal = 0; // Valor sin impuestos

@@ -153,40 +153,41 @@
                         Agregar Nuevo Item
                     </button>
 
-                <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
-                    <!-- Administrar Etiquetas -->
-                    <a href="{{ route('imports.imports-labels' )}}"
-                        class="inline-flex items-center px-4 py-2 
-                        bg-emerald-500 hover:bg-emerald-600 
-                        dark:bg-emerald-600 dark:hover:bg-emerald-500
-                        text-white rounded-lg font-semibold text-xs uppercase
-                        border border-transparent
-                        focus:outline-none focus:ring-2 focus:ring-emerald-400 
-                        focus:ring-offset-2 dark:focus:ring-offset-gray-800
-                        transition-all duration-200">
-                        <x-heroicon-o-tag class="w-5 h-5 mr-2" />
-                        Administrar Etiquetas
-                    </a>
-                    <!-- Instrucciones -->
-                    <button wire:click=""
-                        class="inline-flex items-center px-4 py-2 
-                        bg-gray-200 hover:bg-gray-300 
-                        dark:bg-gray-700 dark:hover:bg-gray-600
-                        text-gray-800 dark:text-gray-200
-                        rounded-lg font-semibold text-xs uppercase
-                        border border-gray-300 dark:border-gray-600
-                        focus:outline-none focus:ring-2 focus:ring-gray-400
-                        focus:ring-offset-2 dark:focus:ring-offset-gray-800
-                        transition-all duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 20V4m0 0l4 4m-4-4l-4 4"></path>
-                        </svg>
-                        Instrucciones
-                    </button>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
+                        <!-- Administrar Etiquetas -->
+                        <a href="{{ route('imports.imports-labels' )}}"
+                            class="inline-flex items-center px-4 py-2 
+                            bg-emerald-500 hover:bg-emerald-600 
+                            dark:bg-emerald-600 dark:hover:bg-emerald-500
+                            text-white rounded-lg font-semibold text-xs uppercase
+                            border border-transparent
+                            focus:outline-none focus:ring-2 focus:ring-emerald-400 
+                            focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                            transition-all duration-200">
+                            <x-heroicon-o-tag class="w-5 h-5 mr-2" />
+                            Administrar Etiquetas
+                        </a>
+                        <!-- Instrucciones -->
+                        <button wire:click=""
+                            class="inline-flex items-center px-4 py-2 
+                            bg-gray-200 hover:bg-gray-300 
+                            dark:bg-gray-700 dark:hover:bg-gray-600
+                            text-gray-800 dark:text-gray-200
+                            rounded-lg font-semibold text-xs uppercase
+                            border border-gray-300 dark:border-gray-600
+                            focus:outline-none focus:ring-2 focus:ring-gray-400
+                            focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                            transition-all duration-200">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 20V4m0 0l4 4m-4-4l-4 4"></path>
+                            </svg>
+                            Instrucciones
+                        </button>
+                    </div>
+                    @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
                 </div>
             </div>
-        </div>
 
         <!-- Sección de Etiquetas -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4 sm:mb-6">

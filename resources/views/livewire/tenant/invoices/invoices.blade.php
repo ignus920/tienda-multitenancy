@@ -1,10 +1,13 @@
 <div class="p-6 bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors">
     <!-- Header Card -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Facturas</h1>
                 <p class="text-gray-600 dark:text-slate-400 text-sm mt-1">Gestión de facturas</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
             </div>
         </div>
     </div>

@@ -39,6 +39,7 @@
                             </svg>
                         </div>
                     </button>
+                    @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
                 </div>
 
                 <!-- Cotizaciones Title -->
