@@ -114,9 +114,10 @@ class ProductImageModal extends Component
         $this->ensureTenantConnection();
         
         if ($this->mainImage) {
-            // Desactivar imagen principal anterior
+            // Desactivar imagen principal anterior de la misma categoría (COMERCIAL o BODEGA)
             ImageGallery::where('itemId', $this->productId)
                 ->where('type', 'PRINCIPAL')
+                ->where('type_show', $this->activeTab)
                 ->update(['type' => 'GALERIA']); // O borrarla si prefieres
 
             $tenantId = session('tenant_id', 'default');
