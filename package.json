@@ -21,7 +21,6 @@
     },
     "dependencies": {
         "heroicons": "^2.2.0",
-        "sweetalert2": "^11.26.20",
-        "vite-PLUGIN-PWA": "npm:vite-plugin-pwa@^1.2.0"
+        "sweetalert2": "^11.26.20"
     }
 }

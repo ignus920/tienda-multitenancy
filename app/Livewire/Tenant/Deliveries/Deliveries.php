@@ -817,13 +817,13 @@ class Deliveries extends Component
                 'paid_amount' => $rem->paid_amount,
                 'balance_amount' => $rem->balance_amount,
                 'contact_name' => $contactName,
-                'route_name' => $rem->quote->customer->company->routes->first()->route->name ?? 'N/A', 
+                'route_name' => $rem->quote?->customer?->company?->routes?->first()?->route?->name ?? 'N/A', 
                 'details' => $rem->details->map(function($d) {
                     return [
                         'id' => $d->id,
                         'remissionId' => $d->remissionId,
                         'itemId' => $d->itemId,
-                        'name' => $d->item->name ?? 'Producto desconocido',
+                        'name' => $d->item?->name ?? 'Producto desconocido',
                         'quantity' => $d->quantity,
                         'cant_return' => $d->cant_return ?? 0,
                         'value' => $d->value,
@@ -861,7 +861,7 @@ class Deliveries extends Component
                 'id' => $col->id,
                 'invoiceId' => $col->invoiceId, // ID de cotización
                 'remission_id' => $remissionId,  // ID de remisión (para filtrado)
-                'delivery_id' => $col->quote->remission->delivery_id ?? null,
+                'delivery_id' => $col->quote->remission?->delivery_id ?? null,
                 'value' => $col->value,
                 'methodPaymentId' => $col->methodPaymentId,
                 'methods_summary' => $method,

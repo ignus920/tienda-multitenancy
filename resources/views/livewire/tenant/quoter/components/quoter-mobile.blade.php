@@ -204,8 +204,8 @@
                                         {{ $quote->customer->company->businessName ?? $quote->customer_name }}
                                     </p>
                                     @php
-                                        $mainContact = $quote->customer->contacts->where('status', 1)->first();
-                                        $routeInfo = $quote->customer->company->routes->first();
+                                        $mainContact = $quote->customer ? $quote->customer->contacts->where('status', 1)->first() : null;
+                                        $routeInfo = ($quote->customer && $quote->customer->company) ? $quote->customer->company->routes->first() : null;
                                     @endphp
                                     @if($mainContact)
                                         <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 flex items-center bg-gray-100 dark:bg-gray-700/50 px-2 py-0.5 rounded-full w-fit mt-1">
