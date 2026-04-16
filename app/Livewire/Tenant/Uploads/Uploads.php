@@ -476,17 +476,16 @@ class Uploads extends Component
                     //Registro en la tabla dis_deliveries (UNO por ruta)
                     $dis_deliveries = DisDeliveries::create($dataDeliveries);
 
-                    //Actualización registros en la tabla inv_remissions - primero obtener IDs de TODA la ruta
-                    $remissionIds = DB::table('inv_detail_remissions as d')
-                        ->join('inv_remissions as r', 'd.remissionId', '=', 'r.id')
+                    //Actualización registros en la tabla inv_remissions - solo los pedidos seleccionados por este usuario
+                    $remissionIds = DB::table('inv_remissions as r')
                         ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
-                        ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
-                        ->join('vnt_companies as c', 'w.companyId', '=', 'c.id')
-                        ->join('tat_companies_routes as cXr', 'c.id', '=', 'cXr.company_id')
-                        ->join('tat_routes as ro', 'cXr.route_id', '=', 'ro.id')
-                        ->where('ro.id', $routeId) // Filtrar por esta ruta específica
+                        ->join('dis_deliveries_list as dl', function($join) {
+                            $join->on('q.userId', '=', 'dl.salesman_id')
+                                ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
+                        })
+                        ->where('dl.user_id', Auth::id())
+                        ->where('dl.route', $routeId)
                         ->where('r.status', 'REGISTRADO')
-                        ->groupBy('r.id')
                         ->pluck('r.id');
 
                     // Actualizar TODAS las remisiones de esta ruta con el mismo delivery_id

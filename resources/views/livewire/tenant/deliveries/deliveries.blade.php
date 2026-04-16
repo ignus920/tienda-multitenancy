@@ -476,6 +476,10 @@
                             <textarea x-model="orderNovelty" 
                                       class="w-full px-4 py-3 rounded-2xl border-gray-200 dark:border-slate-800 dark:bg-slate-900 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500/50 transition-all resize-none h-24"
                                       placeholder="¿Por qué se devuelven estos productos? (Obligatorio si hay devoluciones)"></textarea>
+                            <span x-show="Object.values(returnQuantities).some(q => q > 0) && !orderNovelty.trim()" 
+                                  class="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 block animate-pulse">
+                                Diligencie la observación para poder completar la acción
+                            </span>
                         </div>
                         <!-- Área de Edición de Producto (Especial Táctil) -->
                         <template x-if="order && order.details && order.details[currentItemIndex]">

@@ -828,14 +828,7 @@ class ProductQuoter extends Component
 
 
     /**
-     * Guardar una cotización sin crear remisiones
-     * 
-     * IMPORTANTE: Esta función SOLO crea la cotización y sus detalles.
-     * NO crea remisiones de inventario. Las remisiones se crean SOLO cuando
-     * el usuario hace clic en "Confirmar Pedido" (confirmarPedido()).
-     * 
-     * Esto permite que los vendedores creen múltiples cotizaciones sin
-     * afectar el inventario disponible.
+     * Guardar una cotización y crear automáticamente su remisión
      */
     public function saveQuote()
     {
@@ -860,15 +853,15 @@ class ProductQuoter extends Component
         try {
             DB::beginTransaction();
 
-            // 1. Obtener consecutivo
+            // 1. Obtener consecutivo de cotización
             $lastQuote = VntQuote::orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
 
             // 2. Crear la cotización
             $quote = VntQuote::create([
                 'consecutive' => $nextConsecutive,
-                'status' => 'REGISTRADO',
-                'typeQuote' => 'POS', // Valor por defecto para este flujo
+                'status' => 'REMISIÓN', // Cambiamos a REMISIÓN ya que se crea automáticamente
+                'typeQuote' => 'POS',
                 'customerId' => $this->selectedCustomer['id'],
                 'warehouseId' => 1,
                 'userId' => auth()->id(),
@@ -876,7 +869,7 @@ class ProductQuoter extends Component
                 'branchId' => session('branch_id', 1)
             ]);
 
-            // 3. Crear detalles
+            // 3. Crear detalles de cotización
             foreach ($this->quoterItems as $item) {
                 VntDetailQuote::create([
                     'quantity' => $item['quantity'],
@@ -889,6 +882,32 @@ class ProductQuoter extends Component
                 ]);
             }
 
+            // 4. Crear la Remisión automáticamente
+            $reason = InvReason::where('status', 1)->first();
+            $remission = InvRemissions::create([
+                'consecutive' => $this->generateRemissionConsecutive(),
+                'reasonId' => $reason ? $reason->id : 1,
+                'userId' => auth()->id(),
+                'quoteId' => $quote->id,
+                'status' => 'REGISTRADO',
+                'total_value' => $this->totalAmount,
+                'observations' => $this->observaciones,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // 5. Crear detalles de la remisión
+            foreach ($this->quoterItems as $item) {
+                InvDetailRemissions::create([
+                    'remissionId' => $remission->id,
+                    'itemId' => $item['id'],
+                    'quantity' => $item['quantity'],
+                    'value' => $item['price'],
+                    'discount' => 0,
+                    'tax' => $item['tax'] ?? 0,
+                ]);
+            }
+
             DB::commit();
 
             // Limpiar
@@ -897,18 +916,27 @@ class ProductQuoter extends Component
             $this->dispatch('swal-redirect', [
                 'type' => 'success',
                 'title' => '¡Registrado!',
-                'message' => 'Cotización #' . $quote->consecutive . ' registrada exitosamente',
+                'message' => 'Cotización #' . $quote->consecutive . ' y Remisión #' . $remission->consecutive . ' registradas exitosamente',
                 'url' => route('tenant.quoter')
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error creando cotización: ' . $e->getMessage());
+            Log::error('Error creando cotización y remisión: ' . $e->getMessage());
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'Error al crear la cotización: ' . $e->getMessage()
+                'message' => 'Error al procesar el registro: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Generar consecutivo para remisión
+     */
+    private function generateRemissionConsecutive()
+    {
+        $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
+        return $lastRemission ? $lastRemission->consecutive + 1 : 1;
     }
 
     /**
@@ -2989,14 +3017,6 @@ class ProductQuoter extends Component
     }
 
 
-    /**
-     * Generar consecutivo para remisión
-     */
-    private function generateRemissionConsecutive()
-    {
-        $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
-        return $lastRemission ? $lastRemission->consecutive + 1 : 1;
-    }
     /**
      * Procesa un pedido realizado en modo offline cuando se recupera la conexión.
      * Maneja la creación de clientes temporales si es necesario.
