@@ -1063,7 +1063,7 @@ $header = 'Seleccionar productos';
                         <span class="text-green-600 dark:text-green-400">${{ number_format($totalAmount, 2, ',', '.') }}</span>
                     </div>
 
-                    @if($showRetentions)
+                    {{-- @if($showRetentions)
                     <!-- Resumen de Retenciones -->
                     <div class="bg-orange-50 dark:bg-orange-900/30 rounded-lg px-3 py-2 mb-3 mt-3 border border-orange-200 dark:border-orange-800 space-y-1 text-xs">
                         <div class="font-bold text-orange-700 dark:text-orange-400 border-b border-orange-200 dark:border-orange-800 pb-1 mb-1">
@@ -1092,7 +1092,7 @@ $header = 'Seleccionar productos';
                             <span class="text-green-600 dark:text-green-400">${{ number_format($totalWithRetentions, 2, ',', '.') }}</span>
                         </div>
                     </div>
-                    @endif
+                    @endif --}}
                     <!-- Flete y Peso -->
 
                     @if($isEditing || $isEditingRemission)

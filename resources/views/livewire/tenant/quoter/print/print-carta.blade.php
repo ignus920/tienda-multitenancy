@@ -481,7 +481,7 @@
             
                 $showRetentions = ($ret_fuente > 0 || $ret_ica > 0 || $ret_iva > 0);
             @endphp
-            @if($showRetentions)
+            {{-- @if($showRetentions)
                 <div class="total-line">RETENCIONES</div>
                 @if($ret_fuente > 0)
                     <span>Ret. Fuente (2.5%):</span>
@@ -499,7 +499,7 @@
                     <span>Total con Retenciones:</span>
                     <span style="color: black;">${{ number_format($total - $ret_fuente - $ret_ica - $ret_iva, 0) }}</span>
                 </div>
-            @endif
+            @endif --}}
             <div class="total-line final">
                 <span>Total:</span>
                 <span class="amount">${{ number_format($total, 0) }}</span>
