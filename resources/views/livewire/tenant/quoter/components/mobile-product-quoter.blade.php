@@ -852,7 +852,7 @@
                 </a>
                 @else
                 <a
-                    href="{{ route('tenant.quoter', ['clear' => 1]) }}"
+                    href="{{ route('tenant.remissions', ['clear' => 1]) }}"
                     class="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200
                         flex items-center gap-2"
                     wire:navigate.false>
