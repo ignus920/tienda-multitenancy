@@ -74,11 +74,26 @@ class Remissions extends Component
         $this->resetPage();
     }
 
-    public function updatingSearchNit() { $this->resetPage(); }
-    public function updatingSearchName() { $this->resetPage(); }
-    public function updatingSearchQuote() { $this->resetPage(); }
-    public function updatingSearchStartDate() { $this->resetPage(); }
-    public function updatingSearchEndDate() { $this->resetPage(); }
+    public function updatingSearchNit()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchName()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchQuote()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchStartDate()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchEndDate()
+    {
+        $this->resetPage();
+    }
 
     /**
      * Maneja la selección de todas las remisiones en la página actual
@@ -276,7 +291,6 @@ class Remissions extends Component
             if (!empty($result['public_url'])) {
                 $this->dispatch('open-invoice-pdf', ['url' => $result['public_url']]);
             }
-
         } catch (\Exception $e) {
             Log::error('Error en confirmarFacturacion: ' . $e->getMessage());
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al procesar la facturación: ' . $e->getMessage()]);
@@ -315,33 +329,33 @@ class Remissions extends Component
      */
     private function applyBaseFilters($query)
     {
-        $query->where(function($q) {
+        $query->where(function ($q) {
             $q->where('consecutive', 'like', '%' . $this->search . '%')
                 ->orWhere('status', 'like', '%' . $this->search . '%')
                 ->orWhereHas('quote.customer.company', function ($sub) {
                     $sub->where('businessName', 'like', '%' . $this->search . '%')
-                      ->orWhere('firstName', 'like', '%' . $this->search . '%')
-                      ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                        ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                        ->orWhere('lastName', 'like', '%' . $this->search . '%');
                 });
         });
 
         // Búsqueda avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer.company', function($q) {
+            $query->whereHas('quote.customer.company', function ($q) {
                 $q->where('identification', 'like', '%' . $this->searchNit . '%');
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote.customer.company', function($q) {
+            $query->whereHas('quote.customer.company', function ($q) {
                 $q->where('businessName', 'like', '%' . $this->searchName . '%')
-                  ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
-                  ->orWhere('lastName', 'like', '%' . $this->searchName . '%');
+                    ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
+                    ->orWhere('lastName', 'like', '%' . $this->searchName . '%');
             });
         }
 
         if ($this->searchQuote) {
-            $query->whereHas('quote', function($q) {
+            $query->whereHas('quote', function ($q) {
                 $q->where('consecutive', 'like', '%' . $this->searchQuote . '%');
             });
         }
@@ -387,12 +401,12 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
         $this->selectedRemission = InvRemissions::with([
-            'quote.customer', 
-            'quote.warehouse.contacts', 
-            'quote.branch', 
+            'quote.customer',
+            'quote.warehouse.contacts',
+            'quote.branch',
             'details.item'
         ])->find($id);
-        
+
         $this->showDetailModal = true;
     }
 
@@ -460,7 +474,6 @@ class Remissions extends Component
                 'type'    => 'success',
                 'message' => 'Estado actualizado a ' . $nuevoStatus,
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error al cambiar status de remisión: ' . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -475,10 +488,10 @@ class Remissions extends Component
         $this->ensureTenantConnection();
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function() use ($id) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
                 // 1. Buscar la remisión
                 $remission = InvRemissions::findOrFail($id);
-                
+
                 // 2. Anular la remisión
                 $remission->status = 'ANULADO';
                 $remission->save();
@@ -503,7 +516,6 @@ class Remissions extends Component
                 'type' => 'success',
                 'message' => 'Remisión anulada correctamente. La cotización vuelve a estar disponible.'
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error al anular remisión: ' . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -519,7 +531,7 @@ class Remissions extends Component
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
         $remissions = InvRemissions::with(['quote.customer.company', 'quote.warehouse', 'details', 'deliveryType', 'methodPayment', 'invoiceXsale.invoice'])
-            ->where(function($query) {
+            ->where(function ($query) {
                 $this->applyBaseFilters($query);
             })
             ->when(auth()->user()->profile_id == 4, function ($query) {

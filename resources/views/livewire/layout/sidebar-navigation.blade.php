@@ -169,10 +169,10 @@ new class extends Component {
                         Ventas
                     </a>
 
-                    <a href="{{ route('tenant.quoter') }}" @click="localStorage.setItem('quoter_clear', '1')"
+                    {{-- <a href="{{ route('tenant.quoter') }}" @click="localStorage.setItem('quoter_clear', '1')"
                         class="block px-2 py-1 hover:text-indigo-600">
                         Cotizaciones
-                    </a>
+                    </a> --}}
 
                     <a href="{{ route('tenant.remissions') }}" class="block px-2 py-1 hover:text-indigo-600">
                         Remisiones

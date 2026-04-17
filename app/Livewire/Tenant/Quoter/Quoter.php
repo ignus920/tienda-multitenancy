@@ -16,6 +16,7 @@ use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Sales\VntInvoice;
 use App\Models\Tenant\Sales\VntInvoicesXsale;
 use App\Services\Factus\QuoteToInvoiceService;
+use Livewire\Attributes\On;
 
 class Quoter extends Component
 {
@@ -102,11 +103,12 @@ class Quoter extends Component
         $this->resetPage();
     }
 
+    #[On('nuevaCotizacion')]
     public function nuevaCotizacion()
     {
         // Limpiar items del cotizador de la sesión para que entre limpio
         session()->forget('quoter_items');
-        
+
         return redirect('/tenant/quoter/products');
     }
 
@@ -418,42 +420,55 @@ class Quoter extends Component
         Log::info('🏢 getCompanyInfo llamado');
 
         // Intentar obtener información del warehouse desde la base central
-    if ($quote && $quote->warehouseId) {
-        Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $quote->warehouseId]);
+        if ($quote && $quote->warehouseId) {
+            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $quote->warehouseId]);
 
-        try {
-            // Consultar directamente desde la base central usando el modelo VntWarehouse con su empresa
-            $warehouse = VntWarehouse::with('company')->find($quote->warehouseId);
+            try {
+                // Consultar directamente desde la base central usando el modelo VntWarehouse con su empresa
+                $warehouse = VntWarehouse::with('company')->find($quote->warehouseId);
 
-            if ($warehouse) {
-                Log::info('🏢 Warehouse encontrado en central', [
-                    'id' => $warehouse->id,
-                    'name' => $warehouse->name,
-                    'address' => $warehouse->address
-                ]);
+                if ($warehouse) {
+                    Log::info('🏢 Warehouse encontrado en central', [
+                        'id' => $warehouse->id,
+                        'name' => $warehouse->name,
+                        'address' => $warehouse->address
+                    ]);
 
-                // Priorizar datos de la empresa vinculada al warehouse
-                $company = $warehouse->company;
+                    // Priorizar datos de la empresa vinculada al warehouse
+                    $company = $warehouse->company;
 
+                    $companyData = [
+                        'businessName' => $company->businessName ?? $warehouse->name ?? 'DISTRIBUCIONES',
+                        'firstName' => $company->firstName ?? '',
+                        'lastName' => $company->lastName ?? '',
+                        'identification' => $company->identification ?? 'N/A',
+                        'billingAddress' => $warehouse->address ?? $company->billingAddress ?? 'N/A',
+                        'phone' => $company->phone ?? $company->billingPhone ?? 'N/A',
+                        'billingEmail' => $company->billingEmail ?? 'pedidos@distribuciones.com'
+                    ];
+
+                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
+                } else {
+                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $quote->warehouseId);
+                    throw new \Exception('Warehouse no encontrado');
+                }
+            } catch (\Exception $e) {
+                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
+
+                // Fallback razonable
                 $companyData = [
-                    'businessName' => $company->businessName ?? $warehouse->name ?? 'DISTRIBUCIONES',
-                    'firstName' => $company->firstName ?? '',
-                    'lastName' => $company->lastName ?? '',
-                    'identification' => $company->identification ?? 'N/A',
-                    'billingAddress' => $warehouse->address ?? $company->billingAddress ?? 'N/A',
-                    'phone' => $company->phone ?? $company->billingPhone ?? 'N/A',
-                    'billingEmail' => $company->billingEmail ?? 'pedidos@distribuciones.com'
+                    'businessName' => 'DISTRIBUCIONES',
+                    'firstName' => '',
+                    'lastName' => '',
+                    'identification' => 'N/A',
+                    'billingAddress' => 'N/A',
+                    'phone' => 'N/A',
+                    'billingEmail' => 'pedidos@distribuciones.com'
                 ];
-
-                Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
-            } else {
-                Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $quote->warehouseId);
-                throw new \Exception('Warehouse no encontrado');
             }
-        } catch (\Exception $e) {
-            Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
+        } else {
+            Log::warning('⚠️ No se encontró warehouseId en la cotización, usando datos por defecto');
 
-            // Fallback razonable
             $companyData = [
                 'businessName' => 'DISTRIBUCIONES',
                 'firstName' => '',
@@ -464,24 +479,11 @@ class Quoter extends Component
                 'billingEmail' => 'pedidos@distribuciones.com'
             ];
         }
-    } else {
-        Log::warning('⚠️ No se encontró warehouseId en la cotización, usando datos por defecto');
 
-        $companyData = [
-            'businessName' => 'DISTRIBUCIONES',
-            'firstName' => '',
-            'lastName' => '',
-            'identification' => 'N/A',
-            'billingAddress' => 'N/A',
-            'phone' => 'N/A',
-            'billingEmail' => 'pedidos@distribuciones.com'
-        ];
+        Log::info('🏢 Datos empresa preparados', $companyData);
+
+        return (object) $companyData;
     }
-
-    Log::info('🏢 Datos empresa preparados', $companyData);
-
-    return (object) $companyData;
-}
 
 
     private function ensureTenantConnection()
@@ -602,9 +604,9 @@ class Quoter extends Component
             // Buscamos la cotización en la colección actual si es posible
             $remissions = InvRemissions::where('quoteId', $quoteId)->get();
         }
-        
+
         // Filtramos las que NO están anuladas
-        $activeRemissions = $remissions->filter(function($rem) {
+        $activeRemissions = $remissions->filter(function ($rem) {
             $status = trim(strtoupper($rem->status ?? ''));
             return $status !== 'ANULADO' && $status !== '';
         });
@@ -625,13 +627,13 @@ class Quoter extends Component
 
             // Validar que tengamos los datos mínimos
             if (empty($orderData)) {
-                 return ['success' => false, 'message' => 'Datos de pedido vacíos'];
+                return ['success' => false, 'message' => 'Datos de pedido vacíos'];
             }
 
             // Despachar el Job
             \App\Jobs\Tenant\Quoter\ProcessOfflineOrderJob::dispatch(
                 $orderData,
-                Auth::id(), 
+                Auth::id(),
                 session('warehouse_id', 1),
                 session('branch_id', 1)
             );
@@ -811,7 +813,7 @@ class Quoter extends Component
             ]);
 
             // Redirigir a la página de remisiones o cotizaciones
-            return redirect()->route('tenant.quoter');
+            return redirect()->route('tenant.remissions');
         } catch (\Exception $e) {
             Log::error('Error al procesar confirmación de pedido: ' . $e->getMessage());
             $this->dispatch('show-toast', [
@@ -1003,7 +1005,6 @@ class Quoter extends Component
                 }
 
                 $this->render();
-
             } else {
                 $errorMessage = $this->parseFactusError($result['message'] ?? 'Error desconocido');
 
@@ -1017,7 +1018,6 @@ class Quoter extends Component
                     'message' => $errorMessage,
                 ]);
             }
-
         } catch (\Exception $e) {
             Log::error('Excepción al facturar cotización', [
                 'quote_id' => $quoteId,
