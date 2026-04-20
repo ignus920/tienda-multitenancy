@@ -476,10 +476,6 @@
                             <textarea x-model="orderNovelty" 
                                       class="w-full px-4 py-3 rounded-2xl border-gray-200 dark:border-slate-800 dark:bg-slate-900 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500/50 transition-all resize-none h-24"
                                       placeholder="¿Por qué se devuelven estos productos? (Obligatorio si hay devoluciones)"></textarea>
-                            <span x-show="Object.values(returnQuantities).some(q => q > 0) && !orderNovelty.trim()" 
-                                  class="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 block animate-pulse">
-                                Diligencie la observación para poder completar la acción
-                            </span>
                         </div>
                         <!-- Área de Edición de Producto (Especial Táctil) -->
                         <template x-if="order && order.details && order.details[currentItemIndex]">
@@ -590,6 +586,10 @@
                                 <div class="text-2xl font-black text-green-600 dark:text-green-500" 
                                     x-text="'$ ' + (order?.details?.reduce((acc, d) => acc + ((d.quantity - (returnQuantities[d.id] || 0)) * d.value), 0) || 0).toLocaleString()"></div>
                             </div>
+                            <span x-show="Object.values(returnQuantities).some(q => q > 0) && !orderNovelty.trim()" 
+                                  class="text-red-600 dark:text-red-500 text-sm font-black uppercase tracking-widest mt-2 block animate-pulse text-center sm:text-left">
+                                ⚠ Diligencie la observación para poder completar la acción
+                            </span>
                             <div class="flex items-center gap-3 w-full sm:w-auto">
                                 <button @click="handleSaveProductNovelty(order.id)"
                                         class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-6 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs uppercase tracking-widest"

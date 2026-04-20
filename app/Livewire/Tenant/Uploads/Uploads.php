@@ -109,58 +109,33 @@ class Uploads extends Component
 
     public function getRemissions($date)
     {
-        // Usamos una subconsulta para calcular el campo "existe"
-        $subquery = DB::table('vnt_quotes as q')
-            ->select(
-                'q.id',
-                'q.userId',
-                'q.created_at',
-                'q.customerId',
-                DB::raw("CASE WHEN EXISTS (
-                    SELECT 1
-                    FROM dis_deliveries_list d
-                    WHERE d.salesman_id = q.userId
-                ) THEN 'SI' ELSE 'NO' END as existe")
-            );
-
-        // Filtrar por ruta si está seleccionada
-        if ($this->selectedRoute) {
-            $subquery->join('tat_companies_routes as cr', 'q.customerId', '=', 'cr.company_id')
-                     ->where('cr.route_id', $this->selectedRoute);
-        }
-
-        // Consulta principal
-        $query = DB::table(DB::raw("({$subquery->toSql()}) as q"))
-            ->mergeBindings($subquery)
+        $query = DB::table('vnt_quotes as q')
             ->join('users as u', 'q.userId', '=', 'u.id')
             ->join('inv_remissions as r', 'q.id', '=', 'r.quoteId')
-            ->join('tat_companies_routes as cXr', 'q.customerId', '=', 'cXr.company_id')
+            ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
+            ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
+            ->join('tat_companies_routes as cXr', 'com.id', '=', 'cXr.company_id')
             ->join('tat_routes as rt', 'cXr.route_id', '=', 'rt.id')
             ->select(
                 'u.name',
                 'q.userId',
+                'rt.id as route_id',
                 'rt.name as ruta',
                 DB::raw('DATE(q.created_at) as fecha'),
-                DB::raw('COUNT(*) as total_registros'),
-                DB::raw('MAX(q.existe) as existe')
+                DB::raw('COUNT(DISTINCT r.id) as total_registros'),
+                DB::raw("CASE WHEN EXISTS (
+                    SELECT 1 FROM dis_deliveries_list dl 
+                    WHERE dl.salesman_id = q.userId AND dl.route = rt.id
+                ) THEN 'SI' ELSE 'NO' END as existe")
             )
             ->whereDate('q.created_at', $date)
             ->where('r.status', 'REGISTRADO');
 
-        // Agregar esto para depurar
-        // Log::info('Consulta SQL:', [
-        //     'sql' => $query->toSql(),
-        //     'bindings' => $query->getBindings(),
-        //     'date' => $date,
-        //     'routeId' => $routeId
-        // ]);
-
-        // Filtrar por ruta específica si está seleccionada
         if ($this->selectedRoute) {
             $query->where('rt.id', $this->selectedRoute);
         }
 
-        return $query->groupBy('u.id', 'u.name', DB::raw('DATE(q.created_at)'), 'rt.name')->get();
+        return $query->groupBy('u.id', 'u.name', 'rt.id', 'rt.name', DB::raw('DATE(q.created_at)'))->get();
     }
 
     public function getRemissionsByDay($saleDay)
@@ -184,7 +159,7 @@ class Uploads extends Component
                 DB::raw('COUNT(DISTINCT r.id) as cantidad_pedidos'),
                 DB::raw('SUM(d.quantity * d.value) as total_ventas'),
                 DB::raw("CASE WHEN EXISTS (
-                    SELECT 1 FROM dis_deliveries_list dl WHERE dl.salesman_id = q.userId
+                    SELECT 1 FROM dis_deliveries_list dl WHERE dl.salesman_id = q.userId AND dl.route = rt.id
                 ) THEN 'SI' ELSE 'NO' END as existe")
             )
             ->where('r.status', 'REGISTRADO')
@@ -216,22 +191,23 @@ class Uploads extends Component
     }
 
 
-    public function cargar($userId)
+    public function cargar($userId, $routeId)
     {
         if (!$this->selectedDeliveryMan) {
             session()->flash('error', 'Por favor selecciona un transportador primero');
             return;
         }
 
-        // Obtener la ruta del vendedor
+        // Obtener la ruta del vendedor filtrando por la ruta específica
         $vendorRoute = DB::table('vnt_quotes as q')
             ->join('inv_remissions as r', 'q.id', '=', 'r.quoteId')
             ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
             ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
             ->join('tat_companies_routes as cr', 'com.id', '=', 'cr.company_id')
             ->where('q.userId', $userId)
+            ->where('cr.route_id', $routeId)
             ->where('r.status', 'REGISTRADO')
-            ->select(DB::raw('DATE(q.created_at) as sale_date'), 'cr.route_id as route')
+            ->select(DB::raw('DATE(q.created_at) as sale_date'))
             ->first();
 
         if (!$vendorRoute) {
@@ -240,7 +216,6 @@ class Uploads extends Component
         }
 
         $saleDate = $vendorRoute->sale_date;
-        $routeId = $vendorRoute->route;
 
         // Validar que el transportador no tenga pedidos de días diferentes
         if (!$this->validateDeliveryManRoute($this->selectedDeliveryMan, $routeId)) {
@@ -277,7 +252,7 @@ class Uploads extends Component
             // También refrescar el componente para asegurar que se actualice la vista
             $this->dispatch('$refresh');
 
-            session()->flash('message', "Cargando datos para el usuario ID: $userId - Ruta seleccionada");
+            session()->flash('message', "Cargando datos para el vendedor seleccionado en la ruta");
         } catch (\Exception $e) {
             Log::error($e);
             session()->flash('error', "Error al registrar el cargue" . $e->getMessage());
@@ -305,7 +280,7 @@ class Uploads extends Component
         }
 
         try {
-            // Obtener todos los vendedores de la ruta que no están cargados
+            // Obtener todos los vendedores de la ruta que no están cargados PARA ESTA RUTA
             $vendorsToLoad = DB::table('vnt_quotes as q')
                 ->join('inv_remissions as r', 'q.id', '=', 'r.quoteId')
                 ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
@@ -313,10 +288,11 @@ class Uploads extends Component
                 ->join('tat_companies_routes as cr', 'com.id', '=', 'cr.company_id')
                 ->where('cr.route_id', $routeId)
                 ->where('r.status', 'REGISTRADO')
-                ->whereNotExists(function ($query) {
+                ->whereNotExists(function ($query) use ($routeId) {
                     $query->select(DB::raw(1))
                         ->from('dis_deliveries_list as dl')
-                        ->whereRaw('dl.salesman_id = q.userId');
+                        ->whereRaw('dl.salesman_id = q.userId')
+                        ->where('dl.route', $routeId);
                 })
                 ->select('q.userId', DB::raw('DATE(q.created_at) as sale_date'))
                 ->distinct()
@@ -377,11 +353,13 @@ class Uploads extends Component
         }
     }
 
-    public function eliminar($userId)
+    public function eliminar($userId, $routeId)
     {
         try {
-            // Buscar y eliminar el registro del vendedor
-            $deleted = DisDeliveriesList::where('salesman_id', $userId)->delete();
+            // Buscar y eliminar el registro del vendedor en la ruta específica
+            $deleted = DisDeliveriesList::where('salesman_id', $userId)
+                ->where('route', $routeId)
+                ->delete();
 
             if ($deleted) {
                 // Recargar los datos de la tabla
@@ -409,6 +387,9 @@ class Uploads extends Component
                     FROM dis_deliveries_list dl 
                     INNER JOIN vnt_quotes q ON dl.salesman_id = q.userId 
                         AND DATE(q.created_at) = dl.sale_date 
+                    INNER JOIN vnt_warehouses w ON q.customerId = w.id
+                    INNER JOIN vnt_companies com ON w.companyId = com.id
+                    INNER JOIN tat_companies_routes cr ON com.id = cr.company_id AND dl.route = cr.route_id
                     INNER JOIN vnt_detail_quotes dt ON dt.quoteId = q.id 
                     LEFT JOIN inv_items_store its ON dt.itemId = its.itemId 
                     GROUP BY dt.itemId, its.stock_items_store 
@@ -523,6 +504,12 @@ class Uploads extends Component
                 $join->on('dl.salesman_id', '=', 'q.userId')
                     ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
             })
+            ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
+            ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
+            ->join('tat_companies_routes as cr', function($join) {
+                $join->on('com.id', '=', 'cr.company_id')
+                    ->on('dl.route', '=', 'cr.route_id');
+            })
             ->join('vnt_detail_quotes as dt', 'dt.quoteId', '=', 'q.id')
             ->join('inv_items as i', 'i.id', '=', 'dt.itemId')
             ->join('inv_categories as c', 'i.categoryId', '=', 'c.id')
@@ -606,7 +593,7 @@ class Uploads extends Component
         }
 
         try {
-            // Obtener items con la nueva consulta SQL
+            // Obtener items filtrando específicamente por los vendedores y rutas en dis_deliveries_list
             $this->previewItems = DB::table('inv_detail_remissions as d')
                 ->join('inv_remissions as r', 'd.remissionId', '=', 'r.id')
                 ->join('inv_items as it', 'd.itemId', '=', 'it.id')
@@ -617,11 +604,12 @@ class Uploads extends Component
                 ->join('tat_routes as ro', 'cXr.route_id', '=', 'ro.id')
                 ->join('inv_categories as cat', 'it.categoryId', '=', 'cat.id')
                 ->leftJoin('inv_items_store as its', 'it.id', '=', 'its.itemId')
-                ->whereIn('ro.id', function($query) {
-                    $query->select('route')
-                        ->from('dis_deliveries_list')
-                        ->where('deliveryman_id', $this->selectedDeliveryMan);
+                ->join('dis_deliveries_list as dl', function($join) {
+                    $join->on('q.userId', '=', 'dl.salesman_id')
+                        ->on('ro.id', '=', 'dl.route')
+                        ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
                 })
+                ->where('dl.deliveryman_id', $this->selectedDeliveryMan)
                 ->select(
                     'it.internal_code as code',
                     'cat.name as category',
@@ -669,7 +657,7 @@ class Uploads extends Component
         }
 
         try {
-            // Obtener items con la nueva consulta SQL
+            // Obtener items filtrando específicamente por los vendedores y rutas en dis_deliveries_list
             $items = DB::table('inv_detail_remissions as d')
                 ->join('inv_remissions as r', 'd.remissionId', '=', 'r.id')
                 ->join('inv_items as it', 'd.itemId', '=', 'it.id')
@@ -680,11 +668,12 @@ class Uploads extends Component
                 ->join('tat_routes as ro', 'cXr.route_id', '=', 'ro.id')
                 ->join('inv_categories as cat', 'it.categoryId', '=', 'cat.id')
                 ->leftJoin('inv_items_store as its', 'it.id', '=', 'its.itemId')
-                ->whereIn('ro.id', function($query) {
-                    $query->select('route')
-                        ->from('dis_deliveries_list')
-                        ->where('deliveryman_id', $this->selectedDeliveryMan);
+                ->join('dis_deliveries_list as dl', function($join) {
+                    $join->on('q.userId', '=', 'dl.salesman_id')
+                        ->on('ro.id', '=', 'dl.route')
+                        ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
                 })
+                ->where('dl.deliveryman_id', $this->selectedDeliveryMan)
                 ->select(
                     'it.internal_code as code',
                     'cat.name as category',
