@@ -125,6 +125,30 @@ class Items extends Model
     }
 
     /**
+     * Relación con las localizaciones físicas (Picking)
+     */
+    public function locations()
+    {
+        return $this->hasMany(InvItemsLocations::class, 'itemId', 'id');
+    }
+
+    /**
+     * Relación con importaciones (Tránsito)
+     */
+    public function imports()
+    {
+        return $this->hasMany(\App\Models\Tenant\Imports\ImpImports::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con detalles de remisiones (Reservas)
+     */
+    public function remissionDetails()
+    {
+        return $this->hasMany(\App\Models\Tenant\Remissions\InvDetailRemissions::class, 'itemId', 'id');
+    }
+
+    /**
      * Relación con la galería de imágenes
      * Un item puede tener múltiples imágenes
      */
@@ -143,7 +167,7 @@ class Items extends Model
     }
 
     /**
-     * Obtener la imagen principal del item
+     * Obtener la imagen principal del item (COMERCIAL)
      */
     public function principalImage()
     {
@@ -154,13 +178,30 @@ class Items extends Model
     }
 
     /**
+     * Obtener la imagen principal del item (BODEGA)
+     */
+    public function principalBodegaImage()
+    {
+        return $this->hasOne(ImageGallery::class, 'itemId', 'id')
+            ->where('type', 'PRINCIPAL')
+            ->where('type_show', 'BODEGA')
+            ->whereNull('deleted_at');
+    }
+
+    /**
      * Obtener URL de la imagen principal
      * 
+     * @param string $context 'COMERCIAL' o 'BODEGA'
      * @return string URL de la imagen o placeholder
      */
-    public function getPrincipalImageUrl()
+    public function getPrincipalImageUrl($context = 'COMERCIAL')
     {
-        $principalImage = $this->principalImage;
+        $principalImage = $context === 'BODEGA' ? $this->principalBodegaImage : $this->principalImage;
+
+        // Si no hay imagen de bodega, intentar usar la comercial como fallback
+        if ($context === 'BODEGA' && !$principalImage) {
+            $principalImage = $this->principalImage;
+        }
 
         if ($principalImage) {
             return $principalImage->getImageUrl();
@@ -172,11 +213,17 @@ class Items extends Model
     /**
      * Obtener URL del thumbnail de la imagen principal
      * 
+     * @param string $context 'COMERCIAL' o 'BODEGA'
      * @return string URL del thumbnail o placeholder
      */
-    public function getPrincipalThumbnailUrl()
+    public function getPrincipalThumbnailUrl($context = 'COMERCIAL')
     {
-        $principalImage = $this->principalImage;
+        $principalImage = $context === 'BODEGA' ? $this->principalBodegaImage : $this->principalImage;
+
+        // Si no hay thumbnail de bodega, intentar usar la comercial como fallback
+        if ($context === 'BODEGA' && !$principalImage) {
+            $principalImage = $this->principalImage;
+        }
 
         if ($principalImage) {
             return $principalImage->getThumbnailUrl();
@@ -485,5 +532,93 @@ class Items extends Model
     public function getDisplayNameAttribute()
     {
         return strtoupper($this->attributes['name']);
+    }
+
+    /**
+     * Accessors Logísticos para el modo Bodega
+     * Usan relaciones eager-loaded para evitar N+1 queries.
+     */
+
+    public function getStockBodegaAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('invItemsStore')
+            ? $this->invItemsStore
+            : $this->invItemsStore()->get();
+
+        $storeRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $storeRecord ? $storeRecord->stock_items_store : 0;
+    }
+
+    public function getInTransitAttribute()
+    {
+        $collection = $this->relationLoaded('imports')
+            ? $this->imports
+            : $this->imports()->get();
+
+        return $collection->where('status', '<', 8)->sum('qty_requested');
+    }
+
+    public function getReservedAttribute()
+    {
+        $collection = $this->relationLoaded('remissionDetails')
+            ? $this->remissionDetails
+            : $this->remissionDetails()->with('remission')->get();
+
+        return $collection->filter(function ($detail) {
+            return $detail->remission && $detail->remission->status === 'REGISTRADO';
+        })->sum('quantity');
+    }
+
+    public function getPickingAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('locations')
+            ? $this->locations
+            : $this->locations()->with('location')->get();
+
+        $locationRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $locationRecord && $locationRecord->location
+            ? $locationRecord->location->name
+            : 'N/A';
+    }
+
+    public function getQtyPerBoxAttribute()
+    {
+        return $this->dimensions?->quntityxbox ?? 0;
+    }
+
+    public function getStockMinAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('invItemsStore')
+            ? $this->invItemsStore
+            : $this->invItemsStore()->get();
+
+        $storeRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $storeRecord ? $storeRecord->stock_min : 0;
+    }
+
+    public function getStockMaxAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('invItemsStore')
+            ? $this->invItemsStore
+            : $this->invItemsStore()->get();
+
+        $storeRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $storeRecord ? $storeRecord->stock_max : 0;
     }
 }

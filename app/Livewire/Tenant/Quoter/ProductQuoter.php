@@ -399,6 +399,9 @@ class ProductQuoter extends Component
                 )
                 ->where('inv_items.status', 1)
                 ->with(['principalImage', 'invValues', 'tax'])
+                ->when($this->hideQuoter, function ($q) {
+                    $q->with(['locations.location', 'imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
+                })
                 ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->where(function ($q) {
