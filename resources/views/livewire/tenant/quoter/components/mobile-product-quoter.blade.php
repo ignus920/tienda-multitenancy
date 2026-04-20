@@ -22,68 +22,55 @@ $header = 'Seleccionar productos';
                     <span class="text-sm">Regresar</span>
                 </a>
 
-                <!-- Switch Premium de Modo Copia (Mobile) -->
-                <div class="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all">
-                    <div class="flex flex-col leading-none">
-                        <span class="text-[8px] uppercase font-black tracking-tight {{ $isCopyMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">
-                            {{ $isCopyMode ? 'COPIAR' : 'COTIZAR' }}
-                        </span>
-                    </div>
-                    <button 
-                        type="button"
-                        wire:click="toggleCopyMode"
-                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $isCopyMode ? 'bg-emerald-500' : 'bg-red-500' }}">
-                        <span 
-                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isCopyMode ? 'translate-x-5' : 'translate-x-0' }}">
-                        </span>
-                    </button>
-                </div>
+                @include('livewire.tenant.components.copy-mode-switch')
 
-                <div class="flex items-center gap-1">
-                    @if($this->quoterCount > 0)
-                    <button
-                        @click="
-                            Swal.fire({
-                                title: '¿Limpiar cotizador?',
-                                text: 'Se eliminarán todos los productos seleccionados.',
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#4f46e5',
-                                cancelButtonColor: '#ef4444',
-                                confirmButtonText: 'Sí, limpiar',
-                                cancelButtonText: 'Cancelar',
-                                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                                color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    $wire.clearQuoter()
-                                }
-                            })
-                        "
-                        class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                        title="Limpiar cotizador">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                    @endif
-
-                    <!-- Carrito flotante -->
-                    <button
-                        @click="openCart = true; $wire.toggleCartModal();"
-                        class="relative p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 16a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-
+                    @if(!$hideQuoter)
+                    <div class="flex items-center gap-1">
                         @if($this->quoterCount > 0)
-                        <span class="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                            {{ $this->quoterCount }}
-                        </span>
+                        <button
+                            @click="
+                                Swal.fire({
+                                    title: '¿Limpiar cotizador?',
+                                    text: 'Se eliminarán todos los productos seleccionados.',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#4f46e5',
+                                    cancelButtonColor: '#ef4444',
+                                    confirmButtonText: 'Sí, limpiar',
+                                    cancelButtonText: 'Cancelar',
+                                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                    color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        $wire.clearQuoter()
+                                    }
+                                })
+                            "
+                            class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                            title="Limpiar cotizador">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                         @endif
-                    </button>
-                </div>
+
+                        <!-- Carrito flotante -->
+                        <button
+                            @click="openCart = true; $wire.toggleCartModal();"
+                            class="relative p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 16a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+
+                            @if($this->quoterCount > 0)
+                            <span class="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                {{ $this->quoterCount }}
+                            </span>
+                            @endif
+                        </button>
+                    </div>
+                    @endif
             </div>
 
             <!-- Contenedor principal con flex para que queden lado a lado -->
@@ -157,18 +144,19 @@ $header = 'Seleccionar productos';
             <!-- Modo Grid (actual) -->
             <div x-data="{ openMenu: false }" 
                  :class="openMenu ? 'z-[60]' : 'z-10'"
-                 @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
+                 @if($isSelected && !$hideQuoter) wire:click="increaseQuantity({{ $product->id }})" @endif
                  class="relative flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 transition-all duration-200 shadow-sm
-                             {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[1.02]' : 'hover:border-indigo-300' }}">
+                             {{ $isSelected && !$hideQuoter ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[1.02]' : 'hover:border-indigo-300' }}">
         @else
             <!-- Modo Lista (tabla mobile) -->
             <div x-data="{ openMenu: false }"
                  :class="openMenu ? 'z-[60]' : 'z-10'"
                  class="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4
-                         {{ $isSelected ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-indigo-300' }} transition-all">
+                         {{ $isSelected && !$hideQuoter ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-indigo-300' }} transition-all">
                 <div class="flex items-center space-x-4">
                     <!-- Imagen pequeña -->
-                    <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                    <div @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} })" 
+                         class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer active:opacity-70 transition-opacity">
                         @if($product->principalImage)
                             <img class="w-full h-full object-cover" src="{{ $product->principalImage->getImageUrl() }}" alt="{{ $product->display_name }}">
                         @else
@@ -209,14 +197,14 @@ $header = 'Seleccionar productos';
                             </div>
                         @endif
 
-                        @if($quantity > 0)
+                        @if($quantity > 0 && !$hideQuoter)
                             <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mt-1">Cantidad: {{ $quantity }}</p>
                         @endif
                     </div>
 
                     <!-- Cantidad badge / Acciones -->
                     <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                        @if($quantity > 0)
+                        @if($quantity > 0 && !$hideQuoter)
                             <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white text-sm font-bold rounded-full">
                                 {{ $quantity }}
                             </span>
@@ -251,14 +239,14 @@ $header = 'Seleccionar productos';
                                     </svg>
                                     Observaciones
                                 </button>
-                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
+                                <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                     </svg>
                                     Calculos
                                 </button>
-                                <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
+                                <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -313,8 +301,8 @@ $header = 'Seleccionar productos';
         @endif
 
         @if($viewMode === 'grid')
-            <!-- Imagen del producto (Arriba) -->
-            <div class="aspect-square w-full relative bg-gray-100 dark:bg-gray-700">
+            <div @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} })" 
+                 class="aspect-square w-full relative bg-gray-100 dark:bg-gray-700 cursor-pointer active:opacity-70 transition-opacity">
                 @if($product->principalImage)
                 <img class="w-full h-full object-cover rounded-t-xl"
                     src="{{ $product->principalImage->getImageUrl() }}"
@@ -363,14 +351,14 @@ $header = 'Seleccionar productos';
                                 </svg>
                                 Observaciones
                             </button>
-                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
+                            <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                 </svg>
                                 Calculos
                             </button>
-                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }} }); openMenu = false"
+                            <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); openMenu = false"
                                 class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -491,7 +479,7 @@ $header = 'Seleccionar productos';
                         @else
                         <div class="text-center py-2 text-xs font-bold text-gray-400">Sin precio</div>
                         @endif
-                    @else
+                     @if($isSelected && !$hideQuoter)
                         <!-- Precio seleccionado (Solo visual) -->
                         @php $priceInfo = $this->getSelectedPriceInfo($product->id); @endphp
                         @if($priceInfo)

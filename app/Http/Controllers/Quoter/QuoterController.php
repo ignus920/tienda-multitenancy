@@ -43,4 +43,19 @@ class QuoterController extends Controller
         // Desktop - redirigir a la ruta desktop
         return redirect()->route('tenant.quoter.products.desktop');
     }
+
+    /**
+     * Punto de entrada para la sección de Bodega.
+     * Realiza la detección de dispositivo y redirige a la vista correspondiente.
+     */
+    public function bodega(Request $request)
+    {
+        $agent = new Agent();
+
+        if ($agent->isMobile() || $agent->isTablet()) {
+            return redirect()->route('tenant.bodega.mobile');
+        }
+
+        return redirect()->route('tenant.bodega.desktop');
+    }
 }
