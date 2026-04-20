@@ -155,10 +155,15 @@ $header = 'Seleccionar productos';
                          {{ $isSelected && !$hideQuoter ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-indigo-300' }} transition-all">
                 <div class="flex items-center space-x-4">
                     <!-- Imagen pequeña -->
-                    <div @click.stop="{{ $isCopyMode ? "copyImageToClipboard('" . ($product->principalImage ? $product->principalImage->getImageUrl() : '') . "')" : "\$dispatch('openImageModal', { productId: " . $product->id . ", context: 'COMERCIAL' })" }}" 
+                    @php
+                        $imgContext = $hideQuoter ? 'BODEGA' : 'COMERCIAL';
+                        $imgUrl = $product->getPrincipalImageUrl($imgContext);
+                        $hasImage = $imgUrl !== asset('images/placeholder-item.png');
+                    @endphp
+                    <div @click.stop="{{ $isCopyMode ? "copyImageToClipboard('" . $imgUrl . "')" : "\$dispatch('openImageModal', { productId: " . $product->id . ", context: '" . $imgContext . "' })" }}" 
                          class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer active:opacity-70 transition-opacity">
-                        @if($product->principalImage)
-                            <img class="w-full h-full object-cover" src="{{ $product->principalImage->getImageUrl() }}" alt="{{ $product->display_name }}">
+                        @if($hasImage)
+                            <img class="w-full h-full object-cover" src="{{ $imgUrl }}" alt="{{ $product->display_name }}">
                         @else
                             <div class="w-full h-full flex items-center justify-center">
                                 <span class="text-lg font-bold text-gray-400 dark:text-gray-500">
@@ -199,6 +204,36 @@ $header = 'Seleccionar productos';
 
                         @if($quantity > 0 && !$hideQuoter)
                             <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mt-1">Cantidad: {{ $quantity }}</p>
+                        @endif
+
+                        <!-- Información Logística (Modo Bodega Mobile) -->
+                        @if($hideQuoter)
+                            <div class="grid grid-cols-2 gap-2 mt-3 p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-500 uppercase leading-none mb-0.5">Existencias</span>
+                                    <span class="text-xs font-bold text-gray-900 dark:text-white">{{ number_format($product->stock_bodega, 0) }}</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-500 uppercase leading-none mb-0.5">Tránsito</span>
+                                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">{{ number_format($product->in_transit, 0) }}</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-500 uppercase leading-none mb-0.5">Reservas</span>
+                                    <span class="text-xs font-bold text-orange-600 dark:text-orange-400">{{ number_format($product->reserved, 0) }}</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-500 uppercase leading-none mb-0.5">Picking</span>
+                                    <span class="text-xs font-mono text-indigo-600 dark:text-indigo-400">{{ $product->picking }}</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-500 uppercase leading-none mb-0.5">Caja</span>
+                                    <span class="text-xs text-gray-600 dark:text-gray-400">{{ $product->qty_per_box }}</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-500 uppercase leading-none mb-0.5">Min / Max</span>
+                                    <span class="text-[10px] text-gray-600 dark:text-gray-400">{{ $product->stock_min }} / {{ $product->stock_max }}</span>
+                                </div>
+                            </div>
                         @endif
                     </div>
 
@@ -244,68 +279,75 @@ $header = 'Seleccionar productos';
                                     <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
                                     </svg>
-                                    Calculos
+                                    Cálculos
                                 </button>
                                 <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); openMenu = false"
                                     class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                     <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Sol confirmacion
+                                    Sol. Confirmación
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Precios y acciones -->
-                @php
-                $allPrices = $product->all_prices;
-                @endphp
-                @if(!empty($allPrices))
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        @foreach($allPrices as $label => $price)
-                            @php
-                                $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
-                            @endphp
-                            <button
-                                @if($isCopyMode)
-                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
-                                @else
-                                    wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                    wire:loading.attr="disabled"
-                                    wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                @endif
-                                class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors
-                                    {{ $isThisPriceSelected
-                                        ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
-                                    }}">
-                                <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
-                                    <div class="font-medium">{{ $label === 'Precio Regular' ? 'Regular' : ($label === 'Precio Crédito' ? 'Crédito' : $label) }}</div>
-                                    <div class="font-bold">${{ number_format($price) }}</div>
-                                </div>
-                                <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="text-center">
-                                    <svg class="w-4 h-4 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                </div>
-                            </button>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="mt-3 text-center text-gray-400 text-sm">Sin precios disponibles</div>
+                @if(!$hideQuoter)
+                    <!-- Precios y acciones -->
+                    @php
+                    $allPrices = $product->all_prices;
+                    @endphp
+                    @if(!empty($allPrices))
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach($allPrices as $label => $price)
+                                @php
+                                    $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
+                                @endphp
+                                <button
+                                    @if($isCopyMode)
+                                        @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                    @else
+                                        wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                        wire:loading.attr="disabled"
+                                        wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                    @endif
+                                    class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors
+                                        {{ $isThisPriceSelected
+                                            ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                                        }}">
+                                    <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
+                                        <div class="font-medium">{{ $label === 'Precio Regular' ? 'Regular' : ($label === 'Precio Crédito' ? 'Crédito' : $label) }}</div>
+                                        <div class="font-bold">${{ number_format($price) }}</div>
+                                    </div>
+                                    <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="text-center">
+                                        <svg class="w-4 h-4 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="mt-3 text-center text-gray-400 text-sm">Sin precios disponibles</div>
+                    @endif
                 @endif
             </div>
         @endif
 
         @if($viewMode === 'grid')
-            <div @click.stop="{{ $isCopyMode ? "copyImageToClipboard('" . ($product->principalImage ? $product->principalImage->getImageUrl() : '') . "')" : "\$dispatch('openImageModal', { productId: " . $product->id . ", context: 'COMERCIAL' })" }}" 
+            @php
+                $imgContext = $hideQuoter ? 'BODEGA' : 'COMERCIAL';
+                $imgUrl = $product->getPrincipalImageUrl($imgContext);
+                $hasImage = $imgUrl !== asset('images/placeholder-item.png');
+            @endphp
+            <div @click.stop="{{ $isCopyMode ? "copyImageToClipboard('" . $imgUrl . "')" : "\$dispatch('openImageModal', { productId: " . $product->id . ", context: '" . $imgContext . "' })" }}" 
                  class="aspect-square w-full relative bg-gray-100 dark:bg-gray-700 cursor-pointer active:opacity-70 transition-opacity">
-                @if($product->principalImage)
+                @if($hasImage)
                 <img class="w-full h-full object-cover rounded-t-xl"
-                    src="{{ $product->principalImage->getImageUrl() }}"
+                    src="{{ $imgUrl }}"
                     alt="{{ $product->display_name }}">
                 @else
                 <div class="w-full h-full flex items-center justify-center">
@@ -404,11 +446,34 @@ $header = 'Seleccionar productos';
                         </div>
                     </div>
                     @endif
+
+                    <!-- Información Logística (Modo Bodega Mobile Grid) -->
+                    @if($hideQuoter)
+                        <div class="grid grid-cols-2 gap-1.5 mt-2 p-1.5 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-gray-500 uppercase leading-none">Exist.</span>
+                                <span class="text-[10px] font-bold text-gray-900 dark:text-white">{{ number_format($product->stock_bodega, 0) }}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-gray-500 uppercase leading-none">Trán.</span>
+                                <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400">{{ number_format($product->in_transit, 0) }}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-gray-500 uppercase leading-none">Res.</span>
+                                <span class="text-[10px] font-bold text-orange-600 dark:text-orange-400">{{ number_format($product->reserved, 0) }}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-gray-500 uppercase leading-none">Pick.</span>
+                                <span class="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">{{ $product->picking }}</span>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Parte Inferior: Precios o Selector de Cantidad -->
                 <div class="mt-auto">
-                    @if(!$isSelected)
+                    @if(!$hideQuoter)
+                        @if(!$isSelected)
                         <!-- Botones de Precio (Cajas verdes como en la imagen) -->
                         @php $allPrices = $product->all_prices; @endphp
                         @if(!empty($allPrices))
@@ -526,6 +591,7 @@ $header = 'Seleccionar productos';
                                 </button>
                             </div>
                         </div>
+                    @endif
                     @endif
                     </div>
                 </div>

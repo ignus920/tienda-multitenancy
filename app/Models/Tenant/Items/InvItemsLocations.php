@@ -29,4 +29,9 @@ class InvItemsLocations extends Model
     public function store(){
         return $this->belongsTo(InvStore::class, 'storeId', 'id');
     }
+
+    public function location()
+    {
+        return $this->belongsTo(InvLocation::class, 'locationId', 'id');
+    }
 }

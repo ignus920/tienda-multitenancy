@@ -1,15 +1,14 @@
 <div x-data="{ 
          isOpen: @entangle('isOpen').live,
+         activeTab: @entangle('activeTab').live,
          zoomedImage: null,
-         currentPreview: null
+         currentPreview: null,
      }" 
-     x-init="$watch('isOpen', value => { 
-         if(value) { 
-             $nextTick(() => { currentPreview = $refs.principalUrlContainer.dataset.url });
-         } else {
-             currentPreview = null;
-         }
-     })"
+     x-init="
+        $watch('isOpen', value => { 
+            if(!value) currentPreview = null;
+        });
+     "
      x-show="isOpen" 
      @keydown.escape.window="zoomedImage ? zoomedImage = null : $wire.close()"
      x-transition:enter="transition ease-out duration-300"
@@ -84,7 +83,9 @@
             <div class="space-y-4">
                 <!-- Visor Grande -->
                 @php $principal = collect($images)->firstWhere('type', 'PRINCIPAL'); @endphp
-                <div x-ref="principalUrlContainer" data-url="{{ $principal ? $principal->getImageUrl() : '' }}" class="hidden"></div>
+                
+                {{-- Este div oculto fuerza la actualización de la previsualización cuando Livewire refresca el componente --}}
+                <div x-init="currentPreview = '{{ $principal ? $principal->getImageUrl() : '' }}'" class="hidden"></div>
 
                 <div class="relative aspect-video sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-inner border border-gray-200 dark:border-gray-700 group cursor-zoom-in"
                      @click="if(currentPreview && !currentPreview.includes('.pdf')) zoomedImage = currentPreview">
@@ -121,53 +122,68 @@
                 </div>
 
                 <!-- Carrusel de Miniaturas -->
-                <div class="flex items-center gap-3 overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar scroll-smooth snap-x">
+                <div class="relative group/carousel">
+                    <div x-ref="carousel" class="flex items-center gap-3 overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar scroll-smooth snap-x">
                         @foreach($images as $img)
                             <button type="button" 
                                     @click="currentPreview = '{{ $img->getImageUrl() }}'"
-                                    class="relative flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all snap-start
-                                           {{ $img->type === 'PRINCIPAL' ? 'ring-2 ring-indigo-500 ring-offset-2' : '' }}"
-                                    :class="currentPreview === '{{ $img->getImageUrl() }}' ? 'border-indigo-500 scale-105 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'">
+                                    class="relative flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all snap-start group/thumb
+                                           {{ $img->type === 'PRINCIPAL' ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-transparent hover:border-indigo-300' }}"
+                                    :class="currentPreview === '{{ $img->getImageUrl() }}' ? 'scale-105 shadow-lg border-indigo-500 opacity-100' : 'opacity-60 hover:opacity-100'">
                                 
                                 @if($img->type === 'PDF' || str_ends_with(strtolower($img->img_path), '.pdf'))
-                                    <div class="w-full h-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                                        <i class="fas fa-file-pdf text-red-500 text-xl"></i>
+                                    <div class="w-full h-full bg-red-50 dark:bg-red-900/10 flex flex-col items-center justify-center gap-1">
+                                        <i class="fas fa-file-pdf text-red-500 text-xl group-hover/thumb:scale-110 transition-transform"></i>
+                                        <span class="text-[8px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tighter">PDF</span>
                                     </div>
                                 @else
-                                    <img src="{{ $img->getImageUrl() }}" class="w-full h-full object-cover">
+                                    <img src="{{ $img->getImageUrl() }}" class="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-500">
                                 @endif
     
                                 @if($img->type === 'PRINCIPAL')
-                                    <div class="absolute top-0 right-0 bg-indigo-500 text-white text-[8px] px-1 rounded-bl-lg font-bold">PRINCIPAL</div>
+                                    <div class="absolute top-0 right-0 bg-indigo-600 text-white text-[7px] px-1.5 py-0.5 rounded-bl-lg font-black uppercase tracking-tighter shadow-sm z-10">
+                                        {{ $activeTab }}
+                                    </div>
                                 @endif
+
+                                <!-- Indicator for selected -->
+                                <div x-show="currentPreview === '{{ $img->getImageUrl() }}'" class="absolute inset-x-0 bottom-0 h-1 bg-indigo-500"></div>
                             </button>
                         @endforeach
                     </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <!-- Gestión Imagen Principal (Carga) -->
-                <div class="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-5 border border-gray-200 dark:border-gray-800">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <i class="fas fa-star text-amber-500 text-sm"></i> Imagen de Portada
-                    </h4>
-                    <div class="relative group">
-                        <input type="file" wire:model.live="mainImage" id="main_image_input" class="hidden">
-                        <label for="main_image_input" class="flex items-center justify-center gap-4 px-4 py-3 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-all hover:bg-gray-50 dark:hover:bg-indigo-900/10 shadow-sm group">
-                            <div class="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
+                <div class="bg-indigo-50/30 dark:bg-indigo-900/10 rounded-2xl p-6 border border-indigo-100/50 dark:border-indigo-800/50 relative overflow-hidden group/portada">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 group-hover/portada:scale-110 transition-transform duration-700">
+                        <i class="fas fa-image text-8xl text-indigo-600"></i>
+                    </div>
+                    
+                    <div class="relative z-10">
+                        <h4 class="font-black text-gray-900 dark:text-white mb-1 flex items-center gap-2 uppercase tracking-tighter">
+                            <i class="fas fa-star text-amber-500"></i> Imagen de Portada
+                        </h4>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mb-4 font-medium italic">Esta será la imagen principal en el listado de {{ strtolower($activeTab) }}</p>
+                        
+                        <div class="relative">
+                            <input type="file" wire:model.live="mainImage" id="main_image_input" class="hidden">
+                            <label for="main_image_input" class="flex items-center justify-center gap-4 px-6 py-4 bg-white dark:bg-gray-800 border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-all hover:bg-gray-50 dark:hover:bg-indigo-900/20 shadow-sm group">
+                                <div class="flex flex-col items-center gap-1">
+                                    <div class="p-3 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl group-hover:scale-110 transition-transform shadow-inner">
+                                        <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <span class="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase mt-1">Subir Nueva Portada</span>
+                                </div>
+                            </label>
+                            
+                            <div wire:loading wire:target="mainImage" class="absolute inset-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center gap-3 z-20">
+                                <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase animate-pulse">Procesando Imagen...</span>
                             </div>
-                            <div class="text-left">
-                                <span class="block text-xs font-bold text-gray-900 dark:text-white">Cambiar Portada</span>
-                            </div>
-                        </label>
-                        <div wire:loading wire:target="mainImage" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl flex items-center justify-center gap-3">
-                            <svg class="animate-spin h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
                         </div>
                     </div>
                 </div>
@@ -182,21 +198,19 @@
                             <div class="flex-1 min-h-0 relative flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                                 @if($galImage->type === 'PDF' || str_ends_with(strtolower($galImage->img_path), '.pdf'))
                                     <div class="w-full h-full flex flex-col items-center justify-center gap-2">
-                                        <!-- Icono SVG de PDF -->
-                                        <svg class="w-8 h-8 text-red-500 opacity-50" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
-                                            <path d="M3 8a2 2 0 012-2h2v10H5a2 2 0 01-2-2V8z" />
-                                        </svg>
-                                        <span class="text-[8px] font-bold text-gray-500 text-center truncate w-full px-1">
-                                            PDF
+                                        <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                            <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                        </div>
+                                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-tighter text-center">
+                                            Documento PDF
                                         </span>
                                     </div>
                                 @else
                                     <div class="w-full h-full cursor-zoom-in relative group/thumb" 
                                          @click="currentPreview = '{{ $galImage->getImageUrl() }}'; zoomedImage = '{{ $galImage->getImageUrl() }}'">
-                                        <img src="{{ $galImage->getImageUrl() }}" class="w-full h-full object-cover rounded-md">
-                                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                            <i class="fas fa-search-plus text-sm"></i>
+                                        <img src="{{ $galImage->getImageUrl() }}" class="w-full h-full object-cover rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                                        <div class="absolute inset-0 bg-indigo-600/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                            <i class="fas fa-search-plus text-white text-lg"></i>
                                         </div>
                                     </div>
                                 @endif
@@ -204,12 +218,14 @@
                             
                             <!-- Footer de la imagen: Checkbox y Delete -->
                             <div class="p-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between gap-1">
-                                <label class="flex items-center gap-1.5 cursor-pointer">
-                                    <input type="checkbox" 
-                                           wire:click="toggleSyncToWp({{ $galImage->id }})"
-                                           {{ $galImage->sync_to_wp ? 'checked' : '' }}
-                                           class="w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-white dark:bg-gray-700 transition-colors">
-                                    <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase leading-none">Web</span>
+                                <label class="flex items-center gap-1.5 cursor-pointer group/web">
+                                    <div class="relative flex items-center justify-center">
+                                        <input type="checkbox" 
+                                               wire:click="toggleSyncToWp({{ $galImage->id }})"
+                                               {{ $galImage->sync_to_wp ? 'checked' : '' }}
+                                               class="w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-white dark:bg-gray-700 transition-colors">
+                                    </div>
+                                    <span class="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase leading-none group-hover/web:text-indigo-500 transition-colors">Sinc. Web</span>
                                 </label>
 
                                 <button type="button" 

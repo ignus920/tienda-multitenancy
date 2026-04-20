@@ -159,18 +159,21 @@ $header = 'Seleccionar productos';
                                 <option value="24">24 por página</option>
                                 <option value="48">48 por página</option>
                             </select>
-                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            @if($viewMode === 'grid')
+        @if($viewMode === 'grid')
                 <!-- Modo Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                     @forelse($products as $product)
                         @php
                             $quantity = $this->getProductQuantity($product->id);
                             $isSelected = $quantity > 0;
+                            $imgContext = $hideQuoter ? 'BODEGA' : 'COMERCIAL';
+                            $imgUrl = $product->getPrincipalImageUrl($imgContext);
+                            $hasImage = $imgUrl !== asset('images/placeholder-item.png');
                         @endphp
 
                         <div @if(!$hideQuoter && $isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
@@ -195,7 +198,7 @@ $header = 'Seleccionar productos';
                                         </svg>
                                         Solicitud Soporte
                                     </button>
-                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $hideQuoter ? 'BODEGA' : 'COMERCIAL' }}' }); open = false"
+                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' }); open = false"
                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -224,7 +227,7 @@ $header = 'Seleccionar productos';
                                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        Sol confirmación
+                                        Sol. Confirmación
                                     </button>
                                 </div>
                             </div>
@@ -237,11 +240,11 @@ $header = 'Seleccionar productos';
                             @endif
 
                             <!-- Imagen del producto -->
-                            <div @click.stop="{{ $isCopyMode ? "copyImageToClipboard('" . ($product->principalImage ? $product->principalImage->getImageUrl() : '') . "')" : "\$dispatch('openImageModal', { productId: " . $product->id . ", context: '" . ($hideQuoter ? 'BODEGA' : 'COMERCIAL') . "' })" }}" 
+                            <div @click.stop="{{ $isCopyMode ? "copyImageToClipboard('" . $imgUrl . "')" : "\$dispatch('openImageModal', { productId: " . $product->id . ", context: '" . $imgContext . "' })" }}" 
                                  class="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                                @if($product->principalImage)
+                                @if($hasImage)
                                 <img class="w-full h-full object-cover rounded-lg"
-                                    src="{{ $product->principalImage->getImageUrl() }}"
+                                    src="{{ $imgUrl }}"
                                     alt="{{ $product->display_name }}">
                                 @else
                                 <div class="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
@@ -256,10 +259,10 @@ $header = 'Seleccionar productos';
                                 <!-- Información del producto -->
                                 <div class="p-3 flex flex-col h-full">
                                     <!-- Nombre -->
-                                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 h-10 flex items-center justify-center">
                                         {{ $product->display_name }}
                                     </div>
-                                    <!-- SKU (con altura fija para mantener estructura) -->
+                                    <!-- SKU -->
                                     <div class="text-xs text-gray-500 dark:text-gray-500 mb-2 h-4 flex items-center justify-center">
                                         @if($product->sku && trim($product->sku) !== '')
                                         SKU: {{ $product->sku }}
@@ -268,7 +271,7 @@ $header = 'Seleccionar productos';
 
                                     <!-- Bodegas disponibles -->
                                     @if($product->store_stock_details)
-                                    <div class="mb-1 px-2">
+                                    <div class="mb-2 px-2 h-12 overflow-y-auto custom-scrollbar">
                                         <div class="flex flex-wrap gap-1 justify-center">
                                             @foreach(explode(', ', $product->store_stock_details) as $storeDetail)
                                                 @php
@@ -279,7 +282,7 @@ $header = 'Seleccionar productos';
                                                 @if($storeName)
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium
                                                     {{ $stock > 0
-                                                        ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-700'
+                                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-700'
                                                         : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-700'
                                                     }}">
                                                     {{ $storeName }}: {{ number_format($stock, 0, ',', '.') }}
@@ -290,87 +293,114 @@ $header = 'Seleccionar productos';
                                     </div>
                                     @endif
 
-                                    <!-- Precios -->
-                                    @php
-                                    $allPrices = $product->all_prices;
-                                    @endphp
-                                    @if(!empty($allPrices))
-                                    <div class="mb-2 grid grid-cols-2 gap-1">
-                                        @foreach($allPrices as $label => $price)
-                                        @php
-                                            // Verificar si este precio está seleccionado en modo edición
-                                            $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
-
-                                            // Determinar colores según el label del precio
-                                            $colorClasses = match($label) {
-                                                'Precio Regular' => [
-                                                    'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
-                                                    'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
-                                                    'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',
-                                                    'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-red-700 dark:text-red-300',
-                                                    'spinner' => 'text-red-600 dark:text-red-400'
-                                                ],
-                                                'Precio Crédito' => [
-                                                    'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-yellow-500/30',
-                                                    'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-yellow-50/50 dark:bg-yellow-900/10 active:bg-yellow-100 dark:active:bg-yellow-900/30',
-                                                    'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700',
-                                                    'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-700 dark:text-yellow-300',
-                                                    'spinner' => 'text-yellow-600 dark:text-yellow-400'
-                                                ],
-                                                default => [
-                                                    'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-emerald-500/30',
-                                                    'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30',
-                                                    'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700',
-                                                    'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-emerald-700 dark:text-emerald-300',
-                                                    'spinner' => 'text-emerald-600 dark:text-emerald-400'
-                                                ]
-                                            };
-                                        @endphp
-                                        <button
-                                            @if($isCopyMode)
-                                                @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
-                                            @elseif(!$hideQuoter)
-                                                wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                                wire:loading.attr="disabled"
-                                                wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                            @endif
-                                            class="relative w-full py-1 px-2 rounded-lg border transition-colors overflow-hidden group {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
-
-                                            <!-- Contenido Normal -->
-                                            <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
-                                                <div class="text-[9px] uppercase font-bold truncate transition-colors {{ $colorClasses['label_text'] }}">
-                                                    {{ $label }}
-                                                    @if($isThisPriceSelected)
-                                                        <span class="ml-1">✓</span>
-                                                    @endif
-                                                </div>
-                                                <div class="text-[12px] font-black {{ $colorClasses['price_text'] }}">
-                                                    ${{ number_format($price) }}
-                                                </div>
+                                    @if($hideQuoter)
+                                        <!-- Información Logística (Modo Bodega) -->
+                                        <div class="grid grid-cols-2 gap-2 mt-auto">
+                                            <div class="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-gray-500 dark:text-gray-400">Stock</span>
+                                                <span class="text-xs font-black text-gray-900 dark:text-white">{{ number_format($product->stock_bodega, 0) }}</span>
                                             </div>
-
-                                            <!-- Spinner de Carga (Reload) -->
-                                            <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="flex items-center justify-center py-1">
-                                                <svg class="animate-spin h-4 w-4 {{ $colorClasses['spinner'] }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
+                                            <div class="bg-blue-50 dark:bg-blue-900/10 p-2 rounded-lg border border-blue-100 dark:border-blue-800 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-blue-500 dark:text-blue-400">Tránsito</span>
+                                                <span class="text-xs font-black text-blue-700 dark:text-blue-300">{{ number_format($product->in_transit, 0) }}</span>
                                             </div>
-                                        </button>
-                                        @endforeach
-                                    </div>
+                                            <div class="bg-orange-50 dark:bg-orange-900/10 p-2 rounded-lg border border-orange-100 dark:border-orange-800 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-orange-500 dark:text-orange-400">Reserva</span>
+                                                <span class="text-xs font-black text-orange-700 dark:text-orange-300">{{ number_format($product->reserved, 0) }}</span>
+                                            </div>
+                                            <div class="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-indigo-500 dark:text-indigo-400">Picking</span>
+                                                <span class="text-[10px] font-black text-indigo-700 dark:text-indigo-300 truncate w-full text-center">{{ $product->picking }}</span>
+                                            </div>
+                                            <div class="bg-red-50 dark:bg-red-900/10 p-2 rounded-lg border border-red-100 dark:border-red-800 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-red-500 dark:text-red-400">Mínimo</span>
+                                                <span class="text-xs font-black text-red-700 dark:text-red-300">{{ number_format($product->stock_min, 0) }}</span>
+                                            </div>
+                                            <div class="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-emerald-500 dark:text-emerald-400">Máximo</span>
+                                                <span class="text-xs font-black text-emerald-700 dark:text-emerald-300">{{ number_format($product->stock_max, 0) }}</span>
+                                            </div>
+                                        </div>
                                     @else
-                                    <div class="font-bold text-lg text-gray-400 dark:text-gray-500 mb-1">
-                                        Sin precio
-                                    </div>
+                                        <!-- Precios (Modo Comercial) -->
+                                        @php
+                                        $allPrices = $product->all_prices;
+                                        @endphp
+                                        @if(!empty($allPrices))
+                                        <div class="mb-2 grid grid-cols-2 gap-1 mt-auto">
+                                            @foreach($allPrices as $label => $price)
+                                            @php
+                                                $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
+                                                $colorClasses = match($label) {
+                                                    'Precio Regular' => [
+                                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
+                                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
+                                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',
+                                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-red-700 dark:text-red-300',
+                                                        'spinner' => 'text-red-600 dark:text-red-400'
+                                                    ],
+                                                    'Precio Crédito' => [
+                                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-yellow-500/30',
+                                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-yellow-50/50 dark:bg-yellow-900/10 active:bg-yellow-100 dark:active:bg-yellow-900/30',
+                                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700',
+                                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-700 dark:text-yellow-300',
+                                                        'spinner' => 'text-yellow-600 dark:text-yellow-400'
+                                                    ],
+                                                    default => [
+                                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-emerald-500/30',
+                                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30',
+                                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700',
+                                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-emerald-700 dark:text-emerald-300',
+                                                        'spinner' => 'text-emerald-600 dark:text-emerald-400'
+                                                    ]
+                                                };
+                                            @endphp
+                                            <button
+                                                @if($isCopyMode)
+                                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                                @else
+                                                    wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
+                                                @endif
+                                                class="relative w-full py-1 px-2 rounded-lg border transition-colors overflow-hidden group {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
+
+                                                <!-- Contenido Normal -->
+                                                <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
+                                                    <div class="text-[9px] uppercase font-bold truncate transition-colors {{ $colorClasses['label_text'] }}">
+                                                        {{ $label }}
+                                                        @if($isThisPriceSelected)
+                                                            <span class="ml-1">✓</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="text-[12px] font-black {{ $colorClasses['price_text'] }}">
+                                                        ${{ number_format($price) }}
+                                                    </div>
+                                                </div>
+
+                                                <!-- Spinner de Carga -->
+                                                <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" class="flex items-center justify-center py-1">
+                                                    <svg class="animate-spin h-4 w-4 {{ $colorClasses['spinner'] }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                            @endforeach
+                                        </div>
+                                        @else
+                                        <div class="font-bold text-lg text-gray-400 dark:text-gray-500 mb-1 mt-auto text-center py-4">
+                                            Sin precio
+                                        </div>
+                                        @endif
+                                    @endif
+
+                                    <!-- Overlay de selección -->
+                                    @if($isSelected && !$hideQuoter)
+                                    <div class="absolute inset-0 bg-indigo-500 bg-opacity-10 dark:bg-indigo-400 dark:bg-opacity-10 pointer-events-none"></div>
                                     @endif
                                 </div>
                             </div>
-
-                            <!-- Overlay de selección -->
-                            @if($isSelected)
-                            <div class="absolute inset-0 bg-indigo-500 bg-opacity-10 dark:bg-indigo-400 dark:bg-opacity-10"></div>
-                            @endif
                         </div>
                     @empty
                         <div class="col-span-full">
@@ -400,13 +430,23 @@ $header = 'Seleccionar productos';
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Código</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant.</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Regular</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lista</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">3%</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">5%</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">7%</th>
+                                    @if($hideQuoter)
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Existencias</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tránsito</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reservas</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant. x caja</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Picking</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Maximo</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Minimo</th>
+                                    @else
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant.</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Regular</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lista</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">3%</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">5%</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">7%</th>
+                                    @endif
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
@@ -421,14 +461,20 @@ $header = 'Seleccionar productos';
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
                                         <!-- Imagen -->
                                         <td class="px-4 py-4 text-center">
+                                            @php
+                                                $imgContext = $hideQuoter ? 'BODEGA' : 'COMERCIAL';
+                                                $imgUrl = $product->getPrincipalImageUrl($imgContext);
+                                                $hasImage = $product->getPrincipalImageUrl($imgContext) !== asset('images/placeholder-item.png');
+                                            @endphp
                                             <div class="flex justify-center">
-                                                @if($product->principalImage)
-                                                    <img @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $hideQuoter ? 'BODEGA' : 'COMERCIAL' }}' })" 
+                                                @if($hasImage)
+                                                    <img @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' })" 
                                                         class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                        src="{{ $product->principalImage->getImageUrl() }}"
+                                                        src="{{ $imgUrl }}"
                                                         alt="{{ $product->display_name }}">
                                                 @else
-                                                    <div class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                                                    <div @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' })"
+                                                        class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                                                         <span class="text-sm font-bold text-gray-400 dark:text-gray-500">
                                                             {{ strtoupper(substr($product->name, 0, 1)) }}
                                                         </span>
@@ -469,20 +515,54 @@ $header = 'Seleccionar productos';
                                             {{ $product->sku ?: 'N/A' }}
                                         </td>
 
-                                        <!-- Cantidad -->
-                                        <td class="px-4 py-4 text-center">
-                                            @if($isSelected)
-                                                <span class="inline-flex items-center justify-center w-10 h-10 bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-bold rounded-full">
-                                                    {{ $quantity }}
+                                        @if($hideQuoter)
+                                            <!-- Información Logística (Modo Bodega) -->
+                                            <td class="px-4 py-4 text-center">
+                                                <span class="text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ number_format($product->stock_bodega, 0) }}
                                                 </span>
-                                            @else
-                                                <span class="text-gray-400">0</span>
-                                            @endif
-                                        </td>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <span class="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                                    {{ number_format($product->in_transit, 0) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <span class="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                                                    {{ number_format($product->reserved, 0) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                                                {{ $product->qty_per_box }}
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <div class="text-xs font-mono bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-800">
+                                                    {{ $product->picking }}
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-sm text-green-600 dark:text-green-400 font-medium">
+                                                {{ number_format($product->stock_max, 0) }}
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-sm text-red-600 dark:text-red-400 font-medium">
+                                                {{ number_format($product->stock_min, 0) }}
+                                            </td>
+                                        @else
+                                            <!-- Cantidad -->
+                                            <td class="px-4 py-4 text-center">
+                                                @if($isSelected)
+                                                    <span class="inline-flex items-center justify-center w-10 h-10 bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-bold rounded-full">
+                                                        {{ $quantity }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-gray-400">0</span>
+                                                @endif
+                                            </td>
+                                        @endif
 
-                                        <!-- Precios individuales -->
-                                        @php
-                                            // Detectar automáticamente la estructura de precios
+                                        @if(!$hideQuoter)
+                                            <!-- Precios individuales -->
+                                            @php
+                                                // Detectar automáticamente la estructura de precios
                                             $priceKeys = array_keys($allPrices);
                                             $pricesByType = [];
 
@@ -605,6 +685,7 @@ $header = 'Seleccionar productos';
                                                 @endif
                                             </td>
                                         @endforeach
+                                        @endif
                                         <td class="px-4 py-4 text-center">
                                             <div x-data="{ open: false }" class="relative inline-block">
                                                 <button @click.stop="open = !open"
@@ -651,7 +732,7 @@ $header = 'Seleccionar productos';
                                                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                       Sol confirmación
+                                                       Sol. Confirmación
                                                     </button>
                                                 </div>
                                             </div>
