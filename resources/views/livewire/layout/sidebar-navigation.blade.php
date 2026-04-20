@@ -190,6 +190,32 @@ new class extends Component
         </div>
         @endif
 
+        <!-- Bodega (Sección de consulta rápida) -->
+        <a href="{{ route('tenant.bodega') }}" wire:navigate
+            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.bodega.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
+            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
+            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
+
+            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+
+            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
+                class="ml-3">
+                Bodega
+            </span>
+
+            <!-- Tooltip -->
+            <div x-show="tooltip" x-transition
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
+                Bodega
+            </div>
+        </a>
+
 
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
@@ -377,7 +403,7 @@ new class extends Component
 
 
 
-      
+
 
         <!-- Inventario (menú con subitems) -->
         @if(PermissionHelper::userCan('Inventario', 'show'))
@@ -467,7 +493,7 @@ new class extends Component
         @endif
 
         <!-- Producción (menú con subitems) -->
-        @if (PermissionHelper::userCan('Produccion', 'show'))   
+        @if (PermissionHelper::userCan('Produccion', 'show'))
         <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }}, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('production.*') ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600 dark:hover:text-amber-400' }} cursor-pointer"
@@ -568,9 +594,9 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                 Órdenes
             </div>
-        </a>    
+        </a>
         @endif
-        
+
 
         <!-- Caja -->
         @if (!$isOperario && PermissionHelper::userCan('Caja', 'show'))
@@ -599,9 +625,9 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
                 Caja
             </div>
-        </a>    
+        </a>
         @endif
-        
+
         <!-- Spacer -->
         <div class="flex-1"></div>
 

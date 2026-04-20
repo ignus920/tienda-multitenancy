@@ -9,8 +9,8 @@ use App\Livewire\Tenant\Quoter\ProductQuoter;
 | Quoter Routes
 |--------------------------------------------------------------------------
 |
-| Aqu� est�n todas las rutas relacionadas con el cotizador (Quoter)
-| Estas rutas est�n espec�ficamente para el tenant
+| Aquí están todas las rutas relacionadas con el cotizador (Quoter)
+| Estas rutas están específicamente para el tenant
 |
 */
 
@@ -74,3 +74,20 @@ Route::get('/quoter/print/temp/{file}', [QuoterPrintController::class, 'showTemp
     ->middleware(['auth', 'verified', 'tenant'])
     ->name('quoter.print.temp')
     ->where('file', '^quote_\d+_\d+\.html$');           // Validación de formato de archivo
+
+// --- RUTAS DE BODEGA (Modo solo consulta) ---
+Route::get('/tenant/bodega', [QuoterController::class, 'bodega'])
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('tenant.bodega');
+
+Route::get('/tenant/bodega/desktop', ProductQuoter::class)
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('tenant.bodega.desktop')
+    ->defaults('viewType', 'desktop')
+    ->defaults('hideQuoter', true);
+
+Route::get('/tenant/bodega/mobile', ProductQuoter::class)
+    ->middleware(['auth', 'verified', 'tenant'])
+    ->name('tenant.bodega.mobile')
+    ->defaults('viewType', 'mobile')
+    ->defaults('hideQuoter', true);

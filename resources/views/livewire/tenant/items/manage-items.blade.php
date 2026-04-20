@@ -810,7 +810,7 @@
                                 </svg>
                                 Imágenes del Producto
                             </h3>
-                            <button type="button" @click="$dispatch('openImageModal', { productId: {{ $item_id }} })"
+                            <button type="button" @click="$dispatch('openImageModalCargar', { productId: {{ $item_id }} })"
                                 class="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg hover:bg-indigo-200 transition-colors">
                                 Gestionar Galería
                             </button>
@@ -1084,4 +1084,5 @@
     </div>
     @endif
 
+    @livewire('tenant.components.product-image-modal-cargar')
 </div>

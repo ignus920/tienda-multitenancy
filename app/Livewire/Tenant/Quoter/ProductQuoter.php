@@ -46,6 +46,7 @@ class ProductQuoter extends Component
     public $estimatedFreight = 0;
     public $showCartModal = false;
     public $moduleKey = 'products';
+    public $hideQuoter = false; // Flag para ocultar el carrito/cotizador (modo Bodega)
 
     // Propiedades para desglose de impuestos
     public $subTotal = 0; // Valor sin impuestos
@@ -276,8 +277,14 @@ class ProductQuoter extends Component
 
     public function mount($quoteId = null, $remissionId = null)
     {
-        // Obtener viewType de la ruta o usar desktop por defecto
-        $this->viewType = request()->route('viewType', 'desktop');
+        // Detección ultra-robusta por nombre de ruta para evitar fallos de visibilidad
+        $routeName = request()->route() ? request()->route()->getName() : '';
+        $this->hideQuoter = str_contains($routeName, '.bodega');
+        
+        // Mantener viewType recuperado de los defaults
+        $routeDefaults = request()->route() ? request()->route()->getAction('defaults') : [];
+        $this->viewType = $routeDefaults['viewType'] ?? 'desktop';
+
         $this->ensureTenantConnection();
 
         // Resetear página si viene de otra vista
