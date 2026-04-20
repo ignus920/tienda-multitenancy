@@ -240,11 +240,16 @@ class ProductQuoter extends Component
                         'price_label' => 'Precio Registrado',
                         'quantity' => $detail->quantity,
                         'description' => $detail->description,
+                        'tax' => $detail->tax ?? 0,
                     ];
                 }
             }
 
-            // 3. Configurar estado de edición
+            // 3. Cargar Observaciones
+            $this->observaciones = $remission->quote->observations ?? $remission->observations;
+            $this->showObservations = !empty($this->observaciones);
+
+            // 4. Configurar estado de edición
             $this->editingRemissionId = $remissionId;
             $this->isEditing = true;
             $this->quoteHasRemission = true; // Asegurar estado para ocultar botón confirmar
@@ -954,7 +959,17 @@ class ProductQuoter extends Component
 
             if ($this->editingRemissionId) {
                 // Lógica de actualización de Remisión
-                $remission = InvRemissions::findOrFail($this->editingRemissionId);
+                $remission = InvRemissions::with('quote')->findOrFail($this->editingRemissionId);
+                
+                // 1. Actualizar observaciones en la cotización base
+                if ($remission->quote) {
+                    $remission->quote->update([
+                        'observations' => $this->observaciones
+                    ]);
+                    Log::info('🔄 Observaciones de cotización actualizadas desde remisión', ['quote_id' => $remission->quoteId]);
+                }
+
+                // 2. Reemplazar detalles de la remisión
                 InvDetailRemissions::where('remissionId', $remission->id)->delete();
 
                 foreach ($this->quoterItems as $item) {
