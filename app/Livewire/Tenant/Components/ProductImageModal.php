@@ -25,6 +25,7 @@ class ProductImageModal extends Component
     
     public $activeTab = 'COMERCIAL';
     public $userProfileId;
+    public $isContextForced = false;
     
     // Lista de imágenes actuales (se carga en render para evitar errores de hidratación)
     // public $images = []; 
@@ -69,7 +70,7 @@ class ProductImageModal extends Component
     public $hasWpProduct = false;
 
     #[On('openImageModal')]
-    public function open($productId, \App\Services\Tenant\WordPress\WordPressService $wpService)
+    public function open($productId, \App\Services\Tenant\WordPress\WordPressService $wpService, $context = null)
     {
         $this->ensureTenantConnection();
         $this->productId = $productId;
@@ -82,12 +83,18 @@ class ProductImageModal extends Component
             // Perfil del usuario
             $this->userProfileId = auth()->user()->profile_id;
             
-            // Establecer pestaña inicial según perfil
-            // 6: Almacen, 4: Vendedor POS
-            if ($this->userProfileId == 6) {
-                $this->activeTab = 'BODEGA';
+            // Si se pasa un contexto explícito (desde el botón), lo usamos
+            if ($context) {
+                $this->activeTab = strtoupper($context);
+                $this->isContextForced = true;
             } else {
-                $this->activeTab = 'COMERCIAL';
+                $this->isContextForced = false;
+                // Lógica por defecto según perfil si no hay contexto
+                if ($this->userProfileId == 6) {
+                    $this->activeTab = 'BODEGA';
+                } else {
+                    $this->activeTab = 'COMERCIAL';
+                }
             }
 
             // Validar si existe en WordPress

@@ -205,6 +205,40 @@
                     });
                 });
             });
+
+            async function copyImageToClipboard(imageUrl) {
+                if (!imageUrl) return;
+                
+                const showToast = (type, message) => {
+                    if (window.Livewire) {
+                        Livewire.dispatch('show-toast', { type, message });
+                    }
+                };
+
+                try {
+                    // Intento de copiado avanzado (Blob/Archivo)
+                    if (navigator.clipboard && window.isSecureContext) {
+                        const response = await fetch(imageUrl);
+                        const blob = await response.blob();
+                        const item = new ClipboardItem({ [blob.type]: blob });
+                        await navigator.clipboard.write([item]);
+                        showToast('success', 'Se copió la imagen');
+                    } else {
+                        // Fallback: Copiar solo la URL si no hay HTTPS o falla el Blob
+                        await navigator.clipboard.writeText(imageUrl);
+                        showToast('info', 'Se copió el enlace de la imagen (Modo IP/No Seguro)');
+                    }
+                } catch (err) {
+                    console.error('Error al copiar:', err);
+                    try {
+                        // Último intento: Copiar solo texto
+                        await navigator.clipboard.writeText(imageUrl);
+                        showToast('info', 'Se copió el enlace de la imagen');
+                    } catch (lastErr) {
+                        showToast('error', 'No se pudo copiar. Use clic derecho.');
+                    }
+                }
+            }
         </script>
 
         <style>
