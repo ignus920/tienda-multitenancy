@@ -483,8 +483,12 @@ class Uploads extends Component
                             $join->on('q.userId', '=', 'dl.salesman_id')
                                 ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
                         })
+                        ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
+                        ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
+                        ->join('tat_companies_routes as cXr', 'com.id', '=', 'cXr.company_id')
                         ->where('dl.user_id', Auth::id())
                         ->where('dl.route', $routeId)
+                        ->where('cXr.route_id', $routeId)
                         ->where('r.status', 'REGISTRADO')
                         ->pluck('r.id');
 
