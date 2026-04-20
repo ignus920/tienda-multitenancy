@@ -5,7 +5,12 @@
      }" 
      x-init="$watch('isOpen', value => { 
          if(value) { 
-             $nextTick(() => { currentPreview = $refs.principalUrlContainer.dataset.url });
+             $nextTick(() => { 
+                const container = $refs.principalUrlContainer;
+                if(container && container.dataset.url) {
+                    currentPreview = container.dataset.url;
+                }
+             });
          } else {
              currentPreview = null;
          }
@@ -34,111 +39,95 @@
                 Imágenes: <span class="text-indigo-600 dark:text-indigo-400">{{ $productName }}</span>
             </h3>
             
-            <div class="flex items-center gap-2">
-
-                <button @click="$wire.close()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+            <button @click="$wire.close()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
         <div class="p-6 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
             
-            <!-- Pestañas de Navegación -->
             @php
                 $isAdmin = in_array($userProfileId, [1, 2]);
-                $isAlmacen = $userProfileId == 6;
-                $isVendedor = $userProfileId == 4;
             @endphp
 
-            @if($isAdmin)
+            @if($isAdmin && !$isContextForced)
                 <div class="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl mb-6">
                     <button wire:click="$set('activeTab', 'COMERCIAL')" 
                             class="flex-1 py-2 text-sm font-bold rounded-lg transition-all {{ $activeTab === 'COMERCIAL' ? 'bg-white dark:bg-gray-800 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300' }}">
-                        <i class="fas fa-shopping-cart mr-2"></i> COMERCIAL
+                        COMERCIAL
                     </button>
                     <button wire:click="$set('activeTab', 'BODEGA')" 
                             class="flex-1 py-2 text-sm font-bold rounded-lg transition-all {{ $activeTab === 'BODEGA' ? 'bg-white dark:bg-gray-800 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300' }}">
-                        <i class="fas fa-warehouse mr-2"></i> BODEGA
+                        BODEGA
                     </button>
                 </div>
             @else
-                <!-- Si no es admin, mostrar solo el indicador de en qué sección está -->
                 <div class="flex items-center gap-2 mb-6 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
                     <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                         MODO: {{ $activeTab }}
                     </span>
                 </div>
             @endif
-                  <!-- VISOR PRINCIPAL Y CARRUSEL -->
+
             <div class="space-y-4">
-                <!-- Visor Grande -->
                 @php $principal = collect($images)->firstWhere('type', 'PRINCIPAL'); @endphp
                 <div x-ref="principalUrlContainer" data-url="{{ $principal ? $principal->getImageUrl() : '' }}" class="hidden"></div>
 
-                <div class="relative aspect-video sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-inner border border-gray-200 dark:border-gray-700 group cursor-zoom-in"
-                     @click="if(currentPreview && !currentPreview.includes('.pdf')) zoomedImage = currentPreview">
+                <div class="relative aspect-video sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-inner border border-gray-200 dark:border-gray-700 group">
+                    
                     <template x-if="currentPreview && !currentPreview.includes('.pdf')">
-                        <img :src="currentPreview" 
-                             class="w-full h-full object-contain transition-all duration-300">
+                        <img :src="currentPreview" class="w-full h-full object-contain transition-all duration-300 cursor-zoom-in" @click="zoomedImage = currentPreview">
                     </template>
+                    
                     <template x-if="currentPreview && currentPreview.includes('.pdf')">
-                        <div class="w-full h-full flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/10 gap-4" @click.stop>
-                            <svg class="w-24 h-24 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
-                                <path d="M3 8a2 2 0 012-2h2v10H5a2 2 0 01-2-2V8z" />
+                        <div class="w-full h-full flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/10 gap-4">
+                            <svg class="w-20 h-20 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a2 2 0 00-.586-1.414l-7-7A2 2 0 0010.414 1H5a2 2 0 00-2 2v16a2 2 0 002 2h2m0-18v4a1 1 0 001 1h4m-6 4h6m-6 4h6m-6 4h6" />
                             </svg>
-                            <a :href="currentPreview" target="_blank" class="px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg flex items-center gap-2">
-                                <i class="fas fa-file-pdf"></i> Abrir Documento PDF
+                            <a :href="currentPreview" target="_blank" class="px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg">
+                                Abrir Documento PDF
                             </a>
                         </div>
                     </template>
+
                     <template x-if="!currentPreview">
-                        <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-4">
-                            <svg class="w-20 h-20 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-4 opacity-50">
+                            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span class="text-xs font-bold uppercase tracking-widest opacity-50">Selecciona una imagen para verla</span>
+                            <span class="text-xs font-bold uppercase tracking-widest">Selecciona una imagen</span>
                         </div>
                     </template>
-
-                    <!-- Overlay de feedback de click -->
-                    <div x-show="currentPreview && !currentPreview.includes('.pdf')" class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                        <div class="bg-black/50 backdrop-blur-md p-3 rounded-full transform scale-50 group-hover:scale-100 transition-all">
-                            <i class="fas fa-search-plus text-xl text-white"></i>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Carrusel de Miniaturas con Navegación -->
+                <!-- Miniaturas -->
                 <div class="relative group/slider" x-data="{ 
                     scrollNext() { this.$refs.carousel.scrollBy({ left: 200, behavior: 'smooth' }) },
                     scrollPrev() { this.$refs.carousel.scrollBy({ left: -200, behavior: 'smooth' }) }
                 }">
-                    <!-- Botones de Navegación -->
-                    <button @click="scrollPrev()" 
-                            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover/slider:opacity-100 transition-opacity -ml-2 hover:bg-white dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+                    <button @click="scrollPrev()" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover/slider:opacity-100 transition-opacity -ml-2 text-gray-600 dark:text-gray-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
 
                     <div x-ref="carousel" class="flex items-center gap-3 overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar scroll-smooth snap-x">
                         @foreach($images as $img)
                             <button type="button" 
                                     @click="currentPreview = '{{ $img->getImageUrl() }}'"
-                                    class="relative flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all snap-start
-                                           {{ $img->type === 'PRINCIPAL' ? 'ring-2 ring-indigo-500 ring-offset-2' : '' }}"
+                                    class="relative flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all snap-start {{ $img->type === 'PRINCIPAL' ? 'ring-2 ring-indigo-500 ring-offset-2' : '' }}"
                                     :class="currentPreview === '{{ $img->getImageUrl() }}' ? 'border-indigo-500 scale-105 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'">
-                                
                                 @if($img->type === 'PDF' || str_ends_with(strtolower($img->img_path), '.pdf'))
                                     <div class="w-full h-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                                        <i class="fas fa-file-pdf text-red-500 text-xl"></i>
+                                        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a2 2 0 00-.586-1.414l-7-7A2 2 0 0010.414 1H5a2 2 0 00-2 2v16a2 2 0 002 2h2m0-18v4a1 1 0 001 1h4m-6 4h6m-6 4h6m-6 4h6" />
+                                        </svg>
                                     </div>
                                 @else
                                     <img src="{{ $img->getImageUrl() }}" class="w-full h-full object-cover">
                                 @endif
-    
                                 @if($img->type === 'PRINCIPAL')
                                     <div class="absolute top-0 right-0 bg-indigo-500 text-white text-[8px] px-1 rounded-bl-lg font-bold">PRINCIPAL</div>
                                 @endif
@@ -146,9 +135,10 @@
                         @endforeach
                     </div>
 
-                    <button @click="scrollNext()" 
-                            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover/slider:opacity-100 transition-opacity -mr-2 hover:bg-white dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                    <button @click="scrollNext()" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover/slider:opacity-100 transition-opacity -mr-2 text-gray-600 dark:text-gray-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -164,29 +154,16 @@
     @endif
 
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.3); border-radius: 20px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.5); }
     </style>
 
-    <!-- Overlay de Zoom (Lightbox) -->
-    <div x-show="zoomedImage" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 scale-90"
-         x-transition:enter-end="opacity-100 scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 scale-100"
-         x-transition:leave-end="opacity-0 scale-90"
-         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-zoom-out"
-         @click="zoomedImage = null"
-         x-cloak>
-        
+    <!-- Overlay de Zoom -->
+    <div x-show="zoomedImage" @click="zoomedImage = null" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-zoom-out" x-cloak>
         <div class="relative max-w-5xl w-full h-full flex items-center justify-center" @click.stop>
-            <img :src="zoomedImage" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl border-2 border-white/10">
-            
-            <button @click="zoomedImage = null" 
-                    class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md">
+            <img :src="zoomedImage" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
+            <button @click="zoomedImage = null" class="absolute top-4 right-4 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -194,7 +171,6 @@
         </div>
     </div>
 
-    <!-- Componente de Sincronización WordPress -->
     @if($isOpen)
         <livewire:tenant.components.word-press-sync-modal />
     @endif
