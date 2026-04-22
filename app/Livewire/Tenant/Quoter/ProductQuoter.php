@@ -2613,61 +2613,45 @@ class ProductQuoter extends Component
 
         $search = '%' . $this->customerSearch . '%';
 
-        // Si es vendedor (perfil 4), buscar solo en sus rutas asignadas
+        // Query unificada para traer toda la info necesaria
+        $query = DB::connection('tenant')->table('vnt_companies as vc')
+            ->leftJoin('vnt_warehouses as vw', function($join) {
+                $join->on('vw.companyId', '=', 'vc.id')->where('vw.main', 1);
+            })
+            ->leftJoin('tat_companies_routes as tcr', 'tcr.company_id', '=', 'vc.id')
+            ->leftJoin('tat_routes as tr', 'tr.id', '=', 'tcr.route_id')
+            ->select(
+                'vc.id', 'vc.identification', 'vc.businessName', 'vc.firstName', 'vc.lastName',
+                'vw.address', 'vw.district', 'tr.name as route_name', 'tr.sale_day'
+            )
+            ->where('vc.status', 1)
+            ->whereNull('vc.deleted_at')
+            ->where('vc.type', '!=', 'PROVEEDOR')
+            ->where(function($q) use ($search) {
+                $q->where('vc.identification', 'like', $search)
+                  ->orWhere('vc.businessName', 'like', $search)
+                  ->orWhere('vc.firstName', 'like', $search)
+                  ->orWhere('vc.lastName', 'like', $search);
+            });
+
         if (auth()->user()->profile_id == 4) {
-            $params = [auth()->id(), $search, $search, $search, $search, $search];
-
-            $customers = DB::select("
-            SELECT DISTINCT tr.salesman_id, tr.sale_day, tcr.company_id, vc.businessName, vc.billingEmail, vc.firstName, vc.lastName, vc.identification, vc.id
-            FROM tat_routes tr
-            INNER JOIN tat_companies_routes tcr ON tcr.route_id = tr.id
-            INNER JOIN vnt_companies vc ON vc.id = tcr.company_id
-            WHERE tr.salesman_id = ? AND (
-                vc.identification LIKE ? OR
-                vc.businessName LIKE ? OR
-                vc.firstName LIKE ? OR
-                vc.lastName LIKE ? OR
-                tr.sale_day LIKE ?
-            )
-            AND vc.type != 'PROVEEDOR'
-        ", $params);
-        } else {
-            // Para administradores u otros perfiles, buscar en todos los clientes
-            $params = [$search, $search, $search, $search];
-
-            $customers = DB::select("
-            SELECT DISTINCT
-                NULL as salesman_id,
-                NULL as sale_day,
-                vc.id as company_id,
-                vc.businessName,
-                vc.billingEmail,
-                vc.firstName,
-                vc.lastName,
-                vc.identification,
-                vc.id
-            FROM vnt_companies vc
-            WHERE (
-                TRIM(vc.identification) LIKE ?
-                OR vc.businessName LIKE ?
-                OR vc.firstName LIKE ?
-                OR vc.lastName LIKE ?
-            )
-            AND vc.status = 1
-            AND vc.deleted_at IS NULL
-            AND vc.type != 'PROVEEDOR'
-            LIMIT 15
-        ", $params);
+            $query->where('tr.salesman_id', auth()->id());
         }
 
-        $this->customerSearchResults = array_map(function ($customer) {
+        $customers = $query->distinct()->limit(15)->get();
+
+        $this->customerSearchResults = $customers->map(function ($customer) {
             return [
                 'id' => $customer->id,
                 'identification' => $customer->identification,
                 'display_name' => $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName),
-                'sale_day' => $customer->sale_day
+                'address' => $customer->address ?: 'Sin dirección',
+                'district' => $customer->district ?: 'Sin barrio',
+                'route_name' => $customer->route_name ?: 'Sin ruta',
+                'sale_day' => $customer->sale_day ?: 'N/A'
             ];
-        }, $customers);
+        })->toArray();
+
 
         $this->dispatch('customers-found', [
             'customers' => $this->customerSearchResults

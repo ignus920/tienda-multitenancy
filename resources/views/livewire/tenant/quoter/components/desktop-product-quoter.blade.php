@@ -358,8 +358,20 @@ $header = 'Seleccionar productos';
                                 data-customer-id="{{ $customer['id'] }}"
                                 data-index="{{ $index }}"
                                 class="customer-result-desktop px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0 transition-colors duration-150">
-                                <div class="font-mono font-bold text-gray-900 dark:text-white">{{ $customer['identification'] }}</div>
-                                <div class="text-gray-600 dark:text-gray-300">{{ $customer['display_name'] }}</div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <div class="font-bold text-gray-900 dark:text-white">{{ $customer['display_name'] }}</div>
+                                        <div class="text-[10px] font-mono text-indigo-600">ID: {{ $customer['identification'] }}</div>
+                                    </div>
+                                    <div class="text-xs border-l pl-2">
+                                        <div class="font-bold">{{ $customer['route_name'] ?? 'Ruta' }}</div>
+                                        <div>{{ $customer['sale_day'] ?? 'Día' }}</div>
+                                    </div>
+                                    <div class="text-[10px] border-l pl-2">
+                                        <div class="font-bold">{{ $customer['district'] ?? 'Barrio' }}</div>
+                                        <div>{{ $customer['address'] ?? 'Dirección' }}</div>
+                                    </div>
+                                </div>
                             </div>
                             @endforeach
                         </div>
@@ -540,7 +552,7 @@ $header = 'Seleccionar productos';
 
                                 <span wire:loading.remove wire:target="updateQuote">
                                     @if($editingRemissionId)
-                                        Editar Remisión
+                                        Editar Pedido
                                     @else
                                         Actualizar Cotización
                                     @endif
@@ -565,7 +577,7 @@ $header = 'Seleccionar productos';
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    Remisión ya generada
+                                    Pedido ya generado
                                 </div>
                             @else
                                 <button type="button" wire:click.prevent="abrirModalRemision"
