@@ -94,14 +94,9 @@ $header = 'Seleccionar productos';
                 @php
                 $quantity = $this->getProductQuantity($product->id);
                 @endphp
-<<<<<<< Updated upstream
-                <div x-data="{ productId: {{ $product->id }} }"
-                    @click="increaseQuantityInstant(productId)"
-=======
                 <div wire:key="product-card-{{ $product->id }}"
                     x-data="{ productId: {{ $product->id }} }"
                     @click.stop="increaseQuantityInstant(productId)"
->>>>>>> Stashed changes
                     class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all duration-200
                                 hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-gray-900/30 hover:-translate-y-1 hover:border-indigo-300 dark:hover:border-indigo-500
                                 cursor-pointer"
@@ -977,15 +972,10 @@ $header = 'Seleccionar productos';
                 let index = this.items.findIndex(i => i.id == productId);
                 if (index !== -1) {
                     this.items[index].quantity++;
-<<<<<<< Updated upstream
-                    this.recalculateTotal();
-                    this.$wire.increaseQuantity(productId);
-=======
                     let newQty = this.items[index].quantity;
                     this.recalculateTotal();
                     // Usamos updateQuantity para asegurar que el servidor ponga EXACTAMENTE lo que tiene el front
                     this.$wire.updateQuantity(productId, newQty);
->>>>>>> Stashed changes
                 }
             },
 
