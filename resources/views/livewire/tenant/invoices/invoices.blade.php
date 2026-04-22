@@ -12,27 +12,47 @@
 
     {{-- ===== BARRA DE HERRAMIENTAS ===== --}}
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
 
-            {{-- Buscador --}}
-            <div class="flex-1 max-w-lg">
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+            {{-- Contenedor de Filtros --}}
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                {{-- Buscador --}}
+                <div class="lg:max-w-xs">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Buscar</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" wire:model.live="search"
+                            placeholder="Buscar por número, cliente, remisión..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
                     </div>
-                    <input type="text" wire:model.live="search"
-                        placeholder="Buscar por número, cliente, remisión..."
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
+
+                {{-- Fecha Desde --}}
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Desde</label>
+                    <input type="date" wire:model.live="fromDate"
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+                </div>
+
+                {{-- Fecha Hasta --}}
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Hasta</label>
+                    <input type="date" wire:model.live="toDate"
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+                </div>
+
             </div>
 
             {{-- Per page --}}
-            <div class="flex items-center gap-2">
-                <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
+            <div class="flex items-center gap-2 mb-0.5">
+                <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Mostrar:</label>
                 <select wire:model.live="perPage"
-                    class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 py-1.5 pr-8 transition-all">
                     <option value="12">12</option>
                     <option value="25">25</option>
                     <option value="50">50</option>

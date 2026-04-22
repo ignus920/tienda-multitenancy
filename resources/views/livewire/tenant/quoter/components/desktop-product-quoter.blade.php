@@ -93,19 +93,19 @@ $header = 'Seleccionar productos';
                 @forelse($products as $product)
                 @php
                 $quantity = $this->getProductQuantity($product->id);
-                $isSelected = $quantity > 0;
                 @endphp
-                <div @if($isSelected) wire:click="increaseQuantity({{ $product->id }})" @endif
+                <div x-data="{ productId: {{ $product->id }} }"
+                    @click="increaseQuantityInstant(productId)"
                     class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all duration-200
                                 hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-gray-900/30 hover:-translate-y-1 hover:border-indigo-300 dark:hover:border-indigo-500
-                                {{ $isSelected ? 'ring-2 ring-indigo-500 shadow-lg border-indigo-300 dark:border-indigo-500 cursor-pointer' : '' }}">
+                                cursor-pointer"
+                    :class="getItemQuantity(productId) > 0 ? 'ring-2 ring-indigo-500 shadow-lg border-indigo-300 dark:border-indigo-500' : ''">
 
                     <!-- Contador en la esquina superior derecha -->
-                    @if($quantity > 0)
-                    <div class="absolute top-2 right-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10">
-                        {{ $quantity }}
+                    <div x-show="getItemQuantity(productId) > 0"
+                         x-text="getItemQuantity(productId)"
+                         class="absolute top-2 right-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10">
                     </div>
-                    @endif
 
                     <!-- Imagen del producto -->
                     <div class="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2">
@@ -162,28 +162,13 @@ $header = 'Seleccionar productos';
                             @endphp
                             <div class="mb-2 grid {{ $priceCount == 1 ? 'grid-cols-1' : 'grid-cols-2' }} gap-1">
                                 @foreach($filteredPrices as $label => $price)
-                                @php
-                                $isDisabled = $isSelected;
-                                @endphp
                                 <button
                                     title="{{ $label }}"
-                                    wire:click="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
-                                    wire:loading.attr="disabled"
-                                    wire:target="addToQuoter"
-                                    x-on:click.stop
-                                    @if($isDisabled) disabled @endif
-                                    class="px-2 py-1 text-center rounded border transition-colors min-h-[28px] flex items-center justify-center {{ $isDisabled ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed': 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer'}}">
-
-                                    <!-- Contenido normal -->
-                                    <div wire:loading.remove wire:target="addToQuoter" class="font-bold text-xs {{ $isDisabled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white' }}">
+                                    x-on:click.stop="addItemInstant({{ $product->id }}, '{{ addslashes($product->display_name) }}', '{{ $product->sku }}', {{ $price }}, '{{ $label }}')"
+                                    class="px-2 py-1 text-center rounded border transition-colors min-h-[28px] flex items-center justify-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                                    <div class="font-bold text-xs text-gray-900 dark:text-white">
                                         ${{ number_format($price) }}
                                     </div>
-
-                                    <!-- Spinner de carga -->
-                                    <svg wire:loading wire:target="addToQuoter" class="w-3 h-3 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
                                 </button>
                                 @endforeach
                             </div>
@@ -196,9 +181,8 @@ $header = 'Seleccionar productos';
                     </div>
 
                     <!-- Overlay de selección -->
-                    @if($isSelected)
-                    <div class="absolute inset-0 bg-indigo-500 bg-opacity-10 dark:bg-indigo-400 dark:bg-opacity-10"></div>
-                    @endif
+                    <div x-show="getItemQuantity(productId) > 0" 
+                         class="absolute inset-0 bg-indigo-500 bg-opacity-10 dark:bg-indigo-400 dark:bg-opacity-10 pointer-events-none"></div>
                 </div>
                 @empty
                 <div class="col-span-full">
@@ -232,13 +216,14 @@ $header = 'Seleccionar productos';
             <!-- Header del cotizador -->
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $this->quoterCount }} Productos seleccionados</h2>
-                    @if(!empty($quoterItems))
-                    <button wire:click="clearQuoter"
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        <span x-text="items.reduce((sum, item) => sum + item.quantity, 0)"></span> Productos seleccionados
+                    </h2>
+                    <button x-show="items.length > 0" 
+                        wire:click="clearQuoter"
                         class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium">
                         Limpiar
                     </button>
-                    @endif
                 </div>
 
 
@@ -399,87 +384,58 @@ $header = 'Seleccionar productos';
 
             </div>
 
-            <!-- Lista de productos en el cotizador con scroll interno -->
             <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-700" style="max-height: calc(100vh - 400px);">
-                @if(empty($quoterItems))
-                <div class="flex flex-col items-center justify-center h-full p-6 text-center">
-                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Agregar items</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Selecciona productos de la lista para agregarlos a tu cotización
-                    </p>
-                </div>
-                @else
-                <div class="p-4 space-y-3 pb-4">
-                    @foreach($quoterItems as $index => $item)
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex-1">
-                                <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ $item['name'] }}</h4>
-                                @if(isset($item['price_label']))
-                                <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: {{ $item['price_label'] }}</p>
-                                @endif
-
-                            </div>
-                            <button wire:click="removeFromQuoter({{ $index }})"
-                                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
+                <template x-if="items.length === 0">
+                    <div class="flex flex-col items-center justify-center h-full p-6 text-center">
+                        <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
                         </div>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Agregar items</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Selecciona productos de la lista para agregarlos a tu cotización
+                        </p>
+                    </div>
+                </template>
 
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
-                                <input
-                                    id="quantity-{{ $index }}"
-                                    type="number"
-                                    wire:model.lazy="quoterItems.{{ $index }}.quantity"
-                                    wire:change="validateQuantity({{ $index }})"
-                                    min="1"
-                                    max="999999"
-                                    step="1"
-                                    inputmode="numeric"
-                                    pattern="[0-9]*"
-                                    class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    value="{{ $item['quantity'] }}"
-                                    onwheel="this.blur()"
-                                    autocomplete="off">
-
+                <div x-show="items.length > 0" class="p-4 space-y-3 pb-4">
+                    <template x-for="(item, index) in items" :key="item.id">
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900 dark:text-white text-sm" x-text="item.name"></h4>
+                                    <template x-if="item.price_label">
+                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: <span x-text="item.price_label"></span></p>
+                                    </template>
+                                </div>
+                                <button @click="removeItemInstant(index)"
+                                    class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
                             </div>
 
-                            <!-- <div class="flex items-center space-x-2">
-                                <label for="quantity-{{ $index }}" class="text-xs font-medium text-gray-500 dark:text-gray-400">Desc:</label>
-                                <input
-                                    id="quantity-{{ $index }}"
-                                    type="number"
-                                    wire:model.lazy="quoterItems.{{ $index }}.quantity"
-                                    wire:change="validateQuantity({{ $index }})"
-                                    min="1"
-                                    max="999999"
-                                    step="1"
-                                    inputmode="numeric"
-                                    pattern="[0-9]*"
-                                    class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    value="{{ $item['quantity'] }}"
-                                    onwheel="this.blur()"
-                                    autocomplete="off">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Cant:</label>
+                                    <input
+                                        type="number"
+                                        x-model.number="item.quantity"
+                                        @change="updateQuantityInstant(index, item.quantity)"
+                                        min="1"
+                                        class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield]"
+                                        onwheel="this.blur()"
+                                        autocomplete="off">
+                                </div>
 
-                            </div> -->
-
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                ${{ number_format($item['price'] * $item['quantity']) }}
+                                <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatMoney(item.price * item.quantity)">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    @endforeach
+                    </template>
                 </div>
-                @endif
             </div>
 
             <!-- Footer del cotizador - Fijo en la parte inferior -->
@@ -526,7 +482,7 @@ $header = 'Seleccionar productos';
                     <!-- Total -->
                     <div class="flex justify-between items-center text-lg font-bold text-gray-900 dark:text-white">
                         <span>Total:</span>
-                        <span>${{ number_format($totalAmount) }}</span>
+                        <span x-text="formatMoney(total)"></span>
                     </div>
 
 
@@ -932,6 +888,8 @@ $header = 'Seleccionar productos';
     function quoterDesktop() {
         return {
             showOfflineCreateForm: false,
+            items: @js($quoterItems),
+            total: @js($totalAmount),
             newOfflineCustomer: {
                 id: null,
                 typeIdentificationId: 1,
@@ -946,6 +904,12 @@ $header = 'Seleccionar productos';
                 route_id: @js($newCustomerRouteId)
             },
             init() {
+                // Sincronizar items cuando Livewire los actualice (por ejemplo al limpiar o cargar orden)
+                this.$watch('$wire.quoterItems', value => {
+                    this.items = value;
+                    this.recalculateTotal();
+                });
+
                 // 0. Limpieza forzada vía señal local (Ej: desde Sidebar)
                 if (localStorage.getItem('quoter_clear') === '1') {
                     localStorage.removeItem('quoter_clear'); // Consumir la señal siempre
@@ -953,16 +917,13 @@ $header = 'Seleccionar productos';
                     // Solo limpiar si NO estamos editando una cotización/remisión
                     if (!@js($isEditing)) {
                         console.log('🧹 Detectada señal de limpieza local (Desktop)...');
-                        @this.clearQuoter();
-                    } else {
-                        console.log('🛡️ Señal de limpieza ignorada — modo edición activo.');
+                        this.$wire.clearQuoter();
                     }
                 }
 
                 // Escuchar evento de carga de datos para edición
                 window.addEventListener('load-customer-data', (event) => {
                     const data = event.detail.customer || event.detail[0]?.customer || event.detail;
-                    console.log('Cargando datos para edición:', data);
                     this.newOfflineCustomer = {
                         id: data.id || null,
                         typeIdentificationId: data.typeIdentificationId || 1,
@@ -973,13 +934,78 @@ $header = 'Seleccionar productos';
                         phone: data.phone || data.business_phone || '',
                         address: data.address || '',
                         billingEmail: data.billingEmail || '',
-                        createUser: false, // Por seguridad no activamos creación de usuario en edición si no se pide
+                        createUser: false,
                         route_id: data.route_id || @js($newCustomerRouteId)
                     };
                     this.showOfflineCreateForm = true;
                 });
             },
-            async saveOfflineCustomer() { // Mantenemos el nombre por compatibilidad con el componente include
+
+            // --- Lógica de Carrito Instantáneo ---
+            addItemInstant(productId, name, sku, price, label) {
+                // 1. Buscar si ya existe para incrementar cantidad
+                let index = this.items.findIndex(i => i.id == productId);
+                
+                if (index !== -1) {
+                    this.items[index].quantity++;
+                } else {
+                    // 2. Agregar nuevo item al estado local inmediatamente
+                    this.items.push({
+                        id: productId,
+                        name: name,
+                        sku: sku,
+                        price: price,
+                        price_label: label,
+                        quantity: 1
+                    });
+                }
+
+                // 3. Recalcular total localmente
+                this.recalculateTotal();
+
+                // 4. Llamar al servidor en segundo plano
+                this.$wire.addToQuoter(productId, price, label);
+            },
+
+            increaseQuantityInstant(productId) {
+                let index = this.items.findIndex(i => i.id == productId);
+                if (index !== -1) {
+                    this.items[index].quantity++;
+                    this.recalculateTotal();
+                    this.$wire.increaseQuantity(productId);
+                }
+            },
+
+            removeItemInstant(index) {
+                this.items.splice(index, 1);
+                this.recalculateTotal();
+                this.$wire.removeFromQuoter(index);
+            },
+
+            updateQuantityInstant(index, quantity) {
+                if (quantity <= 0) {
+                    this.removeItemInstant(index);
+                    return;
+                }
+                this.items[index].quantity = parseInt(quantity);
+                this.recalculateTotal();
+                this.$wire.validateQuantity(index);
+            },
+
+            recalculateTotal() {
+                this.total = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            },
+
+            getItemQuantity(productId) {
+                let item = this.items.find(i => i.id == productId);
+                return item ? item.quantity : 0;
+            },
+
+            formatMoney(value) {
+                return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
+            },
+
+            async saveOfflineCustomer() { 
                 const isCC = this.newOfflineCustomer.typeIdentificationId == 1;
                 const hasIdentification = !!this.newOfflineCustomer.identification;
                 const hasName = isCC 
@@ -994,13 +1020,12 @@ $header = 'Seleccionar productos';
                     return;
                 }
 
-                // Concatenar nombre si es C.C. para mantener consistencia en businessName
                 if (isCC) {
                     this.newOfflineCustomer.businessName = (this.newOfflineCustomer.firstName + ' ' + (this.newOfflineCustomer.lastName || '')).trim();
                 }
 
                 try {
-                    const response = await @this.saveQuickCustomer(this.newOfflineCustomer);
+                    const response = await this.$wire.saveQuickCustomer(this.newOfflineCustomer);
                     if (response && response.success) {
                         this.showOfflineCreateForm = false;
                         this.newOfflineCustomer = {

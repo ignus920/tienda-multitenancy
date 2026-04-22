@@ -28,6 +28,10 @@ class Invoices extends Component
     public $perPage = 12;
     public $sortField = 'vnt_invoices.invoiceNumber';
     public $sortDirection = 'desc';
+    
+    // Filtros
+    public $fromDate = '';
+    public $toDate = '';
 
     // ─── Nota Crédito ─────────────────────────────────────────────────────────
     public bool $showCreditNoteModal = false;
@@ -50,6 +54,16 @@ class Invoices extends Component
     }
 
     public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFromDate()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingToDate()
     {
         $this->resetPage();
     }
@@ -1209,16 +1223,26 @@ class Invoices extends Component
                     "qd.customerId",
                 ]);
 
-            // Aplicar búsqueda
+            // Aplicar búsqueda corregida
             $query->when($this->search, function ($q) {
                 $search = '%' . $this->search . '%';
                 $q->where(function ($subQ) use ($search) {
                     $subQ->where('vnt_invoices.invoiceNumber', 'like', $search)
-                        ->orWhere(DB::raw("CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))"), 'like', $search)
-                        ->orWhere(DB::raw("CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))"), 'like', $search);
+                        ->orWhere('vnt_invoices.consecutive', 'like', $search)
+                        ->orWhere('remission_consecutives.remission_consecutive', 'like', $search)
+                        ->orWhere('vnt_invoices.orderNumber', 'like', $search)
+                        ->orWhere(DB::raw("COALESCE(c.businessName, '')"), 'like', $search)
+                        ->orWhere(DB::raw("CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))"), 'like', $search);
                 });
-                // Usar HAVING para campos agregados
-                $q->havingRaw("MAX(remission_consecutives.remission_consecutive) LIKE ?", [$search]);
+            });
+
+            // Aplicar filtros de fecha
+            $query->when($this->fromDate, function ($q) {
+                $q->whereDate('vnt_invoices.created_at', '>=', $this->fromDate);
+            });
+
+            $query->when($this->toDate, function ($q) {
+                $q->whereDate('vnt_invoices.created_at', '<=', $this->toDate);
             });
 
             // Aplicar ordenamiento
