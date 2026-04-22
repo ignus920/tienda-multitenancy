@@ -594,17 +594,29 @@ class ProductQuoter extends Component
     {
         Log::info('🛒 performAddToQuoter iniciado', [
             'productId' => $productId,
-            'isEditing' => $this->isEditing,
-            'editingQuoteId' => $this->editingQuoteId,
-            'quoteHasRemission_antes' => $this->quoteHasRemission
+            'quantity' => $quantity,
+            'isEditing' => $this->isEditing
         ]);
 
-        // Verificar si el producto ya está en el cotizador (sin consulta DB)
+        // Verificar si el producto ya está en el cotizador
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si ya existe, sumar la cantidad nueva
-            $this->quoterItems[$existingIndex]['quantity'] += $quantity;
+            // Si ya existe y estamos haciendo un "Add" inicial (quantity=1), 
+            // no sumamos ciegamente para evitar el error de "doble unidad" con el front-end.
+            // Solo actualizamos si el precio ha cambiado o si realmente queremos sumar.
+            
+            // Si la cantidad que viene es 1 y el servidor ya tiene >= 1, 
+            // probablemente es una sincronización redundante del front.
+            if ($quantity == 1 && $this->quoterItems[$existingIndex]['quantity'] >= 1) {
+                Log::info('🛒 Ignorando incremento redundante para producto ya existente', ['id' => $productId]);
+            } else {
+                $this->quoterItems[$existingIndex]['quantity'] += $quantity;
+            }
+            
+            // Actualizar precio y etiqueta por si cambiaron
+            $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+            $this->quoterItems[$existingIndex]['price_label'] = $priceLabel;
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
@@ -618,7 +630,7 @@ class ProductQuoter extends Component
                 return;
             }
 
-            // Si no existe, agregarlo con el precio seleccionado
+            // Si no existe, agregarlo
             $this->quoterItems[] = [
                 'id' => $product->id,
                 'name' => $product->display_name,
@@ -654,12 +666,6 @@ class ProductQuoter extends Component
         // Emitir evento para mirroring offline
         $this->dispatch('cart-updated', [
             'items' => $this->quoterItems
-        ]);
-
-        // Toast más rápido sin información innecesaria
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Agregado al carrito'
         ]);
     }
 
