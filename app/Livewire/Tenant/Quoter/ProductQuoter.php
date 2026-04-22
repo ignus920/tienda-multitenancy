@@ -719,9 +719,8 @@ class ProductQuoter extends Component
                 'items' => $this->quoterItems
             ]);
 
-            $this->dispatch('show-toast', [
-                'type' => 'info',
-                'message' => 'Producto removido del cotizador'
+            $this->dispatch('cart-updated', [
+                'items' => $this->quoterItems
             ]);
         }
     }
@@ -751,10 +750,7 @@ class ProductQuoter extends Component
 
         Log::info('🧹 Carrito limpiado (Unificado)');
 
-        $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Cotizador limpiado'
-        ]);
+        Log::info('🧹 Carrito limpiado (Unificado)');
 
         // Sincronizar con Alpine.js/IndexedDB
         $this->dispatch('cart-updated', ['items' => []]);
@@ -768,10 +764,7 @@ class ProductQuoter extends Component
         session()->forget('quoter_items');
         $this->calculateTotal();
 
-        $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Carrito limpiado. Cliente mantenido.'
-        ]);
+        $this->calculateTotal();
 
         // Sincronizar con Alpine.js/IndexedDB para limpiar localmente
         $this->dispatch('cart-updated', ['items' => []]);

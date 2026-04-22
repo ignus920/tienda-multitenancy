@@ -41,6 +41,7 @@
         currentQuoteUuid: null, // UUID de la cotización actual (para edición)
         lastSync: null, // Marca de tiempo de la última sincronización completa
         isPushingToStore: false, // BLOQUEO: Evita que el servidor sobreescriba cambios mientras estamos subiendo datos local -> server
+        lockTimeout: null,
         
         // Estados para el swipe de los items del carrito
         swipeStates: {}, 
@@ -50,6 +51,15 @@
         runInQueue(task) {
             this.syncQueue = this.syncQueue.then(() => task());
             return this.syncQueue;
+        },
+
+        setLock() {
+            this.isPushingToStore = true;
+            if (this.lockTimeout) clearTimeout(this.lockTimeout);
+            this.lockTimeout = setTimeout(() => {
+                this.isPushingToStore = false;
+                console.log('🔓 Bloqueo de sincronización liberado (Interaction timeout)');
+            }, 2000);
         },
 
         /**
@@ -607,6 +617,7 @@
 
         // --- Lógica de Carrito Instantáneo (Optimista) ---
         addItemInstant(product, price, label) {
+            this.setLock();
             // 1. Actualizar localCart (Persistencia local)
             const existing = this.localCart.find(item => item.id === product.id);
             if (existing) {
@@ -640,6 +651,7 @@
         },
 
         updateQuantityInstant(productId, newQty) {
+            this.setLock();
             newQty = parseInt(newQty);
             if (isNaN(newQty) || newQty < 0) newQty = 0;
 
@@ -669,6 +681,50 @@
             if (this.isOnline && !this.forceOffline) {
                 // Enviamos valor absoluto para máxima precisión
                 $wire.updateQuantity(productId, newQty);
+            }
+        },
+
+        clearCartInstant() {
+            this.setLock();
+            // 1. Vaciar localCart
+            this.localCart = [];
+
+            // 2. Resetear displayProducts (UI del catálogo)
+            this.displayProducts.forEach(p => {
+                p.quantity = 0;
+                p.selected_price = null;
+                p.price_label = null;
+            });
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor
+            if (this.isOnline && !this.forceOffline) {
+                $wire.call('clearCart');
+            }
+        },
+
+        removeItemInstant(productId) {
+            this.setLock();
+            // 1. Quitar de localCart
+            const index = this.localCart.findIndex(i => i.id === productId);
+            if (index !== -1) {
+                this.localCart.splice(index, 1);
+            }
+
+            // 2. Resetear en displayProducts
+            const prod = this.displayProducts.find(p => p.id === productId);
+            if (prod) {
+                prod.quantity = 0;
+                prod.selected_price = null;
+                prod.price_label = null;
+            }
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor
+            if (this.isOnline && !this.forceOffline) {
+                $wire.call('removeFromQuoter', productId);
             }
         },
 
@@ -1246,10 +1302,10 @@
                         </template>
                         
                         <!-- Botón limpiar carrito (Online) -->
-                        <div x-show="isOnline && localCart.length > 0" class="flex flex-col items-center justify-center">
+                        <div x-show="isOnline && (localCart.length > 0 || quoterCount > 0)" class="flex flex-col items-center justify-center">
                             <span class="text-[10px] text-red-500 font-bold uppercase leading-none mb-0.5">Limpiar</span>
                             <button
-                                onclick="confirmClearCart()"
+                                @click="showConfirmClear = true"
                                 title="Limpiar carrito"
                                 class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1260,7 +1316,7 @@
 
                         <!-- Botón limpiar carrito (Offline) -->
                         <template x-if="!isOnline && localCart.length > 0">
-                            <button @click="if(confirm('¿Limpiar carrito local?')) localCart = []" class="text-red-500 text-[10px] font-bold uppercase underline">
+                            <button @click="showConfirmClear = true" class="text-red-500 text-[10px] font-bold uppercase underline">
                                 Limpiar
                             </button>
                         </template>
@@ -1507,7 +1563,7 @@
                                  :class="!isOnline ? 'border-orange-200 dark:border-orange-900/30 bg-white dark:bg-gray-700' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700'"
                                  @touchstart="if(!swipeStates[item.id]) swipeStates[item.id] = {startX: 0, currentX: 0}; swipeStates[item.id].startX = $event.touches[0].clientX"
                                  @touchmove="let diff = $event.touches[0].clientX - swipeStates[item.id].startX; swipeStates[item.id].currentX = diff > 0 ? Math.min(80, diff) : Math.max(-80, diff)"
-                                 @touchend="if (Math.abs(swipeStates[item.id].currentX) > 40) { if(isOnline) { $wire.removeFromQuoter(item.id); } else { localCart.splice(index, 1); } } swipeStates[item.id].currentX = 0"
+                                 @touchend="if (Math.abs(swipeStates[item.id].currentX) > 40) { removeItemInstant(item.id); } swipeStates[item.id].currentX = 0"
                                  @touchcancel="if(swipeStates[item.id]) swipeStates[item.id].currentX = 0">
 
                                 <!-- Fondo Rojo (Swipe Bidireccional) -->
@@ -1555,7 +1611,7 @@
 
                                         <!-- Eliminar (Botón explícito también) -->
                                         <button 
-                                            @click.stop="isOnline ? $wire.removeFromQuoter(item.id) : localCart.splice(index, 1)" 
+                                            @click.stop="removeItemInstant(item.id)" 
                                             class="text-red-500 p-2 hover:bg-red-50 rounded-full transition-colors">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
@@ -1951,7 +2007,7 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Se eliminarán todos los productos. El cliente seleccionado se mantendrá.</p>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex flex-col gap-3">
-            <button @click="showConfirmClear = false; $wire.call('clearCart')" 
+            <button @click="showConfirmClear = false; clearCartInstant()" 
                 class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95">
                 Sí, limpiar carrito
             </button>

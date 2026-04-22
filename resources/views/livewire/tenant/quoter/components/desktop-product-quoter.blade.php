@@ -221,7 +221,7 @@ $header = 'Seleccionar productos';
                         <span x-text="items.reduce((sum, item) => sum + item.quantity, 0)"></span> Productos seleccionados
                     </h2>
                     <button x-show="items.length > 0" 
-                        wire:click="clearQuoter"
+                        @click="clearQuoterInstant()"
                         class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium">
                         Limpiar
                     </button>
@@ -410,7 +410,7 @@ $header = 'Seleccionar productos';
                                         <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Precio: <span x-text="item.price_label"></span></p>
                                     </template>
                                 </div>
-                                <button @click="removeItemInstant(index)"
+                                <button @click="removeItemInstant(item.id)"
                                     class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -424,7 +424,7 @@ $header = 'Seleccionar productos';
                                     <input
                                         type="number"
                                         x-model.number="item.quantity"
-                                        @change="updateQuantityInstant(index, item.quantity)"
+                                        @change="updateQuantityInstant(item.id, item.quantity)"
                                         min="1"
                                         class="min-w-16 w-auto max-w-24 px-2 py-1 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [appearance:textfield]"
                                         onwheel="this.blur()"
@@ -891,6 +891,8 @@ $header = 'Seleccionar productos';
             showOfflineCreateForm: false,
             items: @js($quoterItems),
             total: @js($totalAmount),
+            lockUpdates: false,
+            lockTimeout: null,
             newOfflineCustomer: {
                 id: null,
                 typeIdentificationId: 1,
@@ -907,7 +909,18 @@ $header = 'Seleccionar productos';
             init() {
                 // Sincronizar items cuando Livewire los actualice (por ejemplo al limpiar o cargar orden)
                 this.$watch('$wire.quoterItems', value => {
+                    if (this.lockUpdates) {
+                        console.log('🔒 Ignorando $watch quoterItems (Bloqueo activo)');
+                        return;
+                    }
                     this.items = value;
+                    this.recalculateTotal();
+                });
+
+                window.addEventListener('cart-updated', (event) => {
+                    if (this.lockUpdates) return;
+                    const items = event.detail.items || event.detail[0]?.items || [];
+                    this.items = items;
                     this.recalculateTotal();
                 });
 
@@ -942,8 +955,17 @@ $header = 'Seleccionar productos';
                 });
             },
 
+            setLock() {
+                this.lockUpdates = true;
+                if (this.lockTimeout) clearTimeout(this.lockTimeout);
+                this.lockTimeout = setTimeout(() => {
+                    this.lockUpdates = false;
+                }, 2000);
+            },
+
             // --- Lógica de Carrito Instantáneo ---
             addItemInstant(productId, name, sku, price, label) {
+                this.setLock();
                 // 1. Buscar si ya existe para incrementar cantidad
                 let index = this.items.findIndex(i => i.id == productId);
                 
@@ -969,6 +991,7 @@ $header = 'Seleccionar productos';
             },
 
             increaseQuantityInstant(productId) {
+                this.setLock();
                 let index = this.items.findIndex(i => i.id == productId);
                 if (index !== -1) {
                     this.items[index].quantity++;
@@ -979,20 +1002,37 @@ $header = 'Seleccionar productos';
                 }
             },
 
-            removeItemInstant(index) {
-                this.items.splice(index, 1);
-                this.recalculateTotal();
-                this.$wire.removeFromQuoter(index);
+            removeItemInstant(productId) {
+                this.setLock();
+                const index = this.items.findIndex(i => i.id == productId);
+                if (index !== -1) {
+                    this.items.splice(index, 1);
+                    this.recalculateTotal();
+                    this.$wire.removeFromQuoter(productId);
+                }
             },
 
-            updateQuantityInstant(index, quantity) {
+            clearQuoterInstant() {
+                if (confirm('¿Estás seguro de que deseas limpiar todo el carrito?')) {
+                    this.items = [];
+                    this.recalculateTotal();
+                    this.$wire.clearQuoter();
+                }
+            },
+
+            updateQuantityInstant(productId, quantity) {
+                this.setLock();
+                const index = this.items.findIndex(i => i.id == productId);
+                if (index === -1) return;
+
                 if (quantity <= 0) {
-                    this.removeItemInstant(index);
+                    this.removeItemInstant(productId);
                     return;
                 }
                 this.items[index].quantity = parseInt(quantity);
                 this.recalculateTotal();
-                this.$wire.validateQuantity(index);
+                // Usamos updateQuantity para asegurar valor absoluto
+                this.$wire.updateQuantity(productId, parseInt(quantity));
             },
 
             recalculateTotal() {
