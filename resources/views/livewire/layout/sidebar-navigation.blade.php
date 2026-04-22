@@ -165,7 +165,7 @@ new class extends Component
                 </a>
                  <a href="{{ route('tenant.remissions') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.remissions.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
-                    Remisiones
+                    Pedidos
                 </a>
                 <a href="{{ route('tenant.invoices') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.invoices.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">

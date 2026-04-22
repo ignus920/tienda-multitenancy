@@ -23,6 +23,7 @@ return new class extends Migration
                 $table->integer('expiration')->nullable();
                 $table->integer('modify')->nullable();
                 $table->text('observations_return')->nullable();
+                $table->integer('flete')->nullable()->default(0);
                 $table->index('quoteId');
                 $table->index('warehouseId');
                 $table->timestamps();        // created_at, updated_at

@@ -114,7 +114,12 @@ class Quoter extends Component
         // Limpiar el carrito de la sesión para que el cotizador empiece vacío
         session()->forget('quoter_items');
 
-        return redirect('/tenant/quoter/products');
+        // Determinar la ruta correcta según el tipo de vista actual para evitar fallos de detección
+        $routeName = $this->viewType === 'mobile'
+            ? 'tenant.quoter.products.mobile'
+            : 'tenant.quoter.products.desktop';
+
+        return redirect()->route($routeName);
     }
 
     public function eliminar($id)
@@ -276,8 +281,13 @@ class Quoter extends Component
 
             Log::info('🔄 Cargando cliente...');
             try {
-                $quote->load('customer');
-                Log::info('👤 Cliente cargado', ['customer_id' => $quote->customerId]);
+                $quote->load(['customer.company', 'customer.warehouse.city']);
+                Log::info('👤 Cliente cargado', [
+                    'customer_id' => $quote->customerId,
+                    'has_company' => $quote->customer && $quote->customer->company ? 'YES' : 'NO',
+                    'has_warehouse' => $quote->customer && $quote->customer->warehouse ? 'YES' : 'NO',
+                    'has_city' => $quote->customer && $quote->customer->warehouse && $quote->customer->warehouse->city ? 'YES' : 'NO'
+                ]);
             } catch (\Exception $customerError) {
                 Log::error('❌ Error cargando cliente', ['error' => $customerError->getMessage()]);
                 // Continuar sin cliente para debug

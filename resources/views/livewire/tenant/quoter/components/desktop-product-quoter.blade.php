@@ -4,7 +4,7 @@ $header = 'Seleccionar productos';
 @endphp
 
 <div>
-    <div class="flex {{ $hideQuoter ? 'flex-col' : '' }}">
+    <div class="flex {{ $hideQuoter ? 'flex-col' : 'pr-96' }}">
         <!-- Área principal de productos -->
         <div class="flex-1 p-6">
             <!-- Cabecera con Botón de regresar y Switch de Modo Copia -->
@@ -771,8 +771,7 @@ $header = 'Seleccionar productos';
 
         @if(!$hideQuoter)
         <!-- Sidebar del cotizador -->
-        <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-screen">
-            <!-- ... (contenido del sidebar omitido para brevedad en el reemplazo, aplicando wrapper) ... -->
+        <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-screen fixed top-0 right-0 overflow-hidden z-50">
             @include('livewire.tenant.quoter.components.partials.quoter-sidebar')
         </div>
         @endif
@@ -801,6 +800,10 @@ $header = 'Seleccionar productos';
                         <p class="text-gray-300 text-sm lg:text-base mt-1">
                             @if($selectedCustomer)
                                 <span class="block lg:inline">{{ $selectedCustomer['businessName'] ?? $selectedCustomer['firstName'] ?? 'Cliente' }}</span>
+                                <span class="hidden lg:inline"> - </span>
+                                <span class="block lg:inline">{{ $selectedCustomer['cityName'] ?? '' }}</span>
+                                <span class="hidden lg:inline"> - </span>
+                                <span class="block lg:inline">{{ $selectedCustomer['address'] ?? '' }}</span>
                                 <span class="hidden lg:inline"> - </span>
                             @endif
                             <span class="block lg:inline">Total: ${{ number_format($totalAmount, 2, ',', '.') }}</span>
@@ -1057,6 +1060,36 @@ $header = 'Seleccionar productos';
                 </button>
             </div>
 
+            @if($selectedCustomer)
+            @php
+                $businessName = trim($selectedCustomer['businessName'] ?? '');
+                $displayName = !empty($businessName) ? $businessName : ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName']);
+            @endphp
+            <div class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span class="font-bold text-gray-900 dark:text-white">{{ $displayName }}</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['cityName'] ?? 'N/A' }}</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['address'] ?? 'N/A' }}</span>
+                </div>
+            </div>
+            @endif
+
             <!-- Body -->
             <div class="p-6">
                 <!-- Selección de Tipo de Entrega -->
@@ -1150,7 +1183,7 @@ $header = 'Seleccionar productos';
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span wire:loading.remove wire:target="proceedWithRemissionCreation">Crear Remisión</span>
+                    <span wire:loading.remove wire:target="proceedWithRemissionCreation">Crear OP</span>
                     <span wire:loading wire:target="proceedWithRemissionCreation">Creando...</span>
                 </button>
             </div>

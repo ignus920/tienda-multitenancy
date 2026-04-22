@@ -480,7 +480,7 @@
                                             $totalModal += $subtotal;
                                         @endphp
                                         <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
+                                            <td class="px-6 py-4 whitespace-normal text-sm text-gray-900 dark:text-white font-medium">
                                                 {{ $detalle->item->name ?? $detalle->description }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
@@ -496,12 +496,22 @@
                                     @endforeach
                                 </tbody>
                                 <tfoot class="bg-gray-50 dark:bg-slate-700/50">
+                                    @if(isset($this->selectedQuote->flete) && $this->selectedQuote->flete > 0)
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-2 text-right text-sm font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                            Flete:
+                                        </td>
+                                        <td class="px-6 py-2 text-right text-sm font-bold text-gray-900 dark:text-white">
+                                            ${{ number_format($this->selectedQuote->flete, 2) }}
+                                        </td>
+                                    </tr>
+                                    @endif
                                     <tr>
                                         <td colspan="3" class="px-6 py-4 text-right text-sm font-bold text-gray-700 dark:text-white uppercase tracking-wider">
                                             Total General:
                                         </td>
                                         <td class="px-6 py-4 text-right text-sm font-bold text-indigo-500">
-                                            ${{ number_format($totalModal, 2) }}
+                                            ${{ number_format($totalModal + ($this->selectedQuote->flete ?? 0), 2) }}
                                         </td>
                                     </tr>
                                 </tfoot>
