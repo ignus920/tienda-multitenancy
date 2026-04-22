@@ -605,6 +605,73 @@
             } catch (error) { console.error('❌ Error local products:', error); }
         },
 
+        // --- Lógica de Carrito Instantáneo (Optimista) ---
+        addItemInstant(product, price, label) {
+            // 1. Actualizar localCart (Persistencia local)
+            const existing = this.localCart.find(item => item.id === product.id);
+            if (existing) {
+                existing.quantity++;
+            } else {
+                this.localCart.push({
+                    id: product.id,
+                    name: product.display_name || product.name,
+                    sku: product.sku,
+                    price: price,
+                    price_label: label,
+                    quantity: 1
+                });
+            }
+
+            // 2. Actualizar displayProducts (Interfaz inmediata)
+            const prod = this.displayProducts.find(p => p.id === product.id);
+            if (prod) {
+                prod.quantity = (prod.quantity || 0) + 1;
+                prod.selected_price = price;
+                prod.price_label = label;
+            }
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor si hay red
+            if (this.isOnline && !this.forceOffline) {
+                // Usamos addToQuoter para la primera vez, el servidor ya tiene lógica defensiva
+                $wire.addToQuoter(product.id, price, label);
+            }
+        },
+
+        updateQuantityInstant(productId, newQty) {
+            newQty = parseInt(newQty);
+            if (isNaN(newQty) || newQty < 0) newQty = 0;
+
+            // 1. Actualizar localCart
+            const itemIndex = this.localCart.findIndex(item => item.id === productId);
+            if (itemIndex !== -1) {
+                if (newQty === 0) {
+                    this.localCart.splice(itemIndex, 1);
+                } else {
+                    this.localCart[itemIndex].quantity = newQty;
+                }
+            }
+
+            // 2. Actualizar displayProducts (UI del catálogo)
+            const prod = this.displayProducts.find(p => p.id === productId);
+            if (prod) {
+                prod.quantity = newQty;
+                if (newQty === 0) {
+                    prod.selected_price = null;
+                    prod.price_label = null;
+                }
+            }
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor
+            if (this.isOnline && !this.forceOffline) {
+                // Enviamos valor absoluto para máxima precisión
+                $wire.updateQuantity(productId, newQty);
+            }
+        },
+
         async saveToLocalCache(products) {
             if (!products || products.length === 0) return;
             const db = await this.getDb();
@@ -1083,7 +1150,7 @@
                                         <div class="flex justify-center items-center bg-black/10 rounded-md py-0.5">
                                              <input type="tel" 
                                                    :value="getProductQuantity(product.id)"
-                                                   @change="isOnline ? $wire.updateQuantity(product.id, $event.target.value) : setLocalQuantity(product.id, $event.target.value)"
+                                                   @change="updateQuantityInstant(product.id, $event.target.value)"
                                                    @click.stop
                                                    class="w-full text-center font-black text-xl text-white bg-transparent border-none focus:ring-0 p-0 appearance-none placeholder-white/50"
                                                    inputmode="numeric">
@@ -1091,12 +1158,12 @@
 
                                         <!-- Botones abajo (Distribuidos) -->
                                         <div class="flex gap-1.5">
-                                            <button @click="isOnline ? $wire.decreaseQuantity(product.id) : updateLocalQuantity(product.id, -1)"
+                                            <button @click="updateQuantityInstant(product.id, getProductQuantity(product.id) - 1)"
                                                     class="flex-1 h-9 flex items-center justify-center bg-black/20 text-white hover:bg-black/30 rounded-md transition-colors active:scale-95 shadow-sm">
                                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
                                             </button>
                                             
-                                            <button @click="isOnline ? $wire.increaseQuantity(product.id) : updateLocalQuantity(product.id, 1)"
+                                            <button @click="updateQuantityInstant(product.id, getProductQuantity(product.id) + 1)"
                                                     class="flex-1 h-9 flex items-center justify-center bg-white text-green-700 rounded-md shadow-md active:scale-95 transition-transform hover:bg-gray-100">
                                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                                             </button>
@@ -1108,7 +1175,7 @@
                             <!-- Precios para seleccionar -->
                             <div wire:key="product-prices-box-real" x-show="getProductQuantity(product.id) === 0" class="space-y-1.5">
                                     <template x-for="(price, label) in getVisiblePrices(product.all_prices || {})" :key="label">
-                                        <button @click="isOnline ? $wire.addToQuoter(product.id, price, label) : addToLocalCart(product, price, label)"
+                                        <button @click="addItemInstant(product, price, label)"
                                                 class="w-full py-2 px-2 text-center rounded-lg border-2 border-green-100 dark:border-green-800 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400 hover:bg-green-100 active:scale-95 transition-all flex flex-col items-center justify-center">
                                             <span class="text-[9px] uppercase font-bold opacity-60" x-text="label == 'Precio Regular' ? 'Precio' : label"></span>
                                             <span class="text-sm font-black tracking-tight" x-text="'$' + Number(price).toLocaleString()"></span>
@@ -1470,7 +1537,7 @@
                                             
                                             <!-- Botón Menos -->
                                             <button 
-                                                @click.stop="isOnline ? $wire.updateQuantity(item.id, item.quantity - 1) : (item.quantity > 1 ? item.quantity-- : localCart.splice(index, 1))" 
+                                                @click.stop="updateQuantityInstant(item.id, item.quantity - 1)" 
                                                 class="p-2 px-3 text-gray-500 hover:text-gray-700 active:bg-gray-200 rounded-l-lg transition-colors">
                                                 -
                                             </button>
@@ -1480,7 +1547,7 @@
                                             
                                             <!-- Botón Más -->
                                             <button 
-                                                @click.stop="isOnline ? $wire.updateQuantity(item.id, item.quantity + 1) : item.quantity++" 
+                                                @click.stop="updateQuantityInstant(item.id, item.quantity + 1)" 
                                                 class="p-2 px-3 text-gray-500 hover:text-gray-700 active:bg-gray-200 rounded-r-lg transition-colors">
                                                 +
                                             </button>
