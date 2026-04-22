@@ -19,6 +19,7 @@ return new class extends Migration
                 $table->integer('userId')->nullable();
                 $table->text('observations')->nullable();
                 $table->integer('branchId')->nullable();
+                $table->integer('flete')->nullable()->default(0);
                 $table->index('customerId');
                 $table->index('warehouseId');
                 $table->timestamps();        // created_at, updated_at

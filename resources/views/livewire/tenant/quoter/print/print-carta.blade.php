@@ -68,6 +68,7 @@
 
         .customer-info, .quote-meta {
             flex: 1;
+            width: 48%;
             margin-right: 20px;
         }
 
@@ -328,11 +329,22 @@
         <div class="customer-info">
             <div class="section-title">Señores:</div>
             @if($customer)
-                <div class="info-line"><strong>{{ $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName }}</strong></div>
+                @php
+                    $customerBusinessName = trim($customer->company->businessName ?? '');
+                    $customerDisplayName = !empty($customerBusinessName) ? $customerBusinessName : ($customer->firstName . ' ' . $customer->lastName);
+                    $customerNIT = $customer->company->identification ?? $customer->identification ?? 'N/A';
+                @endphp
+                <div class="info-line"><strong>{{ $customerDisplayName }}</strong></div>
                 <div class="info-line">Atención: {{ $customer->firstName }} {{ $customer->lastName }}</div>
-                <div class="info-line">NIT: {{ $customer->identification }}</div>
-                @if($customer->billingAddress)
-                    <div class="info-line">Dirección: {{ $customer->billingAddress }}</div>
+                <div class="info-line">NIT: {{ $customerNIT }}</div>
+                @if($customer->warehouse && ($customer->warehouse->address || $customer->warehouse->city))
+                    <div class="info-line">
+                        Dirección: {{ $customer->warehouse->address ?? '' }}
+                        {{ ($customer->warehouse->address && $customer->warehouse->city) ? ' - ' : '' }}
+                        {{ $customer->warehouse->city->name ?? '' }}
+                    </div>
+                @elseif($customer->billingAddress || ($customer->company && $customer->company->billingAddress))
+                    <div class="info-line">Dirección: {{ $customer->company->billingAddress ?? $customer->billingAddress }}</div>
                 @endif
                 @if($customer->phone)
                     <div class="info-line">Teléfono: {{ $customer->phone }}</div>
@@ -410,7 +422,8 @@
                     return $detalle->value * $detalle->quantity;
                 });
                 $iva = 0;
-                $total = $subtotal + $iva;
+                $flete = $quote->flete ?? 0;
+                $total = $subtotal + $iva + $flete;
             @endphp
 
             <div class="total-line">
@@ -425,6 +438,12 @@
                 <span>IVA $:</span>
                 <span class="amount">${{ number_format($iva, 0) }}</span>
             </div>
+            @if($flete > 0)
+            <div class="total-line">
+                <span>Flete:</span>
+                <span class="amount">${{ number_format($flete, 0) }}</span>
+            </div>
+            @endif
             <!-- Retenciones (solo si existen y superan el tope) -->
             @php
                 // Lógica igual a ProductQuoter.php

@@ -19,6 +19,7 @@ use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Services\Tenant\Campaigns\CampaignService;
 use App\Traits\Livewire\HasDynamicButtons;
+use App\Models\Central\UsrPermissionProfile;
 
 class Remissions extends Component
 {
@@ -49,6 +50,9 @@ class Remissions extends Component
     public $totalItems = 0;
     public $moduleKey = 'remissions';
 
+    // Permisos
+    public $canEditRemission = false;
+
     protected $paginationTheme = 'tailwind';
 
     /**
@@ -66,6 +70,21 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
+
+        // Verificar permisos de edición para remisiones
+        $user = auth()->user();
+        if ($user && $user->profile_id) {
+            // Buscar el ID del permiso 'remisiones'
+            $permission = \App\Models\Central\UsrPermission::where('name', 'remisiones')->first();
+            
+            if ($permission) {
+                $permissionProfile = UsrPermissionProfile::where('profileId', $user->profile_id)
+                    ->where('permissionId', $permission->id)
+                    ->first();
+                
+                $this->canEditRemission = $permissionProfile && $permissionProfile->editer == 1;
+            }
+        }
     }
 
     /**

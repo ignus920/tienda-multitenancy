@@ -21,7 +21,8 @@ class VntQuote extends Model
         'warehouseId',
         'userId',
         'observations',
-        'branchId'
+        'branchId',
+        'flete'
     ];
 
     protected $casts = [

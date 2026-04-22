@@ -189,7 +189,7 @@
 </div>
 
 <!-- Lista de productos en el cotizador con scroll interno -->
-<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-700" style="max-height: calc(100vh - 400px);">
+<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-700">
     @if(empty($quoterItems))
     <div class="flex flex-col items-center justify-center h-full p-6 text-center">
         <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
@@ -267,7 +267,7 @@
 
 <!-- Footer del cotizador - Fijo en la parte inferior -->
 @if(!empty($quoterItems))
-<div class="border-t border-gray-200 dark:border-gray-700 p-6 flex-shrink-0 bg-white dark:bg-gray-800 sticky bottom-0">
+<div class="border-t border-gray-200 dark:border-gray-700 p-6 flex-shrink-0 bg-white dark:bg-gray-800">
     <div class="space-y-4">
         <!-- Observaciones - Acordeón -->
         <div x-data="{ open: @entangle('showObservations') }" class="w-full">
@@ -333,6 +333,12 @@
             <div class="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>Exento:</span>
                 <span>${{ number_format($taxBreakdown['exento'], 2, ',', '.') }}</span>
+            </div>
+            @endif
+            @if($appliedFreight > 0)
+            <div class="flex justify-between text-indigo-600 dark:text-indigo-400 font-medium">
+                <span>Flete:</span>
+                <span>${{ number_format($appliedFreight, 2, ',', '.') }}</span>
             </div>
             @endif
             @if($totalTaxes > 0)
@@ -407,8 +413,8 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span wire:loading.remove wire:target="confirmOrder">Crear remisión</span>
-                <span wire:loading wire:target="confirmOrder">Creando remisión...</span>
+                <span wire:loading.remove wire:target="confirmOrder">Crear OP</span>
+                <span wire:loading wire:target="confirmOrder">Creando OP...</span>
             </button>
 
             @if($this->canShowInvoiceButton)
