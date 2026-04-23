@@ -277,7 +277,13 @@
             window.addEventListener('products-updated', async (event) => {
                 if (this.isOnline) {
                     const products = event.detail[0]?.products || [];
-                    this.displayProducts = products;
+                    // Merge: preservar cantidades locales para productos que ya están en el carrito
+                    this.displayProducts = products.map(p => {
+                        const inCart = this.localCart.find(c => c.id === p.id);
+                        return inCart
+                            ? { ...p, quantity: inCart.quantity, selected_price: inCart.price, price_label: inCart.price_label }
+                            : p;
+                    });
                     await this.saveToLocalCache(products);
                 }
             });
@@ -1018,13 +1024,12 @@
                                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 16a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
 
-                        <!-- Indicador Online -->
-                        <div x-show="isOnline" class="contents" wire:key="hdr-online-indicator">
-                            @if($this->quoterCount > 0)
-                            <span wire:key="online-badge-{{ $this->quoterCount }}" class="absolute -top-2 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full min-w-[22px] h-[22px] flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm animate-pulse">
-                                {{ $this->quoterCount }}
+                        <!-- Indicador Online (Alpine-driven: instantáneo, sin esperar servidor) -->
+                        <div x-show="isOnline" class="contents">
+                            <span x-show="localCart.reduce((s,i) => s + i.quantity, 0) > 0"
+                                  x-text="localCart.reduce((s,i) => s + i.quantity, 0)"
+                                  class="absolute -top-2 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full min-w-[22px] h-[22px] flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm animate-pulse">
                             </span>
-                            @endif
                         </div>
 
                         <!-- Indicador Offline -->

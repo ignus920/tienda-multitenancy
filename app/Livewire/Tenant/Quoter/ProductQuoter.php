@@ -361,16 +361,6 @@ class ProductQuoter extends Component
             ? 'livewire.tenant.quoter.components.mobile-product-quoter'
             : 'livewire.tenant.quoter.components.desktop-product-quoter';
 
-        // Despachar evento para actualizaciones reactivas
-        $this->dispatch('products-updated', [
-            'products' => $this->mappedProducts
-        ]);
-
-        // Asegurar que el carrito esté sincronizado con Alpine.js en cada renderizado
-        $this->dispatch('cart-updated', [
-            'items' => $this->quoterItems
-        ]);
-
         return view($viewName, [
             'products' => $products,
             'mappedProducts' => $this->mappedProducts
