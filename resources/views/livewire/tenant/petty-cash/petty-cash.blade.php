@@ -62,6 +62,12 @@
 
                             <!-- Controles -->
                             <div class="flex items-center gap-3">
+                                <!-- Filtro de Fecha -->
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm text-gray-700 dark:text-gray-300">Fecha:</label>
+                                    <input wire:model.live="filterDate" type="date"
+                                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
                                 <!-- Registros por página -->
                                 <div class="flex items-center gap-2">
                                     <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>

@@ -21,7 +21,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <!-- Buscador y Filtros -->
-            <div class="flex-1 max-w-2xl flex items-center space-x-3">
+            <div class="flex-1 max-w-4xl flex items-center space-x-3">
                 <div class="relative flex-1">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,6 +31,22 @@
                     <input type="text" wire:model.live="search" placeholder="Búsqueda rápida..."
                         class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-colors">
                 </div>
+
+                <!-- Filtros de Fecha Directos -->
+                <div class="flex items-center space-x-2 bg-gray-50 dark:bg-slate-700/50 px-3 py-1.5 border border-gray-200 dark:border-slate-600 rounded">
+                    <div class="flex items-center space-x-1">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Desde:</span>
+                        <input type="date" wire:model.live="searchStartDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-slate-600"></div>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Hasta:</span>
+                        <input type="date" wire:model.live="searchEndDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                </div>
+
                 <button wire:click="$toggle('showAdvancedSearch')" 
                     class="flex items-center px-4 py-2 text-sm font-medium border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
@@ -80,11 +96,7 @@
                 <input type="text" wire:model.live="searchQuote" placeholder="Ej: COT-123"
                     class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Fecha Desde</label>
-                <input type="date" wire:model.live="searchStartDate"
-                    class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
-            </div>
+
             <div>
                 <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Vendedor</label>
                 <select wire:model.live="searchSalesman"
@@ -96,11 +108,7 @@
                 </select>
             </div>
             <div class="flex items-end space-x-2">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Fecha Hasta</label>
-                    <input type="date" wire:model.live="searchEndDate"
-                        class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
-                </div>
+
                 <button wire:click="clearFilters" 
                     class="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Limpiar filtros">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>

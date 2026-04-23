@@ -65,6 +65,14 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas por defecto (últimos 20 días) si están vacías
+        if (empty($this->searchStartDate)) {
+            $this->searchStartDate = now()->subDays(20)->format('Y-m-d');
+        }
+        if (empty($this->searchEndDate)) {
+            $this->searchEndDate = now()->format('Y-m-d');
+        }
     }
 
     /**

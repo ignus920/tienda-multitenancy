@@ -12,14 +12,13 @@
 
     {{-- ===== BARRA DE HERRAMIENTAS ===== --}}
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700">
-        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
-            {{-- Contenedor de Filtros --}}
-            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {{-- Buscador y Filtros de Fecha --}}
+            <div class="flex-1 flex flex-col lg:flex-row lg:items-center gap-3">
                 
                 {{-- Buscador --}}
-                <div class="lg:max-w-xs">
-                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Buscar</label>
+                <div class="flex-1 lg:max-w-md">
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,24 +31,25 @@
                     </div>
                 </div>
 
-                {{-- Fecha Desde --}}
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Desde</label>
-                    <input type="date" wire:model.live="fromDate"
-                        class="block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
-                </div>
-
-                {{-- Fecha Hasta --}}
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Hasta</label>
-                    <input type="date" wire:model.live="toDate"
-                        class="block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+                {{-- Filtros de Fecha Compactos (Estilo Solicitado) --}}
+                <div class="flex items-center space-x-2 bg-gray-50 dark:bg-slate-700/50 px-3 py-1.5 border border-gray-200 dark:border-slate-600 rounded-lg transition-colors">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tighter">Desde:</span>
+                        <input type="date" wire:model.live="fromDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-slate-600"></div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tighter">Hasta:</span>
+                        <input type="date" wire:model.live="toDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
                 </div>
 
             </div>
 
             {{-- Per page --}}
-            <div class="flex items-center gap-2 mb-0.5">
+            <div class="flex items-center gap-2">
                 <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Mostrar:</label>
                 <select wire:model.live="perPage"
                     class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 py-1.5 pr-8 transition-all">

@@ -83,6 +83,14 @@ class Invoices extends Component
     {
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas por defecto (últimos 20 días) si están vacías
+        if (empty($this->fromDate)) {
+            $this->fromDate = now()->subDays(20)->format('Y-m-d');
+        }
+        if (empty($this->toDate)) {
+            $this->toDate = now()->format('Y-m-d');
+        }
     }
 
     /**
