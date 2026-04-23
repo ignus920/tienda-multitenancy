@@ -321,6 +321,7 @@ class ProductQuoter extends Component
         $this->calculateTotal();
         $this->loadDeliveryTypes();
         $this->loadMethodPayments();
+        $this->getCanShowInvoiceButtonProperty(); // Evaluar visibilidad del botón de facturar al montar
 
         Log::info('🚀 ProductQuoter montado', [
             'viewType' => $this->viewType,
@@ -1309,12 +1310,27 @@ class ProductQuoter extends Component
 
     public function getCanShowInvoiceButtonProperty()
     {
+        // log::info('🔍 Evaluando visibilidad del botón de facturar', [
+        //     'user_id' => auth()->id(),
+        //     'user_profile_id' => auth()->user()->profile ? auth()->user()->profile->id : null,
+        //     'isInvoiceModuleActive' => $this->isInvoiceModuleActive,
+        //     'isEditing' => $this->isEditing,
+        //     'hasChanges' => $this->hasChanges
+        // ]);
         // Validar primero si el usuario tiene el perfil autorizado (11)
         // Accedemos al ID del perfil ya que 'profile' devuelve el objeto de la relación
         if (!auth()->user()->profile || auth()->user()->profile->id != 11) {
+            log::info('⚠️ Usuario no autorizado para facturar', [
+                'user_id' => auth()->id(),
+                'user_profile_id' => auth()->user()->profile ? auth()->user()->profile->id : null
+            ]);
             return false;
         }
 
+        log::info('✅ Usuario autorizado para facturar', [
+            'user_id' => auth()->id(),
+            'user_profile_id' => auth()->user()->profile ? auth()->user()->profile->id : null
+        ]);
         // Solo mostrar botón de facturar cuando:
         // 1. El módulo de facturación está activo
         // 2. Estamos editando una cotización existente
