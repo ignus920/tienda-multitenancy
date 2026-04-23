@@ -75,13 +75,13 @@ class Remissions extends Component
         $user = auth()->user();
         if ($user && $user->profile_id) {
             // Buscar el ID del permiso 'remisiones'
-            $permission = \App\Models\Central\UsrPermission::where('name', 'remisiones')->first();
-            
+            $permission = \App\Models\Central\UsrPermission::where('name', 'Ventas')->first();
+
             if ($permission) {
                 $permissionProfile = UsrPermissionProfile::where('profileId', $user->profile_id)
                     ->where('permissionId', $permission->id)
                     ->first();
-                
+
                 $this->canEditRemission = $permissionProfile && $permissionProfile->editer == 1;
             }
         }
