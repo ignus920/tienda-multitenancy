@@ -18,7 +18,7 @@ class InvUnconfirmedQty extends Model
 
     protected $connection = 'tenant';
 
-    protected $table = 'imp_unconfirmed_qty'; 
+    protected $table = 'imp_unconfirmed_qty';
 
     protected $fillable = [
         'item_id',
