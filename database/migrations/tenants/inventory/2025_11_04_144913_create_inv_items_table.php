@@ -12,7 +12,7 @@ return new class extends Migration
             Schema::create('inv_items', function (Blueprint $table) {
                 $table->integer('id')->autoIncrement()->primary(); // INT, auto-increment, PK
                 $table->integer('api_data_id')->nullable()->comment('id de integracion');
-                $table->integer('categoryId');
+                $table->integer('categoryId')->nullable();
                 $table->foreign('categoryId')->references('id')->on('inv_categories');
                 $table->string('name', 255);
                 $table->string('internal_code', 100);
