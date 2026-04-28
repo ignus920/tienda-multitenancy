@@ -246,34 +246,39 @@ class SalesReport extends Component
      */
     public function generatePDF($salesmanId)
     {
-        $this->ensureTenantConnection();
-        $salesDetail = $this->getSalesDetail($salesmanId);
-        
-        if ($salesDetail->isEmpty()) {
-            session()->flash('error', 'No hay datos para generar el PDF.');
-            return;
+        try {
+            $this->ensureTenantConnection();
+            $salesDetail = $this->getSalesDetail($salesmanId);
+
+            if ($salesDetail->isEmpty()) {
+                session()->flash('error', 'No hay datos para generar el PDF.');
+                return;
+            }
+
+            $vendorName = $salesDetail->first()->vendedor;
+            $dateRange = '';
+
+            if ($this->startDate && $this->endDate) {
+                $dateRange = Carbon::parse($this->startDate)->format('d/m/Y') . ' - ' . Carbon::parse($this->endDate)->format('d/m/Y');
+            } elseif ($this->startDate) {
+                $dateRange = 'Desde ' . Carbon::parse($this->startDate)->format('d/m/Y');
+            } elseif ($this->endDate) {
+                $dateRange = 'Hasta ' . Carbon::parse($this->endDate)->format('d/m/Y');
+            } else {
+                $dateRange = 'Todas las fechas';
+            }
+
+            $filename = 'detalle_ventas_' . str_replace(' ', '_', $vendorName) . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+            return Pdf::loadView('pdf.sales-detail', [
+                'salesDetail' => $salesDetail,
+                'vendorName' => $vendorName,
+                'dateRange' => $dateRange
+            ])->download($filename);
+
+        } catch (\Throwable $e) {
+            session()->flash('error', 'Error al generar PDF: ' . $e->getMessage());
         }
-
-        $vendorName = $salesDetail->first()->vendedor;
-        $dateRange = '';
-        
-        if ($this->startDate && $this->endDate) {
-            $dateRange = Carbon::parse($this->startDate)->format('d/m/Y') . ' - ' . Carbon::parse($this->endDate)->format('d/m/Y');
-        } elseif ($this->startDate) {
-            $dateRange = 'Desde ' . Carbon::parse($this->startDate)->format('d/m/Y');
-        } elseif ($this->endDate) {
-            $dateRange = 'Hasta ' . Carbon::parse($this->endDate)->format('d/m/Y');
-        } else {
-            $dateRange = 'Todas las fechas';
-        }
-
-        $filename = 'detalle_ventas_' . str_replace(' ', '_', $vendorName) . '_' . now()->format('Y-m-d_His') . '.pdf';
-
-        return Pdf::loadView('pdf.sales-detail', [
-            'salesDetail' => $salesDetail,
-            'vendorName' => $vendorName,
-            'dateRange' => $dateRange
-        ])->download($filename);
     }
 
     public function render()
