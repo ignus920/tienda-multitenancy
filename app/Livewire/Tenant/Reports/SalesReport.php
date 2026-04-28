@@ -7,6 +7,8 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Auth\Tenant;
+use App\Services\Tenant\TenantManager;
 
 class SalesReport extends Component
 {
@@ -32,6 +34,7 @@ class SalesReport extends Component
      */
     public function mount()
     {
+        $this->ensureTenantConnection();
         $this->startDate = '';
         $this->endDate = '';
         
@@ -64,6 +67,7 @@ class SalesReport extends Component
      */
     public function filtersApplied($filters)
     {
+        $this->ensureTenantConnection();
         $this->startDate = $filters['startDate'] ?? '';
         $this->endDate = $filters['endDate'] ?? '';
         $this->hasSearched = true;
@@ -75,6 +79,7 @@ class SalesReport extends Component
      */
     public function filtersCleared()
     {
+        $this->ensureTenantConnection();
         $this->startDate = '';
         $this->endDate = '';
         $this->hasSearched = false;
@@ -241,6 +246,7 @@ class SalesReport extends Component
      */
     public function generatePDF($salesmanId)
     {
+        $this->ensureTenantConnection();
         $salesDetail = $this->getSalesDetail($salesmanId);
         
         if ($salesDetail->isEmpty()) {
@@ -314,5 +320,25 @@ class SalesReport extends Component
     protected function getExportFilename(): string
     {
         return 'resumen_ventas_' . now()->format('Y-m-d_His');
+    }
+
+    private function ensureTenantConnection(): void
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return;
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            return;
+        }
+
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+        tenancy()->initialize($tenant);
     }
 }
