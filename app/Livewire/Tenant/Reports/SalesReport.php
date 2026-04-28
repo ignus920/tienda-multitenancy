@@ -267,17 +267,13 @@ class SalesReport extends Component
             $dateRange = 'Todas las fechas';
         }
 
-        $pdf = Pdf::loadView('pdf.sales-detail', [
+        $filename = 'detalle_ventas_' . str_replace(' ', '_', $vendorName) . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+        return Pdf::loadView('pdf.sales-detail', [
             'salesDetail' => $salesDetail,
             'vendorName' => $vendorName,
             'dateRange' => $dateRange
-        ]);
-
-        $filename = 'detalle_ventas_' . str_replace(' ', '_', $vendorName) . '_' . now()->format('Y-m-d_His') . '.pdf';
-        
-        return response()->streamDownload(function() use ($pdf) {
-            echo $pdf->output();
-        }, $filename);
+        ])->download($filename);
     }
 
     public function render()
