@@ -53,6 +53,12 @@ class VntQuote extends Model
         return $this->belongsTo(VntWarehouse::class, 'branchId');
     }
 
+    public function observations(): HasMany
+    {
+        return $this->hasMany(\App\Models\Tenant\Sales\VntObservation::class, 'reference_id')
+                    ->where('reference_type', 'quote');
+    }
+
     // Métodos de utilidad
     public function getSubTotalAttribute()
     {

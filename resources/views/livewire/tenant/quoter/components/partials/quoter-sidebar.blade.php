@@ -208,14 +208,14 @@
         @if($totalWeight > 0 || $estimatedFreight > 0)
         <div 
             wire:click="applyFreightToQuoter"
-            class="mb-2 flex items-center justify-between px-4 py-2 bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all group shadow-sm">
+            class="mb-2 flex items-center justify-between px-4 py-2 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/60' }} border rounded-lg cursor-pointer transition-all group shadow-sm">
             <div class="flex items-center gap-2">
-                <span class="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">Valor Flete Estimado:</span>
-                <span class="text-xs font-black text-indigo-800 dark:text-white">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
+                <span class="text-[11px] font-medium {{ $isFreightApplied ? 'text-indigo-700 dark:text-indigo-300' : 'text-red-700 dark:text-red-300' }}">Valor Flete Estimado:</span>
+                <span class="text-xs font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-[10px] font-bold text-indigo-500/60 dark:text-indigo-400/60">{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
-                <div class="bg-indigo-600 text-white p-1 rounded-md group-hover:bg-indigo-700 transition-colors">
+                <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight, 2, ',', '.') }} Kg</span>
+                <div class="{{ $isFreightApplied ? 'bg-indigo-600 group-hover:bg-indigo-700' : 'bg-red-600 group-hover:bg-red-700' }} text-white p-1 rounded-md transition-colors">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -335,10 +335,25 @@
                 <span>${{ number_format($taxBreakdown['exento'], 2, ',', '.') }}</span>
             </div>
             @endif
-            @if($appliedFreight > 0)
-            <div class="flex justify-between text-indigo-600 dark:text-indigo-400 font-medium">
-                <span>Flete:</span>
-                <span>${{ number_format($appliedFreight, 2, ',', '.') }}</span>
+            @if($appliedFreight > 0 || $isFreightApplied)
+            <div class="flex flex-col gap-1 border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
+                        <span>Flete:</span>
+                        <button wire:click="removeFreight" class="text-red-500 hover:text-red-700 transition-colors" title="Eliminar flete">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-gray-500 mr-1">$</span>
+                        <input type="number" wire:model.live.debounce.500ms="appliedFreight" class="w-24 text-right px-1 py-0.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 focus:ring-1 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                    </div>
+                </div>
+                @if($isFreightManuallyEdited)
+                <div class="mt-1">
+                    <input type="text" wire:model.live="freightJustification" placeholder="Justificación del cambio de flete..." class="w-full px-2 py-1 text-[11px] border border-red-300 focus:border-red-500 rounded bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-white placeholder-red-400 outline-none" required>
+                </div>
+                @endif
             </div>
             @endif
             @if($totalTaxes > 0)
