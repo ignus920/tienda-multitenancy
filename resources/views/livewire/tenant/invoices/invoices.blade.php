@@ -12,27 +12,47 @@
 
     {{-- ===== BARRA DE HERRAMIENTAS ===== --}}
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
-            {{-- Buscador --}}
-            <div class="flex-1 max-w-lg">
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+            {{-- Buscador y Filtros de Fecha --}}
+            <div class="flex-1 flex flex-col lg:flex-row lg:items-center gap-3">
+                
+                {{-- Buscador --}}
+                <div class="flex-1 lg:max-w-md">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" wire:model.live="search"
+                            placeholder="Buscar por número, cliente, remisión..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
                     </div>
-                    <input type="text" wire:model.live="search"
-                        placeholder="Buscar por número, cliente, remisión..."
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
+
+                {{-- Filtros de Fecha Compactos (Estilo Solicitado) --}}
+                <div class="flex items-center space-x-2 bg-gray-50 dark:bg-slate-700/50 px-3 py-1.5 border border-gray-200 dark:border-slate-600 rounded-lg transition-colors">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tighter">Desde:</span>
+                        <input type="date" wire:model.live="fromDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-slate-600"></div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tighter">Hasta:</span>
+                        <input type="date" wire:model.live="toDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                </div>
+
             </div>
 
             {{-- Per page --}}
             <div class="flex items-center gap-2">
-                <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
+                <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Mostrar:</label>
                 <select wire:model.live="perPage"
-                    class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 py-1.5 pr-8 transition-all">
                     <option value="12">12</option>
                     <option value="25">25</option>
                     <option value="50">50</option>

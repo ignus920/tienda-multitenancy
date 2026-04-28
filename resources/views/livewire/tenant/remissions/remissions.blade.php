@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Remisiones</h1>
+                <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Pedidos</h1>
                 <p class="text-gray-600 dark:text-slate-400 text-sm mt-1">Gestión de registros</p>
             </div>
             <!-- <div class="flex items-center space-x-3">
@@ -11,7 +11,7 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    <span>Nueva Remisión</span>
+                    <span>Nuevo Pedido</span>
                 </button>
             </div> -->
         </div>
@@ -21,7 +21,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <!-- Buscador y Filtros -->
-            <div class="flex-1 max-w-2xl flex items-center space-x-3">
+            <div class="flex-1 max-w-4xl flex items-center space-x-3">
                 <div class="relative flex-1">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,6 +31,22 @@
                     <input type="text" wire:model.live="search" placeholder="Búsqueda rápida..."
                         class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-colors">
                 </div>
+
+                <!-- Filtros de Fecha Directos -->
+                <div class="flex items-center space-x-2 bg-gray-50 dark:bg-slate-700/50 px-3 py-1.5 border border-gray-200 dark:border-slate-600 rounded">
+                    <div class="flex items-center space-x-1">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Desde:</span>
+                        <input type="date" wire:model.live="searchStartDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-slate-600"></div>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Hasta:</span>
+                        <input type="date" wire:model.live="searchEndDate"
+                            class="bg-transparent border-none text-xs text-gray-700 dark:text-slate-200 focus:ring-0 p-0 w-28">
+                    </div>
+                </div>
+
                 <button wire:click="$toggle('showAdvancedSearch')" 
                     class="flex items-center px-4 py-2 text-sm font-medium border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
@@ -80,17 +96,19 @@
                 <input type="text" wire:model.live="searchQuote" placeholder="Ej: COT-123"
                     class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
             </div>
+
             <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Fecha Desde</label>
-                <input type="date" wire:model.live="searchStartDate"
+                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Vendedor</label>
+                <select wire:model.live="searchSalesman"
                     class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
+                    <option value="">Todos los vendedores</option>
+                    @foreach($salesmen as $salesman)
+                        <option value="{{ $salesman->id }}">{{ $salesman->name }}</option>
+                    @endforeach
+                </select>
             </div>
             <div class="flex items-end space-x-2">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Fecha Hasta</label>
-                    <input type="date" wire:model.live="searchEndDate"
-                        class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
-                </div>
+
                 <button wire:click="clearFilters" 
                     class="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Limpiar filtros">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -111,7 +129,7 @@
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center space-x-1">
-                                <span>REMISIÓN #</span>
+                                <span>PEDIDO #</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
                             </div>
                         </th>
@@ -131,6 +149,12 @@
                             <div class="flex items-center space-x-1">
                                 <span>CLIENTE</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
+                                <span>VENDEDOR</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                             </div>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
@@ -204,6 +228,10 @@
                             {{-- CLIENTE --}}
                             <td class="px-4 py-4 text-sm text-gray-700 dark:text-slate-300">
                                 {{ $remission->quote->customer_name ?? 'N/A' }}
+                            </td>
+                            {{-- VENDEDOR --}}
+                            <td class="px-4 py-4 text-sm text-gray-700 dark:text-slate-300 font-medium">
+                                {{ $remission->user->name ?? 'N/A' }}
                             </td>
                             {{-- ENTREGA Y PAGO --}}
                             <td class="px-4 py-4 text-sm text-gray-700 dark:text-slate-300">
@@ -313,7 +341,7 @@
                                                 Editar
                                             </button>
                                             @endif
-                                            <button wire:click="printRemission({{ $remission->id }}); open=false" class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center border-b border-gray-100 dark:border-gray-700">
+                                            <button @click="window.open('{{ route('tenant.reports.order-print', $remission->id) }}', '_blank'); open=false" class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center border-b border-gray-100 dark:border-gray-700">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                                 Imprimir
                                             </button>
@@ -351,7 +379,7 @@
                                     ✓ Facturada
                                 </span>
                             @endif
-                            <span class="text-white font-bold text-base">Remisión #{{ $remission->consecutive }}</span>
+                            <span class="text-white font-bold text-base">Pedido #{{ $remission->consecutive }}</span>
                         </div>
                         <div class="text-right">
                             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">{{ $remission->created_at->format('d/m/Y') }}</p>
@@ -455,7 +483,7 @@
                             </button>
                             @endif
                             
-                            <button wire:click="printRemission({{ $remission->id }})"
+                            <button @click="window.open('{{ route('tenant.reports.order-print', $remission->id) }}', '_blank')"
                                 class="bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-xl transition-all active:scale-95 shadow-sm shadow-blue-100"
                                 title="Imprimir remisión">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
@@ -528,7 +556,7 @@
                 {{ $remissions->links() }}
             </div>
         @endif
-    <!-- Modal de Detalle de Remisión -->
+    <!-- Modal de Detalle de Pedido -->
     <div x-data="{ show: @entangle('showDetailModal') }"
          x-show="show"
          class="fixed inset-0 z-[60] overflow-y-auto"
@@ -562,7 +590,7 @@
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start">
                         <div>
                             <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                                Detalles de Remisión #{{ $selectedRemission->consecutive }}
+                                Detalles de Pedido #{{ $selectedRemission->consecutive }}
                             </h3>
                             <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
                                 Fecha: {{ $selectedRemission->created_at->format('d/m/Y H:i') }} | Estado: 
@@ -711,7 +739,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 dark:text-white">Confirmar Facturación de Remisiones</h3>
+                        <h3 class="text-base font-bold text-gray-900 dark:text-white">Confirmar Facturación de Pedidos</h3>
                         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Revise la información antes de proceder con la facturación</p>
                     </div>
                 </div>
@@ -745,14 +773,14 @@
                 <div class="border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <div class="flex items-center gap-2 mb-3">
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                        <span class="text-[10px] font-bold text-gray-600 dark:text-slate-300 uppercase tracking-widest">Remisiones Seleccionadas</span>
+                        <span class="text-[10px] font-bold text-gray-600 dark:text-slate-300 uppercase tracking-widest">Pedidos Seleccionados</span>
                     </div>
 
                     {{-- Métricas --}}
                     <div class="grid grid-cols-3 gap-3 mb-4">
                         <div class="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                             <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ count($invoicePreviewRemissions) }}</p>
-                            <p class="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">Remisiones</p>
+                            <p class="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">Pedidos</p>
                         </div>
                         <div class="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                             <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $invoicePreviewItemsCount }}</p>
@@ -769,7 +797,7 @@
                         @foreach($invoicePreviewRemissions as $rem)
                             <div class="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-slate-700/40 rounded-lg text-sm">
                                 <div class="flex items-center gap-3">
-                                    <span class="font-bold text-gray-900 dark:text-white">Remisión #{{ $rem['consecutive'] }}</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">Pedido #{{ $rem['consecutive'] }}</span>
                                     <span class="text-xs text-gray-400">{{ $rem['date'] }}</span>
                                 </div>
                                 <div class="flex items-center gap-3 text-right">
@@ -786,7 +814,7 @@
                     <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <div>
                         <p class="text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">Importante</p>
-                        <p class="text-xs text-amber-600 dark:text-amber-300">Al confirmar, se creará una factura electrónica para todas las remisiones seleccionadas. Esta acción no se puede deshacer.</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-300">Al confirmar, se creará una factura electrónica para todos los pedidos seleccionados. Esta acción no se puede deshacer.</p>
                     </div>
                 </div>
             </div>

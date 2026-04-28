@@ -175,8 +175,8 @@
     <table>
         <thead>
             <tr>
+                <th>ID Orden</th>
                 <th>ID Pedido</th>
-                <th>ID Remisión</th>
                 <th>Estado</th>
                 <th>Cliente</th>
                 <th>Fecha</th>
@@ -204,6 +204,9 @@
                     @else
                         <span class="badge badge-normal">No</span>
                     @endif
+                </td>
+                <td class="text-center">
+                     {{ $detail->metodo_pago }}
                 </td>
             </tr>
             @endforeach

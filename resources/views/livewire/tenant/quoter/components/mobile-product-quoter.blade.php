@@ -41,6 +41,7 @@
         currentQuoteUuid: null, // UUID de la cotización actual (para edición)
         lastSync: null, // Marca de tiempo de la última sincronización completa
         isPushingToStore: false, // BLOQUEO: Evita que el servidor sobreescriba cambios mientras estamos subiendo datos local -> server
+        lockTimeout: null,
         
         // Estados para el swipe de los items del carrito
         swipeStates: {}, 
@@ -50,6 +51,15 @@
         runInQueue(task) {
             this.syncQueue = this.syncQueue.then(() => task());
             return this.syncQueue;
+        },
+
+        setLock() {
+            this.isPushingToStore = true;
+            if (this.lockTimeout) clearTimeout(this.lockTimeout);
+            this.lockTimeout = setTimeout(() => {
+                this.isPushingToStore = false;
+                console.log('🔓 Bloqueo de sincronización liberado (Interaction timeout)');
+            }, 2000);
         },
 
         /**
@@ -267,7 +277,13 @@
             window.addEventListener('products-updated', async (event) => {
                 if (this.isOnline) {
                     const products = event.detail[0]?.products || [];
-                    this.displayProducts = products;
+                    // Merge: preservar cantidades locales para productos que ya están en el carrito
+                    this.displayProducts = products.map(p => {
+                        const inCart = this.localCart.find(c => c.id === p.id);
+                        return inCart
+                            ? { ...p, quantity: inCart.quantity, selected_price: inCart.price, price_label: inCart.price_label }
+                            : p;
+                    });
                     await this.saveToLocalCache(products);
                 }
             });
@@ -605,6 +621,119 @@
             } catch (error) { console.error('❌ Error local products:', error); }
         },
 
+        // --- Lógica de Carrito Instantáneo (Optimista) ---
+        addItemInstant(product, price, label) {
+            this.setLock();
+            // 1. Actualizar localCart (Persistencia local)
+            const existing = this.localCart.find(item => item.id === product.id);
+            if (existing) {
+                existing.quantity++;
+            } else {
+                this.localCart.push({
+                    id: product.id,
+                    name: product.display_name || product.name,
+                    sku: product.sku,
+                    price: price,
+                    price_label: label,
+                    quantity: 1
+                });
+            }
+
+            // 2. Actualizar displayProducts (Interfaz inmediata)
+            const prod = this.displayProducts.find(p => p.id === product.id);
+            if (prod) {
+                prod.quantity = (prod.quantity || 0) + 1;
+                prod.selected_price = price;
+                prod.price_label = label;
+            }
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor si hay red
+            if (this.isOnline && !this.forceOffline) {
+                // Usamos addToQuoter para la primera vez, el servidor ya tiene lógica defensiva
+                $wire.addToQuoter(product.id, price, label);
+            }
+        },
+
+        updateQuantityInstant(productId, newQty) {
+            this.setLock();
+            newQty = parseInt(newQty);
+            if (isNaN(newQty) || newQty < 0) newQty = 0;
+
+            // 1. Actualizar localCart
+            const itemIndex = this.localCart.findIndex(item => item.id === productId);
+            if (itemIndex !== -1) {
+                if (newQty === 0) {
+                    this.localCart.splice(itemIndex, 1);
+                } else {
+                    this.localCart[itemIndex].quantity = newQty;
+                }
+            }
+
+            // 2. Actualizar displayProducts (UI del catálogo)
+            const prod = this.displayProducts.find(p => p.id === productId);
+            if (prod) {
+                prod.quantity = newQty;
+                if (newQty === 0) {
+                    prod.selected_price = null;
+                    prod.price_label = null;
+                }
+            }
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor
+            if (this.isOnline && !this.forceOffline) {
+                // Enviamos valor absoluto para máxima precisión
+                $wire.updateQuantity(productId, newQty);
+            }
+        },
+
+        clearCartInstant() {
+            this.setLock();
+            // 1. Vaciar localCart
+            this.localCart = [];
+
+            // 2. Resetear displayProducts (UI del catálogo)
+            this.displayProducts.forEach(p => {
+                p.quantity = 0;
+                p.selected_price = null;
+                p.price_label = null;
+            });
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor
+            if (this.isOnline && !this.forceOffline) {
+                $wire.call('clearCart');
+            }
+        },
+
+        removeItemInstant(productId) {
+            this.setLock();
+            // 1. Quitar de localCart
+            const index = this.localCart.findIndex(i => i.id === productId);
+            if (index !== -1) {
+                this.localCart.splice(index, 1);
+            }
+
+            // 2. Resetear en displayProducts
+            const prod = this.displayProducts.find(p => p.id === productId);
+            if (prod) {
+                prod.quantity = 0;
+                prod.selected_price = null;
+                prod.price_label = null;
+            }
+
+            this.persistState();
+
+            // 3. Sincronizar con servidor
+            if (this.isOnline && !this.forceOffline) {
+                $wire.call('removeFromQuoter', productId);
+            }
+        },
+
         async saveToLocalCache(products) {
             if (!products || products.length === 0) return;
             const db = await this.getDb();
@@ -895,13 +1024,12 @@
                                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 16a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
 
-                        <!-- Indicador Online -->
-                        <div x-show="isOnline" class="contents" wire:key="hdr-online-indicator">
-                            @if($this->quoterCount > 0)
-                            <span wire:key="online-badge-{{ $this->quoterCount }}" class="absolute -top-2 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full min-w-[22px] h-[22px] flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm animate-pulse">
-                                {{ $this->quoterCount }}
+                        <!-- Indicador Online (Alpine-driven: instantáneo, sin esperar servidor) -->
+                        <div x-show="isOnline" class="contents">
+                            <span x-show="localCart.reduce((s,i) => s + i.quantity, 0) > 0"
+                                  x-text="localCart.reduce((s,i) => s + i.quantity, 0)"
+                                  class="absolute -top-2 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full min-w-[22px] h-[22px] flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm animate-pulse">
                             </span>
-                            @endif
                         </div>
 
                         <!-- Indicador Offline -->
@@ -1083,7 +1211,7 @@
                                         <div class="flex justify-center items-center bg-black/10 rounded-md py-0.5">
                                              <input type="tel" 
                                                    :value="getProductQuantity(product.id)"
-                                                   @change="isOnline ? $wire.updateQuantity(product.id, $event.target.value) : setLocalQuantity(product.id, $event.target.value)"
+                                                   @change="updateQuantityInstant(product.id, $event.target.value)"
                                                    @click.stop
                                                    class="w-full text-center font-black text-xl text-white bg-transparent border-none focus:ring-0 p-0 appearance-none placeholder-white/50"
                                                    inputmode="numeric">
@@ -1091,12 +1219,12 @@
 
                                         <!-- Botones abajo (Distribuidos) -->
                                         <div class="flex gap-1.5">
-                                            <button @click="isOnline ? $wire.decreaseQuantity(product.id) : updateLocalQuantity(product.id, -1)"
+                                            <button @click="updateQuantityInstant(product.id, getProductQuantity(product.id) - 1)"
                                                     class="flex-1 h-9 flex items-center justify-center bg-black/20 text-white hover:bg-black/30 rounded-md transition-colors active:scale-95 shadow-sm">
                                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
                                             </button>
                                             
-                                            <button @click="isOnline ? $wire.increaseQuantity(product.id) : updateLocalQuantity(product.id, 1)"
+                                            <button @click="updateQuantityInstant(product.id, getProductQuantity(product.id) + 1)"
                                                     class="flex-1 h-9 flex items-center justify-center bg-white text-green-700 rounded-md shadow-md active:scale-95 transition-transform hover:bg-gray-100">
                                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                                             </button>
@@ -1108,7 +1236,7 @@
                             <!-- Precios para seleccionar -->
                             <div wire:key="product-prices-box-real" x-show="getProductQuantity(product.id) === 0" class="space-y-1.5">
                                     <template x-for="(price, label) in getVisiblePrices(product.all_prices || {})" :key="label">
-                                        <button @click="isOnline ? $wire.addToQuoter(product.id, price, label) : addToLocalCart(product, price, label)"
+                                        <button @click="addItemInstant(product, price, label)"
                                                 class="w-full py-2 px-2 text-center rounded-lg border-2 border-green-100 dark:border-green-800 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400 hover:bg-green-100 active:scale-95 transition-all flex flex-col items-center justify-center">
                                             <span class="text-[9px] uppercase font-bold opacity-60" x-text="label == 'Precio Regular' ? 'Precio' : label"></span>
                                             <span class="text-sm font-black tracking-tight" x-text="'$' + Number(price).toLocaleString()"></span>
@@ -1179,10 +1307,10 @@
                         </template>
                         
                         <!-- Botón limpiar carrito (Online) -->
-                        <div x-show="isOnline && localCart.length > 0" class="flex flex-col items-center justify-center">
+                        <div x-show="isOnline && (localCart.length > 0 || quoterCount > 0)" class="flex flex-col items-center justify-center">
                             <span class="text-[10px] text-red-500 font-bold uppercase leading-none mb-0.5">Limpiar</span>
                             <button
-                                onclick="confirmClearCart()"
+                                @click="showConfirmClear = true"
                                 title="Limpiar carrito"
                                 class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1193,7 +1321,7 @@
 
                         <!-- Botón limpiar carrito (Offline) -->
                         <template x-if="!isOnline && localCart.length > 0">
-                            <button @click="if(confirm('¿Limpiar carrito local?')) localCart = []" class="text-red-500 text-[10px] font-bold uppercase underline">
+                            <button @click="showConfirmClear = true" class="text-red-500 text-[10px] font-bold uppercase underline">
                                 Limpiar
                             </button>
                         </template>
@@ -1440,7 +1568,7 @@
                                  :class="!isOnline ? 'border-orange-200 dark:border-orange-900/30 bg-white dark:bg-gray-700' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700'"
                                  @touchstart="if(!swipeStates[item.id]) swipeStates[item.id] = {startX: 0, currentX: 0}; swipeStates[item.id].startX = $event.touches[0].clientX"
                                  @touchmove="let diff = $event.touches[0].clientX - swipeStates[item.id].startX; swipeStates[item.id].currentX = diff > 0 ? Math.min(80, diff) : Math.max(-80, diff)"
-                                 @touchend="if (Math.abs(swipeStates[item.id].currentX) > 40) { if(isOnline) { $wire.removeFromQuoter(item.id); } else { localCart.splice(index, 1); } } swipeStates[item.id].currentX = 0"
+                                 @touchend="if (Math.abs(swipeStates[item.id].currentX) > 40) { removeItemInstant(item.id); } swipeStates[item.id].currentX = 0"
                                  @touchcancel="if(swipeStates[item.id]) swipeStates[item.id].currentX = 0">
 
                                 <!-- Fondo Rojo (Swipe Bidireccional) -->
@@ -1470,7 +1598,7 @@
                                             
                                             <!-- Botón Menos -->
                                             <button 
-                                                @click.stop="isOnline ? $wire.updateQuantity(item.id, item.quantity - 1) : (item.quantity > 1 ? item.quantity-- : localCart.splice(index, 1))" 
+                                                @click.stop="updateQuantityInstant(item.id, item.quantity - 1)" 
                                                 class="p-2 px-3 text-gray-500 hover:text-gray-700 active:bg-gray-200 rounded-l-lg transition-colors">
                                                 -
                                             </button>
@@ -1480,7 +1608,7 @@
                                             
                                             <!-- Botón Más -->
                                             <button 
-                                                @click.stop="isOnline ? $wire.updateQuantity(item.id, item.quantity + 1) : item.quantity++" 
+                                                @click.stop="updateQuantityInstant(item.id, item.quantity + 1)" 
                                                 class="p-2 px-3 text-gray-500 hover:text-gray-700 active:bg-gray-200 rounded-r-lg transition-colors">
                                                 +
                                             </button>
@@ -1488,7 +1616,7 @@
 
                                         <!-- Eliminar (Botón explícito también) -->
                                         <button 
-                                            @click.stop="isOnline ? $wire.removeFromQuoter(item.id) : localCart.splice(index, 1)" 
+                                            @click.stop="removeItemInstant(item.id)" 
                                             class="text-red-500 p-2 hover:bg-red-50 rounded-full transition-colors">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
@@ -1620,7 +1748,7 @@
 
                                 <span wire:loading.remove wire:target="updateQuote">
                                     @if($editingRemissionId)
-                                        Editar Remisión
+                                        Editar Pedido
                                     @else
                                         Actualizar
                                     @endif
@@ -1655,7 +1783,7 @@
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    Remisión ya generada
+                                    Pedido ya generado
                                 </div>
                             @else
                                 <button wire:click="abrirModalRemision"
@@ -1884,7 +2012,7 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Se eliminarán todos los productos. El cliente seleccionado se mantendrá.</p>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex flex-col gap-3">
-            <button @click="showConfirmClear = false; $wire.call('clearCart')" 
+            <button @click="showConfirmClear = false; clearCartInstant()" 
                 class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95">
                 Sí, limpiar carrito
             </button>
@@ -1912,7 +2040,7 @@
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 2000,
+            timer: 1500,
             timerProgressBar: true,
             didOpen: (toast) => {
                 toast.addEventListener('mouseenter', Swal.stopTimer)

@@ -175,7 +175,7 @@ new class extends Component {
                     </a> --}}
 
                     <a href="{{ route('tenant.remissions') }}" class="block px-2 py-1 hover:text-indigo-600">
-                        Remisiones
+                        Pedidos
                     </a>
 
                     <a href="{{ route('tenant.invoices') }}" wire:navigate
@@ -194,7 +194,7 @@ new class extends Component {
                     <a href="{{ route('tenant.quoter') }}" @click="localStorage.setItem('quoter_clear', '1')"
                         class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Cotizaciones</a>
                     <a href="{{ route('tenant.remissions') }}"
-                        class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Remisiones</a>
+                        class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Pedidos</a>
                     <a href="{{ route('tenant.invoices') }}" wire:navigate
                         class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Facturas</a>
                 </div>

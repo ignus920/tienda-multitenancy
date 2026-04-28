@@ -240,11 +240,16 @@ class ProductQuoter extends Component
                         'price_label' => 'Precio Registrado',
                         'quantity' => $detail->quantity,
                         'description' => $detail->description,
+                        'tax' => $detail->tax ?? 0,
                     ];
                 }
             }
 
-            // 3. Configurar estado de edición
+            // 3. Cargar Observaciones
+            $this->observaciones = $remission->quote->observations ?? $remission->observations;
+            $this->showObservations = !empty($this->observaciones);
+
+            // 4. Configurar estado de edición
             $this->editingRemissionId = $remissionId;
             $this->isEditing = true;
             $this->quoteHasRemission = true; // Asegurar estado para ocultar botón confirmar
@@ -355,16 +360,6 @@ class ProductQuoter extends Component
         $viewName = $this->viewType === 'mobile'
             ? 'livewire.tenant.quoter.components.mobile-product-quoter'
             : 'livewire.tenant.quoter.components.desktop-product-quoter';
-
-        // Despachar evento para actualizaciones reactivas
-        $this->dispatch('products-updated', [
-            'products' => $this->mappedProducts
-        ]);
-
-        // Asegurar que el carrito esté sincronizado con Alpine.js en cada renderizado
-        $this->dispatch('cart-updated', [
-            'items' => $this->quoterItems
-        ]);
 
         return view($viewName, [
             'products' => $products,
@@ -589,17 +584,29 @@ class ProductQuoter extends Component
     {
         Log::info('🛒 performAddToQuoter iniciado', [
             'productId' => $productId,
-            'isEditing' => $this->isEditing,
-            'editingQuoteId' => $this->editingQuoteId,
-            'quoteHasRemission_antes' => $this->quoteHasRemission
+            'quantity' => $quantity,
+            'isEditing' => $this->isEditing
         ]);
 
-        // Verificar si el producto ya está en el cotizador (sin consulta DB)
+        // Verificar si el producto ya está en el cotizador
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si ya existe, sumar la cantidad nueva
-            $this->quoterItems[$existingIndex]['quantity'] += $quantity;
+            // Si ya existe y estamos haciendo un "Add" inicial (quantity=1), 
+            // no sumamos ciegamente para evitar el error de "doble unidad" con el front-end.
+            // Solo actualizamos si el precio ha cambiado o si realmente queremos sumar.
+            
+            // Si la cantidad que viene es 1 y el servidor ya tiene >= 1, 
+            // probablemente es una sincronización redundante del front.
+            if ($quantity == 1 && $this->quoterItems[$existingIndex]['quantity'] >= 1) {
+                Log::info('🛒 Ignorando incremento redundante para producto ya existente', ['id' => $productId]);
+            } else {
+                $this->quoterItems[$existingIndex]['quantity'] += $quantity;
+            }
+            
+            // Actualizar precio y etiqueta por si cambiaron
+            $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+            $this->quoterItems[$existingIndex]['price_label'] = $priceLabel;
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
@@ -613,7 +620,7 @@ class ProductQuoter extends Component
                 return;
             }
 
-            // Si no existe, agregarlo con el precio seleccionado
+            // Si no existe, agregarlo
             $this->quoterItems[] = [
                 'id' => $product->id,
                 'name' => $product->display_name,
@@ -649,12 +656,6 @@ class ProductQuoter extends Component
         // Emitir evento para mirroring offline
         $this->dispatch('cart-updated', [
             'items' => $this->quoterItems
-        ]);
-
-        // Toast más rápido sin información innecesaria
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Agregado al carrito'
         ]);
     }
 
@@ -708,9 +709,8 @@ class ProductQuoter extends Component
                 'items' => $this->quoterItems
             ]);
 
-            $this->dispatch('show-toast', [
-                'type' => 'info',
-                'message' => 'Producto removido del cotizador'
+            $this->dispatch('cart-updated', [
+                'items' => $this->quoterItems
             ]);
         }
     }
@@ -740,10 +740,7 @@ class ProductQuoter extends Component
 
         Log::info('🧹 Carrito limpiado (Unificado)');
 
-        $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Cotizador limpiado'
-        ]);
+        Log::info('🧹 Carrito limpiado (Unificado)');
 
         // Sincronizar con Alpine.js/IndexedDB
         $this->dispatch('cart-updated', ['items' => []]);
@@ -757,10 +754,7 @@ class ProductQuoter extends Component
         session()->forget('quoter_items');
         $this->calculateTotal();
 
-        $this->dispatch('show-toast', [
-            'type' => 'info',
-            'message' => 'Carrito limpiado. Cliente mantenido.'
-        ]);
+        $this->calculateTotal();
 
         // Sincronizar con Alpine.js/IndexedDB para limpiar localmente
         $this->dispatch('cart-updated', ['items' => []]);
@@ -954,7 +948,17 @@ class ProductQuoter extends Component
 
             if ($this->editingRemissionId) {
                 // Lógica de actualización de Remisión
-                $remission = InvRemissions::findOrFail($this->editingRemissionId);
+                $remission = InvRemissions::with('quote')->findOrFail($this->editingRemissionId);
+                
+                // 1. Actualizar observaciones en la cotización base
+                if ($remission->quote) {
+                    $remission->quote->update([
+                        'observations' => $this->observaciones
+                    ]);
+                    Log::info('🔄 Observaciones de cotización actualizadas desde remisión', ['quote_id' => $remission->quoteId]);
+                }
+
+                // 2. Reemplazar detalles de la remisión
                 InvDetailRemissions::where('remissionId', $remission->id)->delete();
 
                 foreach ($this->quoterItems as $item) {
@@ -2598,61 +2602,45 @@ class ProductQuoter extends Component
 
         $search = '%' . $this->customerSearch . '%';
 
-        // Si es vendedor (perfil 4), buscar solo en sus rutas asignadas
+        // Query unificada para traer toda la info necesaria
+        $query = DB::connection('tenant')->table('vnt_companies as vc')
+            ->leftJoin('vnt_warehouses as vw', function($join) {
+                $join->on('vw.companyId', '=', 'vc.id')->where('vw.main', 1);
+            })
+            ->leftJoin('tat_companies_routes as tcr', 'tcr.company_id', '=', 'vc.id')
+            ->leftJoin('tat_routes as tr', 'tr.id', '=', 'tcr.route_id')
+            ->select(
+                'vc.id', 'vc.identification', 'vc.businessName', 'vc.firstName', 'vc.lastName',
+                'vw.address', 'vw.district', 'tr.name as route_name', 'tr.sale_day'
+            )
+            ->where('vc.status', 1)
+            ->whereNull('vc.deleted_at')
+            ->where('vc.type', '!=', 'PROVEEDOR')
+            ->where(function($q) use ($search) {
+                $q->where('vc.identification', 'like', $search)
+                  ->orWhere('vc.businessName', 'like', $search)
+                  ->orWhere('vc.firstName', 'like', $search)
+                  ->orWhere('vc.lastName', 'like', $search);
+            });
+
         if (auth()->user()->profile_id == 4) {
-            $params = [auth()->id(), $search, $search, $search, $search, $search];
-
-            $customers = DB::select("
-            SELECT DISTINCT tr.salesman_id, tr.sale_day, tcr.company_id, vc.businessName, vc.billingEmail, vc.firstName, vc.lastName, vc.identification, vc.id
-            FROM tat_routes tr
-            INNER JOIN tat_companies_routes tcr ON tcr.route_id = tr.id
-            INNER JOIN vnt_companies vc ON vc.id = tcr.company_id
-            WHERE tr.salesman_id = ? AND (
-                vc.identification LIKE ? OR
-                vc.businessName LIKE ? OR
-                vc.firstName LIKE ? OR
-                vc.lastName LIKE ? OR
-                tr.sale_day LIKE ?
-            )
-            AND vc.type != 'PROVEEDOR'
-        ", $params);
-        } else {
-            // Para administradores u otros perfiles, buscar en todos los clientes
-            $params = [$search, $search, $search, $search];
-
-            $customers = DB::select("
-            SELECT DISTINCT
-                NULL as salesman_id,
-                NULL as sale_day,
-                vc.id as company_id,
-                vc.businessName,
-                vc.billingEmail,
-                vc.firstName,
-                vc.lastName,
-                vc.identification,
-                vc.id
-            FROM vnt_companies vc
-            WHERE (
-                TRIM(vc.identification) LIKE ?
-                OR vc.businessName LIKE ?
-                OR vc.firstName LIKE ?
-                OR vc.lastName LIKE ?
-            )
-            AND vc.status = 1
-            AND vc.deleted_at IS NULL
-            AND vc.type != 'PROVEEDOR'
-            LIMIT 15
-        ", $params);
+            $query->where('tr.salesman_id', auth()->id());
         }
 
-        $this->customerSearchResults = array_map(function ($customer) {
+        $customers = $query->distinct()->limit(15)->get();
+
+        $this->customerSearchResults = $customers->map(function ($customer) {
             return [
                 'id' => $customer->id,
                 'identification' => $customer->identification,
                 'display_name' => $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName),
-                'sale_day' => $customer->sale_day
+                'address' => $customer->address ?: 'Sin dirección',
+                'district' => $customer->district ?: 'Sin barrio',
+                'route_name' => $customer->route_name ?: 'Sin ruta',
+                'sale_day' => $customer->sale_day ?: 'N/A'
             ];
-        }, $customers);
+        })->toArray();
+
 
         $this->dispatch('customers-found', [
             'customers' => $this->customerSearchResults

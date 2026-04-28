@@ -241,22 +241,22 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
                                         @if($remission->existe === 'SI')
-                                            <button wire:click="eliminar({{ $remission->user_id }})"
+                                            <button wire:click="eliminar({{ $remission->user_id }}, {{ $remission->route_id }})"
                                                 wire:loading.attr="disabled"
-                                                wire:target="eliminar({{ $remission->user_id }})"
+                                                wire:target="eliminar({{ $remission->user_id }}, {{ $remission->route_id }})"
                                                 class="inline-flex items-center px-2 py-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors disabled:opacity-50">
                                                 <x-heroicon-o-trash class="w-3 h-3 mr-1" />
-                                                <span wire:loading.remove wire:target="eliminar({{ $remission->user_id }})">Quitar</span>
-                                                <span wire:loading wire:target="eliminar({{ $remission->user_id }})">...</span>
+                                                <span wire:loading.remove wire:target="eliminar({{ $remission->user_id }}, {{ $remission->route_id }})">Quitar</span>
+                                                <span wire:loading wire:target="eliminar({{ $remission->user_id }}, {{ $remission->route_id }})">...</span>
                                             </button>
                                         @else
-                                            <button wire:click="cargarRuta({{ $remission->route_id }})"
+                                            <button wire:click="cargar({{ $remission->user_id }}, {{ $remission->route_id }})"
                                                 wire:loading.attr="disabled"
-                                                wire:target="cargarRuta({{ $remission->route_id }})"
+                                                wire:target="cargar({{ $remission->user_id }}, {{ $remission->route_id }})"
                                                 class="inline-flex items-center px-2 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-colors disabled:opacity-50">
                                                 <x-heroicon-o-arrow-up-tray class="w-3 h-3 mr-1" />
-                                                <span wire:loading.remove wire:target="cargarRuta({{ $remission->route_id }})">Marcar</span>
-                                                <span wire:loading wire:target="cargarRuta({{ $remission->route_id }})">...</span>
+                                                <span wire:loading.remove wire:target="cargar({{ $remission->user_id }}, {{ $remission->route_id }})">Marcar</span>
+                                                <span wire:loading wire:target="cargar({{ $remission->user_id }}, {{ $remission->route_id }})">...</span>
                                             </button>
                                         @endif
                                     </td>

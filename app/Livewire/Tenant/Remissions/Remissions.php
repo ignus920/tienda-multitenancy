@@ -34,6 +34,7 @@ class Remissions extends Component
     public $searchQuote = '';
     public $searchStartDate = '';
     public $searchEndDate = '';
+    public $searchSalesman = ''; // Nuevo filtro por vendedor
     public $showAdvancedSearch = false;
 
     // Propiedades para el modal de detalle
@@ -64,6 +65,14 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas por defecto (últimos 20 días) si están vacías
+        if (empty($this->searchStartDate)) {
+            $this->searchStartDate = now()->subDays(20)->format('Y-m-d');
+        }
+        if (empty($this->searchEndDate)) {
+            $this->searchEndDate = now()->format('Y-m-d');
+        }
     }
 
     /**
@@ -91,6 +100,10 @@ class Remissions extends Component
         $this->resetPage();
     }
     public function updatingSearchEndDate()
+    {
+        $this->resetPage();
+    }
+    public function updatingSearchSalesman()
     {
         $this->resetPage();
     }
@@ -129,6 +142,7 @@ class Remissions extends Component
         $this->searchQuote = '';
         $this->searchStartDate = '';
         $this->searchEndDate = '';
+        $this->searchSalesman = '';
         $this->resetPage();
     }
 
@@ -367,6 +381,10 @@ class Remissions extends Component
         if ($this->searchEndDate) {
             $query->whereDate('created_at', '<=', $this->searchEndDate);
         }
+
+        if ($this->searchSalesman) {
+            $query->where('userId', $this->searchSalesman);
+        }
     }
 
     /**
@@ -529,8 +547,13 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
 
+        // Cargar lista de vendedores (usuarios con perfil de ventas o que han realizado pedidos)
+        $salesmen = \App\Models\Auth\User::whereHas('profile', function($q) {
+            $q->where('id', 4); // Asumiendo que 4 es el perfil de vendedor según el código
+        })->get();
+
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer.company', 'quote.warehouse', 'details', 'deliveryType', 'methodPayment', 'invoiceXsale.invoice'])
+        $remissions = InvRemissions::with(['quote.customer.company', 'quote.warehouse', 'details', 'deliveryType', 'methodPayment', 'invoiceXsale.invoice', 'user'])
             ->where(function ($query) {
                 $this->applyBaseFilters($query);
             })
@@ -567,7 +590,8 @@ class Remissions extends Component
         });
 
         return view('livewire.tenant.remissions.remissions', [
-            'remissions' => $remissions
-        ])->layout('layouts.app', ['header' => 'Remisiones']);
+            'remissions' => $remissions,
+            'salesmen'   => $salesmen
+        ])->layout('layouts.app', ['header' => 'Pedidos']);
     }
 }

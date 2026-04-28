@@ -41,11 +41,17 @@ class PettyCash extends Component
     //Propiedades para la tabla
     public $showModal = false;
     public $search = '';
+    public $filterDate = '';
     public $sortField = 'consecutive';
     public $sortDirection = 'desc';
     public $perPage = 10;
 
     public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterDate()
     {
         $this->resetPage();
     }
@@ -62,6 +68,7 @@ class PettyCash extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
+        'filterDate' => ['except' => ''],
         'perPage' => ['except' => 10],
     ];
 
@@ -104,6 +111,9 @@ class PettyCash extends Component
             ->when($this->search, function ($query) use ($model) {
                 $query->where($model->getTable() . '.consecutive', 'like', '%' . $this->search . '%')
                     ->orWhere('u.name', 'like', '%' . $this->search . '%');
+            })
+            ->when($this->filterDate, function ($query) use ($model) {
+                $query->whereDate($model->getTable() . '.created_at', $this->filterDate);
             })
             // La caja abierta (status=1) siempre aparece primero
             ->orderBy($model->getTable() . '.status', 'desc')
