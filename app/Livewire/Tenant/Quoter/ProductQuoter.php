@@ -46,6 +46,8 @@ class ProductQuoter extends Component
     public $estimatedFreight = 0;
     public $appliedFreight = 0; // Valor del flete aplicado manualmente
     public $isFreightApplied = false; // Flag para saber si el flete está activo
+    public $isFreightManuallyEdited = false;
+    public $freightJustification = '';
     public $showCartModal = false;
     public $moduleKey = 'products';
     public $hideQuoter = false; // Flag para ocultar el carrito/cotizador (modo Bodega)
@@ -694,6 +696,14 @@ class ProductQuoter extends Component
     // funcion para guardar una cotizacion 
     public function saveQuote()
     {
+        if ($this->isFreightManuallyEdited && empty(trim($this->freightJustification))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para el flete editado'
+            ]);
+            return;
+        }
+
         if (empty($this->quoterItems)) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -757,6 +767,17 @@ class ProductQuoter extends Component
                 'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal seleccionada del cliente
                 'flete' => $this->appliedFreight // Guardar el flete aplicado
             ]);
+
+            // Guardar justificación de flete si fue editado
+            if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
+                \App\Models\Tenant\Sales\VntObservation::create([
+                    'reference_id' => $quote->id,
+                    'reference_type' => 'quote',
+                    'observation_type' => 'flete_justification',
+                    'observation' => $this->freightJustification,
+                    'userId' => auth()->id()
+                ]);
+            }
 
             // Crear los detalles de la cotización
             foreach ($this->quoterItems as $item) {
@@ -1144,6 +1165,32 @@ class ProductQuoter extends Component
         return false;
     }
 
+    public function updatedAppliedFreight($value)
+    {
+        $this->isFreightManuallyEdited = true;
+        if ($value === '' || !is_numeric($value)) {
+            $this->appliedFreight = 0;
+        }
+        $this->calculateTotal();
+        
+        if ($this->isEditing || $this->isEditingRemission) {
+            $this->hasChanges = true;
+        }
+    }
+
+    public function removeFreight()
+    {
+        $this->isFreightApplied = false;
+        $this->isFreightManuallyEdited = false;
+        $this->appliedFreight = 0;
+        $this->freightJustification = '';
+        $this->calculateTotal();
+        
+        if ($this->isEditing || $this->isEditingRemission) {
+            $this->hasChanges = true;
+        }
+    }
+
     public function applyFreightToQuoter()
     {
         if ($this->estimatedFreight <= 0) {
@@ -1245,10 +1292,14 @@ class ProductQuoter extends Component
 
         // 5. ASIGNAR FLETE APLICADO SI EL FLAG ESTÁ ACTIVO
         if ($this->isFreightApplied) {
-            // Redondear al mil más cercano
-            $this->appliedFreight = round($this->estimatedFreight / 1000) * 1000;
+            // Si no fue editado manualmente, calculamos el estimado
+            if (!$this->isFreightManuallyEdited) {
+                $this->appliedFreight = round($this->estimatedFreight / 1000) * 1000;
+            }
         } else {
             $this->appliedFreight = 0;
+            $this->isFreightManuallyEdited = false;
+            $this->freightJustification = '';
         }
 
         // 6. CALCULAR TOTAL FINAL INCLUYENDO FLETE DINÁMICO
@@ -1441,6 +1492,16 @@ class ProductQuoter extends Component
             // Si tiene flete, activar el flag para que se mantenga visible y dinámico al editar
             if ($this->appliedFreight > 0) {
                 $this->isFreightApplied = true;
+                
+                $obs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'quote')
+                    ->where('reference_id', $quote->id)
+                    ->where('observation_type', 'flete_justification')
+                    ->first();
+                    
+                if ($obs) {
+                    $this->isFreightManuallyEdited = true;
+                    $this->freightJustification = $obs->observation;
+                }
             }
 
             // Inicializar estado del acordeón de observaciones
@@ -1583,6 +1644,14 @@ class ProductQuoter extends Component
             'timestamp' => now()->toDateTimeString()
         ]);
 
+        if ($this->isFreightManuallyEdited && empty(trim($this->freightJustification))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para el flete editado'
+            ]);
+            return;
+        }
+
         if (!$this->isEditing || !$this->editingQuoteId) {
             Log::warning('⚠️ No hay cotización en modo edición');
             $this->dispatch('show-toast', [
@@ -1678,6 +1747,18 @@ class ProductQuoter extends Component
             ]);
 
             $quote->update($updateData);
+            
+            if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    ['reference_id' => $quote->id, 'reference_type' => 'quote', 'observation_type' => 'flete_justification'],
+                    ['observation' => $this->freightJustification, 'userId' => auth()->id()]
+                );
+            } else {
+                \App\Models\Tenant\Sales\VntObservation::where('reference_id', $quote->id)
+                    ->where('reference_type', 'quote')
+                    ->where('observation_type', 'flete_justification')
+                    ->delete();
+            }
 
             Log::info('✅ Cotización actualizada en BD', [
                 'quote_id' => $quote->id,
@@ -1987,6 +2068,22 @@ class ProductQuoter extends Component
                 'observations_return' => $observationsReturn,
                 'flete' => $quote->flete
             ]);
+
+            // Copiar justificación de flete si existe
+            $quoteObservation = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'quote')
+                ->where('reference_id', $quote->id)
+                ->where('observation_type', 'flete_justification')
+                ->first();
+
+            if ($quoteObservation) {
+                \App\Models\Tenant\Sales\VntObservation::create([
+                    'reference_id' => $remission->id,
+                    'reference_type' => 'remission',
+                    'observation_type' => 'flete_justification',
+                    'observation' => $quoteObservation->observation,
+                    'userId' => auth()->id()
+                ]);
+            }
 
             // Crear detalles de la remisión y actualizar stock
             foreach ($this->quoterItems as $item) {
@@ -2799,6 +2896,21 @@ class ProductQuoter extends Component
 
             // Cargar observaciones
             $this->observaciones = $remission->observations_return;
+            
+            $this->appliedFreight = $remission->flete ?? 0;
+            if ($this->appliedFreight > 0) {
+                $this->isFreightApplied = true;
+                
+                $obs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'remission')
+                    ->where('reference_id', $remission->id)
+                    ->where('observation_type', 'flete_justification')
+                    ->first();
+                    
+                if ($obs) {
+                    $this->isFreightManuallyEdited = true;
+                    $this->freightJustification = $obs->observation;
+                }
+            }
 
             // Cargar información del cliente
             if ($remission->quote && $remission->quote->customer) {
@@ -2850,6 +2962,14 @@ class ProductQuoter extends Component
 
     public function updateRemission()
     {
+        if ($this->isFreightManuallyEdited && empty(trim($this->freightJustification))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para el flete editado'
+            ]);
+            return;
+        }
+
         if (!$this->isEditingRemission || !$this->editingRemissionId) {
             return;
         }
@@ -2871,8 +2991,21 @@ class ProductQuoter extends Component
 
             // Actualizar remisión
             $remission->update([
-                'observations_return' => $this->observaciones
+                'observations_return' => $this->observaciones,
+                'flete' => $this->appliedFreight
             ]);
+            
+            if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    ['reference_id' => $remission->id, 'reference_type' => 'remission', 'observation_type' => 'flete_justification'],
+                    ['observation' => $this->freightJustification, 'userId' => auth()->id()]
+                );
+            } else {
+                \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remission->id)
+                    ->where('reference_type', 'remission')
+                    ->where('observation_type', 'flete_justification')
+                    ->delete();
+            }
 
             // Eliminar detalles existentes
             InvDetailRemissions::where('remissionId', $remission->id)->delete();
