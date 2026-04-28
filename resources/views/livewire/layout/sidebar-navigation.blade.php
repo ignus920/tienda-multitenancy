@@ -410,8 +410,6 @@ new class extends Component {
                         class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
 
 
-                    <a href="{{url('/inventory/commands')}}" wire:navigate
-                        class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
                     <a href="{{url('/inventory/brands')}}" wire:navigate
                         class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
                     <a href="{{url('/inventory/houses')}}" wire:navigate
@@ -429,8 +427,6 @@ new class extends Component {
                         class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Rutas</a>
                     <a href="{{url('/inventory/categories')}}" wire:navigate
                         class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Categorías</a>
-                    <a href="{{url('/inventory/commands')}}" wire:navigate
-                        class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Comandas</a>
                     <a href="{{url('/inventory/brands')}}" wire:navigate
                         class="block px-2 py-1 hover:bg-gray-700 dark:hover:bg-gray-600 text-white">Marcas</a>
                     <a href="{{url('/inventory/houses')}}" wire:navigate

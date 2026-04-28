@@ -195,7 +195,7 @@ class SalesReport extends Component
                 $query->whereDate('sta.created_at', '<=', $this->endDate);
             }
 
-            $query->groupBy('sta.id', 'sta.status', 'vntc.firstName', 'sta.created_at');
+            $query->groupBy('sta.id', 'sta.status', 'vntc.firstName', 'sta.created_at', DB::raw("CASE WHEN sta.status = 'DEVOLUCION' THEN 1 ELSE 0 END"));
             $query->orderBy('sta.created_at', 'desc');
 
             return $query->get();
@@ -230,7 +230,7 @@ class SalesReport extends Component
             $query->whereDate('dd.sale_date', '<=', $this->endDate);
         }
 
-        $query->groupBy('dd.id', 'sta.id', 'sta.status', 'uv.name', 'vntc.firstName', 'dd.sale_date');
+        $query->groupBy('dd.id', 'sta.id', 'sta.status', 'uv.name', 'vntc.firstName', 'dd.sale_date', DB::raw("CASE WHEN sta.status = 'DEVOLUCION' THEN 1 ELSE 0 END"));
         $query->orderBy('dd.sale_date', 'desc');
 
         return $query->get();
