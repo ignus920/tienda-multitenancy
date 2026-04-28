@@ -182,7 +182,6 @@
                 <th>Fecha</th>
                 <th class="text-right">Subtotal</th>
                 <th class="text-center">Devolución</th>
-                <th class="text-center">Pago</th>
             </tr>
         </thead>
         <tbody>
@@ -204,9 +203,6 @@
                     @else
                         <span class="badge badge-normal">No</span>
                     @endif
-                </td>
-                <td class="text-center">
-                     {{ $detail->metodo_pago }}
                 </td>
             </tr>
             @endforeach
