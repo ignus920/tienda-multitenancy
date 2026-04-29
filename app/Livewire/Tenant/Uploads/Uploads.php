@@ -16,8 +16,6 @@ use App\Models\Tenant\DeliveriesList\DisDeliveries;
 //Services
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
-
 class Uploads extends Component
 {
     //Propiedades para la tabla
@@ -35,7 +33,7 @@ class Uploads extends Component
     public $selectedRouteDeliveryDay = '';
     public $remissions = [];
     public $selectedDeliveryMan = '';
-    public $selectedSaleDay = '';
+    public $selectedSaleDay = [];
     public $showScares = false;
     public $scarceUnits = [];
     public $showformMovements = false;
@@ -68,43 +66,27 @@ class Uploads extends Component
 
     public function updatedSelectedDeliveryMan($value)
     {
-        // El transportador no afecta el filtro de remisiones,
-        // solo se usa para asignar en el momento del cargue
-    }
+        if (!$value) return;
 
-    public function updatedSelectedSaleDay($value)
-    {
-        // Cargar remisiones por día si hay día seleccionado
-        if ($value) {
-            $this->remissions = $this->getRemissionsByDay($value);
-        } else {
-            $this->remissions = [];
+        $hasActive = DisDeliveries::where('deliveryman_id', $value)
+            ->where('status', '!=', 'CERRADO')
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($hasActive) {
+            $name = DB::table('users')->where('id', $value)->value('name');
+            $this->selectedDeliveryMan = '';
+            session()->flash('error', "El transportador {$name} ya tiene un cargue activo. Debe cerrarse antes de asignarle uno nuevo.");
         }
     }
 
-    public function validateDeliveryManRoute($deliveryManId, $routeId)
+    public function updatedSelectedSaleDay()
     {
-        // Obtener el día de venta de la ruta actual
-        $currentRouteSaleDay = DB::table('tat_routes')
-            ->where('id', $routeId)
-            ->value('sale_day');
-
-        // Verificar si el transportador ya tiene pedidos asignados en rutas de días diferentes
-        $existingDeliveries = DisDeliveriesList::where('deliveryman_id', $deliveryManId)
-            ->join('tat_routes as rt', 'dis_deliveries_list.route', '=', 'rt.id')
-            ->where('rt.sale_day', '!=', $currentRouteSaleDay)
-            ->first();
-
-        // Log para debug
-        Log::info('Validación transportador por día:', [
-            'deliveryman_id' => $deliveryManId,
-            'route_id' => $routeId,
-            'current_sale_day' => $currentRouteSaleDay,
-            'existing_deliveries' => $existingDeliveries ? $existingDeliveries->toArray() : null,
-            'has_conflict' => $existingDeliveries ? true : false
-        ]);
-
-        return !$existingDeliveries; // Retorna true si no hay conflictos (false si hay conflicto)
+        if (!empty($this->selectedSaleDay)) {
+            $this->remissions = $this->getRemissionsByDay($this->selectedSaleDay);
+        } else {
+            $this->remissions = [];
+        }
     }
 
     public function getRemissions($date)
@@ -138,9 +120,10 @@ class Uploads extends Component
         return $query->groupBy('u.id', 'u.name', 'rt.id', 'rt.name', DB::raw('DATE(q.created_at)'))->get();
     }
 
-    public function getRemissionsByDay($saleDay)
+    public function getRemissionsByDay($saleDays)
     {
-        if (!$saleDay) {
+        $saleDays = (array) $saleDays;
+        if (empty($saleDays)) {
             return [];
         }
 
@@ -156,6 +139,7 @@ class Uploads extends Component
                 DB::raw('(SELECT us.name FROM users us WHERE us.id = q.userId LIMIT 1) as vendedor'),
                 DB::raw('rt.id as route_id'),
                 DB::raw('rt.name as ruta'),
+                DB::raw('rt.sale_day as dia_venta'),
                 DB::raw('COUNT(DISTINCT r.id) as cantidad_pedidos'),
                 DB::raw('SUM(d.quantity * d.value) as total_ventas'),
                 DB::raw("CASE WHEN EXISTS (
@@ -163,8 +147,9 @@ class Uploads extends Component
                 ) THEN 'SI' ELSE 'NO' END as existe")
             )
             ->where('r.status', 'REGISTRADO')
-            ->where('rt.sale_day', $saleDay)
-            ->groupBy(DB::raw('q.userId, rt.id, rt.name'))
+            ->whereIn('rt.sale_day', $saleDays)
+            ->groupBy(DB::raw('q.userId, rt.id, rt.name, rt.sale_day'))
+            ->orderBy('rt.sale_day')
             ->orderBy('rt.name')
             ->orderBy('vendedor')
             ->get();
@@ -198,8 +183,8 @@ class Uploads extends Component
             return;
         }
 
-        // Obtener la ruta del vendedor filtrando por la ruta específica
-        $vendorRoute = DB::table('vnt_quotes as q')
+        // Obtener TODAS las fechas distintas con remisiones pendientes para este vendedor+ruta
+        $saleDates = DB::table('vnt_quotes as q')
             ->join('inv_remissions as r', 'q.id', '=', 'r.quoteId')
             ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
             ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
@@ -207,49 +192,40 @@ class Uploads extends Component
             ->where('q.userId', $userId)
             ->where('cr.route_id', $routeId)
             ->where('r.status', 'REGISTRADO')
-            ->select(DB::raw('DATE(q.created_at) as sale_date'))
-            ->first();
+            ->selectRaw('DISTINCT DATE(q.created_at) as sale_date')
+            ->pluck('sale_date');
 
-        if (!$vendorRoute) {
+        if ($saleDates->isEmpty()) {
             session()->flash('error', 'No se pudo encontrar la ruta del vendedor');
             return;
         }
 
-        $saleDate = $vendorRoute->sale_date;
-
-        // Validar que el transportador no tenga pedidos de días diferentes
-        if (!$this->validateDeliveryManRoute($this->selectedDeliveryMan, $routeId)) {
-            // Obtener información detallada para el mensaje
-            $transporterName = DB::table('users')->where('id', $this->selectedDeliveryMan)->value('name');
-
-            $existingDelivery = DisDeliveriesList::where('deliveryman_id', $this->selectedDeliveryMan)
-                ->join('tat_routes as rt', 'dis_deliveries_list.route', '=', 'rt.id')
-                ->first();
-
-            if ($existingDelivery) {
-                session()->flash('error', "El transportador {$transporterName} ya tiene pedidos asignados para el día '{$existingDelivery->sale_day}'. Un transportador solo puede llevar pedidos del mismo día. Por favor seleccione otro transportador.");
-            }
-            return;
-        }
-
         try {
-            // Usar la fecha y ruta obtenidas dinámicamente
-            $uploadData = [
-                'sale_date' => $saleDate,
-                'salesman_id' => $userId,
-                'deliveryman_id' => $this->selectedDeliveryMan,
-                'route' => $routeId,
-                'user_id' => Auth::id(),
-                'created_at' => Carbon::now()
-            ];
-            DisDeliveriesList::create($uploadData);
+            // Crear un registro por cada fecha distinta que tenga pedidos pendientes
+            foreach ($saleDates as $saleDate) {
+                $exists = DisDeliveriesList::where('salesman_id', $userId)
+                    ->where('route', $routeId)
+                    ->where('sale_date', $saleDate)
+                    ->exists();
+
+                if (!$exists) {
+                    DisDeliveriesList::create([
+                        'sale_date'      => $saleDate,
+                        'salesman_id'    => $userId,
+                        'deliveryman_id' => $this->selectedDeliveryMan,
+                        'route'          => $routeId,
+                        'user_id'        => Auth::id(),
+                        'created_at'     => Carbon::now(),
+                    ]);
+                }
+            }
 
             // Forzar recarga completa de las remisiones
-            if ($this->selectedSaleDay) {
+            if (!empty($this->selectedSaleDay)) {
                 $this->remissions = $this->getRemissionsByDay($this->selectedSaleDay);
             }
 
-            // También refrescar el componente para asegurar que se actualice la vista
+            $this->refreshPreviewIfVisible();
             $this->dispatch('$refresh');
 
             session()->flash('message', "Cargando datos para el vendedor seleccionado en la ruta");
@@ -263,19 +239,6 @@ class Uploads extends Component
     {
         if (!$this->selectedDeliveryMan) {
             session()->flash('error', 'Por favor selecciona un transportador primero');
-            return;
-        }
-
-        // Validar que el transportador no tenga pedidos de días diferentes
-        if (!$this->validateDeliveryManRoute($this->selectedDeliveryMan, $routeId)) {
-            $transporterName = DB::table('users')->where('id', $this->selectedDeliveryMan)->value('name');
-            $existingDelivery = DisDeliveriesList::where('deliveryman_id', $this->selectedDeliveryMan)
-                ->join('tat_routes as rt', 'dis_deliveries_list.route', '=', 'rt.id')
-                ->first();
-
-            if ($existingDelivery) {
-                session()->flash('error', "El transportador {$transporterName} ya tiene pedidos asignados para el día '{$existingDelivery->sale_day}'. Un transportador solo puede llevar pedidos del mismo día. Por favor seleccione otro transportador.");
-            }
             return;
         }
 
@@ -314,10 +277,11 @@ class Uploads extends Component
             }
 
             // Recargar los datos de la tabla
-            if ($this->selectedSaleDay) {
+            if (!empty($this->selectedSaleDay)) {
                 $this->remissions = $this->getRemissionsByDay($this->selectedSaleDay);
             }
 
+            $this->refreshPreviewIfVisible();
             $this->dispatch('$refresh');
 
             if ($loadedCount > 0) {
@@ -339,10 +303,11 @@ class Uploads extends Component
 
             if ($deleted) {
                 // Recargar los datos de la tabla
-                if ($this->selectedSaleDay) {
+                if (!empty($this->selectedSaleDay)) {
                     $this->remissions = $this->getRemissionsByDay($this->selectedSaleDay);
                 }
 
+                $this->refreshPreviewIfVisible();
                 session()->flash('message', "Se eliminaron {$deleted} registro" . ($deleted != 1 ? 's' : '') . " de la ruta exitosamente");
             } else {
                 session()->flash('warning', "No se encontraron registros de esta ruta para eliminar");
@@ -363,10 +328,11 @@ class Uploads extends Component
 
             if ($deleted) {
                 // Recargar los datos de la tabla
-                if ($this->selectedSaleDay) {
+                if (!empty($this->selectedSaleDay)) {
                     $this->remissions = $this->getRemissionsByDay($this->selectedSaleDay);
                 }
 
+                $this->refreshPreviewIfVisible();
                 session()->flash('message', "Registro eliminado exitosamente");
             } else {
                 session()->flash('warning', "No se encontró el registro para eliminar");
@@ -438,54 +404,48 @@ class Uploads extends Component
             try {
                 $infoDisDeliveriesList = DisDeliveriesList::where('user_id', Auth::id())->get();
 
-                // Agrupar por ruta para crear un solo dis_deliveries por ruta
-                $groupedByRoute = $infoDisDeliveriesList->groupBy('route');
+                $firstItem = $infoDisDeliveriesList->first();
 
-                foreach ($groupedByRoute as $routeId => $vendorsInRoute) {
-                    // Tomar el primer item del grupo para obtener datos de la ruta
-                    $firstItem = $vendorsInRoute->first();
+                // Crear UN SOLO dis_deliveries para todo el cargue
+                $dis_deliveries = DisDeliveries::create([
+                    'salesman_id'    => $firstItem->salesman_id,
+                    'deliveryman_id' => $firstItem->deliveryman_id,
+                    'user_id'        => Auth::id(),
+                    'sale_date'      => $firstItem->sale_date,
+                    'created_at'     => Carbon::now(),
+                ]);
 
-                    // Crear un solo registro dis_deliveries para toda la ruta
-                    $dataDeliveries = [
-                        'salesman_id' => $firstItem->salesman_id, // Puede ser cualquiera de la ruta
-                        'deliveryman_id' => $firstItem->deliveryman_id,
-                        'user_id' => Auth::id(),
-                        'sale_date' => $firstItem->sale_date,
-                        'created_at' => Carbon::now()
-                    ];
+                // Obtener TODAS las remisiones de todas las rutas marcadas por este usuario
+                $remissionIds = DB::table('inv_remissions as r')
+                    ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
+                    ->join('dis_deliveries_list as dl', function ($join) {
+                        $join->on('q.userId', '=', 'dl.salesman_id')
+                            ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
+                    })
+                    ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
+                    ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
+                    ->join('tat_companies_routes as cXr', 'com.id', '=', 'cXr.company_id')
+                    ->whereRaw('dl.route = cXr.route_id')
+                    ->where('dl.user_id', Auth::id())
+                    ->where('r.status', 'REGISTRADO')
+                    ->pluck('r.id')
+                    ->unique();
 
-                    //Registro en la tabla dis_deliveries (UNO por ruta)
-                    $dis_deliveries = DisDeliveries::create($dataDeliveries);
-
-                    //Actualización registros en la tabla inv_remissions - solo los pedidos seleccionados por este usuario
-                    $remissionIds = DB::table('inv_remissions as r')
-                        ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
-                        ->join('dis_deliveries_list as dl', function($join) {
-                            $join->on('q.userId', '=', 'dl.salesman_id')
-                                ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
-                        })
-                        ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
-                        ->join('vnt_companies as com', 'w.companyId', '=', 'com.id')
-                        ->join('tat_companies_routes as cXr', 'com.id', '=', 'cXr.company_id')
-                        ->where('dl.user_id', Auth::id())
-                        ->where('dl.route', $routeId)
-                        ->where('cXr.route_id', $routeId)
-                        ->where('r.status', 'REGISTRADO')
-                        ->pluck('r.id');
-
-                    // Actualizar TODAS las remisiones de esta ruta con el mismo delivery_id
-                    if ($remissionIds->isNotEmpty()) {
-                        InvRemissions::whereIn('id', $remissionIds)
-                            ->update(['delivery_id' => $dis_deliveries->id, 'deliveryDate' => $dis_deliveries->sale_date, 'status' => 'EN RECORRIDO']);
-                    }
-
-                    Log::info('Cargue confirmado por ruta:', [
-                        'route_id' => $routeId,
-                        'delivery_id' => $dis_deliveries->id,
-                        'vendedores_en_ruta' => $vendorsInRoute->count(),
-                        'remisiones_actualizadas' => $remissionIds->count()
-                    ]);
+                // Actualizar TODAS las remisiones con el mismo delivery_id
+                if ($remissionIds->isNotEmpty()) {
+                    InvRemissions::whereIn('id', $remissionIds)
+                        ->update([
+                            'delivery_id'  => $dis_deliveries->id,
+                            'deliveryDate' => $dis_deliveries->sale_date,
+                            'status'       => 'EN RECORRIDO',
+                        ]);
                 }
+
+                Log::info('Cargue confirmado (único):', [
+                    'delivery_id'           => $dis_deliveries->id,
+                    'rutas'                 => $infoDisDeliveriesList->pluck('route')->unique()->values(),
+                    'remisiones_actualizadas' => $remissionIds->count(),
+                ]);
 
                 $this->clearListUpload();
                 $this->resetAfterConfirm();
@@ -574,7 +534,7 @@ class Uploads extends Component
     public function resetAfterConfirm()
     {
         $this->selectedDeliveryMan = '';
-        $this->selectedSaleDay = '';
+        $this->selectedSaleDay = [];
         $this->remissions = [];
         $this->showPreviewCharge = false;
         $this->previewItems = [];
@@ -593,44 +553,55 @@ class Uploads extends Component
         }
 
         try {
-            // Obtener items filtrando específicamente por los vendedores y rutas en dis_deliveries_list
-            $this->previewItems = DB::table('inv_detail_remissions as d')
-                ->join('inv_remissions as r', 'd.remissionId', '=', 'r.id')
-                ->join('inv_items as it', 'd.itemId', '=', 'it.id')
-                ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
-                ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
-                ->join('vnt_companies as c', 'w.companyId', '=', 'c.id')
-                ->join('tat_companies_routes as cXr', 'c.id', '=', 'cXr.company_id')
-                ->join('tat_routes as ro', 'cXr.route_id', '=', 'ro.id')
-                ->join('inv_categories as cat', 'it.categoryId', '=', 'cat.id')
-                ->leftJoin('inv_items_store as its', 'it.id', '=', 'its.itemId')
-                ->join('dis_deliveries_list as dl', function($join) {
-                    $join->on('q.userId', '=', 'dl.salesman_id')
-                        ->on('ro.id', '=', 'dl.route')
-                        ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
-                })
-                ->where('dl.deliveryman_id', $this->selectedDeliveryMan)
-                ->select(
-                    'it.internal_code as code',
-                    'cat.name as category',
-                    'it.name as name_item',
-                    DB::raw('SUM(d.quantity) as quantity'),
-                    DB::raw('COALESCE(its.stock_items_store, 0) as stock_actual'),
-                    DB::raw('CASE
-                        WHEN its.stock_items_store IS NULL THEN "FALTANTE - No existe en inventario"
-                        WHEN SUM(d.quantity) > its.stock_items_store THEN "FALTANTE"
-                        ELSE "DISPONIBLE"
-                    END as status_stock')
-                )
-                ->groupBy('cat.id', 'cat.name', 'it.id', 'it.name', 'its.stock_items_store', 'it.internal_code')
-                ->orderBy('cat.name')
-                ->orderBy('it.name')
-                ->get();
-
+            $this->previewItems = $this->fetchPreviewItems();
             $this->showPreviewCharge = true;
         } catch (\Exception $e) {
             Log::error($e);
             session()->flash('error', "Error al obtener los datos de la previa: " . $e->getMessage());
+        }
+    }
+
+    private function fetchPreviewItems(): array
+    {
+        return DB::table('inv_detail_remissions as d')
+            ->join('inv_remissions as r', 'd.remissionId', '=', 'r.id')
+            ->join('inv_items as it', 'd.itemId', '=', 'it.id')
+            ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
+            ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
+            ->join('vnt_companies as c', 'w.companyId', '=', 'c.id')
+            ->join('tat_companies_routes as cXr', 'c.id', '=', 'cXr.company_id')
+            ->join('tat_routes as ro', 'cXr.route_id', '=', 'ro.id')
+            ->join('inv_categories as cat', 'it.categoryId', '=', 'cat.id')
+            ->leftJoin('inv_items_store as its', 'it.id', '=', 'its.itemId')
+            ->join('dis_deliveries_list as dl', function ($join) {
+                $join->on('q.userId', '=', 'dl.salesman_id')
+                    ->on('ro.id', '=', 'dl.route')
+                    ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
+            })
+            ->where('dl.deliveryman_id', $this->selectedDeliveryMan)
+            ->select(
+                'it.internal_code as code',
+                'cat.name as category',
+                'it.name as name_item',
+                DB::raw('SUM(d.quantity) as quantity'),
+                DB::raw('COALESCE(its.stock_items_store, 0) as stock_actual'),
+                DB::raw('CASE
+                    WHEN its.stock_items_store IS NULL THEN "FALTANTE - No existe en inventario"
+                    WHEN SUM(d.quantity) > its.stock_items_store THEN "FALTANTE"
+                    ELSE "DISPONIBLE"
+                END as status_stock')
+            )
+            ->groupBy('cat.id', 'cat.name', 'it.id', 'it.name', 'its.stock_items_store', 'it.internal_code')
+            ->orderBy('cat.name')
+            ->orderBy('it.name')
+            ->get()
+            ->toArray();
+    }
+
+    private function refreshPreviewIfVisible(): void
+    {
+        if ($this->showPreviewCharge && $this->selectedDeliveryMan) {
+            $this->previewItems = $this->fetchPreviewItems();
         }
     }
 
@@ -649,65 +620,17 @@ class Uploads extends Component
         return DisDeliveriesList::where('deliveryman_id', $this->selectedDeliveryMan)->exists();
     }
 
-    public function printPreCharge()
-    {
-        if (!$this->selectedDeliveryMan) {
-            session()->flash('error', 'Por favor selecciona un transportador primero');
-            return;
-        }
-
-        try {
-            // Obtener items filtrando específicamente por los vendedores y rutas en dis_deliveries_list
-            $items = DB::table('inv_detail_remissions as d')
-                ->join('inv_remissions as r', 'd.remissionId', '=', 'r.id')
-                ->join('inv_items as it', 'd.itemId', '=', 'it.id')
-                ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
-                ->join('vnt_warehouses as w', 'q.customerId', '=', 'w.id')
-                ->join('vnt_companies as c', 'w.companyId', '=', 'c.id')
-                ->join('tat_companies_routes as cXr', 'c.id', '=', 'cXr.company_id')
-                ->join('tat_routes as ro', 'cXr.route_id', '=', 'ro.id')
-                ->join('inv_categories as cat', 'it.categoryId', '=', 'cat.id')
-                ->leftJoin('inv_items_store as its', 'it.id', '=', 'its.itemId')
-                ->join('dis_deliveries_list as dl', function($join) {
-                    $join->on('q.userId', '=', 'dl.salesman_id')
-                        ->on('ro.id', '=', 'dl.route')
-                        ->on(DB::raw('DATE(q.created_at)'), '=', 'dl.sale_date');
-                })
-                ->where('dl.deliveryman_id', $this->selectedDeliveryMan)
-                ->select(
-                    'it.internal_code as code',
-                    'cat.name as category',
-                    'it.name as name_item',
-                    DB::raw('SUM(d.quantity) as quantity'),
-                    'its.stock_items_store as stockActual'
-                )
-                ->groupBy('cat.id', 'cat.name', 'it.id', 'it.name', 'its.stock_items_store', 'it.internal_code')
-                ->orderBy('cat.name')
-                ->orderBy('it.name')
-                ->get();
-
-            $cleanedItems = $this->cleanUtf8Data($items);
-
-            $data = [
-                'items' => $cleanedItems,
-            ];
-
-            $pdf = PDF::loadView('tenant.uploads.pre-charge-pdf', $data);
-            return response()->streamDownload(function () use ($pdf) {
-                echo $pdf->stream();
-            }, 'pre-cargue.pdf');
-        } catch (\Exception $e) {
-            Log::error($e);
-            session()->flash('error', "Error al generar la impresión: " . $e->getMessage());
-        }
-    }
 
     public function render()
     {
         $users = DB::table('users')->select('id', 'name')->where('profile_id', 13)->get();
 
+        $busyDeliverymen = DisDeliveries::where('status', '!=', 'CERRADO')
+            ->whereNull('deleted_at')
+            ->pluck('deliveryman_id')
+            ->unique()
+            ->toArray();
 
-        // Definir los días de la semana para el selector
         $daysOfWeek = [
             'Lunes' => 'Lunes',
             'Martes' => 'Martes',
@@ -720,6 +643,7 @@ class Uploads extends Component
 
         return view('livewire.tenant.uploads.uploads', [
             'users' => $users,
+            'busyDeliverymen' => $busyDeliverymen,
             'remissions' => $this->remissions,
             'scarceUnits' => $this->scarceUnits,
             'daysOfWeek' => $daysOfWeek,

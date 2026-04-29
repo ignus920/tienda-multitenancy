@@ -83,30 +83,34 @@
                     <div class="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
                         <!-- Ajustado padding -->
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 w-full">
-                            <!-- Selector de días de la semana -->
+                            <!-- Selector múltiple de días de la semana -->
                             <div class="flex-1">
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
-                                    </div>
-                                    <select wire:model.live="selectedSaleDay"
-                                        class="block w-full pl-10 pr-8 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-xs">
-                                        <option value="">-- Filtrar por día de venta --</option>
-                                        @foreach ($daysOfWeek as $day => $dayName)
-                                        <option value="{{ $day }}">{{ $dayName }}</option>
-                                        @endforeach
-                                    </select>
+                                        Días:
+                                    </span>
+                                    @foreach ($daysOfWeek as $day => $dayName)
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" wire:model.live="selectedSaleDay" value="{{ $day }}" class="sr-only peer">
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
+                                            peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600
+                                            bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600
+                                            hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400">
+                                            {{ $dayName }}
+                                        </span>
+                                    </label>
+                                    @endforeach
 
-                                    {{-- Botón para limpiar filtro de día --}}
-                                    @if($selectedSaleDay)
-                                    <button type="button" wire:click="$set('selectedSaleDay', '')"
-                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M6 18L18 6M6 6l12 12" />
+                                    @if(!empty($selectedSaleDay))
+                                    <button type="button" wire:click="$set('selectedSaleDay', [])"
+                                        class="inline-flex items-center px-2 py-1 text-xs text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                         </svg>
+                                        Limpiar
                                     </button>
                                     @endif
                                 </div>
@@ -120,7 +124,12 @@
                                     class="w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <option value="">-- Seleccione --</option>
                                     @foreach ($users as $rt)
-                                    <option value="{{ $rt->id }}">{{ $rt->name }}</option>
+                                        @php $busy = in_array($rt->id, $busyDeliverymen); @endphp
+                                        <option value="{{ $rt->id }}"
+                                            {{ $busy ? 'disabled' : '' }}
+                                            style="{{ $busy ? 'color:#9ca3af;' : '' }}">
+                                            {{ $rt->name }}{{ $busy ? ' (Cargue activo)' : '' }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -168,11 +177,12 @@
                                         </button>
                                     @endif
 
-                                    <button wire:click="printPreCharge"
+                                    <a href="{{ route('tenant.uploads.print-pre-charge', ['deliverymanId' => $selectedDeliveryMan]) }}"
+                                        target="_blank"
                                         class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                                         <x-heroicon-o-printer class="w-6 h-5 pr-2" />
                                         Imprimir PDF
-                                    </button>
+                                    </a>
                                 @endif
                             </div>
                         </div>
@@ -198,8 +208,17 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @php $lastRoute = null; @endphp
+                                @php $lastDay = null; $lastRoute = null; $multiDay = count($selectedSaleDay) > 1; @endphp
                                 @forelse($remissions as $remission)
+                                    {{-- Fila separadora por día (solo cuando hay múltiples días seleccionados) --}}
+                                    @if($multiDay && $remission->dia_venta !== $lastDay)
+                                        @php $lastDay = $remission->dia_venta; $lastRoute = null; @endphp
+                                        <tr class="bg-indigo-50 dark:bg-indigo-900/20">
+                                            <td colspan="6" class="px-6 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                                                {{ $remission->dia_venta }}
+                                            </td>
+                                        </tr>
+                                    @endif
                                     {{-- Fila separadora por ruta --}}
                                     @if($remission->route_id !== $lastRoute)
                                         @php $lastRoute = $remission->route_id; @endphp
@@ -272,7 +291,7 @@
                                                 </path>
                                             </svg>
                                             <p class="text-lg font-medium">No hay registros</p>
-                                            <p class="text-sm">Selecciona un día de venta para ver los datos</p>
+                                            <p class="text-sm">Selecciona uno o varios días de venta para ver los datos</p>
                                         </div>
                                     </td>
                                 </tr>
