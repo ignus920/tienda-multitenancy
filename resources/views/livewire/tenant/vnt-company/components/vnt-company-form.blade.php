@@ -853,7 +853,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $editingId ? 'Editar' : 'Crear' }} Cliente
+                        {{ $editingId ? 'Editar' : 'Crear' }} Clientes
                     </h3>
                 </div>
                 <!-- Alert de Errores de Validación -->

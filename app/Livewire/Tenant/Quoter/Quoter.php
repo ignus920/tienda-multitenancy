@@ -315,6 +315,16 @@ class Quoter extends Component
             $company = $this->getCompanyInfo($quote);
             Log::info('🏢 Empresa cargada', ['company' => $company->businessName ?? 'N/A']);
 
+            $tableName = ($quote->status === 'REMISIÓN') ? 'inv_detail_remissions' : 'vnt_detail_quotes';
+            $tableNameId = ($quote->status === 'REMISIÓN') ? 'remissionId' : 'quoteId';
+            // Calcular el peso total de los items
+            $totalWeight = DB::connection('tenant')->table($tableName)
+                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where($tableName . '.' . $tableNameId, $id)
+                ->sum('inv_items_dimensions.weight');
+
+            Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
+
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
@@ -330,7 +340,8 @@ class Quoter extends Component
                 'company' => $company,
                 'documentTitle' => $documentTitle,
                 'showQR' => true, // Opcional: mostrar código QR
-                'defaultObservations' => 'Observaciones por defecto'
+                'defaultObservations' => 'Observaciones por defecto',
+                'totalWeight' => $totalWeight
             ];
             Log::info('📝 Datos preparados para la vista');
 

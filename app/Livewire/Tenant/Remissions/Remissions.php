@@ -633,6 +633,14 @@ class Remissions extends Component
             $company = $this->getCompanyInfo($remission);
             Log::info('🏢 Empresa cargada', ['company' => $company->businessName ?? 'N/A']);
 
+            // Calcular el peso total de los items
+            $totalWeight = DB::connection('tenant')->table('inv_detail_remissions')
+                ->join('inv_items_dimensions', 'inv_detail_remissions.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where('inv_detail_remissions.remissionId', $id)
+                ->sum('inv_items_dimensions.weight');
+
+            Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
+
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
@@ -649,7 +657,8 @@ class Remissions extends Component
                 'documentTitle' => 'REMISIÓN',
                 'showQR' => true,
                 'defaultObservations' => 'Sin observaciones.' . $giftObservation,
-                'giftObservation' => $giftObservation
+                'giftObservation' => $giftObservation,
+                'totalWeight' => $totalWeight
             ];
             Log::info('📝 Datos preparados para la vista');
 

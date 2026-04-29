@@ -109,6 +109,15 @@ class VntQuote extends Model
     }
 
     /**
+     * Obtiene el teléfono del vendedor/usuario que creó la cotización
+     */
+    public function getSellerPhoneAttribute()
+    {
+        $user = $this->getUser();
+        return $user ? $user->phone : 'N/A';
+    }
+
+    /**
      * Obtiene el usuario/vendedor desde la base de datos central
      * Este método se puede usar para acceder al objeto completo del usuario
      */

@@ -1542,10 +1542,18 @@ class ProductQuoter extends Component
                     $this->selectedCustomer['address'] = $quote->branch->address ?? '';
                 }
 
+                // Cargar sucursales de la empresa
+                if ($company) {
+                    $this->branches = $company->warehouses()->where('status', 1)->with('city')->get()->toArray();
+                    $this->selectedBranchId = $quote->branchId;
+                }
+
                 Log::info('🔄 Cliente cargado para edición', [
                     'contact_id' => $contact->id,
                     'company_id' => $company ? $company->id : null,
-                    'selectedCustomer' => $this->selectedCustomer
+                    'selectedCustomer' => $this->selectedCustomer,
+                    'selectedBranchId' => $this->selectedBranchId,
+                    'branches_count' => count($this->branches)
                 ]);
             } else {
                 Log::warning('⚠️ No se pudo cargar cliente para edición', [
