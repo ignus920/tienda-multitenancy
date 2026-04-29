@@ -1,0 +1,284 @@
+<?php
+
+namespace App\Livewire\Tenant\Cartera;
+
+use Livewire\Component;
+use Livewire\WithPagination;
+use App\Models\Tenant\Remissions\InvRemissions;
+use App\Models\Tenant\Sales\VntOrderAuthorization;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
+class CarteraList extends Component
+{
+    use WithPagination;
+
+    // Filtros
+    public $fromDate;
+    public $toDate;
+    public $search = '';
+    public $statusPacking = '';
+    public $statusDispatch = '';
+    public $statusPayment = '';
+    public $activeFilter = ''; // empaque, despacho, pago, anulados
+
+    public $perPage = 10;
+    public $searchNit = '';
+    public $searchName = '';
+    public $searchQuote = '';
+    public $showAdvancedSearch = false;
+    public $showJustificacionModal = false;
+    public $justificacionText = '';
+    public $selectedRemissionId = null;
+
+    protected $queryString = [
+        'fromDate' => ['except' => ''],
+        'toDate' => ['except' => ''],
+        'search' => ['except' => ''],
+    ];
+
+    public function mount()
+    {
+        $this->fromDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $this->toDate = Carbon::now()->format('Y-m-d');
+    }
+
+    /**
+     * Alterna la autorización de un pedido con lógica de cascada
+     */
+    public function toggleAuthorization($remissionId, $type)
+    {
+        $this->ensureTenantConnection();
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            // Obtener el estado actual (si existe)
+            $lastAuth = VntOrderAuthorization::where('remission_id', $remissionId)
+                ->where('auth_type', $type)
+                ->latest()
+                ->first();
+
+            $newStatus = $lastAuth ? !$lastAuth->status : true;
+
+            // Lógica de Cascada
+            if ($newStatus) {
+                // Si autoriza PAGO -> Autoriza DESPACHO y EMPAQUE
+                if ($type === 'pago') {
+                    $this->saveAuth($remissionId, 'pago', true);
+                    $this->saveAuth($remissionId, 'despacho', true);
+                    $this->saveAuth($remissionId, 'empaque', true);
+                } 
+                // Si autoriza DESPACHO -> Autoriza EMPAQUE
+                elseif ($type === 'despacho') {
+                    $this->saveAuth($remissionId, 'despacho', true);
+                    $this->saveAuth($remissionId, 'empaque', true);
+                } 
+                else {
+                    $this->saveAuth($remissionId, $type, true);
+                }
+            } else {
+                // Si desautoriza, solo desautoriza ese nivel (o según requerimiento del negocio)
+                $this->saveAuth($remissionId, $type, false);
+            }
+
+            DB::connection('tenant')->commit();
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Autorización actualizada correctamente.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            \Illuminate\Support\Facades\Log::error('❌ Error en toggleAuthorization: ' . $e->getMessage(), [
+                'exception' => $e,
+                'remissionId' => $remissionId,
+                'type' => $type
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al actualizar autorización.'
+            ]);
+        }
+    }
+
+    private function saveAuth($remissionId, $type, $status)
+    {
+        VntOrderAuthorization::create([
+            'remission_id' => $remissionId,
+            'auth_type' => $type,
+            'status' => $status,
+            'user_id' => auth()->id()
+        ]);
+    }
+
+    public function setFilter($filter)
+    {
+        $this->activeFilter = ($this->activeFilter === $filter) ? '' : $filter;
+        $this->resetPage();
+    }
+
+    public function clearFilters()
+    {
+        $this->reset(['search', 'activeFilter', 'searchNit', 'searchName', 'searchQuote', 'showAdvancedSearch']);
+        $this->fromDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $this->toDate = Carbon::now()->format('Y-m-d');
+        $this->resetPage();
+    }
+
+    public function openObservationsModal($remissionId)
+    {
+        $this->ensureTenantConnection();
+        $this->dispatch('openObservations', referenceId: $remissionId, referenceType: 'remission')->to('tenant.components.observations-modal');
+    }
+
+    public function openJustificacionModal($remissionId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedRemissionId = $remissionId;
+        
+        // Cargar observación previa si existe
+        $observation = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remissionId)
+            ->where('reference_type', 'remission')
+            ->where('observation_type', 'cartera_justificacion')
+            ->first();
+            
+        $this->justificacionText = $observation ? $observation->observation : '';
+        $this->showJustificacionModal = true;
+    }
+
+    public function saveJustificacion()
+    {
+        $this->ensureTenantConnection();
+        
+        if (!$this->selectedRemissionId) return;
+
+        \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+            [
+                'reference_id' => $this->selectedRemissionId,
+                'reference_type' => 'remission',
+                'observation_type' => 'cartera_justificacion'
+            ],
+            [
+                'observation' => $this->justificacionText,
+                'userId' => auth()->id()
+            ]
+        );
+
+        $this->showJustificacionModal = false;
+        $this->justificacionText = '';
+        $this->selectedRemissionId = null;
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Justificación guardada correctamente.'
+        ]);
+    }
+
+    public function render()
+    {
+        $this->ensureTenantConnection();
+
+        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment'])
+            ->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
+
+        if ($this->search) {
+            $query->where(function($q) {
+                $q->where('consecutive', 'like', "%{$this->search}%")
+                  ->orWhereHas('quote', function($cq) {
+                      $cq->where('customer_name', 'like', "%{$this->search}%");
+                  });
+            });
+        }
+
+        // Filtros Búsqueda Avanzada
+        if ($this->searchNit) {
+            $query->whereHas('quote.customer', function($q) {
+                $q->where('document_number', 'like', "%{$this->searchNit}%");
+            });
+        }
+
+        if ($this->searchName) {
+            $query->whereHas('quote', function($q) {
+                $q->where('customer_name', 'like', "%{$this->searchName}%");
+            });
+        }
+
+        if ($this->searchQuote) {
+            $query->whereHas('quote', function($q) {
+                $q->where('consecutive', 'like', "%{$this->searchQuote}%");
+            });
+        }
+
+        // Filtro por tarjetas (Lógica de "Solo los que tienen este estado como ÚLTIMO registro")
+        if ($this->activeFilter) {
+            if ($this->activeFilter === 'anulados') {
+                $query->where('status', 'ANULADO');
+            } else {
+                $query->whereHas('authorizations', function($q) {
+                    $q->where('auth_type', $this->activeFilter)
+                      ->where('status', 1)
+                      ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = vnt_order_authorizations.remission_id AND a2.auth_type = ?)', [$this->activeFilter]);
+                });
+            }
+        }
+
+        // Métricas (Reflejan el estado actual basado en el último registro de trazabilidad)
+        $metrics = [
+            'empaque' => DB::connection('tenant')->table('vnt_order_authorizations as a1')
+                ->where('auth_type', 'empaque')
+                ->where('status', 1)
+                ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = a1.remission_id AND a2.auth_type = "empaque")')
+                ->count(),
+            'despacho' => DB::connection('tenant')->table('vnt_order_authorizations as a1')
+                ->where('auth_type', 'despacho')
+                ->where('status', 1)
+                ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = a1.remission_id AND a2.auth_type = "despacho")')
+                ->count(),
+            'pago' => DB::connection('tenant')->table('vnt_order_authorizations as a1')
+                ->where('auth_type', 'pago')
+                ->where('status', 1)
+                ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = a1.remission_id AND a2.auth_type = "pago")')
+                ->count(),
+            'anulados' => InvRemissions::where('status', 'ANULADO')->count(),
+        ];
+
+        return view('livewire.tenant.cartera.cartera-list', [
+            'remissions' => $query->paginate($this->perPage),
+            'metrics' => $metrics
+        ])->layout('layouts.app');
+    }
+
+    /**
+     * Asegura que la conexión 'tenant' esté configurada
+     */
+    /**
+     * Asegura que la conexión 'tenant' esté configurada usando el TenantManager
+     */
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return redirect()->route('tenant.select');
+        }
+
+        // Importante: Usar la conexión central para buscar el tenant
+        $tenant = \App\Models\Auth\Tenant::on('central')->find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            return redirect()->route('tenant.select');
+        }
+
+        $tenantManager = app(\App\Services\Tenant\TenantManager::class);
+        $tenantManager->setConnection($tenant);
+        
+        if (function_exists('tenancy')) {
+            tenancy()->initialize($tenant);
+        }
+    }
+
+}
+
+

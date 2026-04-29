@@ -177,6 +177,11 @@ require __DIR__ . '/tenants/import-cost-calculator.php';
 require __DIR__ . '/tenants/product-bundle-power-calculator.php';
 // Incluir rutas del detalle de corte de items
 require __DIR__ . '/tenants/inv-items-cut-details.php';
+// Incluir rutas del módulo de cartera
+require __DIR__ . '/tenants/cartera.php';
+// Incluir rutas del módulo de empaque
+require __DIR__ . '/tenants/packing.php';
+
 
 
 
