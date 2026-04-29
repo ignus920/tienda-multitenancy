@@ -126,6 +126,12 @@ class InvRemissions extends Model
         return $this->belongsTo(\App\Models\Tenant\MethodPayments\VntMethodPayMents::class, 'methodPaymentId', 'id');
     }
 
+    public function observations()
+    {
+        return $this->hasMany(\App\Models\Tenant\Sales\VntObservation::class, 'reference_id')
+                    ->where('reference_type', 'remission');
+    }
+
     /**
      * Getters para compatibilidad con las vistas de impresión del cotizador
      */
