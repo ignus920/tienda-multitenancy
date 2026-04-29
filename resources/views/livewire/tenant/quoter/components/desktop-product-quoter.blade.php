@@ -440,12 +440,12 @@ $header = 'Seleccionar productos';
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Minimo</th>
                                     @else
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant.</th>
-                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Regular</th>
-                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lista</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">3%</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">5%</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">7%</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Regular</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
                                     @endif
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                                 </tr>
@@ -563,128 +563,128 @@ $header = 'Seleccionar productos';
                                             <!-- Precios individuales -->
                                             @php
                                                 // Detectar automáticamente la estructura de precios
-                                            $priceKeys = array_keys($allPrices);
-                                            $pricesByType = [];
+                                                $priceKeys = array_keys($allPrices);
+                                                $pricesByType = [];
 
-                                            // Detectar si usa estructura p1, p2, p3... o nombres descriptivos
-                                            $usesNumericKeys = count(array_filter($priceKeys, fn($key) => preg_match('/^[pP]\d+$/', $key))) > 0;
+                                                // Detectar si usa estructura p1, p2, p3... o nombres descriptivos
+                                                $usesNumericKeys = count(array_filter($priceKeys, fn($key) => preg_match('/^[pP]\d+$/', $key))) > 0;
 
-                                            if ($usesNumericKeys) {
-                                                // Estructura tipo: p1, p2, p3, p4, P5
-                                                $pricesByType = [
-                                                    'Regular' => $allPrices['p1'] ?? null,
-                                                    'Crédito' => $allPrices['p2'] ?? null,
-                                                    'Lista' => $allPrices['p3'] ?? null,
-                                                    '3%' => $allPrices['p4'] ?? null,
-                                                    '5%' => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
-                                                    '7%' => $allPrices['p6'] ?? $allPrices['P6'] ?? null
-                                                ];
-                                            } else {
-                                                // Estructura tipo: Lista, 3%, 5%, 7%, etc.
-                                                $columnMapping = ['Regular', 'Crédito', 'Lista', '3%', '5%', '7%'];
+                                                if ($usesNumericKeys) {
+                                                    // Estructura tipo: p3, p4, P5, p6, p1, p2
+                                                    $pricesByType = [
+                                                        'Lista' => $allPrices['p3'] ?? null,
+                                                        '3%' => $allPrices['p4'] ?? null,
+                                                        '5%' => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
+                                                        '7%' => $allPrices['p6'] ?? $allPrices['P6'] ?? null,
+                                                        'Regular' => $allPrices['p1'] ?? null,
+                                                        'Crédito' => $allPrices['p2'] ?? null
+                                                    ];
+                                                } else {
+                                                    // Estructura tipo: Lista, 3%, 5%, 7%, Regular, Crédito
+                                                    $columnMapping = ['Lista', '3%', '5%', '7%', 'Regular', 'Crédito'];
 
-                                                foreach($columnMapping as $column) {
-                                                    $pricesByType[$column] = null;
+                                                    foreach($columnMapping as $column) {
+                                                        $pricesByType[$column] = null;
 
-                                                    // Buscar coincidencias flexibles
-                                                    foreach($allPrices as $priceKey => $priceValue) {
-                                                        $keyLower = strtolower($priceKey);
-                                                        $columnLower = strtolower($column);
+                                                        // Buscar coincidencias flexibles
+                                                        foreach($allPrices as $priceKey => $priceValue) {
+                                                            $keyLower = strtolower($priceKey);
+                                                            $columnLower = strtolower($column);
 
-                                                        if ($keyLower === $columnLower ||
-                                                            str_contains($keyLower, $columnLower) ||
-                                                            ($column === 'Regular' && str_contains($keyLower, 'regular')) ||
-                                                            ($column === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
-                                                            ($column === 'Lista' && str_contains($keyLower, 'lista')) ||
-                                                            ($priceKey === $column)) {
-                                                            $pricesByType[$column] = $priceValue;
-                                                            break;
+                                                            if ($keyLower === $columnLower ||
+                                                                str_contains($keyLower, $columnLower) ||
+                                                                ($column === 'Regular' && str_contains($keyLower, 'regular')) ||
+                                                                ($column === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
+                                                                ($column === 'Lista' && str_contains($keyLower, 'lista')) ||
+                                                                ($priceKey === $column)) {
+                                                                    $pricesByType[$column] = $priceValue;
+                                                                    break;
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        @endphp
+                                            @endphp
 
-                                        @foreach($pricesByType as $priceType => $price)
-                                            <td class="px-2 py-4 text-center">
-                                                @if($price)
-                                                    @php
-                                                        // Encontrar el key real del precio en el array original
-                                                        $priceKey = null;
-                                                        foreach($allPrices as $key => $value) {
-                                                            if ($value == $price) {
-                                                                // Si hay múltiples precios iguales, usar el primero que coincida con el tipo
-                                                                if ($usesNumericKeys) {
-                                                                    $expectedKey = match($priceType) {
-                                                                        'Regular' => 'p1',
-                                                                        'Crédito' => 'p2',
-                                                                        'Lista' => 'p3',
-                                                                        '3%' => 'p4',
-                                                                        '5%' => 'P5',
-                                                                        '7%' => 'p6',
-                                                                        default => null
-                                                                    };
-                                                                    if ($key === $expectedKey || ($expectedKey === 'P5' && $key === 'p5')) {
-                                                                        $priceKey = $key;
-                                                                        break;
-                                                                    }
-                                                                } else {
-                                                                    // Para estructura descriptiva, buscar coincidencia
-                                                                    $keyLower = strtolower($key);
-                                                                    $typeLower = strtolower($priceType);
+                                            @foreach($pricesByType as $priceType => $price)
+                                                <td class="px-2 py-4 text-center">
+                                                    @if($price)
+                                                        @php
+                                                            // Encontrar el key real del precio en el array original
+                                                            $priceKey = null;
+                                                            foreach($allPrices as $key => $value) {
+                                                                if ($value == $price) {
+                                                                    // Si hay múltiples precios iguales, usar el primero que coincida con el tipo
+                                                                    if ($usesNumericKeys) {
+                                                                        $expectedKey = match($priceType) {
+                                                                            'Regular' => 'p1',
+                                                                            'Crédito' => 'p2',
+                                                                            'Lista' => 'p3',
+                                                                            '3%' => 'p4',
+                                                                            '5%' => 'P5',
+                                                                            '7%' => 'p6',
+                                                                            default => null
+                                                                        };
+                                                                        if ($key === $expectedKey || ($expectedKey === 'P5' && $key === 'p5')) {
+                                                                            $priceKey = $key;
+                                                                            break;
+                                                                        }
+                                                                    } else {
+                                                                        // Para estructura descriptiva, buscar coincidencia
+                                                                        $keyLower = strtolower($key);
+                                                                        $typeLower = strtolower($priceType);
 
-                                                                    if ($keyLower === $typeLower ||
-                                                                        str_contains($keyLower, $typeLower) ||
-                                                                        ($priceType === 'Regular' && str_contains($keyLower, 'regular')) ||
-                                                                        ($priceType === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
-                                                                        ($priceType === 'Lista' && str_contains($keyLower, 'lista'))) {
-                                                                        $priceKey = $key;
-                                                                        break;
+                                                                        if ($keyLower === $typeLower ||
+                                                                            str_contains($keyLower, $typeLower) ||
+                                                                            ($priceType === 'Regular' && str_contains($keyLower, 'regular')) ||
+                                                                            ($priceType === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
+                                                                            ($priceType === 'Lista' && str_contains($keyLower, 'lista'))) {
+                                                                            $priceKey = $key;
+                                                                            break;
+                                                                        }
                                                                     }
                                                                 }
                                                             }
-                                                        }
 
-                                                        // Fallback: usar el priceType como key si no se encuentra
-                                                        $priceKey = $priceKey ?: $priceType;
+                                                            // Fallback: usar el priceType como key si no se encuentra
+                                                            $priceKey = $priceKey ?: $priceType;
 
-                                                        $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
-                                                    @endphp
-                                                    <button
-                                                     @if($isCopyMode)
-                                                            @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
-                                                        @elseif(!$hideQuoter)
-                                                            wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
-                                                            wire:loading.attr="disabled"
-                                                            wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
-                                                        @endif
-                                                        class="px-2 py-1 text-xs rounded-lg border-2 transition-colors font-medium min-w-20
-                                                            {{ $isThisPriceSelected
-                                                                ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                                                : ($priceType === 'Regular'
-                                                                    ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800'
-                                                                    : ($priceType === 'Crédito'
-                                                                        ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:text-yellow-400 dark:border-yellow-800'
-                                                                        : 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/10 dark:text-green-400 dark:border-green-800'))
-                                                            }}">
-                                                        <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')">
-                                                            <div class="text-xs font-black">
-                                                                ${{ number_format($price) }}
-                                                                @if($isThisPriceSelected) ✓ @endif
+                                                            $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
+                                                        @endphp
+                                                        <button
+                                                         @if($isCopyMode)
+                                                                @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                                            @elseif(!$hideQuoter)
+                                                                wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
+                                                                wire:loading.attr="disabled"
+                                                                wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
+                                                            @endif
+                                                            class="px-2 py-1 text-xs rounded-lg border-2 transition-colors font-medium min-w-20
+                                                                {{ $isThisPriceSelected
+                                                                    ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                                                    : ($priceType === 'Regular'
+                                                                        ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800'
+                                                                        : ($priceType === 'Crédito'
+                                                                            ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:text-yellow-400 dark:border-yellow-800'
+                                                                            : 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/10 dark:text-green-400 dark:border-green-800'))
+                                                                }}">
+                                                            <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')">
+                                                                <div class="text-xs font-black">
+                                                                    ${{ number_format($price) }}
+                                                                    @if($isThisPriceSelected) ✓ @endif
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')" class="flex items-center justify-center">
-                                                            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                            </svg>
-                                                        </div>
-                                                    </button>
-                                                @else
-                                                    <span class="text-gray-400 text-xs">N/A</span>
-                                                @endif
-                                            </td>
-                                        @endforeach
+                                                            <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')" class="flex items-center justify-center">
+                                                                <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                </svg>
+                                                            </div>
+                                                        </button>
+                                                    @else
+                                                        <span class="text-gray-400 text-xs">N/A</span>
+                                                    @endif
+                                                </td>
+                                            @endforeach
                                         @endif
                                         <td class="px-4 py-4 text-center">
                                             <div x-data="{ open: false }" class="relative inline-block">

@@ -7,7 +7,7 @@
     <style>
         @page {
             size: letter;
-            margin: 0.5in;
+            margin: 0.4in;
         }
 
         * {
@@ -17,131 +17,322 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.2;
-            color: #000;
+            font-family: 'Segoe UI', 'Arial', 'Helvetica', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #2c3e50;
             background: white;
+            padding: 0;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #000;
+        /* Header Layout */
+        .header-container {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #3498db;
         }
 
-        .company-info {
-            flex: 1;
+        .header-left {
+            display: table-cell;
+            width: 18%;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .header-center {
+            display: table-cell;
+            width: 58%;
+            vertical-align: middle;
+            padding: 0 12px;
+        }
+
+        .header-right {
+            display: table-cell;
+            width: 18%;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .logo {
+            max-width: 90px;
+            height: auto;
+            margin-bottom: 5px;
         }
 
         .company-name {
-            font-size: 18pt;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #000;
-        }
-
-        .company-details {
-            font-size: 9pt;
-            line-height: 1.3;
-        }
-
-        .quote-info {
-            text-align: right;
-            font-size: 11pt;
-        }
-
-        .quote-title {
             font-size: 16pt;
             font-weight: bold;
+            color: #2c3e50;
+            text-transform: uppercase;
             margin-bottom: 8px;
+            letter-spacing: 1px;
         }
 
-        .quote-details {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
+        .company-info-text {
+            font-size: 8.5pt;
+            color: #34495e;
+            line-height: 1.4;
         }
 
-        .customer-info, .quote-meta {
-            flex: 1;
-            width: 48%;
-            margin-right: 20px;
+        .document-box {
+            padding: 10px;
+            text-align: center;
+            /*background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
+            border-radius: 8px;
+            color: #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .quote-meta {
-            margin-right: 0;
-        }
-
-        .section-title {
+        .document-title {
+            font-size: 10pt;
             font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            display: block;
         }
 
-        .info-line {
-            margin-bottom: 3px;
+        .document-number {
+            font-size: 15pt;
+            font-weight: bold;
+            display: block;
         }
 
+        /* Customer and Meta Info */
+        .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+
+        .info-column {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            border: 1px solid #e1e8ee;
+            padding: 12px;
+            background-color: white;
+            border-radius: 6px;
+        }
+
+        .section-header {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .info-row {
+            margin-bottom: 6px;
+            display: block;
+            font-size: 9.5pt;
+            line-height: 1.4;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #2c3e50;
+            display: inline;
+        }
+
+        /* Products Table */
         .products-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 9pt;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .products-table th {
-            background-color: #f0f0f0;
-            border: 1px solid #000;
-            padding: 6px 4px;
+            background-color: #34495e;
+            color: white;
+            border: 1px solid #2c3e50;
+            padding: 10px 6px;
             text-align: center;
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .products-table td {
-            border: 1px solid #000;
-            padding: 4px;
-            text-align: center;
+            border: 1px solid #e1e8ee;
+            padding: 8px 6px;
+            vertical-align: middle;
+            font-size: 10pt;
         }
 
-        .products-table td.description {
-            text-align: left;
-            max-width: 200px;
-            word-wrap: break-word;
+        .col-idx { width: 30px; text-align: center; }
+        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 9.5pt; font-weight: 600; }
+        .col-desc { text-align: left; min-width: 200px; }
+        .col-qty { width: 50px; text-align: center; }
+        .col-delivered { width: 60px; text-align: center; }
+        .col-pending { width: 60px; text-align: center; }
+        .col-price { width: 75px; text-align: right; }
+        .col-total { width: 75px; text-align: right; font-weight: bold; }
+
+        .row-even { background-color: #f8f9fa; }
+        
+        .products-table tr:hover {
+            background-color: #f0f4f8;
+            transition: background-color 0.2s;
         }
 
-        .products-table td.code {
-            text-align: center;
-            width: 80px;
+        /* Totals and Footer */
+        .footer-section {
+            display: table;
+            width: 100%;
+            margin-top: 15px;
+            gap: 20px;
         }
 
-        .products-table td.unit {
-            width: 60px;
+        .notes-container {
+            display: table-cell;
+            width: 55%;
+            vertical-align: top;
+            padding-right: 20px;
         }
 
-        .products-table td.quantity {
-            width: 50px;
+        .totals-container {
+            display: table-cell;
+            width: 45%;
+            vertical-align: top;
         }
 
-        .products-table td.price {
-            text-align: right;
-            width: 70px;
+        .notes-box {
+            padding: 12px;
+            min-height: 80px;
+            font-size: 9.5pt;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            line-height: 1.4;
+            border-left: 3px solid #3498db;
         }
 
-        .products-table td.iva {
-            width: 40px;
+        .notes-section {
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid #e1e8ee;
         }
 
-        .products-table td.subtotal {
-            text-align: right;
-            width: 80px;
+        .notes-label {
             font-weight: bold;
+            font-size: 9.5pt;
+            color: #2c3e50;
+            min-width: 80px;
+            display: inline-block;
+        }
+
+        .total-row {
+            display: table;
+            width: 100%;
+            padding: 8px 0;
+            border-bottom: 1px solid #e1e8ee;
+            font-size: 10pt;
+        }
+
+        .total-label {
+            display: table-cell;
+            text-align: left;
+            font-weight: bold;
+            width: 65%;
+            color: #2c3e50;
+        }
+
+        .total-value {
+            display: table-cell;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .grand-total {
+            /*background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
+            color: #2c3e50;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 6px;
+            font-size: 13pt;
+            font-weight: bold;
+            display: table;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .grand-total .total-label,
+        .grand-total .total-value {
+            display: table-cell;
+            color: #2c3e50;
+        }
+
+        .grand-total .total-value {
+            font-size: 14pt;
+            font-weight: bold;
+        }
+
+        .signatures {
+            margin-top: 30px;
+            display: table;
+            width: 100%;
+        }
+
+        .signature-box {
+            display: table-cell;
+            width: 48%;
+            text-align: center;
+            padding-top: 25px;
+        }
+
+        .signature-line {
+            border-top: 2px solid #2c3e50;
+            margin: 0 15px;
+            padding-top: 8px;
+            font-weight: bold;
+            font-size: 9pt;
+            color: #2c3e50;
+        }
+
+        .qr-footer {
+            text-align: center;
+            margin-top: 25px;
+            border-top: 2px solid #e1e8ee;
+            padding-top: 15px;
+            font-size: 9pt;
+            background-color: #fafbfc;
+            border-radius: 6px;
+        }
+
+        .qr-image {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 8px;
+            border: 2px solid #e1e8ee;
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .provider-logos {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 9pt;
+            color: #7f8c8d;
+            padding: 8px;
+            background-color: white;
+            border-radius: 6px;
+        }
+
+        .provider-logo {
+            max-width: 70px;
+            height: auto;
+            margin: 0 12px;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         /* Images page */
@@ -173,14 +364,6 @@
             border-radius: 4px;
         }
 
-        .image-card img {
-            width: 130px;
-            height: 130px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto 6px auto;
-        }
-
         .image-card .product-code {
             font-size: 7pt;
             color: #666;
@@ -188,17 +371,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-
-        .image-card .product-name {
-            font-size: 8pt;
-            font-weight: bold;
-            line-height: 1.3;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            height: calc(8pt * 1.3 * 2);
         }
 
         .image-card .no-image-placeholder {
@@ -214,151 +386,80 @@
             color: #999;
         }
 
-        .totals-section {
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .observations {
-            flex: 1;
-            margin-right: 20px;
-        }
-
-        .observations-content {
-            border: 1px solid #ccc;
-            padding: 8px;
-            min-height: 80px;
-            font-size: 9pt;
-            background-color: #fafafa;
-        }
-
-        .totals {
-            width: 250px;
-        }
-
-        .total-line {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .total-line.final {
-            border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
-            font-weight: bold;
-            font-size: 12pt;
-            margin-top: 5px;
-            padding: 6px 0;
-        }
-
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 8pt;
-            color: #666;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
-        }
-
-        .footer-contact {
-            margin-bottom: 5px;
-        }
-
-        .qr-section {
-            text-align: center;
-            margin: 15px 0;
-        }
-
-        .qr-code {
-            margin: 10px 0;
-        }
-
-        .page-break {
-            page-break-after: always;
-        }
-
         @media print {
-            body {
+            .no-print { display: none; }
+            body { 
+                padding: 0;
+                margin: 0;
+            }
+            .document-box {
+                background: #2c3e50;
+                /*-webkit-print-color-adjust: exact;*/
+                /*print-color-adjust: exact;*/
+            }
+            .grand-total {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-
-            .no-print {
-                display: none;
+            .products-table th {
+                background-color: #34495e;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
-        }
-
-        .amount {
-            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <div class="header">
-        <div class="company-info">
-            <div class="company-name">{{ $company->businessName ?? $company->firstName . ' ' . $company->lastName }}</div>
-            <div class="company-details">
-                @if($company->businessName)
-                    <div>NIT: {{ $company->identification }}</div>
-                @else
-                    <div>Cédula: {{ $company->identification }}</div>
-                @endif
-                @if($company->billingAddress)
-                    <div>Dirección: {{ $company->billingAddress }}</div>
-                @endif
-                @if($company->phone)
-                    <div>Teléfono: {{ $company->phone }}</div>
-                @endif
-                @if($company->billingEmail)
-                    <div>Email: {{ $company->billingEmail }}</div>
-                @endif
+    <div class="header-container">
+        <div class="header-left">
+            <img src="{{ asset('images/logofervi.png') }}" class="logo" alt="Logo Fervicom">
+            <img src="{{ asset('images/qr-code-placeholder.png') }}" class="logo" alt="QR Code" style="max-width: 70px; margin-top: 5px;">
+        </div>
+        <div class="header-center">
+            <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
+            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                <tr>
+                    <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 34%;">
+                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS EMPRESA</div>
+                        <div><strong>NIT:</strong> {{ $company->identification ?? '901.123.456-7' }}</div>
+                        <div><strong>Dirección:</strong> {{ $company->billingAddress ?? 'Calle Principal No. 123' }}</div>
+                        <div><strong>Teléfono:</strong> {{ $company->phone ?? '(601) 123 4567' }}</div>
+                        <div><strong>Email:</strong> {{ $company->billingEmail ?? 'ventas@fervicom.com' }}</div>
+                        <div style="margin-top: 8px;">
+                            <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
+                            <div>{{ $quote->seller_name }}</div>
+                            <div><strong>Tel:</strong> {{ $quote->seller_phone }}</div>
+                        </div>
+                    </td>
+                    @if($customer)
+                    <td style="text-align: left; font-size: 8.5pt; padding-left: 12px; line-height: 1.3; vertical-align: top; width: 33%;">
+                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
+                        <div><strong>{{ $customer->full_name }}</strong></div>
+                        <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
+                        <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                        <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
+                        <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
+                    </td>
+                    <td style="text-align: left; font-size: 8.5pt; padding-left: 30px; line-height: 1.3; vertical-align: top; width: 33%;">
+                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
+                        <div><strong>{{ $customer->full_name }}</strong></div>
+                        <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
+                        <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
+                        <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
+                        <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
+                        <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                    </td>
+                    @endif
+                </tr>
+            </table>
+        </div>
+        <div class="header-right">
+            <div class="document-box">
+                <span class="document-title">{{ $documentTitle }}</span>
+                <span class="document-number">{{ $quote->consecutive }}</span>
+                <img src="{{ asset('images/qr-code-placeholder.png') }}" style="max-width: 50px; margin-top: 8px; opacity: 0.9;">
             </div>
-        </div>
-        <div class="quote-info">
-            <div class="quote-title">{{ $documentTitle }}</div>
-            <div><strong>No. {{ $quote->consecutive }}</strong></div>
-            <div>Página 1 de 1</div>
-        </div>
-    </div>
-
-    <!-- Quote Details -->
-    <div class="quote-details">
-        <div class="customer-info">
-            <div class="section-title">Señores:</div>
-            @if($customer)
-                @php
-                    $customerBusinessName = trim($customer->company->businessName ?? '');
-                    $customerDisplayName = !empty($customerBusinessName) ? $customerBusinessName : ($customer->firstName . ' ' . $customer->lastName);
-                    $customerNIT = $customer->company->identification ?? $customer->identification ?? 'N/A';
-                @endphp
-                <div class="info-line"><strong>{{ $customerDisplayName }}</strong></div>
-                <div class="info-line">Atención: {{ $customer->firstName }} {{ $customer->lastName }}</div>
-                <div class="info-line">NIT: {{ $customerNIT }}</div>
-                @if($customer->warehouse && ($customer->warehouse->address || $customer->warehouse->city))
-                    <div class="info-line">
-                        Dirección: {{ $customer->warehouse->address ?? '' }}
-                        {{ ($customer->warehouse->address && $customer->warehouse->city) ? ' - ' : '' }}
-                        {{ $customer->warehouse->city->name ?? '' }}
-                    </div>
-                @elseif($customer->billingAddress || ($customer->company && $customer->company->billingAddress))
-                    <div class="info-line">Dirección: {{ $customer->company->billingAddress ?? $customer->billingAddress }}</div>
-                @endif
-                @if($customer->phone)
-                    <div class="info-line">Teléfono: {{ $customer->phone }}</div>
-                @endif
-            @else
-                <div class="info-line"><strong>Cliente no encontrado</strong></div>
-            @endif
-        </div>
-
-        <div class="quote-meta">
-            <div class="info-line"><strong>Fecha:</strong> {{ $quote->created_at->format('Y-m-d') }}</div>
-            <div class="info-line"><strong>Entrega:</strong> {{ $quote->created_at->addDays(3)->format('Y-m-d') }}</div>
-            <div class="info-line"><strong>Vendedor:</strong> {{ $quote->seller_name }}</div>
-            <div class="info-line"><strong>Forma de Pago:</strong> Contado</div>
         </div>
     </div>
 
@@ -366,195 +467,130 @@
     <table class="products-table">
         <thead>
             <tr>
-                <th>#</th>
-                <th>Código</th>
-                <th>Unidad</th>
-                <th>Descripción</th>
-                <th>Cantidad</th>
-                <th>Valor Unitario</th>
-                <th>Descuento</th>
-                <th>IVA %</th>
-                <th>Subtotal</th>
+                <th class="col-idx">#</th>
+                <th class="col-code">CÓDIGO</th>
+                <th class="col-desc">DESCRIPCIÓN</th>
+                <th class="col-qty">CANT.</th>
+                <th class="col-delivered">ENTREGADO</th>
+                <th class="col-pending">PENDIENTES</th>
+                <th class="col-price">V.UNIT.</th>
+                <th class="col-total">SUBTOTAL</th>
             </tr>
         </thead>
         <tbody>
             @foreach($quote->detalles as $index => $detalle)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td class="code">{{ $detalle->item ? ($detalle->item->sku ?? 'N/A') : 'N/A' }}</td>
-                    <td class="unit">Unidad</td>
-                    <td class="description">{{ $detalle->item ? ($detalle->item->name ?? $detalle->item->display_name) : 'Producto no encontrado' }}</td>
-                    <td class="quantity">{{ $detalle->quantity }}</td>
-                    <td class="price">${{ number_format($detalle->value, 0) }}</td>
-                    <td>
-                        @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
-                            {{ $detalle->price_label }}
-                        @else
-                            -
+                <tr class="{{ $index % 2 == 0 ? '' : 'row-even' }}">
+                    <td class="col-idx">{{ $index + 1 }}</td>
+                    <td class="col-code">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</td>
+                    <td class="col-desc">
+                        <strong>{{ $detalle->item->name ?? $detalle->item->display_name }}</strong>
+                        @if($detalle->description && $detalle->description != ($detalle->item->name ?? ''))
+                            <div style="font-size: 8.5pt; color: #7f8c8d; margin-top: 3px;">{{ $detalle->description }}</div>
                         @endif
                     </td>
-                    <td class="iva">0</td>
-                    <td class="subtotal">${{ number_format($detalle->value * $detalle->quantity, 0) }}</td>
+                    <td class="col-qty">{{ number_format($detalle->quantity, 0) }}</td>
+                    <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
+                    <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td>
+                    <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
+                    <td class="col-total">${{ number_format($detalle->value * $detalle->quantity, 2) }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
-    <!-- Totals Section -->
-    <div class="totals-section">
-        <div class="observations">
-            <div class="section-title">Observaciones:</div>
-            <div class="observations-content">
+    <!-- Totals and Footer -->
+    <div class="footer-section">
+        <div class="notes-container">
+            <div class="section-header">OBSERVACIONES</div>
+            <div class="notes-box">
                 @if($quote->observations)
-                    {!! nl2br(e($quote->observations)) !!}
-                    @if(isset($giftObservation))
-                        <br><strong style="color: #000;">{!! nl2br(e($giftObservation)) !!}</strong>
-                    @endif
-                @else
-                    <p>{{ $defaultObservations ?? 'Sin observaciones especiales.' }}</p>
+                    <div class="notes-section">
+                        {!! nl2br(e($quote->observations)) !!}
+                    </div>
                 @endif
-            </div>
-        </div>
-
-        <div class="totals">
-            @php
-                $subtotal = $quote->detalles->sum(function($detalle) {
-                    return $detalle->value * $detalle->quantity;
-                });
-                $iva = 0;
-                $flete = $quote->flete ?? 0;
-                $total = $subtotal + $iva + $flete;
-            @endphp
-
-            <div class="total-line">
-                <span>Vr. Bruto:</span>
-                <span class="amount">${{ number_format($subtotal, 0) }}</span>
-            </div>
-            <div class="total-line">
-                <span>Subtotal:</span>
-                <span class="amount">${{ number_format($subtotal, 0) }}</span>
-            </div>
-            <div class="total-line">
-                <span>IVA $:</span>
-                <span class="amount">${{ number_format($iva, 0) }}</span>
-            </div>
-            @if($flete > 0)
-            <div class="total-line">
-                <span>Flete:</span>
-                <span class="amount">${{ number_format($flete, 0) }}</span>
-            </div>
-            @endif
-            <!-- Retenciones (solo si existen y superan el tope) -->
-            @php
-                // Lógica igual a ProductQuoter.php
-                $regimeDescription = 'COMMON_REGIME';
-                if (isset($customer) && isset($customer->company) && isset($customer->company->regimen)) {
-                    $regimeDescription = $customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME';
-                }
-                $fiscalResponsability = 0;
-                if (isset($customer) && isset($customer->company) && isset($customer->company->fiscal_responsibility_id)) {
-                    $fiscalResponsability = (int)$customer->company->fiscal_responsibility_id;
-                } elseif (isset($customer) && isset($customer->fiscal_responsibility_id)) {
-                    $fiscalResponsability = (int)$customer->fiscal_responsibility_id;
-                }
-                $city = '';
-                if (isset($customer) && isset($customer->company) && isset($customer->company->city)) {
-                    $city = $customer->company->city;
-                } elseif (isset($customer) && isset($customer->city)) {
-                    $city = $customer->city;
-                }
-                $subTotal = $subtotal;
-            
-                // Topes y porcentajes desde config
-                $baseFuente = config('facturacion.retentions.base_amounts.fuente', 524000);
-                $porcFuente = config('facturacion.retentions.percentages.fuente', 0.025);
-                $baseIca = config('facturacion.retentions.base_amounts.ica', 1418800);
-                $porcIca = config('facturacion.retentions.percentages.ica', 0.001104);
-                $icaCities = config('facturacion.retentions.ica_cities', ['Bogotá, D.C.']);
-                $baseIva = config('facturacion.retentions.base_amounts.iva', 300000);
-                $porcIva = config('facturacion.retentions.percentages.iva', 0.15);
-                $ivaResponsibilities = config('facturacion.retentions.iva_fiscal_responsibilities', [5]);
-            
-                // Calculo fuente
-                $ret_fuente = 0;
-                if ($subTotal >= $baseFuente && $regimeDescription && (
-                    $regimeDescription === 'COMMON_REGIME' ||
-                    ($regimeDescription === 'SPECIAL_REGIME' && $fiscalResponsability === 5)
-                )) {
-                    $ret_fuente = round($subTotal * $porcFuente, 2);
-                }
-            
-                // Calculo ICA
-                $ret_ica = 0;
-                if ($subTotal >= $baseIca && in_array($city, $icaCities) && $regimeDescription && (
-                    $regimeDescription === 'COMMON_REGIME' || $regimeDescription === 'SPECIAL_REGIME'
-                )) {
-                    $ret_ica = round($subTotal * $porcIca, 2);
-                }
-            
-                // Calculo IVA
-                $ret_iva = 0;
-                if ($subTotal >= $baseIva && in_array($fiscalResponsability, $ivaResponsibilities)) {
-                    $ret_iva = round($subTotal * $porcIva, 2);
-                }
-            
-                $showRetentions = ($ret_fuente > 0 || $ret_ica > 0 || $ret_iva > 0);
-            @endphp
-            {{-- @if($showRetentions)
-                <div class="total-line">RETENCIONES</div>
-                @if($ret_fuente > 0)
-                    <span>Ret. Fuente (2.5%):</span>
-                    <span class="amount">-${{ number_format($ret_fuente, 0) }}</span>
-                @endif
-                @if($ret_ica > 0)
-                    <span>Ret. ICA (11.04‰):</span>
-                    <span class="amount">-${{ number_format($ret_ica, 0) }}</span>
-                @endif
-                @if($ret_iva > 0)
-                    <span>Ret. IVA (15%):</span>
-                    <span class="amount">-${{ number_format($ret_iva, 0) }}</span>
-                @endif
-                <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid black; margin-top: 6px; padding-top: 4px;">
-                    <span>Total con Retenciones:</span>
-                    <span style="color: black;">${{ number_format($total - $ret_fuente - $ret_ica - $ret_iva, 0) }}</span>
+                
+                <div class="notes-section">
+                    <span class="notes-label">Peso:</span> {{ $totalWeight ? number_format($totalWeight, 2) . ' kg' : 'N/A' }}
                 </div>
-            @endif --}}
-            <div class="total-line final">
-                <span>Total:</span>
-                <span class="amount">${{ number_format($total, 0) }}</span>
+                
+                {{-- <div class="notes-section">
+                    <span class="notes-label">Entrega:</span> Mensajero - Edificio LUX
+                </div> --}}
+                
+                <div class="notes-section">
+                    <span class="notes-label">Forma de pago:</span> 
+                    @if(isset($quote->methodPayment))
+                        {{ $quote->methodPayment->name }}
+                    @elseif($quote->status === 'REMISIÓN' && isset($quote->method_payment_name))
+                        {{ $quote->method_payment_name }}
+                    @endif
+                </div>
+            </div>
+
+            {{-- <div class="signatures">
+                <div class="signature-box">
+                    <div class="signature-line">RECIBIDO POR EL CLIENTE</div>
+                    <div style="font-size: 7.5pt; margin-top: 5px;">Firma y sello</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line">AUTORIZADO POR FERVICOM</div>
+                    <div style="font-size: 7.5pt; margin-top: 5px;">Firma autorizada</div>
+                </div>
+            </div> --}}
+        </div>
+
+        <div class="totals-container">
+            @php
+                $subtotalGlobal = $quote->detalles->sum(fn($d) => $d->value * $d->quantity);
+                $ivaGlobal = $quote->detalles->sum(fn($d) => ($d->value * $d->quantity) * ($d->tax / 100));
+                $flete = $quote->flete ?? 0;
+                $retencion = 0;
+                $ica = 0;
+                $totalFinal = $subtotalGlobal + $ivaGlobal + $flete - $retencion - $ica;
+            @endphp
+
+            <div class="total-row">
+                <div class="total-label">SUBTOTAL:</div>
+                <div class="total-value">${{ number_format($subtotalGlobal, 2) }}</div>
+            </div>
+            <div class="total-row">
+                <div class="total-label">+ IVA (19%):</div>
+                <div class="total-value">${{ number_format($ivaGlobal, 2) }}</div>
+            </div>
+            <div class="total-row">
+                <div class="total-label">+ FLETE:</div>
+                <div class="total-value">${{ number_format($flete, 2) }}</div>
+            </div>
+            <div class="total-row">
+                <div class="total-label">- RETEFUENTE:</div>
+                <div class="total-value">${{ number_format($retencion, 2) }}</div>
+            </div>
+            <div class="total-row">
+                <div class="total-label">- ICA:</div>
+                <div class="total-value">${{ number_format($ica, 2) }}</div>
+            </div>
+            
+            <div class="grand-total">
+                <div class="total-label">TOTAL A PAGAR:</div>
+                <div class="total-value">${{ number_format($totalFinal, 2) }}</div>
             </div>
         </div>
     </div>
 
-
-    <!-- Footer -->
-    <div class="footer">
-        <div class="footer-contact">
-            <strong>PARA PEDIDOS:</strong>
-            @if($company->billingEmail)
-                {{ $company->billingEmail }}
-            @endif
-            @if($company->phone)
-                - {{ $company->phone }}
-            @endif
-        </div>
-        <div>
-            <strong>Apreciado cliente, favor confirmar la recepción total de los productos despachados.</strong>
+    <!-- QR Footer -->
+    <div class="qr-footer">
+        <img src="{{ asset('images/qr-code-placeholder.png') }}" class="qr-image" alt="QR Code">
+        {{-- <div>
+            <strong>📱 ESCANEA PARA CONSULTAR NUESTRO CATÁLOGO VIRTUAL</strong>
+        </div> --}}
+        {{-- <div style="font-size: 7.5pt; color: #7f8c8d; margin-top: 5px;">
+            Generado automáticamente por el Sistema de Gestión Fervicom
+        </div> --}}
+        
+        <div class="provider-logos">
+            <span>🔌 Fuentes de poder | 💡 Cintas LED | 📐 Perfiles para cintas | 🎯 Perfiles para pasamanajes | ⚡ Fuentes dimerizables | 🧵 Materiales Pasamanajes</span>
         </div>
     </div>
-
-    @if($showQR ?? false)
-    <!-- QR Section -->
-    <div class="qr-section">
-        <div>Escanea el QR para ver el catálogo</div>
-        <div class="qr-code">
-            <!-- Aquí iría el QR code si está disponible -->
-            <div style="width: 100px; height: 100px; border: 1px solid #000; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                QR CODE
-            </div>
-        </div>
-    </div>
-    @endif
 
     <!-- Images Page -->
     @php

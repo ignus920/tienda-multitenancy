@@ -157,6 +157,15 @@ class InvRemissions extends Model
         return trim($user->name . ' ' . ($user->lastName ?? ''));
     }
 
+    /**
+     * Obtiene el teléfono del vendedor/usuario que creó la remisión
+     */
+    public function getSellerPhoneAttribute()
+    {
+        $user = $this->getUser();
+        return $user ? $user->phone : 'N/A';
+    }
+
     public function getSubTotalRemAttribute()
     {
         return $this->details->sum(function ($detail) {

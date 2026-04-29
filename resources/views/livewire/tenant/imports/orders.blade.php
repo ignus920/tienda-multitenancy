@@ -54,11 +54,14 @@
 
     <!-- Status Summary -->
 	<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
-		@foreach($this->status as $stat)
+        @foreach($this->status as $stat)
+            @php
+                $isActive = ($filterStatus == $stat->{'id'}) || ($stat->{'id'} == 10 && $filterNews == 1);
+            @endphp
             <button wire:click="putFilter({{ $stat->{'id'} }})" class="text-left transition-transform transform hover:scale-105">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex items-center p-4 border {{ $filterStatus == $stat->{'id'} ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900' : 'border-gray-200 dark:border-gray-700' }}">
-                    <div class="flex-shrink-0 {{ $filterStatus == $stat->{'id'} ? 'bg-indigo-600' : 'bg-indigo-100 dark:bg-indigo-900' }} rounded-lg p-3 mr-4 transition-colors">
-                        <x-heroicon-o-document-text class="w-8 h-8 {{ $filterStatus == $stat->{'id'} ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}" />
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex items-center p-4 border {{ $isActive ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900' : 'border-gray-200 dark:border-gray-700' }}">
+                    <div class="flex-shrink-0 {{ $isActive ? 'bg-indigo-600' : 'bg-indigo-100 dark:bg-indigo-900' }} rounded-lg p-3 mr-4 transition-colors">
+                        <x-heroicon-o-document-text class="w-8 h-8 {{ $isActive ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}" />
                     </div>
                     <div>
                         @if (Auth::user()?->profile_id == 17)
