@@ -133,6 +133,14 @@ class InvRemissions extends Model
     }
 
     /**
+     * Relación con las autorizaciones de Cartera
+     */
+    public function authorizations()
+    {
+        return $this->hasMany(\App\Models\Tenant\Sales\VntOrderAuthorization::class, 'remission_id');
+    }
+
+    /**
      * Getters para compatibilidad con las vistas de impresión del cotizador
      */
     public function getDetallesAttribute()

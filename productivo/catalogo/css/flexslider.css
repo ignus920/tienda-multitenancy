@@ -1,0 +1,158 @@
+/* SLIDER ==============================*/
+
+.flexslider{
+	width: 100%;
+	margin:auto;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+}
+
+.slides,
+.slides li,
+.slides li img{
+	width: 100%;
+}
+
+.slides li{
+	margin-bottom: -20px;
+}
+
+/* PAGINACION =======================*/
+
+.flex-control-nav.flex-control-paging{
+
+	padding: 5px 0px;
+	
+	
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	align-self: center;
+	list-style: none;
+	position: absolute;
+	bottom: -5px;
+	z-index: 3;
+}
+
+.flex-control-nav li{
+	display: inline-block;
+	margin: 0 5px;
+}
+
+.flex-control-nav li a{
+	display: block;
+	width: 10px;
+	height: 10px;
+	background: #001f3f;
+	border-radius: 50%;
+	text-indent: -9999px;
+	box-shadow: inset 0px -3px 2px 0px rgba(0,0,0,0.55);
+}
+
+.flex-control-nav li a.flex-active{
+	background: #FFFFFF;
+}
+
+/* CAPTION ==================*/
+.caption{
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	position: absolute;
+	top: 0;
+	z-index: 2;
+}
+
+.caption h1{
+	font-size: 50px;
+	color: #fff;
+	text-shadow: 2px 2px 2px rgba(000, 000, 000, 0.70);
+}
+
+
+.caption1{
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	position: absolute;
+	top: 100px;
+	z-index: 2;
+}
+
+.caption1 p{
+	font-size: 30px;
+	color: #fff;
+	text-shadow: 2px 2px 2px rgba(000, 000, 000, 0.70);
+}
+
+/* RESPONSIVE ========== */
+
+@media screen and (max-width: 670px){
+	.flex-direction-nav a{
+		opacity: 1;
+	}
+
+	.flex-direction-nav .flex-prev{
+		left: 15px;
+	}
+
+	.flex-direction-nav .flex-next{
+		right: 15px;
+	}
+
+	.caption h1{
+		font-size: 30px;
+	}
+
+}
+
+@media screen and (max-width: 600px){
+	.caption h1{
+		font-size: 25px;
+		position: absolute;
+	    top: 0;	
+	}
+
+	.caption1 p{
+		font-size: 15px;
+		position: absolute;
+	    top: 20px;	
+	}
+
+	.flexslider{
+		width: 100%;
+		border-radius: 0px;
+		border: none;
+	}
+
+	.slides li{
+		overflow: hidden;
+	}
+
+	.slides li img{
+		width: 600px;
+	}
+
+	.flex-direction-nav a{
+		top: auto;
+	}
+}
+
+@media screen and (max-width: 450px){
+	.slides li img{
+		transform: translateX(-90px);
+	}
+
+	#page-title{
+		font-size: 30px;
+	}
+}
+
+

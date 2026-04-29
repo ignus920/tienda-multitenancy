@@ -1,0 +1,14 @@
+
+
+.product_inner {
+  display: flex;
+  align-items: center;
+  flex-flow: column wrap;
+}
+.product_inner p {
+  color :#000000;
+}
+
+
+
+
