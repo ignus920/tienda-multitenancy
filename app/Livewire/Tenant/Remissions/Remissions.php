@@ -44,6 +44,7 @@ class Remissions extends Component
     // Propiedades para el modal de detalle
     public $showDetailModal = false;
     public $selectedRemission = null;
+    public $selectedItemDetails = null;
 
     // Propiedades para modal de facturación
     public $showInvoiceModal = false;
@@ -624,7 +625,52 @@ class Remissions extends Component
             $this->selectedRemission = null;
         }
 
+        $this->selectedItemDetails = null;
         $this->showDetailModal = true;
+    }
+
+    /**
+     * Carga las imágenes de bodega y accesorios de un ítem específico.
+     * 
+     * @param int $itemId ID del ítem
+     */
+    public function viewItemWarehouseDetails($itemId)
+    {
+        $this->ensureTenantConnection();
+
+        $item = \App\Models\Tenant\Items\Items::with([
+            'accessories.insumo',
+            'imageGallery' => function ($query) {
+                $query->where('type_show', 'BODEGA')->whereNull('deleted_at');
+            }
+        ])->find($itemId);
+
+        if ($item) {
+            $this->selectedItemDetails = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'internal_code' => $item->internal_code,
+                'description' => $item->description,
+                'picking' => $item->picking,
+                'stock_bodega' => $item->stock_bodega,
+                'qty_per_box' => $item->qty_per_box,
+                'images' => $item->imageGallery->map(function ($img) {
+                    return [
+                        'url' => $img->getImageUrl(),
+                        'thumbnail' => $img->getThumbnailUrl()
+                    ];
+                })->toArray(),
+                'accessories' => $item->accessories->map(function ($acc) {
+                    return [
+                        'name' => $acc->insumo->name ?? 'N/A',
+                        'internal_code' => $acc->insumo->internal_code ?? 'N/A',
+                        'description' => $acc->insumo->description ?? ''
+                    ];
+                })->toArray()
+            ];
+
+            Log::info('📦 Viendo detalles de bodega del ítem', ['item_id' => $itemId, 'name' => $item->name]);
+        }
     }
 
     /**
