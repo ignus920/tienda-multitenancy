@@ -59,6 +59,11 @@ class VntInvoices extends Model
         return $this->belongsTo(VntWarehouse::class, 'warehouseId');
     }
 
+    public function payments()
+    {
+        return $this->hasMany(VntInvoicePayments::class, 'invoiceId');
+    }
+
     // Métodos de utilidad
     public function getStatusTextAttribute(): string
     {

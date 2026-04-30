@@ -158,6 +158,14 @@ class Items extends Model
     }
 
     /**
+     * Relación con los accesorios del item
+     */
+    public function accessories()
+    {
+        return $this->hasMany(InvItemAccesorios::class, 'item', 'id')->with('insumo');
+    }
+
+    /**
      * Obtener solo imágenes activas (no eliminadas)
      */
     public function activeImages()

@@ -20,6 +20,8 @@ use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Services\Tenant\Campaigns\CampaignService;
 use App\Traits\Livewire\HasDynamicButtons;
 use App\Models\Central\UsrPermissionProfile;
+use App\Livewire\Tenant\Components\ObservationsModal;
+use App\Models\Tenant\Sales\VntObservation;
 
 class Remissions extends Component
 {
@@ -42,6 +44,7 @@ class Remissions extends Component
     // Propiedades para el modal de detalle
     public $showDetailModal = false;
     public $selectedRemission = null;
+    public $selectedItemDetails = null;
 
     // Propiedades para modal de facturación
     public $showInvoiceModal = false;
@@ -49,6 +52,13 @@ class Remissions extends Component
     public $selectedRemissionsData = [];
     public $totalItems = 0;
     public $moduleKey = 'remissions';
+    public $statusFilter = '';
+    public $summaryCounts = [
+        'registradas' => 0,
+        'alistamiento' => 0,
+        'sin_entregar' => 0,
+        'sin_facturar' => 0
+    ];
 
     // Permisos
     public $canEditRemission = false;
@@ -70,6 +80,10 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas con el rango del mes actual
+        $this->searchStartDate = now()->startOfMonth()->format('Y-m-d');
+        $this->searchEndDate = now()->format('Y-m-d');
 
         // Verificar permisos de edición para remisiones
         $user = auth()->user();
@@ -211,7 +225,70 @@ class Remissions extends Component
         $this->searchQuote = '';
         $this->searchStartDate = '';
         $this->searchEndDate = '';
+        $this->statusFilter = '';
         $this->resetPage();
+    }
+
+    public function setStatusFilter($status)
+    {
+        if ($this->statusFilter === $status) {
+            $this->statusFilter = '';
+        } else {
+            $this->statusFilter = $status;
+        }
+        $this->resetPage();
+    }
+
+    /**
+     * Abre el modal de observaciones detalladas despachando un evento al componente independiente
+     */
+    public function openObservationsModal($id)
+    {
+        $this->dispatch('openObservations', referenceId: $id, referenceType: 'remission', title: 'Observaciones del Pedido')->to(ObservationsModal::class);
+    }
+
+    /**
+     * Anula un pedido y registra el motivo en la tabla de observaciones
+     */
+    public function annulRemission($id, $reason)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $remission = InvRemissions::find($id);
+            if (!$remission) {
+                throw new \Exception("Pedido no encontrado.");
+            }
+
+            // Actualizar estado del pedido
+            $remission->update(['status' => 'ANULADO']);
+
+            // Registrar el motivo de anulación
+            VntObservation::create([
+                'reference_id' => $id,
+                'reference_type' => 'remission',
+                'observation_type' => 'annulment_reason',
+                'observation' => $reason,
+                'userId' => auth()->id()
+            ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => "Pedido #{$remission->consecutive} anulado correctamente."
+            ]);
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error("Error al anular pedido: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => "Error: " . $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -548,7 +625,52 @@ class Remissions extends Component
             $this->selectedRemission = null;
         }
 
+        $this->selectedItemDetails = null;
         $this->showDetailModal = true;
+    }
+
+    /**
+     * Carga las imágenes de bodega y accesorios de un ítem específico.
+     * 
+     * @param int $itemId ID del ítem
+     */
+    public function viewItemWarehouseDetails($itemId)
+    {
+        $this->ensureTenantConnection();
+
+        $item = \App\Models\Tenant\Items\Items::with([
+            'accessories.insumo',
+            'imageGallery' => function ($query) {
+                $query->where('type_show', 'BODEGA')->whereNull('deleted_at');
+            }
+        ])->find($itemId);
+
+        if ($item) {
+            $this->selectedItemDetails = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'internal_code' => $item->internal_code,
+                'description' => $item->description,
+                'picking' => $item->picking,
+                'stock_bodega' => $item->stock_bodega,
+                'qty_per_box' => $item->qty_per_box,
+                'images' => $item->imageGallery->map(function ($img) {
+                    return [
+                        'url' => $img->getImageUrl(),
+                        'thumbnail' => $img->getThumbnailUrl()
+                    ];
+                })->toArray(),
+                'accessories' => $item->accessories->map(function ($acc) {
+                    return [
+                        'name' => $acc->insumo->name ?? 'N/A',
+                        'internal_code' => $acc->insumo->internal_code ?? 'N/A',
+                        'description' => $acc->insumo->description ?? ''
+                    ];
+                })->toArray()
+            ];
+
+            Log::info('📦 Viendo detalles de bodega del ítem', ['item_id' => $itemId, 'name' => $item->name]);
+        }
     }
 
     /**
@@ -916,8 +1038,29 @@ class Remissions extends Component
             'store_id' => $storeId
         ]);
 
+        // Calcular conteos para las tarjetas de resumen
+        $baseQuery = InvRemissions::query()
+            ->when($storeId, function ($query) use ($storeId) {
+                $query->where('warehouseId', $storeId);
+            })
+            ->whereHas('authorizations', function ($q) {
+                $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
+                  ->where('status', 1);
+            });
+
+        $this->summaryCounts = [
+            'registradas' => (clone $baseQuery)->where('status', 'REGISTRADO')->count(),
+            'alistamiento' => (clone $baseQuery)->where('status', 'ALISTAMIENTO')->count(),
+            'sin_entregar' => (clone $baseQuery)->where('status', '!=', 'ENTREGADO')->count(),
+            'sin_facturar' => (clone $baseQuery)->whereDoesntHave('invoiceSale')->count(),
+        ];
+
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment'])
+        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
+            ->whereHas('authorizations', function ($q) {
+                $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
+                  ->where('status', 1);
+            })
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
                 $query->where('warehouseId', $storeId);
@@ -928,6 +1071,17 @@ class Remissions extends Component
             })
             ->where(function ($query) {
                 $this->applyBaseFilters($query);
+            })
+            ->when($this->statusFilter, function ($query) {
+                if ($this->statusFilter === 'registradas') {
+                    $query->where('status', 'REGISTRADO');
+                } elseif ($this->statusFilter === 'alistamiento') {
+                    $query->where('status', 'ALISTAMIENTO');
+                } elseif ($this->statusFilter === 'sin_entregar') {
+                    $query->where('status', '!=', 'ENTREGADO');
+                } elseif ($this->statusFilter === 'sin_facturar') {
+                    $query->whereDoesntHave('invoiceSale');
+                }
             })
             ->orderBy('created_at', 'desc')
             ->paginate($this->perPage);
@@ -963,7 +1117,7 @@ class Remissions extends Component
 
         return view('livewire.tenant.remissions.remissions', [
             'remissions' => $remissions
-        ])->layout('layouts.app', ['header' => 'Remisiones']);
+        ])->layout('layouts.app', ['header' => 'Pedidos']);
     }
 
     /**
@@ -1619,6 +1773,37 @@ class Remissions extends Component
                     'message' => 'Estado no válido para cambio.'
                 ]);
                 return;
+            }
+
+            // CARTERA: Validaciones de flujo dinámico entre Cartera y Pedidos
+            $remission->load('authorizations');
+            $hasEmpaque = $remission->authorizations->where('auth_type', 'empaque')->where('status', 1)->isNotEmpty();
+            $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->where('status', 1)->isNotEmpty();
+            $hasPago = $remission->authorizations->where('auth_type', 'pago')->where('status', 1)->isNotEmpty();
+
+            // Si tiene pago confirmado, se libera todo el flujo (prioridad máxima)
+            if (!$hasPago) {
+                // 1. Si intenta pasar de ALISTAMIENTO a EMPACADO, requiere Despacho Autorizado
+                if ($currentStatus === 'ALISTAMIENTO' && $nextStatus === 'EMPACADO') {
+                    if (!$hasDespacho) {
+                        $this->dispatch('show-toast', [
+                            'type' => 'warning',
+                            'message' => 'BLOQUEO DE CARTERA: No se puede avanzar a EMPACADO sin la autorización de DESPACHO.'
+                        ]);
+                        return;
+                    }
+                }
+
+                // 2. Si intenta pasar de REGISTRADO a ALISTAMIENTO, requiere al menos Empaque o Despacho
+                if ($currentStatus === 'REGISTRADO' && $nextStatus === 'ALISTAMIENTO') {
+                    if (!$hasEmpaque && !$hasDespacho) {
+                         $this->dispatch('show-toast', [
+                            'type' => 'warning',
+                            'message' => 'BLOQUEO DE CARTERA: Se requiere autorización de EMPAQUE para iniciar el alistamiento.'
+                        ]);
+                        return;
+                    }
+                }
             }
 
             // Actualizar el estado
