@@ -46,6 +46,18 @@
                     <p class="text-xs text-green-600 dark:text-green-300">
                         Identificación: {{ $selectedCustomer['identification'] }}
                     </p>
+
+                    @if(!empty($selectedCustomer['address']))
+                    <p class="text-[10px] text-green-700 dark:text-green-300 mt-1">
+                        <span class="font-bold">Dirección:</span> {{ $selectedCustomer['address'] }}
+                    </p>
+                    @endif
+
+                    @if(!empty($selectedCustomer['cityName']))
+                    <p class="text-[10px] text-green-700 dark:text-green-300">
+                        <span class="font-bold">Ciudad:</span> {{ $selectedCustomer['cityName'] }}
+                    </p>
+                    @endif
                 </div>
                 <div class="flex items-center ml-2">
                     <!-- Botón Editar -->
@@ -82,7 +94,7 @@
             </div>
 
             <!-- Selector de Sucursales (si aplica) -->
-            @if(!empty($branches) && count($branches) > 1)
+            @if(!empty($branches) && count($branches) > 1 && !$isEditing)
             <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
                 <label class="block text-[10px] font-bold text-green-700 dark:text-green-300 uppercase mb-1">
                     Seleccionar Agencia/Sucursal

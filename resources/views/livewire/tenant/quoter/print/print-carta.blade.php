@@ -474,6 +474,7 @@
                 <th class="col-delivered">ENTREGADO</th>
                 <th class="col-pending">PENDIENTES</th>
                 <th class="col-price">V.UNIT.</th>
+                <th class="col-discount">DESCUENTO</th>
                 <th class="col-total">SUBTOTAL</th>
             </tr>
         </thead>
@@ -492,6 +493,7 @@
                     <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
                     <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td>
                     <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
+                    <td class="col-discount">${{ $detalle->price_label ?? '-'}}</td>
                     <td class="col-total">${{ number_format($detalle->value * $detalle->quantity, 2) }}</td>
                 </tr>
             @endforeach
@@ -561,14 +563,14 @@
                 <div class="total-label">+ FLETE:</div>
                 <div class="total-value">${{ number_format($flete, 2) }}</div>
             </div>
-            <div class="total-row">
+            {{-- <div class="total-row">
                 <div class="total-label">- RETEFUENTE:</div>
                 <div class="total-value">${{ number_format($retencion, 2) }}</div>
-            </div>
-            <div class="total-row">
+            </div> --}}
+            {{-- <div class="total-row">
                 <div class="total-label">- ICA:</div>
                 <div class="total-value">${{ number_format($ica, 2) }}</div>
-            </div>
+            </div> --}}
             
             <div class="grand-total">
                 <div class="total-label">TOTAL A PAGAR:</div>

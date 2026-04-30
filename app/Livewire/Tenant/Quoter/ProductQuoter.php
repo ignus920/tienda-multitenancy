@@ -94,6 +94,7 @@ class ProductQuoter extends Component
     public $customerResults = []; // Resultados de búsqueda de clientes
     public $branches = []; // Sucursales de la empresa seleccionada
     public $selectedBranchId = null; // ID de la sucursal seleccionada
+    public $selectedContactId = null; // ID del contacto seleccionado
 
     // Propiedades para retenciones
     public $retentions = [
@@ -946,17 +947,24 @@ class ProductQuoter extends Component
             $this->showCreateCustomerButton = false;
 
             if (count($this->branches) > 1) {
-                // Si tiene más de una sucursal, el usuario debe elegir una
-                $this->selectedBranchId = null;
-                $this->dispatch('show-toast', [
-                    'type' => 'info',
-                    'message' => 'El cliente tiene varias sedes. Por favor selecciona una.'
-                ]);
+                // Buscar la sucursal principal
+                $mainBranch = collect($this->branches)->firstWhere('main', 1);
+
+                if ($mainBranch) {
+                    $this->selectBranch($mainBranch['id']);
+                } else {
+                    // Si no hay principal, seleccionar la primera por defecto
+                    $this->selectBranch($this->branches[0]['id']);
+                }
             } elseif (count($this->branches) === 1) {
                 // Si tiene solo una, seleccionarla automáticamente
                 $this->selectBranch($this->branches[0]['id']);
             } else {
-                // Si no tiene sucursales (no debería pasar), finalizar selección
+                // Si no tiene sucursales, intentar buscar un contacto directo
+                $contact = VntContacts::where('warehouseId', 0) // Contactos sin sucursal
+                    ->whereHas('company', fn($q) => $q->where('vnt_companies.id', $customerId))
+                    ->first();
+                $this->selectedContactId = $contact ? $contact->id : null;
                 $this->finalizeCustomerSelection();
             }
 
@@ -974,6 +982,40 @@ class ProductQuoter extends Component
 
         if ($branch) {
             $this->finalizeCustomerSelection($branch);
+
+            $this->ensureTenantConnection();
+            
+            // Buscar el contacto asociado a esta sucursal específica
+            $contact = VntContacts::where('warehouseId', $branchId)->first();
+            
+            // Si no hay contacto en la sucursal, buscar el primero de la empresa
+            if (!$contact && $this->selectedCustomer) {
+                $contact = VntContacts::whereHas('company', function ($q) {
+                    $q->where('vnt_companies.id', $this->selectedCustomer['id']);
+                })->first();
+            }
+
+            $this->selectedContactId = $contact ? $contact->id : null;
+
+            // IMPORTANTE: Si estamos editando una cotización o en el modal de pagos con una cotización guardada,
+            // debemos actualizar el registro en la BD para que la factura use los datos correctos.
+            if ($this->editingQuoteId) {
+                $quote = VntQuote::find($this->editingQuoteId);
+                if ($quote) {
+                    $updateData = [
+                        'branchId' => $branchId,
+                        'customerId' => $this->selectedContactId ?: $quote->customerId
+                    ];
+                    
+                    $quote->update($updateData);
+                    
+                    Log::info('✅ Cotización actualizada con nueva sucursal/contacto', [
+                        'quote_id' => $quote->id,
+                        'new_branch_id' => $branchId,
+                        'new_contact_id' => $this->selectedContactId
+                    ]);
+                }
+            }
         }
     }
 
@@ -1088,36 +1130,11 @@ class ProductQuoter extends Component
 
     public function onCustomerCreated($customerId)
     {
-        $this->ensureTenantConnection();
+        $this->selectCustomer($customerId);
 
-        // Buscar el cliente recién creado
-        $customer = VntCompany::find($customerId);
-
-        if ($customer) {
-            // Seleccionar el cliente recién creado
-            $this->selectedCustomer = [
-                'id' => $customer->id,
-                'businessName' => $customer->businessName,
-                'firstName' => $customer->firstName,
-                'lastName' => $customer->lastName,
-                'identification' => $customer->identification,
-                'billingEmail' => $customer->billingEmail,
-            ];
-
-            // Limpiar estados del formulario de creación/edición
-            $this->showCreateCustomerForm = false;
-            $this->showCreateCustomerButton = false;
-            $this->customerSearch = '';
-            $this->editingCustomerId = null;
-
-            // Determinar el nombre a mostrar
-            $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
-
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Cliente creado y seleccionado: ' . $customerName
-            ]);
-        }
+        // Limpiar estados adicionales del formulario de creación
+        $this->showCreateCustomerForm = false;
+        $this->editingCustomerId = null;
     }
 
     public function onCustomerUpdated($customerId)
