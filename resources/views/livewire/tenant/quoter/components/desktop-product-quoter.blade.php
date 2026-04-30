@@ -1172,7 +1172,7 @@ $header = 'Seleccionar productos';
                             class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Selecciona una sucursal</option>
                         @foreach($branches as $branch)
-                            <option value="{{ $branch['id'] }}">{{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}</option>
+                            <option value="{{ $branch['id'] }}">{{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }} - {{ $branch['address'] ?? 'N/A' }}</option>
                         @endforeach
                     </select>
                 </div>
