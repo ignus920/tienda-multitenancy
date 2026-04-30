@@ -350,6 +350,45 @@ $header = 'Seleccionar productos';
                     <button wire:click="closePaymentModal" class="text-gray-300"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                 </div>
                 <div class="flex-1 p-4 overflow-y-auto">
+                    <!-- Selección de Sede/Sucursal Destacada -->
+                    @if(!empty($branches) && count($branches) > 1)
+                    <div class="mb-4 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl shadow-sm">
+                        <label class="block text-xs font-black text-yellow-800 uppercase mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            </svg>
+                            Confirmar Sede del Cliente
+                        </label>
+                        <select 
+                            wire:model.live="selectedBranchId"
+                            wire:change="selectBranch($event.target.value)"
+                            class="block w-full text-base font-bold border-yellow-300 rounded-lg bg-white text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 shadow-sm py-3"
+                        >
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch['id'] }}">
+                                    {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    <!-- Selección de Sede/Sucursal (Panel Informativo) -->
+                    @if(!empty($branches))
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 mb-4">
+                        <h4 class="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase mb-2">Resumen de Envío</h4>
+                        @if($selectedBranchId || count($branches) === 1)
+                        <div class="text-[11px] text-gray-600 dark:text-gray-400">
+                            <p class="font-bold text-indigo-800 dark:text-indigo-200">
+                                {{ count($branches) === 1 ? $branches[0]['name'] : (collect($branches)->firstWhere('id', $selectedBranchId)['name'] ?? '') }}
+                            </p>
+                            <p><span class="font-bold">Dir:</span> {{ $selectedCustomer['address'] ?? 'N/A' }}</p>
+                            <p><span class="font-bold">Ciudad:</span> {{ $selectedCustomer['cityName'] ?? 'N/A' }}</p>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
+
                     <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 grid grid-cols-2 gap-4 text-center">
                         <div><div class="text-sm text-gray-600">PAGADO</div><div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 2, ',', '.') }}</div></div>
                         <div><div class="text-sm text-gray-600">FALTA</div><div class="text-xl font-bold text-red-600">${{ number_format($remainingBalance, 2, ',', '.') }}</div></div>
