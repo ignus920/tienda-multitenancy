@@ -329,6 +329,10 @@ class ProductQuoter extends Component
                 )->toArray();
             }
 
+            // Aplicar IVA a los precios (inv_values almacena precios sin IVA)
+            $taxRate  = $p->tax->percentage ?? 0;
+            $allPrices = collect($allPrices)->map(fn($price) => round($price * (1 + $taxRate / 100)))->toArray();
+
             // Buscar si el producto ya está en el carrito para inyectar su estado
             $index = $this->findProductInQuoter($p->id);
             $quantity = 0;
@@ -428,6 +432,10 @@ class ProductQuoter extends Component
                             strtolower($label) === 'p1' || strtolower($label) === 'precio base'
                         )->toArray();
                     }
+
+                    // Aplicar IVA a los precios (inv_values almacena precios sin IVA)
+                    $taxRate   = $p->tax->percentage ?? 0;
+                    $allPrices = collect($allPrices)->map(fn($price) => round($price * (1 + $taxRate / 100)))->toArray();
 
                     return [
                         'id' => $p->id,

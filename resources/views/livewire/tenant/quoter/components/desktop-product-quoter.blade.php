@@ -163,12 +163,16 @@ $header = 'Seleccionar productos';
                             @endphp
                             <div class="mb-2 grid {{ $priceCount == 1 ? 'grid-cols-1' : 'grid-cols-2' }} gap-1">
                                 @foreach($filteredPrices as $label => $price)
+                                @php
+                                    $taxRate      = $product->tax->percentage ?? 0;
+                                    $priceWithTax = round($price * (1 + $taxRate / 100));
+                                @endphp
                                 <button
                                     title="{{ $label }}"
-                                    x-on:click.stop="addItemInstant({{ $product->id }}, '{{ addslashes($product->display_name) }}', '{{ $product->sku }}', {{ $price }}, '{{ $label }}')"
+                                    x-on:click.stop="addItemInstant({{ $product->id }}, '{{ addslashes($product->display_name) }}', '{{ $product->sku }}', {{ $priceWithTax }}, '{{ $label }}')"
                                     class="px-2 py-1 text-center rounded border transition-colors min-h-[28px] flex items-center justify-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
                                     <div class="font-bold text-xs text-gray-900 dark:text-white">
-                                        ${{ number_format($price) }}
+                                        ${{ number_format($priceWithTax) }}
                                     </div>
                                 </button>
                                 @endforeach
