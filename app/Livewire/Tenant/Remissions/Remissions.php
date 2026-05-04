@@ -8,6 +8,7 @@ use App\Services\Tenant\TenantManager;
 use App\Traits\HasCompanyConfiguration;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use App\Models\Central\VntWarehouse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ use App\Traits\Livewire\HasDynamicButtons;
 use App\Models\Central\UsrPermissionProfile;
 use App\Livewire\Tenant\Components\ObservationsModal;
 use App\Models\Tenant\Sales\VntObservation;
+use App\Models\Tenant\Inventory\InventoryConfirmation;
+use App\Models\Tenant\Sales\VntOrderAuthorization;
 
 class Remissions extends Component
 {
@@ -57,8 +60,12 @@ class Remissions extends Component
         'registradas' => 0,
         'alistamiento' => 0,
         'sin_entregar' => 0,
-        'sin_facturar' => 0
+        'sin_facturar' => 0,
+        'consultas_nuevas' => 0,
+        'sin_autorizacion' => 0
     ];
+
+    public $showConfirmationsModal = false;
 
     // Permisos
     public $canEditRemission = false;
@@ -1053,6 +1060,12 @@ class Remissions extends Component
             'alistamiento' => (clone $baseQuery)->where('status', 'ALISTAMIENTO')->count(),
             'sin_entregar' => (clone $baseQuery)->where('status', '!=', 'ENTREGADO')->count(),
             'sin_facturar' => (clone $baseQuery)->whereDoesntHave('invoiceSale')->count(),
+            'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
+            'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
+                ->where('status', '!=', 'ENTREGADO')
+                ->whereDoesntHave('authorizations', function($q) {
+                    $q->where('auth_type', 'despacho')->where('status', 1);
+                })->count(),
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
@@ -1858,5 +1871,21 @@ class Remissions extends Component
             ]);
             return false;
         }
+    }
+
+    public function openConfirmationsModal()
+    {
+        $this->showConfirmationsModal = true;
+    }
+
+    public function closeConfirmationsModal()
+    {
+        $this->showConfirmationsModal = false;
+    }
+
+    #[On('confirmation-updated')]
+    public function refreshCounts()
+    {
+        // El render se encargará de recalcular summaryCounts
     }
 }

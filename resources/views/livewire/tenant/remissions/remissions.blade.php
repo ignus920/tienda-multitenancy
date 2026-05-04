@@ -20,7 +20,7 @@
     </div>
     
     <!-- Tarjetas de Resumen -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <!-- Registradas -->
         <div wire:click="setStatusFilter('registradas')" 
              class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'registradas' ? 'bg-red-500 border-red-600 shadow-red-200 dark:shadow-red-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
@@ -69,6 +69,35 @@
                 </div>
                 <div>
                     <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'sin_facturar' ? 'text-white' : 'text-gray-900 dark:text-white' }}">Sin facturar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consultas nuevas -->
+        <div wire:click="openConfirmationsModal" 
+             class="p-4 rounded-lg border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm transition-all duration-300 cursor-pointer hover:shadow-lg hover:border-green-500 group">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform"
+                     style="background-color: #10b981 !important;">
+                    {{ $summaryCounts['consultas_nuevas'] }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-gray-400 uppercase mb-0.5">Inventario</p>
+                    <p class="text-[13px] font-semibold text-gray-700 dark:text-slate-300 leading-tight">Consultas nuevas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin autorización de entrega -->
+        <div class="p-4 rounded-lg border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm transition-all duration-300 group">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-pink-500/20 group-hover:animate-pulse transition-all"
+                     style="background-color: #e91e63 !important;">
+                    {{ $summaryCounts['sin_autorizacion'] }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-gray-400 uppercase mb-0.5">Cartera</p>
+                    <p class="text-[13px] font-semibold text-gray-700 dark:text-slate-300 leading-tight">Sin autorización</p>
                 </div>
             </div>
         </div>
@@ -826,6 +855,50 @@
     </template>
     <!-- Componente de Observaciones Detalladas -->
     <livewire:tenant.components.observations-modal />
+
+    <!-- Modal de Confirmaciones de Inventario -->
+    @if($showConfirmationsModal)
+    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" wire:click="closeConfirmationsModal"></div>
+
+        <!-- Modal Content -->
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-300">
+            <!-- Header -->
+            <div class="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white leading-none">Confirmaciones de Inventario</h3>
+                        <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Solicitudes pendientes desde el Cotizador</p>
+                    </div>
+                </div>
+                <button wire:click="closeConfirmationsModal" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50 dark:bg-slate-900/50">
+                @livewire('tenant.inventory.inventory-confirmation-list')
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-white dark:bg-slate-800 px-6 py-4 flex justify-end items-center border-t border-gray-100 dark:border-slate-700 shrink-0">
+                <button wire:click="closeConfirmationsModal" 
+                        class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-white rounded-xl text-sm font-bold transition-all transform active:scale-95">
+                    Cerrar Ventana
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <script>
         window.confirmAnnulment = function(id, consecutive) {

@@ -128,6 +128,9 @@
        <!-- Modal Global de Detalle de Corte de Items -->
        @livewire('tenant.components.inv-items-cut-details')
 
+       <!-- Modal Global de Confirmación de Inventario -->
+       @livewire('tenant.components.inventory-confirmation-modal')
+
      
 
         @livewireScripts
