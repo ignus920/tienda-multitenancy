@@ -279,7 +279,7 @@
                                                 </svg>
                                                 Ver Detalle
                                             </button>
-                                            @if($quote->status !== 'REMISIÓN' && $quote->status !== 'FACTURADO')
+                                            @if($quote->status !== 'REMISIÓN' && $quote->status !== 'FACTURADO' && $quote->status !== 'ANULADO')
                                             <button wire:click="editarCotizacion({{ $quote->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

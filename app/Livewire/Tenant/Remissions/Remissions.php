@@ -272,6 +272,15 @@ class Remissions extends Component
             // Actualizar estado del pedido
             $remission->update(['status' => 'ANULADO']);
 
+            // ✅ NUEVO: También anular la cotización asociada si existe
+            if ($remission->quote) {
+                $remission->quote->update(['status' => 'ANULADO']);
+                Log::info('📋 Cotización asociada anulada automáticamente', [
+                    'quote_id' => $remission->quote->id,
+                    'remission_id' => $id
+                ]);
+            }
+
             // Registrar el motivo de anulación
             VntObservation::create([
                 'reference_id' => $id,
