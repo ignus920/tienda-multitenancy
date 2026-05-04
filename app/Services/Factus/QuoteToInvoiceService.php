@@ -88,7 +88,6 @@ class QuoteToInvoiceService
 
     protected function buildInvoiceData(VntQuote $quote): array
     {
-        $establishment     = $this->getEstablishmentData($quote);
         $customer          = $this->getCustomerData($quote);
         $items             = $this->processQuoteItems($quote);
         $referenceCode     = $this->generateReferenceCode($quote);
@@ -102,7 +101,6 @@ class QuoteToInvoiceService
             'payment_form'        => '1',   // 1 = contado
             'payment_method_code' => '10',  // 10 = efectivo
             'payment_due_date'    => now()->format('Y-m-d'),
-            'establishment'       => $establishment,
             'customer'            => $customer,
             'items'               => $items,
         ];
@@ -268,7 +266,6 @@ class QuoteToInvoiceService
 
             $firstRemission   = $remissions->first();
             $quote            = $firstRemission->quote;
-            $establishment    = $this->getEstablishmentData($quote);
             $customer         = $this->getCustomerData($quote);
             $items            = $this->consolidateRemissionItems($remissions);
             $numberingRangeId = $this->factusClient->getActiveNumberingRangeId();
@@ -283,7 +280,6 @@ class QuoteToInvoiceService
                 'payment_form'        => '1',
                 'payment_method_code' => '10',
                 'payment_due_date'    => now()->format('Y-m-d'),
-                'establishment'       => $establishment,
                 'customer'            => $customer,
                 'items'               => $items,
             ];
