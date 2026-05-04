@@ -81,9 +81,9 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
 
-        // Inicializar fechas con el rango del mes actual
-        $this->searchStartDate = now()->startOfMonth()->format('Y-m-d');
-        $this->searchEndDate = now()->format('Y-m-d');
+        // Inicializar fechas con rango de ±7 días respecto a hoy
+        $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
+        $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
 
         // Verificar permisos de edición para remisiones
         $user = auth()->user();
@@ -223,8 +223,8 @@ class Remissions extends Component
         $this->searchNit = '';
         $this->searchName = '';
         $this->searchQuote = '';
-        $this->searchStartDate = '';
-        $this->searchEndDate = '';
+        $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
+        $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
         $this->statusFilter = '';
         $this->resetPage();
     }

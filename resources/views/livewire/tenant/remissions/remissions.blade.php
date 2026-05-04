@@ -105,12 +105,12 @@
                     class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
             <div style="flex: 1; min-width: 0;">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Desde</label>
+                <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">desde:</label>
                 <input type="date" wire:model.live="searchStartDate"
                     class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
             <div style="flex: 1; min-width: 0;">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Hasta</label>
+                <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">hasta:</label>
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <input type="date" wire:model.live="searchEndDate"
                         class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
