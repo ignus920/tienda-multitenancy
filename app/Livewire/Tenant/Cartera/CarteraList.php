@@ -30,6 +30,7 @@ class CarteraList extends Component
     public $showJustificacionModal = false;
     public $justificacionText = '';
     public $selectedRemissionId = null;
+    public $isDesconfirmarPago = false;
 
     protected $queryString = [
         'fromDate' => ['except' => ''],
@@ -39,8 +40,8 @@ class CarteraList extends Component
 
     public function mount()
     {
-        $this->fromDate = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->toDate = Carbon::now()->format('Y-m-d');
+        $this->fromDate = Carbon::now()->subDays(7)->format('Y-m-d');
+        $this->toDate = Carbon::now()->addDays(7)->format('Y-m-d');
     }
 
     /**
@@ -51,6 +52,17 @@ class CarteraList extends Component
         $this->ensureTenantConnection();
         try {
             DB::connection('tenant')->beginTransaction();
+            
+            // Validar si el pedido está anulado
+            $remission = InvRemissions::find($remissionId);
+            if ($remission && $remission->status === 'ANULADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'No se pueden modificar autorizaciones de un pedido anulado.'
+                ]);
+                DB::connection('tenant')->rollBack();
+                return;
+            }
 
             // Obtener el estado actual (si existe)
             $lastAuth = VntOrderAuthorization::where('remission_id', $remissionId)
@@ -77,7 +89,17 @@ class CarteraList extends Component
                     $this->saveAuth($remissionId, $type, true);
                 }
             } else {
-                // Si desautoriza, solo desautoriza ese nivel (o según requerimiento del negocio)
+                // REQUERIMIENTO: Si desautoriza PAGO, pedir justificación
+                if ($type === 'pago') {
+                    $this->selectedRemissionId = $remissionId;
+                    $this->isDesconfirmarPago = true;
+                    $this->justificacionText = '';
+                    $this->showJustificacionModal = true;
+                    DB::connection('tenant')->rollBack(); // No guardar nada aún
+                    return;
+                }
+
+                // Si desautoriza otros niveles, solo desautoriza ese nivel
                 $this->saveAuth($remissionId, $type, false);
             }
 
@@ -121,8 +143,8 @@ class CarteraList extends Component
     public function clearFilters()
     {
         $this->reset(['search', 'activeFilter', 'searchNit', 'searchName', 'searchQuote', 'showAdvancedSearch']);
-        $this->fromDate = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->toDate = Carbon::now()->format('Y-m-d');
+        $this->fromDate = Carbon::now()->subDays(7)->format('Y-m-d');
+        $this->toDate = Carbon::now()->addDays(7)->format('Y-m-d');
         $this->resetPage();
     }
 
@@ -136,6 +158,7 @@ class CarteraList extends Component
     {
         $this->ensureTenantConnection();
         $this->selectedRemissionId = $remissionId;
+        $this->isDesconfirmarPago = false; // Resetear flag
         
         // Cargar observación previa si existe
         $observation = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remissionId)
@@ -153,6 +176,31 @@ class CarteraList extends Component
         
         if (!$this->selectedRemissionId) return;
 
+        if (empty(trim($this->justificacionText))) {
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'La justificación es obligatoria.']);
+            return;
+        }
+
+        $finalObservation = $this->justificacionText;
+
+        if ($this->isDesconfirmarPago) {
+            // Obtener nombre del usuario y fecha para trazabilidad
+            $userName = auth()->user()->name;
+            $date = now()->format('Y-m-d H:i');
+            
+            // Cargar observación existente para concatenar
+            $existing = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $this->selectedRemissionId)
+                ->where('reference_type', 'remission')
+                ->where('observation_type', 'cartera_justificacion')
+                ->first();
+            
+            $prefix = "\n--- DESCONFIRMADO POR {$userName} ({$date}) ---\n";
+            $finalObservation = ($existing ? $existing->observation : "") . $prefix . $this->justificacionText;
+
+            // Guardar el registro de desautorización en vnt_order_authorizations
+            $this->saveAuth($this->selectedRemissionId, 'pago', false);
+        }
+
         \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
             [
                 'reference_id' => $this->selectedRemissionId,
@@ -160,7 +208,7 @@ class CarteraList extends Component
                 'observation_type' => 'cartera_justificacion'
             ],
             [
-                'observation' => $this->justificacionText,
+                'observation' => $finalObservation,
                 'userId' => auth()->id()
             ]
         );
@@ -168,10 +216,11 @@ class CarteraList extends Component
         $this->showJustificacionModal = false;
         $this->justificacionText = '';
         $this->selectedRemissionId = null;
+        $this->isDesconfirmarPago = false;
 
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Justificación guardada correctamente.'
+            'message' => 'Acción realizada correctamente.'
         ]);
     }
 
