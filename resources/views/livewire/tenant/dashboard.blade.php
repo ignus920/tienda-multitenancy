@@ -125,6 +125,15 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300">Cajas</span>
                     </a>
+
+                    <a href="{{ route('tenant.reports.list') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-teal-50 hover:to-cyan-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-teal-300 dark:hover:border-teal-500 hover:shadow-lg hover:shadow-teal-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
+                        <div class="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-full group-hover:bg-teal-200 dark:group-hover:bg-teal-800/50 group-hover:scale-110 transition-all duration-300">
+                            <svg class="w-8 h-8 text-teal-600 dark:text-teal-400 group-hover:text-teal-700 dark:group-hover:text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors duration-300">Informes</span>
+                    </a>
                 </div>
             </div>
         </div>
