@@ -242,9 +242,9 @@ $header = 'Seleccionar productos';
                                 </div>
                             </div>
 
-                            <!-- Contador en la esquina superior derecha -->
+                            <!-- Contador en la esquina inferior derecha -->
                             @if($quantity > 0 && !$hideQuoter)
-                            <div class="absolute top-2 right-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10">
+                            <div class="absolute bottom-2 right-2 bg-indigo-600 dark:bg-indigo-500 text-white text-[10px] font-black rounded-lg px-2 py-0.5 shadow-lg border border-white/20 z-10">
                                 {{ $quantity }}
                             </div>
                             @endif

@@ -96,6 +96,7 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Salida ERP</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Entrada ERP</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">EXW</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -115,51 +116,18 @@
 
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="flex-shrink-0 h-10 w-10">
-                                    <div class="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                        <svg class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
-                                        </svg>
-                                    </div>
+                                <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                     @click.stop="$dispatch('openImageModal', { productId: {{ $item->id }}, context: 'COMERCIAL' })">
+                                    @php
+                                        $thumbnail = $item->getPrincipalThumbnailUrl('COMERCIAL');
+                                    @endphp
+                                    <img src="{{ $thumbnail }}" 
+                                         alt="Producto" 
+                                         class="w-full h-full object-cover">
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                        @if($selectedLabelId)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 mr-2">
-                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                                </svg>
-                                                Ya tiene etiqueta asignada
-                                            </span>
-                                        @endif
-                                        {{ $item->sku ?? 'N/A' }}
-                                    </div>
-                                     <div class="text-sm text-gray-500 dark:text-gray-400">ID: {{ $item->id }}</div>
-                                    <div class="flex items-center mt-2">
-                                        <!-- Icono de imagen/galería -->
-                                        <button type="button" class="p-1 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Ver imágenes">
-                                            <svg class="w-5 h-5 text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 15l3-3 4 4M8 19h8" />
-                                            </svg>
-                                        </button>
-                                        <!-- Icono de documento -->
-                                        <button type="button" class="p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Ver documentos">
-                                            <svg class="w-5 h-5 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3v5h5M9 15h6M9 18h4" />
-                                            </svg>
-                                        </button>
-                                        <!-- Icono de historial -->
-                                        <button type="button" 
-                                                wire:click.stop="$dispatch('open-item-history', { itemId: {{ $item->id }}, labelId: {{ $selectedLabelId ?? 'null' }}, isAllMode: {{ $selectedLabelId ? 'false' : 'true' }} })"
-                                                class="p-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" 
-                                                title="Ver historial">
-                                            <svg class="w-5 h-5 text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                    </div>
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ $item->sku }}</div>
+                                    <div class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">{{ $item->internal_code }}</div>
                                 </div>
                             </div>
                         </td>
@@ -167,7 +135,6 @@
                             <div class="text-sm text-gray-900 dark:text-white">{{ $item->description ?? $item->name }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap relative">
-                            <!-- Tooltip personalizado con posición dinámica -->
                             <div x-show="showTooltip"
                                 x-transition:enter="transition ease-out duration-200"
                                 x-transition:enter-start="opacity-0"
@@ -184,12 +151,10 @@
                                     </svg>
                                     Seleccionar item
                                 </div>
-                                <!-- Flecha arriba (cuando tooltip está abajo) -->
                                 <div x-show="tooltipPosition === 'bottom'"
                                     class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-px">
                                     <div class="border-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
                                 </div>
-                                <!-- Flecha abajo (cuando tooltip está arriba) -->
                                 <div x-show="tooltipPosition === 'top'"
                                     class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
                                     <div class="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
@@ -223,10 +188,30 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-semibold text-gray-900 dark:text-white">${{ number_format($item->exw ?? 0, 2) }}</div>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end gap-2">
+                                <button type="button" 
+                                        @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $item->id }} })"
+                                        class="p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group" 
+                                        title="Ver accesorios">
+                                    <svg class="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                </button>
+                                <button type="button" 
+                                        wire:click.stop="$dispatch('open-item-history', { itemId: {{ $item->id }}, labelId: {{ $selectedLabelId ?? 'null' }}, isAllMode: {{ $selectedLabelId ? 'false' : 'true' }} })"
+                                        class="p-2 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors group" 
+                                        title="Ver historial">
+                                    <svg class="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center">
+                        <td colspan="9" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center">
                                 <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -255,35 +240,30 @@
             class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' }} rounded-lg shadow-sm border p-4 hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors relative">
 
             <div class="flex items-start justify-between mb-3">
-                <div class="flex items-center gap-3 flex-1">
-                    <div class="flex-shrink-0">
-                        <div class="h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                            <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
-                            </svg>
-                        </div>
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="flex-shrink-0 h-16 w-16 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm active:scale-95 transition-transform"
+                         @click.stop="$dispatch('openImageModal', { productId: {{ $item->id }}, context: 'COMERCIAL' })">
+                        @php
+                            $thumbnail = $item->getPrincipalThumbnailUrl('COMERCIAL');
+                        @endphp
+                        <img src="{{ $thumbnail }}" alt="Producto" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 mb-1">
                             @if($selectedLabelId)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                    </svg>
-                                    Ya tiene etiqueta asignada
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+                                    ✓ ASIGNADO
                                 </span>
                             @endif
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-white truncate">{{ $item->sku ?? 'N/A' }}</h3>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ $item->sku ?? 'N/A' }}</h3>
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {{ $item->id }}</p>
-                           
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-50 dark:bg-gray-700/50 px-1.5 py-0.5 rounded inline-block">ID: {{ $item->id }}</p>
                     </div>
                 </div>
             </div>
 
             <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
                 <p class="text-sm text-gray-700 dark:text-gray-300">{{ $item->description ?? $item->name }}</p>
-                <!-- Iconos de acciones móvil -->
                 <div class="flex items-center gap-2 mt-2" onclick="event.stopPropagation()">
                     <button type="button" class="p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Ver imágenes">
                         <svg class="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,9 +278,17 @@
                         </svg>
                     </button>
                     <button type="button" 
-                            wire:click.stop="$dispatch('open-item-history', { itemId: {{ $item->id }}, labelId: {{ $selectedLabelId ?? 'null' }}, isAllMode: {{ $selectedLabelId ? 'false' : 'true' }} })"
-                            class="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" 
-                            title="Ver historial">
+                            @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $item->id }} })"
+                            class="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" 
+                            title="Ver accesorios">
+                        <svg class="w-5 h-5 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </button>
+                    <button type="button" 
+                            @click.stop="$dispatch('openObservationsModal', { itemId: {{ $item->id }} })"
+                            class="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" 
+                            title="Ver observaciones">
                         <svg class="w-5 h-5 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -353,11 +341,8 @@
             </div>
 
 
-                <div class="absolute top-2 right-2">
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"></path>
-                        </svg>
+                <div class="absolute bottom-4 right-4">
+                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-[9px] font-black bg-indigo-600 text-white uppercase tracking-tighter shadow-lg ring-1 ring-white/20">
                         Tap para seleccionar
                     </span>
                 </div>
@@ -383,4 +368,8 @@
 
     <!-- Componente de Historial -->
     @livewire('tenant.imports.import-item-history')
+
+    <!-- Modales Compartidos -->
+    @livewire('tenant.components.product-image-modal')
+    @livewire('tenant.components.item-accessories-modal')
 </div>

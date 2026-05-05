@@ -118,10 +118,13 @@ $header = 'Seleccionar productos';
                             </div>
                         @endif
 
-                        <div class="absolute top-2 right-2 flex flex-col gap-2 items-center z-10">
-                            @if($quantity > 0)
-                                <div class="flex items-center justify-center w-7 h-7 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg">{{ $quantity }}</div>
-                            @endif
+                        @if($quantity > 0)
+                            <div class="absolute bottom-2 right-2 bg-indigo-600 text-white text-[10px] font-black rounded-lg px-2 py-0.5 shadow-lg border border-white/20 z-10">
+                                {{ $quantity }}
+                            </div>
+                        @endif
+
+                        <div class="absolute top-2 right-2 z-10">
                             <div class="relative">
                                 <button @click.stop="openMenu = !openMenu" class="p-2 bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 rounded-bl-xl shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors backdrop-blur-sm">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
@@ -231,7 +234,9 @@ $header = 'Seleccionar productos';
                         </div>
 
                         <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                            @if($quantity > 0 && !$hideQuoter)<span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white text-sm font-bold rounded-full">{{ $quantity }}</span>@endif
+                            @if($quantity > 0 && !$hideQuoter)
+                                <span class="inline-flex items-center justify-center px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-black rounded-lg shadow-sm">{{ $quantity }}</span>
+                            @endif
                             <div class="relative">
                                 <button @click.stop="openMenu = !openMenu" class="p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-full shadow-sm"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
                                 <div x-show="openMenu" @click.away="openMenu = false" x-cloak class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border z-50 py-1">
