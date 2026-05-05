@@ -3,28 +3,38 @@
 namespace App\Livewire\Tenant\Items;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\InvItemAccesorios;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ItemAccesorios extends Component
 {
+    use WithFileUploads;
+
     public $itemId;
 
     public $selectedInsumoId = '';
     public $observacion = '';
+    public $quantity = 1;
+    public $photo; // Nueva propiedad para la imagen
     public $assignedAccesorios = [];
     public $availableInsumos = [];
 
     protected $rules = [
         'selectedInsumoId' => 'required|integer',
+        'quantity'         => 'required|integer|min:1',
         'observacion'      => 'nullable|string|max:255',
+        'photo'            => 'nullable|image|max:2048', // 2MB max
     ];
 
     protected $messages = [
         'selectedInsumoId.required' => 'Debe seleccionar un insumo.',
+        'quantity.required'         => 'La cantidad es obligatoria.',
+        'quantity.min'              => 'La cantidad debe ser al menos 1.',
     ];
 
     public function mount($itemId)
@@ -79,13 +89,28 @@ class ItemAccesorios extends Component
             return;
         }
 
+        $imagePath = null;
+        if ($this->photo) {
+            $tenantId = session('tenant_id', 'default');
+            $imagePath = $this->photo->store("items/{$tenantId}/accessories", 'public');
+            Log::info('📸 Imagen de accesorio guardada', ['path' => $imagePath]);
+        }
+
         InvItemAccesorios::create([
             'item'        => $this->itemId,
             'insumo'      => $this->selectedInsumoId,
+            'quantity'    => $this->quantity,
+            'image'       => $imagePath,
             'observacion' => $this->observacion ?: null,
         ]);
 
-        $this->reset('selectedInsumoId', 'observacion');
+        Log::info('✅ Accesorio registrado en DB', [
+            'item' => $this->itemId,
+            'insumo' => $this->selectedInsumoId,
+            'image' => $imagePath
+        ]);
+
+        $this->reset('selectedInsumoId', 'observacion', 'quantity', 'photo');
         $this->loadAssigned();
         $this->dispatch('notify', type: 'success', message: 'Accesorio agregado correctamente.');
     }

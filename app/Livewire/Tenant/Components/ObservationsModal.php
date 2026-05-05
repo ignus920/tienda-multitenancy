@@ -24,6 +24,7 @@ class ObservationsModal extends Component
         'annulment_reason' => '',
         'delivery_obs' => '',
         'print_obs' => '',
+        'reprint' => '',
         'delivered_obs' => '',
         'impossibility_obs' => '',
         'payment_obs' => '',
@@ -85,7 +86,12 @@ class ObservationsModal extends Component
 
         foreach ($observations as $obs) {
             if (isset($this->observationData[$obs->observation_type])) {
-                $this->observationData[$obs->observation_type] = $obs->observation;
+                // Si es reimpresión, concatenamos con las anteriores si existen
+                if ($obs->observation_type === 'reprint') {
+                    $this->observationData['reprint'] .= ($this->observationData['reprint'] ? "\n" : "") . $obs->observation;
+                } else {
+                    $this->observationData[$obs->observation_type] = $obs->observation;
+                }
             }
         }
 

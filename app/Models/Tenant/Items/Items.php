@@ -165,6 +165,7 @@ class Items extends Model
         return $this->hasMany(InvItemAccesorios::class, 'item', 'id')->with('insumo');
     }
 
+
     /**
      * Obtener solo imágenes activas (no eliminadas)
      */

@@ -182,6 +182,10 @@ require __DIR__ . '/tenants/cartera.php';
 // Incluir rutas del módulo de empaque
 require __DIR__ . '/tenants/packing.php';
 
+// Incluir rutas del módulo de gestión
+require __DIR__ . '/tenants/gestion.php';
+
+
 
 
 
