@@ -75,7 +75,7 @@
                     <!-- Observaciones de impresión -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-2">Observaciones de impresión</label>
-                        <textarea readonly wire:model.defer="observationData.print_obs" rows="3" 
+                        <textarea readonly wire:model.defer="observationData.reprint" rows="3" 
                                   class="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 dark:text-gray-300 transition-all text-sm"
                                   placeholder="N/A"></textarea>
                     </div>

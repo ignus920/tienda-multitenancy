@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: mysql:3306
--- Tiempo de generación: 13-04-2026 a las 20:11:18
+-- Tiempo de generación: 05-05-2026 a las 13:27:23
 -- Versión del servidor: 8.0.45
 -- Versión de PHP: 8.3.26
 
@@ -109,6 +109,58 @@ INSERT INTO `cmp_campaign_customers` (`id`, `campaign_id`, `customer_id`, `deliv
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `cnf_acceso_horarios`
+--
+
+CREATE TABLE `cnf_acceso_horarios` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `day_of_week` tinyint DEFAULT NULL COMMENT '1=Lul, 2=Mar, 3=Mie, 4=Jue, 5=Vie, 6=Sab, 7=Dom',
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `cnf_acceso_horarios`
+--
+
+INSERT INTO `cnf_acceso_horarios` (`id`, `user_id`, `day_of_week`, `start_time`, `end_time`, `is_active`, `created_at`) VALUES
+(1, 8, 1, '08:00:00', '17:30:00', 1, '2026-04-13 20:56:14'),
+(3, 8, 3, '08:00:00', '17:30:00', 1, '2026-04-13 20:56:14'),
+(4, 8, 4, '08:00:00', '17:30:00', 1, '2026-04-13 20:56:15'),
+(5, 8, 5, '08:00:00', '17:30:00', 1, '2026-04-13 20:56:15'),
+(6, 8, 6, '08:00:00', '13:00:00', 1, '2026-04-13 20:56:15'),
+(7, 8, 2, '08:00:00', '17:30:00', 1, '2026-04-13 20:56:14');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `cnf_acceso_ips`
+--
+
+CREATE TABLE `cnf_acceso_ips` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `ip_allowed` varchar(45) NOT NULL,
+  `description` varchar(100) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `cnf_acceso_ips`
+--
+
+INSERT INTO `cnf_acceso_ips` (`id`, `user_id`, `ip_allowed`, `description`, `is_active`, `created_at`) VALUES
+(1, 8, '192.168.1.8', 'oficina', 1, '2026-04-13 20:55:57'),
+(2, 8, '192.168.2.17', 'oficina', 1, '2026-04-14 20:12:49'),
+(3, 8, '127.0.0.1', 'Oficina II', 1, '2026-04-30 19:44:08');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `cnf_audit_status_log`
 --
 
@@ -135,12 +187,23 @@ CREATE TABLE `cnf_buttons` (
   `tittle` varchar(155) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'button',
   `status` tinyint DEFAULT '1',
   `color` varchar(155) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `module` int NOT NULL,
+  `module` varchar(20) NOT NULL,
   `link` varchar(155) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `cnf_buttons`
+--
+
+INSERT INTO `cnf_buttons` (`id`, `tittle`, `status`, `color`, `module`, `link`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'Eliminar producto', 0, 'Rojo', 'products', 'http://127.0.0.1:8000/items', '2026-04-13 21:23:17', '2026-04-21 20:18:40', NULL),
+(2, 'Bodega', 0, 'Verde', 'items', 'http://127.0.0.1:8000/items', '2026-04-13 21:41:20', '2026-04-14 16:42:47', NULL),
+(3, 'PQRs', 0, 'Amarillo', 'imports', 'http://127.0.0.1:8000/invoices', '2026-04-13 21:43:38', '2026-04-21 20:19:00', NULL),
+(4, 'Guardar Contacto', 0, 'Morado', 'quoter', 'https://docs.google.com/spreadsheets/d/17lIr1Y8WxvM7MmujtbX0dcdv6zZaYQVO3Ax7Djs-Khc/edit?usp=sharing', '2026-04-13 21:51:11', '2026-04-21 20:18:44', NULL),
+(5, 'Cruce Facturas', 0, 'Gris', 'products', 'https://docs.google.com/spreadsheets/d/17lIr1Y8WxvM7MmujtbX0dcdv6zZaYQVO3Ax7Djs-Khc/edit?usp=sharing', '2026-04-14 15:16:33', '2026-04-21 20:18:38', NULL);
 
 -- --------------------------------------------------------
 
@@ -223,6 +286,1054 @@ INSERT INTO `cnf_invoices` (`id`, `token`, `id_warehouses`, `numeracion`, `factu
 (1, 'dGljc2lhK2FsZWdyYUBhbGVncmEuY29tOmY3ODQyMTViNTgzYjk5NzU1MzBk', 8, 9999, 'http://fac.dosil.com.co/api'),
 (2, 'dGljc2lhK2FsZWdyYUBhbGVncmEuY29tOmY3ODQyMTViNTgzYjk5NzU1MzBk', 96, 9999, 'http://fac.dosil.com.co/api'),
 (3, 'cW1hcnRpbnorZGVtb0BleGFtcGxlLmNvbTo5YTI3NDY1YmQ4NzY0MzIxMGY=', 118, 20, 'http://fac.dosil.com.co/api');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `cnf_log_accesos`
+--
+
+CREATE TABLE `cnf_log_accesos` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `access_type` enum('exitoso','ip_denegada','horario_denegado') NOT NULL,
+  `user_agent` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `cnf_log_accesos`
+--
+
+INSERT INTO `cnf_log_accesos` (`id`, `user_id`, `ip_address`, `access_type`, `user_agent`, `created_at`) VALUES
+(1, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 20:49:16'),
+(2, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 20:50:37'),
+(3, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 20:52:48'),
+(4, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 20:55:06'),
+(5, 8, '192.168.1.11', 'horario_denegado', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 21:03:45'),
+(6, 8, '192.168.1.11', 'horario_denegado', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 21:05:41'),
+(7, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 21:07:53'),
+(8, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 21:08:09'),
+(9, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 21:34:41'),
+(10, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 21:34:44'),
+(11, 8, '192.168.1.11', 'horario_denegado', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 19:40:37'),
+(12, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 19:41:53'),
+(13, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 19:42:17'),
+(14, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 19:54:15'),
+(15, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 19:58:16'),
+(16, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 19:58:18'),
+(17, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 19:58:52'),
+(18, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 19:59:11'),
+(19, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 20:00:03'),
+(20, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 20:00:50'),
+(21, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 20:01:18'),
+(22, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 20:02:11'),
+(23, 153, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 20:03:32'),
+(24, 153, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 20:03:52'),
+(25, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 20:09:00'),
+(26, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 20:12:55'),
+(27, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 20:13:06'),
+(28, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 20:18:21'),
+(29, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-04-14 20:19:42'),
+(30, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-14 20:26:09'),
+(31, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:48:29'),
+(32, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:50:41'),
+(33, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:50:43'),
+(34, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:50:50'),
+(35, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:50:52'),
+(36, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:50:59'),
+(37, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:52:02'),
+(38, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:52:14'),
+(39, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:52:16'),
+(40, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:56:12'),
+(41, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 17:57:09'),
+(42, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-16 19:56:28'),
+(43, 8, '192.168.2.19', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:14:31'),
+(44, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:15:48'),
+(45, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:17:56'),
+(46, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:17:59'),
+(47, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:37:34'),
+(48, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:37:46'),
+(49, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:37:49'),
+(50, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:38:09'),
+(51, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:38:21'),
+(52, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:38:24'),
+(53, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:38:43'),
+(54, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:38:45'),
+(55, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:46:31'),
+(56, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:46:50'),
+(57, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:47:23'),
+(58, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:47:40'),
+(59, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:47:42'),
+(60, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:51:13'),
+(61, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:51:23'),
+(62, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:56:32'),
+(63, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:56:44'),
+(64, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:56:46'),
+(65, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:56:51'),
+(66, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:57:09'),
+(67, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 19:57:12'),
+(68, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:01:28'),
+(69, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:01:56'),
+(70, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:04:21'),
+(71, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:17:09'),
+(72, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:29:15'),
+(73, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:33:33'),
+(74, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:34:27'),
+(75, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:36:50'),
+(76, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:38:32'),
+(77, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:43:37'),
+(78, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:45:36'),
+(79, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:47:31'),
+(80, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:48:36'),
+(81, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:48:49'),
+(82, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:53:16'),
+(83, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:57:40'),
+(84, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:59:48'),
+(85, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 20:59:54'),
+(86, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 21:02:17'),
+(87, 8, '192.168.2.19', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-17 21:11:38'),
+(88, 8, '192.168.1.11', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:12:09'),
+(89, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:13:16'),
+(90, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:13:38'),
+(91, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:13:41'),
+(92, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:14:55'),
+(93, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:15:08'),
+(94, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:15:11'),
+(95, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:16:48'),
+(96, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:18:01'),
+(97, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:18:21'),
+(98, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:31:33'),
+(99, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 13:33:55'),
+(100, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:24:11'),
+(101, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:24:33'),
+(102, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:24:35'),
+(103, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:38:59'),
+(104, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:44:02'),
+(105, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:48:19'),
+(106, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:51:30'),
+(107, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:53:12'),
+(108, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:54:00'),
+(109, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 19:54:22'),
+(110, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:03:55'),
+(111, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:04:48'),
+(112, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:05:52'),
+(113, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:06:01'),
+(114, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:07:57'),
+(115, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:09:43'),
+(116, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:10:28'),
+(117, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:10:36'),
+(118, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:12:12'),
+(119, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:12:20'),
+(120, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:23:51'),
+(121, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:23:59'),
+(122, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:52:19'),
+(123, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 20:53:19'),
+(124, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:00:36'),
+(125, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:01:33'),
+(126, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:10:55'),
+(127, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:17:13'),
+(128, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:26:51'),
+(129, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:27:51'),
+(130, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:29:52'),
+(131, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:37:46'),
+(132, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:39:39'),
+(133, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:41:52'),
+(134, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:44:56'),
+(135, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:50:15'),
+(136, 8, '192.168.1.11', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 21:53:11'),
+(137, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 13:25:33'),
+(138, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 13:26:06'),
+(139, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 13:26:08'),
+(140, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 13:26:15'),
+(141, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 13:54:06'),
+(142, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:01:28'),
+(143, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:12:14'),
+(144, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:14:04'),
+(145, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:14:45'),
+(146, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:15:23'),
+(147, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:15:34'),
+(148, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:15:39'),
+(149, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:17:08'),
+(150, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:17:50'),
+(151, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:17:52'),
+(152, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:47:51'),
+(153, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:47:57'),
+(154, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:48:03'),
+(155, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:48:10'),
+(156, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:48:12'),
+(157, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:48:37'),
+(158, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 14:48:39'),
+(159, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:07:09'),
+(160, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:21:57'),
+(161, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:23:58'),
+(162, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:24:23'),
+(163, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:39:05'),
+(164, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:49:23'),
+(165, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:50:14'),
+(166, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:52:17'),
+(167, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:52:37'),
+(168, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:52:48'),
+(169, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:53:04'),
+(170, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:53:52'),
+(171, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:54:11'),
+(172, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:54:12'),
+(173, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:59:19'),
+(174, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:59:43'),
+(175, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 15:59:45'),
+(176, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:16:05'),
+(177, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:20:23'),
+(178, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:21:08'),
+(179, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:27:00'),
+(180, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:27:31'),
+(181, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:28:04'),
+(182, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:29:00'),
+(183, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:31:56'),
+(184, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:33:18'),
+(185, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:33:19'),
+(186, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:34:12'),
+(187, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:34:28'),
+(188, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:51:39'),
+(189, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:51:46'),
+(190, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:52:20'),
+(191, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:53:25'),
+(192, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 16:57:57'),
+(193, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:08:01'),
+(194, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:09:14'),
+(195, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:09:33'),
+(196, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:14:19'),
+(197, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:16:34'),
+(198, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:19:17'),
+(199, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:19:44'),
+(200, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:19:45'),
+(201, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:20:02'),
+(202, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:27:11'),
+(203, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:32:28'),
+(204, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:32:41'),
+(205, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:32:51'),
+(206, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:33:23'),
+(207, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:35:18'),
+(208, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:54:35'),
+(209, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:54:36'),
+(210, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 17:55:29'),
+(211, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:03:20'),
+(212, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:03:34'),
+(213, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:03:42'),
+(214, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:03:51'),
+(215, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:03:53'),
+(216, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:10:24'),
+(217, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:10:55'),
+(218, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 18:10:57'),
+(219, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:01:41'),
+(220, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:01:42'),
+(221, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:01:54'),
+(222, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:01:55'),
+(223, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:02:09'),
+(224, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:03:06'),
+(225, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:03:26'),
+(226, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:03:27'),
+(227, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:04:18'),
+(228, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0', '2026-04-21 19:17:26'),
+(229, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 19:35:31'),
+(230, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:40:06'),
+(231, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:40:13'),
+(232, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:40:22'),
+(233, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:40:24'),
+(234, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:54:28'),
+(235, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:54:49'),
+(236, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 19:54:51'),
+(237, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 20:05:35'),
+(238, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '2026-04-21 20:05:55'),
+(239, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 20:06:39'),
+(240, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:08:08'),
+(241, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:08:35'),
+(242, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:08:37'),
+(243, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:15:26'),
+(244, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:15:27'),
+(245, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 20:16:09'),
+(246, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:16:14'),
+(247, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:17:59'),
+(248, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:18:01'),
+(249, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:18:27'),
+(250, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:19:10'),
+(251, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-21 20:19:12'),
+(252, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:25:01'),
+(253, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:25:02'),
+(254, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:25:59'),
+(255, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 20:35:00'),
+(256, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:35:06'),
+(257, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:36:04'),
+(258, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:36:06'),
+(259, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:36:37'),
+(260, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:36:39'),
+(261, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:37:04'),
+(262, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 20:38:26'),
+(263, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:38:32'),
+(264, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:39:17'),
+(265, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:40:14'),
+(266, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:41:01'),
+(267, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:41:18'),
+(268, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:41:44'),
+(269, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:42:28'),
+(270, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:42:45'),
+(271, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:53:24'),
+(272, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:53:47'),
+(273, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:53:49'),
+(274, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 20:54:08'),
+(275, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 21:09:52');
+INSERT INTO `cnf_log_accesos` (`id`, `user_id`, `ip_address`, `access_type`, `user_agent`, `created_at`) VALUES
+(276, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:09:57'),
+(277, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 21:38:55'),
+(278, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:39:00'),
+(279, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 21:41:57'),
+(280, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:42:02'),
+(281, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 21:43:37'),
+(282, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:43:42'),
+(283, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '2026-04-21 21:44:04'),
+(284, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:44:09'),
+(285, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:54:59'),
+(286, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:55:01'),
+(287, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:58:19'),
+(288, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:58:20'),
+(289, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-21 21:59:31'),
+(290, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:11:35'),
+(291, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:13:53'),
+(292, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:13:55'),
+(293, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:13:56'),
+(294, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:14:02'),
+(295, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:16:46'),
+(296, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:16:47'),
+(297, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:20:48'),
+(298, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:21:01'),
+(299, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 13:54:24'),
+(300, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:17:12'),
+(301, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:18:14'),
+(302, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:20:20'),
+(303, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:21:07'),
+(304, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:22:49'),
+(305, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:22:51'),
+(306, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:23:03'),
+(307, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:29:56'),
+(308, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:30:15'),
+(309, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:30:40'),
+(310, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:30:42'),
+(311, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:30:53'),
+(312, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:31:49'),
+(313, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:32:23'),
+(314, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:32:24'),
+(315, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:48:14'),
+(316, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:48:31'),
+(317, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:48:49'),
+(318, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 14:48:59'),
+(319, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:12:37'),
+(320, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:13:17'),
+(321, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:14:38'),
+(322, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:15:06'),
+(323, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:21:13'),
+(324, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:21:27'),
+(325, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:21:29'),
+(326, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:58:34'),
+(327, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 15:58:46'),
+(328, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:06:56'),
+(329, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:07:02'),
+(330, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:09:10'),
+(331, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:09:38'),
+(332, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:09:40'),
+(333, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:12:24'),
+(334, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:13:02'),
+(335, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:13:52'),
+(336, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:13:53'),
+(337, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:48:28'),
+(338, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 16:54:36'),
+(339, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:24:50'),
+(340, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:25:38'),
+(341, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:25:53'),
+(342, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:38:11'),
+(343, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:38:17'),
+(344, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:38:20'),
+(345, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:38:22'),
+(346, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:38:38'),
+(347, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:39:07'),
+(348, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:39:17'),
+(349, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:39:18'),
+(350, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:39:35'),
+(351, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:51:33'),
+(352, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:52:54'),
+(353, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:53:09'),
+(354, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:53:42'),
+(355, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:54:29'),
+(356, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 19:54:46'),
+(357, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:05:03'),
+(358, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:05:17'),
+(359, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:06:46'),
+(360, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:07:22'),
+(361, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:40:18'),
+(362, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:41:17'),
+(363, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:46:25'),
+(364, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:46:48'),
+(365, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:47:05'),
+(366, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:50:58'),
+(367, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:51:11'),
+(368, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:51:51'),
+(369, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 20:52:15'),
+(370, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:00:34'),
+(371, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:00:56'),
+(372, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:07:38'),
+(373, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:08:37'),
+(374, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:09:49'),
+(375, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:24:40'),
+(376, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:25:25'),
+(377, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:25:27'),
+(378, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:25:35'),
+(379, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:25:37'),
+(380, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:29:21'),
+(381, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:30:05'),
+(382, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:30:06'),
+(383, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:34:12'),
+(384, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:35:44'),
+(385, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:35:48'),
+(386, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:40:39'),
+(387, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:40:52'),
+(388, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:41:06'),
+(389, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:43:36'),
+(390, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/147.0.0.0', '2026-04-22 21:45:00'),
+(391, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:55:20'),
+(392, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:56:32'),
+(393, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:56:33'),
+(394, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-22 21:57:06'),
+(395, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:36:20'),
+(396, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:43:03'),
+(397, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:43:23'),
+(398, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:45:44'),
+(399, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:50:00'),
+(400, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:55:06'),
+(401, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:55:34'),
+(402, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 14:55:52'),
+(403, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:07:16'),
+(404, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:21:01'),
+(405, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:23:04'),
+(406, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:33:02'),
+(407, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:33:16'),
+(408, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:55:31'),
+(409, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:55:51'),
+(410, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:56:25'),
+(411, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:57:08'),
+(412, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:57:29'),
+(413, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:57:37'),
+(414, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 15:57:39'),
+(415, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 16:01:23'),
+(416, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 16:02:13'),
+(417, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 16:02:14'),
+(418, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 16:18:25'),
+(419, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 16:58:23'),
+(420, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 18:28:14'),
+(421, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 19:51:53'),
+(422, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 19:52:30'),
+(423, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 19:58:01'),
+(424, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 19:58:03'),
+(425, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-23 20:08:51'),
+(426, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:37:43'),
+(427, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:38:20'),
+(428, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:38:22'),
+(429, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:38:29'),
+(430, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:43:04'),
+(431, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:47:59'),
+(432, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 14:48:13'),
+(433, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 19:41:12'),
+(434, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 19:51:10'),
+(435, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-24 19:51:21'),
+(436, 125, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 13:14:25'),
+(437, 101, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 13:14:55'),
+(438, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 13:15:18'),
+(439, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 19:33:47'),
+(440, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 19:34:14'),
+(441, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 19:34:29'),
+(442, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 19:40:59'),
+(443, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 19:41:01'),
+(444, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:06:22'),
+(445, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:10:24'),
+(446, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:13:57'),
+(447, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:15:47'),
+(448, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:15:48'),
+(449, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:30:40'),
+(450, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:33:42'),
+(451, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:39:32'),
+(452, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:41:44'),
+(453, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:41:45'),
+(454, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 20:47:42'),
+(455, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:11:29'),
+(456, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:11:50'),
+(457, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:18:01'),
+(458, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:25:26'),
+(459, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:25:28'),
+(460, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:27:41'),
+(461, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:28:17'),
+(462, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:38:56'),
+(463, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:38:58'),
+(464, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:39:11'),
+(465, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:59:18'),
+(466, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-27 21:59:52'),
+(467, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 13:54:19'),
+(468, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:33:51'),
+(469, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:33:53'),
+(470, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:34:10'),
+(471, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:36:45'),
+(472, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:53:07'),
+(473, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:53:09'),
+(474, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:53:49'),
+(475, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:53:50'),
+(476, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 14:54:02'),
+(477, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:05:05'),
+(478, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:05:07'),
+(479, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:05:28'),
+(480, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:05:36'),
+(481, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:09:55'),
+(482, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:09:57'),
+(483, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:10:04'),
+(484, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:10:06'),
+(485, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:10:32'),
+(486, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:16:20'),
+(487, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:16:22'),
+(488, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:16:37'),
+(489, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:25:01'),
+(490, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:25:03'),
+(491, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:26:56'),
+(492, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 15:29:39'),
+(493, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:12:57'),
+(494, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:18:04'),
+(495, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:27:39'),
+(496, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:32:53'),
+(497, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:33:56'),
+(498, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:33:57'),
+(499, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:45:25'),
+(500, 8, '192.168.1.8', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:51:49'),
+(501, 8, '192.168.1.8', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:52:27'),
+(502, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:54:01'),
+(503, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:54:50'),
+(504, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:57:03'),
+(505, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:57:54'),
+(506, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:58:05'),
+(507, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 16:58:07'),
+(508, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:58:17'),
+(509, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:58:40'),
+(510, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 16:58:45'),
+(511, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:00:01'),
+(512, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:00:35'),
+(513, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:01:07'),
+(514, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:01:11'),
+(515, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:01:40'),
+(516, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:03:43'),
+(517, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:03:56'),
+(518, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:04:01'),
+(519, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 17:04:08'),
+(520, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:06:34'),
+(521, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:56:59'),
+(522, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:58:29'),
+(523, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:58:31'),
+(524, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:58:43'),
+(525, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:58:52'),
+(526, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:58:53'),
+(527, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 17:59:06'),
+(528, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:07:00'),
+(529, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:07:28'),
+(530, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:15:45'),
+(531, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:16:51'),
+(532, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:16:58'),
+(533, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:17:59'),
+(534, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:18:04'),
+(535, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:18:09'),
+(536, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:18:38'),
+(537, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:21:36'),
+(538, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:27:03'),
+(539, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:28:12'),
+(540, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:28:14'),
+(541, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:29:13'),
+(542, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:29:55'),
+(543, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:31:41'),
+(544, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:33:10'),
+(545, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:34:51');
+INSERT INTO `cnf_log_accesos` (`id`, `user_id`, `ip_address`, `access_type`, `user_agent`, `created_at`) VALUES
+(546, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 19:34:53'),
+(547, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:36:44'),
+(548, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:36:46'),
+(549, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:36:59'),
+(550, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:40:33'),
+(551, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:40:39'),
+(552, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:40:58'),
+(553, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:45:51'),
+(554, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:46:16'),
+(555, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:46:33'),
+(556, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:46:47'),
+(557, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:47:03'),
+(558, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:47:28'),
+(559, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:47:51'),
+(560, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:48:09'),
+(561, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:56:44'),
+(562, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 19:57:09'),
+(563, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-28 20:00:58'),
+(564, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:01:02'),
+(565, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:02:16'),
+(566, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:05:03'),
+(567, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:06:03'),
+(568, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:08:15'),
+(569, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:08:39'),
+(570, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:19:31'),
+(571, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:19:48'),
+(572, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:22:09'),
+(573, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:22:23'),
+(574, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:22:34'),
+(575, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:26:26'),
+(576, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:28:01'),
+(577, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:29:46'),
+(578, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:30:01'),
+(579, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:30:54'),
+(580, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:31:10'),
+(581, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:41:33'),
+(582, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:42:12'),
+(583, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:54:12'),
+(584, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:54:41'),
+(585, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 20:58:14'),
+(586, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:03:30'),
+(587, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:03:43'),
+(588, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:04:19'),
+(589, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:04:42'),
+(590, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:05:01'),
+(591, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:07:43'),
+(592, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:08:13'),
+(593, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:10:26'),
+(594, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:10:43'),
+(595, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:12:22'),
+(596, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:12:40'),
+(597, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:15:59'),
+(598, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:23:04'),
+(599, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:24:35'),
+(600, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:24:53'),
+(601, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:25:23'),
+(602, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:25:37'),
+(603, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:26:26'),
+(604, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:26:49'),
+(605, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:30:08'),
+(606, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:31:00'),
+(607, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:32:25'),
+(608, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:32:38'),
+(609, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:32:55'),
+(610, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:33:08'),
+(611, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:33:41'),
+(612, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:33:56'),
+(613, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:34:42'),
+(614, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:51:05'),
+(615, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:51:20'),
+(616, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:52:55'),
+(617, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-28 21:53:02'),
+(618, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:11:34'),
+(619, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:17:28'),
+(620, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:17:30'),
+(621, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:23:06'),
+(622, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:23:33'),
+(623, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:24:07'),
+(624, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:24:24'),
+(625, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 13:47:00'),
+(626, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 13:48:18'),
+(627, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 13:49:19'),
+(628, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:53:26'),
+(629, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 13:53:34'),
+(630, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 13:57:36'),
+(631, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 13:59:43'),
+(632, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:01:49'),
+(633, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:05:06'),
+(634, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:13:37'),
+(635, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:29:44'),
+(636, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:31:07'),
+(637, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:31:50'),
+(638, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:31:57'),
+(639, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:32:09'),
+(640, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:32:23'),
+(641, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:32:42'),
+(642, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:32:52'),
+(643, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:33:11'),
+(644, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:33:27'),
+(645, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:33:42'),
+(646, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:34:08'),
+(647, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:34:23'),
+(648, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:34:32'),
+(649, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:34:54'),
+(650, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:35:01'),
+(651, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:35:12'),
+(652, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:35:13'),
+(653, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:35:30'),
+(654, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:37:15'),
+(655, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:38:18'),
+(656, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:38:43'),
+(657, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:38:44'),
+(658, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:38:51'),
+(659, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:38:52'),
+(660, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:39:32'),
+(661, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:39:57'),
+(662, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:39:58'),
+(663, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:40:22'),
+(664, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:41:01'),
+(665, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:41:02'),
+(666, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:41:33'),
+(667, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:42:07'),
+(668, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:42:09'),
+(669, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:42:19'),
+(670, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:42:20'),
+(671, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:43:18'),
+(672, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:43:58'),
+(673, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:44:02'),
+(674, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:44:51'),
+(675, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:44:52'),
+(676, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:45:19'),
+(677, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:45:57'),
+(678, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:46:15'),
+(679, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:46:33'),
+(680, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:47:48'),
+(681, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:48:44'),
+(682, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:49:51'),
+(683, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:50:45'),
+(684, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:52:19'),
+(685, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:54:01'),
+(686, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:54:53'),
+(687, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:55:00'),
+(688, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:55:05'),
+(689, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:55:09'),
+(690, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 14:55:48'),
+(691, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 14:58:46'),
+(692, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 15:11:52'),
+(693, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:13:01'),
+(694, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:13:21'),
+(695, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 15:13:27'),
+(696, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:13:40'),
+(697, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:13:57'),
+(698, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:16:25'),
+(699, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:17:23'),
+(700, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:17:31'),
+(701, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:18:49'),
+(702, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:19:41'),
+(703, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:19:43'),
+(704, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:20:08'),
+(705, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:20:44'),
+(706, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:20:59'),
+(707, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:21:29'),
+(708, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:21:44'),
+(709, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:22:09'),
+(710, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:22:23'),
+(711, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:22:50'),
+(712, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:23:08'),
+(713, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:24:54'),
+(714, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:25:39'),
+(715, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:29:12'),
+(716, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:29:36'),
+(717, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:32:26'),
+(718, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:32:42'),
+(719, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:33:00'),
+(720, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:33:14'),
+(721, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:33:40'),
+(722, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:33:54'),
+(723, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:34:17'),
+(724, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:34:35'),
+(725, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:37:23'),
+(726, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:37:39'),
+(727, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:52:43'),
+(728, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:52:58'),
+(729, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:53:00'),
+(730, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 15:53:09'),
+(731, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 15:59:31'),
+(732, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:12:18'),
+(733, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:13:46'),
+(734, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:17:07'),
+(735, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:18:06'),
+(736, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:18:09'),
+(737, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:19:10'),
+(738, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:19:12'),
+(739, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:19:31'),
+(740, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:20:59'),
+(741, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:21:17'),
+(742, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:21:53'),
+(743, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:24:47'),
+(744, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:24:47'),
+(745, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:25:02'),
+(746, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:25:09'),
+(747, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:25:19'),
+(748, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:26:01'),
+(749, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:27:01'),
+(750, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:28:08'),
+(751, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 16:28:39'),
+(752, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:50:00'),
+(753, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:50:35'),
+(754, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:50:46'),
+(755, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:50:47'),
+(756, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:50:55'),
+(757, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:51:14'),
+(758, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:51:37'),
+(759, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 16:51:51'),
+(760, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:04:16'),
+(761, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:04:23'),
+(762, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 17:09:52'),
+(763, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:13:32'),
+(764, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:13:33'),
+(765, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:17:45'),
+(766, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:19:25'),
+(767, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:19:32'),
+(768, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:19:33'),
+(769, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:19:53'),
+(770, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:20:39'),
+(771, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:20:44'),
+(772, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:41:00'),
+(773, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:41:01'),
+(774, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:43:13'),
+(775, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:49:18'),
+(776, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:55:11'),
+(777, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:55:13'),
+(778, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:55:40'),
+(779, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 17:55:46'),
+(780, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:06:01'),
+(781, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:07:16'),
+(782, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:07:17'),
+(783, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:07:29'),
+(784, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:30:24'),
+(785, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:30:26'),
+(786, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:30:40'),
+(787, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:36:13'),
+(788, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:37:57'),
+(789, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:38:59'),
+(790, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:41:32'),
+(791, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:42:39'),
+(792, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:43:24'),
+(793, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:45:41'),
+(794, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:45:42'),
+(795, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:46:46'),
+(796, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:47:41'),
+(797, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:47:42'),
+(798, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:48:00'),
+(799, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:48:54'),
+(800, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 19:49:13'),
+(801, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 19:57:50'),
+(802, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:00:21'),
+(803, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:00:23'),
+(804, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:00:46'),
+(805, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:01:16'),
+(806, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:01:29'),
+(807, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:01:46'),
+(808, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:03:41'),
+(809, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:03:43'),
+(810, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:04:02'),
+(811, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:04:29'),
+(812, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:05:02'),
+(813, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:05:16'),
+(814, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:06:14'),
+(815, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:24:15'),
+(816, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:24:20'),
+(817, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:40:03'),
+(818, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:40:29'),
+(819, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:40:40');
+INSERT INTO `cnf_log_accesos` (`id`, `user_id`, `ip_address`, `access_type`, `user_agent`, `created_at`) VALUES
+(820, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:41:09'),
+(821, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:41:10'),
+(822, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:44:48'),
+(823, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 20:57:15'),
+(824, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 20:57:28'),
+(825, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:04:49'),
+(826, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:05:21'),
+(827, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:12:53'),
+(828, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:20:35'),
+(829, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:20:42'),
+(830, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:21:26'),
+(831, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-29 21:27:26'),
+(832, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 21:31:51'),
+(833, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 21:32:51'),
+(834, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 21:33:07'),
+(835, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 21:33:26'),
+(836, 181, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-29 21:49:46'),
+(837, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 13:53:46'),
+(838, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:09:39'),
+(839, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:09:41'),
+(840, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:09:55'),
+(841, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:12:31'),
+(842, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:14:42'),
+(843, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:15:22'),
+(844, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:16:44'),
+(845, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:44:37'),
+(846, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:45:52'),
+(847, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 14:50:55'),
+(848, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:17:49'),
+(849, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:18:46'),
+(850, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:18:50'),
+(851, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:19:25'),
+(852, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:21:14'),
+(853, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:21:18'),
+(854, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:23:27'),
+(855, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:23:41'),
+(856, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 15:28:02'),
+(857, 8, '192.168.2.17', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 17:02:08'),
+(858, 8, '192.168.2.17', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 17:03:29'),
+(859, 8, '192.168.2.17', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 17:04:46'),
+(860, 8, '192.168.2.17', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 19:29:56'),
+(861, 8, '192.168.2.17', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 19:30:14'),
+(862, 8, '192.168.2.17', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-30 19:36:14'),
+(863, 8, '127.0.0.1', 'ip_denegada', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:39:50'),
+(864, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:44:28'),
+(865, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:45:14'),
+(866, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:45:16'),
+(867, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:45:24'),
+(868, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:46:09'),
+(869, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:47:11'),
+(870, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:47:12'),
+(871, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:47:45'),
+(872, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:47:58'),
+(873, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:54:48'),
+(874, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:55:41'),
+(875, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:56:18'),
+(876, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 19:58:21'),
+(877, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:46:52'),
+(878, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:46:54'),
+(879, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:49:56'),
+(880, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:57:06'),
+(881, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:58:52'),
+(882, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:59:35'),
+(883, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 20:59:44'),
+(884, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:07:09'),
+(885, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:08:09'),
+(886, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:09:12'),
+(887, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:22:25'),
+(888, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:22:59'),
+(889, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:29:14'),
+(890, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:36:47'),
+(891, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:42:02'),
+(892, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:42:04'),
+(893, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:42:37'),
+(894, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:46:13'),
+(895, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:46:14'),
+(896, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:48:20'),
+(897, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:50:05'),
+(898, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:52:20'),
+(899, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:52:22'),
+(900, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:55:26'),
+(901, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:57:01'),
+(902, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:57:02'),
+(903, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 21:57:15'),
+(904, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 22:04:48'),
+(905, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 22:04:52'),
+(906, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 22:12:42'),
+(907, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 22:13:23'),
+(908, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 22:14:12'),
+(909, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-04-30 22:14:14'),
+(910, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 13:20:19'),
+(911, 181, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 13:26:19'),
+(912, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 13:27:20'),
+(913, 181, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 14:01:20'),
+(914, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 14:01:46'),
+(915, 181, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 14:05:39'),
+(916, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 16:08:38'),
+(917, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 16:25:13'),
+(918, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 16:27:32'),
+(919, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 16:54:20'),
+(920, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 16:54:59'),
+(921, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 16:55:01'),
+(922, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 16:55:23'),
+(923, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 16:55:50'),
+(924, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 16:58:39'),
+(925, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:00:53'),
+(926, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:02:46'),
+(927, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:02:48'),
+(928, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:03:10'),
+(929, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:03:46'),
+(930, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:03:53'),
+(931, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:04:45'),
+(932, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:04:52'),
+(933, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:05:54'),
+(934, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:06:04'),
+(935, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:06:10'),
+(936, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:11:45'),
+(937, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:11:46'),
+(938, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:12:19'),
+(939, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:15:17'),
+(940, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:18:17'),
+(941, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:20:40'),
+(942, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:21:39'),
+(943, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:21:46'),
+(944, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 17:23:11'),
+(945, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:48:38'),
+(946, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 17:48:43'),
+(947, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:17:43'),
+(948, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:17:45'),
+(949, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:18:18'),
+(950, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:18:35'),
+(951, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:19:49'),
+(952, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:02'),
+(953, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:04'),
+(954, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:08'),
+(955, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:16'),
+(956, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:21'),
+(957, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:29'),
+(958, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:35'),
+(959, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:20:41'),
+(960, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:22:30'),
+(961, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:23:18'),
+(962, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:25:42'),
+(963, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:26:08'),
+(964, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:26:10'),
+(965, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:26:21'),
+(966, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:28:17'),
+(967, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 19:28:31'),
+(968, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 19:52:49'),
+(969, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:05:06'),
+(970, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:09:12'),
+(971, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:11:51'),
+(972, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:13:48'),
+(973, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:16:11'),
+(974, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:17:51'),
+(975, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:19:27'),
+(976, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:19:32'),
+(977, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:20:04'),
+(978, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:20:42'),
+(979, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:20:47'),
+(980, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:21:38'),
+(981, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:23:26'),
+(982, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:24:11'),
+(983, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:24:46'),
+(984, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:26:02'),
+(985, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:29:25'),
+(986, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:30:57'),
+(987, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:32:09'),
+(988, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:33:32'),
+(989, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:34:08'),
+(990, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:34:16'),
+(991, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:34:23'),
+(992, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:34:27'),
+(993, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:37:36'),
+(994, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:37:39'),
+(995, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:37:49'),
+(996, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:37:58'),
+(997, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:38:02'),
+(998, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:40:49'),
+(999, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:41:09'),
+(1000, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:41:35'),
+(1001, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:41:39'),
+(1002, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:42:04'),
+(1003, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:42:38'),
+(1004, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:43:22'),
+(1005, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:43:43'),
+(1006, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-04 20:44:28'),
+(1007, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:51:19'),
+(1008, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:55:27'),
+(1009, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:57:13'),
+(1010, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:58:04'),
+(1011, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:58:24'),
+(1012, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 20:59:44'),
+(1013, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:01:32'),
+(1014, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:03:56'),
+(1015, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:05:45'),
+(1016, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:14:56'),
+(1017, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:15:06'),
+(1018, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:18:47'),
+(1019, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-04 21:19:34'),
+(1020, 8, '192.168.1.8', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-05-05 13:13:42'),
+(1021, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-05 13:16:07'),
+(1022, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-05 13:17:40'),
+(1023, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-05 13:19:30'),
+(1024, 8, '127.0.0.1', 'exitoso', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0', '2026-05-05 13:19:32');
 
 -- --------------------------------------------------------
 
@@ -391,7 +1502,9 @@ INSERT INTO `imp_comments` (`id`, `import_id`, `comment`, `user_id`, `initiator`
 (33, 7, 'Ok.', 153, 0, '2026-03-13 17:18:30', '2026-03-13 17:18:30', NULL),
 (36, 31, 'Ok.', 153, 0, '2026-03-13 20:15:19', '2026-03-13 20:15:19', NULL),
 (37, 12, '{\"type\":\"qty_change\",\"old\":7,\"new\":\"6\",\"note\":\"Se requieren mas unidades\"}', 153, 1, '2026-03-17 15:56:01', '2026-03-17 15:56:01', NULL),
-(38, 27, 'Ok.', 153, 0, '2026-03-18 14:49:36', '2026-03-18 14:49:36', NULL);
+(38, 27, 'Ok.', 153, 0, '2026-03-18 14:49:36', '2026-03-18 14:49:36', NULL),
+(39, 21, 'Revisar esta importación.', 181, 0, '2026-04-29 21:56:46', '2026-04-29 21:56:46', NULL),
+(40, 22, 'Revisar.', 181, 0, '2026-05-04 14:06:36', '2026-05-04 14:06:36', NULL);
 
 -- --------------------------------------------------------
 
@@ -440,8 +1553,8 @@ INSERT INTO `imp_imports` (`id`, `item_id`, `user_id`, `label_id`, `qty_requeste
 (18, 54, 8, 6, 2, NULL, 560, 6, 5, 0, '2026-02-24 17:58:45', '2026-03-13 19:21:30', NULL),
 (19, 1109, 8, 15, 5, 5, 280, 7, 2, 0, '2026-02-24 18:17:06', '2026-03-12 16:46:34', NULL),
 (20, 35, 8, 13, 5, NULL, 0, 1, NULL, 0, '2026-02-24 18:19:36', '2026-02-24 18:19:36', NULL),
-(21, 27, 8, 15, 1, NULL, 250, 2, NULL, 0, '2026-02-24 19:34:21', '2026-03-13 17:01:46', NULL),
-(22, 32, 8, 14, 1, NULL, 60, 2, NULL, 0, '2026-02-24 19:34:58', '2026-03-13 16:00:05', NULL),
+(21, 27, 8, 15, 1, NULL, 250, 2, NULL, 0, '2026-02-24 19:34:21', '2026-04-29 21:48:09', NULL),
+(22, 32, 8, 14, 1, NULL, 60, 4, NULL, 0, '2026-02-24 19:34:58', '2026-05-04 14:00:32', NULL),
 (23, 74, 8, 15, 2, NULL, 129, 6, 4, 0, '2026-02-24 19:39:32', '2026-03-13 19:29:33', NULL),
 (24, 58, 8, 10, 2, NULL, 0, 1, NULL, 0, '2026-02-24 19:40:27', '2026-02-24 19:40:27', NULL),
 (25, 70, 8, 15, 1, NULL, 0, 1, NULL, 0, '2026-02-24 19:40:48', '2026-02-24 19:40:48', NULL),
@@ -452,7 +1565,9 @@ INSERT INTO `imp_imports` (`id`, `item_id`, `user_id`, `label_id`, `qty_requeste
 (30, 43, 8, 15, 5, NULL, 0, 1, NULL, 0, '2026-02-24 20:01:52', '2026-02-24 20:01:52', NULL),
 (31, 333, 8, 6, 12, NULL, 0, 1, NULL, 0, '2026-02-24 21:56:36', '2026-03-13 20:15:20', NULL),
 (32, 29, 153, 9, 5, NULL, 23450, 1, NULL, 0, '2026-03-17 15:21:57', '2026-03-17 15:21:57', NULL),
-(33, 18, 153, 13, 0, NULL, 5421, 1, NULL, 0, '2026-03-18 21:47:01', '2026-03-18 21:47:01', NULL);
+(33, 18, 153, 13, 0, NULL, 5421, 1, NULL, 0, '2026-03-18 21:47:01', '2026-03-18 21:47:01', NULL),
+(34, 291, 8, 9, 0, NULL, 6700, 1, NULL, 0, '2026-04-24 21:51:29', '2026-04-24 21:51:29', NULL),
+(35, 36, 8, 9, 1, NULL, 45900, 1, NULL, 0, '2026-04-27 13:16:35', '2026-04-27 13:16:35', NULL);
 
 -- --------------------------------------------------------
 
@@ -507,14 +1622,15 @@ INSERT INTO `imp_items_setup` (`id`, `item_id`, `percentage`, `cantidad_min`, `s
 (25, 284, 5, 3, 107, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 8990, NULL, 1, 0, 0, '2026-03-04 13:56:42', '2026-03-04 13:56:42', NULL),
 (26, 333, 19, 10, 181, 'GiCL Alum-Profile 3815 Black, lenght 3 meter', 11500, NULL, 1, 0, 0, '2026-03-04 14:02:11', '2026-03-04 14:02:11', NULL),
 (27, 1119, 19, 10, 107, 'GiCL Alum-Profile 3815 Black, lenght 3 meter', 11500, NULL, 1, 0, 0, '2026-03-04 14:02:11', '2026-03-04 14:02:11', NULL),
-(28, 27, 5, 1, 109, 'GiCL Alum-Profile 3815 Black, lenght 3 meter', 234, NULL, 4, 0, 0, '2026-03-13 16:31:34', '2026-03-13 16:31:34', NULL),
-(29, 32, 12, 2, 107, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 59, NULL, 2, 0, 0, '2026-03-13 16:33:43', '2026-03-13 16:33:43', NULL),
+(28, 27, 5, 1, 181, 'GiCL Alum-Profile 3815 Black, lenght 3 meter', 234, NULL, 4, 0, 0, '2026-03-13 16:31:34', '2026-03-13 16:31:34', NULL),
+(29, 32, 12, 2, 181, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 59, NULL, 2, 0, 0, '2026-03-13 16:33:43', '2026-03-13 16:33:43', NULL),
 (30, 35, 15, 1, 108, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 129, NULL, 2, 0, 0, '2026-03-13 16:34:58', '2026-03-13 16:34:58', NULL),
 (31, 43, 8, 3, 189, 'GiCL Alum-Profile 3815 Black, lenght 3 meter', 67, NULL, 2, 1, 1, '2026-03-13 16:36:07', '2026-03-13 16:36:07', NULL),
 (32, 54, 16, 4, 181, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 34, NULL, 4, 1, 1, '2026-03-13 16:38:53', '2026-03-13 16:38:53', NULL),
 (33, 58, 19, 1, 107, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 45, NULL, 0, 0, 0, '2026-03-13 16:40:03', '2026-03-13 16:40:03', NULL),
 (34, 70, 15, 2, 108, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 150, NULL, 0, 0, 0, '2026-03-13 16:50:04', '2026-03-13 16:50:04', NULL),
-(35, 74, 16, 1, 181, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 199, NULL, 0, 0, 0, '2026-03-13 16:56:37', '2026-03-13 16:56:37', NULL);
+(35, 74, 16, 1, 181, 'RIYI Sign Alum-Profile accessory XM-2501A/B-3005A/B iron inside corner with screws', 199, NULL, 0, 0, 0, '2026-03-13 16:56:37', '2026-03-13 16:56:37', NULL),
+(36, 1125, 2, 1, 107, 'referencia', 5400, NULL, 1, 0, 0, '2026-04-24 20:22:40', '2026-04-24 20:22:40', NULL);
 
 -- --------------------------------------------------------
 
@@ -733,7 +1849,9 @@ INSERT INTO `imp_status_history` (`id`, `import_id`, `previous_state`, `new_stat
 (72, 27, 2, 4, 153, '2026-03-18 14:49:43', '2026-03-18 14:49:43', NULL),
 (73, 4, 4, 5, 181, '2026-03-18 14:50:14', '2026-03-18 14:50:14', NULL),
 (74, 27, 4, 5, 181, '2026-03-18 14:50:18', '2026-03-18 14:50:18', NULL),
-(75, 7, 4, 5, 181, '2026-03-18 21:35:56', '2026-03-18 21:35:56', NULL);
+(75, 7, 4, 5, 181, '2026-03-18 21:35:56', '2026-03-18 21:35:56', NULL),
+(76, 21, 2, 4, 8, '2026-04-29 21:48:09', '2026-04-29 21:48:09', NULL),
+(77, 22, 2, 4, 8, '2026-05-04 14:00:32', '2026-05-04 14:00:32', NULL);
 
 -- --------------------------------------------------------
 
@@ -757,7 +1875,7 @@ CREATE TABLE `imp_unconfirmed_qty` (
 
 INSERT INTO `imp_unconfirmed_qty` (`id`, `item_id`, `qty`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (2, 21, 3, 1, '2026-02-19 20:35:21', '2026-02-24 17:11:46', '2026-02-24 17:11:46'),
-(3, 36, 1, 1, '2026-02-20 19:57:26', '2026-02-23 14:34:16', NULL),
+(3, 36, 0, 1, '2026-02-20 19:57:26', '2026-04-27 13:16:35', NULL),
 (4, 21, 2, 1, '2026-02-24 17:57:50', '2026-02-24 17:58:02', '2026-02-24 17:58:02'),
 (5, 21, 2, 1, '2026-02-24 17:58:34', '2026-02-24 17:58:45', '2026-02-24 17:58:45'),
 (6, 18, 1, 1, '2026-02-24 18:16:58', '2026-02-24 18:17:06', '2026-02-24 18:17:06'),
@@ -1088,7 +2206,13 @@ INSERT INTO `inv_detail_remissions` (`id`, `quantity`, `tax`, `value`, `invoiceI
 (91, 7, 5, 19800, NULL, 1110, 50, NULL, NULL, '2026-04-12 18:04:05', '2026-04-12 18:04:05'),
 (92, 5, 5, 53600, NULL, 1115, 50, NULL, NULL, '2026-04-12 18:04:05', '2026-04-12 18:04:05'),
 (93, 6, 5, 24900, NULL, 1113, 50, NULL, NULL, '2026-04-12 18:04:05', '2026-04-12 18:04:05'),
-(94, 5, 19, 1731, NULL, 1121, 50, NULL, NULL, '2026-04-12 18:04:05', '2026-04-12 18:04:05');
+(94, 5, 19, 1731, NULL, 1121, 50, NULL, NULL, '2026-04-12 18:04:05', '2026-04-12 18:04:05'),
+(95, 1, 0, 12311, NULL, 1122, 51, NULL, NULL, '2026-04-21 17:19:39', '2026-04-21 17:19:39'),
+(96, 1, 0, 1500, NULL, 1122, 52, NULL, NULL, '2026-04-29 14:54:54', '2026-04-29 14:54:54'),
+(97, 1, 19, 29750, NULL, 1123, 52, NULL, NULL, '2026-04-29 14:54:55', '2026-04-29 14:54:55'),
+(98, 1, 19, 1660, NULL, 1121, 53, NULL, NULL, '2026-04-30 21:41:59', '2026-04-30 21:41:59'),
+(99, 1, 19, 1731, NULL, 1121, 54, NULL, NULL, '2026-04-30 22:14:09', '2026-04-30 22:14:09'),
+(100, 2, 19, 29750, NULL, 1123, 55, NULL, NULL, '2026-05-04 19:26:07', '2026-05-04 19:26:07');
 
 -- --------------------------------------------------------
 
@@ -1156,6 +2280,7 @@ CREATE TABLE `inv_image_gallery` (
   `itemId` int DEFAULT NULL,
   `img_path` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
   `type` enum('PRINCIPAL','GALERIA','PDF') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'PRINCIPAL',
+  `type_show` enum('COMERCIAL','BODEGA') DEFAULT 'COMERCIAL',
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL
@@ -1165,60 +2290,80 @@ CREATE TABLE `inv_image_gallery` (
 -- Volcado de datos para la tabla `inv_image_gallery`
 --
 
-INSERT INTO `inv_image_gallery` (`id`, `itemId`, `img_path`, `type`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(2, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/6Z0b14RGAmPWf81LW3keA5UI7iZWYBkDbmEqNDxM.jpg', 'GALERIA', '2025-11-26 19:18:22', '2025-11-26 19:20:45', '2025-11-26 19:20:45'),
-(3, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/mpV4j0BkIV9vN9fuq0Dc4mN6bqkeSXYGaCxFp0bh.jpg', 'GALERIA', '2025-11-26 19:18:23', '2025-11-26 20:27:00', '2025-11-26 20:27:00'),
-(4, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/yTvg5ODNJAx1Ie5ojf5il4UhEYISf2D3mgpVH16N.jpg', 'GALERIA', '2025-11-26 19:18:23', '2025-11-26 20:26:57', '2025-11-26 20:26:57'),
-(5, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/znlAsuCiwWKaQ8CcE3Q5l4o4YGxmcc8EickUBHki.jpg', 'GALERIA', '2025-11-26 19:18:23', '2025-11-26 20:26:36', '2025-11-26 20:26:36'),
-(6, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/2Mg1AFnSTHR4mE5jtF0lRPuQKq3gjiSslo1bXoPH.jpg', 'GALERIA', '2025-11-26 19:18:24', '2025-11-26 19:18:24', NULL),
-(7, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Fs8R18Eh15gFeT4XIkVif82v8NBMm5du7G5EEvEm.jpg', 'GALERIA', '2025-11-26 19:18:24', '2025-11-26 19:18:24', NULL),
-(8, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Tr0d4foMQgqgWhEgVClwCLk7lXjdkMzJdJC8m57p.jpg', 'PRINCIPAL', '2025-11-26 19:25:43', '2025-11-26 19:25:43', NULL),
-(9, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/4nf14KORDNDDO0Qy8b3ziKji51juUoQYfqIXLGgk.jpg', 'GALERIA', '2025-11-26 19:28:43', '2025-11-26 19:28:43', NULL),
-(11, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/aGs5YOwx60rJHaDQLc15AIFSastk5TL8mj8T9xTO.jpg', 'GALERIA', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
-(12, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/V95YnwTTsWV3E6pOK5B6aQ73zj11xJ4hgqKUSQiD.webp', 'GALERIA', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
-(13, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0vwLXtTmjYxGW2fM7XeLvUOD56B2oHKIOiWMjPf2.webp', 'GALERIA', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
-(14, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Hn8ukFDnrgiMmT3D5SUf4YqSkaCDExn9J3dnrnau.webp', 'GALERIA', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
-(15, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/CPYPfKxyUFyqGPF4q6RkY5fv7mK4n028fxEiMBjr.webp', 'PRINCIPAL', '2025-11-26 19:45:02', '2025-11-26 19:45:02', NULL),
-(16, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/6MNk966ahcdyj4COMUjsblV08A7It8a5ISZIbNkk.jpg', 'PRINCIPAL', '2025-11-26 20:27:20', '2025-11-26 20:27:20', NULL),
-(17, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/aJEy2xhoJ0g6u1aVyhJq09AakSEjVM1CFS9ffvG3.jpg', 'GALERIA', '2025-11-26 20:28:20', '2025-11-26 20:28:20', NULL),
-(18, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/JOGgTC0fzdBgaepVT8DypcwmldrjVZAKUGthMUC8.webp', 'GALERIA', '2025-11-26 20:28:20', '2025-11-26 20:28:20', NULL),
-(19, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/q5aDPPfWlDJDUrMqFawniHAP0pfnuSASmc5Wly3W.webp', 'GALERIA', '2025-11-26 20:28:21', '2025-11-26 20:28:21', NULL),
-(20, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0zQuXFChDOVO7RUX2VNC6aAI0kNp19lVqBMATi07.webp', 'GALERIA', '2025-11-26 20:28:21', '2025-11-26 20:28:21', NULL),
-(21, 1060, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/DlSw1QOcnYYzy5Ot9xYtjo1GuCvLJidymJt85xVA.jpg', 'PRINCIPAL', '2025-12-01 16:30:05', '2025-12-01 16:30:05', NULL),
-(22, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/K5fiJ1e3RywaNWGA41yeNqfjIJ0lkXzeSJDkIRoU.png', 'PRINCIPAL', '2025-12-01 19:17:15', '2025-12-01 19:17:15', NULL),
-(23, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/OPVqWPgiqxbKKUmvwgbbVkqZoFyJlVjUUjixlR4t.png', 'GALERIA', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
-(24, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/yoqsNVkHpJgazT5zekkxnUnNrP7jx30oPemrZ2Co.png', 'GALERIA', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
-(25, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/80c1iD72HjlqdFueInggUeMbWA04hDdAHg64Nn0T.png', 'GALERIA', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
-(26, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/XGZqZX3GMB9m48rx3qujDg1sNAO5OZre7VVO0oRT.png', 'GALERIA', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
-(27, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/84xPro8ZbxrEvuxkxIQ1M2f9zzNc53WPAMLrlFM9.png', 'GALERIA', '2025-12-02 13:14:58', '2026-03-06 17:03:58', '2026-03-06 17:03:58'),
-(28, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/7yWuSWo0oRSPOqjpIeLhsTX10zuRHAbhbbFNPUZT.png', 'GALERIA', '2025-12-02 13:15:24', '2026-03-06 17:03:50', '2026-03-06 17:03:50'),
-(29, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/F1CPSGPgEIVYJH6pgdMcnXkLpDATmNZB8r9SUhE6.png', 'GALERIA', '2025-12-02 13:15:24', '2025-12-02 13:15:24', NULL),
-(30, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/cipPILpf6LT1MDZ4YZCWwnIMeLc9gVxProKzf7XR.png', 'GALERIA', '2025-12-02 13:15:24', '2026-03-06 17:04:40', NULL),
-(31, 413, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/w5Ef2fkP0Zfjs0bJv81yIuVux7mp9xM20e42XEzZ.jpg', 'PRINCIPAL', '2026-01-20 16:24:04', '2026-01-20 16:24:04', NULL),
-(32, 413, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/t0DUmwl4X4Bmto0TNM4rV6Pu0EmAfN69padR8gDX.jpg', 'GALERIA', '2026-01-20 16:25:20', '2026-01-20 16:25:20', NULL),
-(33, 413, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/St3Td5lVqL1bni9wMlj1UsAHsgF7zuFI4ZifSTww.jpg', 'GALERIA', '2026-01-20 16:25:30', '2026-01-20 16:25:30', NULL),
-(34, 18, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0awvxL5I6paKZUVfkxwSR3wTagk4KH2HZjYH6NWN.pdf', 'PDF', '2026-02-23 16:45:46', '2026-02-23 18:04:10', NULL),
-(35, 21, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/pajLz8x1aX2ksGeEVtyh3wjzwXUS7h51EWQLZt2Q.pdf', 'PDF', '2026-02-23 19:21:27', '2026-02-23 19:21:27', NULL),
-(36, 27, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/FNccIZ0iJRxXnFcg3CKqL4sE3hZBLt66JFkgPHwE.pdf', 'PDF', '2026-02-27 20:25:50', '2026-02-27 20:25:50', NULL),
-(37, 27, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/23g3AtCIE9jStohB1jjcqg1kz5lKCj4MRvC7gzoI.jpg', 'GALERIA', '2026-02-27 21:07:51', '2026-02-27 21:07:51', NULL),
-(38, 27, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/CnI6d1zyblP7E53S1K9I8c6XljUAZC26fPG53ey0.webp', 'GALERIA', '2026-02-27 21:35:13', '2026-02-27 21:35:13', NULL),
-(39, 1113, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/aZo2yOffJbs15AX19YdrS8LvIM8ZYrBqwO4hNBEw.pdf', 'PDF', '2026-03-02 18:27:40', '2026-03-02 18:27:40', NULL),
-(40, 1113, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/9FIn33cyVjKha324QU2PTlc15FYLkBcswFZrg07s.jpg', 'GALERIA', '2026-03-02 19:26:09', '2026-03-02 19:26:09', NULL),
-(41, 18, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/5fEt6vzer82prUDxNXGvzDHkgzPyNYrpCmNznHCT.pdf', 'PDF', '2026-03-02 19:38:14', '2026-03-02 19:38:14', NULL),
-(42, 1062, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/MPtCMbyVLs6NFgSjHyU5poi1aMXEkJMf8kRoISyf.pdf', 'PDF', '2026-03-02 19:54:04', '2026-03-02 19:54:04', NULL),
-(43, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/SKQ9qPwqnN0uCfHlUjIK7EBIBKBUFZPeniJGzHuD.png', 'GALERIA', '2026-03-05 14:55:09', '2026-03-05 15:24:19', NULL),
-(44, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Uq1PLEcex7jCv4wttgnQ5PU8DJuFbaSuN3vlML9A.webp', 'GALERIA', '2026-03-05 15:02:11', '2026-03-05 20:35:05', NULL),
-(45, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/5hpau53oohsT6M32EnH2TVtezeoKmbbVXWvjJrEO.png', 'GALERIA', '2026-03-05 15:02:11', '2026-03-05 15:02:11', NULL),
-(46, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Ro4LgBwNHfhz5LXaIIJUOIlWM1JwFMMVWaVpMCVK.png', 'GALERIA', '2026-03-05 15:02:11', '2026-03-05 15:02:11', NULL),
-(47, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/DKlNljn8U6PmFGp7QiwLURiOe7av6DwCVVdWZ3BP.png', 'GALERIA', '2026-03-05 15:02:11', '2026-03-05 15:02:11', NULL),
-(48, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/xPB1A4cf22xPsrtRaMWeEu1rPoGby9oDVAu8rV43.png', 'GALERIA', '2026-03-05 15:02:12', '2026-03-16 20:29:16', '2026-03-16 20:29:16'),
-(49, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/wxmxqf1HBaCcmKyIuwlyslE3soBih5amEzt3bDuK.jpg', 'GALERIA', '2026-03-05 15:02:12', '2026-03-16 20:35:58', '2026-03-16 20:35:58'),
-(50, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/xEr8phif5PU5osjYKGHtGNX2kO2cG66mtiYXtwRi.jpg', 'PRINCIPAL', '2026-03-05 15:24:19', '2026-03-05 15:24:19', NULL),
-(51, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/DkbCXuo515h9Aw59efCRPg783hou2dFliFU9XhJI.jpg', 'GALERIA', '2026-03-06 17:02:31', '2026-03-06 17:02:31', NULL),
-(52, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/iHyTWLX55lsQbl6HszCAWZCheCAXauReGngL8jS8.jpg', 'GALERIA', '2026-03-06 17:02:31', '2026-03-06 17:02:31', NULL),
-(53, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/R04nEmRkORHjVUo9Ng8JdiMj63Md6TuQ7ODs5Wcn.jpg', 'GALERIA', '2026-03-06 17:02:31', '2026-03-06 17:02:31', NULL),
-(54, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/abm5nkR4ly4CEwhN247JVeGaDTcyy56CPS22YhYr.png', 'PRINCIPAL', '2026-03-06 17:04:40', '2026-03-06 17:04:40', NULL),
-(55, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/K8fNiRpl8MAYfvBus0mBxHi1VCmQScL7ds0V6vj0.pdf', 'PDF', '2026-03-09 20:19:09', '2026-03-09 20:19:09', NULL);
+INSERT INTO `inv_image_gallery` (`id`, `itemId`, `img_path`, `type`, `type_show`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(2, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/6Z0b14RGAmPWf81LW3keA5UI7iZWYBkDbmEqNDxM.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:18:22', '2025-11-26 19:20:45', '2025-11-26 19:20:45'),
+(3, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/mpV4j0BkIV9vN9fuq0Dc4mN6bqkeSXYGaCxFp0bh.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:18:23', '2025-11-26 20:27:00', '2025-11-26 20:27:00'),
+(4, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/yTvg5ODNJAx1Ie5ojf5il4UhEYISf2D3mgpVH16N.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:18:23', '2025-11-26 20:26:57', '2025-11-26 20:26:57'),
+(5, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/znlAsuCiwWKaQ8CcE3Q5l4o4YGxmcc8EickUBHki.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:18:23', '2025-11-26 20:26:36', '2025-11-26 20:26:36'),
+(6, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/2Mg1AFnSTHR4mE5jtF0lRPuQKq3gjiSslo1bXoPH.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:18:24', '2025-11-26 19:18:24', NULL),
+(7, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Fs8R18Eh15gFeT4XIkVif82v8NBMm5du7G5EEvEm.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:18:24', '2025-11-26 19:18:24', NULL),
+(8, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Tr0d4foMQgqgWhEgVClwCLk7lXjdkMzJdJC8m57p.jpg', 'PRINCIPAL', 'COMERCIAL', '2025-11-26 19:25:43', '2025-11-26 19:25:43', NULL),
+(9, 11, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/4nf14KORDNDDO0Qy8b3ziKji51juUoQYfqIXLGgk.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:28:43', '2025-11-26 19:28:43', NULL),
+(11, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/aGs5YOwx60rJHaDQLc15AIFSastk5TL8mj8T9xTO.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
+(12, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/V95YnwTTsWV3E6pOK5B6aQ73zj11xJ4hgqKUSQiD.webp', 'GALERIA', 'COMERCIAL', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
+(13, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0vwLXtTmjYxGW2fM7XeLvUOD56B2oHKIOiWMjPf2.webp', 'GALERIA', 'COMERCIAL', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
+(14, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Hn8ukFDnrgiMmT3D5SUf4YqSkaCDExn9J3dnrnau.webp', 'GALERIA', 'COMERCIAL', '2025-11-26 19:44:32', '2025-11-26 19:44:32', NULL),
+(15, 3, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/CPYPfKxyUFyqGPF4q6RkY5fv7mK4n028fxEiMBjr.webp', 'PRINCIPAL', 'COMERCIAL', '2025-11-26 19:45:02', '2025-11-26 19:45:02', NULL),
+(16, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/6MNk966ahcdyj4COMUjsblV08A7It8a5ISZIbNkk.jpg', 'PRINCIPAL', 'COMERCIAL', '2025-11-26 20:27:20', '2025-11-26 20:27:20', NULL),
+(17, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/aJEy2xhoJ0g6u1aVyhJq09AakSEjVM1CFS9ffvG3.jpg', 'GALERIA', 'COMERCIAL', '2025-11-26 20:28:20', '2025-11-26 20:28:20', NULL),
+(18, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/JOGgTC0fzdBgaepVT8DypcwmldrjVZAKUGthMUC8.webp', 'GALERIA', 'COMERCIAL', '2025-11-26 20:28:20', '2025-11-26 20:28:20', NULL),
+(19, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/q5aDPPfWlDJDUrMqFawniHAP0pfnuSASmc5Wly3W.webp', 'GALERIA', 'COMERCIAL', '2025-11-26 20:28:21', '2025-11-26 20:28:21', NULL),
+(20, 5, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0zQuXFChDOVO7RUX2VNC6aAI0kNp19lVqBMATi07.webp', 'GALERIA', 'COMERCIAL', '2025-11-26 20:28:21', '2025-11-26 20:28:21', NULL),
+(21, 1060, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/DlSw1QOcnYYzy5Ot9xYtjo1GuCvLJidymJt85xVA.jpg', 'PRINCIPAL', 'COMERCIAL', '2025-12-01 16:30:05', '2025-12-01 16:30:05', NULL),
+(22, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/K5fiJ1e3RywaNWGA41yeNqfjIJ0lkXzeSJDkIRoU.png', 'GALERIA', 'COMERCIAL', '2025-12-01 19:17:15', '2026-04-14 20:26:38', NULL),
+(23, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/OPVqWPgiqxbKKUmvwgbbVkqZoFyJlVjUUjixlR4t.png', 'GALERIA', 'COMERCIAL', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
+(24, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/yoqsNVkHpJgazT5zekkxnUnNrP7jx30oPemrZ2Co.png', 'GALERIA', 'COMERCIAL', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
+(25, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/80c1iD72HjlqdFueInggUeMbWA04hDdAHg64Nn0T.png', 'GALERIA', 'COMERCIAL', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
+(26, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/XGZqZX3GMB9m48rx3qujDg1sNAO5OZre7VVO0oRT.png', 'GALERIA', 'COMERCIAL', '2025-12-01 19:17:49', '2025-12-01 19:17:49', NULL),
+(27, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/84xPro8ZbxrEvuxkxIQ1M2f9zzNc53WPAMLrlFM9.png', 'GALERIA', 'COMERCIAL', '2025-12-02 13:14:58', '2026-03-06 17:03:58', '2026-03-06 17:03:58'),
+(28, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/7yWuSWo0oRSPOqjpIeLhsTX10zuRHAbhbbFNPUZT.png', 'GALERIA', 'COMERCIAL', '2025-12-02 13:15:24', '2026-03-06 17:03:50', '2026-03-06 17:03:50'),
+(29, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/F1CPSGPgEIVYJH6pgdMcnXkLpDATmNZB8r9SUhE6.png', 'GALERIA', 'COMERCIAL', '2025-12-02 13:15:24', '2025-12-02 13:15:24', NULL),
+(30, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/cipPILpf6LT1MDZ4YZCWwnIMeLc9gVxProKzf7XR.png', 'GALERIA', 'COMERCIAL', '2025-12-02 13:15:24', '2026-03-06 17:04:40', NULL),
+(31, 413, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/w5Ef2fkP0Zfjs0bJv81yIuVux7mp9xM20e42XEzZ.jpg', 'PRINCIPAL', 'COMERCIAL', '2026-01-20 16:24:04', '2026-01-20 16:24:04', NULL),
+(32, 413, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/t0DUmwl4X4Bmto0TNM4rV6Pu0EmAfN69padR8gDX.jpg', 'GALERIA', 'COMERCIAL', '2026-01-20 16:25:20', '2026-01-20 16:25:20', NULL),
+(33, 413, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/St3Td5lVqL1bni9wMlj1UsAHsgF7zuFI4ZifSTww.jpg', 'GALERIA', 'COMERCIAL', '2026-01-20 16:25:30', '2026-01-20 16:25:30', NULL),
+(34, 18, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0awvxL5I6paKZUVfkxwSR3wTagk4KH2HZjYH6NWN.pdf', 'PDF', 'COMERCIAL', '2026-02-23 16:45:46', '2026-02-23 18:04:10', NULL),
+(35, 21, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/pajLz8x1aX2ksGeEVtyh3wjzwXUS7h51EWQLZt2Q.pdf', 'PDF', 'COMERCIAL', '2026-02-23 19:21:27', '2026-02-23 19:21:27', NULL),
+(36, 27, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/FNccIZ0iJRxXnFcg3CKqL4sE3hZBLt66JFkgPHwE.pdf', 'PDF', 'COMERCIAL', '2026-02-27 20:25:50', '2026-02-27 20:25:50', NULL),
+(37, 27, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/23g3AtCIE9jStohB1jjcqg1kz5lKCj4MRvC7gzoI.jpg', 'GALERIA', 'COMERCIAL', '2026-02-27 21:07:51', '2026-02-27 21:07:51', NULL),
+(38, 27, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/CnI6d1zyblP7E53S1K9I8c6XljUAZC26fPG53ey0.webp', 'GALERIA', 'COMERCIAL', '2026-02-27 21:35:13', '2026-02-27 21:35:13', NULL),
+(39, 1113, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/aZo2yOffJbs15AX19YdrS8LvIM8ZYrBqwO4hNBEw.pdf', 'PDF', 'COMERCIAL', '2026-03-02 18:27:40', '2026-03-02 18:27:40', NULL),
+(40, 1113, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/9FIn33cyVjKha324QU2PTlc15FYLkBcswFZrg07s.jpg', 'GALERIA', 'COMERCIAL', '2026-03-02 19:26:09', '2026-03-02 19:26:09', NULL),
+(41, 18, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/5fEt6vzer82prUDxNXGvzDHkgzPyNYrpCmNznHCT.pdf', 'PDF', 'COMERCIAL', '2026-03-02 19:38:14', '2026-03-02 19:38:14', NULL),
+(42, 1062, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/MPtCMbyVLs6NFgSjHyU5poi1aMXEkJMf8kRoISyf.pdf', 'PDF', 'COMERCIAL', '2026-03-02 19:54:04', '2026-03-02 19:54:04', NULL),
+(43, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/SKQ9qPwqnN0uCfHlUjIK7EBIBKBUFZPeniJGzHuD.png', 'GALERIA', 'COMERCIAL', '2026-03-05 14:55:09', '2026-03-05 15:24:19', NULL),
+(44, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Uq1PLEcex7jCv4wttgnQ5PU8DJuFbaSuN3vlML9A.webp', 'GALERIA', 'COMERCIAL', '2026-03-05 15:02:11', '2026-03-05 20:35:05', NULL),
+(45, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/5hpau53oohsT6M32EnH2TVtezeoKmbbVXWvjJrEO.png', 'GALERIA', 'COMERCIAL', '2026-03-05 15:02:11', '2026-03-05 15:02:11', NULL),
+(46, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/Ro4LgBwNHfhz5LXaIIJUOIlWM1JwFMMVWaVpMCVK.png', 'GALERIA', 'COMERCIAL', '2026-03-05 15:02:11', '2026-03-05 15:02:11', NULL),
+(47, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/DKlNljn8U6PmFGp7QiwLURiOe7av6DwCVVdWZ3BP.png', 'GALERIA', 'COMERCIAL', '2026-03-05 15:02:11', '2026-03-05 15:02:11', NULL),
+(48, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/xPB1A4cf22xPsrtRaMWeEu1rPoGby9oDVAu8rV43.png', 'GALERIA', 'COMERCIAL', '2026-03-05 15:02:12', '2026-03-16 20:29:16', '2026-03-16 20:29:16'),
+(49, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/wxmxqf1HBaCcmKyIuwlyslE3soBih5amEzt3bDuK.jpg', 'GALERIA', 'COMERCIAL', '2026-03-05 15:02:12', '2026-03-16 20:35:58', '2026-03-16 20:35:58'),
+(50, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/xEr8phif5PU5osjYKGHtGNX2kO2cG66mtiYXtwRi.jpg', 'GALERIA', 'COMERCIAL', '2026-03-05 15:24:19', '2026-04-17 21:16:12', NULL),
+(51, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/DkbCXuo515h9Aw59efCRPg783hou2dFliFU9XhJI.jpg', 'GALERIA', 'COMERCIAL', '2026-03-06 17:02:31', '2026-03-06 17:02:31', NULL),
+(52, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/iHyTWLX55lsQbl6HszCAWZCheCAXauReGngL8jS8.jpg', 'GALERIA', 'COMERCIAL', '2026-03-06 17:02:31', '2026-03-06 17:02:31', NULL),
+(53, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/R04nEmRkORHjVUo9Ng8JdiMj63Md6TuQ7ODs5Wcn.jpg', 'GALERIA', 'COMERCIAL', '2026-03-06 17:02:31', '2026-03-06 17:02:31', NULL),
+(54, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/abm5nkR4ly4CEwhN247JVeGaDTcyy56CPS22YhYr.png', 'GALERIA', 'COMERCIAL', '2026-03-06 17:04:40', '2026-04-14 19:58:45', NULL),
+(55, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/K8fNiRpl8MAYfvBus0mBxHi1VCmQScL7ds0V6vj0.pdf', 'PDF', 'COMERCIAL', '2026-03-09 20:19:09', '2026-03-09 20:19:09', NULL),
+(56, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/gEYwquDIEzPUiBH1xhR1OqmHPHX4SKTySa6Vg4fb.png', 'GALERIA', 'COMERCIAL', '2026-04-14 14:30:12', '2026-04-14 14:30:12', NULL),
+(57, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/xxI2lOLUyrFbNh3IbF9jmd95cjGYv50pkPy407q7.png', 'PRINCIPAL', 'BODEGA', '2026-04-14 19:58:45', '2026-04-14 19:58:45', NULL),
+(58, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/3O71RMuXcmmgyf5S33J9tabAZdrOLSxeieQ2EHLf.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:00', '2026-04-14 19:59:00', NULL),
+(59, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/11jHhJj6vu1AvEMcJwQvyMSbMTwYdHxErn5iDE6o.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:00', '2026-04-14 19:59:00', NULL),
+(60, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/pd3jRhz9CzSK4SRNCnKa0s0cfp0zkCAqNM2meSVq.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:14', '2026-04-14 19:59:14', NULL),
+(61, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/EFSWMecFNW7VKlB0via5GiNrAyM3PKWFB7GvUwTG.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:14', '2026-04-14 19:59:14', NULL),
+(62, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/A8tf8CpkSGFZFrjB1fVcVbUOobd0J9MXpeIW7IIW.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:14', '2026-04-14 19:59:14', NULL),
+(63, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0fnxVS1e4zOibolCr58Om7wbMiJCV2H5RVQucg3I.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:15', '2026-04-14 19:59:15', NULL),
+(64, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/zNqoocv1BwK7XSxTfq27IUCPNS2vIHTLKeSfAEse.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:15', '2026-04-14 19:59:15', NULL),
+(65, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/SeNbx5AVqMYlCzjtslhchUO6HpAMGsRu9Mnh59GH.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:15', '2026-04-14 19:59:15', NULL),
+(66, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/19hhbe2JUYmZXH1IQVmc5qi7RbYRcwbs5K2JYbOO.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:15', '2026-04-14 19:59:15', NULL),
+(67, 28, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/5ddLfH9aZHQPN6p7azZe16apeWy8dTROdM0PFuOv.png', 'GALERIA', 'BODEGA', '2026-04-14 19:59:15', '2026-04-14 19:59:15', NULL),
+(68, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/bAmclvjAIgzKWYstnspR7gehdfal2PIdxRnGGjA7.jpg', 'PRINCIPAL', 'COMERCIAL', '2026-04-14 20:26:38', '2026-04-14 20:26:38', NULL),
+(69, 30, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/NXu9Z7uqELtD1yj3K0kBRnhlwA7PQJJswm2pAMBk.jpg', 'PRINCIPAL', 'BODEGA', '2026-04-14 20:26:55', '2026-04-14 20:26:55', NULL),
+(70, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/TtoemSq2eIcq09vMNTJwbTj7sH8CwrivHP9ruFML.png', 'GALERIA', 'COMERCIAL', '2026-04-17 21:05:27', '2026-04-17 21:05:27', NULL),
+(71, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/CvgvorUS34UijWZPAIUVZk1oxUdMqs0Ax7hHx4yU.png', 'PRINCIPAL', 'COMERCIAL', '2026-04-17 21:16:13', '2026-04-17 21:16:13', NULL),
+(72, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/IdjCygeERDbsYsZ9PblEEJlnTHOzGIckruFYJVmq.jpg', 'PRINCIPAL', 'BODEGA', '2026-04-20 21:05:52', '2026-04-20 21:05:52', NULL),
+(73, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/0hvT18mndrDNffHM70kaXBJumg6nIWmdxNTZUVxY.jpg', 'GALERIA', 'BODEGA', '2026-04-20 21:12:49', '2026-04-20 21:12:49', NULL),
+(74, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/ZOLXP4tMt1KBrva5IuPAMbGdoNsxqyFZTzVEURmT.jpg', 'GALERIA', 'BODEGA', '2026-04-20 21:12:50', '2026-04-20 21:12:50', NULL),
+(75, 1119, 'items/8fb35c7f-b3b6-4e6b-b240-a4acefb1ab9a/gb4vGlgMTdfairHU1hOIt3EImKflXvsQ4fYWzQMA.jpg', 'GALERIA', 'BODEGA', '2026-04-20 21:12:51', '2026-04-20 21:12:51', NULL);
 
 -- --------------------------------------------------------
 
@@ -1272,6 +2417,38 @@ INSERT INTO `inv_inventory_adjustments` (`id`, `date`, `observations`, `type`, `
 (22, '2026-02-18 00:00:00', 'observ', 'entrada', 1, 0, NULL, '2026-02-18 21:05:01', '2026-02-18 21:05:01', NULL, 1, 2, 9, 8),
 (23, '2026-03-09 00:00:00', 'ajuste', 'entrada', 1, 0, NULL, '2026-03-09 16:04:43', '2026-03-09 16:04:43', NULL, 1, 2, 10, 8),
 (24, '2026-03-09 00:00:00', 'insumo', 'entrada', 1, 23, NULL, '2026-03-09 17:47:39', '2026-03-09 17:47:39', NULL, 1, 1, 11, 8);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `inv_inventory_confirmations`
+--
+
+CREATE TABLE `inv_inventory_confirmations` (
+  `id` bigint UNSIGNED NOT NULL,
+  `item_id` int NOT NULL,
+  `requested_quantity` int NOT NULL,
+  `requester_id` bigint UNSIGNED NOT NULL,
+  `confirmed_quantity` int DEFAULT NULL,
+  `confirmer_id` bigint UNSIGNED DEFAULT NULL,
+  `observations` text COLLATE utf8mb4_unicode_ci,
+  `confirmation_observations` text COLLATE utf8mb4_unicode_ci,
+  `status` tinyint DEFAULT '1' COMMENT '1: PENDIENTE, 2: CONFIRMADO',
+  `requested_at` datetime NOT NULL,
+  `confirmed_at` datetime DEFAULT NULL,
+  `system_stock` int DEFAULT '0' COMMENT 'Stock en sistema al momento de solicitar',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `inv_inventory_confirmations`
+--
+
+INSERT INTO `inv_inventory_confirmations` (`id`, `item_id`, `requested_quantity`, `requester_id`, `confirmed_quantity`, `confirmer_id`, `observations`, `confirmation_observations`, `status`, `requested_at`, `confirmed_at`, `system_stock`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1123, 12, 8, 12, 8, 'por que si ', 'prueabsas', 2, '2026-05-04 20:18:22', '2026-05-04 20:35:29', 2, '2026-05-04 20:18:22', '2026-05-04 20:35:29', NULL),
+(2, 1123, 23, 8, NULL, NULL, 'sdfsdfsdfsd', NULL, 1, '2026-05-04 20:59:22', NULL, 2, '2026-05-04 20:59:22', '2026-05-04 20:59:22', NULL);
 
 -- --------------------------------------------------------
 
@@ -1712,7 +2889,7 @@ INSERT INTO `inv_items` (`id`, `api_data_id`, `categoryId`, `name`, `internal_co
 (382, NULL, 1, 'Producto 638', 'INT-00638', 'SKU-00638', 'Descripción del producto 638', 'PRODUCIDO', 2, NULL, NULL, NULL, 1, 35, 20, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
 (383, NULL, 1, 'Producto 566', 'INT-00566', 'SKU-00566', 'Descripción del producto 566', 'COMPRA NACIONAL', 2, NULL, NULL, NULL, 1, 15, 12, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
 (384, NULL, 1, 'Producto 414', 'INT-00414', 'SKU-00414', 'Descripción del producto 414', 'IMPORTADO', 2, NULL, NULL, NULL, 1, 27, 31, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
-(385, NULL, 1, 'Producto 800', 'INT-00800', 'SKU-00800', 'Descripción del producto 800', 'COMPRA NACIONAL', 2, NULL, NULL, NULL, 1, 33, 4, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
+(385, NULL, 1, 'Producto 800', 'INT-00800', 'SKU-00800', 'Descripción del producto 800', 'COMPRA NACIONAL', 2, NULL, 7, 5, 1, 33, 4, 0, 1, 0, '2025-11-27 14:37:09', '2026-04-27 20:36:00', NULL),
 (386, NULL, 1, 'Producto 264', 'INT-00264', 'SKU-00264', 'Descripción del producto 264', 'COMBO', 2, NULL, NULL, NULL, 1, 23, 1, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
 (387, NULL, 1, 'Producto 981', 'INT-00981', 'SKU-00981', 'Descripción del producto 981', 'COMPRA NACIONAL', 2, NULL, NULL, NULL, 1, 35, 28, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
 (388, NULL, 1, 'Producto 124', 'INT-00124', 'SKU-00124', 'Descripción del producto 124', 'INSUMO', 2, NULL, NULL, NULL, 1, 8, 16, 0, 1, 0, '2025-11-27 14:37:09', NULL, NULL),
@@ -2405,7 +3582,7 @@ INSERT INTO `inv_items` (`id`, `api_data_id`, `categoryId`, `name`, `internal_co
 (1097, NULL, 93, 'CAFE 4 ONZAS', 'CNO004', 'CNO004', '', 'COMBO', 2, NULL, 9, 5, 0, 35, 35, 0, 1, 1, '2026-02-16 18:01:30', '2026-02-16 18:01:30', NULL),
 (1098, NULL, 74, 'ENSALADA DE FRUTAS', 'EDF025', 'EDF025', 'ENSALADA DE FRUTAS', 'PRODUCIDO', 2, 2, 3, 2, 0, 35, 35, 0, 1, 1, '2026-02-16 19:01:51', '2026-02-16 19:01:51', NULL),
 (1099, NULL, 40, 'HEADPHONES SONY', 'HDS342', 'HDS342', 'HEADPHONES SONY', 'PRODUCIDO', 3, NULL, 7, 3, 1, 4, 35, 0, 1, 1, '2026-02-16 19:04:23', '2026-02-16 19:04:23', NULL),
-(1100, NULL, 86, 'Pruebas', 'ppp', 'ppp', '', 'COMBO', 2, NULL, 3, 3, 1, 1, 35, 0, 1, 1, '2026-02-16 19:38:41', '2026-02-16 19:38:41', NULL),
+(1100, NULL, 86, 'LAMINA LUMISHEET UNA CARA TAMA?O FINAL 88x88cm EN ACRILICO DE 4mm, CON ILUMINACION POR 2 LATERALES, PARA CONEXION A 12V, CONSUMO 10W. NO INCLUYE FUENT', 'LLT088', 'LLT088', 'LAMINA LUMISHEET UNA CARA TAMA?O FINAL 88x88cm EN ACRILICO DE 4mm, CON ILUMINACION POR 2 LATERALES, PARA CONEXION A 12V, CONSUMO 10W. NO INCLUYE FUENT', 'COMBO', 2, NULL, 3, 3, 1, 1, 35, 0, 1, 1, '2026-02-16 19:38:41', '2026-02-16 19:38:41', NULL),
 (1101, 361, 86, 'PAÑOLETA TALLA MEDIANA', 'PED444', 'PED44', 'PAÑOLETA TALLA MEDIANA', 'IMPORTADO', 2, NULL, 3, 3, 0, 35, 35, 0, 1, 1, '2026-02-17 17:42:46', '2026-02-17 17:42:54', NULL),
 (1102, 362, 93, 'CAPSULA DE CAFE', 'CDC458', 'CDC458', 'CAPSULA DE CAFE', 'PRODUCIDO', 3, NULL, 3, 3, 0, 1, 1, 0, 1, 1, '2026-02-17 17:47:54', '2026-02-17 17:47:58', NULL),
 (1103, 363, 86, 'AUDIFONOS TWS ', 'HDP269', 'HDP269', '', 'PRODUCIDO', 2, NULL, 8, 5, 0, 35, 35, 0, 1, 1, '2026-02-17 19:20:09', '2026-02-17 19:20:16', NULL),
@@ -2429,7 +3606,8 @@ INSERT INTO `inv_items` (`id`, `api_data_id`, `categoryId`, `name`, `internal_co
 (1121, NULL, 41, 'insumo 2', 'ins222', 'ins222', 'maneja suministro 2', 'COMBO', 3, NULL, 3, 3, 1, 35, 35, 0, 1, 0, '2026-03-09 17:28:58', '2026-03-09 17:28:58', NULL),
 (1122, NULL, 41, 'insumo 3', 'insu333', 'insu333', 'insumo', 'INSUMO', 6, NULL, 3, 2, 1, 35, 35, 0, 1, 0, '2026-03-09 17:37:02', '2026-03-09 17:37:02', NULL),
 (1123, 378, 86, 'cargador', 'cargador', 'car1234', 'prueba', 'COMPRA NACIONAL', 3, NULL, 8, 5, 1, 35, 35, 0, 1, 0, '2026-04-09 20:50:49', '2026-04-09 20:50:58', NULL),
-(1124, 382, 86, 'celular oppo x7 pro', 'OPO123', 'OPO123', 'PRUEB', 'COMBO', 3, NULL, 8, 5, 1, 35, 35, 0, 1, 0, '2026-04-10 20:44:13', '2026-04-10 20:44:25', NULL);
+(1124, 382, 86, 'celular oppo x7 pro', 'OPO123', 'OPO123', 'PRUEB', 'COMBO', 3, NULL, 8, 5, 1, 35, 35, 0, 1, 0, '2026-04-10 20:44:13', '2026-04-10 20:44:25', NULL),
+(1125, NULL, NULL, 'NEW_PRODUCT', '45', '45', 'NEW_PRODUCT', 'IMPORTADO', 2, NULL, NULL, NULL, 1, 35, 35, 0, 1, 1, '2026-04-24 20:22:40', '2026-04-24 20:22:40', NULL);
 
 -- --------------------------------------------------------
 
@@ -2645,7 +3823,6 @@ INSERT INTO `inv_items_store` (`id`, `itemId`, `storeId`, `initial_stock`, `stoc
 (46, 36, 1, 0.00, 7.00, 0.00, 0.00, '2026-02-18 19:02:08', '2026-02-24 20:31:01', NULL),
 (47, 49, 1, 0.00, 0.00, 0.00, 0.00, '2026-02-18 20:59:37', '2026-02-18 20:59:37', NULL),
 (48, 1106, 1, 0.00, 0.00, 0.00, 0.00, '2026-02-18 21:01:59', '2026-02-18 21:01:59', NULL),
-(49, 1107, 1, 0.00, 0.00, 0.00, 0.00, '2026-02-18 21:07:06', '2026-02-18 21:07:06', NULL),
 (50, 1108, 1, 0.00, 0.00, 0.00, 0.00, '2026-02-18 21:24:46', '2026-02-18 21:24:46', NULL),
 (51, 1113, 1, 0.00, 3.00, 0.00, 0.00, '2026-02-20 13:09:06', '2026-04-12 18:04:05', NULL),
 (52, 1114, 1, 0.00, 13.00, 0.00, 0.00, '2026-02-20 13:30:32', '2026-02-24 20:31:01', NULL),
@@ -2660,13 +3837,14 @@ INSERT INTO `inv_items_store` (`id`, `itemId`, `storeId`, `initial_stock`, `stoc
 (61, 284, 1, 0.00, 0.00, 0.00, 0.00, '2026-03-04 13:55:45', '2026-03-04 13:55:45', NULL),
 (62, 333, 1, 0.00, 0.00, 0.00, 0.00, '2026-03-04 14:01:28', '2026-03-04 14:01:28', NULL),
 (63, 1120, 1, 0.00, 18.00, 0.00, 0.00, '2026-03-09 15:47:55', '2026-03-09 19:52:10', NULL),
-(64, 1121, 1, 0.00, 4.00, 0.00, 0.00, '2026-03-09 17:29:07', '2026-04-12 18:04:05', NULL),
-(65, 1122, 1, 0.00, 18.00, 0.00, 0.00, '2026-03-09 17:37:11', '2026-03-09 19:52:10', NULL),
-(66, 1123, 1, 0.00, 0.00, 0.00, 0.00, '2026-04-09 20:50:51', '2026-04-09 20:50:51', NULL),
+(64, 1121, 1, 0.00, 2.00, 0.00, 0.00, '2026-03-09 17:29:07', '2026-04-30 22:14:09', NULL),
+(65, 1122, 1, 0.00, 16.00, 0.00, 0.00, '2026-03-09 17:37:11', '2026-04-29 14:54:54', NULL),
 (67, 1124, 1, 0.00, 0.00, 0.00, 0.00, '2026-04-10 20:44:15', '2026-04-10 20:44:15', NULL),
 (68, 1105, 1, 0.00, 3.00, 0.00, 0.00, '2026-04-12 17:05:17', '2026-04-12 18:04:05', NULL),
 (69, 1107, 1, 0.00, 5.00, 0.00, 0.00, '2026-04-12 17:07:14', NULL, NULL),
-(70, 1123, 1, 0.00, 5.00, 0.00, 0.00, '2026-04-12 17:09:57', NULL, NULL);
+(70, 1123, 1, 0.00, 2.00, 0.00, 0.00, '2026-04-12 17:09:57', '2026-05-04 19:26:07', NULL),
+(71, 1125, 1, 0.00, 0.00, 0.00, 0.00, '2026-04-24 20:22:40', '2026-04-24 20:22:40', NULL),
+(72, 385, 1, 0.00, 0.00, 0.00, 0.00, '2026-04-27 20:36:00', '2026-04-27 20:36:00', NULL);
 
 -- --------------------------------------------------------
 
@@ -2900,62 +4078,16 @@ CREATE TABLE `inv_remissions` (
   `delivery_id` int DEFAULT NULL COMMENT 'id del cargue',
   `expiration` int DEFAULT NULL,
   `modify` int DEFAULT NULL,
-  `observations_return` text
+  `observations_return` text,
+  `flete` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `inv_remissions`
 --
 
-INSERT INTO `inv_remissions` (`id`, `consecutive`, `status`, `created_at`, `updated_at`, `deleted_at`, `quoteId`, `warehouseId`, `deliveryTypeId`, `methodPaymentId`, `userId`, `deliveryDate`, `delivery_id`, `expiration`, `modify`, `observations_return`) VALUES
-(1, 1, 'REGISTRADO', '2026-01-20 20:01:14', '2026-01-20 20:01:14', NULL, 41, 1, NULL, 1, 8, '2026-01-20 00:00:00', NULL, 0, 0, NULL),
-(2, 2, 'REGISTRADO', '2026-01-29 20:20:27', '2026-01-29 20:20:27', NULL, 82, 4, NULL, 1, 125, '2026-01-29 00:00:00', NULL, 0, 0, NULL),
-(3, 3, 'REGISTRADO', '2026-01-30 13:48:22', '2026-01-30 13:48:22', NULL, 85, 3, NULL, 1, 8, '2026-01-30 00:00:00', NULL, 0, 0, NULL),
-(4, 4, 'REGISTRADO', '2026-01-30 14:23:57', '2026-01-30 14:23:57', NULL, 77, 3, NULL, 1, 8, '2026-01-30 00:00:00', NULL, 0, 0, NULL),
-(5, 5, 'REGISTRADO', '2026-01-30 14:33:12', '2026-01-30 14:33:12', NULL, 86, 3, NULL, 1, 8, '2026-01-30 00:00:00', NULL, 0, 0, NULL),
-(6, 6, 'REGISTRADO', '2026-01-30 14:35:48', '2026-01-30 14:35:48', NULL, 87, 3, NULL, 1, 8, '2026-01-30 00:00:00', NULL, 0, 0, NULL),
-(7, 7, 'REGISTRADO', '2026-02-01 17:06:59', '2026-02-01 17:06:59', NULL, 93, 1, NULL, 1, 153, '2026-02-01 00:00:00', NULL, 0, 0, NULL),
-(8, 8, 'REGISTRADO', '2026-02-01 17:07:48', '2026-02-01 17:07:48', NULL, 92, 1, NULL, 1, 153, '2026-02-01 00:00:00', NULL, 0, 0, NULL),
-(9, 9, 'REGISTRADO', '2026-02-01 22:32:53', '2026-02-01 22:32:53', NULL, 97, 1, NULL, 1, 153, '2026-02-01 00:00:00', NULL, 0, 0, NULL),
-(10, 10, 'REGISTRADO', '2026-02-01 22:37:21', '2026-02-01 22:37:21', NULL, 96, 1, NULL, 1, 153, '2026-02-01 00:00:00', NULL, 0, 0, NULL),
-(13, 11, 'REGISTRADO', '2026-02-02 16:00:34', '2026-02-02 16:00:34', NULL, 79, 4, NULL, 1, 125, '2026-02-02 00:00:00', NULL, 0, 0, NULL),
-(14, 12, 'REGISTRADO', '2026-02-02 19:45:16', '2026-02-02 19:45:16', NULL, 103, 4, NULL, 1, 125, '2026-02-02 00:00:00', NULL, 0, 0, NULL),
-(15, 13, 'REGISTRADO', '2026-02-04 13:41:02', '2026-02-04 13:41:02', NULL, 113, 1, NULL, 1, 8, '2026-02-04 00:00:00', NULL, 0, 0, NULL),
-(16, 14, 'REGISTRADO', '2026-02-04 13:41:25', '2026-02-04 13:41:25', NULL, 112, 1, NULL, 1, 8, '2026-02-04 00:00:00', NULL, 0, 0, NULL),
-(17, 15, 'REGISTRADO', '2026-02-05 15:37:14', '2026-02-05 15:37:14', NULL, 115, 1, NULL, 1, 8, '2026-02-05 00:00:00', NULL, 0, 0, NULL),
-(18, 16, 'REGISTRADO', '2026-02-16 19:10:30', '2026-02-16 19:10:30', NULL, 134, 1, NULL, 1, 8, '2026-02-16 00:00:00', NULL, 0, 0, NULL),
-(19, 17, 'REGISTRADO', '2026-02-16 21:12:46', '2026-02-16 21:12:46', NULL, 136, 1, NULL, 1, 8, '2026-02-16 00:00:00', NULL, 0, 0, NULL),
-(20, 18, 'REGISTRADO', '2026-02-17 17:19:20', '2026-02-17 17:19:20', NULL, 137, 1, NULL, 1, 8, '2026-02-17 00:00:00', NULL, 0, 0, NULL),
-(21, 19, 'REGISTRADO', '2026-02-17 17:20:47', '2026-02-17 17:20:47', NULL, 138, 1, NULL, 1, 8, '2026-02-17 00:00:00', NULL, 0, 0, NULL),
-(22, 20, 'REGISTRADO', '2026-02-17 17:26:39', '2026-02-17 17:26:39', NULL, 139, 1, NULL, 1, 8, '2026-02-17 00:00:00', NULL, 0, 0, NULL),
-(23, 21, 'REGISTRADO', '2026-02-17 17:58:21', '2026-02-17 17:58:21', NULL, 140, 1, NULL, 1, 8, '2026-02-17 00:00:00', NULL, 0, 0, NULL),
-(24, 22, 'REGISTRADO', '2026-02-18 13:11:30', '2026-02-18 13:11:30', NULL, 141, 1, NULL, 1, 8, '2026-02-18 00:00:00', NULL, 0, 0, NULL),
-(25, 23, 'REGISTRADO', '2026-02-18 13:13:23', '2026-02-18 13:13:23', NULL, 142, 1, NULL, 1, 8, '2026-02-18 00:00:00', NULL, 0, 0, NULL),
-(26, 24, 'ENTREGADO', '2026-02-18 13:53:11', '2026-02-19 16:48:19', NULL, 144, 1, NULL, 1, 8, '2026-02-18 00:00:00', NULL, 0, 0, NULL),
-(27, 25, 'EMPACADO', '2026-02-18 14:09:10', '2026-02-19 16:48:56', NULL, 145, 1, NULL, 1, 8, '2026-02-18 00:00:00', NULL, 0, 0, NULL),
-(28, 26, 'ENTREGADO', '2026-02-18 14:10:07', '2026-02-19 16:35:32', NULL, 146, 1, NULL, 1, 8, '2026-02-18 00:00:00', NULL, 0, 0, NULL),
-(29, 27, 'REGISTRADO', '2026-02-19 17:30:33', '2026-02-19 17:30:33', NULL, 147, 1, 2, 1, 8, '2026-02-19 00:00:00', NULL, 0, 0, ''),
-(30, 28, 'REGISTRADO', '2026-02-20 14:47:40', '2026-02-20 14:47:40', NULL, 148, 1, 13, 4, 8, '2026-02-20 00:00:00', NULL, 0, 0, 'recogida en la tarde por mensajero de la empresa'),
-(31, 29, 'ENTREGADO', '2026-02-24 20:23:27', '2026-02-24 20:37:58', NULL, 149, 1, 2, 1, 8, '2026-02-24 00:00:00', NULL, 0, 0, ''),
-(32, 30, 'ENTREGADO', '2026-01-01 20:31:01', '2026-01-01 20:31:01', NULL, 150, 1, 1, 3, 8, '2026-02-24 00:00:00', NULL, 0, 0, ''),
-(33, 31, 'REGISTRADO', '2026-03-10 22:05:09', '2026-03-10 22:05:09', NULL, 151, 1, 1, 1, 8, '2026-03-10 00:00:00', NULL, 0, 0, ''),
-(34, 32, 'REGISTRADO', '2026-03-12 20:31:31', '2026-03-12 20:31:31', NULL, 154, 1, 1, 1, 8, '2026-03-12 00:00:00', NULL, 0, 0, ''),
-(35, 33, 'REGISTRADO', '2026-03-13 14:07:58', '2026-03-13 14:07:58', NULL, 156, 1, 2, 1, 8, '2026-03-13 00:00:00', NULL, 0, 0, ''),
-(36, 34, 'REGISTRADO', '2026-03-13 14:10:29', '2026-03-13 14:10:29', NULL, 155, 1, 2, 1, 8, '2026-03-13 00:00:00', NULL, 0, 0, ''),
-(37, 35, 'REGISTRADO', '2026-03-13 15:35:51', '2026-03-13 15:35:51', NULL, 157, 1, 2, 3, 8, '2026-03-13 00:00:00', NULL, 0, 0, ''),
-(38, 36, 'REGISTRADO', '2026-04-10 13:36:26', '2026-04-10 13:36:26', NULL, 153, 1, 15, 2, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(39, 37, 'REGISTRADO', '2026-04-10 13:38:47', '2026-04-10 13:38:47', NULL, 146, 1, 1, 1, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(40, 38, 'REGISTRADO', '2026-04-10 13:40:11', '2026-04-10 13:40:11', NULL, 145, 1, 2, 3, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(41, 39, 'REGISTRADO', '2026-04-10 13:41:17', '2026-04-10 13:41:17', NULL, 143, 1, 1, 2, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(42, 40, 'REGISTRADO', '2026-04-10 13:43:57', '2026-04-10 13:43:57', NULL, 138, 1, 7, 4, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(43, 41, 'REGISTRADO', '2026-04-10 13:44:54', '2026-04-10 13:44:54', NULL, 137, 1, 10, 5, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(44, 42, 'REGISTRADO', '2026-04-10 13:51:57', '2026-04-10 13:51:57', NULL, 136, 1, 11, 6, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(45, 43, 'REGISTRADO', '2026-04-10 13:52:48', '2026-04-10 13:52:48', NULL, 135, 1, 13, 7, 8, '2026-04-10 00:00:00', NULL, 0, 0, 'Picap'),
-(46, 44, 'REGISTRADO', '2026-04-10 13:53:33', '2026-04-10 13:53:33', NULL, 134, 1, 15, 8, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(47, 45, 'REGISTRADO', '2026-04-10 13:54:18', '2026-04-10 13:54:18', NULL, 132, 1, 16, 10, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(48, 46, 'REGISTRADO', '2026-04-10 13:55:00', '2026-04-10 13:55:00', NULL, 131, 1, 18, 11, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(49, 47, 'REGISTRADO', '2026-04-10 13:55:50', '2026-04-10 13:55:50', NULL, 130, 1, 20, 12, 8, '2026-04-10 00:00:00', NULL, 0, 0, ''),
-(50, 48, 'ENTREGADO', '2026-04-12 18:04:04', '2026-04-12 18:06:24', NULL, 165, 1, 1, 2, 8, '2026-04-12 00:00:00', NULL, 0, 0, '');
+INSERT INTO `inv_remissions` (`id`, `consecutive`, `status`, `created_at`, `updated_at`, `deleted_at`, `quoteId`, `warehouseId`, `deliveryTypeId`, `methodPaymentId`, `userId`, `deliveryDate`, `delivery_id`, `expiration`, `modify`, `observations_return`, `flete`) VALUES
+(55, 1, 'ANULADO', '2026-05-04 19:26:07', '2026-05-04 21:14:32', NULL, 196, 1, 1, 1, 8, '2026-05-04 00:00:00', NULL, 0, 0, '', 0);
 
 -- --------------------------------------------------------
 
@@ -3192,7 +4324,7 @@ INSERT INTO `inv_values` (`id`, `date`, `values`, `type`, `itemId`, `warehouseId
 (27, '2026-02-05 00:00:00', 638655, 'costo', 27, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
 (28, '2026-02-05 00:00:00', 0, 'costo', 28, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
 (29, '2026-02-05 00:00:00', 672268, 'costo', 29, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
-(30, '2026-02-05 00:00:00', 0, 'costo', 30, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
+(30, '2026-02-05 00:00:00', 731092, 'costo', 30, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-05-05 13:18:46', NULL),
 (31, '2026-02-05 00:00:00', 293109, 'costo', 31, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
 (32, '2026-02-05 00:00:00', 0, 'costo', 32, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
 (33, '2026-02-05 00:00:00', 100455, 'costo', 33, 1, 'Costo Inicial', '2026-02-05 00:00:00', '2026-02-05 00:00:00', NULL),
@@ -5441,7 +6573,19 @@ INSERT INTO `inv_values` (`id`, `date`, `values`, `type`, `itemId`, `warehouseId
 (3887, '2026-04-10 20:44:14', 4599, 'precio', 1124, 0, 'Precio Base', '2026-04-10 20:44:14', '2026-04-10 20:44:14', NULL),
 (3888, '2026-04-10 20:44:14', 5499, 'precio', 1124, 0, 'Precio Regular', '2026-04-10 20:44:14', '2026-04-10 20:44:14', NULL),
 (3889, '2026-04-10 20:44:14', 29319, 'precio', 1124, 0, 'Precio Crédito', '2026-04-10 20:44:14', '2026-04-10 20:44:14', NULL),
-(3890, '2026-04-10 20:44:15', 45911, 'costo', 1124, 0, 'Precio unitario x caja', '2026-04-10 20:44:15', '2026-04-10 20:44:15', NULL);
+(3890, '2026-04-10 20:44:15', 45911, 'costo', 1124, 0, 'Precio unitario x caja', '2026-04-10 20:44:15', '2026-04-10 20:44:15', NULL),
+(3891, '2026-04-27 20:35:11', 1260, 'precio', 385, 0, 'Precio Regular', '2026-04-27 20:35:11', '2026-04-27 20:35:11', NULL),
+(3892, '2026-04-27 20:35:17', 1260, 'precio', 385, 0, 'Precio Crédito', '2026-04-27 20:35:17', '2026-04-27 20:35:17', NULL),
+(3894, '2026-04-27 20:35:31', 611, 'costo', 385, 0, 'Costo', '2026-04-27 20:35:31', '2026-04-27 20:35:31', NULL),
+(3895, '2026-04-27 20:40:04', 1069, 'costo', 752, 0, 'Costo', '2026-04-27 20:40:04', '2026-04-27 20:40:04', NULL),
+(3896, '2026-04-27 20:40:17', 2521, 'precio', 752, 0, 'Precio Regular', '2026-04-27 20:40:17', '2026-04-27 20:40:17', NULL),
+(3897, '2026-04-27 20:40:31', 2521, 'precio', 752, 0, 'Precio Crédito', '2026-04-27 20:40:31', '2026-04-27 20:40:31', NULL),
+(3898, '2026-04-27 20:41:12', 33304, 'costo', 1015, 0, 'Costo', '2026-04-27 20:41:12', '2026-04-27 20:41:12', NULL),
+(3899, '2026-04-27 20:41:19', 54621, 'precio', 1015, 0, 'Precio Regular', '2026-04-27 20:41:19', '2026-04-27 20:41:19', NULL),
+(3900, '2026-04-27 20:41:25', 54621, 'precio', 1015, 0, 'Precio Crédito', '2026-04-27 20:41:25', '2026-04-27 20:41:25', NULL),
+(3901, '2026-05-05 13:18:35', 731092, 'costo', 30, 0, 'Costo', '2026-05-05 13:18:35', '2026-05-05 13:18:35', NULL),
+(3902, '2026-05-05 13:18:59', 731092, 'precio', 30, 0, 'Precio Regular', '2026-05-05 13:18:59', '2026-05-05 13:18:59', NULL),
+(3903, '2026-05-05 13:19:10', 740000, 'precio', 30, 0, 'Precio Crédito', '2026-05-05 13:19:10', '2026-05-05 13:19:10', NULL);
 
 -- --------------------------------------------------------
 
@@ -6128,7 +7272,7 @@ INSERT INTO `vnt_companies` (`id`, `businessName`, `api_data_id`, `billingEmail`
 (66, '', '0', 'prueba123@gmail.com', 'Juan', NULL, '101859876', NULL, 'Sebastian', 'prueba', 'Lozano', 1, 'PERSON_ENTITY', 1, 2, '0', 2, 'CLIENTE', '2026-01-28 14:44:50', '2026-01-28 14:44:50', NULL),
 (67, '', '368', 'juseloco4561@gmail.com', 'Juan', NULL, '98633312', NULL, 'Sebastian', 'Contreras', 'Lozano', 1, 'PERSON_ENTITY', 1, 4, '0', 2, 'CLIENTE', '2026-01-28 16:23:28', '2026-01-28 16:23:29', NULL),
 (68, '', '369', 'proveedor@gmail.com', 'proveedor', NULL, '11234412', NULL, 'proveedor', 'proveedor', 'proveedor', 1, 'PERSON_ENTITY', 3, 3, '0', 3, 'PROVEEDOR', '2026-01-28 16:28:37', '2026-01-28 16:28:38', NULL),
-(69, '', '370', 'juseloco217@gmail.com', 'Angela', NULL, '1234567891', NULL, 'Sebastian', 'Contreras', 'Sebastian', 1, 'PERSON_ENTITY', 1, 4, '0', 3, 'CLIENTE', '2026-01-28 17:50:09', '2026-01-28 17:50:10', NULL),
+(69, NULL, '370', 'juseloco217@gmail.com', 'Angela', NULL, '1234567891', NULL, 'Sebastian', 'Contreras', 'Sebastian', 1, 'PERSON_ENTITY', 1, 4, '0', 3, 'CLIENTE', '2026-01-28 17:50:09', '2026-01-28 17:50:10', NULL),
 (70, '', '371', 'test@gmail.com', 'test', NULL, '123477819', NULL, 'jaime', 'gregorio', 'jaimers', 1, 'PERSON_ENTITY', 1, 6, '0', 1, 'CLIENTE', '2026-01-28 19:11:25', '2026-01-28 19:11:25', NULL),
 (71, '', '0', 'sebastianlozano@gmail.com', 'juan', NULL, '1018507021', NULL, 'sebastian', 'contreras', 'lozano', 1, 'PERSON_ENTITY', 1, 3, '0', 2, 'CLIENTE', '2026-01-30 15:55:57', '2026-01-30 15:55:57', NULL),
 (72, '', '0', 'carolina_duran@gmail.com', 'Ana', NULL, '1012458721', NULL, 'Carolina', 'Casas', 'Duran', 1, 'PERSON_ENTITY', 1, 4, '0', 1, 'CLIENTE', '2026-01-30 16:12:01', '2026-01-30 16:12:43', NULL),
@@ -6155,7 +7299,8 @@ INSERT INTO `vnt_companies` (`id`, `businessName`, `api_data_id`, `billingEmail`
 (95, '', '396', 'camilo@gmail.com', 'camilo', NULL, '986333128', NULL, 'romero', 'bergano', 'andres', 1, 'PERSON_ENTITY', 1, 3, '0', 2, 'CLIENTE', '2026-04-09 20:37:40', '2026-04-09 20:37:41', NULL),
 (96, '', '398', 'diana_herrera@gmail.com', 'Diana', NULL, '1014562357', NULL, 'Herrera', 'Gonzales', 'Fernanda', 1, 'PERSON_ENTITY', 1, 3, '0', 1, 'CLIENTE', '2026-04-10 13:20:18', '2026-04-10 13:20:19', NULL),
 (97, 'SOM & GRAND SAS', '399', 'comercial_som_grand@gmail.com', 'SOM & GRAND SAS', NULL, '789456123', 0, NULL, NULL, NULL, 1, 'LEGAL_ENTITY', 2, 2, '', 3, 'CLIENTE', '2026-04-10 14:06:12', '2026-04-10 14:06:12', NULL),
-(98, '', '0', 'claudia_jimenez@outlook.es', 'Claudia', NULL, '456123789', NULL, 'Jimenez', 'Fernandez', 'Raquel', 1, 'PERSON_ENTITY', 1, 4, '0', 1, 'CLIENTE', '2026-04-10 17:40:16', '2026-04-10 17:40:16', NULL);
+(98, '', '0', 'claudia_jimenez@outlook.es', 'Claudia', NULL, '456123789', NULL, 'Jimenez', 'Fernandez', 'Raquel', 1, 'PERSON_ENTITY', 1, 4, '0', 1, 'PROVEEDOR', '2026-04-10 17:40:16', '2026-04-24 14:49:15', NULL),
+(99, '', '400', 'almacen@gmail.com', 'pruebas', NULL, '34534343', NULL, 'pruebas', 'pruebas', 'pruebas', 1, 'PERSON_ENTITY', 1, 2, '0', 2, 'CLIENTE', '2026-04-14 20:02:04', '2026-04-14 20:02:04', NULL);
 
 -- --------------------------------------------------------
 
@@ -6209,7 +7354,8 @@ INSERT INTO `vnt_companies_routes` (`id`, `company_id`, `route_id`, `sales_order
 (116, 83, 2, 18, NULL, '2026-02-16 19:18:45', '2026-02-16 19:18:45', NULL),
 (117, 86, 10, 1, NULL, '2026-03-17 19:48:13', '2026-03-17 19:48:13', NULL),
 (118, 87, 2, 19, NULL, '2026-03-17 19:59:04', '2026-03-17 19:59:04', NULL),
-(119, 94, 2, 20, NULL, '2026-04-09 20:24:45', '2026-04-09 20:24:45', NULL);
+(119, 94, 2, 20, NULL, '2026-04-09 20:24:45', '2026-04-09 20:24:45', NULL),
+(120, 99, 2, 21, NULL, '2026-04-14 20:02:04', '2026-04-14 20:02:04', NULL);
 
 -- --------------------------------------------------------
 
@@ -6311,7 +7457,10 @@ INSERT INTO `vnt_contacts` (`id`, `firstName`, `secondName`, `lastName`, `second
 (86, 'camilo', 'andres', 'romero', 'bergano', 'camilo@gmail.com', '', '', 1, NULL, 98, 1, '2026-04-09 20:37:41', '2026-04-09 20:37:41', NULL),
 (87, 'Diana', 'Fernanda', 'Herrera', 'Gonzales', 'diana_herrera@gmail.com', '', '', 1, NULL, 99, 1, '2026-04-10 13:20:19', '2026-04-10 13:20:19', NULL),
 (88, 'SOM & GRAND SAS', NULL, NULL, NULL, 'comercial_som_grand@gmail.com', '', '', 1, NULL, 100, 1, '2026-04-10 14:06:12', '2026-04-10 14:06:12', NULL),
-(89, 'Claudia', 'Raquel', 'Jimenez', 'Fernandez', 'claudia_jimenez@outlook.es', '', '', 1, NULL, 101, 1, '2026-04-10 17:40:17', '2026-04-10 17:40:17', NULL);
+(89, 'Claudia', 'Raquel', 'Jimenez', 'Fernandez', 'claudia_jimenez@outlook.es', '3117854962', '3024568712', 1, NULL, 101, 1, '2026-04-10 17:40:17', '2026-04-24 14:49:15', NULL),
+(90, 'pruebas', 'pruebas', 'pruebas', 'pruebas', 'almacen@gmail.com', '3000000000', '3000000000', 1, NULL, 102, 1, '2026-04-14 20:02:04', '2026-04-14 20:02:04', NULL),
+(91, 'Fernando', '', 'Herrera', '', 'fernando_herrera@gmail.com', '3152367801', '', 1, NULL, 14, 5, '2026-04-29 19:47:19', '2026-04-29 19:47:19', NULL),
+(92, 'José', '', 'Torres', 'Herrera', 'jt_herrera@gmail.com', '3125482074', '3214529632', 1, NULL, 12, 5, '2026-04-29 20:03:23', '2026-04-29 20:03:23', NULL);
 
 -- --------------------------------------------------------
 
@@ -6784,7 +7933,6 @@ INSERT INTO `vnt_detail_quotes` (`id`, `quantity`, `tax`, `value`, `created_at`,
 (268, 1, 19, 1607, '2026-03-16 17:12:19', '2026-03-16 17:12:19', 159, 1121, 'INSUMO 2', 1607, NULL),
 (269, 1, 0, 1500, '2026-03-16 17:12:19', '2026-03-16 17:12:19', 159, 1122, 'INSUMO 3', 1500, NULL),
 (270, 1, 0, 1500, '2026-03-16 17:33:56', '2026-03-16 17:33:56', 160, 1122, 'INSUMO 3', 1500, NULL),
-(271, 1, 0, 1500, '2026-03-16 17:39:10', '2026-03-16 17:39:10', 161, 1122, 'INSUMO 3', 1500, NULL),
 (272, 3, 5, 98470, '2026-04-09 22:13:18', '2026-04-09 22:13:18', 153, 1093, 'SILLA RIMAX', 98470, NULL),
 (276, 1, 19, 1500, '2026-04-10 13:24:32', '2026-04-10 13:24:32', 162, 1121, 'INSUMO 2', 1500, NULL),
 (277, 1, 5, 24900, '2026-04-10 13:24:32', '2026-04-10 13:24:32', 162, 1113, 'ALMOHADA III', 24900, NULL),
@@ -6810,7 +7958,47 @@ INSERT INTO `vnt_detail_quotes` (`id`, `quantity`, `tax`, `value`, `created_at`,
 (332, 10, 5, 109411, '2026-04-13 16:26:28', '2026-04-13 16:26:28', 173, 1093, 'SILLA RIMAX', 109411, 'Lista'),
 (333, 5, 5, 12900, '2026-04-13 16:26:28', '2026-04-13 16:26:28', 173, 1114, 'CHAZOS PLASTICO', 12900, 'Precio Crédito'),
 (334, 7, 0, 5000, '2026-04-13 16:26:28', '2026-04-13 16:26:28', 173, 1120, 'INSUMO', 5000, 'Precio Crédito'),
-(335, 1, 0, 12311, '2026-04-13 16:26:28', '2026-04-13 16:26:28', 173, 1122, 'INSUMO 3', 12311, 'Precio Crédito');
+(335, 1, 0, 12311, '2026-04-13 16:26:28', '2026-04-13 16:26:28', 173, 1122, 'INSUMO 3', 12311, 'Precio Crédito'),
+(352, 1, 5, 21500, '2026-04-21 14:47:47', '2026-04-21 14:47:47', 178, 1110, 'MOUSE PAD COLOR AZUL', 21500, 'Precio Crédito'),
+(354, 1, 5, 12900, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1114, 'CHAZOS PLASTICO', 12900, 'Precio Crédito'),
+(355, 1, 0, 5000, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1120, 'INSUMO', 5000, 'Precio Crédito'),
+(356, 1, 5, 27195, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1113, 'ALMOHADA III', 27195, 'Lista'),
+(357, 1, 19, 11900, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1118, 'TALONARIO', 11900, 'Lista'),
+(358, 1, 19, 1785, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1121, 'INSUMO 2', 1785, 'Lista'),
+(359, 1, 0, 1500, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1122, 'INSUMO 3', 1500, 'Lista'),
+(360, 1, 19, 29750, '2026-04-21 15:59:14', '2026-04-21 15:59:14', 180, 1123, 'CARGADOR', 29750, 'Lista'),
+(361, 1, 5, 28900, '2026-04-21 16:28:00', '2026-04-21 16:28:00', 181, 1113, 'ALMOHADA III', 28900, 'Precio Crédito'),
+(362, 3, 19, 10000, '2026-04-21 16:28:00', '2026-04-21 16:28:00', 181, 1118, 'TALONARIO', 10000, 'Precio Crédito'),
+(363, 2, 19, 1785, '2026-04-21 16:28:00', '2026-04-21 16:28:00', 181, 1121, 'INSUMO 2', 1785, 'Lista'),
+(364, 6, 19, 60370, '2026-04-21 16:28:00', '2026-04-21 16:28:00', 181, 1099, 'HEADPHONES SONY', 60370, '3%'),
+(366, 1, 0, 12311, '2026-04-21 17:16:29', '2026-04-21 17:16:29', 182, 1122, 'INSUMO 3', 12311, 'Precio Crédito'),
+(367, 1, 5, 1, '2026-04-21 17:55:25', '2026-04-21 17:55:25', 183, 1100, 'LAMINA LUMISHEET UNA CARA TAMA?O FINAL 88X88CM EN ACRILICO DE 4MM, CON ILUMINACION POR 2 LATERALES, PARA CONEXION A 12V, CONSUMO 10W. NO INCLUYE FUENT', 1, 'Lista'),
+(368, 1, 5, 28900, '2026-04-22 16:12:18', '2026-04-22 16:12:18', 184, 1113, 'ALMOHADA III', 28900, 'Precio Crédito'),
+(369, 1, 5, 12900, '2026-04-22 16:12:18', '2026-04-22 16:12:18', 184, 1114, 'CHAZOS PLASTICO', 12900, 'Precio Crédito'),
+(370, 1, 19, 14280, '2026-04-22 16:12:18', '2026-04-22 16:12:18', 184, 1117, 'GENERICO', 14280, 'P5'),
+(371, 1, 19, 11543, '2026-04-22 16:12:18', '2026-04-22 16:12:18', 184, 1118, 'TALONARIO', 11543, '3%'),
+(372, 1, 19, 21300, '2026-04-22 16:12:18', '2026-04-22 16:12:18', 184, 1119, 'PAPEL', 21300, 'Precio Crédito'),
+(373, 1, 0, 4500, '2026-04-22 16:12:19', '2026-04-22 16:12:19', 184, 1120, 'INSUMO', 4500, 'Precio Regular'),
+(374, 1, 0, 1500, '2026-04-22 16:12:19', '2026-04-22 16:12:19', 184, 1122, 'INSUMO 3', 1500, 'Lista'),
+(375, 1, 19, 29750, '2026-04-22 16:12:19', '2026-04-22 16:12:19', 184, 1123, 'CARGADOR', 29750, 'Lista'),
+(376, 1, 19, 29319, '2026-04-22 16:12:19', '2026-04-22 16:12:19', 184, 1124, 'CELULAR OPPO X7 PRO', 29319, 'Precio Crédito'),
+(377, 1, 19, 1731, '2026-04-22 16:12:19', '2026-04-22 16:12:19', 184, 1121, 'INSUMO 2', 1731, '3%'),
+(378, 1, 5, 27195, '2026-04-22 21:44:54', '2026-04-22 21:44:54', 185, 1113, 'ALMOHADA III', 27195, 'Lista'),
+(379, 1, 5, 12900, '2026-04-22 21:57:00', '2026-04-22 21:57:00', 186, 1114, 'CHAZOS PLASTICO', 12900, 'Precio Crédito'),
+(380, 1, 19, 27668, '2026-04-27 21:27:38', '2026-04-27 21:27:38', 187, 1123, 'CARGADOR', 27668, '7%'),
+(381, 1, 0, 1500, '2026-04-28 15:29:35', '2026-04-28 15:29:35', 161, 1122, 'INSUMO 3', 1500, 'Lista'),
+(382, 1, 0, 1500, '2026-04-28 16:32:48', '2026-04-28 16:32:48', 188, 1122, 'INSUMO 3', 1500, 'Precio Regular'),
+(383, 1, 19, 1785, '2026-04-28 16:32:48', '2026-04-28 16:32:48', 188, 1121, 'INSUMO 2', 1785, 'Lista'),
+(384, 1, 19, 5499, '2026-04-28 19:21:34', '2026-04-28 19:21:34', 189, 1124, 'CELULAR OPPO X7 PRO', 5499, 'Precio Regular'),
+(386, 1, 0, 1500, '2026-04-29 14:52:14', '2026-04-29 14:52:14', 190, 1122, 'INSUMO 3', 1500, 'Lista'),
+(387, 1, 19, 29750, '2026-04-29 14:52:14', '2026-04-29 14:52:14', 190, 1123, 'CARGADOR', 29750, 'Lista'),
+(396, 1, 0, 1500, '2026-04-29 21:33:21', '2026-04-29 21:33:21', 191, 1122, 'INSUMO 3', 1500, 'Lista'),
+(397, 1, 19, 29319, '2026-04-29 21:33:21', '2026-04-29 21:33:21', 191, 1124, 'CELULAR OPPO X7 PRO', 29319, 'Precio Crédito'),
+(398, 1, 19, 1731, '2026-04-30 14:12:28', '2026-04-30 14:12:28', 192, 1121, 'INSUMO 2', 1731, '3%'),
+(399, 1, 19, 1660, '2026-04-30 19:47:41', '2026-04-30 19:47:41', 193, 1121, 'INSUMO 2', 1660, '7%'),
+(400, 1, 19, 1731, '2026-04-30 21:55:23', '2026-04-30 21:55:23', 194, 1121, 'INSUMO 2', 1731, '3%'),
+(401, 1, 19, 29750, '2026-05-04 17:15:04', '2026-05-04 17:15:04', 195, 1123, 'CARGADOR', 29750, 'Lista'),
+(402, 2, 19, 29750, '2026-05-04 19:18:16', '2026-05-04 19:18:16', 196, 1123, 'CARGADOR', 29750, 'Lista');
 
 -- --------------------------------------------------------
 
@@ -6927,6 +8115,31 @@ INSERT INTO `vnt_detail_reconciliations` (`id`, `value`, `valueSystem`, `created
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `vnt_followup_statuses`
+--
+
+CREATE TABLE `vnt_followup_statuses` (
+  `id` int NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `class_color` varchar(30) DEFAULT 'bg-gray-500',
+  `status` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `vnt_followup_statuses`
+--
+
+INSERT INTO `vnt_followup_statuses` (`id`, `name`, `class_color`, `status`, `created_at`) VALUES
+(1, 'Pendiente', 'bg-yellow-500', 1, '2026-05-05 13:27:08'),
+(2, 'En Negociación', 'bg-blue-500', 1, '2026-05-05 13:27:08'),
+(3, 'Llamar luego', 'bg-purple-500', 1, '2026-05-05 13:27:08'),
+(4, 'Cerrado Ganado', 'bg-green-500', 1, '2026-05-05 13:27:08'),
+(5, 'Cerrado Perdido', 'bg-red-500', 1, '2026-05-05 13:27:08');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `vnt_invoices`
 --
 
@@ -6962,7 +8175,7 @@ INSERT INTO `vnt_invoices` (`id`, `consecutive`, `status`, `status_payment`, `ap
 (93, 1863, 'FACTURADO', 'PAGADO', 1863, NULL, 0, '2026-02-18 15:26:16', '2026-02-18 15:29:02', NULL, 141, 1, 0, NULL, 'SETP990202635', 0, 0, 0, NULL, NULL),
 (94, 1864, 'FACTURADO', 'PAGADO', 1864, NULL, 0, '2026-02-18 16:23:46', '2026-02-18 18:22:01', NULL, 140, 1, 0, NULL, 'SETP990202636', 0, 0, 0, NULL, NULL),
 (95, 1865, 'FACTURADO', 'PAGADO', 1865, NULL, 0, '2026-02-18 16:27:44', '2026-02-18 16:40:46', NULL, 139, 1, 0, NULL, 'SETP990202637', 0, 0, 0, NULL, NULL),
-(96, 1886, 'FACTURADO', 'REGISTRADO', 1886, NULL, 0, '2026-03-10 22:06:09', '2026-03-11 17:00:28', NULL, 151, 1, 0, NULL, 'SETP990202658', 0, 0, 0, NULL, NULL),
+(96, 1886, 'FACTURADO', 'PAGADO', 1886, NULL, 0, '2026-03-10 22:06:09', '2026-04-29 16:30:35', NULL, 151, 1, 0, NULL, 'SETP990202658', 0, 0, 0, NULL, NULL),
 (97, 1887, 'FACTURADO', 'REGISTRADO', 1887, NULL, 0, '2026-03-11 13:39:48', '2026-03-12 21:49:15', NULL, 147, 1, 0, NULL, 'SETP990202659', 0, 0, 0, NULL, NULL),
 (98, 1888, 'FACTURADO', 'REGISTRADO', 1889, NULL, 0, '2026-03-12 20:33:54', '2026-03-12 22:08:35', NULL, 154, 1, 0, NULL, 'SETP990202661', 0, 0, 0, NULL, NULL),
 (99, 1890, 'FACTURADO', 'REGISTRADO', 1890, NULL, 0, '2026-03-13 14:12:08', '2026-03-13 15:53:35', NULL, 155, 1, 0, 181, 'SETP990202662', 0, 0, 0, 126897, NULL),
@@ -7046,14 +8259,76 @@ INSERT INTO `vnt_method_payments` (`id`, `name`, `status`, `description`, `creat
 (2, 'TRANSFERENCIA', 1, 'CASH', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 2, 'DEBIT_TRANSFER', 2),
 (3, 'CONTRA ENTREGA', 1, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
 (4, 'TARJETA DE CREDITO', 1, 'CASH', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 2, 'CREDIT_CARD', 2),
-(5, 'CREDITO 8 DÍAS', 1, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
-(6, 'CREDITO 15 DÍAS', 1, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
-(7, 'CREDITO 30 DÍAS', 1, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
+(5, 'CREDITO 8 DÍAS', 0, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
+(6, 'CREDITO 15 DÍAS', 0, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
+(7, 'CREDITO 30 DÍAS', 0, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
 (8, 'CREDITO 45 DÍAS', 1, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
 (9, 'CREDITO 60 DÍAS', 1, 'CREDIT', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 1, 'undefined', 2),
 (10, 'TARJETA DEBITO', 1, 'CASH', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 2, 'DEBIT_CARD', 2),
 (11, 'NEQUI', 1, 'CASH', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 2, 'DEBIT_TRANSFER', 2),
-(12, 'DAVIPLATA', 1, 'CASH', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 2, 'DEBIT_TRANSFER', 2);
+(12, 'DAVIPLATA', 1, 'CASH', '2023-03-15 16:17:29', '2023-03-15 16:17:29', NULL, 2, 'DEBIT_TRANSFER', 2),
+(13, 'BANCOLOMBIA', 1, 'CASH', '2026-04-22 16:54:28', '2026-04-22 16:54:28', NULL, 2, 'DEBIT_TRANSFER', NULL),
+(14, 'BANCO BOGOTÁ', 1, 'CASH', '2026-04-22 16:54:29', '2026-04-22 16:54:29', NULL, 2, 'DEBIT_TRANSFER', NULL),
+(15, 'DAVIVIENDA', 1, 'CASH', '2026-04-22 16:54:29', '2026-04-22 16:54:29', NULL, 2, 'DEBIT_TRANSFER', NULL),
+(16, 'CREDITO FERVICOM', 1, 'CREDITO 8 - 15 - 30', '2026-04-23 18:25:48', '2026-04-23 18:25:48', NULL, 1, 'undefined', NULL),
+(17, 'MERCADO LIBRE', 1, 'CASH', '2026-04-23 18:25:49', '2026-04-23 18:25:49', NULL, 1, 'undefined', NULL),
+(18, 'CRUCE DE CUENTAS', 1, 'CASH', '2026-04-23 19:31:57', '2026-04-23 19:31:57', NULL, 2, 'undefined', NULL),
+(19, 'WOMPI', 1, 'CASH', '2026-04-23 19:31:57', '2026-04-23 19:31:57', NULL, 2, 'undefined', NULL),
+(20, 'COVINOC', 1, 'CREDITO', '2026-04-23 19:51:34', '2026-04-23 19:51:34', NULL, 1, 'undefined', NULL),
+(21, 'CHEQUE', 1, 'CREDITO', '2026-04-23 19:51:34', '2026-04-23 19:51:34', NULL, 1, 'undefined', NULL),
+(22, 'OBSEQUIO SIN COSTO', 1, 'CASH', '2026-04-23 19:51:35', '2026-04-23 19:51:35', NULL, 2, 'undefined', NULL),
+(23, 'RTEFTE', 0, 'RETENCIONES', '2026-04-23 19:51:35', '2026-04-23 19:51:35', NULL, 2, 'undefined', NULL),
+(24, 'RTEICA', 0, 'RETENCIONES', '2026-04-23 19:51:35', '2026-04-23 19:51:35', NULL, 2, 'undefined', NULL),
+(25, 'A FAVOR DEL CLIENTE', 0, 'CASH', '2026-04-23 19:51:35', '2026-04-23 19:51:35', NULL, 2, 'undefined', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `vnt_observations`
+--
+
+CREATE TABLE `vnt_observations` (
+  `id` bigint UNSIGNED NOT NULL,
+  `reference_id` bigint UNSIGNED NOT NULL COMMENT 'ID del documento',
+  `reference_type` varchar(50) NOT NULL COMMENT 'Tipo (quote, remission, invoice)',
+  `observation_type` varchar(50) NOT NULL COMMENT 'Tipo de obs (flete_justification, general)',
+  `observation` text NOT NULL COMMENT 'Contenido',
+  `userId` bigint UNSIGNED DEFAULT NULL COMMENT 'Usuario que registró',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `vnt_observations`
+--
+
+INSERT INTO `vnt_observations` (`id`, `reference_id`, `reference_type`, `observation_type`, `observation`, `userId`, `created_at`, `updated_at`) VALUES
+(6, 55, 'remission', 'annulment_reason', 'pruebas', 8, '2026-05-04 21:14:33', '2026-05-04 21:14:33');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `vnt_order_authorizations`
+--
+
+CREATE TABLE `vnt_order_authorizations` (
+  `id` bigint UNSIGNED NOT NULL,
+  `remission_id` int NOT NULL COMMENT 'ID del pedido (inv_remissions)',
+  `auth_type` enum('empaque','despacho','pago') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tipo de autorización',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '1=Autorizado, 0=Desautorizado',
+  `user_id` int NOT NULL COMMENT 'Usuario que realiza la acción',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `vnt_order_authorizations`
+--
+
+INSERT INTO `vnt_order_authorizations` (`id`, `remission_id`, `auth_type`, `status`, `user_id`, `created_at`, `updated_at`) VALUES
+(13, 55, 'empaque', 1, 8, '2026-05-04 19:28:11', '2026-05-04 19:28:11'),
+(14, 55, 'despacho', 1, 8, '2026-05-04 19:31:15', '2026-05-04 19:31:15'),
+(15, 55, 'empaque', 1, 8, '2026-05-04 19:31:15', '2026-05-04 19:31:15');
 
 -- --------------------------------------------------------
 
@@ -7090,6 +8365,23 @@ INSERT INTO `vnt_petty_cash` (`id`, `base`, `consecutive`, `status`, `dateClose`
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `vnt_printer_configurations`
+--
+
+CREATE TABLE `vnt_printer_configurations` (
+  `id` bigint UNSIGNED NOT NULL,
+  `context` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'ordenp, estacion_empaque, etc',
+  `user_id` bigint UNSIGNED NOT NULL,
+  `printer_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'IP o nombre de red',
+  `proxy_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'URL del script local',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `vnt_quotes`
 --
 
@@ -7105,146 +8397,16 @@ CREATE TABLE `vnt_quotes` (
   `warehouseId` int DEFAULT NULL COMMENT 'la variable de sesion del rap store',
   `userId` int DEFAULT NULL,
   `observations` text,
-  `branchId` int DEFAULT NULL
+  `branchId` int DEFAULT NULL,
+  `flete` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `vnt_quotes`
 --
 
-INSERT INTO `vnt_quotes` (`id`, `consecutive`, `status`, `typeQuote`, `created_at`, `updated_at`, `deleted_at`, `customerId`, `warehouseId`, `userId`, `observations`, `branchId`) VALUES
-(6, 1, 'REGISTRADO', 'POS', '2025-11-24 20:26:15', '2025-11-24 20:26:15', NULL, NULL, NULL, 8, 'Cliente: edwin  ca', NULL),
-(7, 2, 'REGISTRADO', 'POS', '2025-11-24 20:27:22', '2025-11-24 20:27:22', NULL, NULL, NULL, 8, 'Cliente: edwin  ca', NULL),
-(8, 3, 'REGISTRADO', 'POS', '2025-11-24 20:32:53', '2025-11-24 20:32:53', NULL, NULL, NULL, 8, 'Cliente: edwin  ca', NULL),
-(9, 4, 'REGISTRADO', 'POS', '2025-11-24 20:35:19', '2025-11-24 20:35:19', NULL, NULL, NULL, 8, 'Cliente: edwin  ca', NULL),
-(15, 5, 'REGISTRADO', 'POS', '2025-11-25 14:09:23', '2025-11-25 14:09:23', NULL, NULL, NULL, 8, 'Cliente: edwin  ca | ContactID: 1 | WarehouseID: 19', NULL),
-(17, 6, 'REGISTRADO', 'POS', '2025-11-25 14:14:59', '2025-11-25 14:14:59', NULL, 1, 19, 8, 'Cliente: edwin  ca', 19),
-(18, 7, 'REGISTRADO', 'POS', '2025-11-25 14:16:58', '2025-11-25 14:16:58', NULL, 1, 19, 8, 'Cliente: edwin  ca', 19),
-(19, 8, 'REGISTRADO', 'POS', '2025-11-25 14:27:38', '2025-11-25 14:27:38', NULL, 14, 19, 8, 'Cliente: edwin  ca', 19),
-(20, 9, 'REGISTRADO', 'POS', '2025-11-25 14:33:11', '2025-11-25 14:33:11', NULL, 1, 1, 8, 'Cliente: Yesi Alexander', 1),
-(21, 10, 'REGISTRADO', 'POS', '2025-11-25 14:36:53', '2025-11-25 14:36:53', NULL, 1, 19, 8, 'Cliente: edwin  ca', 19),
-(22, 11, 'REGISTRADO', 'POS', '2025-11-25 14:38:20', '2025-11-25 14:38:20', NULL, 1, 19, 8, 'Cliente: edwin  ca', 19),
-(23, 12, 'REGISTRADO', 'POS', '2025-11-25 14:41:24', '2025-11-25 14:41:24', NULL, 1, 19, 8, 'Cliente: edwin ca', 19),
-(26, 13, 'REGISTRADO', 'POS', '2025-11-25 14:46:29', '2025-11-25 14:46:29', NULL, 1, 19, 8, 'Cliente: edwin ca', 19),
-(27, 14, 'REGISTRADO', 'POS', '2025-11-25 14:49:49', '2025-11-25 14:49:49', NULL, 15, 19, 8, 'Cliente: edwin ca', 19),
-(28, 15, 'REGISTRADO', 'POS', '2025-11-25 14:57:35', '2025-11-25 17:27:36', NULL, 1, 19, 8, 'Cliente: edwin ca', 19),
-(29, 16, 'REGISTRADO', 'POS', '2025-11-25 19:44:10', '2025-11-25 19:44:10', NULL, 19, 1, 8, '', 1),
-(30, 17, 'REGISTRADO', 'POS', '2025-11-25 19:46:37', '2025-11-25 19:46:37', NULL, 19, 1, 8, '', 1),
-(31, 18, 'REGISTRADO', 'POS', '2025-11-25 19:48:48', '2025-11-25 19:48:48', NULL, 19, 1, 8, '', 1),
-(32, 19, 'REGISTRADO', 'POS', '2025-11-26 15:41:20', '2025-11-26 15:41:20', NULL, 19, 1, 8, 'Cliente: edwin ca', 1),
-(33, 20, 'REGISTRADO', 'POS', '2025-11-26 16:05:49', '2025-11-26 16:05:49', NULL, 19, 1, 8, 'Cliente: edwin ca', 1),
-(34, 21, 'REGISTRADO', 'POS', '2025-11-26 16:11:26', '2025-11-26 16:11:26', NULL, 19, 1, 8, 'Cliente: edwin ca', 1),
-(35, 22, 'REGISTRADO', 'POS', '2025-11-26 16:13:43', '2025-11-26 16:13:43', NULL, 19, 1, 8, 'Cliente: edwin ca', 1),
-(36, 23, 'REGISTRADO', 'POS', '2025-11-26 16:19:30', '2025-11-26 16:19:30', NULL, 19, 1, 8, 'Cliente: edwin ca', 1),
-(37, 24, 'REGISTRADO', 'POS', '2025-11-26 21:55:10', '2025-11-26 21:55:10', NULL, 19, 1, 8, 'Cliente: edwin ca', 1),
-(38, 25, 'REGISTRADO', 'POS', '2025-11-26 21:56:19', '2025-11-26 21:56:19', NULL, 1, 1, 8, 'Cliente: Yesi Alexander', 1),
-(39, 26, 'REGISTRADO', 'POS', '2025-11-27 13:48:42', '2025-11-27 13:48:42', NULL, 15, 1, 8, 'Cliente: eduardo ', 1),
-(40, 27, 'REGISTRADO', 'POS', '2025-11-27 15:44:33', '2025-11-27 15:51:03', NULL, 19, 1, 8, 'pruebas de edicion', 1),
-(41, 28, 'REMISIÓN', 'POS', '2026-01-20 17:34:04', '2026-01-20 20:01:14', NULL, 19, 1, 8, NULL, 1),
-(52, 29, 'REGISTRADO', 'POS', '2026-01-28 20:11:28', '2026-01-28 20:11:28', NULL, 60, 1, 8, NULL, 1),
-(53, 30, 'REGISTRADO', 'POS', '2026-01-28 20:15:29', '2026-01-28 20:15:29', NULL, 60, 1, 8, NULL, 1),
-(54, 31, 'REGISTRADO', 'POS', '2026-01-28 20:33:08', '2026-01-28 20:33:08', NULL, 19, 1, 8, NULL, 1),
-(55, 32, 'REGISTRADO', 'POS', '2026-01-28 20:51:37', '2026-01-28 20:51:37', NULL, 60, 1, 8, NULL, 1),
-(65, 33, 'REGISTRADO', 'POS', '2026-01-28 22:04:16', '2026-01-28 22:04:16', NULL, 19, 3, 8, NULL, 3),
-(68, 34, 'REGISTRADO', 'POS', '2026-01-28 22:08:48', '2026-01-28 22:08:48', NULL, 19, 1, 8, NULL, 1),
-(72, 35, 'REGISTRADO', 'POS', '2026-01-28 22:15:55', '2026-01-28 22:15:55', NULL, 60, 2, 8, NULL, 2),
-(74, 36, 'REGISTRADO', 'POS', '2026-01-29 13:25:57', '2026-01-29 13:25:57', NULL, 60, 2, 8, NULL, 2),
-(75, 37, 'REGISTRADO', 'POS', '2026-01-29 13:32:32', '2026-01-29 13:32:32', NULL, 60, 2, 8, NULL, 2),
-(76, 38, 'REGISTRADO', 'POS', '2026-01-29 14:21:17', '2026-01-29 14:21:17', NULL, 1, 1, 8, 'prueba para stockRoom ', 1),
-(77, 39, 'REMISIÓN', 'POS', '2026-01-29 14:25:17', '2026-01-30 14:23:57', NULL, 1, 3, 8, 'Otra prueba', 3),
-(78, 40, 'FACTURADO', 'POS', '2026-01-29 15:05:37', '2026-01-29 15:06:18', NULL, 60, 1, 8, NULL, 1),
-(79, 41, 'REMISIÓN', 'POS', '2026-01-29 15:04:30', '2026-02-02 16:00:34', NULL, 20, 4, 125, NULL, 4),
-(80, 42, 'FACTURADO', 'POS', '2026-01-29 15:18:45', '2026-01-29 20:31:18', NULL, 60, 1, 153, NULL, 1),
-(81, 43, 'FACTURADO', 'POS', '2026-01-29 19:36:20', '2026-01-29 20:05:46', NULL, 60, 1, 153, NULL, 1),
-(82, 44, 'REMISIÓN', 'POS', '2026-01-29 20:19:28', '2026-01-29 20:20:27', NULL, 6, 4, 125, NULL, 4),
-(83, 45, 'REGISTRADO', 'POS', '2026-01-29 21:11:14', '2026-01-29 21:11:14', NULL, 60, 1, 153, NULL, 1),
-(84, 46, 'FACTURADO', 'POS', '2026-01-29 21:18:29', '2026-01-30 14:21:35', NULL, 60, 1, 153, NULL, 1),
-(85, 47, 'REMISIÓN', 'POS', '2026-01-30 13:38:14', '2026-01-30 13:48:22', NULL, 61, 3, 8, 'prueba completa', 3),
-(86, 48, 'REMISIÓN', 'POS', '2026-01-30 14:27:36', '2026-01-30 14:33:12', NULL, 12, 3, 8, 'validaciones con stock disponible en el store ', 3),
-(87, 49, 'REMISIÓN', 'POS', '2026-01-30 14:35:18', '2026-01-30 14:35:48', NULL, 25, 3, 8, NULL, 3),
-(88, 50, 'FACTURADO', 'POS', '2026-01-30 15:20:14', '2026-01-30 15:41:48', NULL, 60, 1, 153, NULL, 1),
-(89, 51, 'REGISTRADO', 'POS', '2026-01-30 16:16:08', '2026-01-30 20:27:04', NULL, 60, 1, 153, NULL, 1),
-(90, 52, 'REGISTRADO', 'POS', '2026-01-30 17:32:13', '2026-01-30 20:30:17', NULL, 60, 1, 153, NULL, 1),
-(91, 53, 'FACTURADO', 'POS', '2026-01-30 20:38:11', '2026-02-01 17:13:23', NULL, 60, 1, 153, NULL, 1),
-(92, 54, 'REMISIÓN', 'POS', '2026-01-31 00:12:48', '2026-02-01 17:07:48', NULL, 60, 1, 153, NULL, 1),
-(93, 55, 'REMISIÓN', 'POS', '2026-01-31 00:17:13', '2026-02-01 17:06:59', NULL, 60, 1, 153, NULL, 1),
-(94, 56, 'FACTURADO', 'POS', '2026-02-01 15:28:46', '2026-02-01 17:05:10', NULL, 60, 1, 8, NULL, 1),
-(95, 57, 'FACTURADO', 'POS', '2026-02-01 15:39:56', '2026-02-01 16:57:58', NULL, 60, 1, 8, NULL, 1),
-(96, 58, 'REMISIÓN', 'POS', '2026-02-01 22:25:11', '2026-02-01 22:37:21', NULL, 60, 1, 153, NULL, 1),
-(97, 59, 'REMISIÓN', 'POS', '2026-02-01 22:27:19', '2026-02-01 22:32:53', NULL, 60, 1, 153, NULL, 1),
-(98, 60, 'REGISTRADO', 'POS', '2026-02-02 17:03:35', '2026-02-02 17:04:43', NULL, 1, 1, 8, 'Yesi Alexander', 1),
-(99, 61, 'REGISTRADO', 'POS', '2026-02-02 17:12:10', '2026-02-02 17:12:10', NULL, 13, 1, 8, NULL, 1),
-(100, 62, 'REGISTRADO', 'POS', '2026-02-02 17:12:17', '2026-02-02 17:12:17', NULL, 13, 1, 8, NULL, 1),
-(101, 63, 'REGISTRADO', 'POS', '2026-02-02 17:39:02', '2026-02-02 17:39:02', NULL, 25, 1, 8, NULL, 1),
-(102, 64, 'REGISTRADO', 'POS', '2026-02-02 17:39:13', '2026-02-02 17:39:13', NULL, 25, 1, 8, NULL, 1),
-(103, 65, 'REMISIÓN', 'POS', '2026-02-02 17:50:42', '2026-02-02 19:45:16', NULL, 22, 4, 125, NULL, 4),
-(104, 66, 'REGISTRADO', 'POS', '2026-02-02 17:55:49', '2026-02-02 19:15:07', NULL, 25, 1, 8, 'Raquel', 1),
-(105, 67, 'REGISTRADO', 'POS', '2026-02-02 19:22:22', '2026-02-02 19:22:50', NULL, 63, 1, 8, 'Ana Carolina', 1),
-(106, 68, 'REGISTRADO', 'POS', '2026-02-02 19:41:25', '2026-02-02 19:41:25', NULL, 23, 1, 8, NULL, 1),
-(107, 69, 'REGISTRADO', 'POS', '2026-02-02 19:44:40', '2026-02-02 19:44:40', NULL, 14, 1, 8, NULL, 1),
-(108, 70, 'REGISTRADO', 'POS', '2026-02-02 19:48:23', '2026-02-02 19:48:23', NULL, 6, 1, 8, NULL, 1),
-(109, 71, 'REGISTRADO', 'POS', '2026-02-02 20:03:33', '2026-02-02 20:04:00', NULL, 55, 1, 8, 'juan camilo', 1),
-(110, 72, 'REGISTRADO', 'POS', '2026-02-02 20:13:06', '2026-02-02 20:13:34', NULL, 54, 1, 8, 'ja', 1),
-(111, 73, 'REGISTRADO', 'POS', '2026-02-03 19:04:14', '2026-02-03 19:04:14', NULL, 63, 1, 8, 'prueba precio regular', 1),
-(112, 74, 'REMISIÓN', 'POS', '2026-02-04 13:39:03', '2026-02-04 13:41:25', NULL, 60, 1, 8, NULL, 1),
-(113, 75, 'REMISIÓN', 'POS', '2026-02-04 13:40:39', '2026-02-04 13:41:02', NULL, 60, 1, 8, NULL, 1),
-(114, 76, 'REGISTRADO', 'POS', '2026-02-04 21:55:18', '2026-02-06 14:08:28', NULL, 60, 1, 8, NULL, 1),
-(115, 77, 'REGISTRADO', 'POS', '2026-02-05 15:35:33', '2026-02-05 15:37:14', NULL, 60, 1, 8, NULL, 1),
-(116, 78, 'REGISTRADO', 'POS', '2026-02-05 17:09:15', '2026-02-06 14:02:21', NULL, 60, 1, 8, NULL, 1),
-(117, 79, 'REGISTRADO', 'POS', '2026-02-06 14:24:34', '2026-02-06 14:24:34', NULL, 60, 1, 8, NULL, 1),
-(118, 80, 'REGISTRADO', 'POS', '2026-02-06 14:47:26', '2026-02-06 14:52:26', NULL, 60, 1, 8, NULL, 1),
-(119, 81, 'REGISTRADO', 'POS', '2026-02-06 15:04:12', '2026-02-06 15:14:04', NULL, 60, 1, 8, NULL, 1),
-(120, 82, 'REGISTRADO', 'POS', '2026-02-06 20:19:29', '2026-02-06 21:29:30', NULL, 60, 1, 8, NULL, 1),
-(121, 83, 'REGISTRADO', 'POS', '2026-02-06 21:46:58', '2026-02-06 22:23:56', NULL, 60, 1, 8, NULL, 1),
-(122, 84, 'REGISTRADO', 'POS', '2026-02-09 13:08:54', '2026-02-09 15:44:33', NULL, 60, 1, 8, NULL, 1),
-(123, 85, 'REGISTRADO', 'POS', '2026-02-09 15:54:56', '2026-02-09 15:56:22', NULL, 60, 1, 8, NULL, 1),
-(124, 86, 'REGISTRADO', 'POS', '2026-02-09 17:28:01', '2026-02-09 17:30:46', NULL, 60, 1, 8, NULL, 1),
-(125, 87, 'REGISTRADO', 'POS', '2026-02-09 17:40:26', '2026-02-09 17:45:17', NULL, 60, 1, 8, NULL, 1),
-(126, 88, 'REGISTRADO', 'POS', '2026-02-09 19:08:50', '2026-02-09 19:11:46', NULL, 60, 1, 8, NULL, 1),
-(127, 89, 'REGISTRADO', 'POS', '2026-02-09 19:19:35', '2026-02-09 20:11:01', NULL, 60, 1, 8, NULL, 1),
-(128, 90, 'REGISTRADO', 'POS', '2026-02-09 19:21:58', '2026-02-09 19:41:18', NULL, 60, 1, 8, NULL, 1),
-(129, 91, 'REGISTRADO', 'POS', '2026-02-09 20:15:17', '2026-02-09 20:19:06', NULL, 60, 1, 8, NULL, 1),
-(130, 92, 'REMISIÓN', 'POS', '2026-02-09 20:32:33', '2026-04-10 13:55:50', NULL, 60, 1, 8, NULL, 1),
-(131, 93, 'REMISIÓN', 'POS', '2026-02-09 21:49:24', '2026-04-10 13:55:00', NULL, 60, 1, 8, NULL, 1),
-(132, 94, 'REMISIÓN', 'POS', '2026-02-09 21:56:00', '2026-04-10 13:54:18', NULL, 60, 1, 8, NULL, 1),
-(133, 95, 'REGISTRADO', 'POS', '2026-02-13 16:45:20', '2026-02-13 16:45:20', NULL, 74, 8, 175, NULL, 8),
-(134, 96, 'REMISIÓN', 'POS', '2026-02-16 19:09:40', '2026-04-10 13:53:33', NULL, 69, 1, 8, NULL, 1),
-(135, 97, 'REMISIÓN', 'POS', '2026-02-16 20:22:58', '2026-04-10 13:52:48', NULL, 54, 1, 8, NULL, 1),
-(136, 98, 'REMISIÓN', 'POS', '2026-02-16 21:12:21', '2026-04-10 13:51:57', NULL, 54, 1, 8, NULL, 1),
-(137, 99, 'REMISIÓN', 'POS', '2026-02-17 17:13:33', '2026-04-10 13:44:54', NULL, 54, 1, 8, NULL, 1),
-(138, 100, 'REMISIÓN', 'POS', '2026-02-17 17:14:43', '2026-04-10 13:43:57', NULL, 54, 1, 8, NULL, 1),
-(139, 101, 'FACTURADO', 'POS', '2026-02-17 17:18:05', '2026-02-17 17:26:39', NULL, 54, 1, 8, NULL, 1),
-(140, 102, 'FACTURADO', 'POS', '2026-02-17 17:57:42', '2026-02-18 16:23:55', NULL, 54, 1, 8, NULL, 1),
-(141, 103, 'FACTURADO', 'POS', '2026-02-18 13:09:13', '2026-02-18 15:26:27', NULL, 54, 1, 8, NULL, 1),
-(142, 104, 'FACTURADO', 'POS', '2026-02-18 13:11:00', '2026-02-18 15:26:27', NULL, 54, 1, 8, NULL, 1),
-(143, 105, 'REMISIÓN', 'POS', '2026-02-18 13:43:40', '2026-04-10 13:41:17', NULL, 54, 1, 8, NULL, 1),
-(144, 106, 'FACTURADO', 'POS', '2026-02-18 13:52:50', '2026-02-18 15:26:27', NULL, 54, 1, 8, NULL, 1),
-(145, 107, 'REMISIÓN', 'POS', '2026-02-18 14:04:35', '2026-04-10 13:40:11', NULL, 54, 1, 8, NULL, 1),
-(146, 108, 'REMISIÓN', 'POS', '2026-02-18 14:07:39', '2026-04-10 13:38:47', NULL, 54, 1, 8, NULL, 1),
-(147, 109, 'FACTURADO', 'POS', '2026-02-19 16:50:33', '2026-03-11 13:39:59', NULL, 54, 1, 8, NULL, 1),
-(148, 110, 'FACTURADO', 'POS', '2026-02-20 14:44:51', '2026-03-11 13:40:00', NULL, 54, 1, 8, NULL, 1),
-(149, 111, 'REMISIÓN', 'POS', '2026-02-24 20:20:44', '2026-02-24 20:23:27', NULL, 53, 1, 8, 'prueba para ventas * mes', 1),
-(150, 112, 'REMISIÓN', 'POS', '2026-02-24 20:30:31', '2026-02-24 20:31:01', NULL, 1, 1, 8, 'más registros x ventas', 1),
-(151, 113, 'FACTURADO', 'POS', '2026-03-10 22:03:19', '2026-03-10 22:06:18', NULL, 54, 1, 8, NULL, 1),
-(153, 114, 'REMISIÓN', 'POS', '2026-03-12 19:32:53', '2026-04-10 13:36:26', NULL, 62, 1, 8, NULL, 62),
-(154, 115, 'FACTURADO', 'POS', '2026-03-12 19:35:48', '2026-03-12 20:34:06', NULL, 62, 1, 8, NULL, 1),
-(155, 116, 'FACTURADO', 'POS', '2026-03-13 13:47:53', '2026-03-13 14:12:19', NULL, 62, 1, 8, NULL, 1),
-(156, 117, 'FACTURADO', 'POS', '2026-03-13 13:51:21', '2026-03-13 14:13:07', NULL, 62, 1, 8, NULL, 1),
-(157, 118, 'FACTURADO', 'POS', '2026-03-13 15:35:06', '2026-03-13 15:58:01', NULL, 62, 1, 8, NULL, 1),
-(158, 119, 'REGISTRADO', 'POS', '2026-03-13 15:42:39', '2026-03-13 15:42:39', NULL, 62, 1, 8, NULL, 1),
-(159, 120, 'REGISTRADO', 'POS', '2026-03-16 17:12:19', '2026-03-16 17:12:19', NULL, 85, 1, 8, NULL, 1),
-(160, 121, 'REGISTRADO', 'POS', '2026-03-16 17:33:56', '2026-03-16 17:33:56', NULL, 88, 88, 8, NULL, 88),
-(161, 122, 'REGISTRADO', 'POS', '2026-03-16 17:39:10', '2026-03-16 17:39:10', NULL, 89, 1, 8, NULL, 89),
-(162, 123, 'REGISTRADO', 'POS', '2026-04-10 13:23:00', '2026-04-10 13:23:00', NULL, 98, 1, 8, NULL, 98),
-(163, 124, 'REGISTRADO', 'POS', '2026-04-10 14:07:06', '2026-04-10 14:07:06', NULL, 100, 1, 8, NULL, 100),
-(164, 125, 'REGISTRADO', 'POS', '2026-04-10 15:39:30', '2026-04-10 15:39:30', NULL, 21, 1, 8, NULL, 21),
-(165, 126, 'REGISTRADO', 'POS', '2026-04-12 16:28:44', '2026-04-12 18:04:05', NULL, 78, 1, 8, NULL, 78),
-(168, 127, 'REGISTRADO', 'POS', '2026-04-13 13:32:12', '2026-04-13 13:32:12', NULL, 18, 1, 8, NULL, 18),
-(169, 128, 'REGISTRADO', 'POS', '2026-04-13 15:02:00', '2026-04-13 15:02:00', NULL, 99, 1, 8, NULL, 99),
-(170, 129, 'REGISTRADO', 'POS', '2026-04-13 15:36:10', '2026-04-13 15:36:10', NULL, 10, 1, 8, NULL, 10),
-(171, 130, 'REGISTRADO', 'POS', '2026-04-13 15:38:43', '2026-04-13 15:38:43', NULL, 82, 1, 8, NULL, 82),
-(172, 131, 'REGISTRADO', 'POS', '2026-04-13 15:52:38', '2026-04-13 15:52:38', NULL, 91, 1, 8, NULL, 91),
-(173, 132, 'REGISTRADO', 'POS', '2026-04-13 16:26:28', '2026-04-13 16:26:28', NULL, 77, 1, 8, NULL, 77);
+INSERT INTO `vnt_quotes` (`id`, `consecutive`, `status`, `typeQuote`, `created_at`, `updated_at`, `deleted_at`, `customerId`, `warehouseId`, `userId`, `observations`, `branchId`, `flete`) VALUES
+(196, 126, 'ANULADO', 'POS', '2026-05-04 19:18:16', '2026-05-04 21:14:33', NULL, 21, 1, 8, NULL, 21, 0);
 
 -- --------------------------------------------------------
 
@@ -7408,7 +8570,7 @@ INSERT INTO `vnt_warehouses` (`id`, `companyId`, `name`, `address`, `postcode`, 
 (10, 8, 'Parque Nacional', 'calle 4#20a9', '4457', 20078, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2025-11-13 16:07:21', '2025-11-13 20:08:13', NULL),
 (11, 9, 'Albania', 'calle 4#20a9', '45644', 19908, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2025-11-13 16:15:53', '2025-11-13 17:41:39', NULL),
 (12, 10, 'Principal', 'calle 123#4a6', '110211', 20614, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2025-11-13 17:05:29', '2025-11-13 17:05:29', NULL),
-(13, 10, 'Chico', 'calle 100 # 10a-1', '11011', 20078, 16, 0, 1, '0', 1, 1, NULL, NULL, 0, 'FIJA', '2025-11-13 20:01:56', '2025-11-13 20:04:46', NULL),
+(13, 10, 'Chico', 'calle 100 # 10a-1', '11011', 19711, 16, 0, 1, '0', 1, 1, 11, NULL, 0, 'FIJA', '2025-11-13 20:01:56', '2025-11-13 20:04:46', NULL),
 (14, 10, 'Japon', 'calle 123 # 7a-20', '12486', 20377, 16, 0, 1, '0', 1, 1, NULL, NULL, 0, 'DESPACHO', '2025-11-14 16:01:35', '2025-11-14 16:02:07', NULL),
 (15, 9, 'Kennedy', 'Calle 42', '110111', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 0, 'DESPACHO', '2025-11-18 20:51:25', '2025-11-24 14:20:36', '2025-11-24 14:20:36'),
 (16, 7, 'Sucursal Sur', 'Carrera 10 # 25 -11', '110011', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 0, 'FIJA', '2025-11-18 21:53:50', '2025-11-18 21:53:50', NULL),
@@ -7462,7 +8624,7 @@ INSERT INTO `vnt_warehouses` (`id`, `companyId`, `name`, `address`, `postcode`, 
 (64, 66, 'Principal', 'calle 4 bis # 41b-65', '110111', 20375, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-28 14:44:50', '2026-01-28 14:44:50', NULL),
 (65, 67, 'Principal', 'calle 4 ·5b20', '110111', 20375, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-28 16:23:28', '2026-01-28 16:23:28', NULL),
 (66, 68, 'Principal', 'calle 4 bis # 41b-65', '110111', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-28 16:28:37', '2026-01-28 16:28:37', NULL),
-(67, 69, 'Principal', 'calle 4 bis # 41b-65', '110111', 19554, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-28 17:50:09', '2026-01-28 17:50:09', NULL),
+(67, 69, 'Principal', 'calle 4 bis # 41b-65', '110111', 19622, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-28 17:50:09', '2026-04-27 21:30:13', NULL),
 (68, 70, 'Principal', 'calle 4 bis # 41b-65', '110111', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-28 19:11:25', '2026-01-28 19:11:25', NULL),
 (69, 71, 'Principal', 'calle 4 bis # 41b-65', '120123', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-01-30 15:55:57', '2026-01-30 15:55:57', NULL),
 (70, 72, 'Principal', 'Calle 85 #12B -12', '110232', 19622, 16, 0, 1, '0', 1, 1, 5, NULL, 1, 'FIJA', '2026-01-30 16:12:01', '2026-01-30 16:12:31', NULL),
@@ -7481,8 +8643,8 @@ INSERT INTO `vnt_warehouses` (`id`, `companyId`, `name`, `address`, `postcode`, 
 (83, 83, 'Principal', 'calle 4 bis # 41b-65', '110111', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-02-16 19:18:44', '2026-02-16 19:18:44', NULL),
 (84, 84, 'Principal', 'Calle 78B #67-09', '11475', 19622, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-02-16 20:44:59', '2026-02-16 20:44:59', NULL),
 (85, 85, 'Principal', 'calle 45 sr ', '11205', 19622, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-03-02 17:05:27', '2026-03-16 17:08:13', NULL),
-(88, 85, 'sucurslal norte', 'calle 123 n 78 b 12', '110111', 20206, 16, 0, 1, '0', 1, 1, NULL, NULL, 0, 'FIJA', '2026-03-16 17:09:59', '2026-03-16 17:09:59', NULL),
-(89, 85, 'sucursal sur', 'calle 79b 16', '110111', 20206, 16, 0, 1, '0', 1, 1, NULL, NULL, 0, 'FIJA', '2026-03-16 17:11:02', '2026-03-16 17:11:02', NULL),
+(88, 85, 'sucurslal norte', 'calle 123 n 78 b 12', '110111', 19711, 16, 0, 1, '0', 1, 1, 2, NULL, 0, 'FIJA', '2026-03-16 17:09:59', '2026-04-28 15:07:31', NULL),
+(89, 85, 'sucursal sur', 'calle 79b 16', '110111', 19711, 16, 0, 1, '0', 1, 1, 1, NULL, 0, 'FIJA', '2026-03-16 17:11:02', '2026-04-28 15:07:08', NULL),
 (90, 86, 'Principal', 'Calle 78 G #11 - 89', '11205', 19622, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-03-17 19:48:13', '2026-03-17 19:48:13', NULL),
 (91, 87, 'Principal', 'Calle 78 G #11 - 89', '11205', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-03-17 19:59:03', '2026-03-17 19:59:03', NULL),
 (92, 88, 'Principal', 'calle 4 bis # 41b-65', '110111', 19554, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-09 19:37:36', '2026-04-09 19:37:36', NULL),
@@ -7494,7 +8656,10 @@ INSERT INTO `vnt_warehouses` (`id`, `companyId`, `name`, `address`, `postcode`, 
 (98, 95, 'Principal', '', '', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-09 20:37:40', '2026-04-09 20:37:40', NULL),
 (99, 96, 'Principal', 'Carrera 15 #75-89 Bis', '', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-10 13:20:19', '2026-04-10 13:20:19', NULL),
 (100, 97, 'Principal', 'Dg 145 #08 - 78', '', 20622, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-10 14:06:12', '2026-04-10 14:06:12', NULL),
-(101, 98, 'Principal', 'Carrera 14 #63-78', '', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-10 17:40:16', '2026-04-10 17:40:16', NULL);
+(101, 98, 'Principal', 'Carrera 14 #63-78', '', 19711, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-10 17:40:16', '2026-04-10 17:40:16', NULL),
+(102, 99, 'Principal', 'calle 45 sur ', '11011', 19554, 16, 0, 1, '0', 1, 1, NULL, NULL, 1, 'FIJA', '2026-04-14 20:02:04', '2026-04-14 20:02:04', NULL),
+(103, 98, 'pruebas 2', 'calle 4 bis #41b-64', '110111', 19711, 16, 0, 1, '0', 1, 1, 3, NULL, 0, 'DESPACHO', '2026-04-30 15:20:53', '2026-04-30 15:20:53', NULL),
+(104, 99, 'segunda sucursal', 'calle 4 bis #41b-65', '110111', 19711, 16, 0, 1, '0', 1, 1, 3, NULL, 0, 'DESPACHO', '2026-04-30 15:27:32', '2026-04-30 15:27:32', NULL);
 
 -- --------------------------------------------------------
 
@@ -7540,6 +8705,21 @@ ALTER TABLE `cmp_campaign_customers`
   ADD KEY `idx_cmp_campaign_customer` (`campaign_id`,`customer_id`);
 
 --
+-- Indices de la tabla `cnf_acceso_horarios`
+--
+ALTER TABLE `cnf_acceso_horarios`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indices de la tabla `cnf_acceso_ips`
+--
+ALTER TABLE `cnf_acceso_ips`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `ip_allowed` (`ip_allowed`);
+
+--
 -- Indices de la tabla `cnf_audit_status_log`
 --
 ALTER TABLE `cnf_audit_status_log`
@@ -7566,6 +8746,14 @@ ALTER TABLE `cnf_company_options`
 --
 ALTER TABLE `cnf_invoices`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `cnf_log_accesos`
+--
+ALTER TABLE `cnf_log_accesos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `created_at` (`created_at`);
 
 --
 -- Indices de la tabla `cnf_positions`
@@ -7769,6 +8957,16 @@ ALTER TABLE `inv_inventory_adjustments`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
   ADD KEY `reasonId` (`reasonId`);
+
+--
+-- Indices de la tabla `inv_inventory_confirmations`
+--
+ALTER TABLE `inv_inventory_confirmations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `item_id` (`item_id`),
+  ADD KEY `requester_id` (`requester_id`),
+  ADD KEY `confirmer_id` (`confirmer_id`),
+  ADD KEY `status` (`status`);
 
 --
 -- Indices de la tabla `inv_inventory_count`
@@ -8165,6 +9363,12 @@ ALTER TABLE `vnt_detail_reconciliations`
   ADD KEY `reconciliationId` (`reconciliationId`);
 
 --
+-- Indices de la tabla `vnt_followup_statuses`
+--
+ALTER TABLE `vnt_followup_statuses`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indices de la tabla `vnt_invoices`
 --
 ALTER TABLE `vnt_invoices`
@@ -8194,12 +9398,32 @@ ALTER TABLE `vnt_method_payments`
   ADD UNIQUE KEY `id` (`id`);
 
 --
+-- Indices de la tabla `vnt_observations`
+--
+ALTER TABLE `vnt_observations`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `vnt_order_authorizations`
+--
+ALTER TABLE `vnt_order_authorizations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_remission_auth` (`remission_id`,`auth_type`),
+  ADD KEY `idx_user_auth` (`user_id`);
+
+--
 -- Indices de la tabla `vnt_petty_cash`
 --
 ALTER TABLE `vnt_petty_cash`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
   ADD KEY `warehouseId` (`warehouseId`);
+
+--
+-- Indices de la tabla `vnt_printer_configurations`
+--
+ALTER TABLE `vnt_printer_configurations`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indices de la tabla `vnt_quotes`
@@ -8273,6 +9497,18 @@ ALTER TABLE `cmp_campaign_customers`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT de la tabla `cnf_acceso_horarios`
+--
+ALTER TABLE `cnf_acceso_horarios`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT de la tabla `cnf_acceso_ips`
+--
+ALTER TABLE `cnf_acceso_ips`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT de la tabla `cnf_audit_status_log`
 --
 ALTER TABLE `cnf_audit_status_log`
@@ -8282,7 +9518,7 @@ ALTER TABLE `cnf_audit_status_log`
 -- AUTO_INCREMENT de la tabla `cnf_buttons`
 --
 ALTER TABLE `cnf_buttons`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `cnf_company_options`
@@ -8295,6 +9531,12 @@ ALTER TABLE `cnf_company_options`
 --
 ALTER TABLE `cnf_invoices`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT de la tabla `cnf_log_accesos`
+--
+ALTER TABLE `cnf_log_accesos`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1025;
 
 --
 -- AUTO_INCREMENT de la tabla `cnf_positions`
@@ -8330,19 +9572,19 @@ ALTER TABLE `cnf_templates`
 -- AUTO_INCREMENT de la tabla `imp_comments`
 --
 ALTER TABLE `imp_comments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT de la tabla `imp_imports`
 --
 ALTER TABLE `imp_imports`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT de la tabla `imp_items_setup`
 --
 ALTER TABLE `imp_items_setup`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT de la tabla `imp_labels`
@@ -8372,7 +9614,7 @@ ALTER TABLE `imp_status`
 -- AUTO_INCREMENT de la tabla `imp_status_history`
 --
 ALTER TABLE `imp_status_history`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
 --
 -- AUTO_INCREMENT de la tabla `imp_unconfirmed_qty`
@@ -8420,7 +9662,7 @@ ALTER TABLE `inv_detail_inv_adjustments`
 -- AUTO_INCREMENT de la tabla `inv_detail_remissions`
 --
 ALTER TABLE `inv_detail_remissions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_detail_transfers`
@@ -8438,13 +9680,19 @@ ALTER TABLE `inv_detail_transfer_requests`
 -- AUTO_INCREMENT de la tabla `inv_image_gallery`
 --
 ALTER TABLE `inv_image_gallery`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_inventory_adjustments`
 --
 ALTER TABLE `inv_inventory_adjustments`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+
+--
+-- AUTO_INCREMENT de la tabla `inv_inventory_confirmations`
+--
+ALTER TABLE `inv_inventory_confirmations`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_inventory_count`
@@ -8456,7 +9704,7 @@ ALTER TABLE `inv_inventory_count`
 -- AUTO_INCREMENT de la tabla `inv_items`
 --
 ALTER TABLE `inv_items`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1125;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1126;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_items_accessories`
@@ -8492,7 +9740,7 @@ ALTER TABLE `inv_items_locations`
 -- AUTO_INCREMENT de la tabla `inv_items_store`
 --
 ALTER TABLE `inv_items_store`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_item_applications`
@@ -8558,7 +9806,7 @@ ALTER TABLE `inv_reasons`
 -- AUTO_INCREMENT de la tabla `inv_remissions`
 --
 ALTER TABLE `inv_remissions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_seriales`
@@ -8600,7 +9848,7 @@ ALTER TABLE `inv_unit_measurements`
 -- AUTO_INCREMENT de la tabla `inv_values`
 --
 ALTER TABLE `inv_values`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3891;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3904;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_wordpress_configs`
@@ -8708,19 +9956,19 @@ ALTER TABLE `tick_statuses`
 -- AUTO_INCREMENT de la tabla `vnt_companies`
 --
 ALTER TABLE `vnt_companies`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=99;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_companies_routes`
 --
 ALTER TABLE `vnt_companies_routes`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=120;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_contacts`
 --
 ALTER TABLE `vnt_contacts`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=90;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_delivery_types`
@@ -8738,13 +9986,19 @@ ALTER TABLE `vnt_detail_petty_cash`
 -- AUTO_INCREMENT de la tabla `vnt_detail_quotes`
 --
 ALTER TABLE `vnt_detail_quotes`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=336;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=403;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_detail_reconciliations`
 --
 ALTER TABLE `vnt_detail_reconciliations`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=103;
+
+--
+-- AUTO_INCREMENT de la tabla `vnt_followup_statuses`
+--
+ALTER TABLE `vnt_followup_statuses`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_invoices`
@@ -8768,7 +10022,19 @@ ALTER TABLE `vnt_invoice_payments`
 -- AUTO_INCREMENT de la tabla `vnt_method_payments`
 --
 ALTER TABLE `vnt_method_payments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+
+--
+-- AUTO_INCREMENT de la tabla `vnt_observations`
+--
+ALTER TABLE `vnt_observations`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT de la tabla `vnt_order_authorizations`
+--
+ALTER TABLE `vnt_order_authorizations`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_petty_cash`
@@ -8777,10 +10043,16 @@ ALTER TABLE `vnt_petty_cash`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
+-- AUTO_INCREMENT de la tabla `vnt_printer_configurations`
+--
+ALTER TABLE `vnt_printer_configurations`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `vnt_quotes`
 --
 ALTER TABLE `vnt_quotes`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=174;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=197;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_reasons_petty_cash`
@@ -8810,7 +10082,7 @@ ALTER TABLE `vnt_terms`
 -- AUTO_INCREMENT de la tabla `vnt_warehouses`
 --
 ALTER TABLE `vnt_warehouses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT de la tabla `vnt_zones`
@@ -8901,6 +10173,12 @@ ALTER TABLE `inv_image_gallery`
 --
 ALTER TABLE `inv_inventory_adjustments`
   ADD CONSTRAINT `inv_inventory_adjustments_ibfk_1` FOREIGN KEY (`reasonId`) REFERENCES `inv_reasons` (`id`);
+
+--
+-- Filtros para la tabla `inv_inventory_confirmations`
+--
+ALTER TABLE `inv_inventory_confirmations`
+  ADD CONSTRAINT `fk_inv_conf_item` FOREIGN KEY (`item_id`) REFERENCES `inv_items` (`id`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `inv_inventory_count`

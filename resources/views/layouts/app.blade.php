@@ -131,6 +131,9 @@
        <!-- Modal Global de Confirmación de Inventario -->
        @livewire('tenant.components.inventory-confirmation-modal')
 
+       <!-- Modal Global de Accesorios de Item -->
+       @livewire('tenant.components.item-accessories-modal')
+
      
 
         @livewireScripts

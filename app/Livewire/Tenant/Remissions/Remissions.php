@@ -56,6 +56,12 @@ class Remissions extends Component
     public $totalItems = 0;
     public $moduleKey = 'remissions';
     public $statusFilter = '';
+    
+    // Propiedades para justificación de reimpresión
+    public $showPrintJustificationModal = false;
+    public $printJustificationText = '';
+    public $remissionIdToPrint = null;
+
     public $summaryCounts = [
         'registradas' => 0,
         'alistamiento' => 0,
@@ -707,9 +713,59 @@ class Remissions extends Component
     }
 
     /**
-     * Método para imprimir remisión
+     * Método de entrada para imprimir remisión con validación de reimpresión
      */
     public function printRemission($id)
+    {
+        $this->ensureTenantConnection();
+        $remission = InvRemissions::findOrFail($id);
+
+        // Si ya ha sido impresa anteriormente, solicitar justificación
+        if ($remission->print_count > 0) {
+            $this->remissionIdToPrint = $id;
+            $this->printJustificationText = '';
+            $this->showPrintJustificationModal = true;
+            return;
+        }
+
+        // Si es la primera vez, imprimir directamente
+        $this->executePrintRemission($id);
+    }
+
+    /**
+     * Confirma la reimpresión tras recibir la justificación
+     */
+    public function confirmPrintWithJustification()
+    {
+        if (empty(trim($this->printJustificationText))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para la reimpresión.'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        
+        // Guardar la observación de reimpresión
+        VntObservation::create([
+            'reference_id' => $this->remissionIdToPrint,
+            'reference_type' => 'remission',
+            'observation_type' => 'reprint',
+            'observation' => 'REIMPRESIÓN: ' . $this->printJustificationText,
+            'userId' => auth()->id(),
+        ]);
+
+        $id = $this->remissionIdToPrint;
+        $this->showPrintJustificationModal = false;
+        
+        $this->executePrintRemission($id);
+    }
+
+    /**
+     * Lógica real de generación de impresión (antes printRemission)
+     */
+    public function executePrintRemission($id)
     {
         Log::info('🖨️ printRemission llamado', ['remission_id' => $id]);
 
@@ -835,6 +891,9 @@ class Remissions extends Component
             ]);
             Log::info('🚀 Evento dispatch enviado');
 
+            // Incrementar el contador de impresiones
+            $remission->increment('print_count');
+            
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
