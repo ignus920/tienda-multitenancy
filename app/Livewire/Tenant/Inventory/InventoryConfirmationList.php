@@ -16,11 +16,33 @@ class InventoryConfirmationList extends Component
     public $search = '';
     public $status = '';
     public $perPage = 10;
+    
+    // Filtros
+    public $filterDateFrom = '';
+    public $filterDateTo = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => ''],
+        'filterDateFrom' => ['except' => ''],
+        'filterDateTo' => ['except' => ''],
     ];
+
+    public function mount()
+    {
+        $this->ensureTenantConnection();
+        // Inicializar fechas por defecto (±7 días)
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
+    }
+
+    public function clearFilters()
+    {
+        $this->reset(['search', 'status']);
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
+        $this->resetPage();
+    }
 
     public function boot()
     {
@@ -110,6 +132,12 @@ class InventoryConfirmationList extends Component
             })
             ->when($this->status, function($q) {
                 $q->where('status', $this->status);
+            })
+            ->when($this->filterDateFrom, function($q) {
+                $q->whereDate('created_at', '>=', $this->filterDateFrom);
+            })
+            ->when($this->filterDateTo, function($q) {
+                $q->whereDate('created_at', '<=', $this->filterDateTo);
             })
             ->orderBy('created_at', 'desc');
 
