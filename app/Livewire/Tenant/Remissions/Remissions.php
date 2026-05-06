@@ -23,6 +23,8 @@ use App\Traits\Livewire\HasDynamicButtons;
 use App\Models\Central\UsrPermissionProfile;
 use App\Livewire\Tenant\Components\ObservationsModal;
 use App\Models\Tenant\Sales\VntObservation;
+use App\Models\Tenant\Sales\VntReturn;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Tenant\Inventory\InventoryConfirmation;
 use App\Models\Tenant\Sales\VntOrderAuthorization;
 
@@ -1955,5 +1957,71 @@ class Remissions extends Component
     public function refreshCounts()
     {
         // El render se encargará de recalcular summaryCounts
+    }
+
+    /**
+     * Solicitar una devolución para un item de remisión
+     */
+    public function solicitarDevolucion($detailId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::findOrFail($detailId);
+            
+            // Verificar si ya existe una devolución para este item
+            $exists = VntReturn::where('remission_id', $detail->doc)
+                ->where('item_id', $detail->id_producto)
+                ->where('status', '<', 4) // No finalizada
+                ->exists();
+
+            if ($exists) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Ya existe una solicitud de devolución pendiente para este producto.'
+                ]);
+                return;
+            }
+
+            // Aquí podríamos disparar un SweetAlert para pedir la observación
+            // Por simplicidad en este paso, crearemos una solicitud base y pediremos editarla en el módulo de devoluciones
+            $vntReturn = VntReturn::create([
+                'remission_id' => $detail->doc,
+                'item_id' => $detail->id_producto,
+                'user_id' => Auth::id(),
+                'requested_at' => now(),
+                'original_qty' => $detail->quantity,
+                'commercial_qty' => $detail->quantity, // Por defecto toda la cantidad
+                'status' => 1, // Comercial
+                'obs_commercial' => 'Solicitud iniciada desde el panel de remisiones.',
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Solicitud de devolución creada correctamente. Puede procesarla en el módulo de Devoluciones.'
+            ]);
+
+            // Redirigir al módulo de devoluciones (opcional)
+            // return redirect()->route('tenant.returns');
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error creando solicitud de devolución', [
+                'detail_id' => $detailId,
+                'error' => $e->getMessage()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar la solicitud: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Abrir el modal de registro de devolución detallada
+     */
+    public function openReturnRegistration($remissionId)
+    {
+        $this->dispatch('openReturnRegistration', $remissionId);
     }
 }

@@ -2,9 +2,13 @@
     <!-- Encabezado -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex justify-between items-center">
-            <div>
+            <div class="flex items-center space-x-3">
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Pedidos</h1>
-                <p class="text-gray-600 dark:text-slate-400 text-sm mt-1">Gestión de registros</p>
+                <button @click="$dispatch('openPrinterConfig', { contexto: 'ordenp' })" 
+                        class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                        title="Configurar Impresora">
+                    <x-heroicon-o-printer class="w-6 h-6" />
+                </button>
             </div>
             <div class="flex items-center space-x-3">
                 <a href="{{ route('tenant.packing.terminal') }}" wire:navigate
@@ -430,6 +434,15 @@
                                                 class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                 Anular Pedido
+                                            </button>
+                                            @endif
+                                            @if($remission->status !== 'ANULADO')
+                                            <button wire:click="openReturnRegistration({{ $remission->id }})" 
+                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
+                                                </svg>
+                                                Devolución
                                             </button>
                                             @endif
                                             @if($remission->invoice)
@@ -988,4 +1001,16 @@
             });
         }
     </script>
+    @livewire('tenant.configuration.printer-config-modal', ['contexto' => 'ordenp'])
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('printerConfigUpdated', (data) => {
+                const config = Array.isArray(data) ? data[0] : data;
+                localStorage.setItem('nombre_impresora', config.printer_name);
+                localStorage.setItem('proxy_impresion', config.proxy_url);
+            });
+        });
+    </script>
+    @livewire('tenant.returns.return-registration-modal')
 </div>
