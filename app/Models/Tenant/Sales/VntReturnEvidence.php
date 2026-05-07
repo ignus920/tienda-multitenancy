@@ -12,6 +12,8 @@ class VntReturnEvidence extends Model
     protected $connection = 'tenant';
     protected $table = 'vnt_return_evidences';
 
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'return_id',
         'file_path',

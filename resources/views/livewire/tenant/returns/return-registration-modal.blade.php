@@ -32,7 +32,26 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Pedido #{{ $remission->consecutive ?? '' }} - Cliente: {{ $remission->quote->customer_name ?? '' }}</p>
                             </div>
                             <div class="flex gap-2">
-                                <button wire:click="applyTotalReturn" class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-4 py-2 rounded-xl text-xs font-bold uppercase hover:bg-green-200 transition-colors">
+                                <button @click="
+                                    Swal.fire({
+                                        title: 'Motivo de Devolución Total',
+                                        input: 'textarea',
+                                        inputPlaceholder: 'Escriba aquí el motivo (ej: pedido duplicado, cliente cancela...)',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Procesar Devolución',
+                                        cancelButtonText: 'Cancelar',
+                                        confirmButtonColor: '#10b981',
+                                        inputValidator: (value) => {
+                                            if (!value) {
+                                                return '¡Debe ingresar un motivo!'
+                                            }
+                                        }
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            $wire.totalReturnWithMotive(result.value)
+                                        }
+                                    })
+                                " class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-4 py-2 rounded-xl text-xs font-bold uppercase hover:bg-green-200 transition-colors">
                                     Devolución Total
                                 </button>
                                 <button wire:click="close" class="text-gray-400 hover:text-gray-500 transition-colors">
@@ -43,10 +62,7 @@
                             </div>
                         </div>
 
-                        <div class="mb-6">
-                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Observación General (Opcional)</label>
-                            <textarea wire:model="generalObservation" rows="2" class="block w-full border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 text-sm" placeholder="Ej: Mercancía dañada por transporte..."></textarea>
-                        </div>
+
 
                         <div class="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
