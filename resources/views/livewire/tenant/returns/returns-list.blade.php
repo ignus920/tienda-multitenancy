@@ -115,12 +115,34 @@
                                     {{ $return->commercial_qty }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $return->status_color }} text-white">
-                                        {{ $return->status_label }}
-                                    </span>
+                                    <div class="flex items-center gap-1">
+                                        <!-- Comercial -->
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all shadow-sm
+                                            {{ $return->status >= 1 ? 'bg-yellow-500 text-white ring-2 ring-yellow-200 dark:ring-yellow-900/50' : 'bg-gray-200 dark:bg-gray-700 text-gray-400' }}">
+                                            C
+                                        </div>
+                                        <!-- Laboratorio (Rojo si ya fue procesado por Lab y pasó a Bodega) -->
+                                        <button wire:click="$dispatch('openReturnModal', { id: {{ $return->id }}, mode: 'process' })"
+                                                class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all shadow-sm hover:scale-110
+                                            {{ $return->status >= 3 ? 'bg-red-500 text-white ring-2 ring-red-200 dark:ring-red-900/50' : 'bg-gray-200 dark:bg-gray-700 text-gray-400' }}">
+                                            L
+                                        </button>
+                                        <!-- Bodega (Verde si ya fue procesado por Bodega y pasó a Contabilidad) -->
+                                        <button wire:click="$dispatch('openReturnModal', { id: {{ $return->id }}, mode: 'process' })"
+                                                class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all shadow-sm hover:scale-110
+                                            {{ $return->status >= 4 ? 'bg-green-500 text-white ring-2 ring-green-200 dark:ring-green-900/50' : 'bg-gray-200 dark:bg-gray-700 text-gray-400' }}">
+                                            B
+                                        </button>
+                                        <!-- Contabilidad (Azul si ya fue finalizado) -->
+                                        <button wire:click="$dispatch('openReturnModal', { id: {{ $return->id }}, mode: 'process' })"
+                                                class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all shadow-sm hover:scale-110
+                                            {{ $return->status >= 6 ? 'bg-blue-600 text-white ring-2 ring-blue-200 dark:ring-blue-900/50' : 'bg-gray-200 dark:bg-gray-700 text-gray-400' }}">
+                                            CO
+                                        </button>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button wire:click="$dispatch('openReturnModal', [{{ $return->id }}])" 
+                                    <button wire:click="$dispatch('openReturnModal', { id: {{ $return->id }}, mode: 'info' })" 
                                             class="p-2 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-slate-700 rounded-lg transition-colors">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

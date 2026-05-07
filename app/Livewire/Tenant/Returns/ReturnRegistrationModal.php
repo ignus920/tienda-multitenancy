@@ -4,7 +4,9 @@ namespace App\Livewire\Tenant\Returns;
 
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Sales\VntReturn;
+use App\Models\Tenant\Sales\VntReturnEvidence;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
@@ -12,11 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class ReturnRegistrationModal extends Component
 {
+    use WithFileUploads;
     public $isOpen = false;
     public $remissionId;
     protected $remission;
     public $items = []; // Estructura: [ ['detail_id' => X, 'item_id' => Y, 'description' => Z, 'qty' => Q, 'return_qty' => 0, 'observation' => ''] ]
-    public $generalObservation = '';
 
     protected $listeners = ['openReturnRegistration' => 'loadRemission'];
 
@@ -84,16 +86,43 @@ class ReturnRegistrationModal extends Component
     {
         $this->isOpen = false;
         $this->remission = null;
-        $this->reset(['items', 'remissionId', 'generalObservation']);
+        $this->reset(['items', 'remissionId']);
     }
 
-    public function applyTotalReturn()
+    public function totalReturnWithMotive($motive)
     {
-        foreach ($this->items as &$item) {
-            $item['return_qty'] = $item['available_qty'];
-            if (empty($item['observation'])) {
-                $item['observation'] = $this->generalObservation ?: 'Devolución total del ítem.';
+        if (empty($motive)) {
+            $this->dispatch('show-toast', type: 'error', message: 'El motivo es obligatorio para devolución total.');
+            return;
+        }
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            foreach ($this->items as $item) {
+                if ($item['available_qty'] > 0) {
+                    VntReturn::create([
+                        'remission_id' => $this->remissionId,
+                        'item_id' => $item['item_id'],
+                        'user_id' => Auth::id(),
+                        'requested_at' => now(),
+                        'original_qty' => $item['original_qty'],
+                        'commercial_qty' => $item['available_qty'],
+                        'status' => 1, // Comercial
+                        'obs_commercial' => $motive,
+                    ]);
+                }
             }
+
+            DB::connection('tenant')->commit();
+
+            $this->dispatch('show-toast', type: 'success', message: 'Devolución total registrada correctamente.');
+            $this->isOpen = false;
+            $this->dispatch('refreshReturns');
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            $this->dispatch('show-toast', type: 'error', message: 'Error: ' . $e->getMessage());
         }
     }
 
@@ -118,6 +147,7 @@ class ReturnRegistrationModal extends Component
         try {
             DB::connection('tenant')->beginTransaction();
 
+            // Crear las devoluciones
             foreach ($toSave as $item) {
                 VntReturn::create([
                     'remission_id' => $this->remissionId,
@@ -127,13 +157,13 @@ class ReturnRegistrationModal extends Component
                     'original_qty' => $item['original_qty'],
                     'commercial_qty' => $item['return_qty'],
                     'status' => 1, // Comercial
-                    'obs_commercial' => $item['observation'] ?: $this->generalObservation ?: 'Devolución parcial iniciada.',
+                    'obs_commercial' => $item['observation'] ?: 'Devolución parcial iniciada.',
                 ]);
             }
 
             DB::connection('tenant')->commit();
 
-            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Devolución registrada correctamente.']);
+            $this->dispatch('show-toast', type: 'success', message: 'Devolución registrada correctamente.');
             $this->isOpen = false;
             $this->dispatch('refreshReturns'); // Por si está abierta la lista de devoluciones
 
