@@ -194,6 +194,10 @@ require __DIR__ . '/tenants/inventory_confirmations.php';
 // Incluir rutas del módulo de devoluciones
 require __DIR__ . '/tenants/returns.php';
 
+// Incluir rutas del módulo de despachos
+require __DIR__ . '/tenants/dispatches.php';
+
+
 
 
 
