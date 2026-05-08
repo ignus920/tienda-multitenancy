@@ -58,7 +58,7 @@ class Remissions extends Component
     public $totalItems = 0;
     public $moduleKey = 'remissions';
     public $statusFilter = '';
-    
+
     // Propiedades para justificación de reimpresión
     public $showPrintJustificationModal = false;
     public $printJustificationText = '';
@@ -747,7 +747,7 @@ class Remissions extends Component
         }
 
         $this->ensureTenantConnection();
-        
+
         // Guardar la observación de reimpresión
         VntObservation::create([
             'reference_id' => $this->remissionIdToPrint,
@@ -759,7 +759,7 @@ class Remissions extends Component
 
         $id = $this->remissionIdToPrint;
         $this->showPrintJustificationModal = false;
-        
+
         $this->executePrintRemission($id);
     }
 
@@ -900,7 +900,7 @@ class Remissions extends Component
 
             // Incrementar el contador de impresiones
             $remission->increment('print_count');
-            
+
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
@@ -1023,61 +1023,52 @@ class Remissions extends Component
     {
         Log::info('🏢 getCompanyInfo llamado para remisión');
 
-        // Intentar obtener información del warehouse desde la base central
-        if ($remission && $remission->warehouseId) {
-            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $remission->warehouseId]);
+        try {
+            $userId = auth()->id();
 
-            try {
-                // Consultar directamente desde la base central usando el modelo VntWarehouse
-                $warehouse = VntWarehouse::find($remission->warehouseId);
-
-                if ($warehouse) {
-                    Log::info('🏢 Warehouse encontrado en central', [
-                        'id' => $warehouse->id,
-                        'name' => $warehouse->name,
-                        'address' => $warehouse->address
-                    ]);
-
-                    $companyData = [
-                        'businessName' => $warehouse->name ?? 'EMPRESA DE PRUEBA',
-                        'firstName' => 'Admin',
-                        'lastName' => 'Sistema',
-                        'identification' => '123456789',
-                        'billingAddress' => $warehouse->address ?? 'Dirección de prueba',
-                        'phone' => '1234567890',
-                        'billingEmail' => 'test@empresa.com'
-                    ];
-
-                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
-                } else {
-                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $remission->warehouseId);
-                    throw new \Exception('Warehouse no encontrado');
-                }
-            } catch (\Exception $e) {
-                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
-
-                // Datos por defecto si hay error
-                $companyData = [
-                    'businessName' => 'EMPRESA DE PRUEBA',
-                    'firstName' => 'Admin',
-                    'lastName' => 'Sistema',
-                    'identification' => '123456789',
-                    'billingAddress' => 'Dirección de prueba',
-                    'phone' => '1234567890',
-                    'billingEmail' => 'test@empresa.com'
-                ];
+            if (!$userId) {
+                Log::warning('⚠️ No hay usuario autenticado para getCompanyInfo');
+                throw new \Exception('Usuario no autenticado');
             }
-        } else {
-            Log::warning('⚠️ No se encontró warehouseId en la remisión, usando datos por defecto');
 
-            // Datos por defecto si no hay warehouse
-            $companyData = [
+            // Ejecutar la consulta proporcionada por el usuario adaptada a Query Builder
+            $companyData = DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.billingEmail' // Campo extra útil para facturación
+                ])
+                ->first();
+
+            if ($companyData) {
+                Log::info('🏢 Datos empresa obtenidos exitosamente', (array)$companyData);
+                return $companyData;
+            } else {
+                Log::warning('⚠️ No se encontraron datos de empresa para el usuario ID: ' . $userId);
+                throw new \Exception('Datos de empresa no encontrados');
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Error en getCompanyInfo: ' . $e->getMessage());
+
+            // Datos por defecto si hay error o no se encuentra el registro
+            return (object) [
                 'businessName' => 'EMPRESA DE PRUEBA',
-                'firstName' => 'Admin',
-                'lastName' => 'Sistema',
-                'identification' => '123456789',
                 'billingAddress' => 'Dirección de prueba',
-                'phone' => '1234567890',
+                'city' => 'Ciudad Prueba',
+                'acronym' => 'NIT',
+                'identification' => '123456789',
                 'billingEmail' => 'test@empresa.com'
             ];
         }
@@ -1138,7 +1129,7 @@ class Remissions extends Component
             'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
             'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
                 ->where('status', '!=', 'ENTREGADO')
-                ->whereDoesntHave('authorizations', function($q) {
+                ->whereDoesntHave('authorizations', function ($q) {
                     $q->where('auth_type', 'despacho')->where('status', 1);
                 })->count(),
         ];
@@ -1973,7 +1964,7 @@ class Remissions extends Component
 
         try {
             $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::findOrFail($detailId);
-            
+
             // Verificar si ya existe una devolución para este item
             $exists = VntReturn::where('remission_id', $detail->doc)
                 ->where('item_id', $detail->id_producto)
