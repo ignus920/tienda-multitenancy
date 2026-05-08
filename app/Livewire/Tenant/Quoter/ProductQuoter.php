@@ -421,6 +421,7 @@ class ProductQuoter extends Component
                 )
                 ->where('inv_items.status', 1)
                 ->with(['principalImage', 'invValues', 'tax'])
+                ->withCount('accessories')
                 ->when($this->hideQuoter, function ($q) {
                     $q->with(['locations.location', 'imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
                 })

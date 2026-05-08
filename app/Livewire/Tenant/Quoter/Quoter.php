@@ -23,6 +23,11 @@ class Quoter extends Component
     use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
 
     public $search = '';
+    public $filterNit = '';
+    public $filterName = '';
+    public $filterConsecutive = '';
+    public $filterDateFrom = '';
+    public $filterDateTo = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
     public $showDetailModal = false;
@@ -49,6 +54,10 @@ class Quoter extends Component
 
         // Inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas por defecto (±7 días como en Pedidos)
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
 
         // DEBUG: Limpiar caché para testing
         $this->clearConfigurationCache();
@@ -106,6 +115,24 @@ class Quoter extends Component
 
     public function updatingPerPage()
     {
+        $this->resetPage();
+    }
+
+    public function updated($propertyName)
+    {
+        if (in_array($propertyName, ['filterNit', 'filterName', 'filterConsecutive', 'filterDateFrom', 'filterDateTo'])) {
+            $this->resetPage();
+        }
+    }
+
+    public function clearFilters()
+    {
+        $this->reset(['search', 'filterNit', 'filterName', 'filterConsecutive']);
+        
+        // Restablecer fechas por defecto al limpiar
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
+        
         $this->resetPage();
     }
 
@@ -708,19 +735,40 @@ class Quoter extends Component
                 ]);
             })
             ->when($this->search, function ($query) {
-                $query->where('consecutive', 'like', '%' . $this->search . '%')
-                    ->orWhere('status', 'like', '%' . $this->search . '%')
-                    ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
-                    ->orWhere('observations', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('customer', function ($q) {
-                        $q->where('firstName', 'like', '%' . $this->search . '%')
-                            ->orWhere('secondName', 'like', '%' . $this->search . '%')
-                            ->orWhere('lastName', 'like', '%' . $this->search . '%')
-                            ->orWhere('secondLastName', 'like', '%' . $this->search . '%')
-                            ->orWhere('email', 'like', '%' . $this->search . '%')
-                            ->orWhere('business_phone', 'like', '%' . $this->search . '%')
-                            ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
-                    });
+                $query->where(function($q) {
+                    $q->where('consecutive', 'like', '%' . $this->search . '%')
+                        ->orWhere('status', 'like', '%' . $this->search . '%')
+                        ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
+                        ->orWhere('observations', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('customer', function ($subQ) {
+                            $subQ->where('firstName', 'like', '%' . $this->search . '%')
+                                ->orWhere('secondName', 'like', '%' . $this->search . '%')
+                                ->orWhere('lastName', 'like', '%' . $this->search . '%')
+                                ->orWhere('secondLastName', 'like', '%' . $this->search . '%')
+                                ->orWhere('email', 'like', '%' . $this->search . '%')
+                                ->orWhere('business_phone', 'like', '%' . $this->search . '%')
+                                ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
+                        });
+                });
+            })
+            ->when($this->filterNit, function ($query) {
+                $query->whereHas('customer', function ($q) {
+                    $q->where('identification', 'like', '%' . $this->filterNit . '%');
+                });
+            })
+            ->when($this->filterName, function ($query) {
+                $query->whereHas('customer', function ($q) {
+                    $q->where(DB::raw("CONCAT(COALESCE(firstName,''), ' ', COALESCE(secondName,''), ' ', COALESCE(lastName,''), ' ', COALESCE(secondLastName,''))"), 'like', '%' . $this->filterName . '%');
+                });
+            })
+            ->when($this->filterConsecutive, function ($query) {
+                $query->where('consecutive', 'like', '%' . $this->filterConsecutive . '%');
+            })
+            ->when($this->filterDateFrom, function ($query) {
+                $query->whereDate('created_at', '>=', $this->filterDateFrom);
+            })
+            ->when($this->filterDateTo, function ($query) {
+                $query->whereDate('created_at', '<=', $this->filterDateTo);
             })
             ->orderBy('created_at', 'desc')
             ->paginate($this->perPage);

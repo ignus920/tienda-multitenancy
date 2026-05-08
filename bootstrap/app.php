@@ -31,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
             Route::middleware(['web', 'tenant'])
                 ->group(base_path('routes/tenants/transfers.php'));
+
+            Route::middleware(['web', 'tenant'])
+                ->group(base_path('routes/tenants/inventory_confirmations.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

@@ -34,6 +34,7 @@ class InvRemissions extends Model
         'obs',
         'observations_delivery',
         'flete',
+        'print_count',
     ];
 
     protected $casts = [

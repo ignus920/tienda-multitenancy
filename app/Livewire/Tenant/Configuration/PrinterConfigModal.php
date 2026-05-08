@@ -12,6 +12,12 @@ class PrinterConfigModal extends Component
     public $printer_name = '';
     public $proxy_url = '';
     public $showModal = false;
+    public $isLoading = false;
+
+    public function boot()
+    {
+        $this->ensureTenantConnection();
+    }
 
     protected $listeners = ['openPrinterConfig' => 'open'];
 
@@ -71,5 +77,27 @@ class PrinterConfigModal extends Component
     public function render()
     {
         return view('livewire.tenant.configuration.printer-config-modal');
+    }
+
+    /**
+     * Asegura que exista una conexión válida con el tenant basada en la sesión.
+     */
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return;
+        }
+
+        $tenant = \App\Models\Auth\Tenant::find($tenantId);
+
+        if (!$tenant) {
+            return;
+        }
+
+        $tenantManager = app(\App\Services\Tenant\TenantManager::class);
+        $tenantManager->setConnection($tenant);
+        tenancy()->initialize($tenant);
     }
 }

@@ -8,6 +8,7 @@ use App\Services\Tenant\TenantManager;
 use App\Traits\HasCompanyConfiguration;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use App\Models\Central\VntWarehouse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,10 @@ use App\Traits\Livewire\HasDynamicButtons;
 use App\Models\Central\UsrPermissionProfile;
 use App\Livewire\Tenant\Components\ObservationsModal;
 use App\Models\Tenant\Sales\VntObservation;
+use App\Models\Tenant\Sales\VntReturn;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Tenant\Inventory\InventoryConfirmation;
+use App\Models\Tenant\Sales\VntOrderAuthorization;
 
 class Remissions extends Component
 {
@@ -53,12 +58,22 @@ class Remissions extends Component
     public $totalItems = 0;
     public $moduleKey = 'remissions';
     public $statusFilter = '';
+    
+    // Propiedades para justificación de reimpresión
+    public $showPrintJustificationModal = false;
+    public $printJustificationText = '';
+    public $remissionIdToPrint = null;
+
     public $summaryCounts = [
         'registradas' => 0,
         'alistamiento' => 0,
         'sin_entregar' => 0,
-        'sin_facturar' => 0
+        'sin_facturar' => 0,
+        'consultas_nuevas' => 0,
+        'sin_autorizacion' => 0
     ];
+
+    public $showConfirmationsModal = false;
 
     // Permisos
     public $canEditRemission = false;
@@ -81,9 +96,9 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
 
-        // Inicializar fechas con el rango del mes actual
-        $this->searchStartDate = now()->startOfMonth()->format('Y-m-d');
-        $this->searchEndDate = now()->format('Y-m-d');
+        // Inicializar fechas con rango de ±7 días respecto a hoy
+        $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
+        $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
 
         // Verificar permisos de edición para remisiones
         $user = auth()->user();
@@ -223,8 +238,8 @@ class Remissions extends Component
         $this->searchNit = '';
         $this->searchName = '';
         $this->searchQuote = '';
-        $this->searchStartDate = '';
-        $this->searchEndDate = '';
+        $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
+        $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
         $this->statusFilter = '';
         $this->resetPage();
     }
@@ -264,6 +279,15 @@ class Remissions extends Component
 
             // Actualizar estado del pedido
             $remission->update(['status' => 'ANULADO']);
+
+            // ✅ NUEVO: También anular la cotización asociada si existe
+            if ($remission->quote) {
+                $remission->quote->update(['status' => 'ANULADO']);
+                Log::info('📋 Cotización asociada anulada automáticamente', [
+                    'quote_id' => $remission->quote->id,
+                    'remission_id' => $id
+                ]);
+            }
 
             // Registrar el motivo de anulación
             VntObservation::create([
@@ -690,9 +714,59 @@ class Remissions extends Component
     }
 
     /**
-     * Método para imprimir remisión
+     * Método de entrada para imprimir remisión con validación de reimpresión
      */
     public function printRemission($id)
+    {
+        $this->ensureTenantConnection();
+        $remission = InvRemissions::findOrFail($id);
+
+        // Si ya ha sido impresa anteriormente, solicitar justificación
+        if ($remission->print_count > 0) {
+            $this->remissionIdToPrint = $id;
+            $this->printJustificationText = '';
+            $this->showPrintJustificationModal = true;
+            return;
+        }
+
+        // Si es la primera vez, imprimir directamente
+        $this->executePrintRemission($id);
+    }
+
+    /**
+     * Confirma la reimpresión tras recibir la justificación
+     */
+    public function confirmPrintWithJustification()
+    {
+        if (empty(trim($this->printJustificationText))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para la reimpresión.'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        
+        // Guardar la observación de reimpresión
+        VntObservation::create([
+            'reference_id' => $this->remissionIdToPrint,
+            'reference_type' => 'remission',
+            'observation_type' => 'reprint',
+            'observation' => 'REIMPRESIÓN: ' . $this->printJustificationText,
+            'userId' => auth()->id(),
+        ]);
+
+        $id = $this->remissionIdToPrint;
+        $this->showPrintJustificationModal = false;
+        
+        $this->executePrintRemission($id);
+    }
+
+    /**
+     * Lógica real de generación de impresión (antes printRemission)
+     */
+    public function executePrintRemission($id)
     {
         Log::info('🖨️ printRemission llamado', ['remission_id' => $id]);
 
@@ -824,6 +898,9 @@ class Remissions extends Component
             ]);
             Log::info('🚀 Evento dispatch enviado');
 
+            // Incrementar el contador de impresiones
+            $remission->increment('print_count');
+            
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Remisión #' . $remission->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
@@ -1058,6 +1135,12 @@ class Remissions extends Component
             'alistamiento' => (clone $baseQuery)->where('status', 'ALISTAMIENTO')->count(),
             'sin_entregar' => (clone $baseQuery)->where('status', '!=', 'ENTREGADO')->count(),
             'sin_facturar' => (clone $baseQuery)->whereDoesntHave('invoiceSale')->count(),
+            'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
+            'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
+                ->where('status', '!=', 'ENTREGADO')
+                ->whereDoesntHave('authorizations', function($q) {
+                    $q->where('auth_type', 'despacho')->where('status', 1);
+                })->count(),
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
@@ -1863,5 +1946,87 @@ class Remissions extends Component
             ]);
             return false;
         }
+    }
+
+    public function openConfirmationsModal()
+    {
+        $this->showConfirmationsModal = true;
+    }
+
+    public function closeConfirmationsModal()
+    {
+        $this->showConfirmationsModal = false;
+    }
+
+    #[On('confirmation-updated')]
+    public function refreshCounts()
+    {
+        // El render se encargará de recalcular summaryCounts
+    }
+
+    /**
+     * Solicitar una devolución para un item de remisión
+     */
+    public function solicitarDevolucion($detailId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::findOrFail($detailId);
+            
+            // Verificar si ya existe una devolución para este item
+            $exists = VntReturn::where('remission_id', $detail->doc)
+                ->where('item_id', $detail->id_producto)
+                ->where('status', '<', 4) // No finalizada
+                ->exists();
+
+            if ($exists) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Ya existe una solicitud de devolución pendiente para este producto.'
+                ]);
+                return;
+            }
+
+            // Aquí podríamos disparar un SweetAlert para pedir la observación
+            // Por simplicidad en este paso, crearemos una solicitud base y pediremos editarla en el módulo de devoluciones
+            $vntReturn = VntReturn::create([
+                'remission_id' => $detail->doc,
+                'item_id' => $detail->id_producto,
+                'user_id' => Auth::id(),
+                'requested_at' => now(),
+                'original_qty' => $detail->quantity,
+                'commercial_qty' => $detail->quantity, // Por defecto toda la cantidad
+                'status' => 1, // Comercial
+                'obs_commercial' => 'Solicitud iniciada desde el panel de remisiones.',
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Solicitud de devolución creada correctamente. Puede procesarla en el módulo de Devoluciones.'
+            ]);
+
+            // Redirigir al módulo de devoluciones (opcional)
+            // return redirect()->route('tenant.returns');
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error creando solicitud de devolución', [
+                'detail_id' => $detailId,
+                'error' => $e->getMessage()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar la solicitud: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Abrir el modal de registro de devolución detallada
+     */
+    public function openReturnRegistration($remissionId)
+    {
+        $this->dispatch('openReturnRegistration', $remissionId);
     }
 }
