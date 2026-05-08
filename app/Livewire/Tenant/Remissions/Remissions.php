@@ -280,7 +280,6 @@ class Remissions extends Component
                 'type' => 'success',
                 'message' => "Pedido #{$remission->consecutive} anulado correctamente."
             ]);
-
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error("Error al anular pedido: " . $e->getMessage());
@@ -763,6 +762,10 @@ class Remissions extends Component
 
             Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
 
+            $observations = DB::connection('tenant')->table('inv_remissions')
+                ->where('quoteId', $id)
+                ->select('observations_delivery', 'obs')->first();
+
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
@@ -780,7 +783,9 @@ class Remissions extends Component
                 'showQR' => true,
                 'defaultObservations' => 'Sin observaciones.' . $giftObservation,
                 'giftObservation' => $giftObservation,
-                'totalWeight' => $totalWeight
+                'totalWeight' => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs' => $observations->obs ?? null,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -1045,7 +1050,7 @@ class Remissions extends Component
             })
             ->whereHas('authorizations', function ($q) {
                 $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
-                  ->where('status', 1);
+                    ->where('status', 1);
             });
 
         $this->summaryCounts = [
@@ -1059,7 +1064,7 @@ class Remissions extends Component
         $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
             ->whereHas('authorizations', function ($q) {
                 $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
-                  ->where('status', 1);
+                    ->where('status', 1);
             })
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
@@ -1797,7 +1802,7 @@ class Remissions extends Component
                 // 2. Si intenta pasar de REGISTRADO a ALISTAMIENTO, requiere al menos Empaque o Despacho
                 if ($currentStatus === 'REGISTRADO' && $nextStatus === 'ALISTAMIENTO') {
                     if (!$hasEmpaque && !$hasDespacho) {
-                         $this->dispatch('show-toast', [
+                        $this->dispatch('show-toast', [
                             'type' => 'warning',
                             'message' => 'BLOQUEO DE CARTERA: Se requiere autorización de EMPAQUE para iniciar el alistamiento.'
                         ]);

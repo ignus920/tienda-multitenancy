@@ -422,9 +422,9 @@
                 <tr>
                     <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 34%;">
                         <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS EMPRESA</div>
-                        <div><strong>NIT:</strong> {{ $company->identification ?? '901.123.456-7' }}</div>
+                        <div><strong>NIT:</strong> {{ $company->identification ?? '901.123.456-7' }}-{{ $company->checkDigit ?? '' }}</div>
                         <div><strong>Dirección:</strong> {{ $company->billingAddress ?? 'Calle Principal No. 123' }}</div>
-                        <div><strong>Teléfono:</strong> {{ $company->phone ?? '(601) 123 4567' }}</div>
+                        {{-- <div><strong>Teléfono:</strong> {{ $company->phone ?? '(601) 123 4567' }}</div> --}}
                         <div><strong>Email:</strong> {{ $company->billingEmail ?? 'ventas@fervicom.com' }}</div>
                         <div style="margin-top: 8px;">
                             <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
@@ -471,8 +471,8 @@
                 <th class="col-code">CÓDIGO</th>
                 <th class="col-desc">DESCRIPCIÓN</th>
                 <th class="col-qty">CANT.</th>
-                <th class="col-delivered">ENTREGADO</th>
-                <th class="col-pending">PENDIENTES</th>
+                {{-- <th class="col-delivered">ENTREGADO</th>
+                <th class="col-pending">PENDIENTES</th> --}}
                 <th class="col-price">V.UNIT.</th>
                 <th class="col-discount">DESCUENTO</th>
                 <th class="col-total">SUBTOTAL</th>
@@ -490,10 +490,16 @@
                         @endif
                     </td>
                     <td class="col-qty">{{ number_format($detalle->quantity, 0) }}</td>
-                    <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
-                    <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td>
+                    {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
+                    <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td> --}}
                     <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
-                    <td class="col-discount">${{ $detalle->price_label ?? '-'}}</td>
+                    <td class="col-discount">
+                        @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
+                            {{ $detalle->price_label }}
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td class="col-total">${{ number_format($detalle->value * $detalle->quantity, 2) }}</td>
                 </tr>
             @endforeach
@@ -519,14 +525,28 @@
                     <span class="notes-label">Entrega:</span> Mensajero - Edificio LUX
                 </div> --}}
                 
+                {{-- @if ($quote->status === 'REMISIÓN')
+                    <div class="notes-section">
+                        <span class="notes-label">Forma de pago:</span> 
+                        {{ $quote->method_payment_name }}
+                    </div> 
+                @endif --}}
                 <div class="notes-section">
                     <span class="notes-label">Forma de pago:</span> 
                     @if(isset($quote->methodPayment))
-                        {{ $quote->methodPayment->name }}
+                        {{ $quote->methodPayment->name ?? 'primer if'}}
                     @elseif($quote->status === 'REMISIÓN' && isset($quote->method_payment_name))
-                        {{ $quote->method_payment_name }}
+                        {{ $quote->method_payment_name ?? 'segundo if' }}
                     @endif
                 </div>
+                <div class="notes-section">
+                    <span class="notes-label">Entrega:</span>
+                    {{ $quote->observations_delivery ?? '' }}
+                </div>
+                <div class="notes-section">
+                    <span class="notes-label">Obs. Pedido:</span> {{ $quote->obs ?? 'na' }}
+                </div>
+
             </div>
 
             {{-- <div class="signatures">
@@ -577,6 +597,42 @@
                 <div class="total-value">${{ number_format($totalFinal, 2) }}</div>
             </div>
         </div>
+    </div>
+
+    <div style="margin-top: 15px; text-align: left; width: 100%;">
+        @php
+            // Consulta directa proporcionada por el usuario adaptada al ID de la cotización actual
+            $discountResult = \Illuminate\Support\Facades\DB::connection('tenant')->selectOne("
+                SELECT SUM( (iv.values * REPLACE(vd.price_label, '%', '') / 100) * vd.quantity ) AS total 
+                FROM vnt_detail_quotes vd 
+                INNER JOIN inv_values iv ON iv.itemId = vd.itemId 
+                WHERE vd.quoteId = ? AND iv.label = 'Precio Base'
+            ", [$quote->id]);
+            
+            $totalDiscountAmount = $discountResult->total ?? 0;
+            
+            // Obtener etiquetas de descuento para mostrar los nombres de las listas/etiquetas aplicadas
+            $discountLabels = $quote->detalles
+                ->pluck('price_label')
+                ->filter(function ($label) {
+                    if (empty($label)) return false;
+                    $l = trim(mb_strtolower($label, 'UTF-8'));
+                    return !in_array($l, ['precio regular', 'regular', 'precio base', 'precio', 'lista', 'crédito', 'precio crédito', 'precio remisión', 'precio seleccionado']);
+                })
+                ->unique()
+                ->values();
+        @endphp
+
+        @if($totalDiscountAmount > 0 || $discountLabels->count() > 0)
+            <div style="padding: 10px; border: 1px dashed #3498db; border-radius: 6px; background-color: #f8f9fa; display: inline-block; min-width: 250px;">
+                <div style="font-weight: bold; color: #3498db; font-size: 9pt; margin-bottom: 3px;">DESCUENTO APLICADO:</div>
+                @if($totalDiscountAmount > 0)
+                    <div style="font-size: 10pt; font-weight: bold; color: #2c3e50;">
+                        ${{ number_format($totalDiscountAmount) }}
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
 
     <!-- QR Footer -->

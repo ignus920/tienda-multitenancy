@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Quoter;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
@@ -50,6 +51,7 @@ class ProductQuoter extends Component
     public $freightJustification = '';
     public $showCartModal = false;
     public $moduleKey = 'products';
+    public $showWarehouseModal = false; // Flag para mostrar el modal de gestión de sucursales
     public $hideQuoter = false; // Flag para ocultar el carrito/cotizador (modo Bodega)
 
     // Propiedades para desglose de impuestos
@@ -112,6 +114,7 @@ class ProductQuoter extends Component
     public $deliveryTypes = [];
     public $selectedDeliveryType = null;
     public $deliveryDetails = '';
+    public $orderDetails = '';
     public $showDeliveryModal = false;
     public $requiresDeliveryDetails = false;
 
@@ -150,7 +153,8 @@ class ProductQuoter extends Component
         'vnt-company-saved' => 'onCustomerCreated',
         'customer-updated' => 'onCustomerUpdated',
         'customer-form-cancelled' => 'cancelCreateCustomer',
-        'refreshProductList' => '$refresh'
+        'refreshProductList' => '$refresh',
+        'warehouse-selected' => 'selectBranch'
     ];
 
     public function updatedObservaciones()
@@ -932,6 +936,28 @@ class ProductQuoter extends Component
             ->toArray();
     }
 
+    #[On('warehouse-modal-closed')]
+    public function handleWarehouseModalClosed()
+    {
+        $this->showWarehouseModal = false;
+
+        // Si hay un cliente seleccionado, refrescar sus sucursales
+        if ($this->selectedCustomer && isset($this->selectedCustomer['id'])) {
+            $this->loadBranches($this->selectedCustomer['id']);
+        }
+    }
+
+    private function loadBranches($companyId)
+    {
+        $company = VntCompany::with(['warehouses' => function ($q) {
+            $q->where('status', 1)->with('city');
+        }])->find($companyId);
+
+        if ($company) {
+            $this->branches = $company->warehouses->toArray();
+        }
+    }
+
     public function selectCustomer($customerId)
     {
         $this->ensureTenantConnection();
@@ -975,6 +1001,7 @@ class ProductQuoter extends Component
         }
     }
 
+    #[On('warehouse-selected')]
     public function selectBranch($branchId)
     {
         $this->selectedBranchId = $branchId;
@@ -984,10 +1011,10 @@ class ProductQuoter extends Component
             $this->finalizeCustomerSelection($branch);
 
             $this->ensureTenantConnection();
-            
+
             // Buscar el contacto asociado a esta sucursal específica
             $contact = VntContacts::where('warehouseId', $branchId)->first();
-            
+
             // Si no hay contacto en la sucursal, buscar el primero de la empresa
             if (!$contact && $this->selectedCustomer) {
                 $contact = VntContacts::whereHas('company', function ($q) {
@@ -1004,15 +1031,15 @@ class ProductQuoter extends Component
                 if ($quote) {
                     $updateData = [
                         'branchId' => $branchId,
-                        'customerId' => $this->selectedContactId ?: $quote->customerId
+                        'customerId' => $branchId
                     ];
-                    
+
                     $quote->update($updateData);
-                    
-                    Log::info('✅ Cotización actualizada con nueva sucursal/contacto', [
+
+                    Log::info('✅ Cotización actualizada con nueva sucursal', [
                         'quote_id' => $quote->id,
                         'new_branch_id' => $branchId,
-                        'new_contact_id' => $this->selectedContactId
+                        'new_customerId' => $branchId
                     ]);
                 }
             }
@@ -1189,7 +1216,7 @@ class ProductQuoter extends Component
             $this->appliedFreight = 0;
         }
         $this->calculateTotal();
-        
+
         if ($this->isEditing || $this->isEditingRemission) {
             $this->hasChanges = true;
         }
@@ -1202,7 +1229,7 @@ class ProductQuoter extends Component
         $this->appliedFreight = 0;
         $this->freightJustification = '';
         $this->calculateTotal();
-        
+
         if ($this->isEditing || $this->isEditingRemission) {
             $this->hasChanges = true;
         }
@@ -1509,12 +1536,12 @@ class ProductQuoter extends Component
             // Si tiene flete, activar el flag para que se mantenga visible y dinámico al editar
             if ($this->appliedFreight > 0) {
                 $this->isFreightApplied = true;
-                
+
                 $obs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'quote')
                     ->where('reference_id', $quote->id)
                     ->where('observation_type', 'flete_justification')
                     ->first();
-                    
+
                 if ($obs) {
                     $this->isFreightManuallyEdited = true;
                     $this->freightJustification = $obs->observation;
@@ -1772,7 +1799,7 @@ class ProductQuoter extends Component
             ]);
 
             $quote->update($updateData);
-            
+
             if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
                 \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
                     ['reference_id' => $quote->id, 'reference_type' => 'quote', 'observation_type' => 'flete_justification'],
@@ -2090,7 +2117,9 @@ class ProductQuoter extends Component
                 'deliveryDate' => now()->format('Y-m-d'),
                 'expiration' => 0,
                 'modify' => 0,
-                'observations_return' => $observationsReturn,
+                //'observations_return' => $observationsReturn,
+                'obs' => $this->orderDetails,
+                'observations_delivery' => $this->deliveryDetails,
                 'flete' => $quote->flete
             ]);
 
@@ -2162,6 +2191,7 @@ class ProductQuoter extends Component
         $this->showDeliveryModal = false;
         $this->selectedDeliveryType = null;
         $this->deliveryDetails = '';
+        $this->orderDetails = '';
         $this->requiresDeliveryDetails = false;
         $this->selectedMethodPayment = null;
         $this->showOtherDeliveryInput = false;
@@ -2920,17 +2950,19 @@ class ProductQuoter extends Component
             $this->isEditing = false;
 
             // Cargar observaciones
-            $this->observaciones = $remission->observations_return;
-            
+            $this->deliveryDetails = $remission->observations_delivery ?? $remission->observations_return;
+            $this->orderDetails = $remission->obs;
+            $this->observaciones = $remission->observations_return; // Mantener por compatibilidad si es necesario
+
             $this->appliedFreight = $remission->flete ?? 0;
             if ($this->appliedFreight > 0) {
                 $this->isFreightApplied = true;
-                
+
                 $obs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'remission')
                     ->where('reference_id', $remission->id)
                     ->where('observation_type', 'flete_justification')
                     ->first();
-                    
+
                 if ($obs) {
                     $this->isFreightManuallyEdited = true;
                     $this->freightJustification = $obs->observation;
@@ -3016,10 +3048,12 @@ class ProductQuoter extends Component
 
             // Actualizar remisión
             $remission->update([
-                'observations_return' => $this->observaciones,
+                //'observations_return' => $this->deliveryDetails,
+                'obs' => $this->orderDetails,
+                'observations_delivery' => $this->deliveryDetails,
                 'flete' => $this->appliedFreight
             ]);
-            
+
             if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
                 \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
                     ['reference_id' => $remission->id, 'reference_type' => 'remission', 'observation_type' => 'flete_justification'],
@@ -3079,6 +3113,7 @@ class ProductQuoter extends Component
         $this->selectedCustomer = null;
         $this->customerSearch = '';
         $this->observaciones = null;
+        $this->orderDetails = '';
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
 
