@@ -1176,13 +1176,22 @@ $header = 'Seleccionar productos';
                     </svg>
                     <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['address'] ?? 'N/A' }}</span>
                 </div>
+
+                <!-- Botón para gestionar sucursales -->
+                <button wire:click="$set('showWarehouseModal', true)" 
+                        class="flex items-center gap-2 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 transition-colors text-xs font-bold"
+                        title="Gestionar Sucursales">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </button>
             </div>
             @endif
 
             <!-- Body -->
             <div class="p-6">
                 <!-- Selección de Sede/Sucursal -->
-                @if(!empty($branches) && count($branches) > 1)
+                {{-- @if(!empty($branches) && count($branches) > 1)
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                         Sede/Sucursal del Cliente <span class="text-red-500">*</span>
@@ -1196,7 +1205,7 @@ $header = 'Seleccionar productos';
                         @endforeach
                     </select>
                 </div>
-                @endif
+                @endif --}}
 
                 <!-- Selección de Tipo de Entrega -->
                 <div class="mb-4">
@@ -1239,17 +1248,26 @@ $header = 'Seleccionar productos';
                 @endif
 
                 <!-- Campo de Detalles (si es requerido) -->
-                @if($requiresDeliveryDetails)
+                {{-- @if($requiresDeliveryDetails) --}}
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Detalles de Entrega <span class="text-red-500">*</span>
+                        Observaciones de Entrega
                     </label>
                     <textarea wire:model="deliveryDetails"
                               rows="3"
-                              placeholder="Ingresa los detalles específicos para este tipo de entrega..."
+                              placeholder="Detalles para la entrega..."
                               class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                 </div>
-                @endif
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                        Observaciones Pedido
+                    </label>
+                    <textarea wire:model="orderDetails"
+                              rows="3"
+                              placeholder="Detalles para el pedido..."
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+                {{-- @endif --}}
 
                 <!-- Información del tipo seleccionado -->
                 @if($selectedDeliveryType)
@@ -1382,6 +1400,11 @@ $header = 'Seleccionar productos';
             </div>
         </div>
     </div>
+    @endif
+
+    <!-- Warehouse Management Modal -->
+    @if($showWarehouseModal && $selectedCustomer)
+        @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCustomer['id'], 'isSelectionMode' => true], key('warehouse-modal-' . $selectedCustomer['id']))
     @endif
 
 </div>

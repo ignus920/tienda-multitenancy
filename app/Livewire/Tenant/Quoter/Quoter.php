@@ -350,7 +350,12 @@ class Quoter extends Component
                 ->where($tableName . '.' . $tableNameId, $id)
                 ->sum('inv_items_dimensions.weight');
 
+
             Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
+
+            $observations = DB::connection('tenant')->table('inv_remissions')
+                ->where('quoteId', $id)
+                ->select('observations_delivery', 'obs')->first();
 
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
@@ -368,7 +373,9 @@ class Quoter extends Component
                 'documentTitle' => $documentTitle,
                 'showQR' => true, // Opcional: mostrar código QR
                 'defaultObservations' => 'Observaciones por defecto',
-                'totalWeight' => $totalWeight
+                'totalWeight' => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs' => $observations->obs ?? null,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -612,75 +619,59 @@ class Quoter extends Component
         }
     }
 
-    /**
-     * Obtener información de la empresa para los documentos
-     */
     private function getCompanyInfo($quote = null)
     {
-        Log::info('🏢 getCompanyInfo llamado');
+        Log::info('🏢 getCompanyInfo llamado con consulta optimizada');
 
-        // Intentar obtener información del warehouse desde la base central
-        if ($quote && $quote->warehouseId) {
-            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $quote->warehouseId]);
+        try {
+            $userId = auth()->id();
 
-            try {
-                // Consultar directamente desde la base central usando el modelo VntWarehouse
-                $warehouse = VntWarehouse::find($quote->warehouseId);
-
-                if ($warehouse) {
-                    Log::info('🏢 Warehouse encontrado en central', [
-                        'id' => $warehouse->id,
-                        'name' => $warehouse->name,
-                        'address' => $warehouse->address
-                    ]);
-
-                    $companyData = [
-                        'businessName' => $warehouse->name ?? 'EMPRESA DE PRUEBA',
-                        'firstName' => 'Admin',
-                        'lastName' => 'Sistema',
-                        'identification' => '123456789',
-                        'billingAddress' => $warehouse->address ?? 'Dirección de prueba',
-                        'phone' => '1234567890',
-                        'billingEmail' => 'test@empresa.com'
-                    ];
-
-                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
-                } else {
-                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $quote->warehouseId);
-                    throw new \Exception('Warehouse no encontrado');
-                }
-            } catch (\Exception $e) {
-                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
-
-                // Datos por defecto si hay error
-                $companyData = [
-                    'businessName' => 'EMPRESA DE PRUEBA',
-                    'firstName' => 'Admin',
-                    'lastName' => 'Sistema',
-                    'identification' => '123456789',
-                    'billingAddress' => 'Dirección de prueba',
-                    'phone' => '1234567890',
-                    'billingEmail' => 'test@empresa.com'
-                ];
+            if (!$userId) {
+                Log::warning('⚠️ No hay usuario autenticado para getCompanyInfo');
+                throw new \Exception('Usuario no autenticado');
             }
-        } else {
-            Log::warning('⚠️ No se encontró warehouseId en la cotización, usando datos por defecto');
 
-            // Datos por defecto si no hay warehouse
-            $companyData = [
+            // Ejecutar la consulta proporcionada por el usuario adaptada a Query Builder
+            $companyData = DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.billingEmail' // Campo extra útil para facturación
+                ])
+                ->first();
+
+            if ($companyData) {
+                Log::info('🏢 Datos empresa obtenidos exitosamente', (array)$companyData);
+                return $companyData;
+            } else {
+                Log::warning('⚠️ No se encontraron datos de empresa para el usuario ID: ' . $userId);
+                throw new \Exception('Datos de empresa no encontrados');
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Error en getCompanyInfo: ' . $e->getMessage());
+
+            // Datos por defecto si hay error o no se encuentra el registro
+            return (object) [
                 'businessName' => 'EMPRESA DE PRUEBA',
-                'firstName' => 'Admin',
-                'lastName' => 'Sistema',
-                'identification' => '123456789',
                 'billingAddress' => 'Dirección de prueba',
-                'phone' => '1234567890',
+                'city' => 'Ciudad Prueba',
+                'acronym' => 'NIT',
+                'identification' => '123456789',
                 'billingEmail' => 'test@empresa.com'
             ];
         }
-
-        Log::info('🏢 Datos empresa preparados', $companyData);
-
-        return (object) $companyData;
     }
 
 
