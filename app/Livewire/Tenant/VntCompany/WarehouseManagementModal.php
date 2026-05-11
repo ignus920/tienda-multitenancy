@@ -13,6 +13,7 @@ class WarehouseManagementModal extends Component
 {
     public $companyId;
     public $companyName = '';
+    public $isSelectionMode = false;
 
     public $formMode = null; // null, 'create', 'edit'
     public $editingWarehouseId = null;
@@ -33,10 +34,17 @@ class WarehouseManagementModal extends Component
         'district-changed' => 'updateDistrict'
     ];
 
-    public function mount($companyId)
+    public function mount($companyId, $isSelectionMode = false)
     {
         $this->companyId = $companyId;
+        $this->isSelectionMode = $isSelectionMode;
         $this->loadCompanyData();
+    }
+
+    public function selectWarehouse($warehouseId)
+    {
+        $this->dispatch('warehouse-selected', branchId: $warehouseId);
+        $this->closeModal();
     }
 
     public function render()
@@ -128,7 +136,7 @@ class WarehouseManagementModal extends Component
         try {
             if ($this->formMode === 'create') {
                 $this->ensureTenantConnection();
-                VntWarehouse::create([
+                $warehouse = VntWarehouse::create([
                     'companyId' => $this->companyId,
                     'name' => $this->warehouseForm['name'],
                     'address' => $this->warehouseForm['address'],
@@ -141,6 +149,11 @@ class WarehouseManagementModal extends Component
                 ]);
 
                 $this->successMessage = 'Sucursal agregada exitosamente';
+
+                if ($this->isSelectionMode) {
+                    $this->selectWarehouse($warehouse->id);
+                    return;
+                }
             } else {
                 $this->ensureTenantConnection();
                 $warehouse = VntWarehouse::findOrFail($this->editingWarehouseId);

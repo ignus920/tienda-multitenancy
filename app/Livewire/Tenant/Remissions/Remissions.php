@@ -8,6 +8,7 @@ use App\Services\Tenant\TenantManager;
 use App\Traits\HasCompanyConfiguration;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use App\Models\Central\VntWarehouse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,10 @@ use App\Traits\Livewire\HasDynamicButtons;
 use App\Models\Central\UsrPermissionProfile;
 use App\Livewire\Tenant\Components\ObservationsModal;
 use App\Models\Tenant\Sales\VntObservation;
+use App\Models\Tenant\Sales\VntReturn;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Tenant\Inventory\InventoryConfirmation;
+use App\Models\Tenant\Sales\VntOrderAuthorization;
 
 class Remissions extends Component
 {
@@ -44,6 +49,7 @@ class Remissions extends Component
     // Propiedades para el modal de detalle
     public $showDetailModal = false;
     public $selectedRemission = null;
+    public $selectedItemDetails = null;
 
     // Propiedades para modal de facturación
     public $showInvoiceModal = false;
@@ -52,12 +58,22 @@ class Remissions extends Component
     public $totalItems = 0;
     public $moduleKey = 'remissions';
     public $statusFilter = '';
+
+    // Propiedades para justificación de reimpresión
+    public $showPrintJustificationModal = false;
+    public $printJustificationText = '';
+    public $remissionIdToPrint = null;
+
     public $summaryCounts = [
         'registradas' => 0,
         'alistamiento' => 0,
         'sin_entregar' => 0,
-        'sin_facturar' => 0
+        'sin_facturar' => 0,
+        'consultas_nuevas' => 0,
+        'sin_autorizacion' => 0
     ];
+
+    public $showConfirmationsModal = false;
 
     // Permisos
     public $canEditRemission = false;
@@ -80,9 +96,9 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
 
-        // Inicializar fechas con el rango del mes actual
-        $this->searchStartDate = now()->startOfMonth()->format('Y-m-d');
-        $this->searchEndDate = now()->format('Y-m-d');
+        // Inicializar fechas con rango de ±7 días respecto a hoy
+        $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
+        $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
 
         // Verificar permisos de edición para remisiones
         $user = auth()->user();
@@ -222,8 +238,8 @@ class Remissions extends Component
         $this->searchNit = '';
         $this->searchName = '';
         $this->searchQuote = '';
-        $this->searchStartDate = '';
-        $this->searchEndDate = '';
+        $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
+        $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
         $this->statusFilter = '';
         $this->resetPage();
     }
@@ -264,6 +280,15 @@ class Remissions extends Component
             // Actualizar estado del pedido
             $remission->update(['status' => 'ANULADO']);
 
+            // ✅ NUEVO: También anular la cotización asociada si existe
+            if ($remission->quote) {
+                $remission->quote->update(['status' => 'ANULADO']);
+                Log::info('📋 Cotización asociada anulada automáticamente', [
+                    'quote_id' => $remission->quote->id,
+                    'remission_id' => $id
+                ]);
+            }
+
             // Registrar el motivo de anulación
             VntObservation::create([
                 'reference_id' => $id,
@@ -279,7 +304,6 @@ class Remissions extends Component
                 'type' => 'success',
                 'message' => "Pedido #{$remission->consecutive} anulado correctamente."
             ]);
-
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error("Error al anular pedido: " . $e->getMessage());
@@ -624,7 +648,52 @@ class Remissions extends Component
             $this->selectedRemission = null;
         }
 
+        $this->selectedItemDetails = null;
         $this->showDetailModal = true;
+    }
+
+    /**
+     * Carga las imágenes de bodega y accesorios de un ítem específico.
+     * 
+     * @param int $itemId ID del ítem
+     */
+    public function viewItemWarehouseDetails($itemId)
+    {
+        $this->ensureTenantConnection();
+
+        $item = \App\Models\Tenant\Items\Items::with([
+            'accessories.insumo',
+            'imageGallery' => function ($query) {
+                $query->where('type_show', 'BODEGA')->whereNull('deleted_at');
+            }
+        ])->find($itemId);
+
+        if ($item) {
+            $this->selectedItemDetails = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'internal_code' => $item->internal_code,
+                'description' => $item->description,
+                'picking' => $item->picking,
+                'stock_bodega' => $item->stock_bodega,
+                'qty_per_box' => $item->qty_per_box,
+                'images' => $item->imageGallery->map(function ($img) {
+                    return [
+                        'url' => $img->getImageUrl(),
+                        'thumbnail' => $img->getThumbnailUrl()
+                    ];
+                })->toArray(),
+                'accessories' => $item->accessories->map(function ($acc) {
+                    return [
+                        'name' => $acc->insumo->name ?? 'N/A',
+                        'internal_code' => $acc->insumo->internal_code ?? 'N/A',
+                        'description' => $acc->insumo->description ?? ''
+                    ];
+                })->toArray()
+            ];
+
+            Log::info('📦 Viendo detalles de bodega del ítem', ['item_id' => $itemId, 'name' => $item->name]);
+        }
     }
 
     /**
@@ -645,9 +714,59 @@ class Remissions extends Component
     }
 
     /**
-     * Método para imprimir remisión
+     * Método de entrada para imprimir remisión con validación de reimpresión
      */
     public function printRemission($id)
+    {
+        $this->ensureTenantConnection();
+        $remission = InvRemissions::findOrFail($id);
+
+        // Si ya ha sido impresa anteriormente, solicitar justificación
+        if ($remission->print_count > 0) {
+            $this->remissionIdToPrint = $id;
+            $this->printJustificationText = '';
+            $this->showPrintJustificationModal = true;
+            return;
+        }
+
+        // Si es la primera vez, imprimir directamente
+        $this->executePrintRemission($id);
+    }
+
+    /**
+     * Confirma la reimpresión tras recibir la justificación
+     */
+    public function confirmPrintWithJustification()
+    {
+        if (empty(trim($this->printJustificationText))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para la reimpresión.'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        // Guardar la observación de reimpresión
+        VntObservation::create([
+            'reference_id' => $this->remissionIdToPrint,
+            'reference_type' => 'remission',
+            'observation_type' => 'reprint',
+            'observation' => 'REIMPRESIÓN: ' . $this->printJustificationText,
+            'userId' => auth()->id(),
+        ]);
+
+        $id = $this->remissionIdToPrint;
+        $this->showPrintJustificationModal = false;
+
+        $this->executePrintRemission($id);
+    }
+
+    /**
+     * Lógica real de generación de impresión (antes printRemission)
+     */
+    public function executePrintRemission($id)
     {
         Log::info('🖨️ printRemission llamado', ['remission_id' => $id]);
 
@@ -717,6 +836,10 @@ class Remissions extends Component
 
             Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
 
+            $observations = DB::connection('tenant')->table('inv_remissions')
+                ->where('quoteId', $id)
+                ->select('observations_delivery', 'obs')->first();
+
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
@@ -734,7 +857,9 @@ class Remissions extends Component
                 'showQR' => true,
                 'defaultObservations' => 'Sin observaciones.' . $giftObservation,
                 'giftObservation' => $giftObservation,
-                'totalWeight' => $totalWeight
+                'totalWeight' => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs' => $observations->obs ?? null,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -772,6 +897,9 @@ class Remissions extends Component
                 'format' => $printFormat === 1 ? 'carta' : 'pos'
             ]);
             Log::info('🚀 Evento dispatch enviado');
+
+            // Incrementar el contador de impresiones
+            $remission->increment('print_count');
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
@@ -895,61 +1023,52 @@ class Remissions extends Component
     {
         Log::info('🏢 getCompanyInfo llamado para remisión');
 
-        // Intentar obtener información del warehouse desde la base central
-        if ($remission && $remission->warehouseId) {
-            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $remission->warehouseId]);
+        try {
+            $userId = auth()->id();
 
-            try {
-                // Consultar directamente desde la base central usando el modelo VntWarehouse
-                $warehouse = VntWarehouse::find($remission->warehouseId);
-
-                if ($warehouse) {
-                    Log::info('🏢 Warehouse encontrado en central', [
-                        'id' => $warehouse->id,
-                        'name' => $warehouse->name,
-                        'address' => $warehouse->address
-                    ]);
-
-                    $companyData = [
-                        'businessName' => $warehouse->name ?? 'EMPRESA DE PRUEBA',
-                        'firstName' => 'Admin',
-                        'lastName' => 'Sistema',
-                        'identification' => '123456789',
-                        'billingAddress' => $warehouse->address ?? 'Dirección de prueba',
-                        'phone' => '1234567890',
-                        'billingEmail' => 'test@empresa.com'
-                    ];
-
-                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
-                } else {
-                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $remission->warehouseId);
-                    throw new \Exception('Warehouse no encontrado');
-                }
-            } catch (\Exception $e) {
-                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
-
-                // Datos por defecto si hay error
-                $companyData = [
-                    'businessName' => 'EMPRESA DE PRUEBA',
-                    'firstName' => 'Admin',
-                    'lastName' => 'Sistema',
-                    'identification' => '123456789',
-                    'billingAddress' => 'Dirección de prueba',
-                    'phone' => '1234567890',
-                    'billingEmail' => 'test@empresa.com'
-                ];
+            if (!$userId) {
+                Log::warning('⚠️ No hay usuario autenticado para getCompanyInfo');
+                throw new \Exception('Usuario no autenticado');
             }
-        } else {
-            Log::warning('⚠️ No se encontró warehouseId en la remisión, usando datos por defecto');
 
-            // Datos por defecto si no hay warehouse
-            $companyData = [
+            // Ejecutar la consulta proporcionada por el usuario adaptada a Query Builder
+            $companyData = DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.billingEmail' // Campo extra útil para facturación
+                ])
+                ->first();
+
+            if ($companyData) {
+                Log::info('🏢 Datos empresa obtenidos exitosamente', (array)$companyData);
+                return $companyData;
+            } else {
+                Log::warning('⚠️ No se encontraron datos de empresa para el usuario ID: ' . $userId);
+                throw new \Exception('Datos de empresa no encontrados');
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Error en getCompanyInfo: ' . $e->getMessage());
+
+            // Datos por defecto si hay error o no se encuentra el registro
+            return (object) [
                 'businessName' => 'EMPRESA DE PRUEBA',
-                'firstName' => 'Admin',
-                'lastName' => 'Sistema',
-                'identification' => '123456789',
                 'billingAddress' => 'Dirección de prueba',
-                'phone' => '1234567890',
+                'city' => 'Ciudad Prueba',
+                'acronym' => 'NIT',
+                'identification' => '123456789',
                 'billingEmail' => 'test@empresa.com'
             ];
         }
@@ -999,7 +1118,7 @@ class Remissions extends Component
             })
             ->whereHas('authorizations', function ($q) {
                 $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
-                  ->where('status', 1);
+                    ->where('status', 1);
             });
 
         $this->summaryCounts = [
@@ -1007,13 +1126,19 @@ class Remissions extends Component
             'alistamiento' => (clone $baseQuery)->where('status', 'ALISTAMIENTO')->count(),
             'sin_entregar' => (clone $baseQuery)->where('status', '!=', 'ENTREGADO')->count(),
             'sin_facturar' => (clone $baseQuery)->whereDoesntHave('invoiceSale')->count(),
+            'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
+            'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
+                ->where('status', '!=', 'ENTREGADO')
+                ->whereDoesntHave('authorizations', function ($q) {
+                    $q->where('auth_type', 'despacho')->where('status', 1);
+                })->count(),
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
         $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
             ->whereHas('authorizations', function ($q) {
                 $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
-                  ->where('status', 1);
+                    ->where('status', 1);
             })
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
@@ -1751,7 +1876,7 @@ class Remissions extends Component
                 // 2. Si intenta pasar de REGISTRADO a ALISTAMIENTO, requiere al menos Empaque o Despacho
                 if ($currentStatus === 'REGISTRADO' && $nextStatus === 'ALISTAMIENTO') {
                     if (!$hasEmpaque && !$hasDespacho) {
-                         $this->dispatch('show-toast', [
+                        $this->dispatch('show-toast', [
                             'type' => 'warning',
                             'message' => 'BLOQUEO DE CARTERA: Se requiere autorización de EMPAQUE para iniciar el alistamiento.'
                         ]);
@@ -1812,5 +1937,87 @@ class Remissions extends Component
             ]);
             return false;
         }
+    }
+
+    public function openConfirmationsModal()
+    {
+        $this->showConfirmationsModal = true;
+    }
+
+    public function closeConfirmationsModal()
+    {
+        $this->showConfirmationsModal = false;
+    }
+
+    #[On('confirmation-updated')]
+    public function refreshCounts()
+    {
+        // El render se encargará de recalcular summaryCounts
+    }
+
+    /**
+     * Solicitar una devolución para un item de remisión
+     */
+    public function solicitarDevolucion($detailId)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $detail = \App\Models\Tenant\Remissions\InvDetailRemissions::findOrFail($detailId);
+
+            // Verificar si ya existe una devolución para este item
+            $exists = VntReturn::where('remission_id', $detail->doc)
+                ->where('item_id', $detail->id_producto)
+                ->where('status', '<', 4) // No finalizada
+                ->exists();
+
+            if ($exists) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Ya existe una solicitud de devolución pendiente para este producto.'
+                ]);
+                return;
+            }
+
+            // Aquí podríamos disparar un SweetAlert para pedir la observación
+            // Por simplicidad en este paso, crearemos una solicitud base y pediremos editarla en el módulo de devoluciones
+            $vntReturn = VntReturn::create([
+                'remission_id' => $detail->doc,
+                'item_id' => $detail->id_producto,
+                'user_id' => Auth::id(),
+                'requested_at' => now(),
+                'original_qty' => $detail->quantity,
+                'commercial_qty' => $detail->quantity, // Por defecto toda la cantidad
+                'status' => 1, // Comercial
+                'obs_commercial' => 'Solicitud iniciada desde el panel de remisiones.',
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Solicitud de devolución creada correctamente. Puede procesarla en el módulo de Devoluciones.'
+            ]);
+
+            // Redirigir al módulo de devoluciones (opcional)
+            // return redirect()->route('tenant.returns');
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error creando solicitud de devolución', [
+                'detail_id' => $detailId,
+                'error' => $e->getMessage()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar la solicitud: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Abrir el modal de registro de devolución detallada
+     */
+    public function openReturnRegistration($remissionId)
+    {
+        $this->dispatch('openReturnRegistration', $remissionId);
     }
 }

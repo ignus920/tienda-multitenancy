@@ -88,11 +88,11 @@
                 <input type="text" wire:model.live.debounce.300ms="searchQuote" placeholder="Ej: COT-123" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
             <div style="flex: 1; min-width: 0;">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Desde</label>
+                <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">desde:</label>
                 <input type="date" wire:model.live="fromDate" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
             <div style="flex: 1; min-width: 0;">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Hasta</label>
+                <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">hasta:</label>
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <input type="date" wire:model.live="toDate" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
                     <button wire:click="clearFilters" class="p-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Limpiar Filtros">
@@ -207,7 +207,8 @@
                             <input type="checkbox" 
                                 wire:click="toggleAuthorization({{ $remission->id }}, 'empaque')"
                                 {{ $empaque && $empaque->status ? 'checked' : '' }}
-                                class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer">
+                                {{ $remission->status === 'ANULADO' ? 'disabled' : '' }}
+                                class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 {{ $remission->status === 'ANULADO' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer' }}">
                             @if($empaque && $empaque->status)
                             <div class="text-[9px] text-gray-400 text-center leading-tight">
                                 <p class="font-bold">{{ $empaque->user->name ?? 'Usuario' }}</p>
@@ -222,7 +223,8 @@
                             <input type="checkbox" 
                                 wire:click="toggleAuthorization({{ $remission->id }}, 'despacho')"
                                 {{ $despacho && $despacho->status ? 'checked' : '' }}
-                                class="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                                {{ $remission->status === 'ANULADO' ? 'disabled' : '' }}
+                                class="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 {{ $remission->status === 'ANULADO' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer' }}">
                             @if($despacho && $despacho->status)
                             <div class="text-[9px] text-gray-400 text-center leading-tight">
                                 <p class="font-bold">{{ $despacho->user->name ?? 'Usuario' }}</p>
@@ -237,10 +239,14 @@
                             <input type="checkbox" 
                                 wire:click="toggleAuthorization({{ $remission->id }}, 'pago')"
                                 {{ $pago && $pago->status ? 'checked' : '' }}
-                                class="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                            @if($pago && $pago->status)
-                            <div class="text-[9px] text-gray-400 text-center leading-tight">
-                                <p class="font-bold">{{ $pago->user->name ?? 'Usuario' }}</p>
+                                {{ $remission->status === 'ANULADO' ? 'disabled' : '' }}
+                                class="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 {{ $remission->status === 'ANULADO' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer' }}">
+                            @if($pago)
+                            <div class="text-[9px] text-center leading-tight {{ $pago->status ? 'text-gray-400' : 'text-red-500' }}">
+                                <p class="font-bold">
+                                    {{ $pago->status ? '' : 'Desconfirmado por: ' }}
+                                    {{ $pago->user->name ?? 'Usuario' }}
+                                </p>
                                 <p>{{ $pago->created_at->format('Y-m-d H:i') }}</p>
                             </div>
                             @endif
@@ -317,21 +323,25 @@
 
                 <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-slate-700">
                     <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 text-center">
-                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Agregar observación</h3>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">
+                            {{ $isDesconfirmarPago ? 'Justificación requerida' : 'Agregar observación' }}
+                        </h3>
                     </div>
 
                     <div class="p-6">
-                        <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">Observación de Cartera</label>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">
+                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Cartera' }}
+                        </label>
                         <textarea wire:model="justificacionText" 
                                   rows="4" 
                                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder="Escribe aquí tu comentario..."></textarea>
+                                  placeholder="{{ $isDesconfirmarPago ? 'Escribe tu justificación aquí...' : 'Escribe aquí tu comentario...' }}"></textarea>
                     </div>
 
                     <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-center space-x-3">
                         <button wire:click="saveJustificacion" 
                                 class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-blue-600/20">
-                            Guardar
+                            {{ $isDesconfirmarPago ? 'Enviar' : 'Guardar' }}
                         </button>
                         <button @click="$wire.showJustificacionModal = false" 
                                 class="px-8 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-slate-600/20">

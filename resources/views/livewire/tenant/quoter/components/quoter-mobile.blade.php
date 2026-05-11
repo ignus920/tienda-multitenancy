@@ -7,45 +7,107 @@
         </div>
 
         <!-- Search Input and Add Button - Sticky -->
-        <div class="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-            <div class="px-4 py-4">
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 p-2">Cotizaciones</h1>
-                <div class="flex gap-3 mb-4">
-                    <input
-                        type="text"
-                        wire:model.live="search"
-                        placeholder="Buscar cotización"
-                        class="flex-1 p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
-                    >
-                    <button
-                        wire:click="nuevaCotizacion"
-                        wire:loading.attr="disabled"
-                        wire:target="nuevaCotizacion"
-                        class="bg-green-500 hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg shadow-sm flex items-center justify-center min-w-[52px] transition-all duration-200"
-                        title="Nueva Cotización"
-                    >
-                        <!-- Spinner de loading -->
-                        <div wire:loading wire:target="nuevaCotizacion">
-                            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <div class="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm" x-data="{ showFilters: false }">
+            <div class="px-4 py-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h1 class="text-xl font-bold text-gray-800 dark:text-gray-200">Cotizaciones</h1>
+                    <div class="flex items-center gap-2">
+                        <button @click="showFilters = !showFilters" 
+                            class="p-2 text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                             </svg>
-                        </div>
-
-                        <!-- Ícono normal -->
-                        <div wire:loading.remove wire:target="nuevaCotizacion">
+                            Filtros
+                        </button>
+                        <button
+                            wire:click="nuevaCotizacion"
+                            wire:loading.attr="disabled"
+                            wire:target="nuevaCotizacion"
+                            class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg shadow-sm transition-all duration-200"
+                        >
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>
-                        </div>
-                    </button>
-                    @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
+                        </button>
+                        @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
+                    </div>
                 </div>
 
-                <!-- Cotizaciones Title -->
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Cotizaciones</h2>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">Desliza para ver opciones</span>
+                <div class="relative mb-3">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        wire:model.live="search"
+                        placeholder="Búsqueda rápida..."
+                        class="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    >
+                </div>
+
+                <!-- Panel de Filtros Colapsable -->
+                <div x-show="showFilters" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="space-y-3 pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">NIT / Cédula</label>
+                            <input type="text" wire:model.live="filterNit" placeholder="Ej: 900..."
+                                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Consecutivo</label>
+                            <input type="text" wire:model.live="filterConsecutive" placeholder="Ej: COT-1"
+                                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Nombre / Razón Social</label>
+                        <input type="text" wire:model.live="filterName" placeholder="Buscar cliente..."
+                            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Desde</label>
+                            <input type="date" wire:model.live="filterDateFrom"
+                                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Hasta</label>
+                            <input type="date" wire:model.live="filterDateTo"
+                                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1">
+                            <select wire:model.live="perPage"
+                                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm font-medium">
+                                <option value="10">Mostrar 10</option>
+                                <option value="25">Mostrar 25</option>
+                                <option value="50">Mostrar 50</option>
+                            </select>
+                        </div>
+                        <button wire:click="clearFilters" 
+                            class="px-4 py-2 bg-red-50 text-red-500 dark:bg-red-900/20 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase">Lista de Registros</span>
+                    <span class="text-[10px] text-gray-500">{{ $quotes->total() }} encontrados</span>
                 </div>
             </div>
         </div>
@@ -182,7 +244,7 @@
                             </button>
 
                             <!-- Botón Ir al Carrito -->
-                            @if($quote->status !== 'REMISIÓN' && $quote->status !== 'FACTURADO')
+                            @if($quote->status !== 'REMISIÓN' && $quote->status !== 'FACTURADO' && $quote->status !== 'ANULADO')
                             <button
                                 wire:click="irAlCarrito({{ $quote->id }})"
                                 wire:loading.attr="disabled"

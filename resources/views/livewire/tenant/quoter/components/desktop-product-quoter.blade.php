@@ -213,6 +213,16 @@ $header = 'Seleccionar productos';
                                         </svg>
                                         Observaciones
                                     </button>
+
+                                    @if($product->accessories_count > 0)
+                                    <button @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $product->id }} }); open = false"
+                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        </svg>
+                                        Accesorios
+                                    </button>
+                                    @endif
  
                                      <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
@@ -232,9 +242,9 @@ $header = 'Seleccionar productos';
                                 </div>
                             </div>
 
-                            <!-- Contador en la esquina superior derecha -->
+                            <!-- Contador en la esquina inferior derecha -->
                             @if($quantity > 0 && !$hideQuoter)
-                            <div class="absolute top-2 right-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10">
+                            <div class="absolute bottom-2 right-2 bg-indigo-600 dark:bg-indigo-500 text-white text-[10px] font-black rounded-lg px-2 py-0.5 shadow-lg border border-white/20 z-10">
                                 {{ $quantity }}
                             </div>
                             @endif
@@ -422,9 +432,9 @@ $header = 'Seleccionar productos';
                 </div>
             @else
                 <!-- Modo Tabla -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="overflow-x-auto overflow-y-visible min-h-[300px]">
+                        <table class="w-full overflow-visible">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
@@ -450,7 +460,7 @@ $header = 'Seleccionar productos';
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 overflow-visible">
                                 @forelse($products as $product)
                                     @php
                                         $quantity = $this->getProductQuantity($product->id);
@@ -719,6 +729,16 @@ $header = 'Seleccionar productos';
                                                         Observaciones
                                                     </button>
 
+                                                    @if($product->accessories_count > 0)
+                                                    <button @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $product->id }} }); open = false"
+                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                                        </svg>
+                                                        Accesorios
+                                                    </button>
+                                                    @endif
+
                                                     <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
                                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                                         <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -826,6 +846,48 @@ $header = 'Seleccionar productos';
                     <!-- Layout responsivo para el resumen -->
                     <div class="space-y-4 lg:space-y-6">
 
+                        <!-- Selección de Sede/Sucursal -->
+                        @if(!empty($branches))
+                        <div class="bg-white rounded-lg p-4 lg:p-6 shadow border-l-4 border-indigo-500">
+                            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                DATOS DE ENVÍO
+                            </h3>
+                            <div class="space-y-3">
+                                @if(count($branches) > 1)
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Seleccionar Agencia/Sucursal</label>
+                                    <select 
+                                        wire:model.live="selectedBranchId"
+                                        wire:change="selectBranch($event.target.value)"
+                                        class="block w-full text-sm border-gray-300 rounded-md bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                    >
+                                        <option value="">-- Seleccione una sucursal --</option>
+                                        @foreach($branches as $branch)
+                                            <option value="{{ $branch['id'] }}">
+                                                {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                @endif
+                                
+                                @if($selectedBranchId || count($branches) === 1)
+                                <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-200">
+                                    <p class="font-bold text-indigo-700 mb-1">
+                                        {{ count($branches) === 1 ? $branches[0]['name'] : collect($branches)->firstWhere('id', $selectedBranchId)['name'] ?? '' }}
+                                    </p>
+                                    <p><span class="font-bold">Dirección:</span> {{ $selectedCustomer['address'] ?? 'N/A' }}</p>
+                                    <p><span class="font-bold">Ciudad:</span> {{ $selectedCustomer['cityName'] ?? 'N/A' }}</p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
+
                         <!-- Total de la Venta -->
                         <div class="bg-white rounded-lg p-4 lg:p-6 shadow">
                             <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 text-gray-800">TOTAL VENTA</h3>
@@ -900,7 +962,34 @@ $header = 'Seleccionar productos';
 
                 <!-- Panel Derecho - Métodos de Pago -->
                 <div class="flex-1 p-4 lg:p-6 overflow-y-auto">
-                    <h2 class="text-lg lg:text-2xl font-bold mb-4 lg:mb-6 text-center text-gray-800">FORMA DE PAGO</h2>
+                    <h2 class="text-lg lg:text-2xl font-bold mb-4 lg:mb-6 text-center text-gray-800 uppercase tracking-wider">Forma de Pago</h2>
+
+                    <!-- Nueva sección: Selección de Sede/Sucursal en panel principal -->
+                    @if(!empty($branches) && count($branches) > 1)
+                    <div class="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
+                        <label class="block text-xs font-black text-indigo-700 uppercase mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Confirmar Sede del Cliente
+                        </label>
+                        <select 
+                            wire:model.live="selectedBranchId"
+                            wire:change="selectBranch($event.target.value)"
+                            class="block w-full text-lg font-bold border-indigo-300 rounded-lg bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm py-3"
+                        >
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch['id'] }}">
+                                    {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-2 text-[10px] text-indigo-600 font-medium italic">
+                            * Seleccione la sede que se asignará legalmente a la factura.
+                        </p>
+                    </div>
+                    @endif
 
                     <!-- Tabla de Métodos de Pago Responsiva -->
                     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -1087,11 +1176,37 @@ $header = 'Seleccionar productos';
                     </svg>
                     <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['address'] ?? 'N/A' }}</span>
                 </div>
+
+                <!-- Botón para gestionar sucursales -->
+                <button wire:click="$set('showWarehouseModal', true)" 
+                        class="flex items-center gap-2 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 transition-colors text-xs font-bold"
+                        title="Gestionar Sucursales">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </button>
             </div>
             @endif
 
             <!-- Body -->
             <div class="p-6">
+                <!-- Selección de Sede/Sucursal -->
+                {{-- @if(!empty($branches) && count($branches) > 1)
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                        Sede/Sucursal del Cliente <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="selectedBranchId"
+                            wire:change="selectBranch($event.target.value)"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecciona una sucursal</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch['id'] }}">{{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }} - {{ $branch['address'] ?? 'N/A' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif --}}
+
                 <!-- Selección de Tipo de Entrega -->
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -1133,17 +1248,26 @@ $header = 'Seleccionar productos';
                 @endif
 
                 <!-- Campo de Detalles (si es requerido) -->
-                @if($requiresDeliveryDetails)
+                {{-- @if($requiresDeliveryDetails) --}}
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Detalles de Entrega <span class="text-red-500">*</span>
+                        Observaciones de Entrega
                     </label>
                     <textarea wire:model="deliveryDetails"
                               rows="3"
-                              placeholder="Ingresa los detalles específicos para este tipo de entrega..."
+                              placeholder="Detalles para la entrega..."
                               class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                 </div>
-                @endif
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                        Observaciones Pedido
+                    </label>
+                    <textarea wire:model="orderDetails"
+                              rows="3"
+                              placeholder="Detalles para el pedido..."
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+                {{-- @endif --}}
 
                 <!-- Información del tipo seleccionado -->
                 @if($selectedDeliveryType)
@@ -1276,6 +1400,11 @@ $header = 'Seleccionar productos';
             </div>
         </div>
     </div>
+    @endif
+
+    <!-- Warehouse Management Modal -->
+    @if($showWarehouseModal && $selectedCustomer)
+        @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCustomer['id'], 'isSelectionMode' => true], key('warehouse-modal-' . $selectedCustomer['id']))
     @endif
 
 </div>

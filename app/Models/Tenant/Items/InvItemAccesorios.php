@@ -13,12 +13,15 @@ class InvItemAccesorios extends Model
     protected $fillable = [
         'item',
         'insumo',
+        'quantity',
+        'image',
         'observacion',
     ];
 
     protected $casts = [
-        'item'   => 'integer',
-        'insumo' => 'integer',
+        'item'     => 'integer',
+        'insumo'   => 'integer',
+        'quantity' => 'integer',
     ];
 
     public function item()

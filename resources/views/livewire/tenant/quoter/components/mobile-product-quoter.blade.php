@@ -118,10 +118,13 @@ $header = 'Seleccionar productos';
                             </div>
                         @endif
 
-                        <div class="absolute top-2 right-2 flex flex-col gap-2 items-center z-10">
-                            @if($quantity > 0)
-                                <div class="flex items-center justify-center w-7 h-7 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg">{{ $quantity }}</div>
-                            @endif
+                        @if($quantity > 0)
+                            <div class="absolute bottom-2 right-2 bg-indigo-600 text-white text-[10px] font-black rounded-lg px-2 py-0.5 shadow-lg border border-white/20 z-10">
+                                {{ $quantity }}
+                            </div>
+                        @endif
+
+                        <div class="absolute top-2 right-2 z-10">
                             <div class="relative">
                                 <button @click.stop="openMenu = !openMenu" class="p-2 bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 rounded-bl-xl shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors backdrop-blur-sm">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
@@ -231,7 +234,9 @@ $header = 'Seleccionar productos';
                         </div>
 
                         <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                            @if($quantity > 0 && !$hideQuoter)<span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white text-sm font-bold rounded-full">{{ $quantity }}</span>@endif
+                            @if($quantity > 0 && !$hideQuoter)
+                                <span class="inline-flex items-center justify-center px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-black rounded-lg shadow-sm">{{ $quantity }}</span>
+                            @endif
                             <div class="relative">
                                 <button @click.stop="openMenu = !openMenu" class="p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-full shadow-sm"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
                                 <div x-show="openMenu" @click.away="openMenu = false" x-cloak class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border z-50 py-1">
@@ -350,6 +355,45 @@ $header = 'Seleccionar productos';
                     <button wire:click="closePaymentModal" class="text-gray-300"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                 </div>
                 <div class="flex-1 p-4 overflow-y-auto">
+                    <!-- Selección de Sede/Sucursal Destacada -->
+                    @if(!empty($branches) && count($branches) > 1)
+                    <div class="mb-4 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl shadow-sm">
+                        <label class="block text-xs font-black text-yellow-800 uppercase mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            </svg>
+                            Confirmar Sede del Cliente
+                        </label>
+                        <select 
+                            wire:model.live="selectedBranchId"
+                            wire:change="selectBranch($event.target.value)"
+                            class="block w-full text-base font-bold border-yellow-300 rounded-lg bg-white text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 shadow-sm py-3"
+                        >
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch['id'] }}">
+                                    {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    <!-- Selección de Sede/Sucursal (Panel Informativo) -->
+                    @if(!empty($branches))
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 mb-4">
+                        <h4 class="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase mb-2">Resumen de Envío</h4>
+                        @if($selectedBranchId || count($branches) === 1)
+                        <div class="text-[11px] text-gray-600 dark:text-gray-400">
+                            <p class="font-bold text-indigo-800 dark:text-indigo-200">
+                                {{ count($branches) === 1 ? $branches[0]['name'] : (collect($branches)->firstWhere('id', $selectedBranchId)['name'] ?? '') }}
+                            </p>
+                            <p><span class="font-bold">Dir:</span> {{ $selectedCustomer['address'] ?? 'N/A' }}</p>
+                            <p><span class="font-bold">Ciudad:</span> {{ $selectedCustomer['cityName'] ?? 'N/A' }}</p>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
+
                     <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 grid grid-cols-2 gap-4 text-center">
                         <div><div class="text-sm text-gray-600">PAGADO</div><div class="text-xl font-bold text-blue-600">${{ number_format($totalPaid, 2, ',', '.') }}</div></div>
                         <div><div class="text-sm text-gray-600">FALTA</div><div class="text-xl font-bold text-red-600">${{ number_format($remainingBalance, 2, ',', '.') }}</div></div>

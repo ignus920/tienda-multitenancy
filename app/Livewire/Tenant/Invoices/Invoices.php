@@ -26,6 +26,10 @@ class Invoices extends Component
     public $sortField = 'vnt_invoices.invoiceNumber';
     public $sortDirection = 'desc';
     public $moduleKey = 'invoices';
+    
+    // Filtros
+    public $filterDateFrom = '';
+    public $filterDateTo = '';
 
     // ── Nota Crédito ──────────────────────────────────────────
     public bool  $showCreditNoteModal = false;
@@ -51,6 +55,17 @@ class Invoices extends Component
         $this->resetPage();
     }
 
+    public function clearFilters()
+    {
+        $this->reset(['search']);
+        
+        // Restablecer fechas por defecto al limpiar
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
+        
+        $this->resetPage();
+    }
+
     public function sortBy($field)
     {
         if ($this->sortField === $field) {
@@ -66,6 +81,10 @@ class Invoices extends Component
     {
         $this->ensureTenantConnection();
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas por defecto (±7 días)
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
     }
 
     /**
@@ -716,6 +735,12 @@ class Invoices extends Component
                 });
                 // Usar HAVING para campos agregados
                 $q->havingRaw("MAX(remission_consecutives.remission_consecutive) LIKE ?", [$search]);
+            })
+            ->when($this->filterDateFrom, function ($q) {
+                $q->whereDate('vnt_invoices.created_at', '>=', $this->filterDateFrom);
+            })
+            ->when($this->filterDateTo, function ($q) {
+                $q->whereDate('vnt_invoices.created_at', '<=', $this->filterDateTo);
             });
 
             // Aplicar ordenamiento

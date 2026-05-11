@@ -41,16 +41,68 @@
                     @enderror
                 </div>
 
-                <!-- Observación -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Observación
-                    </label>
-                    <input type="text" wire:model="observacion" placeholder="Opcional"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
-                    @error('observacion')
-                        <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
-                    @enderror
+                <!-- Cantidad, Imagen y Observación -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Cant <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" wire:model="quantity" min="1"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
+                        @error('quantity')
+                            <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Foto Referencia
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <div class="relative group">
+                                @if ($photo)
+                                    <img src="{{ $photo->temporaryUrl() }}" class="w-12 h-12 rounded-xl object-cover border-2 border-indigo-500 shadow-md">
+                                @else
+                                    <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                        <x-heroicon-o-camera class="w-6 h-6" />
+                                    </div>
+                                @endif
+                                
+                                <!-- Loading indicator para el upload -->
+                                <div wire:loading wire:target="photo" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 rounded-xl flex items-center justify-center">
+                                    <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 5.373 0 12 0v4a8 8 0 00-8 8H4z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div class="flex-1">
+                                <input type="file" wire:model="photo" id="photo_upload" class="hidden" accept="image/*" />
+                                <label for="photo_upload" class="cursor-pointer inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm">
+                                    <x-heroicon-o-cloud-arrow-up class="w-4 h-4 mr-1.5" />
+                                    {{ $photo ? 'Cambiar Foto' : 'Subir Foto' }}
+                                </label>
+                                @if($photo)
+                                    <p class="text-[10px] text-gray-500 mt-1 truncate max-w-[150px]">{{ $photo->getClientOriginalName() }}</p>
+                                @endif
+                            </div>
+                        </div>
+                        @error('photo')
+                            <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="md:col-span-6">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Observación
+                        </label>
+                        <input type="text" wire:model="observacion" placeholder="Opcional"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
+                        @error('observacion')
+                            <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
                 </div>
 
                 <!-- Botón -->
@@ -88,14 +140,25 @@
                 @foreach($assignedAccesorios as $accesorio)
                     <li class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 group transition-colors hover:border-indigo-300 dark:hover:border-indigo-600">
 
-                        <div class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-md flex-shrink-0">
-                            <x-heroicon-o-puzzle-piece class="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+                        <div class="p-1 bg-gray-50 dark:bg-indigo-900/20 rounded-lg flex-shrink-0 overflow-hidden w-12 h-12 border border-gray-100 dark:border-slate-700">
+                            @if(!empty($accesorio['image']))
+                                <img src="{{ Storage::url($accesorio['image']) }}" class="w-full h-full object-cover rounded-md shadow-sm">
+                            @else
+                                <div class="w-full h-full flex items-center justify-center text-indigo-400">
+                                    <x-heroicon-o-puzzle-piece class="w-6 h-6" />
+                                </div>
+                            @endif
                         </div>
 
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {{ $accesorio['insumo']['name'] ?? '—' }}
-                            </p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                    {{ $accesorio['insumo']['name'] ?? '—' }}
+                                </p>
+                                <span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-bold rounded border border-gray-200 dark:border-gray-600">
+                                    Cant: {{ $accesorio['quantity'] ?? 1 }}
+                                </span>
+                            </div>
                             <div class="flex gap-3 flex-wrap">
                                 @if(!empty($accesorio['insumo']['internal_code']))
                                     <p class="text-xs text-gray-400 dark:text-gray-500">
