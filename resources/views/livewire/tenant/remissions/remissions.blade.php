@@ -94,7 +94,8 @@
 
         <!-- Sin autorización de entrega -->
         <div wire:click="setStatusFilter('sin_autorizacion')"
-             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'sin_autorizacion' ? 'bg-pink-500 border-pink-600 shadow-pink-200 dark:shadow-pink-900/20 text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'sin_autorizacion' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
+             style="{{ $statusFilter === 'sin_autorizacion' ? 'background-color: #e91e63 !important; border-color: #d81b60 !important; shadow-color: rgba(233, 30, 99, 0.2);' : '' }}">
             <div class="flex items-center space-x-4">
                 <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'bg-white/20 text-white' : 'text-white shadow-lg shadow-pink-500/20' }}"
                      style="{{ $statusFilter === 'sin_autorizacion' ? '' : 'background-color: #e91e63 !important;' }}">

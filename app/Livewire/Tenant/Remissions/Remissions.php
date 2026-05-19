@@ -1134,6 +1134,9 @@ class Remissions extends Component
             'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
             'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
                 ->where('status', '!=', 'ENTREGADO')
+                ->whereHas('authorizations', function ($q) {
+                    $q->where('auth_type', 'empaque')->where('status', 1);
+                })
                 ->whereDoesntHave('authorizations', function ($q) {
                     $q->where('auth_type', 'despacho')->where('status', 1);
                 })->count(),
@@ -1170,6 +1173,9 @@ class Remissions extends Component
                 } elseif ($this->statusFilter === 'sin_autorizacion') {
                     $query->where('status', '!=', 'ANULADO')
                         ->where('status', '!=', 'ENTREGADO')
+                        ->whereHas('authorizations', function ($q) {
+                            $q->where('auth_type', 'empaque')->where('status', 1);
+                        })
                         ->whereDoesntHave('authorizations', function ($q) {
                             $q->where('auth_type', 'despacho')->where('status', 1);
                         });
