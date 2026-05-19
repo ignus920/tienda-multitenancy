@@ -1543,6 +1543,7 @@ class VntCompanyForm extends Component
      */
     private function createUserFromCompany($company)
     {
+        $newUser = null;
         try {
             // Obtener el contacto principal
             $mainWarehouse = $company->mainWarehouse;
@@ -1601,7 +1602,7 @@ class VntCompanyForm extends Component
             ]);
 
             // Agregar mensaje informativo sin fallar
-            session()->flash('warning', 'Error al crear el usuario' . $e->getMessage());
+            session()->flash('warning', 'Error al crear el usuario: ' . $e->getMessage());
         }
         return $newUser;
     }
