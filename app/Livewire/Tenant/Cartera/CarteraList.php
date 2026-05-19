@@ -235,22 +235,34 @@ class CarteraList extends Component
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('consecutive', 'like', "%{$this->search}%")
-                  ->orWhereHas('quote', function($cq) {
-                      $cq->where('customer_name', 'like', "%{$this->search}%");
+                  ->orWhereHas('quote.customer', function($cq) {
+                      $cq->where(function($sub) {
+                          $sub->where('firstName', 'like', "%{$this->search}%")
+                              ->orWhere('lastName', 'like', "%{$this->search}%")
+                              ->orWhereHas('company', function($cc) {
+                                  $cc->where('businessName', 'like', "%{$this->search}%");
+                              });
+                      });
                   });
             });
         }
 
         // Filtros Búsqueda Avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer', function($q) {
-                $q->where('document_number', 'like', "%{$this->searchNit}%");
+            $query->whereHas('quote.customer.company', function($q) {
+                $q->where('identification', 'like', "%{$this->searchNit}%");
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote', function($q) {
-                $q->where('customer_name', 'like', "%{$this->searchName}%");
+            $query->whereHas('quote.customer', function($q) {
+                $q->where(function($sub) {
+                    $sub->where('firstName', 'like', "%{$this->searchName}%")
+                        ->orWhere('lastName', 'like', "%{$this->searchName}%")
+                        ->orWhereHas('company', function($cc) {
+                            $cc->where('businessName', 'like', "%{$this->searchName}%");
+                        });
+                });
             });
         }
 

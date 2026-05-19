@@ -198,13 +198,25 @@
                             @if($remission->invoice && $remission->invoice->payments->count() > 0)
                                 <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Pagos Recibidos:</p>
                                 @foreach($remission->invoice->payments as $payment)
-                                    <div class="bg-indigo-50/50 dark:bg-indigo-900/10 p-1.5 rounded border border-indigo-100 dark:border-indigo-900/30">
-                                        <p class="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase leading-none mb-1">
-                                            {{ $payment->methodPayment->name ?? 'PAGO' }}
-                                        </p>
-                                        <p class="text-xs font-bold text-gray-700 dark:text-slate-300">
-                                            ${{ number_format($payment->value, 0) }}
-                                        </p>
+                                    <div class="bg-indigo-50/50 dark:bg-indigo-900/10 p-1.5 rounded border border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-1">
+                                        <div>
+                                            <p class="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase leading-none mb-1">
+                                                {{ $payment->methodPayment->name ?? 'PAGO' }}
+                                            </p>
+                                            <p class="text-xs font-bold text-gray-700 dark:text-slate-300">
+                                                ${{ number_format($payment->value, 0) }}
+                                            </p>
+                                        </div>
+                                        @if($payment->proof_payment)
+                                            <a href="{{ asset('storage/' . $payment->proof_payment) }}" 
+                                               target="_blank" 
+                                               class="inline-flex items-center text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold mt-0.5 transition-colors gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                </svg>
+                                                Ver Soporte
+                                            </a>
+                                        @endif
                                     </div>
                                 @endforeach
                             @else
