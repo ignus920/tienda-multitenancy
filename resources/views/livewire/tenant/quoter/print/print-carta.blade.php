@@ -473,7 +473,7 @@
                 <th class="col-qty">CANT.</th>
                 {{-- <th class="col-delivered">ENTREGADO</th>
                 <th class="col-pending">PENDIENTES</th> --}}
-                @if($documentTitle !== 'REMISIÓN')
+                @if(!isset($showValues) || $showValues)
                 <th class="col-price">V.UNIT.</th>
                 <th class="col-discount">DESCUENTO</th>
                 <th class="col-total">SUBTOTAL</th>
@@ -503,7 +503,7 @@
                     <td class="col-qty">{{ number_format($detalle->quantity, 0) }}</td>
                     {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
                     <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td> --}}
-                    @if($documentTitle !== 'REMISIÓN')
+                    @if(!isset($showValues) || $showValues)
                     <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
                     <td class="col-discount">
                         @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
@@ -574,7 +574,7 @@
             </div> --}}
         </div>
 
-        @if($documentTitle !== 'REMISIÓN')
+        @if(!isset($showValues) || $showValues)
         <div class="totals-container">
             @php
                 $subtotalGlobal = $quote->detalles->sum(fn($d) => $d->value * $d->quantity);

@@ -299,7 +299,7 @@
                 @endif
 
                 <div class="quantity-price">
-                    @if($documentTitle !== 'REMISIÓN')
+                    @if(!isset($showValues) || $showValues)
                         <span>{{ $detalle->quantity }} x ${{ number_format($detalle->value, 0) }}</span>
                         <span class="bold">${{ number_format($subtotalItem, 0) }}</span>
                     @else
@@ -313,7 +313,7 @@
     <div class="separator"></div>
 
     <!-- Totals -->
-    @if($documentTitle !== 'REMISIÓN')
+    @if(!isset($showValues) || $showValues)
     <div class="totals-section">
         <div class="total-line">
             <span>Subtotal:</span>
@@ -376,7 +376,7 @@
             ¡Gracias por su preferencia!
         </div>
 
-        @if($documentTitle !== 'REMISIÓN')
+        @if(!isset($showValues) || $showValues)
         <div class="mt-2 small">
             Cotización válida por 15 días
         </div>

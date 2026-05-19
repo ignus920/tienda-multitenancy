@@ -376,6 +376,7 @@ class Quoter extends Component
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
+                'showValues' => true,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -581,7 +582,8 @@ class Quoter extends Component
                 'company' => $company,
                 'documentTitle' => 'FACTURA',
                 'showQR' => true,
-                'defaultObservations' => 'Factura electrónica (Copia Local)'
+                'defaultObservations' => 'Factura electrónica (Copia Local)',
+                'showValues' => true
             ];
 
             $viewName = ($printFormat === 1)

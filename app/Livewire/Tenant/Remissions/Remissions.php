@@ -718,13 +718,16 @@ class Remissions extends Component
         return redirect()->route('tenant.quoter.products.desktop.remission', ['remissionId' => $id]);
     }
 
-    /**
-     * Método de entrada para imprimir remisión con validación de reimpresión
-     */
     public function printRemission($id)
     {
         $this->ensureTenantConnection();
-        $remission = InvRemissions::findOrFail($id);
+        $remission = InvRemissions::with('invoice')->findOrFail($id);
+
+        // Si ya está facturada (estado FACTURADO), imprimir/mostrar la factura correspondiente
+        if ($remission->invoice && $remission->invoice->status === 'FACTURADO') {
+            $this->printInvoice($id);
+            return;
+        }
 
         // Si ya ha sido impresa anteriormente, solicitar justificación
         if ($remission->print_count > 0) {
@@ -738,9 +741,6 @@ class Remissions extends Component
         $this->executePrintRemission($id);
     }
 
-    /**
-     * Confirma la reimpresión tras recibir la justificación
-     */
     public function confirmPrintWithJustification()
     {
         if (empty(trim($this->printJustificationText))) {
@@ -764,6 +764,13 @@ class Remissions extends Component
 
         $id = $this->remissionIdToPrint;
         $this->showPrintJustificationModal = false;
+
+        // Si ya está facturada (estado FACTURADO), imprimir/mostrar la factura correspondiente
+        $remission = InvRemissions::with('invoice')->findOrFail($id);
+        if ($remission->invoice && $remission->invoice->status === 'FACTURADO') {
+            $this->printInvoice($id);
+            return;
+        }
 
         $this->executePrintRemission($id);
     }
@@ -865,6 +872,7 @@ class Remissions extends Component
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
+                'showValues' => true,
             ];
             Log::info('📝 Datos preparados para la vista');
 
