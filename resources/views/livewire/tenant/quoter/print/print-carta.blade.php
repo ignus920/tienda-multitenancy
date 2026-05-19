@@ -473,9 +473,11 @@
                 <th class="col-qty">CANT.</th>
                 {{-- <th class="col-delivered">ENTREGADO</th>
                 <th class="col-pending">PENDIENTES</th> --}}
+                @if($documentTitle !== 'REMISIÓN')
                 <th class="col-price">V.UNIT.</th>
                 <th class="col-discount">DESCUENTO</th>
                 <th class="col-total">SUBTOTAL</th>
+                @endif
             </tr>
         </thead>
         <tbody>
@@ -488,10 +490,20 @@
                         @if($detalle->description && $detalle->description != ($detalle->item->name ?? ''))
                             <div style="font-size: 8.5pt; color: #7f8c8d; margin-top: 3px;">{{ $detalle->description }}</div>
                         @endif
+                        @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
+                            <div style="color: red; font-size: 8.5pt; margin-top: 3px;">
+                                @foreach($detalle->item->accessories as $accessory)
+                                    <div>
+                                        {{ $accessory->quantity }} {{ $accessory->insumo->name ?? $accessory->insumo->display_name ?? '' }} {{ $accessory->observacion }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </td>
                     <td class="col-qty">{{ number_format($detalle->quantity, 0) }}</td>
                     {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
                     <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td> --}}
+                    @if($documentTitle !== 'REMISIÓN')
                     <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
                     <td class="col-discount">
                         @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
@@ -501,6 +513,7 @@
                         @endif
                     </td>
                     <td class="col-total">${{ number_format($detalle->value * $detalle->quantity, 2) }}</td>
+                    @endif
                 </tr>
             @endforeach
         </tbody>
@@ -561,6 +574,7 @@
             </div> --}}
         </div>
 
+        @if($documentTitle !== 'REMISIÓN')
         <div class="totals-container">
             @php
                 $subtotalGlobal = $quote->detalles->sum(fn($d) => $d->value * $d->quantity);
@@ -597,6 +611,7 @@
                 <div class="total-value">${{ number_format($totalFinal, 2) }}</div>
             </div>
         </div>
+        @endif
     </div>
 
     <div style="margin-top: 15px; text-align: left; width: 100%;">

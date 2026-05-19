@@ -93,15 +93,17 @@
         </div>
 
         <!-- Sin autorización de entrega -->
-        <div class="p-4 rounded-lg border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm transition-all duration-300 group">
+        <div wire:click="setStatusFilter('sin_autorizacion')"
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'sin_autorizacion' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
+             style="{{ $statusFilter === 'sin_autorizacion' ? 'background-color: #e91e63 !important; border-color: #d81b60 !important; shadow-color: rgba(233, 30, 99, 0.2);' : '' }}">
             <div class="flex items-center space-x-4">
-                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-pink-500/20 group-hover:animate-pulse transition-all"
-                     style="background-color: #e91e63 !important;">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'bg-white/20 text-white' : 'text-white shadow-lg shadow-pink-500/20' }}"
+                     style="{{ $statusFilter === 'sin_autorizacion' ? '' : 'background-color: #e91e63 !important;' }}">
                     {{ $summaryCounts['sin_autorizacion'] }}
                 </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-bold text-gray-400 uppercase mb-0.5">Cartera</p>
-                    <p class="text-[13px] font-semibold text-gray-700 dark:text-slate-300 leading-tight">Sin autorización</p>
+                    <p class="text-xs font-bold transition-colors duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'text-white/80' : 'text-gray-400' }} uppercase mb-0.5">Cartera</p>
+                    <p class="text-[13px] font-semibold transition-colors duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'text-white' : 'text-gray-700 dark:text-slate-300' }} leading-tight">Sin autorización</p>
                 </div>
             </div>
         </div>
@@ -258,7 +260,7 @@
                     @forelse($remissions as $remission)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-4 py-4 text-center">
-                                @if($remission->status === 'REGISTRADO' && !$remission->invoice)
+                                @if($remission->status !== 'ANULADO' && !$remission->invoice)
                                     <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
                                         class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                                 @elseif($remission->invoice)

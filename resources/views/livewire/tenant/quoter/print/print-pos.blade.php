@@ -290,10 +290,21 @@
                 <div class="product-name">
                     {{ Str::limit($detalle->item?->name ?? $detalle->item?->display_name ?? 'Producto no encontrado', 35) }}
                 </div>
+                @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
+                    <div style="color: red; font-size: 7pt; margin-top: 1mm;">
+                        @foreach($detalle->item->accessories as $accessory)
+                            <div>{{ $accessory->quantity }} {{ Str::limit($accessory->insumo->name ?? $accessory->insumo->display_name ?? '', 20) }} {{ $accessory->observacion }}</div>
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="quantity-price">
-                    <span>{{ $detalle->quantity }} x ${{ number_format($detalle->value, 0) }}</span>
-                    <span class="bold">${{ number_format($subtotalItem, 0) }}</span>
+                    @if($documentTitle !== 'REMISIÓN')
+                        <span>{{ $detalle->quantity }} x ${{ number_format($detalle->value, 0) }}</span>
+                        <span class="bold">${{ number_format($subtotalItem, 0) }}</span>
+                    @else
+                        <span>Cantidad: {{ $detalle->quantity }}</span>
+                    @endif
                 </div>
             </div>
         @endforeach
@@ -302,6 +313,7 @@
     <div class="separator"></div>
 
     <!-- Totals -->
+    @if($documentTitle !== 'REMISIÓN')
     <div class="totals-section">
         <div class="total-line">
             <span>Subtotal:</span>
@@ -316,6 +328,7 @@
             <span>${{ number_format($totalGeneral, 0) }}</span>
         </div>
     </div>
+    @endif
 
     <!-- Observations -->
     @if($quote->observations || isset($giftObservation))
@@ -363,9 +376,11 @@
             ¡Gracias por su preferencia!
         </div>
 
+        @if($documentTitle !== 'REMISIÓN')
         <div class="mt-2 small">
             Cotización válida por 15 días
         </div>
+        @endif
     </div>
 
     <div style="margin-top: 10mm;"></div> <!-- Espacio final para corte -->

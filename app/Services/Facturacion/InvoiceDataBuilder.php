@@ -276,8 +276,23 @@ class InvoiceDataBuilder
                                        $customer->id_alegra ?? null;
         }
 
-        // Obtener configuración del warehouse (prioridad a api_data_id)
-        if ($warehouse) {
+        // Obtener la bodega (inv_store) desde el warehouseId de la cotización (que almacena el store ID)
+        $store = \App\Models\Tenant\Items\InvStore::find($quote->warehouseId);
+
+        // Obtener configuración del warehouse (prioridad a api_data_id de la bodega/store)
+        if ($store) {
+            $customerData['warehouse_id_alegra'] = $store->api_data_id ??
+                                                  $store->warehouse_id_alegra ??
+                                                  $store->alegra_warehouse_id ??
+                                                  $store->id_alegra ??
+                                                  $store->id ?? '1';
+
+            // El formato de numeración se sigue obteniendo de la sucursal (vnt_warehouses) si existe
+            $customerData['warehouse_format'] = $warehouse->warehouse_format ??
+                                              $warehouse->alegra_format ??
+                                              $warehouse->number_template ?? '20';
+        } elseif ($warehouse) {
+            // Fallback usando el objeto de la sucursal si no se encontró bodega directa
             $customerData['warehouse_id_alegra'] = $warehouse->api_data_id ??
                                                   $warehouse->warehouse_id_alegra ??
                                                   $warehouse->alegra_warehouse_id ??
@@ -286,6 +301,10 @@ class InvoiceDataBuilder
             $customerData['warehouse_format'] = $warehouse->warehouse_format ??
                                               $warehouse->alegra_format ??
                                               $warehouse->number_template ?? '20';
+        } else {
+            // Valores por defecto
+            $customerData['warehouse_id_alegra'] = '1';
+            $customerData['warehouse_format'] = '20';
         }
 
         Log::info('👤 Datos de cliente obtenidos', [

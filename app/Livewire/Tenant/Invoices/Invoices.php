@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Invoices;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Models\Tenant\Remissions\InvRemissions;
@@ -19,7 +20,7 @@ use App\Traits\Livewire\HasDynamicButtons;
 
 class Invoices extends Component
 {
-    use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons, WithFileUploads;
 
     public $search = '';
     public $perPage = 12;
@@ -39,6 +40,13 @@ class Invoices extends Component
     public string $creditNotePayment  = 'Efectivo';
     public string $creditNoteObs      = '';
     public float  $creditNoteTotal    = 0;
+
+    // ── Pago de Factura ───────────────────────────────────────
+    public bool $showPaymentModal = false;
+    public $paymentInvoiceId = null;
+    public $paymentProofFile = null;
+    public $paymentMethodId = null;
+    public array $paymentMethodsList = [];
 
     public function boot()
     {
@@ -180,6 +188,95 @@ class Invoices extends Component
         } catch (\Exception $e) {
             Log::error('❌ Error procesando pago de factura', [
                 'invoice_id' => $invoiceId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al procesar el pago: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function openPaymentModal($invoiceId)
+    {
+        $this->ensureTenantConnection();
+        $this->paymentInvoiceId = $invoiceId;
+        $this->paymentProofFile = null;
+
+        // Intentar obtener la forma de pago original seleccionada en el pedido/remisión
+        $defaultMethodId = null;
+        $invoiceSale = VntInvoicesXsales::where('invoiceId', $invoiceId)->with('remission')->first();
+        if ($invoiceSale && $invoiceSale->remission) {
+            $defaultMethodId = $invoiceSale->remission->methodPaymentId;
+            Log::info('💳 Forma de pago preseleccionada del pedido/remisión', [
+                'remission_id' => $invoiceSale->remissionId,
+                'method_payment_id' => $defaultMethodId
+            ]);
+        }
+
+        // Fetch active payment methods
+        $this->paymentMethodsList = \App\Models\Tenant\MethodPayments\VntMethodPayMents::where('status', 1)->get()->toArray();
+        
+        if ($defaultMethodId && collect($this->paymentMethodsList)->contains('id', $defaultMethodId)) {
+            $this->paymentMethodId = $defaultMethodId;
+        } elseif (!empty($this->paymentMethodsList)) {
+            $this->paymentMethodId = $this->paymentMethodsList[0]['id'];
+        } else {
+            $this->paymentMethodId = null;
+        }
+
+        $this->showPaymentModal = true;
+    }
+
+    public function closePaymentModal()
+    {
+        $this->showPaymentModal = false;
+        $this->paymentInvoiceId = null;
+        $this->paymentProofFile = null;
+        $this->paymentMethodId = null;
+    }
+
+    public function submitPayment()
+    {
+        $this->ensureTenantConnection();
+
+        $this->validate([
+            'paymentMethodId' => 'required',
+            'paymentProofFile' => 'required|image|max:2048' // 2MB max, proof file is required for payment confirmation as requested by user
+        ]);
+
+        try {
+            $invoice = VntInvoices::findOrFail($this->paymentInvoiceId);
+            
+            // Proceed to pay invoice first (Alegra and local update to PAGADO)
+            $this->payInvoice($this->paymentInvoiceId);
+
+            // Re-fetch to check if status indeed changed to PAGADO
+            $invoice->refresh();
+
+            if ($invoice->status_payment === 'PAGADO') {
+                $filePath = null;
+                if ($this->paymentProofFile) {
+                    $tenantId = session('tenant_id') ?? 'default';
+                    $filePath = $this->paymentProofFile->store("tenants/{$tenantId}/payments", 'public');
+                }
+
+                $totalAmount = $this->calculateInvoiceTotalWithRetentions($invoice);
+
+                \App\Models\Tenant\Invoices\VntInvoicePayments::create([
+                    'value' => $totalAmount,
+                    'invoiceId' => $invoice->id,
+                    'methodPaymentId' => $this->paymentMethodId,
+                    'proof_payment' => $filePath
+                ]);
+            }
+
+            $this->closePaymentModal();
+        } catch (\Exception $e) {
+            Log::error('❌ Error guardando pago de factura', [
+                'invoice_id' => $this->paymentInvoiceId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

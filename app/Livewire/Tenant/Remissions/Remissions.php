@@ -157,7 +157,8 @@ class Remissions extends Component
                 ->when($this->search, function ($query) {
                     $this->applyBaseFilters($query);
                 })
-                ->where('status', 'REGISTRADO')
+                ->where('status', '!=', 'ANULADO')
+                ->whereDoesntHave('invoiceSale')
                 ->first();
 
             if ($firstRemission && $firstRemission->quote && $firstRemission->quote->customer) {
@@ -168,7 +169,8 @@ class Remissions extends Component
                     ->when($this->search, function ($query) {
                         $this->applyBaseFilters($query);
                     })
-                    ->where('status', 'REGISTRADO')
+                    ->where('status', '!=', 'ANULADO')
+                    ->whereDoesntHave('invoiceSale')
                     ->whereHas('quote', function ($query) use ($customerId) {
                         $query->where('customerId', $customerId);
                     })
@@ -342,7 +344,7 @@ class Remissions extends Component
             // Cargar remisiones con detalles y cliente (solo las NO facturadas)
             $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
-                ->where('status', 'REGISTRADO')
+                ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
                 ->get();
 
@@ -431,7 +433,7 @@ class Remissions extends Component
         try {
             $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
-                ->where('status', 'REGISTRADO')
+                ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
                 ->get();
 
@@ -569,12 +571,15 @@ class Remissions extends Component
             });
         }
 
-        if ($this->searchStartDate) {
-            $query->whereDate('created_at', '>=', $this->searchStartDate);
-        }
+        // Si hay un filtro de tarjeta (statusFilter) activo, no se filtrará por rango de fechas en el listado
+        if (empty($this->statusFilter)) {
+            if ($this->searchStartDate) {
+                $query->whereDate('created_at', '>=', $this->searchStartDate);
+            }
 
-        if ($this->searchEndDate) {
-            $query->whereDate('created_at', '<=', $this->searchEndDate);
+            if ($this->searchEndDate) {
+                $query->whereDate('created_at', '<=', $this->searchEndDate);
+            }
         }
     }
 
@@ -1129,6 +1134,9 @@ class Remissions extends Component
             'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
             'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
                 ->where('status', '!=', 'ENTREGADO')
+                ->whereHas('authorizations', function ($q) {
+                    $q->where('auth_type', 'empaque')->where('status', 1);
+                })
                 ->whereDoesntHave('authorizations', function ($q) {
                     $q->where('auth_type', 'despacho')->where('status', 1);
                 })->count(),
@@ -1136,9 +1144,11 @@ class Remissions extends Component
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
         $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
-            ->whereHas('authorizations', function ($q) {
-                $q->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
-                    ->where('status', 1);
+            ->when($this->statusFilter !== 'sin_autorizacion', function ($q) {
+                $q->whereHas('authorizations', function ($sub) {
+                    $sub->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
+                        ->where('status', 1);
+                });
             })
             ->when($storeId, function ($query) use ($storeId) {
                 // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
@@ -1160,6 +1170,15 @@ class Remissions extends Component
                     $query->where('status', '!=', 'ENTREGADO');
                 } elseif ($this->statusFilter === 'sin_facturar') {
                     $query->whereDoesntHave('invoiceSale');
+                } elseif ($this->statusFilter === 'sin_autorizacion') {
+                    $query->where('status', '!=', 'ANULADO')
+                        ->where('status', '!=', 'ENTREGADO')
+                        ->whereHas('authorizations', function ($q) {
+                            $q->where('auth_type', 'empaque')->where('status', 1);
+                        })
+                        ->whereDoesntHave('authorizations', function ($q) {
+                            $q->where('auth_type', 'despacho')->where('status', 1);
+                        });
                 }
             })
             ->orderBy('created_at', 'desc')

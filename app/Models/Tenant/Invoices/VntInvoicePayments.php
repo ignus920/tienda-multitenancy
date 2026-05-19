@@ -15,7 +15,8 @@ class VntInvoicePayments extends Model
     protected $fillable = [
         'value',
         'invoiceId',
-        'methodPaymentId'
+        'methodPaymentId',
+        'proof_payment'
     ];
 
     public function invoice(): BelongsTo

@@ -306,8 +306,7 @@
 
                                             {{-- Botón de Pagar - Solo para facturas EMITIDAS y no pagadas --}}
                                             @if($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO')
-                                                <button wire:click="payInvoice({{ $invoice->id }})"
-                                                    wire:confirm="¿Está seguro de marcar esta factura como PAGADA?"
+                                                <button wire:click="openPaymentModal({{ $invoice->id }})"
                                                     class="w-full text-left px-4 py-2 text-sm text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
                                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -619,6 +618,131 @@
                         </svg>
                     </span>
                     Crear Nota Crédito
+                </button>
+            </div>
+
+        </div>{{-- /panel --}}
+    </div>{{-- /modal --}}
+    @endif
+
+    {{-- ══════════════════════════════════════════════════════
+         MODAL: REGISTRAR COMPROBANTE DE PAGO
+    ══════════════════════════════════════════════════════ --}}
+    @if($showPaymentModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         x-data
+         x-on:keydown.escape.window="$wire.closePaymentModal()">
+
+        {{-- Overlay --}}
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" wire:click="closePaymentModal"></div>
+
+        {{-- Panel --}}
+        <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transition-all transform scale-100">
+
+            {{-- Header --}}
+            <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Confirmar Pago
+                </h2>
+                <button wire:click="closePaymentModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="p-6 space-y-4">
+                
+                {{-- Payment Method Selection --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Forma de Pago <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model="paymentMethodId"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        @foreach($paymentMethodsList as $method)
+                            <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('paymentMethodId') 
+                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> 
+                    @enderror
+                </div>
+
+                {{-- File Upload --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Comprobante de Pago (Imagen) <span class="text-red-500">*</span>
+                    </label>
+                    
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-slate-600 border-dashed rounded-lg hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors cursor-pointer relative">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600 dark:text-slate-400">
+                                <label for="payment-proof-upload" class="relative cursor-pointer bg-transparent rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none">
+                                    <span>Subir un archivo</span>
+                                    <input id="payment-proof-upload" name="payment-proof-upload" type="file" wire:model="paymentProofFile" class="sr-only" accept="image/*">
+                                </label>
+                                <p class="pl-1">o arrastrar y soltar</p>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-slate-500">PNG, JPG, GIF hasta 2MB</p>
+                        </div>
+                    </div>
+                    @error('paymentProofFile') 
+                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> 
+                    @enderror
+
+                    {{-- Image Preview --}}
+                    @if ($paymentProofFile)
+                        <div class="mt-3">
+                            <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1">Vista previa:</p>
+                            <div class="relative rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 bg-gray-50 max-h-48 flex items-center justify-center">
+                                <img src="{{ $paymentProofFile->temporaryUrl() }}" class="object-contain max-h-44 w-full">
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Loading indicator --}}
+                <div wire:loading wire:target="paymentProofFile" class="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Procesando imagen...
+                </div>
+
+            </div>
+
+            {{-- Footer --}}
+            <div class="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                <button wire:click="closePaymentModal"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                    Cancelar
+                </button>
+                <button wire:click="submitPayment"
+                    wire:loading.attr="disabled"
+                    wire:target="submitPayment, paymentProofFile"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-60">
+                    <span wire:loading.remove wire:target="submitPayment">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </span>
+                    <span wire:loading wire:target="submitPayment">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                    </span>
+                    Confirmar Pago
                 </button>
             </div>
 

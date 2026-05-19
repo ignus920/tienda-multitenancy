@@ -228,28 +228,45 @@ class CarteraList extends Component
     {
         $this->ensureTenantConnection();
 
-        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment'])
-            ->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
+        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment']);
+
+        if (empty($this->activeFilter)) {
+            $query->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
+        }
+
+        $query->latest();
 
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('consecutive', 'like', "%{$this->search}%")
-                  ->orWhereHas('quote', function($cq) {
-                      $cq->where('customer_name', 'like', "%{$this->search}%");
+                  ->orWhereHas('quote.customer', function($cq) {
+                      $cq->where(function($sub) {
+                          $sub->where('firstName', 'like', "%{$this->search}%")
+                              ->orWhere('lastName', 'like', "%{$this->search}%")
+                              ->orWhereHas('company', function($cc) {
+                                  $cc->where('businessName', 'like', "%{$this->search}%");
+                              });
+                      });
                   });
             });
         }
 
         // Filtros Búsqueda Avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer', function($q) {
-                $q->where('document_number', 'like', "%{$this->searchNit}%");
+            $query->whereHas('quote.customer.company', function($q) {
+                $q->where('identification', 'like', "%{$this->searchNit}%");
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote', function($q) {
-                $q->where('customer_name', 'like', "%{$this->searchName}%");
+            $query->whereHas('quote.customer', function($q) {
+                $q->where(function($sub) {
+                    $sub->where('firstName', 'like', "%{$this->searchName}%")
+                        ->orWhere('lastName', 'like', "%{$this->searchName}%")
+                        ->orWhereHas('company', function($cc) {
+                            $cc->where('businessName', 'like', "%{$this->searchName}%");
+                        });
+                });
             });
         }
 
@@ -263,6 +280,11 @@ class CarteraList extends Component
         if ($this->activeFilter) {
             if ($this->activeFilter === 'anulados') {
                 $query->where('status', 'ANULADO');
+            } elseif ($this->activeFilter === 'pendientes') {
+                $query->where('status', '!=', 'ANULADO')
+                      ->whereDoesntHave('authorizations', function($q) {
+                          $q->where('status', 1);
+                      });
             } else {
                 $query->whereHas('authorizations', function($q) {
                     $q->where('auth_type', $this->activeFilter)
@@ -290,6 +312,10 @@ class CarteraList extends Component
                 ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = a1.remission_id AND a2.auth_type = "pago")')
                 ->count(),
             'anulados' => InvRemissions::where('status', 'ANULADO')->count(),
+            'pendientes' => InvRemissions::where('status', '!=', 'ANULADO')
+                ->whereDoesntHave('authorizations', function($q) {
+                    $q->where('status', 1);
+                })->count(),
         ];
 
         return view('livewire.tenant.cartera.cartera-list', [
