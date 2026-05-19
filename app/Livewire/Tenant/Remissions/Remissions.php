@@ -157,7 +157,8 @@ class Remissions extends Component
                 ->when($this->search, function ($query) {
                     $this->applyBaseFilters($query);
                 })
-                ->where('status', 'REGISTRADO')
+                ->where('status', '!=', 'ANULADO')
+                ->whereDoesntHave('invoiceSale')
                 ->first();
 
             if ($firstRemission && $firstRemission->quote && $firstRemission->quote->customer) {
@@ -168,7 +169,8 @@ class Remissions extends Component
                     ->when($this->search, function ($query) {
                         $this->applyBaseFilters($query);
                     })
-                    ->where('status', 'REGISTRADO')
+                    ->where('status', '!=', 'ANULADO')
+                    ->whereDoesntHave('invoiceSale')
                     ->whereHas('quote', function ($query) use ($customerId) {
                         $query->where('customerId', $customerId);
                     })
@@ -342,7 +344,7 @@ class Remissions extends Component
             // Cargar remisiones con detalles y cliente (solo las NO facturadas)
             $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
-                ->where('status', 'REGISTRADO')
+                ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
                 ->get();
 
@@ -431,7 +433,7 @@ class Remissions extends Component
         try {
             $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
-                ->where('status', 'REGISTRADO')
+                ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
                 ->get();
 

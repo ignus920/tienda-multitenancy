@@ -229,7 +229,8 @@ class CarteraList extends Component
         $this->ensureTenantConnection();
 
         $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment'])
-            ->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
+            ->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59'])
+            ->latest();
 
         if ($this->search) {
             $query->where(function($q) {
@@ -263,6 +264,11 @@ class CarteraList extends Component
         if ($this->activeFilter) {
             if ($this->activeFilter === 'anulados') {
                 $query->where('status', 'ANULADO');
+            } elseif ($this->activeFilter === 'pendientes') {
+                $query->where('status', '!=', 'ANULADO')
+                      ->whereDoesntHave('authorizations', function($q) {
+                          $q->where('status', 1);
+                      });
             } else {
                 $query->whereHas('authorizations', function($q) {
                     $q->where('auth_type', $this->activeFilter)
@@ -290,6 +296,10 @@ class CarteraList extends Component
                 ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = a1.remission_id AND a2.auth_type = "pago")')
                 ->count(),
             'anulados' => InvRemissions::where('status', 'ANULADO')->count(),
+            'pendientes' => InvRemissions::where('status', '!=', 'ANULADO')
+                ->whereDoesntHave('authorizations', function($q) {
+                    $q->where('status', 1);
+                })->count(),
         ];
 
         return view('livewire.tenant.cartera.cartera-list', [

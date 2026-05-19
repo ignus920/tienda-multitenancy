@@ -258,7 +258,7 @@
                     @forelse($remissions as $remission)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-4 py-4 text-center">
-                                @if($remission->status === 'REGISTRADO' && !$remission->invoice)
+                                @if($remission->status !== 'ANULADO' && !$remission->invoice)
                                     <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
                                         class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                                 @elseif($remission->invoice)
