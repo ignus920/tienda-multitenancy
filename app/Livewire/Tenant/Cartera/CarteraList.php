@@ -228,9 +228,13 @@ class CarteraList extends Component
     {
         $this->ensureTenantConnection();
 
-        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment'])
-            ->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59'])
-            ->latest();
+        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment']);
+
+        if (empty($this->activeFilter)) {
+            $query->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
+        }
+
+        $query->latest();
 
         if ($this->search) {
             $query->where(function($q) {
