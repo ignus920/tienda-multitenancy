@@ -872,7 +872,7 @@ class Remissions extends Component
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
-                'showValues' => true,
+                'showValues' => false,
             ];
             Log::info('📝 Datos preparados para la vista');
 
