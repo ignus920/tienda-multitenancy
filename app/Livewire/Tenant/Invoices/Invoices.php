@@ -205,9 +205,23 @@ class Invoices extends Component
         $this->paymentInvoiceId = $invoiceId;
         $this->paymentProofFile = null;
 
+        // Intentar obtener la forma de pago original seleccionada en el pedido/remisión
+        $defaultMethodId = null;
+        $invoiceSale = VntInvoicesXsales::where('invoiceId', $invoiceId)->with('remission')->first();
+        if ($invoiceSale && $invoiceSale->remission) {
+            $defaultMethodId = $invoiceSale->remission->methodPaymentId;
+            Log::info('💳 Forma de pago preseleccionada del pedido/remisión', [
+                'remission_id' => $invoiceSale->remissionId,
+                'method_payment_id' => $defaultMethodId
+            ]);
+        }
+
         // Fetch active payment methods
         $this->paymentMethodsList = \App\Models\Tenant\MethodPayments\VntMethodPayMents::where('status', 1)->get()->toArray();
-        if (!empty($this->paymentMethodsList)) {
+        
+        if ($defaultMethodId && collect($this->paymentMethodsList)->contains('id', $defaultMethodId)) {
+            $this->paymentMethodId = $defaultMethodId;
+        } elseif (!empty($this->paymentMethodsList)) {
             $this->paymentMethodId = $this->paymentMethodsList[0]['id'];
         } else {
             $this->paymentMethodId = null;
