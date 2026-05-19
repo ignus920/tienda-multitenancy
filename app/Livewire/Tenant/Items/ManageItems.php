@@ -259,7 +259,7 @@ class ManageItems extends Component
         $this->clearConfigurationCache();
 
         // DEBUG: Log para verificar inicialización
-        Log::info('🔍 DetailPettyCash mount() ejecutado', [
+        Log::info('🔍 Items mount() ejecutado', [
             'currentCompanyId' => $this->currentCompanyId,
             'currentPlainId' => $this->currentPlainId,
             'configService_exists' => $this->configService ? 'YES' : 'NO'

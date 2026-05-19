@@ -3,6 +3,7 @@
 namespace App\Livewire\Tenant\Gestion;
 
 use Livewire\Component;
+use App\Traits\HasCompanyConfiguration;
 use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Sales\VntQuoteFollowup;
 use App\Models\Tenant\Sales\VntFollowupStatus;
@@ -15,6 +16,8 @@ use Carbon\Carbon;
 
 class GestionVentas extends Component
 {
+    use HasCompanyConfiguration;
+
     // Filtros
     public $fechaIni;
     public $fechaFin;
@@ -175,6 +178,121 @@ class GestionVentas extends Component
             'quotes' => $this->selected_client_quotes,
             'statuses' => $this->followup_statuses
         ])->layout('layouts.app');
+    }
+
+    /**
+     * Prepara y abre la ventana de impresión para una cotización.
+     */
+    public function printQuote($id)
+    {
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
+
+        try {
+            $quote = VntQuote::with(['customer', 'detalles'])->find($id);
+
+            if (!$quote) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cotización no encontrada']);
+                return;
+            }
+
+            // Obtener información de la empresa
+            $company = $this->getCompanyInfo($quote);
+
+            $tableName = ($quote->status === 'REMISIÓN') ? 'inv_detail_remissions' : 'vnt_detail_quotes';
+            $tableNameId = ($quote->status === 'REMISIÓN') ? 'remissionId' : 'quoteId';
+            
+            // Calcular el peso total de los items
+            $totalWeight = DB::connection('tenant')->table($tableName)
+                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where($tableName . '.' . $tableNameId, $id)
+                ->sum('inv_items_dimensions.weight');
+
+            $observations = DB::connection('tenant')->table('inv_remissions')
+                ->where('quoteId', $id)
+                ->select('observations_delivery', 'obs')->first();
+
+            // Determinar el formato de impresión según configuración
+            $printFormat = $this->getOptionValue(3) ?? 1; // 0 = POS Simple, 1 = Institucional
+
+            // Determinar el título del documento
+            $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
+
+            // Datos para la vista
+            $data = [
+                'quote' => $quote,
+                'customer' => $quote->customer,
+                'company' => $company,
+                'documentTitle' => $documentTitle,
+                'showQR' => true,
+                'defaultObservations' => 'Observaciones por defecto',
+                'totalWeight' => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs' => $observations->obs ?? null,
+            ];
+
+            // Seleccionar la vista según el formato
+            $viewName = ($printFormat === 1)
+                ? 'livewire.tenant.quoter.print.print-carta'
+                : 'livewire.tenant.quoter.print.print-pos';
+
+            $html = view($viewName, $data)->render();
+
+            // Guardar temporalmente el HTML
+            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
+            $tempPath = storage_path('app/temp/' . $tempFileName);
+
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            file_put_contents($tempPath, $html);
+
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+
+            $this->dispatch('open-print-window', [
+                'url' => $printUrl,
+                'format' => $printFormat === 1 ? 'carta' : 'pos'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en printQuote: ' . $e->getMessage());
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al preparar la impresión']);
+        }
+    }
+
+    /**
+     * Obtiene la información de la empresa vinculada al usuario.
+     */
+    private function getCompanyInfo($quote = null)
+    {
+        try {
+            $userId = auth()->id();
+            return DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.phone',
+                    'v.email',
+                    'v.webPage',
+                    'v.logo'
+                ])->first();
+        } catch (\Exception $e) {
+            Log::error('Error en getCompanyInfo: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**

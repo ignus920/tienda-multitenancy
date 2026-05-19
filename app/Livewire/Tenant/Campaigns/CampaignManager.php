@@ -18,12 +18,16 @@ class CampaignManager extends Component
     public $sortField = 'name';
     public $sortDirection = 'desc';
     public $isModalOpen = false;
+    public $isDeliveryModalOpen = false;
 
     // Propiedad para el modal de carga/éxito
     public $showModal = false; 
 
-    // Campos del formulario
+    // Campos del formulario de campaña
     public $campaignId, $name, $description, $start_date, $end_date, $gift_quantity, $assignment_type, $status;
+
+    // Campos del formulario de entrega
+    public $selectedCampaignId, $selectedCustomerId;
 
     // Propiedades para el listado de clientes en el modal
     public $customerSearch = '';
@@ -95,9 +99,23 @@ class CampaignManager extends Component
             }
         }
 
+        $activeCampaigns = collect();
+        $customers = collect();
+
+        if ($this->isDeliveryModalOpen) {
+            $activeCampaigns = Campaign::where('status', 'activo')
+                ->whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now())
+                ->get();
+            
+            $customers = \App\Models\Tenant\Customer\VntCompany::orderBy('businessName', 'asc')->get();
+        }
+
         return view('livewire.tenant.campaigns.campaign-manager', [
             'campaigns' => $campaigns,
-            'deliveredCustomers' => $deliveredCustomers
+            'deliveredCustomers' => $deliveredCustomers,
+            'activeCampaigns' => $activeCampaigns,
+            'customers' => $customers
         ])->layout('layouts.app');
     }
 
@@ -111,6 +129,20 @@ class CampaignManager extends Component
     {
         $this->isModalOpen = false;
         $this->resetForm();
+    }
+
+    public function openDeliveryModal()
+    {
+        $this->selectedCampaignId = null;
+        $this->selectedCustomerId = null;
+        $this->isDeliveryModalOpen = true;
+    }
+
+    public function closeDeliveryModal()
+    {
+        $this->isDeliveryModalOpen = false;
+        $this->selectedCampaignId = null;
+        $this->selectedCustomerId = null;
     }
 
     private function resetForm()
@@ -172,5 +204,37 @@ class CampaignManager extends Component
 
         session()->flash('success', $msg);
         $this->closeModal();
+    }
+
+    public function deliverGift(\App\Services\Tenant\Campaigns\CampaignService $campaignService)
+    {
+        $this->ensureTenantConnection();
+        
+        $this->validate([
+            'selectedCampaignId' => 'required|exists:tenant.cmp_campaigns,id',
+            'selectedCustomerId' => 'required|exists:tenant.vnt_companies,id',
+        ], [
+            'selectedCampaignId.required' => 'Debe seleccionar una campaña.',
+            'selectedCustomerId.required' => 'Debe seleccionar un cliente.',
+        ]);
+
+        $campaign = Campaign::find($this->selectedCampaignId);
+        $customer = \App\Models\Tenant\Customer\VntCompany::find($this->selectedCustomerId);
+
+        // Validar elegibilidad usando el servicio
+        if (!$campaignService->isEligible($customer, $campaign)) {
+            $this->addError('selectedCustomerId', 'El cliente no es elegible o ya recibió un regalo en esta campaña.');
+            return;
+        }
+
+        // Registrar entrega
+        $success = $campaignService->registerGiftDelivery($customer, $campaign);
+
+        if ($success) {
+            session()->flash('success', 'Regalo entregado y registrado exitosamente.');
+            $this->closeDeliveryModal();
+        } else {
+            $this->addError('selectedCampaignId', 'No se pudo registrar la entrega. Verifique el stock de la campaña.');
+        }
     }
 }

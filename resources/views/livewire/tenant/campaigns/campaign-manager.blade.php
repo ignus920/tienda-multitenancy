@@ -24,13 +24,22 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Campañas</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestión de registros</p>
                 </div>
-                <button wire:click="openModal" 
-                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ease-in-out duration-150">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    + CREAR NUEVO
-                </button>
+                <div class="flex items-center gap-2">
+                    <button wire:click="openDeliveryModal" 
+                        class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                        </svg>
+                        ENTREGA DE REGALO
+                    </button>
+                    <button wire:click="openModal" 
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ease-in-out duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        CREAR NUEVO
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -278,6 +287,64 @@
                     @endif
                 </div>
                 @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal Entrega de Regalo -->
+    @if($isDeliveryModalOpen)
+    <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50">
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+                <!-- Header Modal -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 rounded-t-lg">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                        Entrega de Regalo Manual
+                    </h3>
+                    <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <x-heroicon-o-x-mark class="w-6 h-6"/>
+                    </button>
+                </div>
+
+                <!-- Formulario -->
+                <form wire:submit.prevent="deliverGift" class="p-6 space-y-6">
+                    <div class="space-y-4">
+                        <!-- Campaña -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-tight">Campaña <span class="text-red-500">*</span></label>
+                            <select wire:model="selectedCampaignId" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="">Seleccione una campaña activa</option>
+                                @foreach($activeCampaigns as $camp)
+                                    <option value="{{ $camp->id }}">{{ $camp->name }} ({{ $camp->gifts_sent }}/{{ $camp->gift_quantity }})</option>
+                                @endforeach
+                            </select>
+                            @error('selectedCampaignId') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Cliente -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-tight">Cliente <span class="text-red-500">*</span></label>
+                            <select wire:model="selectedCustomerId" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="">Seleccione un cliente</option>
+                                @foreach($customers as $cust)
+                                    <option value="{{ $cust->id }}">{{ $cust->businessName ?: ($cust->firstName . ' ' . $cust->lastName) }} - {{ $cust->identification }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedCustomerId') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Footer Modal -->
+                    <div class="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" wire:click="closeDeliveryModal" class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold transition-colors uppercase text-xs tracking-widest">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg font-bold shadow-md transition-all uppercase text-xs tracking-widest">
+                            Registrar Entrega
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
