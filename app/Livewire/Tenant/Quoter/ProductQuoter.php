@@ -1880,17 +1880,9 @@ class ProductQuoter extends Component
                 'message' => 'Cotización #' . $quote->consecutive . ' actualizada exitosamente'
             ]);
 
-            // Limpiar después de actualizar
-            $this->clearQuoter();
-            $this->isEditing = false;
-            $this->editingQuoteId = null;
+            // Se elimina la redirección y limpieza para permitir que el usuario permanezca en la pantalla de edición
+            // y pueda crear la OP o Facturar directamente tras la actualización.
 
-            // Redirigir al listado de cotizaciones según el tipo de vista
-            $routeName = $this->viewType === 'mobile'
-                ? 'tenant.quoter.mobile'
-                : 'tenant.quoter.desktop';
-
-            return redirect()->route($routeName);
         } catch (\Exception $e) {
             // Revertir transacción en caso de error
             DB::connection('tenant')->rollBack();

@@ -4,14 +4,22 @@ namespace App\Livewire\Tenant\Cartera;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Sales\VntOrderAuthorization;
+use App\Models\Tenant\Quoter\VntQuote;
+use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class CarteraList extends Component
 {
-    use WithPagination;
+    use WithPagination, HasCompanyConfiguration, WithFileUploads;
+
+    // Propiedades para soporte de pago
+    public $showUploadModal = false;
+    public $proofPaymentFile;
 
     // Filtros
     public $fromDate;
@@ -224,11 +232,188 @@ class CarteraList extends Component
         ]);
     }
 
+    /**
+     * Abre el modal de carga de soporte de pago para una remisión.
+     */
+    public function openUploadModal($remissionId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedRemissionId = $remissionId;
+        $this->proofPaymentFile = null;
+        $this->showUploadModal = true;
+    }
+
+    /**
+     * Guarda el soporte de pago en el storage y actualiza la base de datos tenant.
+     */
+    public function saveProofPayment()
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->selectedRemissionId) {
+            return;
+        }
+
+        $this->validate([
+            'proofPaymentFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ], [
+            'proofPaymentFile.required' => 'El soporte de pago es obligatorio.',
+            'proofPaymentFile.file' => 'El archivo no es válido.',
+            'proofPaymentFile.mimes' => 'El soporte debe ser un archivo de tipo JPG, JPEG, PNG o PDF.',
+            'proofPaymentFile.max' => 'El archivo no debe pesar más de 5MB.',
+        ]);
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $remission = InvRemissions::findOrFail($this->selectedRemissionId);
+
+            // Almacenar archivo físicamente en disco public (storage/app/public/proof_payments)
+            $path = $this->proofPaymentFile->store('proof_payments', 'public');
+
+            // Actualizar en la base de datos del tenant
+            $remission->update([
+                'proof_payment' => $path
+            ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showUploadModal = false;
+            $this->proofPaymentFile = null;
+            $this->selectedRemissionId = null;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Soporte de pago cargado exitosamente.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error al guardar soporte de pago', [
+                'error' => $e->getMessage(),
+                'remissionId' => $this->selectedRemissionId
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al guardar el soporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Cancela la carga del soporte de pago y resetea las variables.
+     */
+    public function cancelUpload()
+    {
+        $this->showUploadModal = false;
+        $this->proofPaymentFile = null;
+        $this->selectedRemissionId = null;
+        $this->resetErrorBag();
+    }
+
+
+    /**
+     * Imprime la cotización/remisión asociada a la OP de cartera.
+     * Reutiliza la misma lógica de impresión que el módulo de Cotizaciones.
+     */
+    public function printQuote($quoteId)
+    {
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
+
+        try {
+            $quote = VntQuote::findOrFail($quoteId);
+            $quote->load(['detalles', 'detalles.item', 'customer.company', 'customer.warehouse.city']);
+
+            $company = $this->getCompanyInfo($quote);
+
+            $tableName     = ($quote->status === 'REMISIÓN') ? 'inv_detail_remissions' : 'vnt_detail_quotes';
+            $tableNameId   = ($quote->status === 'REMISIÓN') ? 'remissionId' : 'quoteId';
+
+            $totalWeight = DB::connection('tenant')
+                ->table($tableName)
+                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where($tableName . '.' . $tableNameId, $quoteId)
+                ->sum('inv_items_dimensions.weight');
+
+            $observations = DB::connection('tenant')
+                ->table('inv_remissions')
+                ->where('quoteId', $quoteId)
+                ->select('observations_delivery', 'obs')
+                ->first();
+
+            $printFormat   = $this->getPrintCopiesLimit();
+            $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
+
+            $data = [
+                'quote'                 => $quote,
+                'customer'              => $quote->customer,
+                'company'               => $company,
+                'documentTitle'         => $documentTitle,
+                'showQR'                => true,
+                'defaultObservations'   => '',
+                'totalWeight'           => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs'                   => $observations->obs ?? null,
+                'showValues'            => true,
+            ];
+
+            $viewName = ($printFormat === 1)
+                ? 'livewire.tenant.quoter.print.print-carta'
+                : 'livewire.tenant.quoter.print.print-pos';
+
+            $html         = view($viewName, $data)->render();
+            $tempFileName = 'quote_' . $quoteId . '_' . time() . '.html';
+            $tempPath     = storage_path('app/temp/' . $tempFileName);
+
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            file_put_contents($tempPath, $html);
+
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+
+            $this->dispatch('open-print-window', [
+                'url'    => $printUrl,
+                'format' => $printFormat === 1 ? 'carta' : 'pos'
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type'    => 'success',
+                'message' => 'Documento #' . $quote->consecutive . ' preparado para imprimir.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ CarteraList::printQuote error', ['error' => $e->getMessage()]);
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'Error al generar la impresión: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
+    /**
+     * Determina el formato de impresión configurado.
+     * Opción 3: 0 = POS (tirilla), 1 = Carta (institucional)
+     */
+    private function getPrintCopiesLimit(): int
+    {
+        try {
+            $value = $this->getOptionValue(3);
+            return $value ?? 0;
+        } catch (\Exception $e) {
+            return 0; // Default POS
+        }
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
 
-        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment']);
+        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment', 'deliveryTypeModel']);
 
         if (empty($this->activeFilter)) {
             $query->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
@@ -327,6 +512,51 @@ class CarteraList extends Component
     /**
      * Asegura que la conexión 'tenant' esté configurada
      */
+    /**
+     * Obtiene la información de la empresa para los documentos de impresión.
+     */
+    private function getCompanyInfo($quote = null): object
+    {
+        try {
+            $userId = auth()->id();
+            if (!$userId) throw new \Exception('Usuario no autenticado');
+
+            $companyData = DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.billingEmail'
+                ])
+                ->first();
+
+            if ($companyData) return $companyData;
+
+            throw new \Exception('Datos de empresa no encontrados');
+        } catch (\Exception $e) {
+            Log::error('CarteraList::getCompanyInfo error: ' . $e->getMessage());
+            return (object) [
+                'businessName'   => 'EMPRESA',
+                'billingAddress' => 'N/A',
+                'city'           => 'N/A',
+                'acronym'        => 'NIT',
+                'identification' => 'N/A',
+                'billingEmail'   => 'N/A'
+            ];
+        }
+    }
+
     /**
      * Asegura que la conexión 'tenant' esté configurada usando el TenantManager
      */
