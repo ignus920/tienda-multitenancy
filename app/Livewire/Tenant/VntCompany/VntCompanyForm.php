@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 use App\Models\Auth\User;
 use App\Models\Auth\UserTenant;
+use App\Models\Central\VntContact;
 use App\Models\Tenant\Customer\VntCompanyRoute;
 use App\Livewire\Tenant\VntCompany\Services\CompanyService;
 use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
@@ -1545,9 +1546,15 @@ class VntCompanyForm extends Component
     {
         $newUser = null;
         try {
-            // Obtener el contacto principal
-            $mainWarehouse = $company->mainWarehouse;
-            $mainContact = $mainWarehouse ? $mainWarehouse->contacts->first() : null;
+            // Crear el contacto antes del usuario
+            $newContact = VntContact::create([
+                'firstName' => $this->firstName ?: $this->businessName,
+                'lastName' => $this->lastName ?: '',
+                'email' => $this->billingEmail,
+                'status' => 1,
+                'warehouseId' => auth()->user()->contact->warehouseId,
+                'positionId' => 5,
+            ]);
 
             // Preparar datos del usuario
             $userName = $this->firstName && $this->lastName
@@ -1559,7 +1566,7 @@ class VntCompanyForm extends Component
                 'email' => $this->billingEmail,
                 'password' => Hash::make('12345678'), // Contraseña por defecto
                 'profile_id' => 17, // Perfil "Tienda"
-                'contact_id' => $mainContact ? $mainContact->id : null,
+                'contact_id' => $newContact->id,
                 'phone' => $this->business_phone ?: $this->personal_phone,
             ];
 
@@ -1913,7 +1920,7 @@ class VntCompanyForm extends Component
 
             // Verificar si facturación electrónica está habilitada usando el trait (option_id=8)
             $isElectronicEnabled = $this->isOptionEnabled(8);
-            
+
             Log::info('📊 Estado de configuración para sincronización', [
                 'company_id' => $this->currentCompanyId,
                 'option_8_enabled' => $isElectronicEnabled ? 'SI' : 'NO',
