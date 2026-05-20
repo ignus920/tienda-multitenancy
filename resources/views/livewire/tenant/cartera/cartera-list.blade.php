@@ -184,15 +184,17 @@
                     <td class="px-6 py-4">
                         <div class="flex flex-col gap-2">
                             {{-- Método acordado en el pedido (Consistencia con Pedidos) --}}
-                            <div class="mb-1 pb-1 border-b border-gray-100 dark:border-slate-700/50">
-                                <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Acordado:</p>
-                                <div class="flex items-center text-green-600 dark:text-green-400">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <span class="text-[11px] font-bold uppercase">{{ $remission->methodPayment->name ?? 'SIN DEFINIR' }}</span>
+                            @if(!($remission->proof_payment) && !($remission->invoice && $remission->invoice->payments->count() > 0))
+                                <div class="mb-1 pb-1 border-b border-gray-100 dark:border-slate-700/50">
+                                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Acordado:</p>
+                                    <div class="flex items-center text-green-600 dark:text-green-400">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span class="text-[11px] font-bold uppercase">{{ $remission->methodPayment->name ?? 'SIN DEFINIR' }}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
 
                             @if($remission->proof_payment && (!$remission->invoice || $remission->invoice->payments->count() == 0))
                                 <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Soporte Cargado:</p>
