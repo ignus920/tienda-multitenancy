@@ -17,6 +17,8 @@ class ObservationsModal extends Component
     public $consecutive = null;
     public $referenceType = 'remission';
     public $title = 'Observaciones del Pedido';
+    public $orderObservations = '';
+    public $deliveryObservations = '';
     
     // Diccionario de observaciones: type => content
     public $observationData = [
@@ -100,6 +102,11 @@ class ObservationsModal extends Component
             $remission = \App\Models\Tenant\Remissions\InvRemissions::with('deliveryTypeModel')->find($this->referenceId);
             $this->deliveryType = $remission?->deliveryTypeModel?->name ?? 'N/A';
             $this->consecutive = $remission?->consecutive;
+            $this->orderObservations = $remission?->obs ?? '';
+            $this->deliveryObservations = $remission?->observations_delivery ?? '';
+        } else {
+            $this->orderObservations = '';
+            $this->deliveryObservations = '';
         }
     }
 
