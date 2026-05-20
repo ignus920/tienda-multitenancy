@@ -1318,6 +1318,7 @@ $header = 'Seleccionar productos';
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endif
                 </div>
             </div>
