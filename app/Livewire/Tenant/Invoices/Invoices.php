@@ -47,6 +47,8 @@ class Invoices extends Component
     public $paymentProofFile = null;
     public $paymentMethodId = null;
     public array $paymentMethodsList = [];
+    public bool $useRemissionProof = false;
+    public ?string $remissionProofPath = null;
 
     public function boot()
     {
@@ -204,15 +206,22 @@ class Invoices extends Component
         $this->ensureTenantConnection();
         $this->paymentInvoiceId = $invoiceId;
         $this->paymentProofFile = null;
+        $this->remissionProofPath = null;
+        $this->useRemissionProof = false;
 
         // Intentar obtener la forma de pago original seleccionada en el pedido/remisión
         $defaultMethodId = null;
         $invoiceSale = VntInvoicesXsales::where('invoiceId', $invoiceId)->with('remission')->first();
         if ($invoiceSale && $invoiceSale->remission) {
             $defaultMethodId = $invoiceSale->remission->methodPaymentId;
+            if ($invoiceSale->remission->proof_payment) {
+                $this->remissionProofPath = $invoiceSale->remission->proof_payment;
+                $this->useRemissionProof = true;
+            }
             Log::info('💳 Forma de pago preseleccionada del pedido/remisión', [
                 'remission_id' => $invoiceSale->remissionId,
-                'method_payment_id' => $defaultMethodId
+                'method_payment_id' => $defaultMethodId,
+                'has_proof_payment' => !empty($this->remissionProofPath)
             ]);
         }
 
@@ -236,16 +245,32 @@ class Invoices extends Component
         $this->paymentInvoiceId = null;
         $this->paymentProofFile = null;
         $this->paymentMethodId = null;
+        $this->remissionProofPath = null;
+        $this->useRemissionProof = false;
+    }
+
+    public function isRemissionProofImage()
+    {
+        if (empty($this->remissionProofPath)) {
+            return false;
+        }
+        $extension = strtolower(pathinfo($this->remissionProofPath, PATHINFO_EXTENSION));
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
     }
 
     public function submitPayment()
     {
         $this->ensureTenantConnection();
 
-        $this->validate([
+        $rules = [
             'paymentMethodId' => 'required',
-            'paymentProofFile' => 'required|image|max:2048' // 2MB max, proof file is required for payment confirmation as requested by user
-        ]);
+        ];
+
+        if (!$this->useRemissionProof) {
+            $rules['paymentProofFile'] = 'required|image|max:2048'; // 2MB max, proof file is required for payment confirmation
+        }
+
+        $this->validate($rules);
 
         try {
             $invoice = VntInvoices::findOrFail($this->paymentInvoiceId);
@@ -258,7 +283,9 @@ class Invoices extends Component
 
             if ($invoice->status_payment === 'PAGADO') {
                 $filePath = null;
-                if ($this->paymentProofFile) {
+                if ($this->useRemissionProof && $this->remissionProofPath) {
+                    $filePath = $this->remissionProofPath;
+                } elseif ($this->paymentProofFile) {
                     $tenantId = session('tenant_id') ?? 'default';
                     $filePath = $this->paymentProofFile->store("tenants/{$tenantId}/payments", 'public');
                 }

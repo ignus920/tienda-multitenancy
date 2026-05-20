@@ -674,7 +674,38 @@
                     @enderror
                 </div>
 
+                {{-- Remission Proof Payment Option --}}
+                @if($remissionProofPath)
+                    <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Soporte de la Remisión</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" wire:model.live="useRemissionProof" class="sr-only peer">
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                <span class="ml-2 text-xs font-bold text-gray-700 dark:text-slate-300">Vincular</span>
+                            </label>
+                        </div>
+                        
+                        @if($this->isRemissionProofImage())
+                            <div class="relative rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 bg-gray-100 dark:bg-slate-900 max-h-40 flex items-center justify-center">
+                                <img src="{{ asset('storage/' . $remissionProofPath) }}" class="object-contain max-h-36 w-full">
+                            </div>
+                        @else
+                            <div class="flex items-center gap-2 p-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-lg">
+                                <svg class="w-8 h-8 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs font-bold text-gray-700 dark:text-slate-300 truncate">Soporte adjunto (PDF/Documento)</p>
+                                    <a href="{{ asset('storage/' . $remissionProofPath) }}" target="_blank" class="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">Ver documento adjunto</a>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 {{-- File Upload --}}
+                @if(!$useRemissionProof)
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                         Comprobante de Pago (Imagen) <span class="text-red-500">*</span>
@@ -709,6 +740,7 @@
                         </div>
                     @endif
                 </div>
+                @endif
 
                 {{-- Loading indicator --}}
                 <div wire:loading wire:target="paymentProofFile" class="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
