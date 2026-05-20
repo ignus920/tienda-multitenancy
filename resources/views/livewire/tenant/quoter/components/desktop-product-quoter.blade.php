@@ -1269,6 +1269,54 @@ $header = 'Seleccionar productos';
                 </div>
                 {{-- @endif --}}
 
+                <!-- Adjuntar Soporte de Pago -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                        Soporte de Pago (Imagen / PDF)
+                    </label>
+                    <div class="flex flex-col space-y-2">
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 dark:hover:bg-slate-600 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2l2 2"/>
+                                    </svg>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        <span class="font-semibold">Haz clic para subir</span> o arrastra
+                                    </p>
+                                </div>
+                                <input type="file" wire:model="proofPaymentFile" class="hidden" accept="image/*,application/pdf" />
+                            </label>
+                        </div>
+                        
+                        <div wire:loading wire:target="proofPaymentFile" class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            Cargando archivo...
+                        </div>
+
+                        @if($proofPaymentFile)
+                            <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs">
+                                <div class="flex items-center space-x-2 truncate">
+                                    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <span class="text-indigo-700 dark:text-indigo-300 truncate font-medium max-w-[200px]">
+                                        {{ $proofPaymentFile->getClientOriginalName() }}
+                                    </span>
+                                </div>
+                                <button type="button" wire:click="$set('proofPaymentFile', null)" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        @endif
+
+                        @error('proofPaymentFile')
+                            <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
                 <!-- Información del tipo seleccionado -->
                 @if($selectedDeliveryType)
                     @php

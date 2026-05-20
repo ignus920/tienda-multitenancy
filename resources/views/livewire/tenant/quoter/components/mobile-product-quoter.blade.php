@@ -430,6 +430,39 @@ $header = 'Seleccionar productos';
                     <option value="">Selecciona pago...</option>
                     @foreach($methodPayments as $method)<option value="{{ $method['id'] }}">{{ $method['name'] }}</option>@endforeach
                 </select>
+
+                <!-- Adjuntar Soporte de Pago -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                        Soporte de Pago (Imagen / PDF)
+                    </label>
+                    <div class="flex flex-col space-y-2">
+                        <label class="flex items-center justify-center w-full py-3 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 transition-colors">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Subir Soporte</span>
+                            <input type="file" wire:model="proofPaymentFile" class="hidden" accept="image/*,application/pdf" />
+                        </label>
+                        
+                        <div wire:loading wire:target="proofPaymentFile" class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            Cargando archivo...
+                        </div>
+
+                        @if($proofPaymentFile)
+                            <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs">
+                                <span class="text-indigo-700 dark:text-indigo-300 truncate font-medium max-w-[80%]">
+                                    {{ $proofPaymentFile->getClientOriginalName() }}
+                                </span>
+                                <button type="button" wire:click="$set('proofPaymentFile', null)" class="text-red-500 hover:text-red-700 font-semibold">
+                                    Eliminar
+                                </button>
+                            </div>
+                        @endif
+
+                        @error('proofPaymentFile')
+                            <p class="text-[10px] text-red-500 font-medium">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
                 <button wire:click="proceedWithRemissionCreation" class="w-full py-3 bg-blue-600 text-white rounded-lg font-medium">Crear Remisión</button>
                 <button wire:click="closeDeliveryModal" class="w-full py-3 mt-2 text-gray-700 dark:text-gray-300">Cancelar</button>
             </div>

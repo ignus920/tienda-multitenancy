@@ -31,11 +31,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\Livewire\HasDynamicButtons;
+use Livewire\WithFileUploads;
 
 class ProductQuoter extends Component
 {
-    use WithPagination, HasDynamicButtons;
+    use WithPagination, HasDynamicButtons, WithFileUploads;
 
+    public $proofPaymentFile;
     public $search = '';
     public $perPage = 12;
     public $sortField = 'id';
@@ -2052,6 +2054,28 @@ class ProductQuoter extends Component
             return;
         }
 
+        // Validar soporte de pago si existe
+        if ($this->proofPaymentFile) {
+            try {
+                $this->validate([
+                    'proofPaymentFile' => [
+                        'file',
+                        'max:10240', // 10MB
+                        'mimes:jpg,jpeg,png,webp,pdf,gif,doc,docx'
+                    ]
+                ], [
+                    'proofPaymentFile.mimes' => 'El soporte de pago debe ser una imagen (jpg, jpeg, png, webp, gif), PDF o documento Word. Archivos de Excel no están permitidos.',
+                    'proofPaymentFile.max' => 'El soporte de pago no debe pesar más de 10 MB.',
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => $e->validator->errors()->first('proofPaymentFile')
+                ]);
+                return;
+            }
+        }
+
         // Cerrar modal y crear remisión
         $this->showDeliveryModal = false;
         $this->createRemissionWithDeliveryType();
@@ -2106,6 +2130,13 @@ class ProductQuoter extends Component
                 $observationsReturn = $this->otherDeliveryDetails;
             }
 
+            // Subir soporte de pago si existe
+            $proofPaymentPath = null;
+            if ($this->proofPaymentFile) {
+                $tenantId = session('tenant_id', 'default');
+                $proofPaymentPath = $this->proofPaymentFile->store("remissions/proofs/{$tenantId}", 'public');
+            }
+
             // Crear Remisión con tipo de entrega y método de pago
             $remission = InvRemissions::create([
                 'consecutive' => $nextConsecutive,
@@ -2121,7 +2152,8 @@ class ProductQuoter extends Component
                 //'observations_return' => $observationsReturn,
                 'obs' => $this->orderDetails,
                 'observations_delivery' => $this->deliveryDetails,
-                'flete' => $quote->flete
+                'flete' => $quote->flete,
+                'proof_payment' => $proofPaymentPath
             ]);
 
             // Copiar justificación de flete si existe
@@ -2197,6 +2229,7 @@ class ProductQuoter extends Component
         $this->selectedMethodPayment = null;
         $this->showOtherDeliveryInput = false;
         $this->otherDeliveryDetails = '';
+        $this->proofPaymentFile = null;
     }
 
     /**
