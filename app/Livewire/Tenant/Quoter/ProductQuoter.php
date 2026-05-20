@@ -324,7 +324,10 @@ class ProductQuoter extends Component
             // Si se pasa un remissionId, estamos editando una remisión
             $this->loadRemissionForEditing($remissionId);
         } else {
-            $this->quoterItems = session('quoter_items', []);
+            // Modo creación limpia: siempre iniciar con carrito vacío
+            // para evitar que productos de ediciones previas queden cargados
+            $this->quoterItems = [];
+            session()->forget('quoter_items');
         }
 
         $this->calculateTotal();
