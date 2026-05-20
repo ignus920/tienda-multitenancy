@@ -1121,7 +1121,7 @@ $header = 'Seleccionar productos';
         <!-- Overlay -->
         <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
 
-        <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-md border border-gray-200 dark:border-slate-700"
+        <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-3xl border border-gray-200 dark:border-slate-700"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
              x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
@@ -1190,152 +1190,136 @@ $header = 'Seleccionar productos';
 
             <!-- Body -->
             <div class="p-6">
-                <!-- Selección de Sede/Sucursal -->
-                {{-- @if(!empty($branches) && count($branches) > 1)
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Sede/Sucursal del Cliente <span class="text-red-500">*</span>
-                    </label>
-                    <select wire:model.live="selectedBranchId"
-                            wire:change="selectBranch($event.target.value)"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Selecciona una sucursal</option>
-                        @foreach($branches as $branch)
-                            <option value="{{ $branch['id'] }}">{{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }} - {{ $branch['address'] ?? 'N/A' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                @endif --}}
-
-                <!-- Selección de Tipo de Entrega -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Tipo de Entrega <span class="text-red-500">*</span>
-                    </label>
-                    <select wire:model.live="selectedDeliveryType"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Selecciona un tipo de entrega</option>
-                        @foreach($deliveryTypes as $type)
-                            <option value="{{ $type['id'] }}">{{ $type['name'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Selección de Método de Pago -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Método de Pago <span class="text-red-500">*</span>
-                    </label>
-                    <select wire:model.live="selectedMethodPayment"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Selecciona un método de pago</option>
-                        @foreach($methodPayments as $method)
-                            <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Campo para especificar "Otro" tipo de entrega -->
-                @if($showOtherDeliveryInput)
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Especifica el tipo de entrega <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" wire:model="otherDeliveryDetails"
-                           placeholder="Ej: Envío por mensajería, Recogida personalizada, etc."
-                           class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                @endif
-
-                <!-- Campo de Detalles (si es requerido) -->
-                {{-- @if($requiresDeliveryDetails) --}}
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Observaciones de Entrega
-                    </label>
-                    <textarea wire:model="deliveryDetails"
-                              rows="3"
-                              placeholder="Detalles para la entrega..."
-                              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Observaciones Pedido
-                    </label>
-                    <textarea wire:model="orderDetails"
-                              rows="3"
-                              placeholder="Detalles para el pedido..."
-                              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                </div>
-                {{-- @endif --}}
-
-                <!-- Adjuntar Soporte de Pago -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                        Soporte de Pago (Imagen / PDF)
-                    </label>
-                    <div class="flex flex-col space-y-2">
-                        <div class="flex items-center justify-center w-full">
-                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 dark:hover:bg-slate-600 transition-colors">
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <svg class="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2l2 2"/>
-                                    </svg>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        <span class="font-semibold">Haz clic para subir</span> o arrastra
-                                    </p>
-                                </div>
-                                <input type="file" wire:model="proofPaymentFile" class="hidden" accept="image/*,application/pdf" />
-                            </label>
-                        </div>
-                        
-                        <div wire:loading wire:target="proofPaymentFile" class="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                            Cargando archivo...
-                        </div>
-
-                        @if($proofPaymentFile)
-                            <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs">
-                                <div class="flex items-center space-x-2 truncate">
-                                    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    <span class="text-indigo-700 dark:text-indigo-300 truncate font-medium max-w-[200px]">
-                                        {{ $proofPaymentFile->getClientOriginalName() }}
-                                    </span>
-                                </div>
-                                <button type="button" wire:click="$set('proofPaymentFile', null)" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        @endif
-
-                        @error('proofPaymentFile')
-                            <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>
-                        @enderror
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Selección de Tipo de Entrega -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Tipo de Entrega <span class="text-red-500">*</span>
+                        </label>
+                        <select wire:model.live="selectedDeliveryType"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Selecciona un tipo de entrega</option>
+                            @foreach($deliveryTypes as $type)
+                                <option value="{{ $type['id'] }}">{{ $type['name'] }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
 
-                <!-- Información del tipo seleccionado -->
-                @if($selectedDeliveryType)
-                    @php
-                        $selectedType = collect($deliveryTypes)->firstWhere('id', $selectedDeliveryType);
-                    @endphp
-                    @if($selectedType && !empty($selectedType['detail']))
-                    <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <div class="flex items-start">
-                            <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div>
-                                <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-300">Información</h4>
-                                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">{{ $selectedType['detail'] }}</p>
-                            </div>
-                        </div>
+                    <!-- Selección de Método de Pago -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Método de Pago <span class="text-red-500">*</span>
+                        </label>
+                        <select wire:model.live="selectedMethodPayment"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Selecciona un método de pago</option>
+                            @foreach($methodPayments as $method)
+                                <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Campo para especificar "Otro" tipo de entrega -->
+                    @if($showOtherDeliveryInput)
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Especifica el tipo de entrega <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" wire:model="otherDeliveryDetails"
+                               placeholder="Ej: Envío por mensajería, Recogida personalizada, etc."
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     @endif
-                @endif
+
+                    <!-- Observaciones de Entrega -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Observaciones de Entrega
+                        </label>
+                        <textarea wire:model="deliveryDetails"
+                                  rows="3"
+                                  placeholder="Detalles para la entrega..."
+                                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    </div>
+
+                    <!-- Observaciones Pedido -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Observaciones Pedido
+                        </label>
+                        <textarea wire:model="orderDetails"
+                                  rows="3"
+                                  placeholder="Detalles para el pedido..."
+                                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    </div>
+
+                    <!-- Adjuntar Soporte de Pago -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Soporte de Pago (Imagen / PDF)
+                        </label>
+                        <div class="flex flex-col space-y-2">
+                            <div class="flex items-center justify-center w-full">
+                                <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 dark:hover:bg-slate-600 transition-colors">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <svg class="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2l2 2"/>
+                                        </svg>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            <span class="font-semibold">Haz clic para subir</span> o arrastra
+                                        </p>
+                                    </div>
+                                    <input type="file" wire:model="proofPaymentFile" class="hidden" accept="image/*,application/pdf" />
+                                </label>
+                            </div>
+                            
+                            <div wire:loading wire:target="proofPaymentFile" class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                Cargando archivo...
+                            </div>
+
+                            @if($proofPaymentFile)
+                                <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs">
+                                    <div class="flex items-center space-x-2 truncate">
+                                        <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        <span class="text-indigo-700 dark:text-indigo-300 truncate font-medium max-w-[200px]">
+                                            {{ $proofPaymentFile->getClientOriginalName() }}
+                                        </span>
+                                    </div>
+                                    <button type="button" wire:click="$set('proofPaymentFile', null)" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            @endif
+
+                            @error('proofPaymentFile')
+                                <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <!-- Información del tipo seleccionado -->
+                    @if($selectedDeliveryType)
+                        @php
+                            $selectedType = collect($deliveryTypes)->firstWhere('id', $selectedDeliveryType);
+                        @endphp
+                        @if($selectedType && !empty($selectedType['detail']))
+                        <div class="md:col-span-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-300">Información</h4>
+                                    <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">{{ $selectedType['detail'] }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
             </div>
 
             <!-- Footer -->
