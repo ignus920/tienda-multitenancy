@@ -6,12 +6,15 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Sales\VntOrderAuthorization;
+use App\Models\Tenant\Quoter\VntQuote;
+use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class CarteraList extends Component
 {
-    use WithPagination;
+    use WithPagination, HasCompanyConfiguration;
 
     // Filtros
     public $fromDate;
@@ -223,6 +226,88 @@ class CarteraList extends Component
             'message' => 'Acción realizada correctamente.'
         ]);
     }
+
+    /**
+     * Imprime la cotización/remisión asociada a la OP de cartera.
+     * Reutiliza la misma lógica de impresión que el módulo de Cotizaciones.
+     */
+    public function printQuote($quoteId)
+    {
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
+
+        try {
+            $quote = VntQuote::findOrFail($quoteId);
+            $quote->load(['detalles', 'detalles.item', 'customer.company', 'customer.warehouse.city']);
+
+            $company = $this->getCompanyInfo($quote);
+
+            $tableName     = ($quote->status === 'REMISIÓN') ? 'inv_detail_remissions' : 'vnt_detail_quotes';
+            $tableNameId   = ($quote->status === 'REMISIÓN') ? 'remissionId' : 'quoteId';
+
+            $totalWeight = DB::connection('tenant')
+                ->table($tableName)
+                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where($tableName . '.' . $tableNameId, $quoteId)
+                ->sum('inv_items_dimensions.weight');
+
+            $observations = DB::connection('tenant')
+                ->table('inv_remissions')
+                ->where('quoteId', $quoteId)
+                ->select('observations_delivery', 'obs')
+                ->first();
+
+            $printFormat   = $this->getPrintCopiesLimit();
+            $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
+
+            $data = [
+                'quote'                 => $quote,
+                'customer'              => $quote->customer,
+                'company'               => $company,
+                'documentTitle'         => $documentTitle,
+                'showQR'                => true,
+                'defaultObservations'   => '',
+                'totalWeight'           => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs'                   => $observations->obs ?? null,
+                'showValues'            => true,
+            ];
+
+            $viewName = ($printFormat === 1)
+                ? 'livewire.tenant.quoter.print.print-carta'
+                : 'livewire.tenant.quoter.print.print-pos';
+
+            $html         = view($viewName, $data)->render();
+            $tempFileName = 'quote_' . $quoteId . '_' . time() . '.html';
+            $tempPath     = storage_path('app/temp/' . $tempFileName);
+
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            file_put_contents($tempPath, $html);
+
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+
+            $this->dispatch('open-print-window', [
+                'url'    => $printUrl,
+                'format' => $printFormat === 1 ? 'carta' : 'pos'
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type'    => 'success',
+                'message' => 'Documento #' . $quote->consecutive . ' preparado para imprimir.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ CarteraList::printQuote error', ['error' => $e->getMessage()]);
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'Error al generar la impresión: ' . $e->getMessage()
+            ]);
+        }
+    }
+
 
     public function render()
     {

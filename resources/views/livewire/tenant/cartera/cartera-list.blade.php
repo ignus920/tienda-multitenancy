@@ -133,6 +133,7 @@
                 <tr class="bg-gray-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-700">
                     <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">#OP / Cliente</th>
                     <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Estado</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Tipo Entrega</th>
                     <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Retenciones</th>
                     <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Formas de pago</th>
                     <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Empaque</th>
@@ -154,11 +155,6 @@
                             <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">#{{ $remission->consecutive }}</span>
                             <span class="text-xs text-gray-400 mb-1">{{ $remission->created_at->format('Y-m-d H:i') }}</span>
                             <span class="text-sm font-medium text-gray-700 dark:text-slate-300 uppercase">{{ $remission->quote->customer_name ?? 'N/A' }}</span>
-                            @if($remission->delivery_type)
-                            <span class="mt-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-gray-500 w-fit">
-                                {{ $remission->delivery_type }}
-                            </span>
-                            @endif
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center">
@@ -166,6 +162,22 @@
                             {{ $remission->status === 'ANULADO' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600' }}">
                             {{ $remission->status }}
                         </span>
+                    </td>
+
+                    {{-- Columna Tipo de Entrega --}}
+                    <td class="px-6 py-4">
+                        @if($remission->delivery_type)
+                            <div class="flex flex-col gap-1">
+                                <span class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800 px-2 py-1 rounded-lg">
+                                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                                    </svg>
+                                    {{ $remission->delivery_type }}
+                                </span>
+                            </div>
+                        @else
+                            <span class="text-[11px] text-gray-400 italic">Sin definir</span>
+                        @endif
                     </td>
                     <td class="px-6 py-4">
                         <div class="bg-gray-100 dark:bg-slate-900/50 p-2 rounded-lg text-[11px] space-y-1">
@@ -320,6 +332,16 @@
                                  class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-[60]"
                                  style="display: none;">
                                 <div class="py-1">
+                                    @if($remission->quote)
+                                    <button wire:click="printQuote({{ $remission->quote->id }})" 
+                                            @click="open = false"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                        </svg>
+                                        Imprimir
+                                    </button>
+                                    @endif
                                     <button wire:click="openObservationsModal({{ $remission->id }})" 
                                             @click="open = false"
                                             class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
