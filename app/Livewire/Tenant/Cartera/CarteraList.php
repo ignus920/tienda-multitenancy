@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Cartera;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Sales\VntOrderAuthorization;
 use App\Models\Tenant\Quoter\VntQuote;
@@ -14,7 +15,11 @@ use Carbon\Carbon;
 
 class CarteraList extends Component
 {
-    use WithPagination, HasCompanyConfiguration;
+    use WithPagination, HasCompanyConfiguration, WithFileUploads;
+
+    // Propiedades para soporte de pago
+    public $showUploadModal = false;
+    public $proofPaymentFile;
 
     // Filtros
     public $fromDate;
@@ -226,6 +231,87 @@ class CarteraList extends Component
             'message' => 'Acción realizada correctamente.'
         ]);
     }
+
+    /**
+     * Abre el modal de carga de soporte de pago para una remisión.
+     */
+    public function openUploadModal($remissionId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedRemissionId = $remissionId;
+        $this->proofPaymentFile = null;
+        $this->showUploadModal = true;
+    }
+
+    /**
+     * Guarda el soporte de pago en el storage y actualiza la base de datos tenant.
+     */
+    public function saveProofPayment()
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->selectedRemissionId) {
+            return;
+        }
+
+        $this->validate([
+            'proofPaymentFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ], [
+            'proofPaymentFile.required' => 'El soporte de pago es obligatorio.',
+            'proofPaymentFile.file' => 'El archivo no es válido.',
+            'proofPaymentFile.mimes' => 'El soporte debe ser un archivo de tipo JPG, JPEG, PNG o PDF.',
+            'proofPaymentFile.max' => 'El archivo no debe pesar más de 5MB.',
+        ]);
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $remission = InvRemissions::findOrFail($this->selectedRemissionId);
+
+            // Almacenar archivo físicamente en disco public (storage/app/public/proof_payments)
+            $path = $this->proofPaymentFile->store('proof_payments', 'public');
+
+            // Actualizar en la base de datos del tenant
+            $remission->update([
+                'proof_payment' => $path
+            ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showUploadModal = false;
+            $this->proofPaymentFile = null;
+            $this->selectedRemissionId = null;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Soporte de pago cargado exitosamente.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error al guardar soporte de pago', [
+                'error' => $e->getMessage(),
+                'remissionId' => $this->selectedRemissionId
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al guardar el soporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Cancela la carga del soporte de pago y resetea las variables.
+     */
+    public function cancelUpload()
+    {
+        $this->showUploadModal = false;
+        $this->proofPaymentFile = null;
+        $this->selectedRemissionId = null;
+        $this->resetErrorBag();
+    }
+
 
     /**
      * Imprime la cotización/remisión asociada a la OP de cartera.

@@ -259,6 +259,29 @@
                             @else
                                 <span class="text-[10px] text-gray-400 italic">Sin pagos registrados</span>
                             @endif
+
+                            {{-- Botón para cargar soporte si no tiene proof_payment --}}
+                            @if(!$remission->proof_payment)
+                            <button
+                                wire:click="openUploadModal({{ $remission->id }})"
+                                class="mt-1.5 w-full inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/20 dark:hover:bg-violet-900/40 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-[10px] font-bold transition-all duration-200 group"
+                                title="Cargar soporte de pago">
+                                <svg class="w-3 h-3 group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Cargar Soporte
+                            </button>
+                            @else
+                            <button
+                                wire:click="openUploadModal({{ $remission->id }})"
+                                class="mt-1.5 w-full inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[10px] font-bold transition-all duration-200 group"
+                                title="Reemplazar soporte de pago">
+                                <svg class="w-3 h-3 group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Reemplazar
+                            </button>
+                            @endif
                         </div>
                     </td>
 
@@ -358,6 +381,14 @@
                                         </svg>
                                         Agregar observación
                                     </button>
+                                    <button wire:click="openUploadModal({{ $remission->id }})" 
+                                            @click="open = false"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                        </svg>
+                                        {{ $remission->proof_payment ? 'Reemplazar soporte' : 'Cargar soporte' }}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -374,6 +405,164 @@
 
     <!-- Componente de Observaciones -->
     <livewire:tenant.components.observations-modal />
+
+    <!-- Modal de Carga de Soporte de Pago -->
+    <template x-teleport="body">
+        <div x-show="$wire.showUploadModal"
+             class="fixed inset-0 z-[110] overflow-y-auto"
+             style="display: none;"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <!-- Overlay con blur -->
+                <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm" @click="$wire.cancelUpload()"></div>
+
+                <!-- Panel del modal -->
+                <div class="relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-slate-700 overflow-hidden"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 scale-95 translate-y-4">
+
+                    <!-- Header del modal -->
+                    <div class="flex items-center justify-between px-6 py-4" style="background: linear-gradient(to right, #7c3aed, #4f46e5); border-bottom: 1px solid #e5e7eb;">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white">Cargar Soporte de Pago</h3>
+                                <p class="text-xs" style="color: #ddd6fe;">Remisión #{{ $selectedRemissionId }}</p>
+                            </div>
+                        </div>
+                        <button @click="$wire.cancelUpload()" class="transition-colors" style="color: rgba(255,255,255,0.7);" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.7)'">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Cuerpo del modal -->
+                    <div class="p-6">
+
+                        <!-- Zona de drop de archivo -->
+                        <div
+                            x-data="{ isDragging: false }"
+                            @dragover.prevent="isDragging = true"
+                            @dragleave.prevent="isDragging = false"
+                            @drop.prevent="isDragging = false"
+                            :class="isDragging ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/40 hover:border-violet-400 hover:bg-violet-50/50 dark:hover:border-violet-500 dark:hover:bg-violet-900/10'"
+                            class="relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 cursor-pointer group"
+                            onclick="document.getElementById('proof-payment-input').click()">
+
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200" style="background: #ede9fe;">
+                                    <svg class="w-6 h-6" style="color: #7c3aed;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-700 dark:text-slate-300">Haz clic o arrastra el archivo aquí</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">JPG, JPEG, PNG o PDF · Máx. 5 MB</p>
+                                </div>
+                            </div>
+
+                            <input
+                                id="proof-payment-input"
+                                type="file"
+                                wire:model="proofPaymentFile"
+                                accept="image/jpeg,image/jpg,image/png,application/pdf"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onclick="event.stopPropagation()">
+                        </div>
+
+                        <!-- Vista previa del archivo seleccionado -->
+                        <div wire:loading.remove wire:target="proofPaymentFile">
+                            @if($proofPaymentFile)
+                            <div class="mt-4 flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
+                                    @if(in_array($proofPaymentFile->getClientOriginalExtension(), ['jpg', 'jpeg', 'png']))
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    @else
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                    @endif
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-semibold text-green-800 dark:text-green-300 truncate">{{ $proofPaymentFile->getClientOriginalName() }}</p>
+                                    <p class="text-[10px] text-green-600 dark:text-green-400">{{ number_format($proofPaymentFile->getSize() / 1024, 1) }} KB · Listo para subir</p>
+                                </div>
+                                <div class="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+
+                        <!-- Indicador de carga mientras Livewire procesa el archivo -->
+                        <div wire:loading wire:target="proofPaymentFile" class="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg border" style="background: #f5f3ff; border-color: #ddd6fe;">
+                            <svg class="w-4 h-4 animate-spin" style="color: #7c3aed;" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                            <span class="text-xs font-medium" style="color: #6d28d9;">Procesando archivo...</span>
+                        </div>
+
+                        <!-- Errores de validación -->
+                        @error('proofPaymentFile')
+                        <div class="mt-3 flex items-start gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                            <svg class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span>
+                        </div>
+                        @enderror
+                    </div>
+
+                    <!-- Footer con botones -->
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/40 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
+                        <button
+                            wire:click="cancelUpload"
+                            class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button
+                            wire:click="saveProofPayment"
+                            wire:loading.attr="disabled"
+                            wire:target="saveProofPayment"
+                            class="px-5 py-2 text-sm font-bold text-white rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                            style="background: linear-gradient(to right, #7c3aed, #4f46e5); box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.4);"
+                            onmouseover="this.style.background='linear-gradient(to right, #6d28d9, #4338ca)'"
+                            onmouseout="this.style.background='linear-gradient(to right, #7c3aed, #4f46e5)'">
+                            <svg wire:loading.remove wire:target="saveProofPayment" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            <svg wire:loading wire:target="saveProofPayment" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                            <span wire:loading.remove wire:target="saveProofPayment">Subir soporte</span>
+                            <span wire:loading wire:target="saveProofPayment">Subiendo...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <!-- Modal de Justificación de Cartera -->
     <template x-teleport="body">
