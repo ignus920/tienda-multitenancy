@@ -420,7 +420,7 @@
 
             <div class="flex items-center justify-center min-h-screen p-4">
                 <!-- Overlay con blur -->
-                <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm" @click="$wire.cancelUpload()"></div>
+                <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm" @click="$wire.set('showUploadModal', false)"></div>
 
                 <!-- Panel del modal -->
                 <div class="relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-slate-700 overflow-hidden"
@@ -444,7 +444,7 @@
                                 <p class="text-xs" style="color: #ddd6fe;">Remisión #{{ $selectedRemissionId }}</p>
                             </div>
                         </div>
-                        <button @click="$wire.cancelUpload()" class="transition-colors" style="color: rgba(255,255,255,0.7);" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.7)'">
+                        <button @click="$wire.set('showUploadModal', false)" class="transition-colors" style="color: rgba(255,255,255,0.7);" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.7)'">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -536,12 +536,12 @@
                     <!-- Footer con botones -->
                     <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/40 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
                         <button
-                            wire:click="cancelUpload"
+                            @click="$wire.set('showUploadModal', false)"
                             class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
                             Cancelar
                         </button>
                         <button
-                            wire:click="saveProofPayment"
+                            @click="$wire.call('saveProofPayment')"
                             wire:loading.attr="disabled"
                             wire:target="saveProofPayment"
                             class="px-5 py-2 text-sm font-bold text-white rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
