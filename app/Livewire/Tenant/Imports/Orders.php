@@ -196,9 +196,9 @@ class Orders extends Component
             ->join('imp_status as ist', 'i.status', '=', 'ist.id')
             ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
             ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
-            ->when(Auth::user()->profile_id == 17, function ($query) {
-                return $query->where('iis.supplier_id', Auth::id());
-            })
+            // ->when(Auth::user()->profile_id == 17, function ($query) {
+            //     return $query->where('iis.supplier_id', Auth::id());
+            // })
             ->when($this->filterStatus, function ($query) {
                 return $query->where('i.status', $this->filterStatus);
             })
