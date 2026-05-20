@@ -371,5 +371,5 @@
 
     <!-- Modales Compartidos -->
     @livewire('tenant.components.product-image-modal')
-    @livewire('tenant.components.item-accessories-modal')
+    {{-- @livewire('tenant.components.item-accessories-modal') --}}
 </div>
