@@ -309,11 +309,25 @@ class CarteraList extends Component
     }
 
 
+    /**
+     * Determina el formato de impresión configurado.
+     * Opción 3: 0 = POS (tirilla), 1 = Carta (institucional)
+     */
+    private function getPrintCopiesLimit(): int
+    {
+        try {
+            $value = $this->getOptionValue(3);
+            return $value ?? 0;
+        } catch (\Exception $e) {
+            return 0; // Default POS
+        }
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
 
-        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment']);
+        $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment', 'deliveryTypeModel']);
 
         if (empty($this->activeFilter)) {
             $query->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
@@ -412,6 +426,51 @@ class CarteraList extends Component
     /**
      * Asegura que la conexión 'tenant' esté configurada
      */
+    /**
+     * Obtiene la información de la empresa para los documentos de impresión.
+     */
+    private function getCompanyInfo($quote = null): object
+    {
+        try {
+            $userId = auth()->id();
+            if (!$userId) throw new \Exception('Usuario no autenticado');
+
+            $companyData = DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.billingEmail'
+                ])
+                ->first();
+
+            if ($companyData) return $companyData;
+
+            throw new \Exception('Datos de empresa no encontrados');
+        } catch (\Exception $e) {
+            Log::error('CarteraList::getCompanyInfo error: ' . $e->getMessage());
+            return (object) [
+                'businessName'   => 'EMPRESA',
+                'billingAddress' => 'N/A',
+                'city'           => 'N/A',
+                'acronym'        => 'NIT',
+                'identification' => 'N/A',
+                'billingEmail'   => 'N/A'
+            ];
+        }
+    }
+
     /**
      * Asegura que la conexión 'tenant' esté configurada usando el TenantManager
      */

@@ -166,13 +166,13 @@
 
                     {{-- Columna Tipo de Entrega --}}
                     <td class="px-6 py-4">
-                        @if($remission->delivery_type)
+                        @if($remission->deliveryTypeModel)
                             <div class="flex flex-col gap-1">
                                 <span class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800 px-2 py-1 rounded-lg">
                                     <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                                     </svg>
-                                    {{ $remission->delivery_type }}
+                                    {{ $remission->deliveryTypeModel->name }}
                                 </span>
                             </div>
                         @else
