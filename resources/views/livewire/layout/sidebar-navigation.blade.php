@@ -196,6 +196,7 @@ new class extends Component
         </div>
         @endif
 
+        @if (Auth::user()?->profile_id != 17)
         <!-- Devoluciones -->
         <a href="{{ route('tenant.returns') }}" wire:navigate
             class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.returns') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -221,7 +222,9 @@ new class extends Component
                 Devoluciones
             </div>
         </a>
+        @endif
 
+        @if (Auth::user()?->profile_id != 17)
         <!-- Almacén (Menú agrupado) -->
         <div x-data="{
             tooltip: false,
@@ -281,6 +284,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Despachos</a>
             </div>
         </div>
+        @endif
+
         <!-- Cartera -->
         @if(!$isOperario && PermissionHelper::userCan('Ventas', 'show'))
         <a href="{{ route('tenant.cartera.index') }}" wire:navigate
@@ -500,6 +505,7 @@ new class extends Component
         </div>
         @endif
 
+        @if (Auth::user()?->profile_id != 17)
         <!-- Solicitudes -->
         <a href="{{ route('tenant.tickets') }}" wire:navigate
             class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.tickets') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -520,6 +526,7 @@ new class extends Component
                 Solicitudes
             </div>
         </a>
+        @endif
 
 
 
