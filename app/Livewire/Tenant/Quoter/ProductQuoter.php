@@ -1915,6 +1915,15 @@ class ProductQuoter extends Component
             return;
         }
 
+        // ⚠️ Validación: si hay cambios sin guardar, forzar actualizar cotización primero
+        if ($this->hasChanges) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => '⚠️ Tienes cambios sin guardar. Actualiza la cotización antes de crear la OP.'
+            ]);
+            return;
+        }
+
         if (empty($this->quoterItems)) {
             $this->dispatch('show-toast', [
                 'type' => 'error',

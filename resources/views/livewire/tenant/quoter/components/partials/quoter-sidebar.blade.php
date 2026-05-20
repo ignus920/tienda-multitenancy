@@ -429,6 +429,25 @@
         @if($isEditing)
         <!-- Botón Confirmar Pedido -->
         <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+
+            @if($hasChanges)
+            {{-- ⚠️ Advertencia: cambios sin guardar --}}
+            <div class="mb-3 flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2.5">
+                <svg class="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <p class="text-xs text-amber-700 dark:text-amber-300 font-medium leading-tight">
+                    Tienes cambios sin guardar. <span class="font-bold">Actualiza la cotización</span> antes de crear la OP.
+                </p>
+            </div>
+            <button disabled
+                class="w-full bg-amber-400/60 dark:bg-amber-700/40 text-amber-800/70 dark:text-amber-300/70 font-semibold py-3 px-4 rounded-lg flex items-center justify-center cursor-not-allowed border border-amber-300 dark:border-amber-700 opacity-70 select-none">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                Crear OP (Guarda primero)
+            </button>
+            @else
             <button wire:click="confirmOrder"
                 wire:loading.attr="disabled"
                 wire:target="confirmOrder"
@@ -443,6 +462,7 @@
                 <span wire:loading.remove wire:target="confirmOrder">Crear OP</span>
                 <span wire:loading wire:target="confirmOrder">Creando OP...</span>
             </button>
+            @endif
 
             @if($this->canShowInvoiceButton)
             <button wire:click="invoiceOrder"
