@@ -186,11 +186,24 @@
                             {{-- Método acordado en el pedido (Consistencia con Pedidos) --}}
                             <div class="mb-1 pb-1 border-b border-gray-100 dark:border-slate-700/50">
                                 <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Acordado:</p>
-                                <div class="flex items-center text-green-600 dark:text-green-400">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <span class="text-[11px] font-bold uppercase">{{ $remission->methodPayment->name ?? 'SIN DEFINIR' }}</span>
+                                <div class="flex items-center justify-between text-green-600 dark:text-green-400">
+                                    <div class="flex items-center">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span class="text-[11px] font-bold uppercase">{{ $remission->methodPayment->name ?? 'SIN DEFINIR' }}</span>
+                                    </div>
+                                    @if($remission->proof_payment && (!$remission->invoice || $remission->invoice->payments->count() == 0))
+                                        <a href="{{ asset('storage/' . $remission->proof_payment) }}" 
+                                           target="_blank" 
+                                           class="inline-flex items-center text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold transition-colors gap-1"
+                                           title="Ver soporte de pago de la remisión">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                            </svg>
+                                            Ver Soporte
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
 
@@ -207,8 +220,8 @@
                                                 ${{ number_format($payment->value, 0) }}
                                             </p>
                                         </div>
-                                        @if($payment->proof_payment)
-                                            <a href="{{ asset('storage/' . $payment->proof_payment) }}" 
+                                        @if($remission->proof_payment || $payment->proof_payment)
+                                            <a href="{{ asset('storage/' . ($remission->proof_payment ?? $payment->proof_payment)) }}" 
                                                target="_blank" 
                                                class="inline-flex items-center text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold mt-0.5 transition-colors gap-1">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
