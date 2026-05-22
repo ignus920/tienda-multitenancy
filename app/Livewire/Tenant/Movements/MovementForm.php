@@ -191,11 +191,19 @@ class MovementForm extends Component
 
             if (!$movement) {
                 $this->errorMessage = 'Movimiento no encontrado';
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => $this->errorMessage
+                ]);
                 return;
             }
 
             if ($movement->status === 0) {
                 $this->errorMessage = 'Este movimiento ya está anulado';
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => $this->errorMessage
+                ]);
                 return;
             }
 
@@ -215,6 +223,10 @@ class MovementForm extends Component
                         'api_data_id'  => $movement->api_data_id,
                         'alegra_error' => $alegraResult,
                     ]);
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $this->errorMessage
+                    ]);
                     return;
                 }
 
@@ -229,13 +241,17 @@ class MovementForm extends Component
 
             // Revertir el inventario según el tipo de movimiento
             foreach ($movement->details as $detail) {
-                $itemStore = InvItemsStore::where('itemId', $detail->itemId)
+                $itemStore = InvItemsStore::where('itemId', $detail['itemId'])
                     ->where('storeId', $movement->storeId)
                     ->first();
 
                 if (!$itemStore) {
                     DB::connection('tenant')->rollBack();
                     $this->errorMessage = 'No se encontró el registro de inventario para el item';
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $this->errorMessage
+                    ]);
                     return;
                 }
 
@@ -250,6 +266,10 @@ class MovementForm extends Component
                     if ($itemStore->stock_items_store < $quantityInConsumptionUnit) {
                         DB::connection('tenant')->rollBack();
                         $this->errorMessage = 'No hay suficiente stock para anular este movimiento de entrada';
+                        $this->dispatch('show-toast', [
+                            'type' => 'error',
+                            'message' => $this->errorMessage
+                        ]);
                         return;
                     }
 
@@ -272,6 +292,13 @@ class MovementForm extends Component
 
             // Close details modal and refresh list
             $this->closeDetailsModal();
+
+            // Despachar toast de confirmación al anular
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Movimiento anulado correctamente'
+            ]);
+
             $this->dispatch('refreshMovements', type: $movement->type);
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
@@ -280,6 +307,10 @@ class MovementForm extends Component
                 'trace' => $e->getTraceAsString()
             ]);
             $this->errorMessage = 'Error al anular el movimiento: ' . $e->getMessage();
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => $this->errorMessage
+            ]);
         }
     }
 
@@ -627,6 +658,10 @@ class MovementForm extends Component
             // Validate that there are details
             if (empty($this->details)) {
                 $this->errorMessage = 'Debe agregar al menos un item al movimiento';
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => $this->errorMessage
+                ]);
                 return;
             }
 
@@ -682,6 +717,10 @@ class MovementForm extends Component
                 $this->errorMessage = 'No se pudo registrar el movimiento en Alegra: ' . $userMessage . '. El movimiento NO fue guardado.';
                 Log::error('❌ [MovementForm] Creación bloqueada: Alegra rechazó el ajuste', [
                     'alegra_result' => $alegraResult,
+                ]);
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => $this->errorMessage
                 ]);
                 return;
             }
@@ -769,6 +808,13 @@ class MovementForm extends Component
                 $this->showModal = false;
                 $this->resetForm();
                 $this->movementType = $selectedType;
+                
+                // Despachar toast de confirmación al guardar
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => $this->successMessage
+                ]);
+
                 $this->dispatch('refreshMovements', type: $selectedType);
 
             } catch (\Exception $e) {
@@ -782,6 +828,10 @@ class MovementForm extends Component
             Log::error('Error saving movement', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => $this->errorMessage
             ]);
         }
     }

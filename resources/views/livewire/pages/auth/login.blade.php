@@ -231,13 +231,9 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }">
     <!-- Header -->
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-        <div class="mx-auto h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-lg">
-            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
-            </svg>
-        </div>
-        <h2 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm flex flex-col items-center">
+        <img class="mx-auto h-16 w-auto object-contain" src="{{ asset('images/logofervi.png') }}" alt="Logo Fervi">
+        <h2 class="mt-6 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">
             Iniciar sesión en tu cuenta
         </h2>
     </div>
