@@ -123,6 +123,9 @@
                         </svg>
                     </div>
                 </div>
+                <div class="mt-2">
+                    <x-export-buttons />
+                </div>
             </div>
             <div style="flex: 1; min-width: 0;">
                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">NIT / Cédula</label>
@@ -279,8 +282,8 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
                                 {{ $remission->quote->customer_name ?? 'N/A' }}
-                                @if(isset($remission->quote->customer->identification))
-                                    <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->identification }}</small>
+                                @if(isset($remission->quote->customer->company->identification))
+                                    <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->company->identification }}</small>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
@@ -534,7 +537,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Identificación:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['identification'] ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['company']['identification'] ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Tipo persona:</span>
@@ -542,7 +545,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Email:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['billingEmail'] ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['company']['billingEmail'] ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>

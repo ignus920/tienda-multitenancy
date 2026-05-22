@@ -17,10 +17,11 @@ use App\Services\Facturacion\InvoiceDataBuilder;
 use App\Services\Facturacion\TenantConfigManager;
 use Illuminate\Support\Facades\DB;
 use App\Traits\Livewire\HasDynamicButtons;
+use App\Traits\Livewire\WithExport;
 
 class Quoter extends Component
 {
-    use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons, WithExport;
 
     public $search = '';
     public $filterNit = '';
@@ -702,10 +703,47 @@ class Quoter extends Component
 
     public function render()
     {
-        // Asegurar conexión tenant activa
         $this->ensureTenantConnection();
 
-        // Obtener el store (bodega) del usuario autenticado desde su contacto
+        $quotes = $this->getQuotesQuery()->paginate($this->perPage);
+
+        // Agregar el nombre de la bodega a cada cotización
+        $quotes->getCollection()->transform(function ($quote) {
+            Log::info('🔄 Procesando cotización para obtener storage_name', [
+                'quote_id' => $quote->id,
+                'consecutive' => $quote->consecutive,
+                'warehouseId' => $quote->warehouseId
+            ]);
+
+            $storageName = $quote->getStorageName();
+
+            Log::info('✅ Storage name obtenido', [
+                'quote_id' => $quote->id,
+                'storage_name' => $storageName
+            ]);
+
+            $quote->storage_name = $storageName;
+            return $quote;
+        });
+
+        Log::info('✅ Render completado - Todas las cotizaciones procesadas');
+
+        $viewName = $this->viewType === 'mobile'
+            ? 'livewire.tenant.quoter.components.quoter-mobile'
+            : 'livewire.tenant.quoter.components.quoter-desktop';
+
+        return view($viewName, [
+            'quotes' => $quotes
+        ]);
+    }
+
+    /**
+     * Obtiene la consulta filtrada de cotizaciones
+     */
+    private function getQuotesQuery()
+    {
+        $this->ensureTenantConnection();
+
         $user = auth()->user();
         $storeId = null;
 
@@ -716,7 +754,7 @@ class Quoter extends Component
             }
         }
 
-        Log::info('📋 Quoter render() - Iniciando carga de cotizaciones', [
+        Log::info('📋 Quoter getQuotesQuery() - Iniciando carga de cotizaciones', [
             'search' => $this->search,
             'perPage' => $this->perPage,
             'viewType' => $this->viewType,
@@ -725,16 +763,9 @@ class Quoter extends Component
             'store_id' => $storeId
         ]);
 
-        // Cargar cotizaciones con sus relaciones, filtrando por store (warehouseId en vnt_quotes)
-        // JOIN equivalente: vnt_contacts c ON c.warehouseId = q.customerId
-        $quotes = VntQuote::with(['customer', 'branch', 'detalles'])
+        return VntQuote::with(['customer', 'branch', 'detalles'])
             ->when($storeId, function ($query) use ($storeId) {
-                // Filtrar por store del usuario (warehouseId en vnt_quotes = store del contacto)
                 $query->where('warehouseId', $storeId);
-                Log::info('🔍 Aplicando filtro por store', [
-                    'store_id' => $storeId,
-                    'field' => 'warehouseId'
-                ]);
             })
             ->when($this->search, function ($query) {
                 $query->where(function($q) {
@@ -772,43 +803,50 @@ class Quoter extends Component
             ->when($this->filterDateTo, function ($query) {
                 $query->whereDate('created_at', '<=', $this->filterDateTo);
             })
-            ->orderBy('created_at', 'desc')
-            ->paginate($this->perPage);
+            ->orderBy('created_at', 'desc');
+    }
 
-        Log::info('📊 Cotizaciones cargadas y filtradas', [
-            'total' => $quotes->total(),
-            'count' => $quotes->count(),
-            'current_page' => $quotes->currentPage(),
-            'filtered_by_store' => $storeId
-        ]);
+    /**
+     * Métodos de soporte para exportación
+     */
+    protected function getExportData()
+    {
+        $this->ensureTenantConnection();
+        return $this->getQuotesQuery()->get();
+    }
 
-        // Agregar el nombre de la bodega a cada cotización
-        $quotes->getCollection()->transform(function ($quote) {
-            Log::info('🔄 Procesando cotización para obtener storage_name', [
-                'quote_id' => $quote->id,
-                'consecutive' => $quote->consecutive,
-                'warehouseId' => $quote->warehouseId
-            ]);
+    protected function getExportHeadings(): array
+    {
+        return [
+            'COTIZACIÓN #',
+            'CLIENTE',
+            'TIPO',
+            'ESTADO',
+            'BODEGA',
+            'VENDEDOR',
+            'TELÉFONO',
+            'FECHA'
+        ];
+    }
 
-            $storageName = $quote->getStorageName();
+    protected function getExportMapping()
+    {
+        return function ($quote) {
+            return [
+                '#' . $quote->consecutive,
+                $quote->customer_name,
+                $quote->typeQuote,
+                $quote->status,
+                $quote->getStorageName(),
+                $quote->seller_name,
+                ($quote->customer && $quote->customer->primary_phone) ? $quote->customer->primary_phone : 'Sin teléfono',
+                $quote->created_at ? $quote->created_at->format('d/m/Y H:i') : 'N/A'
+            ];
+        };
+    }
 
-            Log::info('✅ Storage name obtenido', [
-                'quote_id' => $quote->id,
-                'storage_name' => $storageName
-            ]);
-
-            $quote->storage_name = $storageName;
-            return $quote;
-        });
-
-        Log::info('✅ Render completado - Todas las cotizaciones procesadas');
-
-        $viewName = $this->viewType === 'mobile'
-            ? 'livewire.tenant.quoter.components.quoter-mobile'
-            : 'livewire.tenant.quoter.components.quoter-desktop';
-
-        return view($viewName, [
-            'quotes' => $quotes
-        ]);
+    protected function getExportFilename(): string
+    {
+        return 'cotizaciones_' . now()->format('Y-m-d_His');
     }
 }

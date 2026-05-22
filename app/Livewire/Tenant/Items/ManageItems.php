@@ -125,11 +125,14 @@ class ManageItems extends Component
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
-        'COMBO' => 'Combo',
+        'COMBO'           => 'Combo',
         'COMPRA NACIONAL' => 'Compra nacional',
-        'IMPORTADO' => 'Importado',
-        'PRODUCIDO' => 'Producido',
-        'INSUMO' => 'Insumo',
+        'IMPORTADO'       => 'Importado',
+        'PRODUCIDO'       => 'Producido',
+        'INSUMO'          => 'Insumo',
+        'ENSAMBLADO'      => 'Ensamblado',
+        'PROYECTADOS'     => 'Proyectados',
+        'CZCL'            => 'CZCL',
     ];
 
     public $allLabelsValues = [
