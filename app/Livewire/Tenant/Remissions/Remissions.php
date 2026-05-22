@@ -153,7 +153,7 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         if ($value) {
             // Obtener primera remisión para determinar el cliente
-            $firstRemission = InvRemissions::with('quote.customer')
+            $firstRemission = InvRemissions::with('quote.customer.company')
                 ->when($this->search, function ($query) {
                     $this->applyBaseFilters($query);
                 })
@@ -199,7 +199,7 @@ class Remissions extends Component
         // Obtener cliente de las remisiones ya seleccionadas
         $selectedCustomerId = null;
         if (!empty($this->selectedRemissions)) {
-            $existingRemission = InvRemissions::with('quote.customer')
+            $existingRemission = InvRemissions::with('quote.customer.company')
                 ->whereIn('id', $this->selectedRemissions)
                 ->first();
 
@@ -210,7 +210,7 @@ class Remissions extends Component
 
         // Si hay un cliente ya seleccionado, validar que las nuevas selecciones sean del mismo cliente
         if ($selectedCustomerId) {
-            $validRemissions = InvRemissions::with('quote.customer')
+            $validRemissions = InvRemissions::with('quote.customer.company')
                 ->whereIn('id', $this->selectedRemissions)
                 ->whereHas('quote', function ($query) use ($selectedCustomerId) {
                     $query->where('customerId', $selectedCustomerId);
@@ -342,7 +342,7 @@ class Remissions extends Component
 
         try {
             // Cargar remisiones con detalles y cliente (solo las NO facturadas)
-            $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
+            $remisiones = InvRemissions::with(['quote.customer.company', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
                 ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
@@ -431,7 +431,7 @@ class Remissions extends Component
         $this->ensureTenantConnection();
 
         try {
-            $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
+            $remisiones = InvRemissions::with(['quote.customer.company', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
                 ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
@@ -541,7 +541,7 @@ class Remissions extends Component
     {
         $query->where(function ($q) {
             $q->where('consecutive', 'like', '%' . $this->search . '%')
-                ->orWhereHas('quote.customer', function ($sub) {
+                ->orWhereHas('quote.customer.company', function ($sub) {
                     $sub->where('firstName', 'like', '%' . $this->search . '%')
                         ->orWhere('lastName', 'like', '%' . $this->search . '%');
                 })
@@ -553,13 +553,13 @@ class Remissions extends Component
 
         // Búsqueda avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer', function ($q) {
+            $query->whereHas('quote.customer.company', function ($q) {
                 $q->where('identification', 'like', '%' . $this->searchNit . '%');
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote.customer', function ($q) {
+            $query->whereHas('quote.customer.company', function ($q) {
                 $q->where('firstName', 'like', '%' . $this->searchName . '%')
                     ->orWhere('lastName', 'like', '%' . $this->searchName . '%');
             });
@@ -616,7 +616,7 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         // Usar '$remission' como el nombre de la variable local para el modelo
         $remission = InvRemissions::with([
-            'quote.customer',
+            'quote.customer.company',
             'quote.warehouse',
             'quote.branch',
             'details.item',
@@ -804,7 +804,7 @@ class Remissions extends Component
 
             Log::info('🔄 Cargando cliente desde quote...');
             try {
-                $remission->load('quote.customer');
+                $remission->load('quote.customer.company');
                 Log::info('👤 Cliente cargado', ['customer_id' => $remission->quote->customerId ?? 'N/A']);
             } catch (\Exception $customerError) {
                 Log::error('❌ Error cargando cliente', ['error' => $customerError->getMessage()]);
@@ -1151,7 +1151,7 @@ class Remissions extends Component
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
+        $remissions = InvRemissions::with(['quote.customer.company', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
             ->when($this->statusFilter !== 'sin_autorizacion', function ($q) {
                 $q->whereHas('authorizations', function ($sub) {
                     $sub->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
@@ -1241,7 +1241,7 @@ class Remissions extends Component
 
             // Cargar relaciones necesarias si no están cargadas
             if (!$remission->relationLoaded('quote') || !$remission->relationLoaded('details')) {
-                $remission->load(['quote.customer', 'details.item']);
+                $remission->load(['quote.customer.company', 'details.item']);
             }
 
             if (!$remission->quote || !$remission->quote->customer) {
@@ -1396,7 +1396,7 @@ class Remissions extends Component
             // Cargar todas las relaciones necesarias
             foreach ($remisiones as $remission) {
                 if (!$remission->relationLoaded('quote') || !$remission->relationLoaded('details')) {
-                    $remission->load(['quote.customer', 'details.item']);
+                    $remission->load(['quote.customer.company', 'details.item']);
                 }
 
                 if (!$remission->quote || !$remission->quote->customer) {
