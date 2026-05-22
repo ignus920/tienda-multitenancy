@@ -616,7 +616,7 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         // Usar '$remission' como el nombre de la variable local para el modelo
         $remission = InvRemissions::with([
-            'quote.customer',
+            'quote.customer.company',
             'quote.warehouse',
             'quote.branch',
             'details.item',
@@ -1151,7 +1151,7 @@ class Remissions extends Component
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
+        $remissions = InvRemissions::with(['quote.customer.company', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
             ->when($this->statusFilter !== 'sin_autorizacion', function ($q) {
                 $q->whereHas('authorizations', function ($sub) {
                     $sub->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
