@@ -41,7 +41,7 @@ new class extends Component
         :class="sidebarCollapsed ? 'justify-center' : 'justify-start'">
         <div class="flex items-center">
             <div class="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
-                <img class="h-8 w-8 object-contain" src="{{ asset('images/logofervi.png') }}" alt="Logo Fervi">
+                <img class="h-10 w-10 object-contain" src="{{ asset('images/logofervi.png') }}" alt="Logo Fervi">
             </div>
             <div x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
                 x-transition:enter-start="opacity-0 transform scale-95"

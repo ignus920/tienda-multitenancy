@@ -27,10 +27,11 @@ use App\Models\Tenant\Sales\VntReturn;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Tenant\Inventory\InventoryConfirmation;
 use App\Models\Tenant\Sales\VntOrderAuthorization;
+use App\Traits\Livewire\WithExport;
 
 class Remissions extends Component
 {
-    use WithPagination, HasCompanyConfiguration, HasDynamicButtons;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons, WithExport;
 
     // Propiedades para búsqueda y selección
     public $search = '';
@@ -1095,26 +1096,8 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
 
-        // Obtener el store (bodega) del usuario autenticado desde su contacto
+        $storeId = $this->getStoreId();
         $user = auth()->user();
-        $storeId = null;
-
-        if ($user && $user->contact_id) {
-            try {
-                $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
-                if ($contact) {
-                    $storeId = $contact->store;
-                }
-            } catch (\Exception $e) {
-                Log::warning('⚠️ Error obteniendo store del usuario desde contacto', [
-                    'user_id' => $user->id,
-                    'contact_id' => $user->contact_id,
-                    'error' => $e->getMessage()
-                ]);
-                // Si hay error, mostrar todas las remisiones (sin filtrar por store)
-                $storeId = null;
-            }
-        }
 
         Log::info('📋 Remissions render() - Iniciando carga de remisiones', [
             'search' => $this->search,
@@ -1150,47 +1133,8 @@ class Remissions extends Component
                 })->count(),
         ];
 
-        // Consulta de remisiones con relaciones y filtros de búsqueda
-        $remissions = InvRemissions::with(['quote.customer.company', 'quote.warehouse', 'quote.branch', 'details', 'store', 'invoice', 'deliveryTypeModel', 'methodPayment', 'authorizations'])
-            ->when($this->statusFilter !== 'sin_autorizacion', function ($q) {
-                $q->whereHas('authorizations', function ($sub) {
-                    $sub->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
-                        ->where('status', 1);
-                });
-            })
-            ->when($storeId, function ($query) use ($storeId) {
-                // Filtrar por store del usuario (warehouseId en inv_remissions = store del contacto)
-                $query->where('warehouseId', $storeId);
-                Log::info('🔍 Aplicando filtro por store en remisiones', [
-                    'store_id' => $storeId,
-                    'field' => 'warehouseId'
-                ]);
-            })
-            ->where(function ($query) {
-                $this->applyBaseFilters($query);
-            })
-            ->when($this->statusFilter, function ($query) {
-                if ($this->statusFilter === 'registradas') {
-                    $query->where('status', 'REGISTRADO');
-                } elseif ($this->statusFilter === 'alistamiento') {
-                    $query->where('status', 'ALISTAMIENTO');
-                } elseif ($this->statusFilter === 'sin_entregar') {
-                    $query->where('status', '!=', 'ENTREGADO');
-                } elseif ($this->statusFilter === 'sin_facturar') {
-                    $query->whereDoesntHave('invoiceSale');
-                } elseif ($this->statusFilter === 'sin_autorizacion') {
-                    $query->where('status', '!=', 'ANULADO')
-                        ->where('status', '!=', 'ENTREGADO')
-                        ->whereHas('authorizations', function ($q) {
-                            $q->where('auth_type', 'empaque')->where('status', 1);
-                        })
-                        ->whereDoesntHave('authorizations', function ($q) {
-                            $q->where('auth_type', 'despacho')->where('status', 1);
-                        });
-                }
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate($this->perPage);
+        // Consulta de remisiones con relaciones y filtros de búsqueda utilizando el helper
+        $remissions = $this->getRemissionsQuery()->paginate($this->perPage);
 
         // Log de datos para debug
         Log::info('📊 Remisiones cargadas y filtradas', [
@@ -2046,5 +1990,133 @@ class Remissions extends Component
     public function openReturnRegistration($remissionId)
     {
         $this->dispatch('openReturnRegistration', $remissionId);
+    }
+
+    /**
+     * Obtiene el store (bodega) del usuario autenticado desde su contacto.
+     */
+    private function getStoreId()
+    {
+        $user = auth()->user();
+        if ($user && $user->contact_id) {
+            try {
+                $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+                if ($contact) {
+                    return $contact->store;
+                }
+            } catch (\Exception $e) {
+                Log::warning('⚠️ Error obteniendo store del usuario desde contacto', [
+                    'user_id' => $user->id,
+                    'contact_id' => $user->contact_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Construye la consulta base para las remisiones aplicando todos los filtros activos.
+     */
+    private function getRemissionsQuery()
+    {
+        $storeId = $this->getStoreId();
+
+        return InvRemissions::with([
+            'quote.customer.company', 
+            'quote.warehouse', 
+            'quote.branch', 
+            'details', 
+            'store', 
+            'invoice', 
+            'deliveryTypeModel', 
+            'methodPayment', 
+            'authorizations'
+        ])
+        ->when($this->statusFilter !== 'sin_autorizacion', function ($q) {
+            $q->whereHas('authorizations', function ($sub) {
+                $sub->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
+                    ->where('status', 1);
+            });
+        })
+        ->when($storeId, function ($query) use ($storeId) {
+            $query->where('warehouseId', $storeId);
+        })
+        ->where(function ($query) {
+            $this->applyBaseFilters($query);
+        })
+        ->when($this->statusFilter, function ($query) {
+            if ($this->statusFilter === 'registradas') {
+                $query->where('status', 'REGISTRADO');
+            } elseif ($this->statusFilter === 'alistamiento') {
+                $query->where('status', 'ALISTAMIENTO');
+            } elseif ($this->statusFilter === 'sin_entregar') {
+                $query->where('status', '!=', 'ENTREGADO');
+            } elseif ($this->statusFilter === 'sin_facturar') {
+                $query->whereDoesntHave('invoiceSale');
+            } elseif ($this->statusFilter === 'sin_autorizacion') {
+                $query->where('status', '!=', 'ANULADO')
+                    ->where('status', '!=', 'ENTREGADO')
+                    ->whereHas('authorizations', function ($q) {
+                        $q->where('auth_type', 'empaque')->where('status', 1);
+                    })
+                    ->whereDoesntHave('authorizations', function ($q) {
+                        $q->where('auth_type', 'despacho')->where('status', 1);
+                    });
+            }
+        })
+        ->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Métodos de soporte para exportación
+     */
+    protected function getExportData()
+    {
+        $this->ensureTenantConnection();
+        return $this->getRemissionsQuery()->get();
+    }
+
+    protected function getExportHeadings(): array
+    {
+        return [
+            'PEDIDO #',
+            'FECHA',
+            'COTIZACIÓN #',
+            'CLIENTE',
+            'IDENTIFICACIÓN',
+            'ENTREGA',
+            'MÉTODO PAGO',
+            'TOTAL',
+            'ESTADO',
+            'FACTURA'
+        ];
+    }
+
+    protected function getExportMapping()
+    {
+        return function ($remission) {
+            $total = $remission->details->sum(function ($detail) {
+                return $detail->quantity * $detail->value;
+            }) + ($remission->flete ?? 0);
+
+            return [
+                '#' . $remission->consecutive,
+                $remission->created_at ? $remission->created_at->format('d/m/Y H:i') : 'N/A',
+                $remission->quote ? '#' . $remission->quote->consecutive : 'N/A',
+                $remission->quote->customer_name ?? 'N/A',
+                $remission->quote->customer->company->identification ?? 'N/A',
+                $remission->deliveryTypeModel->name ?? 'Sin tipo',
+                $remission->methodPayment->name ?? 'Sin método',
+                $total,
+                $remission->status,
+                $remission->invoice ? ($remission->invoice->invoiceNumber ? '#' . $remission->invoice->invoiceNumber : $remission->invoice->status) : 'Sin facturar'
+            ];
+        };
+    }
+
+    protected function getExportFilename(): string
+    {
+        return 'pedidos_' . now()->format('Y-m-d_His');
     }
 }

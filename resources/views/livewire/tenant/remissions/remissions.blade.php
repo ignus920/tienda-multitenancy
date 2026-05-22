@@ -123,6 +123,9 @@
                         </svg>
                     </div>
                 </div>
+                <div class="mt-2">
+                    <x-export-buttons />
+                </div>
             </div>
             <div style="flex: 1; min-width: 0;">
                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">NIT / Cédula</label>
