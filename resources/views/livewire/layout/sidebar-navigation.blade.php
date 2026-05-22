@@ -40,11 +40,8 @@ new class extends Component
     <div class="flex shrink-0 items-center px-4 py-4 border-b border-gray-200 dark:border-gray-700"
         :class="sidebarCollapsed ? 'justify-center' : 'justify-start'">
         <div class="flex items-center">
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
+                <img class="h-8 w-8 object-contain" src="{{ asset('images/logofervi.png') }}" alt="Logo Fervi">
             </div>
             <div x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
                 x-transition:enter-start="opacity-0 transform scale-95"
