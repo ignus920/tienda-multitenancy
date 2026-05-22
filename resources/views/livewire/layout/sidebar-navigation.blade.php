@@ -622,6 +622,7 @@ new class extends Component
         @endif
 
         <!-- Producción (menú con subitems) -->
+        {{--
         @if (PermissionHelper::userCan('Produccion', 'show'))
         <div x-data="{ tooltip: false, open: {{ request()->routeIs('production.*') ? 'true' : 'false' }}, _t: null }" class="w-full relative">
             <!-- Botón principal -->
@@ -671,6 +672,7 @@ new class extends Component
             </div>
         </div>
         @endif
+        --}}
 
         <!-- Importaciones -->
         @if(!$isOperario && PermissionHelper::userCan('Compras', 'show') && Auth::user()?->profile_id !=17)
