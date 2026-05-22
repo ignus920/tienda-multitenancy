@@ -77,14 +77,31 @@ class VntQuote extends Model
         });
     }
 
-    public function getCustomerNameAttribute()
+    public function getCustomerNameAttribute(): string
     {
-        if (!$this->customer) {
-            return 'Cliente no encontrado';
+        // Obtener el nombre desde la empresa (igual a como se muestra en el formulario)
+        // Ruta: quote.branchId → vnt_warehouses.id → vnt_warehouses.companyId → vnt_companies
+        if ($this->relationLoaded('branch') && $this->branch?->relationLoaded('company') && $this->branch?->company) {
+            return $this->branch->company->customer_name;
         }
 
-        // Usar el atributo full_name definido en el modelo VntContacts
-        return $this->customer->full_name ?: 'Sin nombre';
+        // Fallback: cargar la empresa si la relación no fue eager-loaded
+        if ($this->branchId) {
+            $branch = $this->branch ?? VntWarehouse::find($this->branchId);
+            if ($branch) {
+                $company = $branch->company ?? \App\Models\Tenant\Customer\VntCompany::find($branch->companyId);
+                if ($company) {
+                    return $company->customer_name;
+                }
+            }
+        }
+
+        // Último recurso: nombre del contacto
+        if ($this->customer) {
+            return $this->customer->full_name ?: 'Sin nombre';
+        }
+
+        return 'Cliente no encontrado';
     }
 
     public function getWarehouseNameAttribute()
