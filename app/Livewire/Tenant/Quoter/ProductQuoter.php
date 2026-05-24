@@ -73,6 +73,7 @@ class ProductQuoter extends Component
     public $showCreateCustomerButton = false;
     public $editingCustomerId = null;
     public $editingQuoteId = null;
+    public $editingQuoteConsecutive = null;   // consecutivo de la cotización en edición
     public $editingRemissionId = null;
     public $isEditing = false;
     public $isEditingRemission = false;
@@ -530,7 +531,7 @@ class ProductQuoter extends Component
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
-            $product = Items::with(['tax', 'dimensions'])->find($productId);
+            $product = Items::with(['tax', 'dimensions', 'invValues'])->find($productId);
 
             if (!$product) {
                 $this->dispatch('show-toast', [
@@ -540,19 +541,34 @@ class ProductQuoter extends Component
                 return;
             }
 
+            // Stock total del producto (suma de todas las bodegas)
+            $totalStock = $product->invItemsStore()->sum('stock_items_store');
+
+            // Precio mínimo = "Precio unitario x caja" (si existe), sino 0
+            $precioUnitarioCajaRecord = $product->invValues
+                ->where('type', 'precio')
+                ->where('label', 'Precio unitario x caja')
+                ->sortByDesc('date')
+                ->sortByDesc('created_at')
+                ->first();
+            $minPrice = $precioUnitarioCajaRecord ? (float) $precioUnitarioCajaRecord->values : 0;
+
             // Si no existe, agregarlo al inicio de la lista
             array_unshift($this->quoterItems, [
-                'id' => $product->id,
-                'name' => $product->display_name,
-                'sku' => $product->sku,
-                'price' => $selectedPrice,
-                'tax' => $product->tax->percentage,
-                'tax_label' => $product->tax->name,
-                'price_label' => $priceLabel,
-                'quantity' => 1,
-                'description' => $product->description,
-                'weight' => $product->dimensions->weight ?? 0,
-                'category_id' => $product->categoryId,
+                'id'             => $product->id,
+                'name'           => $product->display_name,
+                'sku'            => $product->sku,
+                'price'          => $selectedPrice,
+                'original_price' => $selectedPrice,   // precio base para calcular el máximo
+                'min_price'      => $minPrice,         // mínimo: precio unitario x caja
+                'tax'            => $product->tax->percentage,
+                'tax_label'      => $product->tax->name,
+                'price_label'    => $priceLabel,
+                'quantity'       => 1,
+                'description'    => $product->description,
+                'weight'         => $product->dimensions->weight ?? 0,
+                'category_id'    => $product->categoryId,
+                'total_stock'    => $totalStock,
             ]);
         }
 
@@ -890,6 +906,56 @@ class ProductQuoter extends Component
         $this->dispatch('show-toast', [
             'type' => 'info',
             'message' => 'Contenido actualizado'
+        ]);
+    }
+
+    /**
+     * Actualiza el precio de un ítem con validación de rango.
+     * Mínimo: min_price (precio unitario x caja, si existe)
+     * Máximo: original_price * 2
+     */
+    public function updateItemPrice(int $index, $newPrice): void
+    {
+        if (!isset($this->quoterItems[$index])) {
+            return;
+        }
+
+        $newPrice      = (float) $newPrice;
+        $originalPrice = (float) ($this->quoterItems[$index]['original_price'] ?? $this->quoterItems[$index]['price']);
+        $minPrice      = (float) ($this->quoterItems[$index]['min_price'] ?? 0);
+        $maxPrice      = $originalPrice * 2;
+
+        if ($minPrice > 0 && $newPrice < $minPrice) {
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'El precio no puede ser menor al precio unitario x caja ($' . number_format($minPrice, 0, ',', '.') . ')'
+            ]);
+            // Restaurar al valor anterior
+            $this->quoterItems[$index]['price'] = $this->quoterItems[$index]['price'];
+            return;
+        }
+
+        if ($newPrice > $maxPrice) {
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'El precio no puede superar el doble del precio de lista ($' . number_format($maxPrice, 0, ',', '.') . ')'
+            ]);
+            $this->quoterItems[$index]['price'] = $this->quoterItems[$index]['price'];
+            return;
+        }
+
+        $this->quoterItems[$index]['price'] = $newPrice;
+
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
+        session(['quoter_items' => $this->quoterItems]);
+        $this->calculateTotal();
+
+        $this->dispatch('show-toast', [
+            'type'    => 'success',
+            'message' => 'Precio actualizado'
         ]);
     }
 
@@ -1532,6 +1598,7 @@ class ProductQuoter extends Component
             $quote = VntQuote::with(['detalles', 'customer', 'customer.company', 'branch', 'branch.city'])->findOrFail($quoteId);
 
             $this->editingQuoteId = $quoteId;
+            $this->editingQuoteConsecutive = $quote->consecutive;
             $this->isEditing = true;
             $this->hasChanges = false;
 

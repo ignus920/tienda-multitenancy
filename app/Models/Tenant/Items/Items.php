@@ -476,6 +476,18 @@ class Items extends Model
             $prices['Precio Crédito'] = $precioCredito->values;
         }
 
+        // Precio unitario x caja (siempre se incluye si existe, sin importar comparación con Regular)
+        $precioUnitarioCaja = $this->invValues
+            ->where('type', 'precio')
+            ->where('label', 'Precio unitario x caja')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
+            ->first();
+
+        if ($precioUnitarioCaja && $precioUnitarioCaja->values > 0) {
+            $prices['Precio unitario x caja'] = $precioUnitarioCaja->values;
+        }
+
         // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
@@ -486,7 +498,11 @@ class Items extends Model
 
             // Si hay precio regular definido y no es el precio regular mismo,
             // excluir precios menores al precio regular
-            if ($regularPriceValue !== null && $label !== 'Precio Regular' && $value < $regularPriceValue) {
+            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (puede ser distinto)
+            if ($regularPriceValue !== null
+                && $label !== 'Precio Regular'
+                && $label !== 'Precio unitario x caja'
+                && $value < $regularPriceValue) {
                 continue;
             }
 

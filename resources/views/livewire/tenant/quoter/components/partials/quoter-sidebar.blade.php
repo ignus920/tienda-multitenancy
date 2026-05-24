@@ -1,5 +1,17 @@
 <!-- Header del cotizador -->
 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+    {{-- Badge de cotización en edición --}}
+    @if($isEditing && $editingQuoteConsecutive)
+    <div class="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700">
+        <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        <span class="text-xs font-bold text-amber-700 dark:text-amber-300">
+            Editando cotización <span class="text-amber-900 dark:text-amber-100">#{{ $editingQuoteConsecutive }}</span>
+        </span>
+    </div>
+    @endif
     <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $this->quoterCount }} Productos seleccionados</h2>
         @if(!empty($quoterItems))
@@ -236,16 +248,114 @@
         </div>
         @endif
         @foreach($quoterItems as $index => $item)
-        <div class="flex items-center gap-2 py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
+        @php
+            $itemTotalStock  = $item['total_stock'] ?? null;
+            $sidebarInsufficient = $itemTotalStock !== null && $item['quantity'] > $itemTotalStock;
+            $itemMinPrice    = (float) ($item['min_price'] ?? 0);
+            $itemOrigPrice   = (float) ($item['original_price'] ?? $item['price']);
+            $itemMaxPrice    = $itemOrigPrice * 2;
+            $hasPriceRange   = $itemMinPrice > 0 || $itemMaxPrice > 0;
+        @endphp
+        <div class="flex items-center gap-2 py-1.5 px-2 rounded border
+            {{ $sidebarInsufficient
+                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700'
+                : 'bg-gray-50 dark:bg-gray-700 border-gray-100 dark:border-gray-600' }}">
             <!-- Nombre + precio unitario -->
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-gray-900 dark:text-white truncate leading-tight" title="{{ $item['name'] }}"><span class="text-gray-400 dark:text-gray-500 font-normal">{{ $item['sku'] }} · </span>{{ $item['name'] }}</p>
-                <p class="text-[10px] text-indigo-500 dark:text-indigo-400 leading-tight">
-                    ${{ number_format($item['price']) }} · {{ $item['tax_label'] }}
-                    @if(isset($item['price_label']) && $item['price_label'] !== 'Precio seleccionado' && $item['price_label'] !== 'Precio Regular')
-                    <span class="mx-1 font-bold text-emerald-600 dark:text-emerald-400">· {{ $item['price_label'] }}</span>
-                    @endif
+            <div class="flex-1 min-w-0"
+                 x-data="{
+                    editing: false,
+                    price: {{ (float) $item['price'] }},
+                    minPrice: {{ $itemMinPrice }},
+                    maxPrice: {{ $itemMaxPrice }},
+                    error: '',
+                    open() { this.editing = true; this.error = ''; this.$nextTick(() => this.$refs.priceInput?.select()); },
+                    cancel() { this.editing = false; this.price = {{ (float) $item['price'] }}; this.error = ''; },
+                    save() {
+                        const v = parseFloat(this.price);
+                        if (isNaN(v) || v <= 0) { this.error = 'Precio inválido'; return; }
+                        if (this.minPrice > 0 && v < this.minPrice) {
+                            this.error = 'Mín: $' + this.minPrice.toLocaleString('es-CO', {maximumFractionDigits:0});
+                            return;
+                        }
+                        if (v > this.maxPrice) {
+                            this.error = 'Máx: $' + this.maxPrice.toLocaleString('es-CO', {maximumFractionDigits:0});
+                            return;
+                        }
+                        $wire.updateItemPrice({{ $index }}, v);
+                        this.editing = false;
+                        this.error = '';
+                    }
+                 }">
+                <p class="text-xs font-medium text-gray-900 dark:text-white truncate leading-tight" title="{{ $item['name'] }}">
+                    <span class="text-gray-400 dark:text-gray-500 font-normal">{{ $item['sku'] }} · </span>{{ $item['name'] }}
                 </p>
+
+                <!-- Precio: vista normal -->
+                <div x-show="!editing" class="flex items-center gap-1 leading-tight">
+                    <p class="text-[10px] text-indigo-500 dark:text-indigo-400">
+                        ${{ number_format($item['price']) }} · {{ $item['tax_label'] }}
+                        @if(isset($item['price_label']) && $item['price_label'] !== 'Precio seleccionado' && $item['price_label'] !== 'Precio Regular')
+                        <span class="mx-0.5 font-bold text-emerald-600 dark:text-emerald-400">· {{ $item['price_label'] }}</span>
+                        @endif
+                    </p>
+                    <!-- Botón lápiz para editar precio -->
+                    <button @click="open()"
+                        class="p-0.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex-shrink-0"
+                        title="Editar precio">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Precio: modo edición -->
+                <div x-show="editing" x-cloak class="mt-0.5">
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-gray-500">$</span>
+                        <input x-ref="priceInput"
+                            x-model.number="price"
+                            @keydown.enter="save()"
+                            @keydown.escape="cancel()"
+                            type="number"
+                            min="{{ $itemMinPrice > 0 ? $itemMinPrice : 1 }}"
+                            max="{{ $itemMaxPrice }}"
+                            step="1"
+                            class="w-24 px-1 py-0.5 text-xs font-medium border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500
+                                [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            :class="error ? 'border-red-400' : 'border-indigo-400'">
+                        <!-- Confirmar -->
+                        <button @click="save()"
+                            class="p-0.5 text-green-600 hover:text-green-700 transition-colors" title="Guardar">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </button>
+                        <!-- Cancelar -->
+                        <button @click="cancel()"
+                            class="p-0.5 text-red-400 hover:text-red-600 transition-colors" title="Cancelar">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Rango permitido + error -->
+                    <div class="flex items-center justify-between mt-0.5">
+                        <p class="text-[8px] text-gray-400 leading-tight">
+                            @if($itemMinPrice > 0)
+                                Mín ${{ number_format($itemMinPrice, 0, ',', '.') }}
+                            @endif
+                            · Máx ${{ number_format($itemMaxPrice, 0, ',', '.') }}
+                        </p>
+                        <p x-show="error" x-text="error" class="text-[8px] font-bold text-red-500 leading-tight"></p>
+                    </div>
+                </div>
+
+                @if($sidebarInsufficient)
+                <p class="text-[9px] font-bold text-orange-600 dark:text-orange-400 leading-tight mt-0.5 flex items-center gap-0.5">
+                    <span>⚠️</span> Stock insuficiente · disponible: {{ (int)$itemTotalStock }}
+                </p>
+                @endif
             </div>
             <!-- Cantidad -->
             <input
