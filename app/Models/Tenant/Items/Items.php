@@ -543,8 +543,12 @@ class Items extends Model
             }
 
             // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular
-            if ($regularPriceValue !== null && $label !== 'Precio Regular' && $value < $regularPriceValue) {
+            // excluir precios menores al precio regular.
+            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (es un precio especial por volumen)
+            if ($regularPriceValue !== null
+                && $label !== 'Precio Regular'
+                && $label !== 'Precio unitario x caja'
+                && $value < $regularPriceValue) {
                 continue;
             }
 
