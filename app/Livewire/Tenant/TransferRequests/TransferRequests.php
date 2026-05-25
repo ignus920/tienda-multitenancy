@@ -93,6 +93,7 @@ class TransferRequests extends Component
                 }
             ], 'stock_items_store')
             ->first(); // Usar first() para obtener el modelo con el sumado
+        Log::info('🔬 Item a verificar: ' . $itemToCheckStock);
 
         $availableStock = $itemToCheckStock->total_stock_by_warehouse / 2;
         // Aquí puedes usar $itemToCheckStock->total_stock_by_warehouse para tus validaciones
@@ -164,7 +165,7 @@ class TransferRequests extends Component
             $storeId = $user->contact->store;
             $warehouse = $user->contact->warehouseId;
         }
-        //Log::info('Obteniendo tienda: ' . $storeId . '- Sucursal:' . $warehouse);
+        Log::info('Obteniendo tienda: ' . $storeId . '- Sucursal:' . $warehouse);
         return [
             'storeId' => $storeId,
             'warehouseId' => $warehouse
