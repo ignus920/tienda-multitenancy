@@ -167,26 +167,36 @@ class InvoiceDataBuilder
                 continue;
             }
 
-            $taxIdAlegra = $product->tax_api_data_id ?? $product->taxIdAlegra ?? $product->tax_id_alegra ?? $product->api_tax_id ?? null;
+            // Obtener tax ID desde la relación cnf_taxes (campo api_data_id) — fuente primaria
+            $taxIdAlegra = $product->tax?->api_data_id
+                ? (string) $product->tax->api_data_id
+                : null;
 
-            // Si no hay tax configurado, determinarlo basándose en el porcentaje del detalle
+            // Fallback: determinar por porcentaje del detalle usando IDs reales de cnf_taxes
             if (!$taxIdAlegra) {
                 $taxPercentage = floatval($detalle->tax ?? 0);
 
-                // Mapear porcentaje a ID de Alegra común para Colombia
                 if ($taxPercentage == 5) {
-                    $taxIdAlegra = '2'; // ID común para IVA 5% en Alegra
+                    $taxIdAlegra = '3'; // cnf_taxes: Iva 5%  → api_data_id = 3
                 } elseif ($taxPercentage == 19) {
-                    $taxIdAlegra = '3'; // ID común para IVA 19% en Alegra
+                    $taxIdAlegra = '4'; // cnf_taxes: Iva 19% → api_data_id = 4
                 } else {
-                    $taxIdAlegra = '1'; // ID común para exento/0% en Alegra
+                    $taxIdAlegra = '7'; // cnf_taxes: Exento  → api_data_id = 7
                 }
 
-                Log::info('📊 Tax ID determinado por porcentaje', [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name ?? 'Sin nombre',
+                Log::info('📊 Tax ID determinado por porcentaje (fallback)', [
+                    'product_id'     => $product->id,
+                    'product_name'   => $product->name ?? 'Sin nombre',
                     'tax_percentage' => $taxPercentage,
-                    'assigned_tax_id' => $taxIdAlegra
+                    'tax_id_alegra'  => $taxIdAlegra,
+                ]);
+            } else {
+                Log::info('📊 Tax ID obtenido desde cnf_taxes.api_data_id', [
+                    'product_id'       => $product->id,
+                    'product_name'     => $product->name ?? 'Sin nombre',
+                    'cnf_taxes_id'     => $product->taxId ?? null,
+                    'cnf_taxes_api_id' => $taxIdAlegra,
+                    'tax_percentage'   => $product->tax?->percentage ?? null,
                 ]);
             }
 

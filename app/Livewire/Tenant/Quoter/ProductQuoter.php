@@ -2768,7 +2768,7 @@ class ProductQuoter extends Component
             DB::connection('tenant')->beginTransaction();
 
             // Cargar la cotización con todas sus relaciones
-            $quote = VntQuote::with(['detalles.item', 'customer', 'warehouse'])->findOrFail($this->editingQuoteId);
+            $quote = VntQuote::with(['detalles.item.tax', 'customer', 'warehouse'])->findOrFail($this->editingQuoteId);
 
             // Verificar si la facturación está habilitada para este tenant
             $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
