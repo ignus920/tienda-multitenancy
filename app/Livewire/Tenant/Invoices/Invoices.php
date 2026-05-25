@@ -474,36 +474,20 @@ class Invoices extends Component
 
                 $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
 
-                // Analizar estructura de respuesta
+                // Alegra devuelve el objeto de factura con 'publicUrl' en GET /invoices/{id}
                 $respData = $apiResponse['data'] ?? [];
 
-                // 1. Campos directos de URL que Alegra puede devolver
-                $printUrl = $respData['pdf']
-                    ?? $respData['publicUrl']
+                $printUrl = $respData['publicUrl']
+                    ?? $respData['pdf']
                     ?? $respData['pdfUrl']
                     ?? $respData['downloadUrl']
-                    ?? ($respData['data']['publicUrl'] ?? null);
-
-                // 2. Fallback: extraer QR de stamp.barCodeContent (factura electrónica DIAN)
-                if (empty($printUrl) && !empty($respData['stamp']['barCodeContent'])) {
-                    if (preg_match('/QRCode:\s*(https?:\/\/\S+)/', $respData['stamp']['barCodeContent'], $matches)) {
-                        $printUrl = trim($matches[1]);
-                    }
-                }
-
-                // 3. Fallback: construir URL DIAN desde el CUFE
-                if (empty($printUrl) && !empty($respData['stamp']['cufe'])) {
-                    $cufe = $respData['stamp']['cufe'];
-                    $printUrl = "https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={$cufe}";
-                }
+                    ?? null;
 
                 Log::info('🔗 URL de impresión resuelta', [
                     'invoice_id'  => $invoiceId,
                     'print_url'   => $printUrl,
-                    'has_pdf'     => !empty($respData['pdf']),
-                    'has_public'  => !empty($respData['publicUrl']),
-                    'has_cufe'    => !empty($respData['stamp']['cufe']),
-                    'legal_status'=> $respData['stamp']['legalStatus'] ?? null,
+                    'response_keys' => array_keys($respData),
+                    'legal_status'  => $respData['stamp']['legalStatus'] ?? null,
                 ]);
 
                 if ($apiResponse['success'] && !empty($printUrl)) {
