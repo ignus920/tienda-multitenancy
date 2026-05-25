@@ -474,21 +474,13 @@ class Invoices extends Component
 
                 $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
 
-                // Alegra devuelve el objeto de factura con 'publicUrl' en GET /invoices/{id}
+                // Analizar estructura de respuesta
                 $respData = $apiResponse['data'] ?? [];
 
-                $printUrl = $respData['publicUrl']
-                    ?? $respData['pdf']
-                    ?? $respData['pdfUrl']
-                    ?? $respData['downloadUrl']
-                    ?? null;
-
-                Log::info('🔗 URL de impresión resuelta', [
-                    'invoice_id'  => $invoiceId,
-                    'print_url'   => $printUrl,
-                    'response_keys' => array_keys($respData),
-                    'legal_status'  => $respData['stamp']['legalStatus'] ?? null,
-                ]);
+                // Intentar obtener URL de varios posibles campos
+                $printUrl = $respData['pdf'] ??
+                    $respData['publicUrl'] ??
+                    ($respData['data']['publicUrl'] ?? null);
 
                 if ($apiResponse['success'] && !empty($printUrl)) {
                     Log::info('✅ URL de PDF de factura obtenida', ['url' => $printUrl]);
