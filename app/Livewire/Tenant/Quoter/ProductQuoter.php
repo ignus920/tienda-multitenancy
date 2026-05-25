@@ -444,7 +444,7 @@ class ProductQuoter extends Component
                         $query->where(function ($q) use ($word) {
                             $q->where('inv_items.name', 'like', '%' . $word . '%')
                                 ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
-                                ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                                //->orWhere('inv_items.sku', 'like', '%' . $word . '%')
                                 ->orWhere('inv_items.description', 'like', '%' . $word . '%');
                         });
                     }
