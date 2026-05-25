@@ -35,10 +35,30 @@ class ApiClient
             $config = TenantConfigManager::getFacturacionConfig($tenant);
 
             if ($config) {
+                $token    = $config['token'] ?? null;
+                $baseUrl  = $config['base_url'] ?? null;
+                $username = $config['username'] ?? null;
+
+                Log::info('🔑 [ApiClient] Configuración cargada para tenant', [
+                    'tenant_id'       => $tenant->id,
+                    'tenant_name'     => $tenant->name,
+                    'base_url'        => $baseUrl,
+                    'base_env'        => $config['base'] ?? 'Produccion',
+                    'warehouse_id'    => $config['warehouse_id'] ?? null,
+                    'facturador'      => $config['facturador'] ?? null,
+                    'numeracion'      => $config['numeracion'] ?? null,
+                    'source'          => $config['source'] ?? 'unknown',
+                    'token_present'   => !empty($token),
+                    'token_length'    => $token ? strlen($token) : 0,
+                    'token_preview'   => $token ? substr($token, 0, 12) . '...' . substr($token, -6) : null,
+                    'username'        => $username ?: '(vacío)',
+                    'timeout'         => $config['timeout'] ?? 90,
+                ]);
+
                 return new self(
-                    $config['base_url'] ?? null,
-                    $config['token'] ?? null,
-                    $config['username'] ?? null,
+                    $baseUrl,
+                    $token,
+                    $username,
                     $config['timeout'] ?? 90
                 );
             }
@@ -66,12 +86,20 @@ class ApiClient
                 $headers['username'] = $this->username;
             }
 
-            Log::info('📡 Enviando petición a API de facturación', [
-                'method' => strtoupper($method),
-                'url' => $url,
-                'headers' => array_keys($headers),
-                'data_size' => count($data),
-                'timeout' => $this->timeout
+            Log::info('📡 [ApiClient] Enviando petición a API', [
+                'method'        => strtoupper($method),
+                'url'           => $url,
+                'base_url'      => $this->baseUrl,
+                'token_present' => !empty($this->token),
+                'token_length'  => $this->token ? strlen($this->token) : 0,
+                'token_preview' => $this->token
+                    ? substr($this->token, 0, 12) . '...' . substr($this->token, -6)
+                    : '❌ SIN TOKEN',
+                'username'      => $this->username ?: '(vacío)',
+                'header_keys'   => array_keys($headers),
+                'data_keys'     => array_keys($data),
+                'data_payload'  => $data,
+                'timeout'       => $this->timeout,
             ]);
 
             $response = Http::withHeaders($headers)
@@ -82,21 +110,28 @@ class ApiClient
             $statusCode = $response->status();
             $responseTime = round((microtime(true) - $startTime) * 1000, 2);
 
-            Log::info('📡 Respuesta de API de facturación', [
-                'status_code' => $statusCode,
-                'success' => $response->successful(),
-                'response_time_ms' => $responseTime,
-                'response_id' => $responseData['id'] ?? null,
-                'message' => $responseData['message'] ?? null,
-                'response_size' => strlen(json_encode($responseData))
+            Log::info('📡 [ApiClient] Respuesta de API', [
+                'status_code'     => $statusCode,
+                'success'         => $response->successful(),
+                'response_time_ms'=> $responseTime,
+                'response_id'     => $responseData['id'] ?? null,
+                'message'         => $responseData['message'] ?? null,
+                'response_size'   => strlen(json_encode($responseData)),
             ]);
 
-            // Logging adicional para errores de stamp
-            if (!$response->successful() && str_contains($endpoint, 'stamp')) {
-                Log::error('❌ Error detallado en stamp', [
-                    'endpoint' => $endpoint,
+            // Log detallado para cualquier error (401, 403, 422, 500, etc.)
+            if (!$response->successful()) {
+                Log::error('❌ [ApiClient] Error en respuesta', [
+                    'status_code'   => $statusCode,
+                    'endpoint'      => $endpoint,
+                    'url'           => $url,
+                    'token_preview' => $this->token
+                        ? substr($this->token, 0, 12) . '...' . substr($this->token, -6)
+                        : '❌ SIN TOKEN',
+                    'username'      => $this->username ?: '(vacío)',
                     'full_response' => $responseData,
-                    'raw_body' => $response->body()
+                    'raw_body'      => $response->body(),
+                    'request_data'  => $data,
                 ]);
             }
 
