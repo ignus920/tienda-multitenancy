@@ -80,7 +80,9 @@ class ApiClient
 
             $headers = [];
             if ($this->token) {
-                $headers['token'] = $this->token;
+                // Alegra usa HTTP Basic Auth: Authorization: Basic base64(email:token)
+                // El campo 'token' en cnf_invoices ya contiene el valor base64 completo
+                $headers['Authorization'] = 'Basic ' . $this->token;
             }
             if ($this->username) {
                 $headers['username'] = $this->username;
@@ -96,6 +98,7 @@ class ApiClient
                     ? substr($this->token, 0, 12) . '...' . substr($this->token, -6)
                     : '❌ SIN TOKEN',
                 'username'      => $this->username ?: '(vacío)',
+                'auth_header'   => isset($headers['Authorization']) ? 'Basic ***' : '❌ SIN Authorization',
                 'header_keys'   => array_keys($headers),
                 'data_keys'     => array_keys($data),
                 'data_payload'  => $data,
