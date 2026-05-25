@@ -309,32 +309,20 @@ class InvoiceDataBuilder
             $customerData['warehouse_format'] = '20';
         }
 
-        // Obtener numeracion (numberTemplate) desde cnf_invoices.
-        // customerId en el quote = vnt_contacts.warehouseId = ID del warehouse central (RAP)
-        // que coincide con cnf_invoices.id_warehouses
-        $centralWarehouseId = $quote->customerId; // ej: 150
-
-        Log::info('🔢 DEBUG numeracion - valores del quote', [
-            'quote_id'             => $quote->id,
-            'quote_customerId'     => $quote->customerId,
-            'quote_branchId'       => $quote->branchId,
-            'quote_warehouseId'    => $quote->warehouseId,
-            'centralWarehouseId'   => $centralWarehouseId,
-            'is_truthy'            => (bool) $centralWarehouseId,
-        ]);
-
-        if ($centralWarehouseId) {
-            $cnfInvoice = CnfInvoice::byWarehouse($centralWarehouseId)->first();
-            Log::info('🔢 Lookup numeracion en cnf_invoices', [
-                'central_warehouse_id' => $centralWarehouseId,
-                'cnf_invoice_found'    => !is_null($cnfInvoice),
-                'cnf_invoice_id'       => $cnfInvoice?->id,
-                'cnf_numeracion_raw'   => $cnfInvoice?->numeracion,
-                'numeracion_set'       => $cnfInvoice && $cnfInvoice->numeracion,
-            ]);
-            if ($cnfInvoice && $cnfInvoice->numeracion) {
-                $customerData['numeracion'] = (string) $cnfInvoice->numeracion;
+        // Obtener numeracion (numberTemplate) desde cnf_invoices via usuario autenticado.
+        // DatabaseConfigService::getFacturacionConfigByUser resuelve el flujo:
+        // users.contact_id → vnt_contacts.warehouseId (central) → cnf_invoices.numeracion
+        $authUser = Auth::user();
+        if ($authUser) {
+            $facConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
+            if ($facConfig && !empty($facConfig['numeracion'])) {
+                $customerData['numeracion'] = (string) $facConfig['numeracion'];
             }
+            Log::info('🔢 Numeracion obtenida via usuario', [
+                'user_id'    => $authUser->id,
+                'numeracion' => $customerData['numeracion'],
+                'found'      => !is_null($customerData['numeracion']),
+            ]);
         }
 
         Log::info('👤 Datos de cliente obtenidos', [
