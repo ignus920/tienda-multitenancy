@@ -577,12 +577,16 @@
         @if(!isset($showValues) || $showValues)
         <div class="totals-container">
             @php
-                $subtotalGlobal = $quote->detalles->sum(fn($d) => $d->value * $d->quantity);
-                $ivaGlobal = $quote->detalles->sum(fn($d) => ($d->value * $d->quantity) * ($d->tax / 100));
-                $flete = $quote->flete ?? 0;
-                $retencion = 0;
-                $ica = 0;
-                $totalFinal = $subtotalGlobal + $ivaGlobal + $flete - $retencion - $ica;
+                // $d->value ya incluye IVA — extraemos la base sin IVA para mostrar el desglose correcto
+                $totalConIva    = $quote->detalles->sum(fn($d) => $d->value * $d->quantity);
+                $subtotalGlobal = $quote->detalles->sum(fn($d) =>
+                    $d->tax > 0
+                        ? round(($d->value / (1 + $d->tax / 100)) * $d->quantity, 2)
+                        : $d->value * $d->quantity
+                );
+                $ivaGlobal  = $totalConIva - $subtotalGlobal;
+                $flete      = $quote->flete ?? 0;
+                $totalFinal = $totalConIva + $flete;
             @endphp
 
             <div class="total-row">
@@ -590,7 +594,7 @@
                 <div class="total-value">${{ number_format($subtotalGlobal, 2) }}</div>
             </div>
             <div class="total-row">
-                <div class="total-label">+ IVA (19%):</div>
+                <div class="total-label">+ IVA:</div>
                 <div class="total-value">${{ number_format($ivaGlobal, 2) }}</div>
             </div>
             <div class="total-row">
