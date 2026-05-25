@@ -151,7 +151,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <!-- Botones -->
                 <div class="flex justify-end items-center gap-2 pt-1 flex-wrap">
                     @if($selectedRequest)
-                        <button wire:click="updateStatus('Reactivar')"
+                        <button wire:click="updateStatus('Reactivado')"
                             class="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5">
                             <x-heroicon-o-arrow-path class="w-3.5 h-3.5"/>
                             Reactivar

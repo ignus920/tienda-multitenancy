@@ -208,7 +208,7 @@ class CompanyService
             $preparedData['lastName'] = $data['lastName'] ?? null;
             $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
             $preparedData['checkDigit'] = null;
-            $preparedData['code_ciiu'] = '0';
+            $preparedData['code_ciiu'] = $data['code_ciiu'] ?? '0';
             // Usar valores del formulario si están disponibles, sino usar defaults
             $preparedData['regimeId'] = $data['regimeId'] ?? 2;
             $preparedData['fiscalResponsabilityId'] = $data['fiscalResponsabilityId'] ?? 1;
@@ -222,7 +222,7 @@ class CompanyService
             $preparedData['lastName'] = $data['lastName'] ?? null;
             $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
             $preparedData['checkDigit'] = $data['checkDigit'] ?? null;
-            $preparedData['code_ciiu'] = '0';
+            $preparedData['code_ciiu'] = $data['code_ciiu'] ?? '0';
             // Usar valores del formulario si están disponibles, sino usar defaults
             $preparedData['regimeId'] = $data['regimeId'] ?? 2;
             $preparedData['fiscalResponsabilityId'] = $data['fiscalResponsabilityId'] ?? 1;

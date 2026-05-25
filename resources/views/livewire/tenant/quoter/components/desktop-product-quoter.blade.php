@@ -553,7 +553,7 @@ $header = 'Seleccionar productos';
 
                                         <!-- Código/SKU -->
                                         <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $product->sku ?: 'N/A' }}
+                                            {{ $product->internal_code ?: 'N/A' }}
                                         </td>
 
                                         @if($hideQuoter)
