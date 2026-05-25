@@ -268,20 +268,12 @@ class DatabaseConfigService
     /**
      * Resuelve la base URL según el entorno configurado en cnf_invoices.base
      *
-     * Si 'base' ya es una URL completa (empieza con http:// o https://), se usa directamente.
      * 'Produccion' → https://api.alegra.com/api/v1/
      * 'sandbox'    → https://sandbox.alegra.com:26967/api/v1
      */
     public static function resolveBaseUrl(string $base): string
     {
-        $trimmed = trim($base);
-
-        // Si ya es una URL completa, usarla tal cual (ej. proxy propio como http://fac.dosil.com.co/api)
-        if (str_starts_with(strtolower($trimmed), 'http://') || str_starts_with(strtolower($trimmed), 'https://')) {
-            return rtrim($trimmed, '/');
-        }
-
-        return match (strtolower($trimmed)) {
+        return match (strtolower(trim($base))) {
             'sandbox' => 'https://sandbox.alegra.com:26967/api/v1',
             default   => 'https://api.alegra.com/api/v1/',
         };
