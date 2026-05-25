@@ -92,6 +92,19 @@ class VntContacts extends Model
         'positionId' => 1,
     ];
 
+    /**
+     * Los atributos que se agregan al serializar el modelo.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'full_name',
+        'short_name',
+        'primary_phone',
+        'identification',
+        'billingEmail'
+    ];
+
     // --- Relaciones ---
 
     /**
@@ -235,5 +248,25 @@ class VntContacts extends Model
     public function getPrimaryPhoneAttribute()
     {
         return $this->business_phone ?: $this->personal_phone;
+    }
+
+    /**
+     * Obtiene la identificación de la empresa asociada al contacto.
+     *
+     * @return string|null
+     */
+    public function getIdentificationAttribute()
+    {
+        return $this->company?->identification;
+    }
+
+    /**
+     * Obtiene el email de facturación de la empresa asociada al contacto.
+     *
+     * @return string|null
+     */
+    public function getBillingEmailAttribute()
+    {
+        return $this->company?->billingEmail;
     }
 }

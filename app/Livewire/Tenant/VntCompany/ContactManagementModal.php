@@ -194,6 +194,8 @@ class ContactManagementModal extends Component
     public function saveContact()
     {
         try {
+            $this->ensureTenantConnection();
+
             // Validar que no haya error de email duplicado
             if ($this->emailExists) {
                 $this->errorMessage = 'No se puede guardar el contacto: ' . $this->emailError;
@@ -203,8 +205,6 @@ class ContactManagementModal extends Component
             // Validar datos del formulario
             $this->validate($this->rules(), $this->messages());
             
-            $this->ensureTenantConnection();
-
             // Preparar datos para el servicio
             $data = array_merge($this->contactForm, [
                 'companyId' => $this->companyId
