@@ -80,9 +80,10 @@ class ApiClient
 
             $headers = [];
             if ($this->token) {
-                // Alegra usa HTTP Basic Auth: Authorization: Basic base64(email:token)
-                // El campo 'token' en cnf_invoices ya contiene el valor base64 completo
+                // Alegra directo usa HTTP Basic Auth: Authorization: Basic base64(email:token)
+                // El proxy (fac.dosil.com.co/api) requiere además el header "token: <valor>"
                 $headers['Authorization'] = 'Basic ' . $this->token;
+                $headers['token']         = $this->token;
             }
             if ($this->username) {
                 $headers['username'] = $this->username;
