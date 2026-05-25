@@ -99,17 +99,18 @@ class DatabaseConfigService
             $primaryConfig = $configs[0]['config'];
 
             return [
-                'base_url' => $primaryConfig['facturador'], // El campo facturador contiene la base_url
-                'token' => $primaryConfig['token'],
-                'username' => '', // No disponible en BD, usar valor por defecto
-                'timeout' => 30, // No disponible en BD, usar valor por defecto
-                'enabled' => true,
-                'source' => 'database',
-                'warehouse_id' => $primaryConfig['id_warehouses'],
-                'numeracion' => $primaryConfig['numeracion'],
-                'facturador' => $primaryConfig['facturador'], // Mantener campo original
-                'all_warehouses' => $configs, // Para acceso completo a todas las configuraciones
-                'updated_at' => now()->toISOString()
+                'base_url'      => self::resolveBaseUrl($primaryConfig['base'] ?? 'Produccion'),
+                'token'         => $primaryConfig['token'],
+                'username'      => '',
+                'timeout'       => 30,
+                'enabled'       => true,
+                'source'        => 'database',
+                'warehouse_id'  => $primaryConfig['id_warehouses'],
+                'numeracion'    => $primaryConfig['numeracion'],
+                'facturador'    => $primaryConfig['facturador'],
+                'base'          => $primaryConfig['base'] ?? 'Produccion',
+                'all_warehouses'=> $configs,
+                'updated_at'    => now()->toISOString(),
             ];
 
         } catch (\Exception $e) {
@@ -216,11 +217,12 @@ class DatabaseConfigService
             ]);
 
             return [
-                'id' => $config->id,
-                'token' => $config->token,
+                'id'            => $config->id,
+                'token'         => $config->token,
                 'id_warehouses' => $config->id_warehouses,
-                'numeracion' => $config->numeracion,
-                'facturador' => $config->facturador
+                'numeracion'    => $config->numeracion,
+                'facturador'    => $config->facturador,
+                'base'          => $config->base ?? 'Produccion',
             ];
 
         } catch (\Exception $e) {
@@ -257,6 +259,20 @@ class DatabaseConfigService
     public static function getConfigByWarehouseId(int $warehouseId): ?array
     {
         return self::getInvoiceConfigByWarehouse($warehouseId);
+    }
+
+    /**
+     * Resuelve la base URL según el entorno configurado en cnf_invoices.base
+     *
+     * 'Produccion' → https://api.alegra.com/api/v1/
+     * 'sandbox'    → https://sandbox.alegra.com:26967/api/v1
+     */
+    public static function resolveBaseUrl(string $base): string
+    {
+        return match (strtolower(trim($base))) {
+            'sandbox' => 'https://sandbox.alegra.com:26967/api/v1',
+            default   => 'https://api.alegra.com/api/v1/',
+        };
     }
 
     /**
@@ -335,19 +351,20 @@ class DatabaseConfigService
 
             // 4. Retornar configuración formateada
             return [
-                'base_url' => $invoiceConfig['facturador'], // facturador = base_url
-                'token' => $invoiceConfig['token'],
-                'username' => '',
-                'timeout' => 30,
-                'enabled' => true,
-                'source' => 'database_optimized',
+                'base_url'     => self::resolveBaseUrl($invoiceConfig['base'] ?? 'Produccion'),
+                'token'        => $invoiceConfig['token'],
+                'username'     => '',
+                'timeout'      => 30,
+                'enabled'      => true,
+                'source'       => 'database_optimized',
                 'warehouse_id' => $invoiceConfig['id_warehouses'],
-                'numeracion' => $invoiceConfig['numeracion'],
-                'facturador' => $invoiceConfig['facturador'],
-                'user_id' => $userId,
-                'contact_id' => $user->contact_id,
+                'numeracion'   => $invoiceConfig['numeracion'],
+                'facturador'   => $invoiceConfig['facturador'],
+                'base'         => $invoiceConfig['base'] ?? 'Produccion',
+                'user_id'      => $userId,
+                'contact_id'   => $user->contact_id,
                 'contact_name' => trim($contact->firstName . ' ' . $contact->lastName),
-                'updated_at' => now()->toISOString()
+                'updated_at'   => now()->toISOString(),
             ];
 
         } catch (\Exception $e) {
