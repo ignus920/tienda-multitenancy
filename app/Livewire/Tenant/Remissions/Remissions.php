@@ -1215,11 +1215,25 @@ class Remissions extends Component
             $retentions = [];     // Sin retenciones
             $termDays = 0;        // Sin términos
 
+            // Obtener seller desde el userId de la remisión (BD RAP → users.api_data_id)
+            $sellerApiId = null;
+            $remissionUser = $remission->getUser();
+            if ($remissionUser && !empty($remissionUser->api_data_id)) {
+                $sellerApiId = (string) $remissionUser->api_data_id;
+                Log::info('👨‍💼 Seller obtenido desde remisión', [
+                    'remission_id'  => $remission->id,
+                    'user_id'       => $remissionUser->id,
+                    'seller_alegra' => $sellerApiId,
+                ]);
+            }
+
             $invoiceData = InvoiceDataBuilder::buildFromQuote(
                 $remission->quote,  // Usamos la cotización asociada a la remisión
                 $paymentMethods,
                 $retentions,
-                $termDays
+                $termDays,
+                true,           // calculateRetentions
+                $sellerApiId    // seller desde remisión
             );
 
             Log::info('📡 Enviando factura a API de Alegra desde remisión', [
@@ -1524,12 +1538,26 @@ class Remissions extends Component
             ]
         ];
 
+        // Obtener seller desde el userId de la primera remisión (BD RAP → users.api_data_id)
+        $sellerApiId = null;
+        $remissionUser = $firstRemission->getUser();
+        if ($remissionUser && !empty($remissionUser->api_data_id)) {
+            $sellerApiId = (string) $remissionUser->api_data_id;
+            Log::info('👨‍💼 Seller obtenido desde remisión agrupada', [
+                'remission_id'  => $firstRemission->id,
+                'user_id'       => $remissionUser->id,
+                'seller_alegra' => $sellerApiId,
+            ]);
+        }
+
         // Construir la factura usando el InvoiceDataBuilder pero con items agrupados
         $invoiceData = InvoiceDataBuilder::buildFromQuote(
             $quote,
             $paymentMethods,
             [], // Sin retenciones
-            0   // Sin términos
+            0,  // Sin términos
+            true,           // calculateRetentions
+            $sellerApiId    // seller desde remisión
         );
 
         // REEMPLAZAR los items con nuestros items agrupados
@@ -1567,12 +1595,13 @@ class Remissions extends Component
             }
 
             // Determinar tax ID basado en el porcentaje real del detalle
+            // IDs según cnf_taxes.api_data_id: IVA 5% → 3, IVA 19% → 4, Exento/0% → 7
             if ($taxPercentage == 5) {
-                $taxIdAlegra = '2'; // ID común para IVA 5% en Alegra
+                $taxIdAlegra = '3'; // cnf_taxes.api_data_id para IVA 5%
             } elseif ($taxPercentage == 19) {
-                $taxIdAlegra = '3'; // ID común para IVA 19% en Alegra
+                $taxIdAlegra = '4'; // cnf_taxes.api_data_id para IVA 19%
             } else {
-                $taxIdAlegra = '1'; // ID común para exento/0% en Alegra
+                $taxIdAlegra = '7'; // cnf_taxes.api_data_id para Exento/0%
             }
 
             // ✅ CORREGIDO: Calcular precio sin IVA usando el tax real (igual que en InvoiceDataBuilder)

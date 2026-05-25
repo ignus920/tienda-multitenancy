@@ -39,7 +39,8 @@ class InvoiceDataBuilder
         array $paymentMethods = [],
         array $retentions = [],
         int $termDays = 0,
-        bool $calculateRetentions = true
+        bool $calculateRetentions = true,
+        ?string $sellerApiId = null   // ID de Alegra del vendedor (override del usuario autenticado)
     ): array {
         // Fecha actual en formato YYYY-MM-DD (equivalente al JavaScript)
         $date = now()->format('Y-m-d');
@@ -60,8 +61,9 @@ class InvoiceDataBuilder
         // Obtener datos del cliente (equivalente a getGlobalProduct en JS)
         $customerData = self::getCustomerDataForInvoice($quote);
 
-        // Obtener ID del vendedor (usuario autenticado)
-        $sellerIdAlegra = self::getSellerIdFromCurrentUser();
+        // Obtener ID del vendedor: usar el override si se proporcionó (ej. desde remisión),
+        // o el usuario autenticado como fallback
+        $sellerIdAlegra = $sellerApiId ?? self::getSellerIdFromCurrentUser();
 
         // Procesar métodos de pago (traducir lógica del for loop de JS)
         $paymentData = self::processPaymentMethods($paymentMethods);
