@@ -16,6 +16,7 @@ use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Items\Items;
 use App\Models\Central\VntContact;
+use App\Models\Tenant\CnfInvoice;
 use App\Services\Tenant\RetentionCalculatorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -96,7 +97,7 @@ class InvoiceDataBuilder
             ],
             'status' => 'open',
             'numberTemplate' => [
-                'id' => "16"
+                'id' => $customerData['numeracion'] ?? $customerData['warehouse_format'] ?? '16'
             ],
             'paymentForm' => $paymentData['paymentForm'],
             // 'paymentMethod' => 'CASH',
@@ -256,9 +257,10 @@ class InvoiceDataBuilder
         $company = $customer ? $customer->company : null;
 
         $customerData = [
-            'id_alegra' => null,
-            'warehouse_id_alegra' => null,
-            'warehouse_format' => null,
+            'id_alegra'          => null,
+            'warehouse_id_alegra'=> null,
+            'warehouse_format'   => null,
+            'numeracion'         => null,  // ID de numberTemplate desde cnf_invoices
         ];
 
         // Obtener ID de Alegra del cliente (prioridad a api_data_id)
@@ -307,10 +309,19 @@ class InvoiceDataBuilder
             $customerData['warehouse_format'] = '20';
         }
 
+        // Obtener numeracion (numberTemplate) desde cnf_invoices usando el branchId del warehouse
+        if ($warehouse) {
+            $cnfInvoice = CnfInvoice::byWarehouse($warehouse->id)->first();
+            if ($cnfInvoice && $cnfInvoice->numeracion) {
+                $customerData['numeracion'] = (string) $cnfInvoice->numeracion;
+            }
+        }
+
         Log::info('👤 Datos de cliente obtenidos', [
             'customer_id_alegra' => $customerData['id_alegra'],
             'warehouse_id_alegra' => $customerData['warehouse_id_alegra'],
-            'warehouse_format' => $customerData['warehouse_format'],
+            'warehouse_format'   => $customerData['warehouse_format'],
+            'numeracion'         => $customerData['numeracion'],
             'customer_details' => [
                 'has_company' => !empty($company),
                 'company_api_data_id' => $company->api_data_id ?? null,
