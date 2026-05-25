@@ -2093,8 +2093,8 @@ class VntCompanyForm extends Component
                 'zipCode' => $this->warehousePostcode
             ],
             'accounting' => [
-                'debtToPay' => 5033,
-                'accountReceivable' => 5007,
+                'debtToPay'         => 6641,
+                'accountReceivable' => 6344,
             ]
         ];
     }
