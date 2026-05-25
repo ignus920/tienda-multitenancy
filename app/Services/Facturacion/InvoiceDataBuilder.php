@@ -309,12 +309,20 @@ class InvoiceDataBuilder
             $customerData['warehouse_format'] = '20';
         }
 
-        // Obtener numeracion (numberTemplate) desde cnf_invoices usando el branchId del warehouse
-        if ($warehouse) {
-            $cnfInvoice = CnfInvoice::byWarehouse($warehouse->id)->first();
+        // Obtener numeracion (numberTemplate) desde cnf_invoices.
+        // customerId en el quote = vnt_contacts.warehouseId = ID del warehouse central (RAP)
+        // que coincide con cnf_invoices.id_warehouses
+        $centralWarehouseId = $quote->customerId; // ej: 150
+        if ($centralWarehouseId) {
+            $cnfInvoice = CnfInvoice::byWarehouse($centralWarehouseId)->first();
             if ($cnfInvoice && $cnfInvoice->numeracion) {
                 $customerData['numeracion'] = (string) $cnfInvoice->numeracion;
             }
+            Log::info('🔢 Lookup numeracion en cnf_invoices', [
+                'central_warehouse_id' => $centralWarehouseId,
+                'cnf_invoice_found'    => !is_null($cnfInvoice ?? null),
+                'numeracion'           => $customerData['numeracion'],
+            ]);
         }
 
         Log::info('👤 Datos de cliente obtenidos', [
