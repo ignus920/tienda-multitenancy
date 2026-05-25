@@ -497,7 +497,7 @@ class Invoices extends Component
                     return;
                 } else {
                     Log::warning('⚠️ No se obtuvo URL válida de Alegra para factura', [
-                        'response' => $apiResponse,
+                        'response'   => $apiResponse,
                         'invoice_id' => $invoiceId
                     ]);
                     $this->dispatch('show-toast', [

@@ -16,6 +16,7 @@ use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Items\Items;
 use App\Models\Central\VntContact;
+use App\Models\Tenant\CnfInvoice;
 use App\Services\Tenant\RetentionCalculatorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -96,7 +97,7 @@ class InvoiceDataBuilder
             ],
             'status' => 'open',
             'numberTemplate' => [
-                'id' => "16"
+                'id' => $customerData['numeracion'] ?? $customerData['warehouse_format'] ?? '16'
             ],
             'paymentForm' => $paymentData['paymentForm'],
             // 'paymentMethod' => 'CASH',
@@ -166,26 +167,36 @@ class InvoiceDataBuilder
                 continue;
             }
 
-            $taxIdAlegra = $product->tax_api_data_id ?? $product->taxIdAlegra ?? $product->tax_id_alegra ?? $product->api_tax_id ?? null;
+            // Obtener tax ID desde la relación cnf_taxes (campo api_data_id) — fuente primaria
+            $taxIdAlegra = $product->tax?->api_data_id
+                ? (string) $product->tax->api_data_id
+                : null;
 
-            // Si no hay tax configurado, determinarlo basándose en el porcentaje del detalle
+            // Fallback: determinar por porcentaje del detalle usando IDs reales de cnf_taxes
             if (!$taxIdAlegra) {
                 $taxPercentage = floatval($detalle->tax ?? 0);
 
-                // Mapear porcentaje a ID de Alegra común para Colombia
                 if ($taxPercentage == 5) {
-                    $taxIdAlegra = '2'; // ID común para IVA 5% en Alegra
+                    $taxIdAlegra = '3'; // cnf_taxes: Iva 5%  → api_data_id = 3
                 } elseif ($taxPercentage == 19) {
-                    $taxIdAlegra = '3'; // ID común para IVA 19% en Alegra
+                    $taxIdAlegra = '4'; // cnf_taxes: Iva 19% → api_data_id = 4
                 } else {
-                    $taxIdAlegra = '1'; // ID común para exento/0% en Alegra
+                    $taxIdAlegra = '7'; // cnf_taxes: Exento  → api_data_id = 7
                 }
 
-                Log::info('📊 Tax ID determinado por porcentaje', [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name ?? 'Sin nombre',
+                Log::info('📊 Tax ID determinado por porcentaje (fallback)', [
+                    'product_id'     => $product->id,
+                    'product_name'   => $product->name ?? 'Sin nombre',
                     'tax_percentage' => $taxPercentage,
-                    'assigned_tax_id' => $taxIdAlegra
+                    'tax_id_alegra'  => $taxIdAlegra,
+                ]);
+            } else {
+                Log::info('📊 Tax ID obtenido desde cnf_taxes.api_data_id', [
+                    'product_id'       => $product->id,
+                    'product_name'     => $product->name ?? 'Sin nombre',
+                    'cnf_taxes_id'     => $product->taxId ?? null,
+                    'cnf_taxes_api_id' => $taxIdAlegra,
+                    'tax_percentage'   => $product->tax?->percentage ?? null,
                 ]);
             }
 
@@ -256,9 +267,10 @@ class InvoiceDataBuilder
         $company = $customer ? $customer->company : null;
 
         $customerData = [
-            'id_alegra' => null,
-            'warehouse_id_alegra' => null,
-            'warehouse_format' => null,
+            'id_alegra'          => null,
+            'warehouse_id_alegra'=> null,
+            'warehouse_format'   => null,
+            'numeracion'         => null,  // ID de numberTemplate desde cnf_invoices
         ];
 
         // Obtener ID de Alegra del cliente (prioridad a api_data_id)
@@ -307,10 +319,27 @@ class InvoiceDataBuilder
             $customerData['warehouse_format'] = '20';
         }
 
+        // Obtener numeracion (numberTemplate) desde cnf_invoices via usuario autenticado.
+        // DatabaseConfigService::getFacturacionConfigByUser resuelve el flujo:
+        // users.contact_id → vnt_contacts.warehouseId (central) → cnf_invoices.numeracion
+        $authUser = Auth::user();
+        if ($authUser) {
+            $facConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
+            if ($facConfig && !empty($facConfig['numeracion'])) {
+                $customerData['numeracion'] = (string) $facConfig['numeracion'];
+            }
+            Log::info('🔢 Numeracion obtenida via usuario', [
+                'user_id'    => $authUser->id,
+                'numeracion' => $customerData['numeracion'],
+                'found'      => !is_null($customerData['numeracion']),
+            ]);
+        }
+
         Log::info('👤 Datos de cliente obtenidos', [
             'customer_id_alegra' => $customerData['id_alegra'],
             'warehouse_id_alegra' => $customerData['warehouse_id_alegra'],
-            'warehouse_format' => $customerData['warehouse_format'],
+            'warehouse_format'   => $customerData['warehouse_format'],
+            'numeracion'         => $customerData['numeracion'],
             'customer_details' => [
                 'has_company' => !empty($company),
                 'company_api_data_id' => $company->api_data_id ?? null,

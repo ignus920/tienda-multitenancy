@@ -776,13 +776,16 @@
                             <div class="flex-1">
                                 <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">Nombre/Razón Social:</span>
                                 <p class="text-base font-bold text-gray-900 dark:text-white truncate">
-                                    {{ $selectedCustomer['businessName'] ?: ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName']) }}
+                                    {{ $selectedCustomer['businessName'] ?: (($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
                                 </p>
                             </div>
                             <div class="sm:text-right">
-                                <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">Identificación:</span>
+                                <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">NIT / Identificación:</span>
                                 <p class="text-base font-bold text-gray-900 dark:text-white">
-                                    {{ $selectedCustomer['identification'] }}
+                                    {{ $selectedCustomer['identification'] ?? 'N/A' }}
+                                    @if(!empty($selectedCustomer['checkDigit']))
+                                        <span class="text-sm font-normal text-gray-500">-{{ $selectedCustomer['checkDigit'] }}</span>
+                                    @endif
                                 </p>
                             </div>
                         </div>

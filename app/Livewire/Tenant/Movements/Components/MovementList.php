@@ -86,12 +86,18 @@ class MovementList extends Component
             $movement = InvInventoryAdjustment::with('details')->find($movementId);
             
             if (!$movement) {
-                $this->dispatch('notify', type: 'error', message: 'Movimiento no encontrado');
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Movimiento no encontrado'
+                ]);
                 return;
             }
 
             if ($movement->status === 0) {
-                $this->dispatch('notify', type: 'warning', message: 'Este movimiento ya está anulado');
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Este movimiento ya está anulado'
+                ]);
                 return;
             }
 
@@ -103,7 +109,10 @@ class MovementList extends Component
                 
                 if (!$itemStore) {
                     \Illuminate\Support\Facades\DB::connection('tenant')->rollBack();
-                    $this->dispatch('notify', type: 'error', message: 'No se encontró el registro de inventario para el item');
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => 'No se encontró el registro de inventario para el item'
+                    ]);
                     return;
                 }
 
@@ -117,7 +126,10 @@ class MovementList extends Component
                     // Verificar que hay suficiente stock para restar
                     if ($itemStore->stock_items_store < $quantityInConsumptionUnit) {
                         \Illuminate\Support\Facades\DB::connection('tenant')->rollBack();
-                        $this->dispatch('notify', type: 'error', message: 'No hay suficiente stock para anular este movimiento de entrada');
+                        $this->dispatch('show-toast', [
+                            'type' => 'error',
+                            'message' => 'No hay suficiente stock para anular este movimiento de entrada'
+                        ]);
                         return;
                     }
                     
@@ -136,7 +148,10 @@ class MovementList extends Component
             
             \Illuminate\Support\Facades\DB::connection('tenant')->commit();
             
-            $this->dispatch('notify', type: 'success', message: 'Movimiento anulado correctamente y el inventario ha sido actualizado');
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Movimiento anulado correctamente y el inventario ha sido actualizado'
+            ]);
             $this->resetPage();
             
         } catch (\Exception $e) {
@@ -145,7 +160,10 @@ class MovementList extends Component
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            $this->dispatch('notify', type: 'error', message: 'Error al anular el movimiento: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al anular el movimiento: ' . $e->getMessage()
+            ]);
         }
     }
 

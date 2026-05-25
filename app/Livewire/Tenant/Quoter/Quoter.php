@@ -98,7 +98,7 @@ class Quoter extends Component
 
         $this->ensureTenantConnection();
 
-        $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])
+        $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse', 'branch.company'])
             ->find($this->selectedQuoteId);
 
         // Agregar el storage_name al modelo
@@ -763,7 +763,7 @@ class Quoter extends Component
             'store_id' => $storeId
         ]);
 
-        return VntQuote::with(['customer', 'branch', 'detalles'])
+        return VntQuote::with(['customer', 'branch.company', 'detalles'])
             ->when($storeId, function ($query) use ($storeId) {
                 $query->where('warehouseId', $storeId);
             })

@@ -1445,9 +1445,6 @@ class ManageItems extends Component
             ];
             // Preparar datos para la API según estructura requerida
             $apiData = [
-                'itemCategory' => [
-                    'id' => $categoryAlegraId // api_data_id de la categoría (ID de Alegra)
-                ],
                 'inventory' => $item->inventoriable == 1 ? $inventory : null,
                 'accounting' => [
                     'inventory' => $taxData['inventoryAccount'] ?? null, // inventoryAccount desde cnf_taxes

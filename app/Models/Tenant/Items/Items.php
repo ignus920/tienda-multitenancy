@@ -401,13 +401,22 @@ class Items extends Model
         // Verificar si usa lista de precios (opción 4)
         $usePriceList = $this->getOptionValue(4) == 1;
 
-        if ($usePriceList) {
-            // MODO LISTA DE PRECIOS: Precio Base × cada multiplicador
-            return $this->getAllPricesWithPriceList();
-        } else {
-            // MODO PRECIOS FIJOS: Todos los precios de inv_values
-            return $this->getAllPricesFromInventory();
+        $prices = $usePriceList
+            ? $this->getAllPricesWithPriceList()
+            : $this->getAllPricesFromInventory();
+
+        // Respaldo: si "Precio unitario x caja" no está en los precios resultantes,
+        // buscarlo directamente (sin importar el case del tipo)
+        if (!isset($prices['Precio unitario x caja'])) {
+            $precioUnitarioCaja = $this->invValues
+                ->first(fn($v) => $v->label === 'Precio unitario x caja' && (float) $v->values > 0);
+
+            if ($precioUnitarioCaja) {
+                $prices['Precio unitario x caja'] = $precioUnitarioCaja->values;
+            }
         }
+
+        return $prices;
     }
 
     /**
@@ -476,6 +485,18 @@ class Items extends Model
             $prices['Precio Crédito'] = $precioCredito->values;
         }
 
+        // Precio unitario x caja (siempre se incluye si existe, sin importar comparación con Regular)
+        // Búsqueda sin depender del case del campo type
+        $precioUnitarioCaja = $this->invValues
+            ->filter(fn($v) => strtolower(trim($v->type)) === 'precio' && $v->label === 'Precio unitario x caja')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
+            ->first();
+
+        if ($precioUnitarioCaja && $precioUnitarioCaja->values > 0) {
+            $prices['Precio unitario x caja'] = $precioUnitarioCaja->values;
+        }
+
         // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
@@ -486,7 +507,11 @@ class Items extends Model
 
             // Si hay precio regular definido y no es el precio regular mismo,
             // excluir precios menores al precio regular
-            if ($regularPriceValue !== null && $label !== 'Precio Regular' && $value < $regularPriceValue) {
+            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (puede ser distinto)
+            if ($regularPriceValue !== null
+                && $label !== 'Precio Regular'
+                && $label !== 'Precio unitario x caja'
+                && $value < $regularPriceValue) {
                 continue;
             }
 
@@ -502,9 +527,9 @@ class Items extends Model
      */
     private function getAllPricesFromInventory()
     {
-        // Obtener TODOS los precios desde la colección cargada
+        // Obtener TODOS los precios desde la colección cargada (sin importar el case del type)
         $priceRecords = $this->invValues
-            ->where('type', 'precio')
+            ->filter(fn($v) => strtolower(trim($v->type)) === 'precio')
             ->sortByDesc('date')
             ->sortByDesc('created_at');
 
@@ -527,8 +552,12 @@ class Items extends Model
             }
 
             // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular
-            if ($regularPriceValue !== null && $label !== 'Precio Regular' && $value < $regularPriceValue) {
+            // excluir precios menores al precio regular.
+            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (es un precio especial por volumen)
+            if ($regularPriceValue !== null
+                && $label !== 'Precio Regular'
+                && $label !== 'Precio unitario x caja'
+                && $value < $regularPriceValue) {
                 continue;
             }
 

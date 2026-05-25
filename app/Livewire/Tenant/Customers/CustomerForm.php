@@ -626,8 +626,8 @@ class CustomerForm extends Component
                 'zipCode' => $this->postcode
             ],
             'accounting' => [
-                'debtToPay' => 6787,
-                'accountReceivable' => 6551,
+                'debtToPay'         => 6641,
+                'accountReceivable' => 6344,
             ]
         ];
     }
@@ -975,8 +975,8 @@ class CustomerForm extends Component
                 'zipCode' => $customer->postcode
             ],
             'accounting' => [
-                'debtToPay' => 6787,
-                'accountReceivable' => 6551,
+                'debtToPay'         => 6641,
+                'accountReceivable' => 6344,
             ]
         ];
     }

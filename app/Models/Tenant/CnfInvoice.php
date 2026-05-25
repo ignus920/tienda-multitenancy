@@ -17,15 +17,16 @@ class CnfInvoice extends Model
         'token',
         'id_warehouses',
         'numeracion',
-        'facturador', // Este campo contiene la base_url
+        'facturador',
+        'base',       // 'Produccion' | 'sandbox'
         'username',
         'timeout'
     ];
 
     protected $casts = [
-        'id' => 'integer',
-        'id_warehouses' => 'integer',
-        'numeracion' => 'integer',
+        'id'           => 'integer',
+        'id_warehouses'=> 'integer',
+        'numeracion'   => 'integer',
     ];
 
     /**

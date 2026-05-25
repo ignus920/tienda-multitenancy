@@ -341,29 +341,49 @@ $header = 'Seleccionar productos';
                                             @foreach($allPrices as $label => $price)
                                             @php
                                                 $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
-                                                $colorClasses = match($label) {
-                                                    'Precio Regular' => [
-                                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
-                                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
-                                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',
-                                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-red-700 dark:text-red-300',
-                                                        'spinner' => 'text-red-600 dark:text-red-400'
-                                                    ],
-                                                    'Precio Crédito' => [
-                                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-yellow-500/30',
-                                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-yellow-50/50 dark:bg-yellow-900/10 active:bg-yellow-100 dark:active:bg-yellow-900/30',
-                                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700',
-                                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-700 dark:text-yellow-300',
-                                                        'spinner' => 'text-yellow-600 dark:text-yellow-400'
-                                                    ],
-                                                    default => [
-                                                        'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-emerald-500/30',
-                                                        'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30',
-                                                        'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700',
-                                                        'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-emerald-700 dark:text-emerald-300',
-                                                        'spinner' => 'text-emerald-600 dark:text-emerald-400'
+                                                // Stock insuficiente en Grid: precio seleccionado y cant. en carrito > stock total
+                                                $insufficientStockGrid = $isThisPriceSelected
+                                                    && $quantity > 0
+                                                    && ($product->total_stock ?? 0) < $quantity;
+
+                                                $colorClasses = $insufficientStockGrid
+                                                    ? [
+                                                        'border'     => 'border-orange-500',
+                                                        'bg'         => 'bg-orange-100 dark:bg-orange-900/30 ring-2 ring-orange-500/50',
+                                                        'label_text' => 'text-orange-700 dark:text-orange-300',
+                                                        'price_text' => 'text-orange-800 dark:text-orange-200',
+                                                        'spinner'    => 'text-orange-600 dark:text-orange-400'
                                                     ]
-                                                };
+                                                    : match($label) {
+                                                        'Precio Regular' => [
+                                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
+                                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
+                                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',
+                                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-red-700 dark:text-red-300',
+                                                            'spinner' => 'text-red-600 dark:text-red-400'
+                                                        ],
+                                                        'Precio Crédito' => [
+                                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-yellow-500/30',
+                                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-yellow-50/50 dark:bg-yellow-900/10 active:bg-yellow-100 dark:active:bg-yellow-900/30',
+                                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700',
+                                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-700 dark:text-yellow-300',
+                                                            'spinner' => 'text-yellow-600 dark:text-yellow-400'
+                                                        ],
+                                                        'Precio unitario x caja' => [
+                                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-purple-400/50',
+                                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-purple-50/70 dark:bg-purple-900/10 active:bg-purple-100 dark:active:bg-purple-900/30',
+                                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-purple-600 dark:text-purple-400 group-hover:text-purple-700',
+                                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-purple-700 dark:text-purple-300',
+                                                            'spinner' => 'text-purple-600 dark:text-purple-400'
+                                                        ],
+                                                        default => [
+                                                            'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-emerald-500/30',
+                                                            'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-emerald-50/50 dark:bg-emerald-900/10 active:bg-emerald-100 dark:active:bg-emerald-900/30',
+                                                            'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700',
+                                                            'price_text' => $isThisPriceSelected ? 'text-blue-800 dark:text-blue-200' : 'text-emerald-700 dark:text-emerald-300',
+                                                            'spinner' => 'text-emerald-600 dark:text-emerald-400'
+                                                        ]
+                                                    };
                                             @endphp
                                             <button
                                                 @if($isCopyMode)
@@ -373,19 +393,29 @@ $header = 'Seleccionar productos';
                                                     wire:loading.attr="disabled"
                                                     wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                                 @endif
+                                                @if($insufficientStockGrid)
+                                                    title="⚠ Stock insuficiente — disponible: {{ (int)($product->total_stock ?? 0) }} | en carrito: {{ $quantity }}"
+                                                @endif
                                                 class="relative w-full py-1 px-2 rounded-lg border transition-colors overflow-hidden group {{ $colorClasses['border'] }} {{ $colorClasses['bg'] }}">
 
                                                 <!-- Contenido Normal -->
                                                 <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
                                                     <div class="text-[9px] uppercase font-bold truncate transition-colors {{ $colorClasses['label_text'] }}">
                                                         {{ $label }}
-                                                        @if($isThisPriceSelected)
+                                                        @if($insufficientStockGrid)
+                                                            <span class="ml-1">⚠️</span>
+                                                        @elseif($isThisPriceSelected)
                                                             <span class="ml-1">✓</span>
                                                         @endif
                                                     </div>
                                                     <div class="text-[12px] font-black {{ $colorClasses['price_text'] }}">
                                                         ${{ number_format($price) }}
                                                     </div>
+                                                    @if($insufficientStockGrid)
+                                                        <div class="text-[8px] font-bold leading-tight {{ $colorClasses['label_text'] }}">
+                                                            Stock: {{ (int)($product->total_stock ?? 0) }}
+                                                        </div>
+                                                    @endif
                                                 </div>
 
                                                 <!-- Spinner de Carga -->
@@ -456,6 +486,7 @@ $header = 'Seleccionar productos';
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">7%</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Regular</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-purple-500 dark:text-purple-400 uppercase tracking-wider">x Caja</th>
                                     @endif
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                                 </tr>
@@ -582,16 +613,17 @@ $header = 'Seleccionar productos';
                                                 if ($usesNumericKeys) {
                                                     // Estructura tipo: p3, p4, P5, p6, p1, p2
                                                     $pricesByType = [
-                                                        'Lista' => $allPrices['p3'] ?? null,
-                                                        '3%' => $allPrices['p4'] ?? null,
-                                                        '5%' => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
-                                                        '7%' => $allPrices['p6'] ?? $allPrices['P6'] ?? null,
-                                                        'Regular' => $allPrices['p1'] ?? null,
-                                                        'Crédito' => $allPrices['p2'] ?? null
+                                                        'Lista'                  => $allPrices['p3'] ?? null,
+                                                        '3%'                     => $allPrices['p4'] ?? null,
+                                                        '5%'                     => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
+                                                        '7%'                     => $allPrices['p6'] ?? $allPrices['P6'] ?? null,
+                                                        'Regular'                => $allPrices['p1'] ?? null,
+                                                        'Crédito'                => $allPrices['p2'] ?? null,
+                                                        'Precio unitario x caja' => $allPrices['Precio unitario x caja'] ?? null,
                                                     ];
                                                 } else {
-                                                    // Estructura tipo: Lista, 3%, 5%, 7%, Regular, Crédito
-                                                    $columnMapping = ['Lista', '3%', '5%', '7%', 'Regular', 'Crédito'];
+                                                    // Estructura tipo: Lista, 3%, 5%, 7%, Regular, Crédito, Precio unitario x caja
+                                                    $columnMapping = ['Lista', '3%', '5%', '7%', 'Regular', 'Crédito', 'Precio unitario x caja'];
 
                                                     foreach($columnMapping as $column) {
                                                         $pricesByType[$column] = null;
@@ -659,6 +691,10 @@ $header = 'Seleccionar productos';
                                                             $priceKey = $priceKey ?: $priceType;
 
                                                             $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
+                                                            // Stock insuficiente: precio seleccionado y cantidad en carrito > stock total
+                                                            $insufficientStock = $isThisPriceSelected
+                                                                && $quantity > 0
+                                                                && ($product->total_stock ?? 0) < $quantity;
                                                         @endphp
                                                         <button
                                                          @if($isCopyMode)
@@ -668,20 +704,36 @@ $header = 'Seleccionar productos';
                                                                 wire:loading.attr="disabled"
                                                                 wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
                                                             @endif
+                                                            @if($insufficientStock)
+                                                                title="⚠ Stock insuficiente — disponible: {{ (int)($product->total_stock ?? 0) }} | en carrito: {{ $quantity }}"
+                                                            @endif
                                                             class="px-2 py-1 text-xs rounded-lg border-2 transition-colors font-medium min-w-20
-                                                                {{ $isThisPriceSelected
-                                                                    ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                                                    : ($priceType === 'Regular'
-                                                                        ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800'
-                                                                        : ($priceType === 'Crédito'
-                                                                            ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:text-yellow-400 dark:border-yellow-800'
-                                                                            : 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/10 dark:text-green-400 dark:border-green-800'))
+                                                                {{ $insufficientStock
+                                                                    ? 'border-orange-500 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                                                    : ($isThisPriceSelected
+                                                                        ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                                                        : ($priceType === 'Regular'
+                                                                            ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800'
+                                                                            : ($priceType === 'Crédito'
+                                                                                ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:text-yellow-400 dark:border-yellow-800'
+                                                                                : ($priceType === 'Precio unitario x caja'
+                                                                                    ? 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/10 dark:text-purple-400 dark:border-purple-800'
+                                                                                    : 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/10 dark:text-green-400 dark:border-green-800'))))
                                                                 }}">
                                                             <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')">
                                                                 <div class="text-xs font-black">
                                                                     ${{ number_format($price) }}
-                                                                    @if($isThisPriceSelected) ✓ @endif
+                                                                    @if($insufficientStock)
+                                                                        <span>⚠️</span>
+                                                                    @elseif($isThisPriceSelected)
+                                                                        ✓
+                                                                    @endif
                                                                 </div>
+                                                                @if($insufficientStock)
+                                                                    <div class="text-[9px] font-bold leading-tight mt-0.5">
+                                                                        Stock: {{ (int)($product->total_stock ?? 0) }}
+                                                                    </div>
+                                                                @endif
                                                             </div>
                                                             <div wire:loading wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')" class="flex items-center justify-center">
                                                                 <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">

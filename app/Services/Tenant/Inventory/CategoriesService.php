@@ -355,9 +355,11 @@ class CategoriesService
             ]);
 
             // Preparar datos para la API
+            // La API requiere: name, description (no puede ser vacío) y status ("active"/"inactive")
             $apiData = [
-                'name' => $category->name,
-                'description' => $category->description ?? ''
+                'name'        => $category->name,
+                'description' => $category->description ?: $category->name, // fallback: usa el nombre si no hay descripción
+                'status'      => $category->status ? 'active' : 'inactive',
             ];
 
             // Sincronizar (crear o actualizar) usando ApiClient directo
@@ -379,7 +381,8 @@ class CategoriesService
 
             if ($apiResult['success']) {
                 // Extraer el ID de la respuesta de la API
-                $apiDataId = $apiResult['data']['id'] ?? null;
+                // La API puede devolver el id como string ("93"), se castea a int
+                $apiDataId = isset($apiResult['data']['id']) ? (int) $apiResult['data']['id'] : null;
 
                 if ($apiDataId) {
                     $category->setApiId($apiDataId);
