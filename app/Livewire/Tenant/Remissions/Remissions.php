@@ -973,42 +973,61 @@ class Remissions extends Component
             $facturacionService = new FacturacionService($tenant);
             $hasFacturacionConfig = TenantConfigManager::hasFacturacionConfig($tenant);
 
-            // 3. Lógica de impresión (Prioridad Alegra)
+            // 3. Validar que la factura esté emitida localmente
+            if ($invoice->status !== 'FACTURADO') {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Solo se puede imprimir la factura una vez emitida. Estado actual: ' . $invoice->status
+                ]);
+                return;
+            }
+
+            // 4. Lógica de impresión (Prioridad Alegra)
             if ($hasFacturacionConfig && $invoice->api_data_id) {
                 Log::info('🔗 Usando api_data_id de Alegra para obtener PDF', ['api_id' => $invoice->api_data_id]);
 
                 $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
 
-                // Analizar estructura de respuesta para depurar (igual que en Quoter)
+                // La respuesta de Alegra viene en $apiResponse['data'] (makeRequest la envuelve así)
+                // Alegra devuelve: { "pdf": "URL", "id": ..., ... }
+                // El proxy puede devolver: { "success": true, "pdf": "URL", "data": {...} }
                 $respData = $apiResponse['data'] ?? [];
 
-                // Intentar obtener URL de varios posibles campos
-                $printUrl = $respData['pdf'] ??
-                    $respData['publicUrl'] ??
-                    ($respData['data']['publicUrl'] ?? null);
+                // Buscar la URL del PDF en los distintos posibles campos de la respuesta
+                $printUrl = $respData['pdf']
+                    ?? $respData['publicUrl']
+                    ?? $respData['url']
+                    ?? ($respData['data']['pdf'] ?? null)
+                    ?? ($respData['data']['publicUrl'] ?? null)
+                    ?? null;
 
-                if ($apiResponse['success'] && !empty($printUrl)) {
-                    Log::info('✅ URL de documento Alegra encontrada', ['url' => $printUrl]);
+                Log::info('📄 Respuesta PDF de Alegra', [
+                    'api_id'         => $invoice->api_data_id,
+                    'http_success'   => $apiResponse['success'] ?? false,
+                    'http_status'    => $apiResponse['status'] ?? null,
+                    'pdf_url_found'  => !empty($printUrl),
+                    'print_url'      => $printUrl,
+                    'response_keys'  => array_keys($respData),
+                    'full_response'  => $apiResponse,
+                ]);
 
+                if (!empty($printUrl)) {
                     $this->dispatch('open-print-window', [
-                        'url' => $printUrl,
+                        'url'    => $printUrl,
                         'format' => 'carta'
                     ]);
                     return;
                 } else {
-                    Log::warning('⚠️ No se obtuvo URL válida de Alegra. ¿Está emitida?', [
-                        'response' => $apiResponse
-                    ]);
                     $this->dispatch('show-toast', [
-                        'type' => 'warning',
-                        'message' => 'No se pudo obtener el PDF de Alegra. Verifique si la factura ya fue emitida.'
+                        'type'    => 'warning',
+                        'message' => 'No se pudo obtener el PDF desde Alegra. Revise los logs o verifique que la factura esté emitida.'
                     ]);
                 }
             } else {
-                Log::info('ℹ️ Facturación no configurada o sin api_data_id. Se usaría impresión local.');
+                Log::info('ℹ️ Facturación no configurada o sin api_data_id.');
                 $this->dispatch('show-toast', [
-                    'type' => 'info',
-                    'message' => 'La factura no está en Alegra todavía. Se requiere emisión previa.'
+                    'type'    => 'info',
+                    'message' => 'La factura no está registrada en Alegra. Se requiere emisión previa.'
                 ]);
             }
         } catch (\Exception $e) {
