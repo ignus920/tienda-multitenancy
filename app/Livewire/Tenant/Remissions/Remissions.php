@@ -342,8 +342,8 @@ class Remissions extends Component
         $this->ensureTenantConnection();
 
         try {
-            // Cargar remisiones con detalles y cliente (solo las NO facturadas)
-            $remisiones = InvRemissions::with(['quote.customer', 'details.item'])
+            // Cargar remisiones con detalles y empresa del cliente (solo las NO facturadas)
+            $remisiones = InvRemissions::with(['quote.branch.company', 'details.item'])
                 ->whereIn('id', $this->selectedRemissions)
                 ->where('status', '!=', 'ANULADO')
                 ->whereDoesntHave('invoiceSale') // Solo remisiones que NO estén en vnt_invoicesXsales
@@ -357,15 +357,18 @@ class Remissions extends Component
                 return;
             }
 
-            // Obtener el cliente (todas las remisiones deben ser del mismo cliente)
-            $customer = $remisiones->first()->quote->customer;
+            // Obtener la empresa del cliente (datos de la compañía, no del contacto)
+            $quote   = $remisiones->first()->quote;
+            $company = $quote?->branch?->company;
+
             $this->selectedCustomer = [
-                'id' => $customer->id,
-                'businessName' => $customer->businessName,
-                'firstName' => $customer->firstName,
-                'lastName' => $customer->lastName,
-                'identification' => $customer->identification,
-                'customer_name' => $customer->customer_name
+                'id'            => $company?->id,
+                'businessName'  => $company?->businessName,
+                'firstName'     => $company?->firstName,
+                'lastName'      => $company?->lastName,
+                'identification'=> $company?->identification,
+                'checkDigit'    => $company?->checkDigit,
+                'customer_name' => $company?->customer_name,
             ];
 
             // Preparar datos de las remisiones para el modal
@@ -389,8 +392,9 @@ class Remissions extends Component
 
             Log::info('📋 Preparando modal de facturación', [
                 'remisiones_count' => count($this->selectedRemissionsData),
-                'customer_id' => $this->selectedCustomer['id'] ?? null,
-                'customer_name' => $this->selectedCustomer['businessName'] ?? $this->selectedCustomer['firstName'],
+                'company_id'   => $this->selectedCustomer['id'] ?? null,
+                'company_name' => $this->selectedCustomer['businessName']
+                    ?? (($this->selectedCustomer['firstName'] ?? '') . ' ' . ($this->selectedCustomer['lastName'] ?? '')),
                 'total_items' => $this->totalItems
             ]);
 

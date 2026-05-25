@@ -1698,7 +1698,7 @@ class ProductQuoter extends Component
                     'detalle_completo' => $detalle->toArray()
                 ]);
 
-                $product = Items::with(['tax', 'dimensions'])->find($detalle->itemId);
+                $product = Items::with(['tax', 'dimensions', 'invValues'])->find($detalle->itemId);
                 if ($product) {
                     $priceLabel = $detalle->price_label;
 
@@ -1715,18 +1715,33 @@ class ProductQuoter extends Component
                         }
                     }
 
+                    // Stock total (suma de todas las bodegas)
+                    $totalStock = $product->invItemsStore()->sum('stock_items_store');
+
+                    // Precio mínimo = "Precio unitario x caja" (si existe)
+                    $precioUnitarioCajaRecord = $product->invValues
+                        ->where('type', 'precio')
+                        ->where('label', 'Precio unitario x caja')
+                        ->sortByDesc('date')
+                        ->sortByDesc('created_at')
+                        ->first();
+                    $minPrice = $precioUnitarioCajaRecord ? (float) $precioUnitarioCajaRecord->values : 0;
+
                     $itemData = [
-                        'id' => $product->id,
-                        'name' => $product->display_name,
-                        'sku' => $product->sku,
-                        'price' => $detalle->value,
-                        'price_label' => $priceLabel,
-                        'quantity' => $detalle->quantity,
-                        'description' => $product->description,
-                        'tax' => $product->tax->percentage ?? 0,
-                        'tax_label' => $product->tax->name ?? 'IVA',
-                        'weight' => $product->dimensions->weight ?? 0,
-                        'category_id' => $product->categoryId,
+                        'id'             => $product->id,
+                        'name'           => $product->display_name,
+                        'sku'            => $product->sku,
+                        'price'          => $detalle->value,
+                        'original_price' => $detalle->value,
+                        'min_price'      => $minPrice,
+                        'price_label'    => $priceLabel,
+                        'quantity'       => $detalle->quantity,
+                        'description'    => $product->description,
+                        'tax'            => $product->tax->percentage ?? 0,
+                        'tax_label'      => $product->tax->name ?? 'IVA',
+                        'weight'         => $product->dimensions->weight ?? 0,
+                        'category_id'    => $product->categoryId,
+                        'total_stock'    => $totalStock,
                     ];
 
                     $this->quoterItems[] = $itemData;
