@@ -2901,80 +2901,33 @@ class ProductQuoter extends Component
                     'invoiceId' => $invoice->id
                 ]);
 
-                Log::info('📄 Factura creada con estado SIN EMITIR, procediendo a emitir (stamp)', [
-                    'invoice_local_id' => $invoice->id,
-                    'api_data_id' => $invoiceId,
-                    'initial_status' => 'SIN EMITIR'
-                ]);
-
                 Log::info('🔗 Relación factura-cotización creada en vnt_invoicesXsales', [
                     'quote_id' => $quote->id,
                     'invoice_id' => $invoice->id,
                     'remission_id' => 0
                 ]);
 
-                // 2. INTENTAR EMITIR (STAMP) LA FACTURA
-                $stampResponse = $facturacionService->stampInvoice($invoiceId);
-
-                if ($stampResponse['success']) {
-                    // ✅ STAMP EXITOSO: Actualizar estado a FACTURADO
-                    $invoice->update(['status' => 'FACTURADO']);
-
-                    // 3. REGISTRAR PAGO SI HAY DATOS DE PAGO
-                    if (!empty($paymentData)) {
-                        $this->registerInvoicePayments($invoice, $paymentData, $invoiceId, $facturacionService);
-                    }
-
-                    DB::connection('tenant')->commit();
-
-                    Log::info('✅ Factura emitida exitosamente tras stamp', [
-                        'quote_id' => $quote->id,
-                        'invoice_id_alegra' => $invoiceId,
-                        'invoice_number' => $invoiceNumber,
-                        'final_status' => 'FACTURADO',
-                        'has_payment_data' => !empty($paymentData)
-                    ]);
-
-                    $this->dispatch('show-toast', [
-                        'type' => 'success',
-                        'message' => "¡Factura creada y emitida exitosamente! Número: {$invoiceNumber}"
-                    ]);
-
-                    // Redirigir al cotizador (listado de facturas pendiente de implementar)
-                    return redirect()->route('tenant.quoter');
-                } else {
-                    // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
-                    DB::connection('tenant')->commit(); // Confirmamos la creación, pero sin emitir
-
-                    Log::error('❌ Falló la emisión legal (stamp)', [
-                        'invoice_id' => $invoiceId,
-                        'invoice_status' => 'SIN EMITIR',
-                        'stamp_response' => $stampResponse
-                    ]);
-
-                    // Extraer mensaje de error más claro
-                    $errorMessage = 'Error desconocido en la emisión';
-
-                    if (isset($stampResponse['data']['message'])) {
-                        $errorMessage = $stampResponse['data']['message'];
-                    } elseif (isset($stampResponse['message'])) {
-                        $errorMessage = $stampResponse['message'];
-                    } elseif (isset($stampResponse['error_details']['original_message'])) {
-                        $errorMessage = $stampResponse['error_details']['original_message'];
-                    }
-
-                    // Limpiar mensaje para mostrar solo la razón específica
-                    if (str_contains($errorMessage, 'La factura electrónica de venta no se ha podido emitir porque')) {
-                        $errorMessage = str_replace('La factura electrónica de venta no se ha podido emitir porque ', '', $errorMessage);
-                    }
-
-                    $this->dispatch('show-toast', [
-                        'type' => 'warning',
-                        'message' => "Factura creada pero NO emitida. Razón: {$errorMessage}. Puede intentar emitirla desde el listado de facturas."
-                    ]);
-
-                    // NO redirigir, mantener en cotizador para mostrar el error
+                // REGISTRAR PAGO SI HAY DATOS DE PAGO
+                if (!empty($paymentData)) {
+                    $this->registerInvoicePayments($invoice, $paymentData, $invoiceId, $facturacionService);
                 }
+
+                DB::connection('tenant')->commit();
+
+                Log::info('✅ Factura creada exitosamente (pendiente de emitir)', [
+                    'quote_id' => $quote->id,
+                    'invoice_id_alegra' => $invoiceId,
+                    'invoice_number' => $invoiceNumber,
+                    'status' => 'SIN EMITIR',
+                    'has_payment_data' => !empty($paymentData)
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "¡Factura #{$invoiceNumber} creada exitosamente! Puede emitirla desde el módulo de facturas."
+                ]);
+
+                return redirect()->route('tenant.quoter');
             } else {
                 // Error en la API - NO cambiar estado, hacer rollback
                 DB::connection('tenant')->rollBack();

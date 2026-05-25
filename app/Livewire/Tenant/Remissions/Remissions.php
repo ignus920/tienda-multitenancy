@@ -1274,49 +1274,23 @@ class Remissions extends Component
             \App\Models\Tenant\Remissions\InvDetailRemissions::where('remissionId', $remission->id)
                 ->update(['invoiceId' => $invoice->id]);
 
-            Log::info('📄 Factura creada con estado SIN EMITIR, procediendo a emitir', [
+            // 5. ACTUALIZAR STATUS DE LA COTIZACIÓN ASOCIADA
+            if ($remission->quote) {
+                $remission->quote->update(['status' => 'FACTURADO']);
+                Log::info('📋 Status de cotización actualizado a FACTURADO', [
+                    'quote_id' => $remission->quote->id,
+                    'quote_consecutive' => $remission->quote->consecutive,
+                    'remission_id' => $remission->id
+                ]);
+            }
+
+            Log::info('✅ Factura creada exitosamente (pendiente de emitir)', [
+                'remission_id' => $remission->id,
                 'invoice_local_id' => $invoice->id,
                 'api_data_id' => $invoiceId,
-                'remission_id' => $remission->id
+                'invoice_number' => $invoiceNumber,
+                'status' => 'SIN EMITIR'
             ]);
-
-            // 5. INTENTAR EMITIR (STAMP) LA FACTURA
-            $stampResponse = $facturacionService->stampInvoice($invoiceId);
-
-            if ($stampResponse['success']) {
-                // ✅ STAMP EXITOSO: Actualizar estado a FACTURADO
-                $invoice->update(['status' => 'FACTURADO']);
-                // La remisión mantiene su status original (REGISTRADO, etc.)
-
-                // ✅ NUEVO: Actualizar status de la cotización asociada a FACTURADO
-                if ($remission->quote) {
-                    $remission->quote->update(['status' => 'FACTURADO']);
-                    Log::info('📋 Status de cotización actualizado a FACTURADO', [
-                        'quote_id' => $remission->quote->id,
-                        'quote_consecutive' => $remission->quote->consecutive,
-                        'remission_id' => $remission->id
-                    ]);
-                }
-
-                Log::info('✅ Factura emitida exitosamente desde remisión', [
-                    'remission_id' => $remission->id,
-                    'invoice_id_alegra' => $invoiceId,
-                    'invoice_number' => $invoiceNumber,
-                    'final_status' => 'FACTURADO'
-                ]);
-            } else {
-                // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
-                Log::error('❌ Falló la emisión legal (stamp) de remisión', [
-                    'remission_id' => $remission->id,
-                    'invoice_id' => $invoiceId,
-                    'stamp_response' => $stampResponse
-                ]);
-
-                // Extraer mensaje de error más específico
-                $errorMessage = $this->extractStampErrorMessage($stampResponse);
-
-                throw new \Exception("La factura #{$invoiceNumber} se creó exitosamente pero no se pudo emitir legalmente. Razón: {$errorMessage}. Puede intentar emitirla desde el módulo de facturas.");
-            }
         } catch (\Exception $e) {
             Log::error('❌ Error en facturarRemisionIndividual', [
                 'remission_id' => $remission->id,
@@ -1413,47 +1387,31 @@ class Remissions extends Component
                     ->update(['invoiceId' => $invoice->id]);
             }
 
-            Log::info('📄 Factura agrupada creada, procediendo a emitir', [
+            // 5. ACTUALIZAR STATUS DE TODAS LAS COTIZACIONES ASOCIADAS
+            $quotesUpdated = 0;
+            foreach ($remisiones as $remission) {
+                if ($remission->quote) {
+                    $remission->quote->update(['status' => 'FACTURADO']);
+                    $quotesUpdated++;
+
+                    Log::info('📋 Status de cotización actualizado a FACTURADO (agrupada)', [
+                        'quote_id' => $remission->quote->id,
+                        'quote_consecutive' => $remission->quote->consecutive,
+                        'remission_id' => $remission->id,
+                        'invoice_number' => $invoiceNumber
+                    ]);
+                }
+            }
+
+            Log::info('✅ Factura agrupada creada exitosamente (pendiente de emitir)', [
+                'remisiones_ids' => $remissionIds,
                 'invoice_local_id' => $invoice->id,
                 'api_data_id' => $invoiceId,
-                'remisiones_asociadas' => $remissionIds
+                'invoice_number' => $invoiceNumber,
+                'remisiones_count' => $remisiones->count(),
+                'quotes_updated' => $quotesUpdated,
+                'status' => 'SIN EMITIR'
             ]);
-
-            // 5. EMITIR (STAMP) LA FACTURA
-            $stampResponse = $facturacionService->stampInvoice($invoiceId);
-
-            if ($stampResponse['success']) {
-                // ✅ STAMP EXITOSO
-                $invoice->update(['status' => 'FACTURADO']);
-
-                // ✅ NUEVO: Actualizar status de todas las cotizaciones asociadas a FACTURADO
-                $quotesUpdated = 0;
-                foreach ($remisiones as $remission) {
-                    if ($remission->quote) {
-                        $remission->quote->update(['status' => 'FACTURADO']);
-                        $quotesUpdated++;
-
-                        Log::info('📋 Status de cotización actualizado a FACTURADO (agrupada)', [
-                            'quote_id' => $remission->quote->id,
-                            'quote_consecutive' => $remission->quote->consecutive,
-                            'remission_id' => $remission->id,
-                            'invoice_number' => $invoiceNumber
-                        ]);
-                    }
-                }
-
-                Log::info('✅ Factura agrupada emitida exitosamente', [
-                    'remisiones_ids' => $remissionIds,
-                    'invoice_id_alegra' => $invoiceId,
-                    'invoice_number' => $invoiceNumber,
-                    'remisiones_count' => $remisiones->count(),
-                    'quotes_updated' => $quotesUpdated
-                ]);
-            } else {
-                // ❌ STAMP FALLÓ
-                $errorMessage = $this->extractStampErrorMessage($stampResponse);
-                throw new \Exception("La factura agrupada #{$invoiceNumber} se creó exitosamente pero no se pudo emitir legalmente. Razón: {$errorMessage}");
-            }
         } catch (\Exception $e) {
             Log::error('❌ Error en facturarRemisionesAgrupadas', [
                 'remisiones_ids' => $remisiones->pluck('id')->toArray(),
