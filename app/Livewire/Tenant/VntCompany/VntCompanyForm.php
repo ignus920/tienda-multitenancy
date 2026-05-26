@@ -2546,20 +2546,46 @@ class VntCompanyForm extends Component
 
             $response = $apiClient->createContact($apiData);
 
-            if ($response['success'] && isset($response['data']['id'])) {
-                $newApiId = $response['data']['id'];
-                $company->update(['api_data_id' => $newApiId]);
+            // Determinar el api_data_id a guardar (sea creación nueva o contacto duplicado)
+            $apiIdToSave = null;
 
-                Log::info('✅ Contacto creado en API y api_data_id guardado', [
-                    'company_id' => $company->id,
-                    'new_api_data_id' => $newApiId,
+            if ($response['success'] && isset($response['data']['id'])) {
+                // Contacto creado exitosamente en Alegra
+                $apiIdToSave = $response['data']['id'];
+                $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+            } else {
+                // Verificar si el error es "ya existe" (código 2006 de Alegra)
+                $alegraError = $response['data']['alegra_error'] ?? null;
+
+                if ($alegraError && ($alegraError['code'] ?? null) == 2006 && isset($alegraError['contactId'])) {
+                    // Contacto duplicado → reutilizar el ID existente en Alegra
+                    $apiIdToSave = $alegraError['contactId'];
+                    $successMsg  = '✅ Cliente vinculado al contacto existente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+                    Log::info('🔗 Contacto duplicado en Alegra - vinculando ID existente', [
+                        'company_id'      => $company->id,
+                        'existing_api_id' => $apiIdToSave,
+                        'alegra_name'     => $alegraError['contactName'] ?? null,
+                    ]);
+                }
+            }
+
+            if ($apiIdToSave !== null) {
+                $company->update(['api_data_id' => $apiIdToSave]);
+
+                Log::info('✅ api_data_id guardado en vnt_companies', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $apiIdToSave,
                 ]);
-                session()->flash('sync_message', '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $newApiId . ').');
+                session()->flash('sync_message', $successMsg ?? '✅ Cliente sincronizado correctamente.');
+
             } else {
                 $errorMsg = $response['message'] ?? 'Error desconocido';
                 Log::error('❌ Error creando contacto en API', [
-                    'company_id' => $company->id,
-                    'error'      => $errorMsg,
+                    'company_id'   => $company->id,
+                    'error'        => $errorMsg,
+                    'alegra_error' => $response['data']['alegra_error'] ?? null,
                 ]);
                 $userMessage = $this->formatApiErrorMessage($errorMsg);
                 session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con Alegra: ' . $userMessage);
