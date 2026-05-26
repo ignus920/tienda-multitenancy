@@ -569,6 +569,7 @@ class ProductQuoter extends Component
                 'weight'         => $product->dimensions->weight ?? 0,
                 'category_id'    => $product->categoryId,
                 'total_stock'    => $totalStock,
+                'inventoriable'  => (int) $product->inventoriable,
             ]);
         }
 
@@ -1742,6 +1743,7 @@ class ProductQuoter extends Component
                         'weight'         => $product->dimensions->weight ?? 0,
                         'category_id'    => $product->categoryId,
                         'total_stock'    => $totalStock,
+                        'inventoriable'  => (int) $product->inventoriable,
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -3060,17 +3062,18 @@ class ProductQuoter extends Component
             foreach ($remission->details as $detalle) {
                 if ($detalle->item) {
                     $this->quoterItems[] = [
-                        'id' => $detalle->item->id,
-                        'name' => $detalle->item->display_name,
-                        'sku' => $detalle->item->sku,
-                        'price' => $detalle->value,
-                        'price_label' => 'Precio remisión',
-                        'quantity' => $detalle->quantity,
-                        'description' => $detalle->item->description,
-                        'tax' => $detalle->tax ?? 0,
-                        'tax_label' => $detalle->tax_label ?? 'N/A',
-                        'weight' => $detalle->item->dimensions->weight ?? 0,
-                        'category_id' => $detalle->item->categoryId,
+                        'id'            => $detalle->item->id,
+                        'name'          => $detalle->item->display_name,
+                        'sku'           => $detalle->item->sku,
+                        'price'         => $detalle->value,
+                        'price_label'   => 'Precio remisión',
+                        'quantity'      => $detalle->quantity,
+                        'description'   => $detalle->item->description,
+                        'tax'           => $detalle->tax ?? 0,
+                        'tax_label'     => $detalle->tax_label ?? 'N/A',
+                        'weight'        => $detalle->item->dimensions->weight ?? 0,
+                        'category_id'   => $detalle->item->categoryId,
+                        'inventoriable' => (int) $detalle->item->inventoriable,
                     ];
                 }
             }

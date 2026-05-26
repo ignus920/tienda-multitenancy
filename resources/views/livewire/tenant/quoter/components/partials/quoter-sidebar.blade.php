@@ -250,7 +250,8 @@
         @foreach($quoterItems as $index => $item)
         @php
             $itemTotalStock  = $item['total_stock'] ?? null;
-            $sidebarInsufficient = $itemTotalStock !== null && $item['quantity'] > $itemTotalStock;
+            $itemInventoriable = ($item['inventoriable'] ?? 1) == 1;
+            $sidebarInsufficient = $itemInventoriable && $itemTotalStock !== null && $item['quantity'] > $itemTotalStock;
             $itemMinPrice    = (float) ($item['min_price'] ?? 0);
             $itemOrigPrice   = (float) ($item['original_price'] ?? $item['price']);
             $itemMaxPrice    = $itemOrigPrice * 2;

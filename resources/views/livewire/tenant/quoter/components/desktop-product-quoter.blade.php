@@ -342,7 +342,9 @@ $header = 'Seleccionar productos';
                                             @php
                                                 $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
                                                 // Stock insuficiente en Grid: precio seleccionado y cant. en carrito > stock total
-                                                $insufficientStockGrid = $isThisPriceSelected
+                                                // Solo aplica a items inventariables (inventoriable = 1)
+                                                $insufficientStockGrid = $product->inventoriable
+                                                    && $isThisPriceSelected
                                                     && $quantity > 0
                                                     && ($product->total_stock ?? 0) < $quantity;
 
@@ -698,7 +700,9 @@ $header = 'Seleccionar productos';
 
                                                             $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
                                                             // Stock insuficiente: precio seleccionado y cantidad en carrito > stock total
-                                                            $insufficientStock = $isThisPriceSelected
+                                                            // Solo aplica a items inventariables (inventoriable = 1)
+                                                            $insufficientStock = $product->inventoriable
+                                                                && $isThisPriceSelected
                                                                 && $quantity > 0
                                                                 && ($product->total_stock ?? 0) < $quantity;
                                                         @endphp
