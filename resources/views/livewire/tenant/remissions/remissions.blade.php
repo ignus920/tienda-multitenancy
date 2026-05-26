@@ -611,7 +611,7 @@
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                                                {{ number_format($detalle['quantity'], 2) }}
+                                                {{ number_format($detalle['quantity'], 0) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-left text-sm text-gray-500 dark:text-slate-300">
                                                 <span class="px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs font-bold uppercase">
