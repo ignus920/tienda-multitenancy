@@ -4,6 +4,7 @@ namespace App\Services\Facturacion;
 
 use App\Models\Auth\Tenant;
 use App\Services\Facturacion\TenantConfigManager;
+use App\Services\Facturacion\DatabaseConfigService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -16,13 +17,19 @@ class ApiClient
     protected $token;
     protected $username;
     protected $timeout;
+    /** @var bool Indica si la URL apunta al proxy intermediario (no a Alegra directamente) */
+    protected bool $isProxy = false;
+    /** @var string|null URL de Alegra (sandbox o producción) que el proxy debe usar */
+    protected ?string $alegraBaseUrl = null;
 
-    public function __construct($baseUrl = null, $token = null, $username = null, $timeout = 15)
+    public function __construct($baseUrl = null, $token = null, $username = null, $timeout = 15, bool $isProxy = false, ?string $alegraBaseUrl = null)
     {
-        $this->baseUrl = $baseUrl;
-        $this->token = $token;
-        $this->username = $username ?: '';
-        $this->timeout = $timeout;
+        $this->baseUrl      = $baseUrl;
+        $this->token        = $token;
+        $this->username     = $username ?: '';
+        $this->timeout      = $timeout;
+        $this->isProxy      = $isProxy;
+        $this->alegraBaseUrl = $alegraBaseUrl;
     }
 
     /**
@@ -39,10 +46,20 @@ class ApiClient
                 $baseUrl  = $config['base_url'] ?? null;
                 $username = $config['username'] ?? null;
 
+                // Detectar si se usa proxy intermediario (facturador configurado)
+                // Proxy → token en header "token" + header "base-url" apuntando a Alegra
+                // Directo → Authorization: Basic <token>
+                $isProxy      = !empty($config['facturador']);
+                $alegraBaseUrl = $isProxy
+                    ? DatabaseConfigService::resolveBaseUrl($config['base'] ?? 'Produccion')
+                    : null;
+
                 Log::info('🔑 [ApiClient] Configuración cargada para tenant', [
                     'tenant_id'       => $tenant->id,
                     'tenant_name'     => $tenant->name,
                     'base_url'        => $baseUrl,
+                    'is_proxy'        => $isProxy,
+                    'alegra_base_url' => $alegraBaseUrl,
                     'base_env'        => $config['base'] ?? 'Produccion',
                     'warehouse_id'    => $config['warehouse_id'] ?? null,
                     'facturador'      => $config['facturador'] ?? null,
@@ -59,7 +76,9 @@ class ApiClient
                     $baseUrl,
                     $token,
                     $username,
-                    $config['timeout'] ?? 90
+                    $config['timeout'] ?? 90,
+                    $isProxy,
+                    $alegraBaseUrl
                 );
             }
         }
@@ -79,30 +98,44 @@ class ApiClient
             $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
 
             $headers = [];
-            if ($this->token) {
-                // Alegra usa HTTP Basic Auth: Authorization: Basic base64(email:token)
+            if ($this->isProxy) {
+                // Proxy intermediario: espera el token en header "token" y la URL de Alegra en "base-url"
+                if ($this->token) {
+                    $headers['token'] = $this->token;
+                }
+                if ($this->alegraBaseUrl) {
+                    $headers['base-url'] = $this->alegraBaseUrl;
+                }
+            } else {
+                // Alegra directo: HTTP Basic Auth → Authorization: Basic base64(email:token)
                 // El campo 'token' en cnf_invoices ya contiene el valor base64 completo
-                $headers['Authorization'] = 'Basic ' . $this->token;
-            }
-            if ($this->username) {
-                $headers['username'] = $this->username;
+                if ($this->token) {
+                    $headers['Authorization'] = 'Basic ' . $this->token;
+                }
+                if ($this->username) {
+                    $headers['username'] = $this->username;
+                }
             }
 
             Log::info('📡 [ApiClient] Enviando petición a API', [
-                'method'        => strtoupper($method),
-                'url'           => $url,
-                'base_url'      => $this->baseUrl,
-                'token_present' => !empty($this->token),
-                'token_length'  => $this->token ? strlen($this->token) : 0,
-                'token_preview' => $this->token
+                'method'          => strtoupper($method),
+                'url'             => $url,
+                'base_url'        => $this->baseUrl,
+                'is_proxy'        => $this->isProxy,
+                'alegra_base_url' => $this->alegraBaseUrl,
+                'token_present'   => !empty($this->token),
+                'token_length'    => $this->token ? strlen($this->token) : 0,
+                'token_preview'   => $this->token
                     ? substr($this->token, 0, 12) . '...' . substr($this->token, -6)
                     : '❌ SIN TOKEN',
-                'username'      => $this->username ?: '(vacío)',
-                'auth_header'   => isset($headers['Authorization']) ? 'Basic ***' : '❌ SIN Authorization',
-                'header_keys'   => array_keys($headers),
-                'data_keys'     => array_keys($data),
-                'data_payload'  => $data,
-                'timeout'       => $this->timeout,
+                'username'        => $this->username ?: '(vacío)',
+                'auth_header'     => $this->isProxy
+                    ? 'token: ***'
+                    : (isset($headers['Authorization']) ? 'Basic ***' : '❌ SIN Authorization'),
+                'header_keys'     => array_keys($headers),
+                'data_keys'       => array_keys($data),
+                'data_payload'    => $data,
+                'timeout'         => $this->timeout,
             ]);
 
             $response = Http::withHeaders($headers)
