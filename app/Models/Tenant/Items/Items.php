@@ -468,9 +468,13 @@ class Items extends Model
             ->sortByDesc('created_at')
             ->first();
 
-        $regularPriceValue = null;
+        // Separar valor bruto (para el filtro, igual que antes) del valor con IVA (para mostrar)
+        $regularRawForFilter = null;  // valor sin IVA, usado SOLO para comparación de filtro
+        $regularPriceValue   = null;  // valor con IVA, usado para mostrar
+
         if ($precioRegular) {
-            $regularPriceValue = round($precioRegular->values * (1 + $taxPercentage), 2);
+            $regularRawForFilter = $precioRegular->values;
+            $regularPriceValue   = round($precioRegular->values * (1 + $taxPercentage), 2);
             $prices['Precio Regular'] = $regularPriceValue;
         }
 
@@ -497,6 +501,8 @@ class Items extends Model
         }
 
         // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
+        // NOTA: el filtro compara los valores de lista de precios (que vienen con IVA) contra
+        // el valor BRUTO del precio regular, manteniendo el mismo comportamiento de antes.
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
             // Excluir precios con valor 0
@@ -505,12 +511,13 @@ class Items extends Model
             }
 
             // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular
+            // excluir precios menores al precio regular (comparar contra valor bruto para
+            // mantener la misma lógica de filtrado que antes de agregar IVA)
             // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (puede ser distinto)
-            if ($regularPriceValue !== null
+            if ($regularRawForFilter !== null
                 && $label !== 'Precio Regular'
                 && $label !== 'Precio unitario x caja'
-                && $value < $regularPriceValue) {
+                && $value < $regularRawForFilter) {
                 continue;
             }
 
