@@ -455,9 +455,9 @@ class Items extends Model
 
         foreach ($priceLists as $priceList) {
             // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+            // Se redondea a 2 decimales para evitar errores de punto flotante en la comparación con el precio mínimo
             $priceWithoutIva = $basePrice * $priceList->value;
-            $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
-            $prices[$priceList->title] = $priceWithIva;
+            $prices[$priceList->title] = round($priceWithoutIva * (1 + $taxPercentage), 2);
         }
 
         // Obtener Regular y Crédito desde la colección cargada
