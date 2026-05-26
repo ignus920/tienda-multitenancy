@@ -590,20 +590,20 @@ class VntCompanyForm extends Component
                 ]);
 
                 // Verificar si el cliente tiene api_data_id para sincronizar con API
+                $tempApiData = $this->prepareApiData();
                 if ($company && $company->api_data_id) {
                     Log::info('🔄 Cliente tiene api_data_id - actualizando también en API', [
                         'company_id' => $company->id,
                         'api_data_id' => $company->api_data_id
                     ]);
 
-                    // Preparar datos para actualizar en API
-                    $tempApiData = $this->prepareApiData();
                     $this->updateCompanyInApi($company, $tempApiData);
                 } else {
-                    Log::info('✏️ Cliente actualizado solo localmente - sin api_data_id para sincronizar', [
+                    Log::info('✏️ Cliente sin api_data_id - intentando crear en API para sincronizar', [
                         'company_id' => $company ? $company->id : 'NULL',
-                        'has_api_data_id' => $company && $company->api_data_id ? true : false
                     ]);
+
+                    $this->createCompanyInApi($company, $tempApiData);
                 }
 
                 // Mensaje de éxito inicial
@@ -2510,6 +2510,66 @@ class VntCompanyForm extends Component
             ]);
 
             session()->flash('sync_warning', '⚠️ Cliente actualizado localmente, pero hubo un problema sincronizando con la API: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crear cliente en la API cuando el registro local no tiene api_data_id.
+     * Guarda el ID devuelto por Alegra en vnt_companies.api_data_id.
+     */
+    private function createCompanyInApi($company, array $apiData): void
+    {
+        if (!$company) {
+            return;
+        }
+
+        try {
+            $authUser = Auth::user();
+            $config = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
+
+            if (!$config) {
+                Log::warning('⚠️ No se encontró configuración API para crear contacto', [
+                    'company_id' => $company->id,
+                    'user_id'    => $authUser->id,
+                ]);
+                session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con el sistema de facturación (sin configuración API).');
+                return;
+            }
+
+            $apiClient = ApiClient::forConfig($config);
+
+            Log::info('📡 Creando contacto en API para cliente sin api_data_id', [
+                'company_id' => $company->id,
+                'base_url'   => $config['base_url'] ?? 'NOT_SET',
+                'is_proxy'   => !empty($config['facturador']),
+            ]);
+
+            $response = $apiClient->createContact($apiData);
+
+            if ($response['success'] && isset($response['data']['id'])) {
+                $newApiId = $response['data']['id'];
+                $company->update(['api_data_id' => $newApiId]);
+
+                Log::info('✅ Contacto creado en API y api_data_id guardado', [
+                    'company_id' => $company->id,
+                    'new_api_data_id' => $newApiId,
+                ]);
+                session()->flash('sync_message', '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $newApiId . ').');
+            } else {
+                $errorMsg = $response['message'] ?? 'Error desconocido';
+                Log::error('❌ Error creando contacto en API', [
+                    'company_id' => $company->id,
+                    'error'      => $errorMsg,
+                ]);
+                $userMessage = $this->formatApiErrorMessage($errorMsg);
+                session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con Alegra: ' . $userMessage);
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción creando contacto en API', [
+                'company_id' => $company->id,
+                'error'      => $e->getMessage(),
+            ]);
+            session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero hubo un problema al sincronizar: ' . $e->getMessage());
         }
     }
 
