@@ -2181,8 +2181,13 @@ class ProductQuoter extends Component
 
             $quote = VntQuote::findOrFail($this->editingQuoteId);
 
-            // Validar stock disponible antes de procesar
+            // Validar stock disponible antes de procesar (solo para items inventariables)
             foreach ($this->quoterItems as $item) {
+                // Items no inventariables no requieren control de stock
+                if (($item['inventoriable'] ?? 1) == 0) {
+                    continue;
+                }
+
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();
@@ -2272,14 +2277,21 @@ class ProductQuoter extends Component
                     'invoiceId' => null,
                 ]);
 
+                // Solo actualizar stock para items inventariables
+                if (($item['inventoriable'] ?? 1) == 0) {
+                    continue;
+                }
+
                 // Actualizar el stock del producto en la bodega específica
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();
 
-                $itemStore->update([
-                    'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
-                ]);
+                if ($itemStore) {
+                    $itemStore->update([
+                        'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
+                    ]);
+                }
             }
 
             // Actualizar estado de la cotización
