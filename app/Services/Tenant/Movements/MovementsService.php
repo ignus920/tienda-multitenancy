@@ -104,12 +104,7 @@ class MovementsService
             'source'       => $config['source'],
         ]);
 
-        return new ApiClient(
-            $config['base_url'],
-            $config['token'],
-            $config['username'],
-            $config['timeout']
-        );
+        return ApiClient::forConfig($config);
     }
 
     /**

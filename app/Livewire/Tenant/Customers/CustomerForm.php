@@ -660,13 +660,8 @@ class CustomerForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta proxy automáticamente)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             // Para UPDATE: validar si estamos editando un cliente que ya tiene api_data_id
             if ($this->editingId) {
@@ -880,13 +875,8 @@ class CustomerForm extends Component
                 ];
             }
 
-            // Crear ApiClient
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient (forConfig detecta proxy automáticamente)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             // Preparar datos para la API
             $apiData = $this->prepareApiDataFromCustomer($customer);
