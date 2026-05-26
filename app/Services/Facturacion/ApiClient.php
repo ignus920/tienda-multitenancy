@@ -88,6 +88,40 @@ class ApiClient
     }
 
     /**
+     * Crear una instancia del cliente a partir de un array de configuración
+     * (resultado de DatabaseConfigService::getFacturacionConfigByUser / getFacturacionConfigFromDatabase)
+     *
+     * Detecta automáticamente si la URL apunta al proxy propio ('facturador' configurado)
+     * y ajusta los headers de autenticación en consecuencia.
+     */
+    public static function forConfig(array $config): self
+    {
+        $isProxy      = !empty($config['facturador']);
+        $alegraBaseUrl = $isProxy
+            ? DatabaseConfigService::resolveBaseUrl($config['base'] ?? 'Produccion')
+            : null;
+
+        Log::info('🔑 [ApiClient] forConfig() - configuración cargada', [
+            'base_url'        => $config['base_url'] ?? null,
+            'is_proxy'        => $isProxy,
+            'alegra_base_url' => $alegraBaseUrl,
+            'base_env'        => $config['base'] ?? 'Produccion',
+            'facturador'      => $config['facturador'] ?? null,
+            'token_present'   => !empty($config['token']),
+            'source'          => $config['source'] ?? 'unknown',
+        ]);
+
+        return new self(
+            $config['base_url']  ?? null,
+            $config['token']     ?? null,
+            $config['username']  ?? null,
+            $config['timeout']   ?? 30,
+            $isProxy,
+            $alegraBaseUrl
+        );
+    }
+
+    /**
      * Realizar una petición HTTP
      */
     protected function makeRequest(string $method, string $endpoint, array $data = []): array

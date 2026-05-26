@@ -2258,13 +2258,8 @@ class VntCompanyForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta automáticamente si es proxy)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🔍 Validando datos con API', ['api_data' => $apiData]);
 
@@ -2479,18 +2474,13 @@ class VntCompanyForm extends Component
                 return;
             }
 
-            // Crear cliente API con parámetros individuales
-            $apiClient = new ApiClient(
-                $config['base_url'] ?? null,
-                $config['token'] ?? null,
-                $config['username'] ?? null,
-                $config['timeout'] ?? 15
-            );
+            // Crear cliente API (forConfig detecta automáticamente si es proxy)
+            $apiClient = ApiClient::forConfig($config);
 
             Log::info('🔧 ApiClient creado para actualización', [
-                'base_url' => $config['base_url'] ?? 'NOT_SET',
+                'base_url'  => $config['base_url'] ?? 'NOT_SET',
                 'has_token' => !empty($config['token']),
-                'username' => $config['username'] ?? 'NOT_SET'
+                'is_proxy'  => !empty($config['facturador']),
             ]);
 
             // Actualizar en API usando el api_data_id
