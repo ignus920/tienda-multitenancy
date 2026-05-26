@@ -294,7 +294,7 @@
                 <div x-show="!editing" class="flex items-center gap-1 leading-tight">
                     <p class="text-[10px] text-indigo-500 dark:text-indigo-400">
                         ${{ number_format($item['price']) }} · {{ $item['tax_label'] }}
-                        @if(isset($item['price_label']) && $item['price_label'] !== 'Precio seleccionado' && $item['price_label'] !== 'Precio Regular')
+                        @if(isset($item['price_label']) && $item['price_label'] !== 'Precio seleccionado' && $item['price_label'] !== 'Precio Mínimo')
                         <span class="mx-0.5 font-bold text-emerald-600 dark:text-emerald-400">· {{ $item['price_label'] }}</span>
                         @endif
                     </p>

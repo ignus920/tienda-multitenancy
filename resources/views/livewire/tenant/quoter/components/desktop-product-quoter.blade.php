@@ -355,7 +355,7 @@ $header = 'Seleccionar productos';
                                                         'spinner'    => 'text-orange-600 dark:text-orange-400'
                                                     ]
                                                     : match($label) {
-                                                        'Precio Regular' => [
+                                                        'Precio Mínimo' => [
                                                             'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
                                                             'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
                                                             'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',

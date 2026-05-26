@@ -453,11 +453,14 @@ class Items extends Model
         }
         $priceLists = $cachedActiveLists;
 
+        // Rastrear las etiquetas que vienen de listas de precios para eximirlas del filtro
+        $priceListLabels = [];
         foreach ($priceLists as $priceList) {
             // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
             $priceWithoutIva = $basePrice * $priceList->value;
             $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
             $prices[$priceList->title] = $priceWithIva;
+            $priceListLabels[] = $priceList->title;
         }
 
         // Obtener Regular y Crédito desde la colección cargada
@@ -475,7 +478,8 @@ class Items extends Model
         if ($precioRegular) {
             $regularRawForFilter = $precioRegular->values;
             $regularPriceValue   = round($precioRegular->values * (1 + $taxPercentage), 2);
-            $prices['Precio Regular'] = $regularPriceValue;
+            // Mostrar como "Precio Mínimo" en la tarjeta (BD sigue usando "Precio Regular")
+            $prices['Precio Mínimo'] = $regularPriceValue;
         }
 
         $precioCredito = $this->invValues
@@ -500,9 +504,9 @@ class Items extends Model
             $prices['Precio unitario x caja'] = round($precioUnitarioCaja->values * (1 + $taxPercentage), 2);
         }
 
-        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
-        // NOTA: el filtro compara los valores de lista de precios (que vienen con IVA) contra
-        // el valor BRUTO del precio regular, manteniendo el mismo comportamiento de antes.
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular.
+        // Las listas de precios (10%, 15%, etc.) siempre se muestran si son > 0.
+        // Solo se filtra Precio Crédito y similares si quedan por debajo del mínimo.
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
             // Excluir precios con valor 0
@@ -510,13 +514,13 @@ class Items extends Model
                 continue;
             }
 
-            // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular (comparar contra valor bruto para
-            // mantener la misma lógica de filtrado que antes de agregar IVA)
-            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (puede ser distinto)
+            // Si hay precio regular definido y no es el precio mínimo mismo ni una lista de precios,
+            // excluir precios menores al valor bruto de referencia.
+            // EXCEPCIONES: listas de precios y "Precio unitario x caja" siempre se incluyen.
             if ($regularRawForFilter !== null
-                && $label !== 'Precio Regular'
+                && $label !== 'Precio Mínimo'
                 && $label !== 'Precio unitario x caja'
+                && !in_array($label, $priceListLabels)
                 && $value < $regularRawForFilter) {
                 continue;
             }
@@ -548,15 +552,17 @@ class Items extends Model
         $prices = [];
 
         // Agrupar por label, tomar el más reciente y aplicar IVA
+        // "Precio Regular" se renombra a "Precio Mínimo" en la visualización (BD no cambia)
         foreach ($priceRecords->groupBy('label') as $label => $records) {
-            $rawValue = $records->first()->values;
-            $prices[$label] = round($rawValue * (1 + $taxPercentage), 2);
+            $rawValue   = $records->first()->values;
+            $displayKey = ($label === 'Precio Regular') ? 'Precio Mínimo' : $label;
+            $prices[$displayKey] = round($rawValue * (1 + $taxPercentage), 2);
         }
 
-        // Encontrar el precio regular para usar como referencia
-        $regularPriceValue = $prices['Precio Regular'] ?? null;
+        // Encontrar el precio mínimo (antes Regular) para usar como referencia de filtro
+        $regularPriceValue = $prices['Precio Mínimo'] ?? null;
 
-        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio mínimo
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
             // Excluir precios con valor 0
@@ -564,11 +570,11 @@ class Items extends Model
                 continue;
             }
 
-            // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular.
+            // Si hay precio mínimo definido y no es el precio mínimo mismo,
+            // excluir precios menores al precio mínimo.
             // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (es un precio especial por volumen)
             if ($regularPriceValue !== null
-                && $label !== 'Precio Regular'
+                && $label !== 'Precio Mínimo'
                 && $label !== 'Precio unitario x caja'
                 && $value < $regularPriceValue) {
                 continue;
