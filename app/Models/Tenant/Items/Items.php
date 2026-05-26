@@ -470,7 +470,7 @@ class Items extends Model
 
         $regularPriceValue = null;
         if ($precioRegular) {
-            $regularPriceValue = $precioRegular->values;
+            $regularPriceValue = round($precioRegular->values * (1 + $taxPercentage), 2);
             $prices['Precio Regular'] = $regularPriceValue;
         }
 
@@ -482,11 +482,10 @@ class Items extends Model
             ->first();
 
         if ($precioCredito) {
-            $prices['Precio Crédito'] = $precioCredito->values;
+            $prices['Precio Crédito'] = round($precioCredito->values * (1 + $taxPercentage), 2);
         }
 
         // Precio unitario x caja (siempre se incluye si existe, sin importar comparación con Regular)
-        // Búsqueda sin depender del case del campo type
         $precioUnitarioCaja = $this->invValues
             ->filter(fn($v) => strtolower(trim($v->type)) === 'precio' && $v->label === 'Precio unitario x caja')
             ->sortByDesc('date')
@@ -494,7 +493,7 @@ class Items extends Model
             ->first();
 
         if ($precioUnitarioCaja && $precioUnitarioCaja->values > 0) {
-            $prices['Precio unitario x caja'] = $precioUnitarioCaja->values;
+            $prices['Precio unitario x caja'] = round($precioUnitarioCaja->values * (1 + $taxPercentage), 2);
         }
 
         // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
@@ -533,11 +532,18 @@ class Items extends Model
             ->sortByDesc('date')
             ->sortByDesc('created_at');
 
+        // Porcentaje de IVA del item (los valores en inv_values se almacenan sin IVA)
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100;
+        }
+
         $prices = [];
 
-        // Agrupar por label y tomar solo el primero (más reciente) de cada grupo
+        // Agrupar por label, tomar el más reciente y aplicar IVA
         foreach ($priceRecords->groupBy('label') as $label => $records) {
-            $prices[$label] = $records->first()->values;
+            $rawValue = $records->first()->values;
+            $prices[$label] = round($rawValue * (1 + $taxPercentage), 2);
         }
 
         // Encontrar el precio regular para usar como referencia
