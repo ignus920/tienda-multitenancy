@@ -669,12 +669,25 @@ class VntCompanyForm extends Component
                 $message = 'Registro creado exitosamente.';
 
                 // Sincronizar con API después de crear (solo si está habilitado y es nuevo cliente)
-                if ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId) {
-                    $this->syncCompanyWithApi($company, $tempApiId);
+                if ($shouldSyncWithApi['should_sync'] && !$this->editingId) {
+                    if ($tempApiId) {
+                        // Tenemos el ID de Alegra desde la validación/creación directa
+                        $this->syncCompanyWithApi($company, $tempApiId);
+                    } else {
+                        // No se obtuvo el ID en la respuesta de validación.
+                        // createCompanyInApi maneja el código 2006 ("ya existe") y extrae el contactId.
+                        Log::info('🔄 temp_api_id no disponible - intentando obtener ID via createCompanyInApi', [
+                            'company_id' => $company->id,
+                        ]);
+                        $this->createCompanyInApi($company, $tempApiData ?? []);
+                    }
                 }
 
+                // Refrescar company para obtener api_data_id actualizado tras el sync
+                $company->refresh();
+
                 // Mensaje de éxito inicial
-                $message = ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId)
+                $message = ($company->api_data_id)
                     ? '✅ Cliente Creado: El cliente se registró exitosamente y se sincronizó con el sistema de facturación.'
                     : '✅ Cliente Creado: El cliente se registró exitosamente en el sistema local.';
 
@@ -2272,24 +2285,30 @@ class VntCompanyForm extends Component
                 if (!$validationResult['success']) {
                     $errorMessage = $validationResult['message'] ?? 'Error desconocido en la API';
 
-                    Log::warning('❌ API rechazó la creación del cliente durante validación', [
-                        'api_data' => $apiData,
-                        'error' => $errorMessage,
-                        'preventing_local_save' => true
-                    ]);
+                    // Verificar si Alegra devolvió código 2006 (contacto ya existe)
+                    $alegraError = $validationResult['data']['alegra_error'] ?? null;
 
-                    // Detectar diferentes tipos de error
-                    if (
-                        strpos(strtolower($errorMessage), 'ya se encuentra') !== false ||
-                        strpos(strtolower($errorMessage), 'duplicad') !== false ||
-                        strpos(strtolower($errorMessage), 'existe') !== false
-                    ) {
+                    if ($alegraError && ($alegraError['code'] ?? null) == 2006 && isset($alegraError['contactId'])) {
+                        // El contacto ya existe en Alegra → vincular su ID y permitir guardar localmente
+                        $existingApiId = $alegraError['contactId'];
+
+                        Log::info('🔗 Contacto ya existe en Alegra (2006) - vinculando ID y permitiendo guardado local', [
+                            'existing_api_id' => $existingApiId,
+                            'alegra_name'     => $alegraError['contactName'] ?? null,
+                        ]);
 
                         return [
-                            'success' => false,
-                            'message' => '🔄 Cliente Duplicado: ' . $errorMessage . ' Por favor use un email o identificación diferente.'
+                            'success'      => true,
+                            'message'      => 'Contacto vinculado al registro existente en Alegra',
+                            'temp_api_id'  => $existingApiId,
                         ];
                     }
+
+                    Log::warning('❌ API rechazó la creación del cliente durante validación', [
+                        'api_data'             => $apiData,
+                        'error'                => $errorMessage,
+                        'preventing_local_save'=> true
+                    ]);
 
                     return [
                         'success' => false,
