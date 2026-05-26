@@ -705,8 +705,29 @@ class MovementForm extends Component
             ]);
 
             // ── Paso 2: Enviar a Alegra ANTES de crear localmente ────────────────
-            $service      = new MovementsService();
-            $alegraResult = $service->syncAdjustmentToApi($alegraData);
+            // Los movimientos de COMPRA (ENTRADA con reasonId == 1) no se sincronizan con Alegra
+            $isCompra = strtoupper($this->warehouseForm['movementType']) === 'ENTRADA'
+                && (string) $this->movementForm['reasonId'] === '1';
+
+            if ($isCompra) {
+                Log::info('🛒 [MovementForm] Movimiento de COMPRA - sync con Alegra omitido', [
+                    'movementType' => $this->warehouseForm['movementType'],
+                    'reasonId'     => $this->movementForm['reasonId'],
+                ]);
+                $alegraResult = [
+                    'success'      => true,
+                    'message'      => 'Movimiento de compra guardado localmente (sin sync Alegra)',
+                    'error_type'   => null,
+                    'retryable'    => false,
+                    'api_response' => null,
+                    'sync_skipped' => true,
+                    'sync_reason'  => 'Movimiento de compra no requiere sincronización con Alegra',
+                    'api_data_id'  => null,
+                ];
+            } else {
+                $service      = new MovementsService();
+                $alegraResult = $service->syncAdjustmentToApi($alegraData);
+            }
 
             if (!$alegraResult['success']) {
                 // Alegra rechazó el ajuste → no crear localmente
