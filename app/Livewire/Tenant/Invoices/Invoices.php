@@ -689,7 +689,10 @@ class Invoices extends Component
             'amount' => $totalBruto // Total bruto EXACTO
         ];
 
-        // Retenciones deshabilitadas: no se envían a Alegra
+        // Agregar retenciones si existen
+        if (!empty($retentions)) {
+            $invoiceObject['retentions'] = $retentions;
+        }
 
         // Usar cuenta bancaria por defecto (puede configurarse según necesidades)
         $paymentData = [
