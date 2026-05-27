@@ -785,7 +785,7 @@ class Quoter extends Component
                 });
             })
             ->when($this->filterNit, function ($query) {
-                $query->whereHas('customer', function ($q) {
+                $query->whereHas('customer.company', function ($q) {
                     $q->where('identification', 'like', '%' . $this->filterNit . '%');
                 });
             })
