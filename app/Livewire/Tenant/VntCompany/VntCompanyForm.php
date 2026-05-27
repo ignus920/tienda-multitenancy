@@ -2447,7 +2447,17 @@ class VntCompanyForm extends Component
                     'temp_api_id' => $tempApiId
                 ]);
 
-                $company->update(['api_data_id' => $tempApiId]);
+                // Restaurar conexión tenant antes de guardar
+                $this->ensureTenantConnection();
+                \App\Models\Tenant\Customer\VntCompany::where('id', $company->id)
+                    ->update(['api_data_id' => $tempApiId]);
+                $company->refresh();
+
+                Log::info('✅ api_data_id guardado en vnt_companies (syncCompanyWithApi)', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $tempApiId,
+                    'verificado'  => $company->api_data_id,
+                ]);
                 session()->flash('sync_message', '✅ Cliente Sincronizado: El cliente ha sido creado exitosamente y sincronizado con la API de facturación electrónica.');
                 return;
             }
