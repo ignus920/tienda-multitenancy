@@ -2288,6 +2288,12 @@ class VntCompanyForm extends Component
                 $validationResult = $apiClient->createContact($apiData);
                 set_time_limit(60); // Restaurar timeout
 
+                // LOG completo para depuración del proxy
+                Log::info('📥 validateApiData - RAW RESPONSE COMPLETO', [
+                    'success'       => $validationResult['success'] ?? null,
+                    'response_data' => $validationResult['data'] ?? null,
+                ]);
+
                 if (!$validationResult['success']) {
                     $errorMessage = $validationResult['message'] ?? 'Error desconocido en la API';
 
@@ -2322,25 +2328,32 @@ class VntCompanyForm extends Component
                     ];
                 }
 
-                // Si la API aceptó la creación, guardar ID temporal
-                if (isset($validationResult['data']['id'])) {
-                    $tempApiId = $validationResult['data']['id'];
-                    Log::info('✅ Validación exitosa, usando registro temporal de API', [
-                        'temp_api_id' => $tempApiId,
-                        'api_data' => $apiData
-                    ]);
+                // Si la API aceptó la creación, extraer el ID real de Alegra
+                // El proxy devuelve { "id": 0 } en el wrapper; el ID real está anidado
+                $proxyId  = $validationResult['data']['id'] ?? null;
+                $nestedId = $validationResult['data']['debug_info']['alegra_response']['data']['id'] ?? null;
+                $altId    = $validationResult['data']['data']['id'] ?? null;
 
-                    return [
-                        'success' => true,
-                        'message' => 'Datos válidos para sincronización',
-                        'temp_api_id' => $tempApiId
-                    ];
-                } else {
-                    return [
-                        'success' => true,
-                        'message' => 'Datos válidos para sincronización'
-                    ];
+                $tempApiId = null;
+                foreach ([$proxyId, $nestedId, $altId] as $candidate) {
+                    if (!empty($candidate) && (int) $candidate > 0) {
+                        $tempApiId = (string) $candidate;
+                        break;
+                    }
                 }
+
+                Log::info('✅ Validación exitosa - ID Alegra extraído', [
+                    'temp_api_id' => $tempApiId,
+                    'proxy_id'    => $proxyId,
+                    'nested_id'   => $nestedId,
+                    'alt_id'      => $altId,
+                ]);
+
+                return [
+                    'success'      => true,
+                    'message'      => 'Datos válidos para sincronización',
+                    'temp_api_id'  => $tempApiId, // puede ser null si no se pudo extraer
+                ];
             } catch (\Exception $e) {
                 set_time_limit(60); // Restaurar timeout
                 Log::error('❌ Error en validación con API', [
@@ -2592,13 +2605,43 @@ class VntCompanyForm extends Component
 
             $response = $apiClient->createContact($apiData);
 
+            // LOG completo del response para depuración del proxy
+            Log::info('📥 createCompanyInApi - RAW RESPONSE COMPLETO', [
+                'company_id'    => $company->id,
+                'success'       => $response['success'] ?? null,
+                'response_data' => $response['data'] ?? null,
+            ]);
+
             // Determinar el api_data_id a guardar (sea creación nueva o contacto duplicado)
             $apiIdToSave = null;
 
-            if ($response['success'] && isset($response['data']['id'])) {
-                // Contacto creado exitosamente en Alegra
-                $apiIdToSave = $response['data']['id'];
-                $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+            if ($response['success']) {
+                // El proxy devuelve { "id": 0, ... } como wrapper.
+                // El ID real de Alegra puede estar en varios lugares según la versión del proxy:
+                $proxyId   = $response['data']['id'] ?? null;
+                $nestedId  = $response['data']['debug_info']['alegra_response']['data']['id'] ?? null;
+                $altId     = $response['data']['data']['id'] ?? null;
+
+                // Usar el primero que sea un entero > 0
+                $resolvedId = null;
+                foreach ([$proxyId, $nestedId, $altId] as $candidate) {
+                    if (!empty($candidate) && (int) $candidate > 0) {
+                        $resolvedId = (string) $candidate;
+                        break;
+                    }
+                }
+
+                if ($resolvedId) {
+                    $apiIdToSave = $resolvedId;
+                    $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+                    Log::info('🆔 ID Alegra extraído del response', [
+                        'proxy_id'   => $proxyId,
+                        'nested_id'  => $nestedId,
+                        'alt_id'     => $altId,
+                        'resolved'   => $resolvedId,
+                    ]);
+                }
 
             } else {
                 // Verificar si el error es "ya existe" (código 2006 de Alegra)
