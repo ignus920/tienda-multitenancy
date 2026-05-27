@@ -684,9 +684,6 @@ class MovementForm extends Component
                         'id'       => $item->api_data_id,
                         'unitCost' => $unitCost,
                         'quantity' => floatval($detail['quantity']),
-                        'price'    => [
-                            'type' => 'costo',
-                        ],
                     ];
                 }
             }
