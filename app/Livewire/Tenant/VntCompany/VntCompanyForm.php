@@ -1629,10 +1629,8 @@ class VntCompanyForm extends Component
 
     private function getFormData(): array
     {
-        // Si es NIT, usar verification_digit como checkDigit
-        $checkDigit = ((int) $this->typeIdentificationId === 2)
-            ? $this->verification_digit
-            : $this->checkDigit;
+        // Usar siempre verification_digit como checkDigit (ahora es obligatorio)
+        $checkDigit = $this->verification_digit;
 
         $formData = [
             'typeIdentificationId' => $this->typeIdentificationId,
