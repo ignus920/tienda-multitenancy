@@ -2065,8 +2065,8 @@ class VntCompanyForm extends Component
             ],
             'name' => $this->businessName ?: ($this->firstName . ' ' . $this->lastName),
             'kindOfPerson' => $kindOfPersonValue,
-            'regime' => $this->getRegimeName($this->regimeId),
-            'fiscalResponsabilities' => ($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
+            'regime' => $this->simplified ? null : $this->getRegimeName($this->regimeId),
+            'fiscalResponsabilities' => $this->simplified ? null : (($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
                 ? (function () {
                     Log::info('🔍 Debug fiscalResponsabilityId CONDITION TRUE', [
                         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
@@ -2093,7 +2093,7 @@ class VntCompanyForm extends Component
                         'equals_zero_string' => $this->fiscalResponsabilityId === '0'
                     ]);
                     return null;
-                })(),
+                })()),
             'type' => $this->getContactTypeForApi(),
             'phonePrimary' => $this->business_phone ?: $this->personal_phone,
             'email' => $this->billingEmail,
