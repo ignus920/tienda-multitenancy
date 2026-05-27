@@ -207,7 +207,7 @@ class CompanyService
             $preparedData['secondName'] = $data['secondName'] ?? null;
             $preparedData['lastName'] = $data['lastName'] ?? null;
             $preparedData['secondLastName'] = $data['secondLastName'] ?? null;
-            $preparedData['checkDigit'] = null;
+            $preparedData['checkDigit'] = $data['checkDigit'] ?? null;
             $preparedData['code_ciiu'] = $data['code_ciiu'] ?? '0';
             // Usar valores del formulario si están disponibles, sino usar defaults
             $preparedData['regimeId'] = $data['regimeId'] ?? 2;
