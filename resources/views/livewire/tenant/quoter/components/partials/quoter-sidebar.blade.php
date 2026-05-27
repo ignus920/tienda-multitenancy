@@ -257,7 +257,8 @@
             $itemMaxPrice    = $itemOrigPrice * 2;
             $hasPriceRange   = $itemMinPrice > 0 || $itemMaxPrice > 0;
         @endphp
-        <div class="flex items-center gap-2 py-1.5 px-2 rounded border
+        <div wire:key="sidebar-item-{{ $item['id'] }}-{{ $index }}"
+             class="flex items-center gap-2 py-1.5 px-2 rounded border
             {{ $sidebarInsufficient
                 ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700'
                 : 'bg-gray-50 dark:bg-gray-700 border-gray-100 dark:border-gray-600' }}">
@@ -268,9 +269,10 @@
                     price: {{ (float) $item['price'] }},
                     minPrice: {{ $itemMinPrice }},
                     maxPrice: {{ $itemMaxPrice }},
+                    serverPrice: {{ (float) $item['price'] }},
                     error: '',
-                    open() { this.editing = true; this.error = ''; this.$nextTick(() => this.$refs.priceInput?.select()); },
-                    cancel() { this.editing = false; this.price = {{ (float) $item['price'] }}; this.error = ''; },
+                    open() { this.editing = true; this.error = ''; this.price = this.serverPrice; this.$nextTick(() => this.$refs.priceInput?.select()); },
+                    cancel() { this.editing = false; this.price = this.serverPrice; this.error = ''; },
                     save() {
                         const v = parseFloat(this.price);
                         if (isNaN(v) || v <= 0) { this.error = 'Ingrese un precio válido mayor a 0'; return; }
