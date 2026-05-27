@@ -544,14 +544,15 @@ class ProductQuoter extends Component
             // Stock total del producto (suma de todas las bodegas)
             $totalStock = $product->invItemsStore()->sum('stock_items_store');
 
-            // Precio mínimo = "Precio unitario x caja" (si existe), sino 0
-            $precioUnitarioCajaRecord = $product->invValues
+            // Precio mínimo = "Precio Regular" con IVA (mostrado como "Mínimo" en la tabla)
+            $precioRegularRecord = $product->invValues
                 ->where('type', 'precio')
-                ->where('label', 'Precio unitario x caja')
+                ->where('label', 'Precio Regular')
                 ->sortByDesc('date')
                 ->sortByDesc('created_at')
                 ->first();
-            $minPrice = $precioUnitarioCajaRecord ? (float) $precioUnitarioCajaRecord->values : 0;
+            $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
+            $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
 
             // Si no existe, agregarlo al inicio de la lista
             array_unshift($this->quoterItems, [
@@ -560,7 +561,7 @@ class ProductQuoter extends Component
                 'sku'            => $product->sku,
                 'price'          => $selectedPrice,
                 'original_price' => $selectedPrice,   // precio base para calcular el máximo
-                'min_price'      => $minPrice,         // mínimo: precio unitario x caja
+                'min_price'      => $minPrice,         // mínimo: Precio Regular con IVA (= columna Mínimo)
                 'tax'            => $product->tax->percentage,
                 'tax_label'      => $product->tax->name,
                 'price_label'    => $priceLabel,
@@ -912,7 +913,7 @@ class ProductQuoter extends Component
 
     /**
      * Actualiza el precio de un ítem con validación de rango.
-     * Mínimo: min_price (precio unitario x caja, si existe)
+     * Mínimo: min_price (Precio Regular con IVA = columna "Mínimo" en la tabla)
      * Máximo: original_price * 2
      */
     public function updateItemPrice(int $index, $newPrice): void
@@ -1719,14 +1720,15 @@ class ProductQuoter extends Component
                     // Stock total (suma de todas las bodegas)
                     $totalStock = $product->invItemsStore()->sum('stock_items_store');
 
-                    // Precio mínimo = "Precio unitario x caja" (si existe)
-                    $precioUnitarioCajaRecord = $product->invValues
+                    // Precio mínimo = "Precio Regular" con IVA (mostrado como "Mínimo" en la tabla)
+                    $precioRegularRecord = $product->invValues
                         ->where('type', 'precio')
-                        ->where('label', 'Precio unitario x caja')
+                        ->where('label', 'Precio Regular')
                         ->sortByDesc('date')
                         ->sortByDesc('created_at')
                         ->first();
-                    $minPrice = $precioUnitarioCajaRecord ? (float) $precioUnitarioCajaRecord->values : 0;
+                    $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
+                    $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
 
                     $itemData = [
                         'id'             => $product->id,
