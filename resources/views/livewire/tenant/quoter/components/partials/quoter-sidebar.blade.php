@@ -250,7 +250,8 @@
         @foreach($quoterItems as $index => $item)
         @php
             $itemTotalStock  = $item['total_stock'] ?? null;
-            $sidebarInsufficient = $itemTotalStock !== null && $item['quantity'] > $itemTotalStock;
+            $itemInventoriable = ($item['inventoriable'] ?? 1) == 1;
+            $sidebarInsufficient = $itemInventoriable && $itemTotalStock !== null && $item['quantity'] > $itemTotalStock;
             $itemMinPrice    = (float) ($item['min_price'] ?? 0);
             $itemOrigPrice   = (float) ($item['original_price'] ?? $item['price']);
             $itemMaxPrice    = $itemOrigPrice * 2;
@@ -294,7 +295,7 @@
                 <div x-show="!editing" class="flex items-center gap-1 leading-tight">
                     <p class="text-[10px] text-indigo-500 dark:text-indigo-400">
                         ${{ number_format($item['price']) }} · {{ $item['tax_label'] }}
-                        @if(isset($item['price_label']) && $item['price_label'] !== 'Precio seleccionado' && $item['price_label'] !== 'Precio Regular')
+                        @if(isset($item['price_label']) && $item['price_label'] !== 'Precio seleccionado' && $item['price_label'] !== 'Precio Mínimo')
                         <span class="mx-0.5 font-bold text-emerald-600 dark:text-emerald-400">· {{ $item['price_label'] }}</span>
                         @endif
                     </p>

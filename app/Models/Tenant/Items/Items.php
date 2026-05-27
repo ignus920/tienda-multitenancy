@@ -455,9 +455,9 @@ class Items extends Model
 
         foreach ($priceLists as $priceList) {
             // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+            // Se redondea a 2 decimales para evitar errores de punto flotante en la comparación con el precio mínimo
             $priceWithoutIva = $basePrice * $priceList->value;
-            $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
-            $prices[$priceList->title] = $priceWithIva;
+            $prices[$priceList->title] = round($priceWithoutIva * (1 + $taxPercentage), 2);
         }
 
         // Obtener Regular y Crédito desde la colección cargada
@@ -468,10 +468,13 @@ class Items extends Model
             ->sortByDesc('created_at')
             ->first();
 
+        // Precio con IVA: se usa tanto para mostrar como para comparar en el filtro
         $regularPriceValue = null;
+
         if ($precioRegular) {
-            $regularPriceValue = $precioRegular->values;
-            $prices['Precio Regular'] = $regularPriceValue;
+            $regularPriceValue = round($precioRegular->values * (1 + $taxPercentage), 2);
+            // Mostrar como "Precio Mínimo" en la tarjeta (BD sigue usando "Precio Regular")
+            $prices['Precio Mínimo'] = $regularPriceValue;
         }
 
         $precioCredito = $this->invValues
@@ -482,11 +485,10 @@ class Items extends Model
             ->first();
 
         if ($precioCredito) {
-            $prices['Precio Crédito'] = $precioCredito->values;
+            $prices['Precio Crédito'] = round($precioCredito->values * (1 + $taxPercentage), 2);
         }
 
         // Precio unitario x caja (siempre se incluye si existe, sin importar comparación con Regular)
-        // Búsqueda sin depender del case del campo type
         $precioUnitarioCaja = $this->invValues
             ->filter(fn($v) => strtolower(trim($v->type)) === 'precio' && $v->label === 'Precio unitario x caja')
             ->sortByDesc('date')
@@ -494,10 +496,13 @@ class Items extends Model
             ->first();
 
         if ($precioUnitarioCaja && $precioUnitarioCaja->values > 0) {
-            $prices['Precio unitario x caja'] = $precioUnitarioCaja->values;
+            $prices['Precio unitario x caja'] = round($precioUnitarioCaja->values * (1 + $taxPercentage), 2);
         }
 
-        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio mínimo.
+        // Todos los precios (incluidas listas de precios) se filtran si quedan por debajo del mínimo.
+        // La comparación usa $regularPriceValue (con IVA) para ser consistente con los demás precios.
+        // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (precio especial por volumen).
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
             // Excluir precios con valor 0
@@ -505,11 +510,10 @@ class Items extends Model
                 continue;
             }
 
-            // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular
-            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (puede ser distinto)
+            // Si hay precio mínimo definido y el precio actual (con IVA) es menor a él,
+            // excluirlo del listado. Solo se exceptúa "Precio Mínimo" y "Precio unitario x caja".
             if ($regularPriceValue !== null
-                && $label !== 'Precio Regular'
+                && $label !== 'Precio Mínimo'
                 && $label !== 'Precio unitario x caja'
                 && $value < $regularPriceValue) {
                 continue;
@@ -533,17 +537,26 @@ class Items extends Model
             ->sortByDesc('date')
             ->sortByDesc('created_at');
 
-        $prices = [];
-
-        // Agrupar por label y tomar solo el primero (más reciente) de cada grupo
-        foreach ($priceRecords->groupBy('label') as $label => $records) {
-            $prices[$label] = $records->first()->values;
+        // Porcentaje de IVA del item (los valores en inv_values se almacenan sin IVA)
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100;
         }
 
-        // Encontrar el precio regular para usar como referencia
-        $regularPriceValue = $prices['Precio Regular'] ?? null;
+        $prices = [];
 
-        // Aplicar filtros: remover precios con valor 0 y precios menores al precio regular
+        // Agrupar por label, tomar el más reciente y aplicar IVA
+        // "Precio Regular" se renombra a "Precio Mínimo" en la visualización (BD no cambia)
+        foreach ($priceRecords->groupBy('label') as $label => $records) {
+            $rawValue   = $records->first()->values;
+            $displayKey = ($label === 'Precio Regular') ? 'Precio Mínimo' : $label;
+            $prices[$displayKey] = round($rawValue * (1 + $taxPercentage), 2);
+        }
+
+        // Encontrar el precio mínimo (antes Regular) para usar como referencia de filtro
+        $regularPriceValue = $prices['Precio Mínimo'] ?? null;
+
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio mínimo
         $filteredPrices = [];
         foreach ($prices as $label => $value) {
             // Excluir precios con valor 0
@@ -551,11 +564,11 @@ class Items extends Model
                 continue;
             }
 
-            // Si hay precio regular definido y no es el precio regular mismo,
-            // excluir precios menores al precio regular.
+            // Si hay precio mínimo definido y no es el precio mínimo mismo,
+            // excluir precios menores al precio mínimo.
             // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (es un precio especial por volumen)
             if ($regularPriceValue !== null
-                && $label !== 'Precio Regular'
+                && $label !== 'Precio Mínimo'
                 && $label !== 'Precio unitario x caja'
                 && $value < $regularPriceValue) {
                 continue;

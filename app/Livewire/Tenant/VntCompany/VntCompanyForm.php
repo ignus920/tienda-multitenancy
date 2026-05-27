@@ -590,20 +590,20 @@ class VntCompanyForm extends Component
                 ]);
 
                 // Verificar si el cliente tiene api_data_id para sincronizar con API
+                $tempApiData = $this->prepareApiData();
                 if ($company && $company->api_data_id) {
                     Log::info('🔄 Cliente tiene api_data_id - actualizando también en API', [
                         'company_id' => $company->id,
                         'api_data_id' => $company->api_data_id
                     ]);
 
-                    // Preparar datos para actualizar en API
-                    $tempApiData = $this->prepareApiData();
                     $this->updateCompanyInApi($company, $tempApiData);
                 } else {
-                    Log::info('✏️ Cliente actualizado solo localmente - sin api_data_id para sincronizar', [
+                    Log::info('✏️ Cliente sin api_data_id - intentando crear en API para sincronizar', [
                         'company_id' => $company ? $company->id : 'NULL',
-                        'has_api_data_id' => $company && $company->api_data_id ? true : false
                     ]);
+
+                    $this->createCompanyInApi($company, $tempApiData);
                 }
 
                 // Mensaje de éxito inicial
@@ -669,12 +669,25 @@ class VntCompanyForm extends Component
                 $message = 'Registro creado exitosamente.';
 
                 // Sincronizar con API después de crear (solo si está habilitado y es nuevo cliente)
-                if ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId) {
-                    $this->syncCompanyWithApi($company, $tempApiId);
+                if ($shouldSyncWithApi['should_sync'] && !$this->editingId) {
+                    if ($tempApiId) {
+                        // Tenemos el ID de Alegra desde la validación/creación directa
+                        $this->syncCompanyWithApi($company, $tempApiId);
+                    } else {
+                        // No se obtuvo el ID en la respuesta de validación.
+                        // createCompanyInApi maneja el código 2006 ("ya existe") y extrae el contactId.
+                        Log::info('🔄 temp_api_id no disponible - intentando obtener ID via createCompanyInApi', [
+                            'company_id' => $company->id,
+                        ]);
+                        $this->createCompanyInApi($company, $tempApiData ?? []);
+                    }
                 }
 
+                // Refrescar company para obtener api_data_id actualizado tras el sync
+                $company->refresh();
+
                 // Mensaje de éxito inicial
-                $message = ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId)
+                $message = ($company->api_data_id)
                     ? '✅ Cliente Creado: El cliente se registró exitosamente y se sincronizó con el sistema de facturación.'
                     : '✅ Cliente Creado: El cliente se registró exitosamente en el sistema local.';
 
@@ -2258,13 +2271,8 @@ class VntCompanyForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta automáticamente si es proxy)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🔍 Validando datos con API', ['api_data' => $apiData]);
 
@@ -2277,24 +2285,30 @@ class VntCompanyForm extends Component
                 if (!$validationResult['success']) {
                     $errorMessage = $validationResult['message'] ?? 'Error desconocido en la API';
 
-                    Log::warning('❌ API rechazó la creación del cliente durante validación', [
-                        'api_data' => $apiData,
-                        'error' => $errorMessage,
-                        'preventing_local_save' => true
-                    ]);
+                    // Verificar si Alegra devolvió código 2006 (contacto ya existe)
+                    $alegraError = $validationResult['data']['alegra_error'] ?? null;
 
-                    // Detectar diferentes tipos de error
-                    if (
-                        strpos(strtolower($errorMessage), 'ya se encuentra') !== false ||
-                        strpos(strtolower($errorMessage), 'duplicad') !== false ||
-                        strpos(strtolower($errorMessage), 'existe') !== false
-                    ) {
+                    if ($alegraError && ($alegraError['code'] ?? null) == 2006 && isset($alegraError['contactId'])) {
+                        // El contacto ya existe en Alegra → vincular su ID y permitir guardar localmente
+                        $existingApiId = $alegraError['contactId'];
+
+                        Log::info('🔗 Contacto ya existe en Alegra (2006) - vinculando ID y permitiendo guardado local', [
+                            'existing_api_id' => $existingApiId,
+                            'alegra_name'     => $alegraError['contactName'] ?? null,
+                        ]);
 
                         return [
-                            'success' => false,
-                            'message' => '🔄 Cliente Duplicado: ' . $errorMessage . ' Por favor use un email o identificación diferente.'
+                            'success'      => true,
+                            'message'      => 'Contacto vinculado al registro existente en Alegra',
+                            'temp_api_id'  => $existingApiId,
                         ];
                     }
+
+                    Log::warning('❌ API rechazó la creación del cliente durante validación', [
+                        'api_data'             => $apiData,
+                        'error'                => $errorMessage,
+                        'preventing_local_save'=> true
+                    ]);
 
                     return [
                         'success' => false,
@@ -2479,18 +2493,13 @@ class VntCompanyForm extends Component
                 return;
             }
 
-            // Crear cliente API con parámetros individuales
-            $apiClient = new ApiClient(
-                $config['base_url'] ?? null,
-                $config['token'] ?? null,
-                $config['username'] ?? null,
-                $config['timeout'] ?? 15
-            );
+            // Crear cliente API (forConfig detecta automáticamente si es proxy)
+            $apiClient = ApiClient::forConfig($config);
 
             Log::info('🔧 ApiClient creado para actualización', [
-                'base_url' => $config['base_url'] ?? 'NOT_SET',
+                'base_url'  => $config['base_url'] ?? 'NOT_SET',
                 'has_token' => !empty($config['token']),
-                'username' => $config['username'] ?? 'NOT_SET'
+                'is_proxy'  => !empty($config['facturador']),
             ]);
 
             // Actualizar en API usando el api_data_id
@@ -2520,6 +2529,92 @@ class VntCompanyForm extends Component
             ]);
 
             session()->flash('sync_warning', '⚠️ Cliente actualizado localmente, pero hubo un problema sincronizando con la API: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crear cliente en la API cuando el registro local no tiene api_data_id.
+     * Guarda el ID devuelto por Alegra en vnt_companies.api_data_id.
+     */
+    private function createCompanyInApi($company, array $apiData): void
+    {
+        if (!$company) {
+            return;
+        }
+
+        try {
+            $authUser = Auth::user();
+            $config = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
+
+            if (!$config) {
+                Log::warning('⚠️ No se encontró configuración API para crear contacto', [
+                    'company_id' => $company->id,
+                    'user_id'    => $authUser->id,
+                ]);
+                session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con el sistema de facturación (sin configuración API).');
+                return;
+            }
+
+            $apiClient = ApiClient::forConfig($config);
+
+            Log::info('📡 Creando contacto en API para cliente sin api_data_id', [
+                'company_id' => $company->id,
+                'base_url'   => $config['base_url'] ?? 'NOT_SET',
+                'is_proxy'   => !empty($config['facturador']),
+            ]);
+
+            $response = $apiClient->createContact($apiData);
+
+            // Determinar el api_data_id a guardar (sea creación nueva o contacto duplicado)
+            $apiIdToSave = null;
+
+            if ($response['success'] && isset($response['data']['id'])) {
+                // Contacto creado exitosamente en Alegra
+                $apiIdToSave = $response['data']['id'];
+                $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+            } else {
+                // Verificar si el error es "ya existe" (código 2006 de Alegra)
+                $alegraError = $response['data']['alegra_error'] ?? null;
+
+                if ($alegraError && ($alegraError['code'] ?? null) == 2006 && isset($alegraError['contactId'])) {
+                    // Contacto duplicado → reutilizar el ID existente en Alegra
+                    $apiIdToSave = $alegraError['contactId'];
+                    $successMsg  = '✅ Cliente vinculado al contacto existente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+                    Log::info('🔗 Contacto duplicado en Alegra - vinculando ID existente', [
+                        'company_id'      => $company->id,
+                        'existing_api_id' => $apiIdToSave,
+                        'alegra_name'     => $alegraError['contactName'] ?? null,
+                    ]);
+                }
+            }
+
+            if ($apiIdToSave !== null) {
+                $company->update(['api_data_id' => $apiIdToSave]);
+
+                Log::info('✅ api_data_id guardado en vnt_companies', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $apiIdToSave,
+                ]);
+                session()->flash('sync_message', $successMsg ?? '✅ Cliente sincronizado correctamente.');
+
+            } else {
+                $errorMsg = $response['message'] ?? 'Error desconocido';
+                Log::error('❌ Error creando contacto en API', [
+                    'company_id'   => $company->id,
+                    'error'        => $errorMsg,
+                    'alegra_error' => $response['data']['alegra_error'] ?? null,
+                ]);
+                $userMessage = $this->formatApiErrorMessage($errorMsg);
+                session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con Alegra: ' . $userMessage);
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción creando contacto en API', [
+                'company_id' => $company->id,
+                'error'      => $e->getMessage(),
+            ]);
+            session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero hubo un problema al sincronizar: ' . $e->getMessage());
         }
     }
 

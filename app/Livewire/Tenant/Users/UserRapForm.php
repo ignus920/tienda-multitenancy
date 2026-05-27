@@ -1306,13 +1306,8 @@ class UserRapForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta proxy automáticamente)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             // Para UPDATE: validar si estamos editando un usuario que ya tiene api_data_id
             if ($this->editingId) {
@@ -1633,13 +1628,8 @@ class UserRapForm extends Component
                 'warehouse_id' => $optimizedConfig['warehouse_id'] ?? 'unknown'
             ]);
 
-            // Crear ApiClient con configuración optimizada
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient con detección automática de proxy
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🚀 Usando configuración para Vendedores', [
                 'auth_user_id' => $authUser->id,

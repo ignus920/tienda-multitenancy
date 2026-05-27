@@ -98,8 +98,14 @@ class DatabaseConfigService
             // O implementar lógica para seleccionar la configuración adecuada
             $primaryConfig = $configs[0]['config'];
 
+            // Usar 'facturador' (API intermediaria propia) si está configurado.
+            // Si no, resolver desde 'base' (Produccion → Alegra, sandbox → Alegra sandbox).
+            $baseUrl = !empty($primaryConfig['facturador'])
+                ? $primaryConfig['facturador']
+                : self::resolveBaseUrl($primaryConfig['base'] ?? 'Produccion');
+
             return [
-                'base_url'      => self::resolveBaseUrl($primaryConfig['base'] ?? 'Produccion'),
+                'base_url'      => $baseUrl,
                 'token'         => $primaryConfig['token'],
                 'username'      => '',
                 'timeout'       => 30,
@@ -350,8 +356,14 @@ class DatabaseConfigService
             ]);
 
             // 4. Retornar configuración formateada
+            // Usar 'facturador' (API intermediaria propia) si está configurado.
+            // Si no, resolver desde 'base' (Produccion → Alegra, sandbox → Alegra sandbox).
+            $baseUrl = !empty($invoiceConfig['facturador'])
+                ? $invoiceConfig['facturador']
+                : self::resolveBaseUrl($invoiceConfig['base'] ?? 'Produccion');
+
             return [
-                'base_url'     => self::resolveBaseUrl($invoiceConfig['base'] ?? 'Produccion'),
+                'base_url'     => $baseUrl,
                 'token'        => $invoiceConfig['token'],
                 'username'     => '',
                 'timeout'      => 30,

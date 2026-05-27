@@ -505,7 +505,7 @@
                                         <span class="text-xs font-bold text-indigo-500">${{ number_format($subtotal, 2) }}</span>
                                     </div>
                                     <div class="flex justify-between text-xs text-gray-500 dark:text-slate-400">
-                                        <span>{{ number_format($detalle->quantity, 2) }} x ${{ number_format($detalle->value, 2) }}</span>
+                                        <span>{{ number_format($detalle->quantity, 0) }} x ${{ number_format($detalle->value, 2) }}</span>
                                     </div>
                                 </div>
                             @endforeach

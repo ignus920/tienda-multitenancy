@@ -342,7 +342,9 @@ $header = 'Seleccionar productos';
                                             @php
                                                 $isThisPriceSelected = $this->isPriceSelected($product->id, $label);
                                                 // Stock insuficiente en Grid: precio seleccionado y cant. en carrito > stock total
-                                                $insufficientStockGrid = $isThisPriceSelected
+                                                // Solo aplica a items inventariables (inventoriable = 1)
+                                                $insufficientStockGrid = $product->inventoriable
+                                                    && $isThisPriceSelected
                                                     && $quantity > 0
                                                     && ($product->total_stock ?? 0) < $quantity;
 
@@ -355,7 +357,7 @@ $header = 'Seleccionar productos';
                                                         'spinner'    => 'text-orange-600 dark:text-orange-400'
                                                     ]
                                                     : match($label) {
-                                                        'Precio Regular' => [
+                                                        'Precio Mínimo' => [
                                                             'border' => $isThisPriceSelected ? 'border-blue-500' : 'border-red-500/30',
                                                             'bg' => $isThisPriceSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500/50' : 'bg-red-50/50 dark:bg-red-900/10 active:bg-red-100 dark:active:bg-red-900/30',
                                                             'label_text' => $isThisPriceSelected ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400 group-hover:text-red-700',
@@ -484,7 +486,9 @@ $header = 'Seleccionar productos';
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">3%</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">5%</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">7%</th>
-                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Regular</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">10%</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">15%</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mínimo</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-purple-500 dark:text-purple-400 uppercase tracking-wider">x Caja</th>
                                     @endif
@@ -617,13 +621,15 @@ $header = 'Seleccionar productos';
                                                         '3%'                     => $allPrices['p4'] ?? null,
                                                         '5%'                     => $allPrices['P5'] ?? $allPrices['p5'] ?? null,
                                                         '7%'                     => $allPrices['p6'] ?? $allPrices['P6'] ?? null,
-                                                        'Regular'                => $allPrices['p1'] ?? null,
+                                                        '10%'                    => $allPrices['10%'] ?? null,
+                                                        '15%'                    => $allPrices['15%'] ?? null,
+                                                        'Mínimo'                 => $allPrices['p1'] ?? $allPrices['Precio Mínimo'] ?? null,
                                                         'Crédito'                => $allPrices['p2'] ?? null,
                                                         'Precio unitario x caja' => $allPrices['Precio unitario x caja'] ?? null,
                                                     ];
                                                 } else {
-                                                    // Estructura tipo: Lista, 3%, 5%, 7%, Regular, Crédito, Precio unitario x caja
-                                                    $columnMapping = ['Lista', '3%', '5%', '7%', 'Regular', 'Crédito', 'Precio unitario x caja'];
+                                                    // Estructura tipo: Lista, 3%, 5%, 7%, 10%, 15%, Mínimo, Crédito, Precio unitario x caja
+                                                    $columnMapping = ['Lista', '3%', '5%', '7%', '10%', '15%', 'Mínimo', 'Crédito', 'Precio unitario x caja'];
 
                                                     foreach($columnMapping as $column) {
                                                         $pricesByType[$column] = null;
@@ -635,7 +641,7 @@ $header = 'Seleccionar productos';
 
                                                             if ($keyLower === $columnLower ||
                                                                 str_contains($keyLower, $columnLower) ||
-                                                                ($column === 'Regular' && str_contains($keyLower, 'regular')) ||
+                                                                ($column === 'Mínimo' && (str_contains($keyLower, 'mínimo') || str_contains($keyLower, 'minimo') || str_contains($keyLower, 'regular'))) ||
                                                                 ($column === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
                                                                 ($column === 'Lista' && str_contains($keyLower, 'lista')) ||
                                                                 ($priceKey === $column)) {
@@ -658,12 +664,14 @@ $header = 'Seleccionar productos';
                                                                     // Si hay múltiples precios iguales, usar el primero que coincida con el tipo
                                                                     if ($usesNumericKeys) {
                                                                         $expectedKey = match($priceType) {
-                                                                            'Regular' => 'p1',
+                                                                            'Mínimo' => 'p1',
                                                                             'Crédito' => 'p2',
                                                                             'Lista' => 'p3',
                                                                             '3%' => 'p4',
                                                                             '5%' => 'P5',
                                                                             '7%' => 'p6',
+                                                                            '10%' => '10%',
+                                                                            '15%' => '15%',
                                                                             default => null
                                                                         };
                                                                         if ($key === $expectedKey || ($expectedKey === 'P5' && $key === 'p5')) {
@@ -677,7 +685,7 @@ $header = 'Seleccionar productos';
 
                                                                         if ($keyLower === $typeLower ||
                                                                             str_contains($keyLower, $typeLower) ||
-                                                                            ($priceType === 'Regular' && str_contains($keyLower, 'regular')) ||
+                                                                            ($priceType === 'Mínimo' && (str_contains($keyLower, 'mínimo') || str_contains($keyLower, 'minimo') || str_contains($keyLower, 'regular'))) ||
                                                                             ($priceType === 'Crédito' && (str_contains($keyLower, 'crédito') || str_contains($keyLower, 'credito'))) ||
                                                                             ($priceType === 'Lista' && str_contains($keyLower, 'lista'))) {
                                                                             $priceKey = $key;
@@ -692,7 +700,9 @@ $header = 'Seleccionar productos';
 
                                                             $isThisPriceSelected = $this->isPriceSelected($product->id, $priceKey);
                                                             // Stock insuficiente: precio seleccionado y cantidad en carrito > stock total
-                                                            $insufficientStock = $isThisPriceSelected
+                                                            // Solo aplica a items inventariables (inventoriable = 1)
+                                                            $insufficientStock = $product->inventoriable
+                                                                && $isThisPriceSelected
                                                                 && $quantity > 0
                                                                 && ($product->total_stock ?? 0) < $quantity;
                                                         @endphp
@@ -712,7 +722,7 @@ $header = 'Seleccionar productos';
                                                                     ? 'border-orange-500 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
                                                                     : ($isThisPriceSelected
                                                                         ? 'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                                                        : ($priceType === 'Regular'
+                                                                        : ($priceType === 'Mínimo'
                                                                             ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800'
                                                                             : ($priceType === 'Crédito'
                                                                                 ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:text-yellow-400 dark:border-yellow-800'

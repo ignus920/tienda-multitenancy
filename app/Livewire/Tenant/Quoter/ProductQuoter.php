@@ -569,6 +569,7 @@ class ProductQuoter extends Component
                 'weight'         => $product->dimensions->weight ?? 0,
                 'category_id'    => $product->categoryId,
                 'total_stock'    => $totalStock,
+                'inventoriable'  => (int) $product->inventoriable,
             ]);
         }
 
@@ -1742,6 +1743,7 @@ class ProductQuoter extends Component
                         'weight'         => $product->dimensions->weight ?? 0,
                         'category_id'    => $product->categoryId,
                         'total_stock'    => $totalStock,
+                        'inventoriable'  => (int) $product->inventoriable,
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -2179,8 +2181,13 @@ class ProductQuoter extends Component
 
             $quote = VntQuote::findOrFail($this->editingQuoteId);
 
-            // Validar stock disponible antes de procesar
+            // Validar stock disponible antes de procesar (solo para items inventariables)
             foreach ($this->quoterItems as $item) {
+                // Items no inventariables no requieren control de stock
+                if (($item['inventoriable'] ?? 1) == 0) {
+                    continue;
+                }
+
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();
@@ -2270,14 +2277,21 @@ class ProductQuoter extends Component
                     'invoiceId' => null,
                 ]);
 
+                // Solo actualizar stock para items inventariables
+                if (($item['inventoriable'] ?? 1) == 0) {
+                    continue;
+                }
+
                 // Actualizar el stock del producto en la bodega específica
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();
 
-                $itemStore->update([
-                    'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
-                ]);
+                if ($itemStore) {
+                    $itemStore->update([
+                        'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
+                    ]);
+                }
             }
 
             // Actualizar estado de la cotización
@@ -3060,17 +3074,18 @@ class ProductQuoter extends Component
             foreach ($remission->details as $detalle) {
                 if ($detalle->item) {
                     $this->quoterItems[] = [
-                        'id' => $detalle->item->id,
-                        'name' => $detalle->item->display_name,
-                        'sku' => $detalle->item->sku,
-                        'price' => $detalle->value,
-                        'price_label' => 'Precio remisión',
-                        'quantity' => $detalle->quantity,
-                        'description' => $detalle->item->description,
-                        'tax' => $detalle->tax ?? 0,
-                        'tax_label' => $detalle->tax_label ?? 'N/A',
-                        'weight' => $detalle->item->dimensions->weight ?? 0,
-                        'category_id' => $detalle->item->categoryId,
+                        'id'            => $detalle->item->id,
+                        'name'          => $detalle->item->display_name,
+                        'sku'           => $detalle->item->sku,
+                        'price'         => $detalle->value,
+                        'price_label'   => 'Precio remisión',
+                        'quantity'      => $detalle->quantity,
+                        'description'   => $detalle->item->description,
+                        'tax'           => $detalle->tax ?? 0,
+                        'tax_label'     => $detalle->tax_label ?? 'N/A',
+                        'weight'        => $detalle->item->dimensions->weight ?? 0,
+                        'category_id'   => $detalle->item->categoryId,
+                        'inventoriable' => (int) $detalle->item->inventoriable,
                     ];
                 }
             }

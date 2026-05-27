@@ -338,13 +338,8 @@ class CategoriesService
                 throw new \Exception("No se encontró configuración de facturación para el usuario: {$user->email}");
             }
 
-            // Crear ApiClient directamente con la configuración optimizada
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient con detección automática de proxy
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🚀 Usando configuración OPTIMIZADA (user → contact → warehouse)', [
                 'user_id' => $user->id,

@@ -474,35 +474,46 @@ class Invoices extends Component
 
                 $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
 
-                // Analizar estructura de respuesta
+                // La respuesta de Alegra viene en $apiResponse['data'] (makeRequest la envuelve así)
+                // Alegra devuelve: { "pdf": "URL", "id": ..., ... }
+                // El proxy puede devolver: { "success": true, "pdf": "URL", "data": {...} }
                 $respData = $apiResponse['data'] ?? [];
 
-                // Intentar obtener URL de varios posibles campos
-                $printUrl = $respData['pdf'] ??
-                    $respData['publicUrl'] ??
-                    ($respData['data']['publicUrl'] ?? null);
+                // Buscar la URL del PDF en los distintos posibles campos de la respuesta
+                $printUrl = $respData['pdf']
+                    ?? $respData['publicUrl']
+                    ?? $respData['url']
+                    ?? ($respData['data']['pdf'] ?? null)
+                    ?? ($respData['data']['publicUrl'] ?? null)
+                    ?? null;
 
-                if ($apiResponse['success'] && !empty($printUrl)) {
+                Log::info('📄 Respuesta PDF de Alegra', [
+                    'api_id'        => $invoice->api_data_id,
+                    'http_success'  => $apiResponse['success'] ?? false,
+                    'http_status'   => $apiResponse['status'] ?? null,
+                    'pdf_url_found' => !empty($printUrl),
+                    'print_url'     => $printUrl,
+                    'response_keys' => array_keys($respData),
+                    'full_response' => $apiResponse,
+                ]);
+
+                if (!empty($printUrl)) {
                     Log::info('✅ URL de PDF de factura obtenida', ['url' => $printUrl]);
 
                     $this->dispatch('open-print-window', [
-                        'url' => $printUrl,
+                        'url'    => $printUrl,
                         'format' => 'carta'
                     ]);
 
                     $this->dispatch('show-toast', [
-                        'type' => 'success',
+                        'type'    => 'success',
                         'message' => 'Factura #' . $invoice->invoiceNumber . ' preparada para impresión.'
                     ]);
                     return;
                 } else {
-                    Log::warning('⚠️ No se obtuvo URL válida de Alegra para factura', [
-                        'response'   => $apiResponse,
-                        'invoice_id' => $invoiceId
-                    ]);
                     $this->dispatch('show-toast', [
-                        'type' => 'warning',
-                        'message' => 'No se pudo obtener el PDF de la factura desde Alegra. Verifique que esté correctamente emitida.'
+                        'type'    => 'warning',
+                        'message' => 'No se pudo obtener el PDF desde Alegra. Revise los logs o verifique que la factura esté emitida.'
                     ]);
                 }
             } else {
@@ -511,7 +522,7 @@ class Invoices extends Component
                     'has_api_id' => !empty($invoice->api_data_id)
                 ]);
                 $this->dispatch('show-toast', [
-                    'type' => 'info',
+                    'type'    => 'info',
                     'message' => 'No se puede obtener el PDF de Alegra. Verifique la configuración de facturación.'
                 ]);
             }
