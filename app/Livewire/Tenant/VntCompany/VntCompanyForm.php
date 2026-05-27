@@ -2597,11 +2597,20 @@ class VntCompanyForm extends Component
             }
 
             if ($apiIdToSave !== null) {
-                $company->update(['api_data_id' => $apiIdToSave]);
+                // Restaurar conexión tenant antes de guardar (la llamada API puede haberla cambiado)
+                $this->ensureTenantConnection();
+
+                // Actualizar directamente por ID para garantizar la conexión correcta
+                \App\Models\Tenant\Customer\VntCompany::where('id', $company->id)
+                    ->update(['api_data_id' => $apiIdToSave]);
+
+                // Refrescar la instancia del modelo para que refleje el cambio
+                $company->refresh();
 
                 Log::info('✅ api_data_id guardado en vnt_companies', [
                     'company_id'  => $company->id,
                     'api_data_id' => $apiIdToSave,
+                    'api_data_id_verificado' => $company->api_data_id,
                 ]);
                 session()->flash('sync_message', $successMsg ?? '✅ Cliente sincronizado correctamente.');
 
