@@ -273,13 +273,13 @@
                     cancel() { this.editing = false; this.price = {{ (float) $item['price'] }}; this.error = ''; },
                     save() {
                         const v = parseFloat(this.price);
-                        if (isNaN(v) || v <= 0) { this.error = 'Precio inválido'; return; }
+                        if (isNaN(v) || v <= 0) { this.error = 'Ingrese un precio válido mayor a 0'; return; }
                         if (this.minPrice > 0 && v < this.minPrice) {
-                            this.error = 'Mín: $' + this.minPrice.toLocaleString('es-CO', {maximumFractionDigits:0});
+                            this.error = 'No puede bajar de $' + this.minPrice.toLocaleString('es-CO', {maximumFractionDigits:0}) + ' (precio mínimo)';
                             return;
                         }
                         if (v > this.maxPrice) {
-                            this.error = 'Máx: $' + this.maxPrice.toLocaleString('es-CO', {maximumFractionDigits:0});
+                            this.error = 'No puede subir de $' + this.maxPrice.toLocaleString('es-CO', {maximumFractionDigits:0}) + ' (precio máximo)';
                             return;
                         }
                         $wire.updateItemPrice({{ $index }}, v);
@@ -340,15 +340,20 @@
                             </svg>
                         </button>
                     </div>
-                    <!-- Rango permitido + error -->
-                    <div class="flex items-center justify-between mt-0.5">
-                        <p class="text-[8px] text-gray-400 leading-tight">
-                            @if($itemMinPrice > 0)
-                                Mín ${{ number_format($itemMinPrice, 0, ',', '.') }}
-                            @endif
-                            · Máx ${{ number_format($itemMaxPrice, 0, ',', '.') }}
-                        </p>
-                        <p x-show="error" x-text="error" class="text-[8px] font-bold text-red-500 leading-tight"></p>
+                    <!-- Rango permitido -->
+                    <p class="text-[9px] text-gray-400 leading-tight mt-0.5">
+                        @if($itemMinPrice > 0)
+                            Mín <span class="font-semibold text-gray-500">${{ number_format($itemMinPrice, 0, ',', '.') }}</span>
+                        @endif
+                        &nbsp;·&nbsp; Máx <span class="font-semibold text-gray-500">${{ number_format($itemMaxPrice, 0, ',', '.') }}</span>
+                    </p>
+                    <!-- Error de validación -->
+                    <div x-show="error" x-cloak
+                         class="mt-1 flex items-start gap-1 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-600 rounded px-1.5 py-1">
+                        <svg class="w-3 h-3 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                        </svg>
+                        <p x-text="error" class="text-xs font-semibold text-red-600 dark:text-red-400 leading-tight"></p>
                     </div>
                 </div>
 
