@@ -120,10 +120,7 @@ class InvoiceDataBuilder
             $dataAlegra['seller'] = (string)$sellerIdAlegra;
         }
 
-        // Agregar retenciones si existen
-        if (!empty($validRetentions)) {
-            $dataAlegra['retentions'] = array_values($validRetentions);
-        }
+        // Retenciones deshabilitadas: no se envían a Alegra
 
         Log::info('✅ Datos de factura construidos exitosamente', [
             'quote_id' => $quote->id,

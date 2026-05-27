@@ -3570,10 +3570,7 @@ class ProductQuoter extends Component
             'amount' => $totalAmount
         ];
 
-        // Solo agregar retenciones si hay alguna con valor > 0
-        if (!empty($formattedRetentions)) {
-            $invoiceObject['retentions'] = $formattedRetentions;
-        }
+        // Retenciones deshabilitadas: no se envían a Alegra
 
         // Construir payload según formato correcto de Alegra API
         $payloadData = [
