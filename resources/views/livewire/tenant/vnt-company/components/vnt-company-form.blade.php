@@ -581,7 +581,6 @@
                             </div>
                         </div>
                         @endif
-                        @if(!$simplified)
                         <div>
                             <!-- Selects para configuraciones fiscales -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -623,7 +622,6 @@
                             </div>
 
                         </div>
-                        @endif
                         <!-- Email de Facturación -->
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
                             <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
@@ -1118,7 +1116,6 @@
                             @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        @if(!$simplified)
                         <div>
                             <!-- Selects para configuraciones fiscales -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1160,7 +1157,6 @@
                             </div>
 
                         </div>
-                        @endif
                         <!-- Ciudad para sucursal principal -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
