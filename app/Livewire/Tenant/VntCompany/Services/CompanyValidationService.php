@@ -280,8 +280,8 @@ class CompanyValidationService
         $baseRules = [
             'typeIdentificationId' => 'required|integer',
             'identification' => $identificationRule,
-            'regimeId' => 'required|integer',
-            'fiscalResponsabilityId' => 'required|integer',
+            'regimeId' => 'nullable|integer',
+            'fiscalResponsabilityId' => 'nullable|integer',
             'billingEmail' => $emailRule,
             'typePerson' => 'required|string|in:Natural,Juridica',
             'verification_digit' => 'required|string|max:1',

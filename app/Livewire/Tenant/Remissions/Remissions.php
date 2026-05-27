@@ -57,6 +57,10 @@ class Remissions extends Component
     public $selectedCustomer = null;
     public $selectedRemissionsData = [];
     public $totalItems = 0;
+
+    // Modal para completar datos del cliente antes de facturar
+    public $showCompleteCustomerModal = false;
+    public $completingCustomerId = null;
     public $moduleKey = 'remissions';
     public $statusFilter = '';
 
@@ -369,6 +373,7 @@ class Remissions extends Component
                 'identification' => $company?->identification,
                 'checkDigit'    => $company?->checkDigit,
                 'customer_name' => $company?->customer_name,
+                'api_data_id'   => $company?->api_data_id,
             ];
 
             // Preparar datos de las remisiones para el modal
@@ -418,6 +423,55 @@ class Remissions extends Component
         $this->selectedCustomer = null;
         $this->selectedRemissionsData = [];
         $this->totalItems = 0;
+    }
+
+    public function openCompleteCustomerModal()
+    {
+        if ($this->selectedCustomer && !empty($this->selectedCustomer['id'])) {
+            $this->completingCustomerId = $this->selectedCustomer['id'];
+            $this->showInvoiceModal = false; // Cerrar modal de facturación para evitar solapamiento
+            $this->showCompleteCustomerModal = true;
+        }
+    }
+
+    public function closeCompleteCustomerModal()
+    {
+        $this->showCompleteCustomerModal = false;
+        $this->completingCustomerId = null;
+        // Volver a mostrar el modal de facturación si había datos cargados
+        if ($this->selectedCustomer && !empty($this->selectedRemissionsData)) {
+            $this->showInvoiceModal = true;
+        }
+    }
+
+    #[On('customer-updated')]
+    public function onCustomerUpdated($customerId)
+    {
+        // Si es el cliente que estamos completando, refrescar su api_data_id
+        if ($this->selectedCustomer && $this->selectedCustomer['id'] == $customerId) {
+            $this->ensureTenantConnection();
+            $company = \App\Models\Tenant\Customer\VntCompany::find($customerId);
+            if ($company) {
+                $this->selectedCustomer['api_data_id'] = $company->api_data_id;
+                $this->showCompleteCustomerModal = false;
+                $this->completingCustomerId = null;
+
+                if ($company->api_data_id) {
+                    // Volver a mostrar el modal de facturación — ahora el cliente está completo
+                    $this->showInvoiceModal = true;
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => '✅ Cliente sincronizado. Ya puedes confirmar la facturación.'
+                    ]);
+                } else {
+                    $this->showInvoiceModal = true;
+                    $this->dispatch('show-toast', [
+                        'type' => 'warning',
+                        'message' => 'Cliente actualizado, pero aún no está sincronizado con Alegra.'
+                    ]);
+                }
+            }
+        }
     }
 
     /**

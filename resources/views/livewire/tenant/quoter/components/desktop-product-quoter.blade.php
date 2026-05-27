@@ -1502,6 +1502,50 @@ $header = 'Seleccionar productos';
         @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCustomer['id'], 'isSelectionMode' => true], key('warehouse-modal-' . $selectedCustomer['id']))
     @endif
 
+    <!-- Modal: Completar datos del cliente antes de facturar -->
+    @if($showCompleteCustomerModal && $editingCustomerId)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-start justify-center p-4 z-[60] overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl my-8">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        📋 Completar datos del cliente
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Para facturar electrónicamente necesitas completar el régimen y la responsabilidad fiscal del cliente.
+                    </p>
+                </div>
+                <button wire:click="closeCompleteCustomerModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Warning Banner -->
+            <div class="mx-6 mt-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+                <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-amber-800 dark:text-amber-200">
+                    Este cliente fue creado de forma rápida. Completa el régimen y responsabilidad fiscal para poder facturar electrónicamente. Los cambios se sincronizarán con Alegra automáticamente.
+                </span>
+            </div>
+
+            <!-- Formulario cliente completo (no simplificado) -->
+            <div class="px-6 pb-6 pt-4">
+                <livewire:tenant.vnt-company.vnt-company-form
+                    :reusable="true"
+                    :simplified="false"
+                    :companyId="$editingCustomerId"
+                    key="complete-customer-form-{{ $editingCustomerId }}" />
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
 
 <script>

@@ -1644,8 +1644,8 @@ class VntCompanyForm extends Component
             'typePerson' => $this->typePerson,
             'checkDigit' => (string)$checkDigit,
             'code_ciiu' => $this->code_ciiu,
-            'regimeId' => $this->regimeId,
-            'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
+            'regimeId' => $this->regimeId === '' ? 0 : $this->regimeId,
+            'fiscalResponsabilityId' => $this->fiscalResponsabilityId === '' ? 0 : $this->fiscalResponsabilityId,
             'status' => $this->status,
             'business_phone' => $this->business_phone,
             'personal_phone' => $this->personal_phone,
@@ -1910,6 +1910,14 @@ class VntCompanyForm extends Component
      */
     private function shouldSyncWithApi(): array
     {
+        // En modo simplificado (cotizador), nunca sincronizar con API
+        if ($this->simplified) {
+            return [
+                'should_sync' => false,
+                'reason' => 'Modo simplificado: el cliente se creará únicamente en el sistema local. Complete los datos del cliente antes de facturar.'
+            ];
+        }
+
         try {
             Log::info('🔄 Verificando si se debe sincronizar con API...');
 

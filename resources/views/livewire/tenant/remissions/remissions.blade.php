@@ -840,7 +840,39 @@
                         @endif
                     </div>
 
-                    <!-- Advertencia -->
+                    @php $clienteIncompleto = is_null($selectedCustomer) || empty($selectedCustomer['api_data_id']); @endphp
+
+                    {{-- BLOQUEO: cliente sin datos completos en Alegra --}}
+                    @if($clienteIncompleto)
+                    <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-600 rounded-xl p-5 mb-4">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-800/40 rounded-full flex items-center justify-center">
+                                <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h5 class="text-base font-bold text-red-700 dark:text-red-300">
+                                    ❌ No se puede facturar — Cliente incompleto
+                                </h5>
+                                <p class="text-sm text-red-600 dark:text-red-400 mt-1 leading-relaxed">
+                                    Este cliente fue creado de forma rápida y <strong>no está sincronizado con el sistema de facturación electrónica</strong>.
+                                    Para poder facturar debes completar primero sus datos fiscales (régimen y responsabilidad fiscal) en el módulo de Clientes.
+                                </p>
+                                <div class="mt-4">
+                                    <button wire:click="openCompleteCustomerModal"
+                                        class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        Completar datos del cliente ahora
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @else
+                    {{-- Advertencia normal cuando cliente está OK --}}
                     <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
                         <div class="flex">
                             <svg class="w-5 h-5 text-amber-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -855,14 +887,16 @@
                             </div>
                         </div>
                     </div>
+                    @endif
                 </div>
 
                 <!-- Footer -->
                 <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
                     <button wire:click="closeInvoiceModal"
                             class="px-6 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium">
-                        Cancelar
+                        {{ $clienteIncompleto ? 'Cerrar' : 'Cancelar' }}
                     </button>
+                    @if(!$clienteIncompleto)
                     <button wire:click="confirmarFacturacion"
                             wire:loading.attr="disabled"
                             wire:target="confirmarFacturacion"
@@ -877,6 +911,7 @@
                         <span wire:loading.remove wire:target="confirmarFacturacion">Confirmar Facturación</span>
                         <span wire:loading wire:target="confirmarFacturacion">Procesando...</span>
                     </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1021,4 +1056,48 @@
         });
     </script>
     @livewire('tenant.returns.return-registration-modal')
+
+    <!-- Modal: Completar datos del cliente antes de facturar desde remisiones -->
+    @if($showCompleteCustomerModal && $completingCustomerId)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-start justify-center p-4 z-[70] overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl my-8">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        📋 Completar datos del cliente
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Completa el régimen y la responsabilidad fiscal para poder facturar electrónicamente.
+                    </p>
+                </div>
+                <button wire:click="closeCompleteCustomerModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Banner informativo -->
+            <div class="mx-6 mt-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+                <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-amber-800 dark:text-amber-200">
+                    Al guardar, el cliente se sincronizará automáticamente con Alegra y podrás continuar con la facturación.
+                </span>
+            </div>
+
+            <!-- Formulario completo (no simplificado) -->
+            <div class="px-6 pb-6 pt-4">
+                <livewire:tenant.vnt-company.vnt-company-form
+                    :reusable="true"
+                    :simplified="false"
+                    :companyId="$completingCustomerId"
+                    key="complete-customer-remissions-{{ $completingCustomerId }}" />
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
