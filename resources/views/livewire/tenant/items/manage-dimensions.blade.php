@@ -43,7 +43,7 @@
                 <input wire:model="weight" type="number" step="any"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Peso">
-                <span class="text-xs text-gray-500 dark:text-gray-400">Diligencie los valores en kilogramos</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">Diligencie los valores en gramos</span>
             </div>
         </div>
         <div class="mb-3 grid grid-cols-2 gap-2">
