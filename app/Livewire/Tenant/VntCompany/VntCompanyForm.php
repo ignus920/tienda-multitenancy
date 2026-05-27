@@ -2449,14 +2449,25 @@ class VntCompanyForm extends Component
 
                 // Restaurar conexión tenant antes de guardar
                 $this->ensureTenantConnection();
-                \App\Models\Tenant\Customer\VntCompany::where('id', $company->id)
+
+                Log::info('💾 syncCompanyWithApi - intentando guardar api_data_id', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $tempApiId,
+                ]);
+
+                $rowsAffected = \Illuminate\Support\Facades\DB::connection('tenant')
+                    ->table('vnt_companies')
+                    ->where('id', $company->id)
+                    ->whereNull('deleted_at')
                     ->update(['api_data_id' => $tempApiId]);
+
                 $company->refresh();
 
                 Log::info('✅ api_data_id guardado en vnt_companies (syncCompanyWithApi)', [
-                    'company_id'  => $company->id,
-                    'api_data_id' => $tempApiId,
-                    'verificado'  => $company->api_data_id,
+                    'company_id'    => $company->id,
+                    'api_data_id'   => $tempApiId,
+                    'rows_affected' => $rowsAffected,
+                    'verificado'    => $company->api_data_id,
                 ]);
                 session()->flash('sync_message', '✅ Cliente Sincronizado: El cliente ha sido creado exitosamente y sincronizado con la API de facturación electrónica.');
                 return;
@@ -2607,12 +2618,27 @@ class VntCompanyForm extends Component
             }
 
             if ($apiIdToSave !== null) {
-                // Restaurar conexión tenant antes de guardar (la llamada API puede haberla cambiado)
+                // Restaurar conexión tenant antes de guardar
                 $this->ensureTenantConnection();
 
-                // Actualizar directamente por ID para garantizar la conexión correcta
-                \App\Models\Tenant\Customer\VntCompany::where('id', $company->id)
+                Log::info('💾 Intentando guardar api_data_id', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $apiIdToSave,
+                    'company_id_null' => is_null($company->id),
+                ]);
+
+                // Usar DB::connection('tenant') directamente para máxima certeza
+                $rowsAffected = \Illuminate\Support\Facades\DB::connection('tenant')
+                    ->table('vnt_companies')
+                    ->where('id', $company->id)
+                    ->whereNull('deleted_at')
                     ->update(['api_data_id' => $apiIdToSave]);
+
+                Log::info('💾 Resultado del update api_data_id', [
+                    'company_id'    => $company->id,
+                    'api_data_id'   => $apiIdToSave,
+                    'rows_affected' => $rowsAffected,
+                ]);
 
                 // Refrescar la instancia del modelo para que refleje el cambio
                 $company->refresh();
