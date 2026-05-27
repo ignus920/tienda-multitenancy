@@ -790,8 +790,15 @@ class Quoter extends Component
                 });
             })
             ->when($this->filterName, function ($query) {
-                $query->whereHas('customer', function ($q) {
-                    $q->where(DB::raw("CONCAT(COALESCE(firstName,''), ' ', COALESCE(secondName,''), ' ', COALESCE(lastName,''), ' ', COALESCE(secondLastName,''))"), 'like', '%' . $this->filterName . '%');
+                $query->where(function ($q) {
+                    // Buscar por nombre del contacto (persona natural)
+                    $q->whereHas('customer', function ($subQ) {
+                        $subQ->where(DB::raw("CONCAT(COALESCE(firstName,''), ' ', COALESCE(secondName,''), ' ', COALESCE(lastName,''), ' ', COALESCE(secondLastName,''))"), 'like', '%' . $this->filterName . '%');
+                    })
+                    // Buscar por razón social de la empresa (businessName)
+                    ->orWhereHas('customer.company', function ($subQ) {
+                        $subQ->where('businessName', 'like', '%' . $this->filterName . '%');
+                    });
                 });
             })
             ->when($this->filterConsecutive, function ($query) {
