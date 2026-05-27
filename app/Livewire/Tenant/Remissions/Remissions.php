@@ -564,18 +564,12 @@ class Remissions extends Component
         }
 
         if ($this->searchName) {
-            $query->where(function ($q) {
-                // Buscar por nombre del contacto (persona natural)
-                $q->whereHas('quote.customer', function ($subQ) {
-                    $subQ->where('firstName', 'like', '%' . $this->searchName . '%')
-                        ->orWhere('secondName', 'like', '%' . $this->searchName . '%')
-                        ->orWhere('lastName', 'like', '%' . $this->searchName . '%')
-                        ->orWhere('secondLastName', 'like', '%' . $this->searchName . '%');
-                })
-                // Buscar por razón social de la empresa
-                ->orWhereHas('quote.customer.company', function ($subQ) {
-                    $subQ->where('businessName', 'like', '%' . $this->searchName . '%');
-                });
+            $query->whereHas('quote.customer.company', function ($q) {
+                $q->where('businessName', 'like', '%' . $this->searchName . '%')
+                    ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
+                    ->orWhere('secondName', 'like', '%' . $this->searchName . '%')
+                    ->orWhere('lastName', 'like', '%' . $this->searchName . '%')
+                    ->orWhere('secondLastName', 'like', '%' . $this->searchName . '%');
             });
         }
 

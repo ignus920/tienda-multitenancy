@@ -444,14 +444,12 @@ class CarteraList extends Component
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote.customer', function($q) {
-                $q->where(function($sub) {
-                    $sub->where('firstName', 'like', "%{$this->searchName}%")
-                        ->orWhere('lastName', 'like', "%{$this->searchName}%")
-                        ->orWhereHas('company', function($cc) {
-                            $cc->where('businessName', 'like', "%{$this->searchName}%");
-                        });
-                });
+            $query->whereHas('quote.customer.company', function($q) {
+                $q->where('businessName', 'like', "%{$this->searchName}%")
+                    ->orWhere('firstName', 'like', "%{$this->searchName}%")
+                    ->orWhere('secondName', 'like', "%{$this->searchName}%")
+                    ->orWhere('lastName', 'like', "%{$this->searchName}%")
+                    ->orWhere('secondLastName', 'like', "%{$this->searchName}%");
             });
         }
 
