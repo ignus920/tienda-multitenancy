@@ -1642,7 +1642,7 @@ class VntCompanyForm extends Component
             'businessName' => $this->businessName,
             'billingEmail' => $this->billingEmail,
             'typePerson' => $this->typePerson,
-            'checkDigit' => (string)$checkDigit,
+            'checkDigit' => ($checkDigit !== '' && $checkDigit !== null) ? (string)$checkDigit : null,
             'code_ciiu' => $this->code_ciiu,
             'regimeId' => $this->regimeId === '' ? 0 : $this->regimeId,
             'fiscalResponsabilityId' => $this->fiscalResponsabilityId === '' ? 0 : $this->fiscalResponsabilityId,
@@ -1651,7 +1651,7 @@ class VntCompanyForm extends Component
             'personal_phone' => $this->personal_phone,
             'positionId' => $this->positionId,
             'routeId' => $this->routeId === '' ? null : $this->routeId,
-            'type' => $this->type ?: ($this->simplified && $this->reusable ? 'CLIENTE' : $this->type),
+            'type' => $this->type ?: 'CLIENTE',
         ];
 
         Log::info('🔍 DATOS ENVIADOS AL CompanyService', [
