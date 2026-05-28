@@ -1261,6 +1261,15 @@ class ManageItems extends Component
         try {
             Log::info('🔄 syncItemWithApi INICIO', ['item_id' => $item->id]);
 
+            // Los items de tipo INSUMO no se sincronizan con Alegra
+            if ($item->type === 'INSUMO') {
+                Log::info('⏭️ syncItemWithApi OMITIDO - tipo INSUMO no se sincroniza con Alegra', [
+                    'item_id' => $item->id,
+                    'item_type' => $item->type,
+                ]);
+                return ['success' => true, 'message' => 'Item tipo INSUMO no requiere sincronización con API'];
+            }
+
             // Verificar que tenemos company_id válido, si no lo tenemos, obtenerlo del tenant
             if (!$this->currentCompanyId) {
                 Log::info('🔄 currentCompanyId es null, intentando obtener desde tenant', [
