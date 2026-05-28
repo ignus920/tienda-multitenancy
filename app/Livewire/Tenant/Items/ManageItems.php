@@ -1459,8 +1459,17 @@ class ManageItems extends Component
                 'reference' => $item->sku ?? $item->internal_code ?? '',
                 'price' => [
                     [
-                        'price' => $this->getPriceBase($item) // Obtener precio base
-                    ]
+                        'idPriceList' => '019ac5f3-5f72-7440-874c-6e53c92fbfde', // Precio 1 (Base)
+                        'price'       => $this->getPriceBase($item),
+                    ],
+                    [
+                        'idPriceList' => '019b8e1a-f3fa-73b3-91d7-03f867191b3c', // Precio 2 (Regular)
+                        'price'       => $this->getPriceRegular($item),
+                    ],
+                    [
+                        'idPriceList' => '019b8e1b-ab7b-71da-8c15-cf1e136e06c3', // Precio 3 (Crédito)
+                        'price'       => $this->getPriceCredito($item),
+                    ],
                 ],
                 'type' => $item->inventoriable == 1 ? 'product' : 'service',
                 'tax' => $item->taxId ? (string)$item->taxId : '0' // Convertir a string
@@ -1606,6 +1615,34 @@ class ManageItems extends Component
                 'item_id' => $item->id,
                 'error' => $e->getMessage()
             ]);
+            return 0.0;
+        }
+    }
+
+    private function getPriceRegular($item): float
+    {
+        try {
+            $priceValue = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Regular')
+                ->first();
+
+            return $priceValue ? (float)$priceValue->values : 0.0;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo precio regular', ['item_id' => $item->id, 'error' => $e->getMessage()]);
+            return 0.0;
+        }
+    }
+
+    private function getPriceCredito($item): float
+    {
+        try {
+            $priceValue = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Crédito')
+                ->first();
+
+            return $priceValue ? (float)$priceValue->values : 0.0;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo precio crédito', ['item_id' => $item->id, 'error' => $e->getMessage()]);
             return 0.0;
         }
     }
