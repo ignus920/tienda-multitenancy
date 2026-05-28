@@ -484,7 +484,12 @@
             @foreach($quote->detalles as $index => $detalle)
                 <tr class="{{ $index % 2 == 0 ? '' : 'row-even' }}">
                     <td class="col-idx">{{ $index + 1 }}</td>
-                    <td class="col-code">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</td>
+                    <td class="col-code">
+                        <div>{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
+                        @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
+                            <div style="font-size: 7.5pt; color: #e74c3c; margin-top: 3px; font-weight: normal; font-family: 'Segoe UI', sans-serif;">{{ $detalle->item->picking }}</div>
+                        @endif
+                    </td>
                     <td class="col-desc">
                         <strong>{{ $detalle->item->name ?? $detalle->item->display_name }}</strong>
                         @if($detalle->description && $detalle->description != ($detalle->item->name ?? ''))
