@@ -1436,17 +1436,29 @@ class ManageItems extends Component
 
             $isUpdate = (bool) $item->api_data_id;
 
-            $warehouseEntry = ['id' => $warehouseApiId, 'minQuantity' => 0, 'maxQuantity' => 0];
-            if (!$isUpdate) {
-                $warehouseEntry['initialQuantity'] = 0;
+            if ($isUpdate) {
+                // Al actualizar solo se manda el costo; no se toca el stock de Alegra
+                $inventory = [
+                    'unit'         => 'unit',
+                    'unitCost'     => $this->getCost($item),
+                    'negativeSale' => false,
+                ];
+            } else {
+                // Al crear se incluye el warehouse con stock inicial en 0
+                $inventory = [
+                    'unit'         => 'unit',
+                    'unitCost'     => $this->getCost($item),
+                    'negativeSale' => false,
+                    'warehouses'   => [
+                        [
+                            'id'              => $warehouseApiId,
+                            'initialQuantity' => 0,
+                            'minQuantity'     => 0,
+                            'maxQuantity'     => 0,
+                        ]
+                    ],
+                ];
             }
-
-            $inventory = [
-                'unit'         => 'unit',
-                'unitCost'     => $this->getCost($item),
-                'negativeSale' => false,
-                'warehouses'   => [$warehouseEntry],
-            ];
             // Preparar datos para la API según estructura requerida
             $apiData = [
                 'inventory' => $item->inventoriable == 1 ? $inventory : null,
