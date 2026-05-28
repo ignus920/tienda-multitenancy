@@ -1642,16 +1642,16 @@ class VntCompanyForm extends Component
             'businessName' => $this->businessName,
             'billingEmail' => $this->billingEmail,
             'typePerson' => $this->typePerson,
-            'checkDigit' => (string)$checkDigit,
+            'checkDigit' => ($checkDigit !== '' && $checkDigit !== null) ? (string)$checkDigit : null,
             'code_ciiu' => $this->code_ciiu,
-            'regimeId' => $this->regimeId,
-            'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
+            'regimeId' => $this->regimeId === '' ? 0 : $this->regimeId,
+            'fiscalResponsabilityId' => $this->fiscalResponsabilityId === '' ? 0 : $this->fiscalResponsabilityId,
             'status' => $this->status,
             'business_phone' => $this->business_phone,
             'personal_phone' => $this->personal_phone,
             'positionId' => $this->positionId,
             'routeId' => $this->routeId === '' ? null : $this->routeId,
-            'type' => $this->type ?: ($this->simplified && $this->reusable ? 'CLIENTE' : $this->type),
+            'type' => $this->type ?: 'CLIENTE',
         ];
 
         Log::info('🔍 DATOS ENVIADOS AL CompanyService', [
@@ -1910,6 +1910,14 @@ class VntCompanyForm extends Component
      */
     private function shouldSyncWithApi(): array
     {
+        // En modo simplificado (cotizador), nunca sincronizar con API
+        if ($this->simplified) {
+            return [
+                'should_sync' => false,
+                'reason' => 'Modo simplificado: el cliente se creará únicamente en el sistema local. Complete los datos del cliente antes de facturar.'
+            ];
+        }
+
         try {
             Log::info('🔄 Verificando si se debe sincronizar con API...');
 
@@ -2065,8 +2073,8 @@ class VntCompanyForm extends Component
             ],
             'name' => $this->businessName ?: ($this->firstName . ' ' . $this->lastName),
             'kindOfPerson' => $kindOfPersonValue,
-            'regime' => $this->getRegimeName($this->regimeId),
-            'fiscalResponsabilities' => ($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
+            'regime' => $this->simplified ? null : $this->getRegimeName($this->regimeId),
+            'fiscalResponsabilities' => $this->simplified ? null : (($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
                 ? (function () {
                     Log::info('🔍 Debug fiscalResponsabilityId CONDITION TRUE', [
                         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
@@ -2093,7 +2101,7 @@ class VntCompanyForm extends Component
                         'equals_zero_string' => $this->fiscalResponsabilityId === '0'
                     ]);
                     return null;
-                })(),
+                })()),
             'type' => $this->getContactTypeForApi(),
             'phonePrimary' => $this->business_phone ?: $this->personal_phone,
             'email' => $this->billingEmail,
@@ -2280,6 +2288,12 @@ class VntCompanyForm extends Component
                 $validationResult = $apiClient->createContact($apiData);
                 set_time_limit(60); // Restaurar timeout
 
+                // LOG completo para depuración del proxy
+                Log::info('📥 validateApiData - RAW RESPONSE COMPLETO', [
+                    'success'       => $validationResult['success'] ?? null,
+                    'response_data' => $validationResult['data'] ?? null,
+                ]);
+
                 if (!$validationResult['success']) {
                     $errorMessage = $validationResult['message'] ?? 'Error desconocido en la API';
 
@@ -2314,25 +2328,32 @@ class VntCompanyForm extends Component
                     ];
                 }
 
-                // Si la API aceptó la creación, guardar ID temporal
-                if (isset($validationResult['data']['id'])) {
-                    $tempApiId = $validationResult['data']['id'];
-                    Log::info('✅ Validación exitosa, usando registro temporal de API', [
-                        'temp_api_id' => $tempApiId,
-                        'api_data' => $apiData
-                    ]);
+                // Si la API aceptó la creación, extraer el ID real de Alegra
+                // El proxy devuelve { "id": 0 } en el wrapper; el ID real está anidado
+                $proxyId  = $validationResult['data']['id'] ?? null;
+                $nestedId = $validationResult['data']['debug_info']['alegra_response']['data']['id'] ?? null;
+                $altId    = $validationResult['data']['data']['id'] ?? null;
 
-                    return [
-                        'success' => true,
-                        'message' => 'Datos válidos para sincronización',
-                        'temp_api_id' => $tempApiId
-                    ];
-                } else {
-                    return [
-                        'success' => true,
-                        'message' => 'Datos válidos para sincronización'
-                    ];
+                $tempApiId = null;
+                foreach ([$proxyId, $nestedId, $altId] as $candidate) {
+                    if (!empty($candidate) && (int) $candidate > 0) {
+                        $tempApiId = (string) $candidate;
+                        break;
+                    }
                 }
+
+                Log::info('✅ Validación exitosa - ID Alegra extraído', [
+                    'temp_api_id' => $tempApiId,
+                    'proxy_id'    => $proxyId,
+                    'nested_id'   => $nestedId,
+                    'alt_id'      => $altId,
+                ]);
+
+                return [
+                    'success'      => true,
+                    'message'      => 'Datos válidos para sincronización',
+                    'temp_api_id'  => $tempApiId, // puede ser null si no se pudo extraer
+                ];
             } catch (\Exception $e) {
                 set_time_limit(60); // Restaurar timeout
                 Log::error('❌ Error en validación con API', [
@@ -2439,7 +2460,28 @@ class VntCompanyForm extends Component
                     'temp_api_id' => $tempApiId
                 ]);
 
-                $company->update(['api_data_id' => $tempApiId]);
+                // Restaurar conexión tenant antes de guardar
+                $this->ensureTenantConnection();
+
+                Log::info('💾 syncCompanyWithApi - intentando guardar api_data_id', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $tempApiId,
+                ]);
+
+                $rowsAffected = \Illuminate\Support\Facades\DB::connection('tenant')
+                    ->table('vnt_companies')
+                    ->where('id', $company->id)
+                    ->whereNull('deleted_at')
+                    ->update(['api_data_id' => $tempApiId]);
+
+                $company->refresh();
+
+                Log::info('✅ api_data_id guardado en vnt_companies (syncCompanyWithApi)', [
+                    'company_id'    => $company->id,
+                    'api_data_id'   => $tempApiId,
+                    'rows_affected' => $rowsAffected,
+                    'verificado'    => $company->api_data_id,
+                ]);
                 session()->flash('sync_message', '✅ Cliente Sincronizado: El cliente ha sido creado exitosamente y sincronizado con la API de facturación electrónica.');
                 return;
             }
@@ -2563,13 +2605,43 @@ class VntCompanyForm extends Component
 
             $response = $apiClient->createContact($apiData);
 
+            // LOG completo del response para depuración del proxy
+            Log::info('📥 createCompanyInApi - RAW RESPONSE COMPLETO', [
+                'company_id'    => $company->id,
+                'success'       => $response['success'] ?? null,
+                'response_data' => $response['data'] ?? null,
+            ]);
+
             // Determinar el api_data_id a guardar (sea creación nueva o contacto duplicado)
             $apiIdToSave = null;
 
-            if ($response['success'] && isset($response['data']['id'])) {
-                // Contacto creado exitosamente en Alegra
-                $apiIdToSave = $response['data']['id'];
-                $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+            if ($response['success']) {
+                // El proxy devuelve { "id": 0, ... } como wrapper.
+                // El ID real de Alegra puede estar en varios lugares según la versión del proxy:
+                $proxyId   = $response['data']['id'] ?? null;
+                $nestedId  = $response['data']['debug_info']['alegra_response']['data']['id'] ?? null;
+                $altId     = $response['data']['data']['id'] ?? null;
+
+                // Usar el primero que sea un entero > 0
+                $resolvedId = null;
+                foreach ([$proxyId, $nestedId, $altId] as $candidate) {
+                    if (!empty($candidate) && (int) $candidate > 0) {
+                        $resolvedId = (string) $candidate;
+                        break;
+                    }
+                }
+
+                if ($resolvedId) {
+                    $apiIdToSave = $resolvedId;
+                    $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+                    Log::info('🆔 ID Alegra extraído del response', [
+                        'proxy_id'   => $proxyId,
+                        'nested_id'  => $nestedId,
+                        'alt_id'     => $altId,
+                        'resolved'   => $resolvedId,
+                    ]);
+                }
 
             } else {
                 // Verificar si el error es "ya existe" (código 2006 de Alegra)
@@ -2589,11 +2661,35 @@ class VntCompanyForm extends Component
             }
 
             if ($apiIdToSave !== null) {
-                $company->update(['api_data_id' => $apiIdToSave]);
+                // Restaurar conexión tenant antes de guardar
+                $this->ensureTenantConnection();
+
+                Log::info('💾 Intentando guardar api_data_id', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $apiIdToSave,
+                    'company_id_null' => is_null($company->id),
+                ]);
+
+                // Usar DB::connection('tenant') directamente para máxima certeza
+                $rowsAffected = \Illuminate\Support\Facades\DB::connection('tenant')
+                    ->table('vnt_companies')
+                    ->where('id', $company->id)
+                    ->whereNull('deleted_at')
+                    ->update(['api_data_id' => $apiIdToSave]);
+
+                Log::info('💾 Resultado del update api_data_id', [
+                    'company_id'    => $company->id,
+                    'api_data_id'   => $apiIdToSave,
+                    'rows_affected' => $rowsAffected,
+                ]);
+
+                // Refrescar la instancia del modelo para que refleje el cambio
+                $company->refresh();
 
                 Log::info('✅ api_data_id guardado en vnt_companies', [
                     'company_id'  => $company->id,
                     'api_data_id' => $apiIdToSave,
+                    'api_data_id_verificado' => $company->api_data_id,
                 ]);
                 session()->flash('sync_message', $successMsg ?? '✅ Cliente sincronizado correctamente.');
 

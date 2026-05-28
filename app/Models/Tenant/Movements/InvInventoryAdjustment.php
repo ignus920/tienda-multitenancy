@@ -40,7 +40,7 @@ class InvInventoryAdjustment extends Model
             'consecutive' => 'integer',
             'userId'      => 'integer',
             'supplier'    => 'integer',
-            'api_data_id' => 'integer',
+            'api_data_id' => 'string',
             'created_at'  => 'datetime',
             'updated_at'  => 'datetime',
             'deleted_at'  => 'datetime',

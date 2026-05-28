@@ -131,8 +131,10 @@ class CompanyValidationService
             $typePersonRule = 'nullable|string|in:Natural,Juridica';
         }
 
-        // Determinar si verification_digit es requerido
-        $verificationDigitRule = 'required|string|max:1';
+        // El dígito de verificación (DV) solo es requerido para NIT (typeIdentificationId === 2)
+        $verificationDigitRule = ($typeIdentificationId && (int) $typeIdentificationId === 2)
+            ? 'required|string|max:1'
+            : 'nullable|string|max:1';
 
         // Regla de email único
         $emailRule = 'nullable|email|max:255|unique:vnt_companies,billingEmail';
@@ -280,11 +282,13 @@ class CompanyValidationService
         $baseRules = [
             'typeIdentificationId' => 'required|integer',
             'identification' => $identificationRule,
-            'regimeId' => 'required|integer',
-            'fiscalResponsabilityId' => 'required|integer',
+            'regimeId' => 'nullable|integer',
+            'fiscalResponsabilityId' => 'nullable|integer',
             'billingEmail' => $emailRule,
             'typePerson' => 'required|string|in:Natural,Juridica',
-            'verification_digit' => 'required|string|max:1',
+            'verification_digit' => ($typeIdentificationId && (int) $typeIdentificationId === 2)
+                ? 'required|string|max:1'
+                : 'nullable|string|max:1',
         ];
 
         // Aplicar reglas según tipo de persona (solo campos esenciales)

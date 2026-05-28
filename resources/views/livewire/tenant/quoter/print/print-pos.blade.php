@@ -283,8 +283,17 @@
             @endphp
 
             <div class="product-item">
-                @if($detalle->item?->sku)
-                    <div class="product-code">{{ $detalle->item->sku }}</div>
+                @if($detalle->item?->sku || $detalle->item?->internal_code)
+                    <div class="product-code">
+                        {{ $detalle->item->internal_code ?? $detalle->item->sku }}
+                        @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
+                            <span style="color: #e74c3c; margin-left: 2px;">({{ $detalle->item->picking }})</span>
+                        @endif
+                    </div>
+                @else
+                    @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
+                        <div class="product-code" style="color: #e74c3c;">{{ $detalle->item->picking }}</div>
+                    @endif
                 @endif
 
                 <div class="product-name">
@@ -293,7 +302,12 @@
                 @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
                     <div style="color: red; font-size: 7pt; margin-top: 1mm;">
                         @foreach($detalle->item->accessories as $accessory)
-                            <div>{{ $accessory->quantity }} {{ Str::limit($accessory->insumo->name ?? $accessory->insumo->display_name ?? '', 20) }} {{ $accessory->observacion }}</div>
+                            @php
+                                $insumoName = $accessory->relationLoaded('insumo') 
+                                    ? ($accessory->getRelation('insumo')->name ?? $accessory->getRelation('insumo')->display_name ?? 'Insumo #'.$accessory->insumo)
+                                    : ($accessory->insumo()->first()->name ?? $accessory->insumo()->first()->display_name ?? 'Insumo #'.$accessory->insumo);
+                            @endphp
+                            <div>{{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ Str::limit($insumoName, 20) }} - {{ $accessory->quantity }}</div>
                         @endforeach
                     </div>
                 @endif

@@ -635,9 +635,11 @@ class Items extends Model
             ? $collection->firstWhere('storeId', $userStoreId)
             : $collection->first();
 
-        return $locationRecord && $locationRecord->location
-            ? $locationRecord->location->name
-            : 'N/A';
+        if ($locationRecord) {
+            return $locationRecord->location ? $locationRecord->location->name : ($locationRecord->locationId ?? 'N/A');
+        }
+
+        return 'N/A';
     }
 
     public function getQtyPerBoxAttribute()

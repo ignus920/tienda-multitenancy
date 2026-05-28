@@ -534,7 +534,7 @@ class ApiClient
     /**
      * Eliminar un ajuste de inventario
      */
-    public function deleteInventoryAdjustment(int $id): array
+    public function deleteInventoryAdjustment(string $id): array
     {
         return $this->makeRequest('delete', "inventory-adjustments/{$id}");
     }

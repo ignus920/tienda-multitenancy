@@ -210,7 +210,7 @@ class MovementForm extends Component
             // ── Paso 1: Intentar eliminar en Alegra si tiene api_data_id ──────────
             if ($movement->api_data_id) {
                 $service    = new MovementsService();
-                $alegraResult = $service->deleteAdjustmentFromApi((int) $movement->api_data_id);
+                $alegraResult = $service->deleteAdjustmentFromApi($movement->api_data_id);
 
                 if (!$alegraResult['success']) {
                     $userMessage = $alegraResult['message'] ?? 'Error desconocido al comunicarse con Alegra';
@@ -681,7 +681,7 @@ class MovementForm extends Component
 
                     $itemsAlegra[] = [
                         'type'     => $selectedType === 'entrada' ? 'in' : 'out',
-                        'id'       => $item->api_data_id,
+                        'id'       => (string) $item->api_data_id,
                         'unitCost' => $unitCost,
                         'quantity' => floatval($detail['quantity']),
                     ];

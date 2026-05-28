@@ -79,6 +79,10 @@ class ProductQuoter extends Component
     public $isEditingRemission = false;
     public $hasChanges = false;
 
+    // Modal para completar datos del cliente antes de facturar
+    public $showCompleteCustomerModal = false;
+    public $pendingInvoiceAfterCustomerCompletion = false; // Reanudar facturación tras completar cliente
+
     // Propiedades para modal de pagos
     public $showPaymentModal = false;
     public $paymentMethods = [
@@ -544,14 +548,15 @@ class ProductQuoter extends Component
             // Stock total del producto (suma de todas las bodegas)
             $totalStock = $product->invItemsStore()->sum('stock_items_store');
 
-            // Precio mínimo = "Precio unitario x caja" (si existe), sino 0
-            $precioUnitarioCajaRecord = $product->invValues
+            // Precio mínimo = "Precio Regular" con IVA (mostrado como "Mínimo" en la tabla)
+            $precioRegularRecord = $product->invValues
                 ->where('type', 'precio')
-                ->where('label', 'Precio unitario x caja')
+                ->where('label', 'Precio Regular')
                 ->sortByDesc('date')
                 ->sortByDesc('created_at')
                 ->first();
-            $minPrice = $precioUnitarioCajaRecord ? (float) $precioUnitarioCajaRecord->values : 0;
+            $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
+            $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
 
             // Si no existe, agregarlo al inicio de la lista
             array_unshift($this->quoterItems, [
@@ -560,7 +565,7 @@ class ProductQuoter extends Component
                 'sku'            => $product->sku,
                 'price'          => $selectedPrice,
                 'original_price' => $selectedPrice,   // precio base para calcular el máximo
-                'min_price'      => $minPrice,         // mínimo: precio unitario x caja
+                'min_price'      => $minPrice,         // mínimo: Precio Regular con IVA (= columna Mínimo)
                 'tax'            => $product->tax->percentage,
                 'tax_label'      => $product->tax->name,
                 'price_label'    => $priceLabel,
@@ -912,7 +917,7 @@ class ProductQuoter extends Component
 
     /**
      * Actualiza el precio de un ítem con validación de rango.
-     * Mínimo: min_price (precio unitario x caja, si existe)
+     * Mínimo: min_price (Precio Regular con IVA = columna "Mínimo" en la tabla)
      * Máximo: original_price * 2
      */
     public function updateItemPrice(int $index, $newPrice): void
@@ -1220,10 +1225,19 @@ class ProductQuoter extends Component
         $this->editingCustomerId = null;
     }
 
+    public function closeCompleteCustomerModal()
+    {
+        $this->showCompleteCustomerModal = false;
+        $this->pendingInvoiceAfterCustomerCompletion = false;
+        $this->editingCustomerId = null;
+    }
+
     public function cancelCreateCustomer()
     {
         $this->showCreateCustomerButton = false;
         $this->showCreateCustomerForm = false;
+        $this->showCompleteCustomerModal = false;
+        $this->pendingInvoiceAfterCustomerCompletion = false;
         $this->customerSearch = '';
         $this->editingCustomerId = null;
     }
@@ -1247,15 +1261,19 @@ class ProductQuoter extends Component
             $customer = VntCompany::find($customerId);
 
             if ($customer) {
-                // Actualizar los datos del cliente seleccionado
-                $this->selectedCustomer = [
-                    'id' => $customer->id,
-                    'businessName' => $customer->businessName,
-                    'firstName' => $customer->firstName,
-                    'lastName' => $customer->lastName,
-                    'identification' => $customer->identification,
-                    'billingEmail' => $customer->billingEmail,
-                ];
+                // Actualizar los datos del cliente seleccionado (incluir api_data_id)
+                $this->selectedCustomer = array_merge(
+                    $this->selectedCustomer,
+                    [
+                        'id' => $customer->id,
+                        'businessName' => $customer->businessName,
+                        'firstName' => $customer->firstName,
+                        'lastName' => $customer->lastName,
+                        'identification' => $customer->identification,
+                        'billingEmail' => $customer->billingEmail,
+                        'api_data_id' => $customer->api_data_id,
+                    ]
+                );
 
                 // Limpiar estados del formulario de edición
                 $this->showCreateCustomerForm = false;
@@ -1264,10 +1282,31 @@ class ProductQuoter extends Component
                 // Determinar el nombre a mostrar
                 $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
 
-                $this->dispatch('show-toast', [
-                    'type' => 'success',
-                    'message' => 'Cliente actualizado: ' . $customerName
-                ]);
+                // Si estábamos esperando para facturar, cerrar modal y reanudar
+                if ($this->pendingInvoiceAfterCustomerCompletion) {
+                    $this->showCompleteCustomerModal = false;
+                    $this->pendingInvoiceAfterCustomerCompletion = false;
+
+                    if ($customer->api_data_id) {
+                        // Cliente ya sincronizado — continuar con facturación
+                        $this->dispatch('show-toast', [
+                            'type' => 'success',
+                            'message' => 'Cliente completado. Continuando con la facturación...'
+                        ]);
+                        $this->initPaymentModal();
+                        $this->showPaymentModal = true;
+                    } else {
+                        $this->dispatch('show-toast', [
+                            'type' => 'warning',
+                            'message' => 'El cliente se actualizó pero aún no está sincronizado con el sistema de facturación. Intenta facturar de nuevo.'
+                        ]);
+                    }
+                } else {
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => 'Cliente actualizado: ' . $customerName
+                    ]);
+                }
             }
         }
     }
@@ -1719,14 +1758,15 @@ class ProductQuoter extends Component
                     // Stock total (suma de todas las bodegas)
                     $totalStock = $product->invItemsStore()->sum('stock_items_store');
 
-                    // Precio mínimo = "Precio unitario x caja" (si existe)
-                    $precioUnitarioCajaRecord = $product->invValues
+                    // Precio mínimo = "Precio Regular" con IVA (mostrado como "Mínimo" en la tabla)
+                    $precioRegularRecord = $product->invValues
                         ->where('type', 'precio')
-                        ->where('label', 'Precio unitario x caja')
+                        ->where('label', 'Precio Regular')
                         ->sortByDesc('date')
                         ->sortByDesc('created_at')
                         ->first();
-                    $minPrice = $precioUnitarioCajaRecord ? (float) $precioUnitarioCajaRecord->values : 0;
+                    $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
+                    $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
 
                     $itemData = [
                         'id'             => $product->id,
@@ -2376,6 +2416,18 @@ class ProductQuoter extends Component
                 'type' => 'error',
                 'message' => 'Debes tener un cliente seleccionado'
             ]);
+            return;
+        }
+
+        // Verificar que el cliente tiene api_data_id (sincronizado con Alegra)
+        $apiDataId = $this->selectedCustomer['api_data_id'] ?? null;
+        if (empty($apiDataId)) {
+            Log::info('⚠️ Cliente sin api_data_id - solicitando completar datos antes de facturar', [
+                'customer_id' => $this->selectedCustomer['id'] ?? null,
+            ]);
+            $this->editingCustomerId = $this->selectedCustomer['id'];
+            $this->pendingInvoiceAfterCustomerCompletion = true;
+            $this->showCompleteCustomerModal = true;
             return;
         }
 
