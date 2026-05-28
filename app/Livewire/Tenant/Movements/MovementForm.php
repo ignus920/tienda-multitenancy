@@ -681,7 +681,7 @@ class MovementForm extends Component
 
                     $itemsAlegra[] = [
                         'type'     => $selectedType === 'entrada' ? 'in' : 'out',
-                        'id'       => $item->api_data_id,
+                        'id'       => (string) $item->api_data_id,
                         'unitCost' => $unitCost,
                         'quantity' => floatval($detail['quantity']),
                     ];
