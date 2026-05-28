@@ -1434,18 +1434,18 @@ class ManageItems extends Component
                 $warehouseApiId = '1'; // Fallback a warehouse por defecto
             }
 
+            $isUpdate = (bool) $item->api_data_id;
+
+            $warehouseEntry = ['id' => $warehouseApiId, 'minQuantity' => 0, 'maxQuantity' => 0];
+            if (!$isUpdate) {
+                $warehouseEntry['initialQuantity'] = 0;
+            }
+
             $inventory = [
-                'unit' => 'unit',
-                'unitCost' => $this->getCost($item),
+                'unit'         => 'unit',
+                'unitCost'     => $this->getCost($item),
                 'negativeSale' => false,
-                'warehouses' => [
-                    [
-                        'id' => $warehouseApiId,
-                        'initialQuantity' => 0,
-                        'minQuantity' => 0,
-                        'maxQuantity' => 0
-                    ]
-                ]
+                'warehouses'   => [$warehouseEntry],
             ];
             // Preparar datos para la API según estructura requerida
             $apiData = [
