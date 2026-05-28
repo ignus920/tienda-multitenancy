@@ -241,7 +241,7 @@ class MovementsService
      * @param int $alegraId  ID del ajuste en Alegra
      * @return array { success, message, retryable, sync_skipped, api_response }
      */
-    public function deleteAdjustmentFromApi(int $alegraId): array
+    public function deleteAdjustmentFromApi(string $alegraId): array
     {
         $result = [
             'success'      => false,
