@@ -27,7 +27,7 @@ class ItemAccesorios extends Component
     protected $rules = [
         'selectedInsumoId' => 'required|integer',
         'quantity'         => 'required|integer|min:1',
-        'observacion'      => 'nullable|string|max:255',
+        'observacion'      => 'required|string|max:255',
         'photo'            => 'nullable|image|max:2048', // 2MB max
     ];
 
@@ -35,6 +35,7 @@ class ItemAccesorios extends Component
         'selectedInsumoId.required' => 'Debe seleccionar un insumo.',
         'quantity.required'         => 'La cantidad es obligatoria.',
         'quantity.min'              => 'La cantidad debe ser al menos 1.',
+        'observacion.required'      => 'Las ubicaciones son obligatorias.',
     ];
 
     public function mount($itemId)

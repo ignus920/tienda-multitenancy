@@ -293,7 +293,12 @@
                 @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
                     <div style="color: red; font-size: 7pt; margin-top: 1mm;">
                         @foreach($detalle->item->accessories as $accessory)
-                            <div>{{ $accessory->quantity }} {{ Str::limit($accessory->insumo->name ?? $accessory->insumo->display_name ?? '', 20) }} {{ $accessory->observacion }}</div>
+                            @php
+                                $insumoName = $accessory->relationLoaded('insumo') 
+                                    ? ($accessory->getRelation('insumo')->name ?? $accessory->getRelation('insumo')->display_name ?? 'Insumo #'.$accessory->insumo)
+                                    : ($accessory->insumo()->first()->name ?? $accessory->insumo()->first()->display_name ?? 'Insumo #'.$accessory->insumo);
+                            @endphp
+                            <div>{{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ Str::limit($insumoName, 20) }} - {{ $accessory->quantity }}</div>
                         @endforeach
                     </div>
                 @endif
