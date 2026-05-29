@@ -348,7 +348,8 @@ class ManageItems extends Component
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('sku', 'like', '%' . $this->search . '%')
-                    ->orWhere('internal_code', 'like', '%' . $this->search . '%');
+                    ->orWhere('internal_code', 'like', '%' . $this->search . '%')
+                    ->orWhere('type', 'like', '%' . $this->search . '%');
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
