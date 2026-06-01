@@ -593,14 +593,36 @@ class Invoices extends Component
         }
     }
 
-    /**
-     * Extraer mensaje de error más legible del response de stamp
-     */
     private function extractStampErrorMessage(array $stampResponse): string
     {
-        $message = $stampResponse['message'] ?? 'Error desconocido';
+        $message = '';
 
-        // Mejorar mensajes comunes de la DIAN
+        if (isset($stampResponse['data']['error_details']['error'][0]['message'])) {
+            $message = $stampResponse['data']['error_details']['error'][0]['message'];
+        } elseif (isset($stampResponse['data']['message'])) {
+            $message = $stampResponse['data']['message'];
+        } elseif (isset($stampResponse['message'])) {
+            $message = $stampResponse['message'];
+        } else {
+            return 'Error desconocido en la emisión';
+        }
+
+        // Extraer solo las validaciones cuando viene el mensaje largo de la DIAN
+        if (str_contains($message, 'La factura electrónica de venta no se ha podido emitir porque no cumple con las validaciones necesarias:')) {
+            $message = str_replace('La factura electrónica de venta no se ha podido emitir porque no cumple con las validaciones necesarias:', '', $message);
+            $message = str_replace(['<ul>', '</ul>', '<li>', '</li>'], ['', '', '• ', "\n"], $message);
+            $message = strip_tags($message);
+            $message = trim($message);
+        }
+
+        if (str_contains($message, 'medio de pago informado es invalido')) {
+            $message .= ' - Verifique la configuración del método de pago.';
+        }
+
+        if (str_contains($message, 'debe existir el grupo de información de identificación del bien o servicio')) {
+            $message .= ' - Revise que los productos tengan toda la información requerida.';
+        }
+
         if (str_contains($message, 'nombre informado no corresponde al registrado en el rut')) {
             $message .= ' - Verifique que los datos del cliente estén actualizados en el RUT.';
         }
