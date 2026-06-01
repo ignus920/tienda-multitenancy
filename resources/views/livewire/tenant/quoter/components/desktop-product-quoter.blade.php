@@ -553,6 +553,16 @@ $header = 'Seleccionar productos';
                                                     @endforeach
                                                 </div>
                                             @endif
+                                            @php $pickingLocation = $product->picking; @endphp
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium
+                                                    {{ $pickingLocation && $pickingLocation !== 'N/A'
+                                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
+                                                        : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                    Picking: {{ $pickingLocation ?? 'N/A' }}
+                                                </span>
+                                            </div>
                                         </td>
 
                                         <!-- Código/SKU -->

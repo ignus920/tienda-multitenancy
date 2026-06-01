@@ -626,17 +626,14 @@ class Items extends Model
 
     public function getPickingAttribute()
     {
-        $userStoreId = session('warehouse_id');
         $collection = $this->relationLoaded('locations')
             ? $this->locations
             : $this->locations()->with('location')->get();
 
-        $locationRecord = $userStoreId
-            ? $collection->firstWhere('storeId', $userStoreId)
-            : $collection->first();
+        $locationRecord = $collection->firstWhere('storeId', 3);
 
         if ($locationRecord) {
-            return $locationRecord->location ? $locationRecord->location->name : ($locationRecord->locationId ?? 'N/A');
+            return $locationRecord->locationId ?? 'N/A';
         }
 
         return 'N/A';

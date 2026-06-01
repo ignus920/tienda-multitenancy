@@ -430,10 +430,11 @@ class ProductQuoter extends Component
                     DB::raw('SUM(inv_items_store.stock_items_store) as total_stock')
                 )
                 ->where('inv_items.status', 1)
-                ->with(['principalImage', 'invValues', 'tax'])
+                ->where('inv_items.type', '!=', 'INSUMO')
+                ->with(['principalImage', 'invValues', 'tax', 'locations'])
                 ->withCount('accessories')
                 ->when($this->hideQuoter, function ($q) {
-                    $q->with(['locations.location', 'imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
+                    $q->with(['imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
                 })
                 ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
