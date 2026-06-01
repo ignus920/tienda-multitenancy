@@ -230,6 +230,7 @@ class LoginWarehouseSelector extends Component
                 $stores = InvStore::on('tenant')
                     ->where('warehouseId', $warehouse->id)
                     ->where('status', 1)
+                    ->where('store_manager', 1)
                     ->orderBy('name')
                     ->get()
                     ->toArray();
