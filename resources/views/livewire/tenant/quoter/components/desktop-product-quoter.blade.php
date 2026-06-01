@@ -533,28 +533,8 @@ $header = 'Seleccionar productos';
                                             <div class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs" title="{{ $product->display_name }}">
                                                 {{ $product->display_name }}
                                             </div>
-                                            @if($product->store_stock_details)
-                                                <div class="flex flex-wrap gap-1 mt-1">
-                                                    @foreach(explode(', ', $product->store_stock_details) as $storeDetail)
-                                                        @php
-                                                            $parts = explode(':', $storeDetail);
-                                                            $storeName = $parts[0] ?? '';
-                                                            $stock = $parts[1] ?? '0';
-                                                        @endphp
-                                                        @if($storeName)
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium
-                                                            {{ $stock > 0
-                                                                ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
-                                                                : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
-                                                            }}">
-                                                            {{ $storeName }}: {{ number_format($stock, 0, ',', '.') }}
-                                                        </span>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                            @endif
                                             @php $pickingLocation = $product->picking; @endphp
-                                            <div class="mt-1">
+                                            <div class="flex flex-wrap gap-1 mt-1">
                                                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium
                                                     {{ $pickingLocation && $pickingLocation !== 'N/A'
                                                         ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
@@ -562,6 +542,22 @@ $header = 'Seleccionar productos';
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                                     Picking: {{ $pickingLocation ?? 'N/A' }}
                                                 </span>
+                                                @foreach(explode(', ', $product->store_stock_details ?? '') as $storeDetail)
+                                                    @php
+                                                        $parts = explode(':', $storeDetail);
+                                                        $storeName = $parts[0] ?? '';
+                                                        $stock = $parts[1] ?? '0';
+                                                    @endphp
+                                                    @if($storeName)
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium
+                                                        {{ $stock > 0
+                                                            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+                                                            : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+                                                        }}">
+                                                        {{ $storeName }}: {{ number_format($stock, 0, ',', '.') }}
+                                                    </span>
+                                                    @endif
+                                                @endforeach
                                             </div>
                                         </td>
 
