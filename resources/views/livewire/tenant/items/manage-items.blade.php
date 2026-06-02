@@ -661,6 +661,26 @@
                                 </select>
                                 @error('inventoriable') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
+
+                            @if($inventoriable == 1)
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    % Stock WordPress
+                                    <span class="ml-1 text-xs text-gray-400 font-normal">(0–100)</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" wire:model="wpStockPercentage"
+                                        min="0" max="100" step="1"
+                                        class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="100">
+                                    <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-400">
+                                    Ej: 50 → sube la mitad del stock disponible a WooCommerce
+                                </p>
+                                @error('wpStockPercentage') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            @endif
                         </div>
 
                         <div class="mb-3">

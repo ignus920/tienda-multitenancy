@@ -73,6 +73,7 @@ class ManageItems extends Component
     public $disabled = false;
     public $handles_serial;
     public $inventoriable;
+    public $wpStockPercentage = 100;
     public $tempValues = [];
 
     // Propiedades para modal de ubicaciones
@@ -330,6 +331,12 @@ class ManageItems extends Component
         $this->tax = $item->taxId;
         $this->handles_serial = $item->handles_serial;
         $this->inventoriable = $item->inventoriable;
+
+        if ($item->inventoriable == 1) {
+            $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
+            $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
+        }
+
         $this->disabled = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
@@ -438,12 +445,17 @@ class ManageItems extends Component
                         $this->createItemStore($item);
                     } elseif ($item->inventoriable == 1) {
                         // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
-                        $existingRecord = InvItemsStore::where('itemId', $item->id)->first();
+                        $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
                         if (!$existingRecord) {
                             Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
                                 'item_id' => $item->id
                             ]);
                             $this->createItemStore($item);
+                        } else {
+                            // Actualizar wp_stock_percentage
+                            $existingRecord->update([
+                                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+                            ]);
                         }
                     }
 
@@ -1759,12 +1771,13 @@ class ManageItems extends Component
 
             // Crear nuevo registro
             InvItemsStore::create([
-                'itemId' => $item->id,
-                'storeId' => $principalStore->id,
-                'initial_stock' => 0,
-                'stock_items_store' => 0,
-                'stock_min' => 0,
-                'stock_max' => 0,
+                'itemId'              => $item->id,
+                'storeId'             => $principalStore->id,
+                'initial_stock'       => 0,
+                'stock_items_store'   => 0,
+                'stock_min'           => 0,
+                'stock_max'           => 0,
+                'wp_stock_percentage' => 100,
             ]);
 
             Log::info('✅ Registro creado en inv_items_store para item inventoriable', [
