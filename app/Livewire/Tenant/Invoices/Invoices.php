@@ -65,6 +65,16 @@ class Invoices extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterDateTo()
+    {
+        $this->resetPage();
+    }
+
     public function clearFilters()
     {
         $this->reset(['search']);
@@ -882,16 +892,16 @@ class Invoices extends Component
                     "vnt_invoices.deleted_at"
                 ]);
 
-            // Aplicar búsqueda
+            // Aplicar búsqueda — todo en HAVING para compatibilidad con GROUP BY
             $query->when($this->search, function ($q) {
                 $search = '%' . $this->search . '%';
-                $q->where(function ($subQ) use ($search) {
-                    $subQ->where('vnt_invoices.invoiceNumber', 'like', $search)
-                        ->orWhere(DB::raw("CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))"), 'like', $search)
-                        ->orWhere(DB::raw("CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))"), 'like', $search);
-                });
-                // Usar HAVING para campos agregados
-                $q->havingRaw("MAX(remission_consecutives.remission_consecutive) LIKE ?", [$search]);
+                $q->havingRaw("
+                    vnt_invoices.invoiceNumber LIKE ?
+                    OR MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))) LIKE ?
+                    OR MAX(COALESCE(u.name, '')) LIKE ?
+                    OR MAX(remission_consecutives.remission_consecutive) LIKE ?
+                    OR vnt_invoices.consecutive LIKE ?
+                ", [$search, $search, $search, $search, $search]);
             })
             ->when($this->filterDateFrom, function ($q) {
                 $q->whereDate('vnt_invoices.created_at', '>=', $this->filterDateFrom);
