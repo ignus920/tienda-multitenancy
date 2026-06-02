@@ -319,7 +319,7 @@ $header = 'Seleccionar productos';
                                                 <span class="text-xs font-black text-orange-700 dark:text-orange-300">{{ number_format($product->reserved, 0) }}</span>
                                             </div>
                                             <div class="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 flex flex-col items-center">
-                                                <span class="text-[9px] uppercase font-bold text-indigo-500 dark:text-indigo-400">Picking</span>
+                                                
                                                 <span class="text-[10px] font-black text-indigo-700 dark:text-indigo-300 truncate w-full text-center">{{ $product->picking }}</span>
                                             </div>
                                             <div class="bg-red-50 dark:bg-red-900/10 p-2 rounded-lg border border-red-100 dark:border-red-800 flex flex-col items-center">
