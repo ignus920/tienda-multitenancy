@@ -156,6 +156,42 @@ class WordPressSyncModal extends Component
         ]);
     }
 
+    public function deleteLocalImage($imageId)
+    {
+        Log::info('🗑️ [WPSync] deleteLocalImage()', [
+            'item_id'  => $this->itemId,
+            'image_id' => $imageId,
+        ]);
+
+        $this->ensureTenantConnection();
+        $image = ImageGallery::with('wpSync')->find($imageId);
+
+        if (!$image) return;
+
+        $wpMediaId = $image->wp_media_id;
+
+        if ($wpMediaId) {
+            $wpService = app(WordPressService::class);
+
+            if ($this->wpProduct) {
+                $wpService->removeFromProductImages($this->wpProduct['id'], $wpMediaId);
+            }
+
+            $wpService->deleteMedia($wpMediaId);
+            Log::info('✅ [WPSync] Imagen eliminada de WP', ['wp_media_id' => $wpMediaId]);
+        }
+
+        $image->update(['deleted_at' => now()]);
+        Log::info('✅ [WPSync] Imagen eliminada localmente', ['image_id' => $imageId]);
+
+        $this->dispatch('show-toast', [
+            'type'    => 'success',
+            'message' => 'Imagen eliminada' . ($wpMediaId ? ' del ERP y de WordPress.' : ' del ERP.'),
+        ]);
+
+        $this->loadData();
+    }
+
     public function deleteFromWordPress($wpMediaId)
     {
         Log::info('🗑️ [WPSync] deleteFromWordPress()', [

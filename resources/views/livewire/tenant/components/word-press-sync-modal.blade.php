@@ -126,7 +126,7 @@
                                 <div class="bg-gray-50 dark:bg-gray-900/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 h-[280px] overflow-y-auto custom-scrollbar">
                                     <div class="grid grid-cols-3 gap-3">
                                         @foreach(collect($localImages)->where('type', 'GALERIA') as $galImg)
-                                            <div class="relative aspect-square bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 p-1 flex flex-col" wire:key="gal-v4-{{ $galImg->id }}">
+                                            <div class="relative aspect-square bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 p-1 flex flex-col group" wire:key="gal-v4-{{ $galImg->id }}">
                                                 <div class="flex-1 min-h-0 relative">
                                                     <img src="{{ $galImg->getImageUrl() }}" class="w-full h-full object-contain">
                                                     @if($galImg->wp_media_id)
@@ -136,6 +136,14 @@
                                                             </svg>
                                                         </div>
                                                     @endif
+                                                    <!-- Botón eliminar (aparece al hover) -->
+                                                    <button wire:click="deleteLocalImage({{ $galImg->id }})"
+                                                            wire:confirm="{{ $galImg->wp_media_id ? '¿Eliminar imagen del ERP y de WordPress?' : '¿Eliminar imagen?' }}"
+                                                            class="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-white p-0.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                                 <div class="mt-1 flex items-center justify-center py-1 bg-gray-50 dark:bg-gray-700/50 rounded border-t border-gray-100 dark:border-gray-600">
                                                     <input type="checkbox" wire:click="toggleSyncToWp({{ $galImg->id }})" {{ $galImg->sync_to_wp ? 'checked' : '' }} class="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
@@ -187,9 +195,18 @@
                                 </div>
                                 <div class="p-4 flex flex-wrap gap-3">
                                     @forelse($onlyInWp as $idx => $wpImg)
-                                        <a href="{{ $wpImg['src'] }}" target="_blank" class="w-28 h-28 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 p-1 shadow-xs block cursor-pointer hover:ring-2 hover:ring-amber-400 transition-all" wire:key="wp-cmp-{{ $idx }}">
-                                            <img src="{{ $wpImg['src'] }}" class="w-full h-full object-contain">
-                                        </a>
+                                        <div class="relative w-28 h-28 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 p-1 shadow-xs group" wire:key="wp-cmp-{{ $idx }}">
+                                            <a href="{{ $wpImg['src'] }}" target="_blank" class="block w-full h-full">
+                                                <img src="{{ $wpImg['src'] }}" class="w-full h-full object-contain">
+                                            </a>
+                                            <button wire:click="deleteFromWordPress({{ $wpImg['id'] }})"
+                                                    wire:confirm="¿Eliminar esta imagen de WordPress? Esta acción no se puede deshacer."
+                                                    class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
                                     @empty
                                         <div class="w-full py-6 text-center text-gray-400 text-xs italic">Nada huérfano en la web.</div>
                                     @endforelse
