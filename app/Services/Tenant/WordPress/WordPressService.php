@@ -20,9 +20,6 @@ class WordPressService
         $this->loadConfig();
     }
 
-    /**
-     * Carga la configuración activa de la base de datos del tenant.
-     */
     protected function loadConfig()
     {
         try {
@@ -34,84 +31,135 @@ class WordPressService
                     $this->config->wp_user,
                     $this->config->wp_password
                 ];
+                Log::info('🟢 [WP] Configuración cargada', [
+                    'wp_url'   => $this->config->wp_url,
+                    'wp_user'  => $this->config->wp_user,
+                    'base_url' => $this->baseUrl,
+                ]);
+            } else {
+                Log::warning('⚠️ [WP] No hay configuración activa de WordPress en la BD');
             }
         } catch (Exception $e) {
-            Log::error("Error cargando configuración de WordPress: " . $e->getMessage());
+            Log::error('❌ [WP] Error cargando configuración: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Verifica si la configuración está disponible.
-     */
     public function isConfigured()
     {
         return !empty($this->config);
     }
 
-    /**
-     * Busca un producto en WooCommerce por su SKU.
-     * Soporta productos simples y variaciones.
-     */
     public function findProductBySku($sku)
     {
-        if (!$this->isConfigured() || empty($sku)) return null;
+        if (!$this->isConfigured() || empty($sku)) {
+            Log::warning('⚠️ [WP] findProductBySku abortado', [
+                'motivo'       => !$this->isConfigured() ? 'Sin configuración WP' : 'SKU vacío',
+                'sku_recibido' => $sku,
+            ]);
+            return null;
+        }
+
+        Log::info('🔍 [WP] Buscando producto por SKU', ['sku' => $sku, 'endpoint' => $this->baseUrl . 'products']);
 
         try {
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->get($this->baseUrl . 'products', [
-                    'sku' => $sku
-                ]);
+                ->get($this->baseUrl . 'products', ['sku' => $sku]);
+
+            Log::info('📡 [WP] Respuesta findProductBySku', [
+                'sku'         => $sku,
+                'http_status' => $response->status(),
+                'exitoso'     => $response->successful(),
+            ]);
 
             if ($response->successful()) {
                 $products = $response->json();
+
                 if (count($products) > 0) {
                     $product = $products[0];
+                    Log::info('✅ [WP] Producto encontrado', [
+                        'sku'        => $sku,
+                        'wp_id'      => $product['id'],
+                        'wp_name'    => $product['name'],
+                        'wp_type'    => $product['type'],
+                        'num_images' => count($product['images'] ?? []),
+                    ]);
                     return [
-                        'id' => $product['id'],
-                        'type' => $product['type'],
-                        'sku' => $product['sku'],
-                        'name' => $product['name'],
-                        'images' => $product['images'],
-                        'is_variation' => ($product['type'] === 'variation')
+                        'id'           => $product['id'],
+                        'type'         => $product['type'],
+                        'sku'          => $product['sku'],
+                        'name'         => $product['name'],
+                        'images'       => $product['images'],
+                        'is_variation' => ($product['type'] === 'variation'),
                     ];
                 }
-            }
 
-            // Si no se encuentra como producto simple, buscar en variaciones (opcional según versión de API)
-            // WooCommerce v3 suele devolver variaciones en la búsqueda si el SKU coincide exactamente.
-            
+                Log::warning('⚠️ [WP] SKU no encontrado en WordPress', ['sku' => $sku]);
+            } else {
+                Log::error('❌ [WP] Error HTTP en findProductBySku', [
+                    'sku'         => $sku,
+                    'http_status' => $response->status(),
+                    'body'        => $response->body(),
+                ]);
+            }
         } catch (Exception $e) {
-            Log::error("Error buscando producto por SKU ($sku): " . $e->getMessage());
+            Log::error('❌ [WP] Excepción en findProductBySku', [
+                'sku'   => $sku,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return null;
     }
 
-    /**
-     * Sube una imagen a la librería de medios de WordPress.
-     */
     public function uploadMedia($localPath, $filename = null)
     {
-        if (!$this->isConfigured()) return null;
+        if (!$this->isConfigured()) {
+            Log::warning('⚠️ [WP] uploadMedia abortado: sin configuración WP');
+            return null;
+        }
+
+        Log::info('📤 [WP] Iniciando uploadMedia', ['local_path' => $localPath]);
 
         try {
             if (!Storage::disk('public')->exists($localPath)) {
+                Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
                 throw new Exception("Archivo local no encontrado: $localPath");
             }
 
             $absolutePath = Storage::disk('public')->path($localPath);
+            $originalSize = filesize($absolutePath);
+
+            Log::info('📁 [WP] Archivo local encontrado', [
+                'path'          => $absolutePath,
+                'size_kb'       => round($originalSize / 1024, 2),
+                'necesita_opt'  => $originalSize > 512000 ? 'Sí' : 'No',
+            ]);
+
             $finalPath = $this->optimizeImage($absolutePath);
-            
+            $optimizedSize = filesize($finalPath);
+
+            if ($finalPath !== $absolutePath) {
+                Log::info('🔧 [WP] Imagen optimizada', [
+                    'original_kb'  => round($originalSize / 1024, 2),
+                    'optimized_kb' => round($optimizedSize / 1024, 2),
+                    'reduccion_pct' => round((1 - $optimizedSize / $originalSize) * 100, 1) . '%',
+                ]);
+            }
+
             $fileContents = file_get_contents($finalPath);
             $name = $filename ?: basename($localPath);
             $mimeType = mime_content_type($finalPath);
-
             $wpMediaUrl = rtrim($this->config->wp_url, '/') . '/wp-json/wp/v2/media';
 
+            Log::info('🚀 [WP] Enviando imagen a WordPress Media Library', [
+                'wp_media_url' => $wpMediaUrl,
+                'filename'     => $name,
+                'mime_type'    => $mimeType,
+                'size_kb'      => round($optimizedSize / 1024, 2),
+            ]);
+
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->withHeaders([
-                    'Content-Disposition' => 'attachment; filename="' . $name . '"',
-                ])
+                ->withHeaders(['Content-Disposition' => 'attachment; filename="' . $name . '"'])
                 ->withBody($fileContents, $mimeType)
                 ->post($wpMediaUrl);
 
@@ -120,132 +168,234 @@ class WordPressService
                 unlink($finalPath);
             }
 
+            Log::info('📡 [WP] Respuesta uploadMedia', [
+                'http_status' => $response->status(),
+                'exitoso'     => $response->successful(),
+            ]);
+
             if ($response->successful()) {
-                return $response->json()['id'];
+                $mediaId = $response->json()['id'];
+                $mediaUrl = $response->json()['source_url'] ?? 'N/A';
+                Log::info('✅ [WP] Imagen subida correctamente', [
+                    'wp_media_id'  => $mediaId,
+                    'wp_media_url' => $mediaUrl,
+                    'filename'     => $name,
+                ]);
+                return $mediaId;
             }
 
-            Log::error("Error subiendo media a WP: " . $response->body());
+            Log::error('❌ [WP] Error al subir imagen', [
+                'http_status' => $response->status(),
+                'body'        => $response->body(),
+                'filename'    => $name,
+            ]);
         } catch (Exception $e) {
-            Log::error("Excepción subiendo media a WP: " . $e->getMessage());
+            Log::error('❌ [WP] Excepción en uploadMedia', [
+                'path'  => $localPath,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
 
         return null;
     }
 
-    /**
-     * Asigna una imagen como principal de un producto.
-     */
     public function setFeaturedImage($productId, $mediaId)
     {
         if (!$this->isConfigured()) return false;
 
+        Log::info('🖼️ [WP] Asignando imagen principal', [
+            'wp_product_id' => $productId,
+            'wp_media_id'   => $mediaId,
+        ]);
+
         try {
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
                 ->put($this->baseUrl . "products/$productId", [
-                    'images' => [
-                        ['id' => (int)$mediaId]
-                    ]
+                    'images' => [['id' => (int)$mediaId]]
                 ]);
+
+            Log::info('📡 [WP] Respuesta setFeaturedImage', [
+                'wp_product_id' => $productId,
+                'wp_media_id'   => $mediaId,
+                'http_status'   => $response->status(),
+                'exitoso'       => $response->successful(),
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('❌ [WP] Error asignando imagen principal', [
+                    'body' => $response->body(),
+                ]);
+            }
 
             return $response->successful();
         } catch (Exception $e) {
-            Log::error("Error asignando imagen principal en WP: " . $e->getMessage());
+            Log::error('❌ [WP] Excepción en setFeaturedImage', [
+                'wp_product_id' => $productId,
+                'error'         => $e->getMessage(),
+            ]);
         }
 
         return false;
     }
 
-    /**
-     * Agrega una imagen a la galería de un producto sin borrar las existentes.
-     */
     public function addToGallery($productId, $mediaId)
     {
         if (!$this->isConfigured()) return false;
 
+        Log::info('🖼️ [WP] Agregando imagen a galería', [
+            'wp_product_id' => $productId,
+            'wp_media_id'   => $mediaId,
+        ]);
+
         try {
-            // 1. Obtener imágenes actuales
             $currentProduct = Http::withBasicAuth($this->auth[0], $this->auth[1])
                 ->get($this->baseUrl . "products/$productId")
                 ->json();
 
             $images = $currentProduct['images'] ?? [];
-            
-            // 2. Verificar si ya existe el ID
+
+            Log::info('📋 [WP] Galería actual del producto', [
+                'wp_product_id'    => $productId,
+                'num_imgs_actuales' => count($images),
+                'ids_actuales'     => collect($images)->pluck('id')->toArray(),
+            ]);
+
             foreach ($images as $img) {
-                if ($img['id'] == $mediaId) return true;
+                if ($img['id'] == $mediaId) {
+                    Log::info('ℹ️ [WP] Imagen ya existe en galería WP, omitiendo', [
+                        'wp_media_id' => $mediaId,
+                    ]);
+                    return true;
+                }
             }
 
-            // 3. Agregar nueva
             $images[] = ['id' => (int)$mediaId];
 
-            // 4. Actualizar
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", [
-                    'images' => $images
-                ]);
+                ->put($this->baseUrl . "products/$productId", ['images' => $images]);
+
+            Log::info('📡 [WP] Respuesta addToGallery', [
+                'wp_product_id'   => $productId,
+                'wp_media_id'     => $mediaId,
+                'http_status'     => $response->status(),
+                'exitoso'         => $response->successful(),
+                'total_imgs_ahora' => count($images),
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('❌ [WP] Error agregando a galería', ['body' => $response->body()]);
+            }
 
             return $response->successful();
         } catch (Exception $e) {
-            Log::error("Error agregando a galería en WP: " . $e->getMessage());
+            Log::error('❌ [WP] Excepción en addToGallery', [
+                'wp_product_id' => $productId,
+                'error'         => $e->getMessage(),
+            ]);
         }
 
         return false;
     }
 
-    /**
-     * Sincroniza una imagen específica del ERP con WordPress.
-     */
     public function syncImage(ImageGallery $image, $productSku)
     {
-        if (!$this->isConfigured()) return false;
+        Log::info('🔄 [WP] Iniciando syncImage', [
+            'image_id'    => $image->id,
+            'item_id'     => $image->itemId,
+            'type'        => $image->type,
+            'type_show'   => $image->type_show,
+            'img_path'    => $image->img_path,
+            'sync_to_wp'  => $image->sync_to_wp,
+            'wp_media_id' => $image->wp_media_id,
+            'sku'         => $productSku,
+        ]);
 
-        // 1. Buscar producto en WP
-        $wpProduct = $this->findProductBySku($productSku);
-        if (!$wpProduct) {
-            Log::warning("Sincronización cancelada: Producto no encontrado en WP con SKU: $productSku");
+        if (!$this->isConfigured()) {
+            Log::error('❌ [WP] syncImage abortado: WordPress no configurado');
             return false;
         }
 
-        // 2. Subir imagen si no tiene ID de WP o forzar resubida
-        $mediaId = $this->uploadMedia($image->img_path);
-        if (!$mediaId) return false;
+        $wpProduct = $this->findProductBySku($productSku);
+        if (!$wpProduct) {
+            Log::warning('⚠️ [WP] syncImage cancelado: producto no encontrado en WP', [
+                'sku' => $productSku,
+            ]);
+            return false;
+        }
 
-        // 3. Guardar ID en base de datos local
+        $mediaId = $this->uploadMedia($image->img_path);
+        if (!$mediaId) {
+            Log::error('❌ [WP] syncImage cancelado: uploadMedia falló', [
+                'image_id' => $image->id,
+                'img_path' => $image->img_path,
+            ]);
+            return false;
+        }
+
         $image->wp_media_id = $mediaId;
         $image->save();
+        Log::info('💾 [WP] wp_media_id guardado en BD local', [
+            'image_id'    => $image->id,
+            'wp_media_id' => $mediaId,
+        ]);
 
-        // 4. Asignar según el tipo
         if ($image->type === 'PRINCIPAL') {
-            return $this->setFeaturedImage($wpProduct['id'], $mediaId);
+            Log::info('🌟 [WP] Asignando como imagen PRINCIPAL del producto');
+            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId);
         } else {
-            return $this->addToGallery($wpProduct['id'], $mediaId);
+            Log::info('📷 [WP] Agregando a GALERÍA del producto');
+            $result = $this->addToGallery($wpProduct['id'], $mediaId);
         }
+
+        Log::info($result ? '✅ [WP] syncImage completado con éxito' : '❌ [WP] syncImage terminó con error', [
+            'image_id'      => $image->id,
+            'wp_product_id' => $wpProduct['id'],
+            'wp_media_id'   => $mediaId,
+            'type'          => $image->type,
+            'resultado'     => $result ? 'OK' : 'FALLO',
+        ]);
+
+        return $result;
     }
 
-    /**
-     * Optimiza una imagen usando GD si es muy pesada (>512KB).
-     * Retorna la ruta del archivo a subir.
-     */
     protected function optimizeImage($path)
     {
+        $sizeKb = round(filesize($path) / 1024, 2);
+
         if (!file_exists($path) || filesize($path) < 512000) {
+            Log::info('ℹ️ [WP] Imagen no requiere optimización', [
+                'path'    => $path,
+                'size_kb' => $sizeKb,
+            ]);
             return $path;
         }
 
+        Log::info('🔧 [WP] Optimizando imagen', ['path' => $path, 'size_kb' => $sizeKb]);
+
         try {
             $info = getimagesize($path);
-            if (!$info) return $path;
+            if (!$info) {
+                Log::warning('⚠️ [WP] No se pudo leer info de imagen, se usa original', ['path' => $path]);
+                return $path;
+            }
 
             $type = $info[2];
             $source = null;
 
             switch ($type) {
                 case IMAGETYPE_JPEG: $source = imagecreatefromjpeg($path); break;
-                case IMAGETYPE_PNG:  $source = imagecreatefrompng($path); break;
+                case IMAGETYPE_PNG:  $source = imagecreatefrompng($path);  break;
                 case IMAGETYPE_WEBP: $source = @imagecreatefromwebp($path); break;
+                default:
+                    Log::warning('⚠️ [WP] Tipo de imagen no soportado para optimización', ['type' => $type]);
+                    return $path;
             }
 
-            if (!$source) return $path;
+            if (!$source) {
+                Log::warning('⚠️ [WP] No se pudo crear recurso GD, se usa original');
+                return $path;
+            }
 
             $width = imagesx($source);
             $height = imagesy($source);
@@ -254,12 +404,17 @@ class WordPressService
             if ($width > $maxDimension || $height > $maxDimension) {
                 $ratio = $width / $height;
                 if ($ratio > 1) {
-                    $newWidth = $maxDimension;
+                    $newWidth  = $maxDimension;
                     $newHeight = (int)($maxDimension / $ratio);
                 } else {
                     $newHeight = $maxDimension;
-                    $newWidth = (int)($maxDimension * $ratio);
+                    $newWidth  = (int)($maxDimension * $ratio);
                 }
+
+                Log::info('📐 [WP] Redimensionando imagen', [
+                    'original' => "{$width}x{$height}",
+                    'nuevo'    => "{$newWidth}x{$newHeight}",
+                ]);
 
                 $thumb = imagecreatetruecolor($newWidth, $newHeight);
                 imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
@@ -271,9 +426,17 @@ class WordPressService
             imagejpeg($source, $tempPath, 80);
             imagedestroy($source);
 
+            Log::info('✅ [WP] Imagen optimizada guardada', [
+                'temp_path'    => $tempPath,
+                'new_size_kb'  => round(filesize($tempPath) / 1024, 2),
+            ]);
+
             return $tempPath;
         } catch (Exception $e) {
-            Log::error("Error optimizando imagen: " . $e->getMessage());
+            Log::error('❌ [WP] Error optimizando imagen', [
+                'path'  => $path,
+                'error' => $e->getMessage(),
+            ]);
             return $path;
         }
     }
