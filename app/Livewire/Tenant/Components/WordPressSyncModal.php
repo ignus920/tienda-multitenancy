@@ -250,8 +250,10 @@ class WordPressSyncModal extends Component
         try {
             $gallery = ImageGallery::where('itemId', $this->itemId)
                 ->where('type', 'GALERIA')
-                ->where('sync_to_wp', true)
                 ->whereNull('deleted_at')
+                ->whereHas('wpSync', function ($q) {
+                    $q->where('sync_to_wp', true);
+                })
                 ->get();
 
             Log::info('📋 [WPSync] Imágenes de galería a sincronizar', [
