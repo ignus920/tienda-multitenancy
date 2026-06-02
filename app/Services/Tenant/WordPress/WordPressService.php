@@ -451,8 +451,13 @@ class WordPressService
         // 3. Stock disponible neto
         $stockNeto = max(0, $stockBruto - $reservas);
 
-        // 4. Gate de mínimo: si no llega al mínimo, mostramos 0
-        $stockWP = ($stockNeto >= $stockMin) ? $stockNeto : 0;
+        // 4. Gate de mínimo + aplicar porcentaje (igual que sistema anterior)
+        $porcentaje = (float) ($storeStock->wp_stock_percentage ?? 100);
+        if ($stockNeto >= $stockMin) {
+            $stockWP = round($stockNeto * ($porcentaje / 100));
+        } else {
+            $stockWP = 0;
+        }
 
         $result['stock_bruto'] = $stockBruto;
         $result['reservas']    = $reservas;

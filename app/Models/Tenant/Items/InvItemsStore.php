@@ -20,6 +20,7 @@ class InvItemsStore extends Model
         'stock_items_store',
         'stock_min',
         'stock_max',
+        'wp_stock_percentage',
         'created_at',
         'updated_at'
     ];
