@@ -298,6 +298,95 @@ class WordPressService
         return false;
     }
 
+    /**
+     * Elimina un media de la librería de WordPress (force=true para saltarse la papelera).
+     */
+    public function deleteMedia($wpMediaId)
+    {
+        if (!$this->isConfigured() || !$wpMediaId) {
+            Log::warning('⚠️ [WP] deleteMedia abortado', [
+                'motivo'      => !$this->isConfigured() ? 'Sin configuración WP' : 'wp_media_id vacío',
+                'wp_media_id' => $wpMediaId,
+            ]);
+            return false;
+        }
+
+        Log::info('🗑️ [WP] Eliminando media de WordPress', ['wp_media_id' => $wpMediaId]);
+
+        try {
+            $wpMediaUrl = rtrim($this->config->wp_url, '/') . '/wp-json/wp/v2/media/' . $wpMediaId;
+
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->delete($wpMediaUrl, ['force' => true]);
+
+            Log::info('📡 [WP] Respuesta deleteMedia', [
+                'wp_media_id' => $wpMediaId,
+                'http_status' => $response->status(),
+                'exitoso'     => $response->successful(),
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('❌ [WP] Error eliminando media', [
+                    'wp_media_id' => $wpMediaId,
+                    'http_status' => $response->status(),
+                    'body'        => $response->body(),
+                ]);
+            }
+
+            return $response->successful();
+        } catch (Exception $e) {
+            Log::error('❌ [WP] Excepción en deleteMedia', [
+                'wp_media_id' => $wpMediaId,
+                'error'       => $e->getMessage(),
+            ]);
+        }
+
+        return false;
+    }
+
+    /**
+     * Elimina una imagen del array de imágenes de un producto en WooCommerce.
+     */
+    public function removeFromProductImages($productId, $wpMediaId)
+    {
+        if (!$this->isConfigured()) return false;
+
+        Log::info('🗑️ [WP] Quitando imagen del producto WC', [
+            'wp_product_id' => $productId,
+            'wp_media_id'   => $wpMediaId,
+        ]);
+
+        try {
+            $currentProduct = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->get($this->baseUrl . "products/$productId")
+                ->json();
+
+            $images = collect($currentProduct['images'] ?? [])
+                ->filter(fn($img) => $img['id'] != $wpMediaId)
+                ->values()
+                ->toArray();
+
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->put($this->baseUrl . "products/$productId", ['images' => $images]);
+
+            Log::info('📡 [WP] Respuesta removeFromProductImages', [
+                'wp_product_id'      => $productId,
+                'wp_media_id'        => $wpMediaId,
+                'http_status'        => $response->status(),
+                'imgs_restantes'     => count($images),
+            ]);
+
+            return $response->successful();
+        } catch (Exception $e) {
+            Log::error('❌ [WP] Excepción en removeFromProductImages', [
+                'wp_product_id' => $productId,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+
+        return false;
+    }
+
     public function syncImage(ImageGallery $image, $productSku)
     {
         Log::info('🔄 [WP] Iniciando syncImage', [

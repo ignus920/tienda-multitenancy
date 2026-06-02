@@ -148,13 +148,30 @@ class ProductImageModalCargar extends Component
     public function deleteImage($imageId)
     {
         $this->ensureTenantConnection();
-        $image = ImageGallery::find($imageId);
-        
-        if ($image) {
-            $image->update(['deleted_at' => now()]);
-            $this->dispatch('refreshProductList');
-            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Imagen eliminada']);
+        $image = ImageGallery::with('wpSync')->find($imageId);
+
+        if (!$image) return;
+
+        $wpMediaId = $image->wp_media_id;
+
+        if ($wpMediaId) {
+            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $item = \App\Models\Tenant\Items\Items::find($image->itemId);
+            $sku  = $item?->sku;
+
+            if ($sku) {
+                $wpProduct = $wpService->findProductBySku($sku);
+                if ($wpProduct) {
+                    $wpService->removeFromProductImages($wpProduct['id'], $wpMediaId);
+                }
+            }
+
+            $wpService->deleteMedia($wpMediaId);
         }
+
+        $image->update(['deleted_at' => now()]);
+        $this->dispatch('refreshProductList');
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Imagen eliminada' . ($wpMediaId ? ' y removida de WordPress' : '')]);
     }
  
     public function toggleSyncToWp($imageId)
