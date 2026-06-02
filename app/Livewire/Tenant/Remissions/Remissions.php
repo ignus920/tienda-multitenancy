@@ -24,6 +24,7 @@ use App\Models\Central\UsrPermissionProfile;
 use App\Livewire\Tenant\Components\ObservationsModal;
 use App\Models\Tenant\Sales\VntObservation;
 use App\Models\Tenant\Sales\VntReturn;
+use App\Models\Tenant\Items\InvItemsStore;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Tenant\Inventory\InventoryConfirmation;
 use App\Models\Tenant\Sales\VntOrderAuthorization;
@@ -279,15 +280,33 @@ class Remissions extends Component
         try {
             DB::connection('tenant')->beginTransaction();
 
-            $remission = InvRemissions::find($id);
+            $remission = InvRemissions::with('details')->find($id);
             if (!$remission) {
                 throw new \Exception("Pedido no encontrado.");
+            }
+
+            // Devolver stock de cada ítem al inventario de la bodega
+            foreach ($remission->details as $detail) {
+                $itemStore = InvItemsStore::where('itemId', $detail->itemId)
+                    ->where('storeId', $remission->warehouseId)
+                    ->first();
+
+                if ($itemStore) {
+                    $itemStore->increment('stock_items_store', $detail->quantity);
+                    Log::info('📦 Stock devuelto por anulación de remisión', [
+                        'remission_id' => $id,
+                        'item_id'      => $detail->itemId,
+                        'store_id'     => $remission->warehouseId,
+                        'qty_returned' => $detail->quantity,
+                        'new_stock'    => $itemStore->stock_items_store + $detail->quantity,
+                    ]);
+                }
             }
 
             // Actualizar estado del pedido
             $remission->update(['status' => 'ANULADO']);
 
-            // ✅ NUEVO: También anular la cotización asociada si existe
+            // También anular la cotización asociada si existe
             if ($remission->quote) {
                 $remission->quote->update(['status' => 'ANULADO']);
                 Log::info('📋 Cotización asociada anulada automáticamente', [
