@@ -319,7 +319,7 @@ $header = 'Seleccionar productos';
                                                 <span class="text-xs font-black text-orange-700 dark:text-orange-300">{{ number_format($product->reserved, 0) }}</span>
                                             </div>
                                             <div class="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 flex flex-col items-center">
-                                                
+                                                <span class="text-[9px] uppercase font-bold text-indigo-500 dark:text-indigo-400">Picking</span>
                                                 <span class="text-[10px] font-black text-indigo-700 dark:text-indigo-300 truncate w-full text-center">{{ $product->picking }}</span>
                                             </div>
                                             <div class="bg-red-50 dark:bg-red-900/10 p-2 rounded-lg border border-red-100 dark:border-red-800 flex flex-col items-center">
@@ -540,7 +540,7 @@ $header = 'Seleccionar productos';
                                                         ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
                                                         : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                                    Picking: {{ $pickingLocation ?? 'N/A' }}
+                                                   {{ $pickingLocation ?? 'N/A' }}
                                                 </span>
                                                 @foreach(explode(', ', $product->store_stock_details ?? '') as $storeDetail)
                                                     @php
