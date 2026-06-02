@@ -197,6 +197,9 @@ require __DIR__ . '/tenants/returns.php';
 // Incluir rutas del módulo de despachos
 require __DIR__ . '/tenants/dispatches.php';
 
+// Incluir rutas de WordPress
+require __DIR__ . '/tenants/wordpress.php';
+
 
 
 

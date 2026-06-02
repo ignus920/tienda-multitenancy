@@ -4,6 +4,10 @@ namespace App\Services\Tenant\WordPress;
 
 use App\Models\Tenant\WordPress\WordPressConfig;
 use App\Models\Tenant\Items\ImageGallery;
+use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\InvValues;
+use App\Models\Tenant\Remissions\InvDetailRemissions;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -385,6 +389,179 @@ class WordPressService
         }
 
         return false;
+    }
+
+    /**
+     * Sincroniza stock y precio de un item del ERP hacia WooCommerce.
+     * Bodega: PRINCIPAL (storeId=2) | Precio: Precio Regular + IVA redondeado a decena
+     * Reservas: remisiones en estado REGISTRADO descontadas del stock bruto
+     */
+    public function syncItemStock(Items $item): array
+    {
+        $result = [
+            'success'    => false,
+            'item_id'    => $item->id,
+            'sku'        => $item->sku,
+            'message'    => '',
+            'stock_bruto'    => 0,
+            'reservas'   => 0,
+            'stock_wp'   => 0,
+            'precio_wp'  => 0,
+        ];
+
+        Log::info('📦 [WP-Stock] Iniciando sync de stock', [
+            'item_id' => $item->id,
+            'sku'     => $item->sku,
+            'name'    => $item->name,
+        ]);
+
+        if (!$this->isConfigured()) {
+            $result['message'] = 'WordPress no configurado';
+            Log::warning('⚠️ [WP-Stock] ' . $result['message']);
+            return $result;
+        }
+
+        if (empty($item->sku)) {
+            $result['message'] = 'Item sin SKU — omitido';
+            Log::warning('⚠️ [WP-Stock] ' . $result['message'], ['item_id' => $item->id]);
+            return $result;
+        }
+
+        // 1. Stock en bodega PRINCIPAL (storeId=2)
+        $storeStock = InvItemsStore::where('itemId', $item->id)
+            ->where('storeId', 2)
+            ->first();
+
+        if (!$storeStock) {
+            $result['message'] = 'Sin registro en bodega PRINCIPAL';
+            Log::warning('⚠️ [WP-Stock] ' . $result['message'], ['item_id' => $item->id]);
+            return $result;
+        }
+
+        $stockBruto = (float) $storeStock->stock_items_store;
+        $stockMin   = (float) $storeStock->stock_min;
+
+        // 2. Reservas activas (remisiones REGISTRADO)
+        $reservas = InvDetailRemissions::whereHas('remission', fn($q) => $q->where('status', 'REGISTRADO'))
+            ->where('itemId', $item->id)
+            ->sum('quantity');
+
+        $reservas = (float) $reservas;
+
+        // 3. Stock disponible neto
+        $stockNeto = max(0, $stockBruto - $reservas);
+
+        // 4. Gate de mínimo: si no llega al mínimo, mostramos 0
+        $stockWP = ($stockNeto >= $stockMin) ? $stockNeto : 0;
+
+        $result['stock_bruto'] = $stockBruto;
+        $result['reservas']    = $reservas;
+        $result['stock_wp']    = $stockWP;
+
+        Log::info('📊 [WP-Stock] Cálculo de stock', [
+            'item_id'     => $item->id,
+            'stock_bruto' => $stockBruto,
+            'reservas'    => $reservas,
+            'stock_neto'  => $stockNeto,
+            'stock_min'   => $stockMin,
+            'stock_wp'    => $stockWP,
+        ]);
+
+        // 5. Precio Regular con IVA redondeado a la decena más cercana
+        $precioRecord = InvValues::where('itemId', $item->id)
+            ->where('label', 'Precio Regular')
+            ->first();
+
+        $precioWP = 0;
+        if ($precioRecord && (float) $precioRecord->values > 0) {
+            $taxRate  = (float) ($item->tax?->percentage ?? 0);
+            $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
+        }
+
+        $result['precio_wp'] = $precioWP;
+
+        Log::info('💰 [WP-Stock] Precio calculado', [
+            'item_id'       => $item->id,
+            'precio_base'   => $precioRecord?->values ?? 0,
+            'precio_con_iva' => $precioWP,
+        ]);
+
+        // 6. Buscar producto en WooCommerce por SKU
+        $wpProduct = $this->findProductBySku($item->sku);
+        if (!$wpProduct) {
+            $result['message'] = 'Producto no encontrado en WP con SKU: ' . $item->sku;
+            return $result;
+        }
+
+        // 7. Actualizar stock y precio en WooCommerce
+        $synced = $this->updateProductStockAndPrice($wpProduct['id'], $stockWP, $precioWP);
+
+        $result['success'] = $synced;
+        $result['wp_product_id'] = $wpProduct['id'];
+        $result['message'] = $synced ? 'Sincronizado correctamente' : 'Error al actualizar en WP';
+
+        Log::info($synced ? '✅ [WP-Stock] Sync OK' : '❌ [WP-Stock] Sync FALLÓ', [
+            'item_id'       => $item->id,
+            'sku'           => $item->sku,
+            'wp_product_id' => $wpProduct['id'],
+            'stock_wp'      => $stockWP,
+            'precio_wp'     => $precioWP,
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * Actualiza stock y precio de un producto en WooCommerce vía REST API.
+     */
+    public function updateProductStockAndPrice($wpProductId, $stock, $price): bool
+    {
+        if (!$this->isConfigured()) return false;
+
+        $stockStatus = $stock > 0 ? 'instock' : 'outofstock';
+
+        Log::info('🔄 [WP-Stock] updateProductStockAndPrice', [
+            'wp_product_id' => $wpProductId,
+            'stock'         => $stock,
+            'stock_status'  => $stockStatus,
+            'price'         => $price,
+        ]);
+
+        try {
+            $data = [
+                'manage_stock'   => true,
+                'stock_quantity' => (int) $stock,
+                'stock_status'   => $stockStatus,
+            ];
+
+            if ($price > 0) {
+                $data['regular_price'] = (string) $price;
+            }
+
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->put($this->baseUrl . "products/{$wpProductId}", $data);
+
+            Log::info('📡 [WP-Stock] Respuesta WC', [
+                'wp_product_id' => $wpProductId,
+                'http_status'   => $response->status(),
+                'exitoso'       => $response->successful(),
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('❌ [WP-Stock] Error en WC', [
+                    'wp_product_id' => $wpProductId,
+                    'body'          => $response->body(),
+                ]);
+            }
+
+            return $response->successful();
+        } catch (Exception $e) {
+            Log::error('❌ [WP-Stock] Excepción', [
+                'wp_product_id' => $wpProductId,
+                'error'         => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function syncImage(ImageGallery $image, $productSku)
