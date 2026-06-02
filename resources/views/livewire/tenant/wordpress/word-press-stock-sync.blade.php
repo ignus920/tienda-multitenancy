@@ -41,8 +41,12 @@
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase w-10"></th>
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nombre</th>
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">SKU</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stock PRINCIPAL</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stock Bruto</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Reservas</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stock Neto</th>
                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stock Mín.</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">%</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-indigo-600 uppercase">→ WP</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -65,18 +69,31 @@
                         <td class="px-4 py-3 text-sm font-mono text-indigo-600 dark:text-indigo-400">
                             {{ $item['sku'] }}
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <span class="text-sm font-bold {{ $item['stock'] > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500' }}">
-                                {{ number_format($item['stock'], 0) }}
-                            </span>
+                        <td class="px-4 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                            {{ number_format($item['stock'], 0) }}
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm {{ $item['reservas'] > 0 ? 'text-orange-500 font-semibold' : 'text-gray-400' }}">
+                            {{ number_format($item['reservas'], 0) }}
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm font-semibold {{ $item['stock_neto'] > $item['stock_min'] ? 'text-green-600 dark:text-green-400' : 'text-red-500' }}">
+                            {{ number_format($item['stock_neto'], 0) }}
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                             {{ number_format($item['stock_min'], 0) }}
                         </td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                            {{ $item['porcentaje'] }}%
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-black
+                                {{ $item['stock_wp'] > 0 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' }}">
+                                {{ number_format($item['stock_wp'], 0) }}
+                            </span>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-10 text-center text-gray-400 text-sm italic">
+                        <td colspan="9" class="px-4 py-10 text-center text-gray-400 text-sm italic">
                             No se encontraron items con SKU asignado.
                         </td>
                     </tr>

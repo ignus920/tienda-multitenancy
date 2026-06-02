@@ -3,12 +3,14 @@
 namespace App\Livewire\Tenant\WordPress;
 
 use Livewire\Component;
+use Livewire\Attributes\Layout;
 use App\Models\Tenant\Items\Items;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\WordPress\WordPressService;
 use Illuminate\Support\Facades\Log;
 
+#[Layout('layouts.app')]
 class WordPressStockSync extends Component
 {
     public $items        = [];
@@ -53,14 +55,32 @@ class WordPressStockSync extends Component
             ->limit(20)
             ->get()
             ->map(function ($item) {
-                $store = $item->invItemsStore->firstWhere('storeId', 2);
+                $store      = $item->invItemsStore->firstWhere('storeId', 2);
+                $stockBruto = (float) ($store?->stock_items_store ?? 0);
+                $stockMin   = (float) ($store?->stock_min ?? 0);
+                $porcentaje = (float) ($store?->wp_stock_percentage ?? 100);
+
+                // Reservas activas (remisiones REGISTRADO)
+                $reservas = \App\Models\Tenant\Remissions\InvDetailRemissions::whereHas(
+                    'remission', fn($q) => $q->where('status', 'REGISTRADO')
+                )->where('itemId', $item->id)->sum('quantity');
+
+                $stockNeto = max(0, $stockBruto - (float) $reservas);
+                $stockWP   = ($stockNeto >= $stockMin)
+                    ? (int) round($stockNeto * ($porcentaje / 100))
+                    : 0;
+
                 return [
-                    'id'           => $item->id,
-                    'name'         => $item->name,
-                    'sku'          => $item->sku,
-                    'internal_code'=> $item->internal_code,
-                    'stock'        => $store?->stock_items_store ?? 0,
-                    'stock_min'    => $store?->stock_min ?? 0,
+                    'id'            => $item->id,
+                    'name'          => $item->name,
+                    'sku'           => $item->sku,
+                    'internal_code' => $item->internal_code,
+                    'stock'         => $stockBruto,
+                    'reservas'      => (float) $reservas,
+                    'stock_neto'    => $stockNeto,
+                    'stock_min'     => $stockMin,
+                    'porcentaje'    => $porcentaje,
+                    'stock_wp'      => $stockWP,
                 ];
             })
             ->toArray();
@@ -141,7 +161,6 @@ class WordPressStockSync extends Component
 
     public function render()
     {
-        return view('livewire.tenant.wordpress.word-press-stock-sync')
-            ->layout('layouts.app');
+        return view('livewire.tenant.wordpress.word-press-stock-sync');
     }
 }
