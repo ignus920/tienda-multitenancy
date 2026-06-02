@@ -281,11 +281,11 @@ new class extends Component
         @if(!$isOperario && !in_array(Auth::user()?->profile_id, [4, 9, 16]) && PermissionHelper::userCanAny(['Cartera', 'Ventas'], 'show'))
         <div x-data="{
             tooltip: false,
-            open: {{ request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.cartera.*') || request()->routeIs('tenant.invoices.*') ? 'true' : 'false' }},
+            open: {{ request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.cartera.*') || request()->routeIs('tenant.invoices.*') || request()->routeIs('tenant.quoter.*') ? 'true' : 'false' }},
             _t: null
         }" class="w-full relative">
             <!-- Botón principal -->
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.cartera.*') || request()->routeIs('tenant.invoices.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.cartera.*') || request()->routeIs('tenant.invoices.*') || request()->routeIs('tenant.quoter.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
                 @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
@@ -320,6 +320,10 @@ new class extends Component
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.invoices.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Facturas
                 </a>
+                <a href="{{ route('tenant.quoter') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.quoter.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Cotizaciones
+                </a>
             </div>
 
             <!-- Submenú colapsado (hover) -->
@@ -333,6 +337,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Cartera</a>
                 <a href="{{ route('tenant.invoices') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Facturas</a>
+                <a href="{{ route('tenant.quoter') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Cotizaciones</a>
             </div>
         </div>
         @endif
