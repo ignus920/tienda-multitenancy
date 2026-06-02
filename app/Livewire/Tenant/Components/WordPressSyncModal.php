@@ -145,9 +145,11 @@ class WordPressSyncModal extends Component
             return !collect($wpImages)->contains('id', $img->wp_media_id);
         })->values()->toArray();
 
+        // Todas las imágenes WP, marcando cuáles ya están vinculadas al ERP
         $localWpIds = $localImages->pluck('wp_media_id')->filter()->toArray();
-        $this->onlyInWp = collect($wpImages)->filter(function ($wpImg) use ($localWpIds) {
-            return !in_array($wpImg['id'], $localWpIds);
+        $this->onlyInWp = collect($wpImages)->map(function ($wpImg) use ($localWpIds) {
+            $wpImg['linked_to_erp'] = in_array($wpImg['id'], $localWpIds);
+            return $wpImg;
         })->values()->toArray();
 
         Log::info('📊 [WPSync] Resultado comparación', [

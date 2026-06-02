@@ -186,29 +186,42 @@
                                 </div>
                             </div>
 
-                            <!-- Solo en WP -->
+                            <!-- Todas las imágenes en WordPress -->
                             <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                                 <div class="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-900/30">
                                     <h5 class="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="fab fa-wordpress"></i> Solo en WordPress Media ({{ count($onlyInWp) }})
+                                        <i class="fab fa-wordpress"></i> Imágenes en WordPress ({{ count($onlyInWp) }})
                                     </h5>
                                 </div>
-                                <div class="p-4 flex flex-wrap gap-3">
+                                <div class="p-4 flex flex-wrap gap-4">
                                     @forelse($onlyInWp as $idx => $wpImg)
-                                        <div class="relative w-28 h-28 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 p-1 shadow-xs group" wire:key="wp-cmp-{{ $idx }}">
-                                            <a href="{{ $wpImg['src'] }}" target="_blank" class="block w-full h-full">
-                                                <img src="{{ $wpImg['src'] }}" class="w-full h-full object-contain">
-                                            </a>
+                                        <div class="flex flex-col items-center gap-1" wire:key="wp-cmp-{{ $idx }}">
+                                            <div class="relative w-28 h-28">
+                                                <a href="{{ $wpImg['src'] }}" target="_blank"
+                                                   class="block w-full h-full rounded-lg border overflow-hidden bg-white dark:bg-gray-900 p-1 shadow-xs hover:ring-2 transition-all
+                                                       {{ ($wpImg['linked_to_erp'] ?? false) ? 'border-green-300 dark:border-green-700 hover:ring-green-400' : 'border-amber-200 dark:border-amber-800 hover:ring-amber-400' }}">
+                                                    <img src="{{ $wpImg['src'] }}" class="w-full h-full object-contain">
+                                                </a>
+                                                @if($wpImg['linked_to_erp'] ?? false)
+                                                    <div class="absolute top-1 right-1 bg-green-500 text-white p-0.5 rounded-full shadow" title="Vinculada al ERP">
+                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                    </div>
+                                                @endif
+                                            </div>
                                             <button wire:click="deleteFromWordPress({{ $wpImg['id'] }})"
                                                     wire:confirm="¿Eliminar esta imagen de WordPress? Esta acción no se puede deshacer."
-                                                    class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    wire:loading.attr="disabled"
+                                                    class="w-28 flex items-center justify-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold rounded-lg transition-colors">
+                                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                 </svg>
+                                                Eliminar WP
                                             </button>
                                         </div>
                                     @empty
-                                        <div class="w-full py-6 text-center text-gray-400 text-xs italic">Nada huérfano en la web.</div>
+                                        <div class="w-full py-6 text-center text-gray-400 text-xs italic">No hay imágenes en WordPress.</div>
                                     @endforelse
                                 </div>
                             </div>
