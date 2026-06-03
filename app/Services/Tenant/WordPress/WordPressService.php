@@ -569,6 +569,137 @@ class WordPressService
         }
     }
 
+    /**
+     * Sincroniza únicamente el precio de un item del ERP hacia WooCommerce.
+     * Precio: Precio Base + IVA redondeado a la decena más cercana.
+     */
+    public function syncItemPrice(Items $item): array
+    {
+        $result = [
+            'success'   => false,
+            'item_id'   => $item->id,
+            'sku'       => $item->sku,
+            'message'   => '',
+            'precio_wp' => 0,
+        ];
+
+        Log::info('💰 [WP-Price] Iniciando sync de precio', [
+            'item_id' => $item->id,
+            'sku'     => $item->sku,
+            'name'    => $item->name,
+        ]);
+
+        if (!$this->isConfigured()) {
+            $result['message'] = 'WordPress no configurado';
+            Log::warning('⚠️ [WP-Price] ' . $result['message']);
+            return $result;
+        }
+
+        if (empty($item->sku)) {
+            $result['message'] = 'Item sin SKU — omitido';
+            Log::warning('⚠️ [WP-Price] ' . $result['message'], ['item_id' => $item->id]);
+            return $result;
+        }
+
+        // Obtener el Precio Base de los valores
+        $precioRecord = InvValues::where('itemId', $item->id)
+            ->where('label', 'Precio Base')
+            ->first();
+
+        // Fallback por si acaso no tiene Precio Base configurado pero sí Precio Regular
+        if (!$precioRecord) {
+            $precioRecord = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Regular')
+                ->first();
+        }
+
+        $precioWP = 0;
+        if ($precioRecord && (float) $precioRecord->values > 0) {
+            $taxRate  = (float) ($item->tax?->percentage ?? 0);
+            $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
+        }
+
+        $result['precio_wp'] = $precioWP;
+
+        Log::info('💰 [WP-Price] Precio calculado para actualización', [
+            'item_id'       => $item->id,
+            'precio_base'   => $precioRecord?->values ?? 0,
+            'precio_con_iva' => $precioWP,
+        ]);
+
+        if ($precioWP <= 0) {
+            $result['message'] = 'Precio calculado no válido (0 o menor)';
+            Log::warning('⚠️ [WP-Price] ' . $result['message'], ['item_id' => $item->id]);
+            return $result;
+        }
+
+        // Buscar producto en WooCommerce por SKU
+        $wpProduct = $this->findProductBySku($item->sku);
+        if (!$wpProduct) {
+            $result['message'] = 'Producto no encontrado en WP con SKU: ' . $item->sku;
+            return $result;
+        }
+
+        // Actualizar precio en WooCommerce
+        $synced = $this->updateProductPrice($wpProduct['id'], $precioWP);
+
+        $result['success'] = $synced;
+        $result['wp_product_id'] = $wpProduct['id'];
+        $result['message'] = $synced ? 'Precio sincronizado correctamente' : 'Error al actualizar precio en WP';
+
+        Log::info($synced ? '✅ [WP-Price] Sync Precio OK' : '❌ [WP-Price] Sync Precio FALLÓ', [
+            'item_id'       => $item->id,
+            'sku'           => $item->sku,
+            'wp_product_id' => $wpProduct['id'],
+            'precio_wp'     => $precioWP,
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * Actualiza únicamente el precio de un producto en WooCommerce vía REST API.
+     */
+    public function updateProductPrice($wpProductId, $price): bool
+    {
+        if (!$this->isConfigured()) return false;
+
+        Log::info('🔄 [WP-Price] updateProductPrice', [
+            'wp_product_id' => $wpProductId,
+            'price'         => $price,
+        ]);
+
+        try {
+            $data = [
+                'regular_price' => (string) $price,
+            ];
+
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->put($this->baseUrl . "products/{$wpProductId}", $data);
+
+            Log::info('📡 [WP-Price] Respuesta WC', [
+                'wp_product_id' => $wpProductId,
+                'http_status'   => $response->status(),
+                'exitoso'       => $response->successful(),
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('❌ [WP-Price] Error en WC', [
+                    'wp_product_id' => $wpProductId,
+                    'body'          => $response->body(),
+                ]);
+            }
+
+            return $response->successful();
+        } catch (Exception $e) {
+            Log::error('❌ [WP-Price] Excepción', [
+                'wp_product_id' => $wpProductId,
+                'error'         => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
     public function syncImage(ImageGallery $image, $productSku)
     {
         Log::info('🔄 [WP] Iniciando syncImage', [
