@@ -366,7 +366,7 @@
         <div class="separator"></div>
         <div class="qr-section">
             <div class="small">Escanea para catálogo:</div>
-            <div class="qr-placeholder">QR</div>
+            <img src="{{ asset('images/QR-fervicom.png') }}" style="width: 30mm;" alt="QR Fervicom">
         </div>
     @endif
 

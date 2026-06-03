@@ -414,7 +414,7 @@
     <div class="header-container">
         <div class="header-left">
             <img src="{{ asset('images/logofervi.png') }}" class="logo" alt="Logo Fervicom">
-            <img src="{{ asset('images/qr-code-placeholder.png') }}" class="logo" alt="QR Code" style="max-width: 70px; margin-top: 5px;">
+            <img src="{{ asset('images/QR-fervicom.png') }}" class="logo" alt="QR Code" style="max-width: 70px; margin-top: 5px;">
         </div>
         <div class="header-center">
             <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
@@ -458,7 +458,7 @@
             <div class="document-box">
                 <span class="document-title">{{ $documentTitle }}</span>
                 <span class="document-number">{{ $quote->consecutive }}</span>
-                <img src="{{ asset('images/qr-code-placeholder.png') }}" style="max-width: 50px; margin-top: 8px; opacity: 0.9;">
+                <img src="{{ asset('images/QR-fervicom.png') }}" style="max-width: 50px; margin-top: 8px; opacity: 0.9;">
             </div>
         </div>
     </div>
@@ -666,7 +666,7 @@
 
     <!-- QR Footer -->
     <div class="qr-footer">
-        <img src="{{ asset('images/qr-code-placeholder.png') }}" class="qr-image" alt="QR Code">
+        <img src="{{ asset('images/QR-fervicom.png') }}" class="qr-image" alt="QR Code">
         {{-- <div>
             <strong>📱 ESCANEA PARA CONSULTAR NUESTRO CATÁLOGO VIRTUAL</strong>
         </div> --}}
