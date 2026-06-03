@@ -414,7 +414,7 @@
     <div class="header-container">
         <div class="header-left">
             <img src="{{ asset('images/logofervi.png') }}" class="logo" alt="Logo Fervicom">
-            <img src="{{ asset('images/QR-Fervicom.png') }}" class="logo" alt="QR Code" style="max-width: 70px; margin-top: 5px;">
+            <img src="{{ asset('images/QR-Fervicom.png') }}" alt="QR Code" style="display: block; width: 100px; height: 100px; margin: 6px auto 0;">
         </div>
         <div class="header-center">
             <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
