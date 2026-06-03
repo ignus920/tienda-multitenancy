@@ -2332,6 +2332,25 @@ class ProductQuoter extends Component
                     $itemStore->update([
                         'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
                     ]);
+
+                    // Sincronizar stock con WordPress si wp_stock_percentage está al 100%
+                    if ((int)$itemStore->wp_stock_percentage === 100) {
+                        try {
+                            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                            if ($wpService->isConfigured()) {
+                                $itemModel = Items::find($item['id']);
+                                if ($itemModel) {
+                                    $wpService->syncItemStock($itemModel);
+                                    Log::info('🔄 [WP-Stock-OP] Sincronización automática de stock ejecutada para ítem en OP', [
+                                        'item_id' => $item['id'],
+                                        'sku' => $item['sku']
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('❌ [WP-Stock-OP] Error al sincronizar stock en OP para ítem ' . $item['id'] . ': ' . $e->getMessage());
+                        }
+                    }
                 }
             }
 
