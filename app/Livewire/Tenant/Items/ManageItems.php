@@ -739,7 +739,7 @@ class ManageItems extends Component
     {
         $this->ensureTenantConnection();
         return Items::query()
-            ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.location', 'locations.store'])
+            ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store'])
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('sku', 'like', '%' . $this->search . '%')
@@ -782,7 +782,7 @@ class ManageItems extends Component
         if ($item->locations->isNotEmpty()) {
             $locations = $item->locations->map(function ($loc) {
                 $store = $loc->store->name ?? 'Sin bodega';
-                $location = $loc->location->name ?? 'Sin ubicación';
+                $location = $loc->locationId ?? 'Sin ubicación';
                 $stock = number_format($loc->stock_item_location, 2);
                 return "{$store} / {$location} (Stock: {$stock})";
             })->implode(' | ');
