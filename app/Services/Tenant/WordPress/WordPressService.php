@@ -441,14 +441,12 @@ class WordPressService
         $stockBruto = (float) $storeStock->stock_items_store;
         $stockMin   = (float) $storeStock->stock_min;
 
-        // 2. Reservas activas (remisiones REGISTRADO)
-        $reservas = InvDetailRemissions::whereHas('remission', fn($q) => $q->where('status', 'REGISTRADO'))
-            ->where('itemId', $item->id)
-            ->sum('quantity');
+        // 2. Reservas activas (Omitido: se usa 0 para no restar remisiones registradas globales)
+        $reservas = 0;
 
         $reservas = (float) $reservas;
 
-        // 3. Stock disponible neto
+        // 3. Stock disponible neto (igual al stock bruto del almacén)
         $stockNeto = max(0, $stockBruto - $reservas);
 
         // 4. Gate de mínimo + aplicar porcentaje (igual que sistema anterior)
