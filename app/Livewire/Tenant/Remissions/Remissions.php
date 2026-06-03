@@ -804,12 +804,6 @@ class Remissions extends Component
         $this->ensureTenantConnection();
         $remission = InvRemissions::with('invoice')->findOrFail($id);
 
-        // Si ya está facturada (estado FACTURADO), imprimir/mostrar la factura correspondiente
-        if ($remission->invoice && $remission->invoice->status === 'FACTURADO') {
-            $this->printInvoice($id);
-            return;
-        }
-
         // Si ya ha sido impresa anteriormente, solicitar justificación
         if ($remission->print_count > 0) {
             $this->remissionIdToPrint = $id;
@@ -845,13 +839,6 @@ class Remissions extends Component
 
         $id = $this->remissionIdToPrint;
         $this->showPrintJustificationModal = false;
-
-        // Si ya está facturada (estado FACTURADO), imprimir/mostrar la factura correspondiente
-        $remission = InvRemissions::with('invoice')->findOrFail($id);
-        if ($remission->invoice && $remission->invoice->status === 'FACTURADO') {
-            $this->printInvoice($id);
-            return;
-        }
 
         $this->executePrintRemission($id);
     }
