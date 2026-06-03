@@ -601,12 +601,19 @@ class WordPressService
             return $result;
         }
 
-        // Obtener el Precio Base de los valores
+        // Obtener el Precio Crédito de los valores
         $precioRecord = InvValues::where('itemId', $item->id)
-            ->where('label', 'Precio Base')
+            ->where('label', 'Precio Crédito')
             ->first();
 
-        // Fallback por si acaso no tiene Precio Base configurado pero sí Precio Regular
+        // Fallback 1: Si no tiene Precio Crédito, buscar Precio Base
+        if (!$precioRecord) {
+            $precioRecord = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Base')
+                ->first();
+        }
+
+        // Fallback 2: Si tampoco tiene Precio Base, buscar Precio Regular
         if (!$precioRecord) {
             $precioRecord = InvValues::where('itemId', $item->id)
                 ->where('label', 'Precio Regular')
