@@ -504,7 +504,7 @@
                                             : ($accessory->insumo()->first()->name ?? $accessory->insumo()->first()->display_name ?? 'Insumo #'.$accessory->insumo);
                                     @endphp
                                     <div>
-                                        {{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ $insumoName }} - {{ $accessory->quantity }}
+                                        {{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ $insumoName }} - {{ $accessory->quantity * $detalle->quantity }}
                                     </div>
                                 @endforeach
                             </div>

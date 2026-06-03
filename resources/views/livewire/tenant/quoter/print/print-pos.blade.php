@@ -307,7 +307,7 @@
                                     ? ($accessory->getRelation('insumo')->name ?? $accessory->getRelation('insumo')->display_name ?? 'Insumo #'.$accessory->insumo)
                                     : ($accessory->insumo()->first()->name ?? $accessory->insumo()->first()->display_name ?? 'Insumo #'.$accessory->insumo);
                             @endphp
-                            <div>{{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ Str::limit($insumoName, 20) }} - {{ $accessory->quantity }}</div>
+                            <div>{{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ Str::limit($insumoName, 20) }} - {{ $accessory->quantity * $detalle->quantity }}</div>
                         @endforeach
                     </div>
                 @endif
