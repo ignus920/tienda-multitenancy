@@ -414,7 +414,7 @@
     <div class="header-container">
         <div class="header-left">
             <img src="{{ asset('images/logofervi.png') }}" class="logo" alt="Logo Fervicom">
-            <img src="{{ asset('images/QR-fervicom.png') }}" class="logo" alt="QR Code" style="max-width: 70px; margin-top: 5px;">
+            <img src="{{ asset('images/QR-Fervicom.png') }}" class="logo" alt="QR Code" style="max-width: 70px; margin-top: 5px;">
         </div>
         <div class="header-center">
             <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
@@ -458,7 +458,7 @@
             <div class="document-box">
                 <span class="document-title">{{ $documentTitle }}</span>
                 <span class="document-number">{{ $quote->consecutive }}</span>
-                <img src="{{ asset('images/QR-fervicom.png') }}" style="max-width: 50px; margin-top: 8px; opacity: 0.9;">
+                <canvas id="qr-header" style="max-width: 50px; margin-top: 8px;"></canvas>
             </div>
         </div>
     </div>
@@ -666,7 +666,7 @@
 
     <!-- QR Footer -->
     <div class="qr-footer">
-        <img src="{{ asset('images/QR-fervicom.png') }}" class="qr-image" alt="QR Code">
+        <canvas id="qr-footer"></canvas>
         {{-- <div>
             <strong>📱 ESCANEA PARA CONSULTAR NUESTRO CATÁLOGO VIRTUAL</strong>
         </div> --}}
@@ -704,5 +704,16 @@
         </div>
     </div>
     @endif
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var consecutivo = "{{ $quote->consecutive }}";
+        var opts = { width: 80, margin: 1 };
+
+        QRCode.toCanvas(document.getElementById('qr-header'), consecutivo, { width: 50, margin: 1 });
+        QRCode.toCanvas(document.getElementById('qr-footer'), consecutivo, opts);
+    });
+</script>
 </body>
 </html>
