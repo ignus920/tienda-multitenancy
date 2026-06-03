@@ -541,7 +541,7 @@
                 @endif
                 
                 <div class="notes-section">
-                    <span class="notes-label">Peso:</span> {{ $totalWeight ? number_format($totalWeight, 2) . ' kg' : 'N/A' }}
+                    <span class="notes-label">Peso:</span> {{ $totalWeight ? number_format($totalWeight, 2) . ' g' : 'N/A' }}
                 </div>
                 
                 {{-- <div class="notes-section">

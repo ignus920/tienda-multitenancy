@@ -201,16 +201,21 @@ class GestionVentas extends Component
 
             $tableName = ($quote->status === 'REMISIÓN') ? 'inv_detail_remissions' : 'vnt_detail_quotes';
             $tableNameId = ($quote->status === 'REMISIÓN') ? 'remissionId' : 'quoteId';
-            
-            // Calcular el peso total de los items
-            $totalWeight = DB::connection('tenant')->table($tableName)
-                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
-                ->where($tableName . '.' . $tableNameId, $id)
-                ->sum(DB::raw('inv_items_dimensions.weight * ' . $tableName . '.quantity'));
 
             $observations = DB::connection('tenant')->table('inv_remissions')
                 ->where('quoteId', $id)
-                ->select('observations_delivery', 'obs')->first();
+                ->select('id', 'observations_delivery', 'obs')->first();
+
+            // Para remisiones el $id es el quoteId; hay que usar el id real de la remisión
+            $weightQueryId = ($quote->status === 'REMISIÓN' && $observations)
+                ? $observations->id
+                : $id;
+
+            // Calcular el peso total de los items
+            $totalWeight = DB::connection('tenant')->table($tableName)
+                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where($tableName . '.' . $tableNameId, $weightQueryId)
+                ->sum(DB::raw('inv_items_dimensions.weight * ' . $tableName . '.quantity'));
 
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getOptionValue(3) ?? 1; // 0 = POS Simple, 1 = Institucional
