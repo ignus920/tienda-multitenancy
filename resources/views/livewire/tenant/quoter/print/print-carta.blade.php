@@ -564,7 +564,7 @@
                 </div>
                 <div class="notes-section">
                     <span class="notes-label">Entrega:</span>
-                    {{ $quote->observations_delivery ?? '' }}
+                    {{ $delivery_type ?? '' }}
                 </div>
                 <div class="notes-section">
                     <span class="notes-label">Obs. Pedido:</span> {{ $quote->obs ?? 'na' }}

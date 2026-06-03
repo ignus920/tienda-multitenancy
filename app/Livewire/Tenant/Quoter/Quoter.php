@@ -356,7 +356,11 @@ class Quoter extends Component
 
             $observations = DB::connection('tenant')->table('inv_remissions')
                 ->where('quoteId', $id)
-                ->select('observations_delivery', 'obs')->first();
+                ->select('id', 'observations_delivery', 'obs', 'deliveryTypeId')->first();
+
+            $deliveryType = ($observations && $observations->deliveryTypeId)
+                ? DB::connection('tenant')->table('inv_delivery_types')->where('id', $observations->deliveryTypeId)->value('name')
+                : null;
 
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
@@ -377,6 +381,7 @@ class Quoter extends Component
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
+                'delivery_type' => $deliveryType ?? null,
                 'showValues' => true,
             ];
             Log::info('📝 Datos preparados para la vista');

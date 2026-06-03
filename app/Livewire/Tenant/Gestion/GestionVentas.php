@@ -204,7 +204,11 @@ class GestionVentas extends Component
 
             $observations = DB::connection('tenant')->table('inv_remissions')
                 ->where('quoteId', $id)
-                ->select('id', 'observations_delivery', 'obs')->first();
+                ->select('id', 'observations_delivery', 'obs', 'deliveryTypeId')->first();
+
+            $deliveryType = ($observations && $observations->deliveryTypeId)
+                ? DB::connection('tenant')->table('inv_delivery_types')->where('id', $observations->deliveryTypeId)->value('name')
+                : null;
 
             // Para remisiones el $id es el quoteId; hay que usar el id real de la remisión
             $weightQueryId = ($quote->status === 'REMISIÓN' && $observations)
@@ -234,6 +238,7 @@ class GestionVentas extends Component
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
+                'delivery_type' => $deliveryType,
             ];
 
             // Seleccionar la vista según el formato

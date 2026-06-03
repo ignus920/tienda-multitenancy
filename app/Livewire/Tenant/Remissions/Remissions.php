@@ -930,8 +930,12 @@ class Remissions extends Component
             Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
 
             $observations = DB::connection('tenant')->table('inv_remissions')
-                ->where('quoteId', $id)
-                ->select('observations_delivery', 'obs')->first();
+                ->where('id', $id)
+                ->select('observations_delivery', 'obs', 'deliveryTypeId')->first();
+
+            $deliveryType = ($observations && $observations->deliveryTypeId)
+                ? DB::connection('tenant')->table('inv_delivery_types')->where('id', $observations->deliveryTypeId)->value('name')
+                : null;
 
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
@@ -953,6 +957,7 @@ class Remissions extends Component
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
+                'delivery_type' => $deliveryType ?? null,
                 'showValues' => false,
             ];
             Log::info('📝 Datos preparados para la vista');
