@@ -884,7 +884,7 @@ class Remissions extends Component
 
             Log::info('🔄 Cargando items de los detalles...');
             try {
-                $remission->load('details.item');
+                $remission->load('details.item.consumptionUnit');
                 Log::info('📦 Items cargados');
 
                 // Debug: verificar si hay items null

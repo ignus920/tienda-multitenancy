@@ -510,7 +510,17 @@
                             </div>
                         @endif
                     </td>
-                    <td class="col-qty">{{ number_format($detalle->quantity, 0) }}</td>
+                    <td class="col-qty">
+                        @php
+                            $consumptionUnit = $detalle->item->consumptionUnit ?? null;
+                            $unitQty = ($consumptionUnit && $consumptionUnit->quantity > 1) ? $consumptionUnit->quantity : 0;
+                        @endphp
+                        @if($unitQty > 0 && $documentTitle === 'REMISIÓN')
+                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 0) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
+                        @else
+                            {{ number_format($detalle->quantity, 0) }}
+                        @endif
+                    </td>
                     {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
                     <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td> --}}
                     @if(!isset($showValues) || $showValues)
