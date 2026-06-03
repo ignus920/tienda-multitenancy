@@ -925,7 +925,7 @@ class Remissions extends Component
             $totalWeight = DB::connection('tenant')->table('inv_detail_remissions')
                 ->join('inv_items_dimensions', 'inv_detail_remissions.itemId', '=', 'inv_items_dimensions.item_id')
                 ->where('inv_detail_remissions.remissionId', $id)
-                ->sum('inv_items_dimensions.weight');
+                ->sum(DB::raw('inv_items_dimensions.weight * inv_detail_remissions.quantity'));
 
             Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
 

@@ -335,7 +335,7 @@ class CarteraList extends Component
                 ->table($tableName)
                 ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
                 ->where($tableName . '.' . $tableNameId, $quoteId)
-                ->sum('inv_items_dimensions.weight');
+                ->sum(DB::raw('inv_items_dimensions.weight * ' . $tableName . '.quantity'));
 
             $observations = DB::connection('tenant')
                 ->table('inv_remissions')
