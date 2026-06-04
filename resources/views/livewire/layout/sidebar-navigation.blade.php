@@ -289,7 +289,7 @@ new class extends Component
         @endif
 
         <!-- Facturación -->
-        @if(!$isOperario && !in_array(Auth::user()?->profile_id, [4, 9, 16]) && PermissionHelper::userCanAny(['Cartera', 'Ventas'], 'show'))
+        @if(!$isOperario && !$isAlmacenista && !in_array(Auth::user()?->profile_id, [4, 9, 16]) && PermissionHelper::userCanAny(['Cartera', 'Ventas'], 'show'))
         <div x-data="{
             tooltip: false,
             open: {{ request()->routeIs('tenant.remissions.*') || request()->routeIs('tenant.cartera.*') || request()->routeIs('tenant.invoices.*') || request()->routeIs('tenant.quoter.*') ? 'true' : 'false' }},
