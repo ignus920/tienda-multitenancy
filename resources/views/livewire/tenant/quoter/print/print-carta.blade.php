@@ -626,6 +626,21 @@
             </div> --}}
         </div>
 
+        @if(isset($assignedCampaign) && $assignedCampaign)
+        <div style="margin-top: 12px; border: 2px solid #2c3e50; border-radius: 6px; padding: 10px 14px; background-color: #f8f9fa;">
+            <div style="font-weight: bold; font-size: 10pt; color: #2c3e50; margin-bottom: 6px; border-bottom: 1px solid #dee2e6; padding-bottom: 4px;">
+                🎁 Entrega de regalos:
+            </div>
+            <div style="font-size: 9pt; line-height: 1.6;">
+                <div><strong>Nombre:</strong> {{ $assignedCampaign->name }}</div>
+                @if($assignedCampaign->description)
+                <div><strong>Descripción:</strong> {{ $assignedCampaign->description }}</div>
+                @endif
+                <div><strong>Cant:</strong> {{ $assignedCampaign->max_per_order ?? 1 }}</div>
+            </div>
+        </div>
+        @endif
+
         @if(!isset($showValues) || $showValues)
         <div class="totals-container">
             @php

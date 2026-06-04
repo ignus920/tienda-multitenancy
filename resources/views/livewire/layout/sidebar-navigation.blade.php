@@ -502,10 +502,6 @@ new class extends Component
                     Listas de Precios
                 </a>
 
-                <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
-                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.campaigns.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
-                    Campañas
-                </a>
                 <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.zones') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Zonas
@@ -533,8 +529,6 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Empresa</a>
                 <a href="{{ route('tenant.parameters.pricelists') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Listas de Precios</a>
-                <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
-                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Campañas</a>
                 <a href="{{ route('tenant.parameters.zones') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Zonas</a>
                 <a href="{{ route('tenant.parameters.routes') }}" wire:navigate
@@ -544,19 +538,52 @@ new class extends Component
             </div>
         </div>
 
-        <!-- WordPress Stock Sync -->
-        <a href="{{ route('tenant.wordpress.stock-sync') }}" wire:navigate
-            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.wordpress.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
-            x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
-            <i class="fab fa-wordpress h-5 w-5 shrink-0 text-[1.15rem]"></i>
-            <span x-show="!sidebarCollapsed" class="ml-3" x-transition>WordPress Stock</span>
-            <div x-show="sidebarCollapsed && tooltip" x-transition
-                class="absolute left-full ml-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg shadow-xl z-[9999] whitespace-nowrap">
-                WordPress Stock
+        <!-- Mercadeo -->
+        <div x-data="{
+            tooltip: false,
+            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') ? 'true' : 'false' }},
+            _t: null
+        }" class="w-full relative">
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+                @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)"
+                @click="open = !open">
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>Mercadeo</span>
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
             </div>
-        </a>
+
+            <!-- Submenú expandido -->
+            <div x-show="open && !sidebarCollapsed" x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.campaigns.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Campañas
+                </a>
+                <a href="{{ route('tenant.wordpress.stock-sync') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.wordpress.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    WordPress Stock
+                </a>
+            </div>
+
+            <!-- Tooltip colapsado -->
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Mercadeo</div>
+                <a href="{{ route('tenant.campaigns.index') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Campañas</a>
+                <a href="{{ route('tenant.wordpress.stock-sync') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">WordPress Stock</a>
+            </div>
+        </div>
         @endif
 
         @if (Auth::user()?->profile_id != 17)

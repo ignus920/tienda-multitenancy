@@ -37,7 +37,20 @@ class CampaignService
             return false;
         }
 
-        // 1. Validar si ya recibió regalo en esta campaña (si no es 'todas_op')
+        // Si ya se asignó regalo para esta remisión específica, no asignar de nuevo
+        if ($remissionId) {
+            $alreadyForThisRemission = DB::connection('tenant')
+                ->table('cmp_campaign_customers')
+                ->where('campaign_id', $campaign->id)
+                ->where('remission_id', $remissionId)
+                ->exists();
+
+            if ($alreadyForThisRemission) {
+                return false;
+            }
+        }
+
+        // Validar si ya recibió regalo en esta campaña (para tipos que solo permiten uno)
         if ($campaign->assignment_type !== 'todas_op') {
             $alreadyReceived = $campaign->customers()
                 ->where('customer_id', $customer->id)
@@ -46,34 +59,16 @@ class CampaignService
             if ($alreadyReceived) {
                 return false;
             }
-        } else {
-            // Si es 'todas_op', validar si ya recibió regalo para ESTA remisión específica
-            if ($remissionId) {
-                $alreadyReceivedInRemission = DB::connection('tenant')
-                    ->table('cmp_campaign_customers')
-                    ->where('campaign_id', $campaign->id)
-                    ->where('customer_id', $customer->id)
-                    ->where('delivered_at', '!=', null)
-                    // Nota: Aquí necesitaríamos guardar el remission_id en la tabla pivot si queremos esta precisión
-                    // Por ahora, si es todas_op, permitimos siempre o por fecha
-                    ->exists();
-                // Como la tabla actual no tiene remission_id, simplificamos:
-                // Si es todas_op, permitimos múltiples entregas pero el usuario debe gestionar el stock
-            }
         }
 
-        // 2. Validar según tipo de asignación
+        // Validar según tipo de asignación
         switch ($campaign->assignment_type) {
             case 'todos':
             case 'todas_op':
                 return true;
 
             case 'manual':
-                // Para manual, ya validamos arriba si está en la tabla (ya que usamos la tabla pivot para asignar)
-                // Pero aquí la lógica sería: ¿Está asignado pero no ha recibido?
-                // En nuestra estructura, insertamos en cmp_campaign_customers al ENTREGAR.
-                // Si el usuario quiere pre-asignar, necesitaríamos una columna 'status' en el pivot.
-                return true; 
+                return true;
 
             case 'antiguos_frecuentes':
                 return $this->isOldOrFrequentCustomer($customer);
@@ -141,10 +136,10 @@ class CampaignService
 
             // Registrar entrega en el pivot
             $campaign->customers()->attach($customer->id, [
-                'delivered_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-                // 'remission_id' => $remissionId // Opcional si añadimos la columna
+                'delivered_at'  => now(),
+                'remission_id'  => $remissionId,
+                'created_at'    => now(),
+                'updated_at'    => now(),
             ]);
 
             // Incrementar contador

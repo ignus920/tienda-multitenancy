@@ -931,16 +931,15 @@ class Remissions extends Component
             // Validar y asignar regalo de campaña
             $campaignService = app(CampaignService::class);
             $assignedCampaign = $campaignService->checkAndAssignGift($remission);
-            $giftObservation = $assignedCampaign ? "\n*** OBSEQUIO: {$assignedCampaign->name} ***" : "";
 
             $data = [
-                'quote' => $remission, // Pasamos la remisión como 'quote' para reusar la vista
+                'quote' => $remission,
                 'customer' => $remission->quote->customer ?? null,
                 'company' => $company,
                 'documentTitle' => 'REMISIÓN',
                 'showQR' => true,
-                'defaultObservations' => 'Sin observaciones.' . $giftObservation,
-                'giftObservation' => $giftObservation,
+                'defaultObservations' => 'Sin observaciones.',
+                'assignedCampaign' => $assignedCampaign,
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,

@@ -51,7 +51,7 @@ class Campaign extends Model
             'cmp_campaign_customers',
             'campaign_id',
             'customer_id'
-        )->withPivot('delivered_at')->withTimestamps();
+        )->withPivot('delivered_at', 'remission_id')->withTimestamps();
     }
 
     /**
