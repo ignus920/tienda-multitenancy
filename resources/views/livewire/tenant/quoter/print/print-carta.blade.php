@@ -170,7 +170,7 @@
         }
 
         .col-idx { width: 30px; text-align: center; }
-        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 9.5pt; font-weight: 600; }
+        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 11pt; font-weight: 600; }
         .col-desc { text-align: left; min-width: 200px; }
         .col-qty { width: 50px; text-align: center; }
         .col-delivered { width: 60px; text-align: center; }
@@ -420,36 +420,55 @@
             <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
             <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                 <tr>
-                    <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 34%;">
-                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS EMPRESA</div>
-                        <div><strong>NIT:</strong> {{ $company->identification ?? '901.123.456-7' }}-{{ $company->checkDigit ?? '' }}</div>
-                        <div><strong>Dirección:</strong> {{ $company->billingAddress ?? 'Calle Principal No. 123' }}</div>
-                        {{-- <div><strong>Teléfono:</strong> {{ $company->phone ?? '(601) 123 4567' }}</div> --}}
-                        <div><strong>Email:</strong> {{ $company->billingEmail ?? 'ventas@fervicom.com' }}</div>
-                        <div style="margin-top: 8px;">
+                    @if($documentTitle === 'REMISIÓN')
+                        @if($customer)
+                        <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 50%;">
+                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
+                            <div><strong>{{ $customer->full_name }}</strong></div>
+                            <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
+                            <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
+                            <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
+                            <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
+                            <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                        </td>
+                        <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 50%; padding-left: 12px;">
                             <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
                             <div>{{ $quote->seller_name }}</div>
                             <div><strong>Tel:</strong> {{ $quote->seller_phone }}</div>
-                        </div>
-                    </td>
-                    @if($customer)
-                    <td style="text-align: left; font-size: 8.5pt; padding-left: 12px; line-height: 1.3; vertical-align: top; width: 33%;">
-                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
-                        <div><strong>{{ $customer->full_name }}</strong></div>
-                        <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                        <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
-                        <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
-                        <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
-                    </td>
-                    <td style="text-align: left; font-size: 8.5pt; padding-left: 30px; line-height: 1.3; vertical-align: top; width: 33%;">
-                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
-                        <div><strong>{{ $customer->full_name }}</strong></div>
-                        <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                        <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
-                        <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
-                        <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
-                        <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
-                    </td>
+                            <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
+                        </td>
+                        @endif
+                    @else
+                        <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 34%;">
+                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS EMPRESA</div>
+                            <div><strong>NIT:</strong> {{ $company->identification ?? '901.123.456-7' }}-{{ $company->checkDigit ?? '' }}</div>
+                            <div><strong>Dirección:</strong> {{ $company->billingAddress ?? 'Calle Principal No. 123' }}</div>
+                            <div><strong>Email:</strong> {{ $company->billingEmail ?? 'ventas@fervicom.com' }}</div>
+                            <div style="margin-top: 8px;">
+                                <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
+                                <div>{{ $quote->seller_name }}</div>
+                                <div><strong>Tel:</strong> {{ $quote->seller_phone }}</div>
+                            </div>
+                        </td>
+                        @if($customer)
+                        <td style="text-align: left; font-size: 8.5pt; padding-left: 12px; line-height: 1.3; vertical-align: top; width: 33%;">
+                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
+                            <div><strong>{{ $customer->full_name }}</strong></div>
+                            <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
+                            <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                            <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
+                            <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
+                        </td>
+                        <td style="text-align: left; font-size: 8.5pt; padding-left: 30px; line-height: 1.3; vertical-align: top; width: 33%;">
+                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
+                            <div><strong>{{ $customer->full_name }}</strong></div>
+                            <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
+                            <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
+                            <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
+                            <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
+                            <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                        </td>
+                        @endif
                     @endif
                 </tr>
             </table>
@@ -491,7 +510,7 @@
                         @endif
                     </td>
                     <td class="col-desc">
-                        <strong>{{ $detalle->item->name ?? $detalle->item->display_name }}</strong>
+                        {{ $detalle->item->name ?? $detalle->item->display_name }}
                         @if($detalle->description && $detalle->description != ($detalle->item->name ?? ''))
                             <div style="font-size: 8.5pt; color: #7f8c8d; margin-top: 3px;">{{ $detalle->description }}</div>
                         @endif
@@ -581,6 +600,19 @@
                 </div>
 
             </div>
+
+            @if($documentTitle === 'REMISIÓN')
+                @php
+                    $paymentName = strtolower($quote->methodPayment->name ?? $quote->method_payment_name ?? '');
+                @endphp
+                @if(str_contains($paymentName, 'contra entrega'))
+                <div style="margin-top: 14px; text-align: center; border: 3px solid #e74c3c; border-radius: 6px; padding: 10px 16px; background-color: #fff5f5;">
+                    <span style="font-size: 18pt; font-weight: bold; color: #e74c3c; letter-spacing: 1px; text-transform: uppercase;">
+                        &#9888; PAGAN CONTRA ENTREGA
+                    </span>
+                </div>
+                @endif
+            @endif
 
             {{-- <div class="signatures">
                 <div class="signature-box">
