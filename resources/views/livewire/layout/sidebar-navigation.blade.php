@@ -57,7 +57,10 @@ new class extends Component
 
     <!-- Navigation -->
     <nav class="flex flex-1 flex-col p-4 space-y-1">
-        @php $isOperario = auth()->user()?->profile_id === 8; @endphp
+        @php
+            $isOperario     = auth()->user()?->profile_id === 8;
+            $isAlmacenista  = auth()->user()?->profile_id === 6;
+        @endphp
         <!-- Dashboard
         <a href="{{ route('dashboard') }}" wire:navigate
             class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -122,7 +125,7 @@ new class extends Component
         @if(!$isOperario && Auth::user()?->profile_id !== 11 && PermissionHelper::userCanAny(['Ventas'], 'show'))
         <div x-data="{
             tooltip: false,
-            open: {{ request()->routeIs('tenant.quoter.*') || request()->routeIs('tenant.remissions.*') ? 'true' : 'false' }},
+            open: {{ request()->routeIs('tenant.quoter.products') || request()->routeIs('tenant.gestion') ? 'true' : 'false' }},
             _t: null
         }" class="w-full relative">
             <!-- Botón principal -->
@@ -152,6 +155,7 @@ new class extends Component
             <!-- Submenú -->
             <div x-show="open && !sidebarCollapsed" x-transition
                 class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                @if(!$isAlmacenista)
                 <a href="{{ route('tenant.quoter.products') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.quoter.products') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Ventas
@@ -160,14 +164,17 @@ new class extends Component
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.quoter') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Cotizaciones
                 </a>
-                 <a href="{{ route('tenant.remissions') }}" wire:navigate
+                @endif
+                <a href="{{ route('tenant.remissions') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.remissions.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Pedidos
                 </a>
+                @if(!$isAlmacenista)
                 <a href="{{ route('tenant.gestion') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.gestion') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión
                 </a>
+                @endif
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -175,14 +182,18 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
                 @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
                 <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Ventas</div>
+                @if(!$isAlmacenista)
                 <a href="{{ route('tenant.quoter.products') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Ventas</a>
                 <a href="{{ route('tenant.quoter') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Cotizaciones</a>
+                @endif
                 <a href="{{ route('tenant.remissions') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Pedidos</a>
+                @if(!$isAlmacenista)
                 <a href="{{ route('tenant.gestion') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión</a>
+                @endif
             </div>
         </div>
         @endif
