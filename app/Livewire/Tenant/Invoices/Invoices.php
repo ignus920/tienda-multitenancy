@@ -1192,108 +1192,19 @@ class Invoices extends Component
         }
 
         try {
-            $invoiceApiId  = $this->creditNoteInvoice['invoice_api_data_id'] ?? null;
-            $customerApiId = $this->creditNoteInvoice['customer_api_id'] ?? null;
+            $creditNoteTotal = (int) round($selectedItems->sum('total'));
 
-            if (!$invoiceApiId) {
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La factura no tiene ID de Alegra. No se puede crear la nota crédito.']);
-                return;
-            }
-
-            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
-            if (!$tenant || !TenantConfigManager::hasFacturacionConfig($tenant)) {
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No hay configuración de facturación para este tenant.']);
-                return;
-            }
-
-            $facturacionService = FacturacionService::forTenant($tenant);
-
-            // Si no tenemos el cliente, lo consultamos desde la factura en Alegra
-            if (!$customerApiId) {
-                $alegraInvoice = $facturacionService->getApiClient()->getInvoice($invoiceApiId);
-                $customerApiId = $alegraInvoice['data']['client']['id']
-                    ?? $alegraInvoice['data']['contact']['id']
-                    ?? null;
-            }
-
-            if (!$customerApiId) {
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se pudo obtener el cliente de la factura en Alegra.']);
-                return;
-            }
-
-            $alegraItems = $selectedItems
-                ->filter(fn($item) => !empty($item['item_api_id']))
-                ->map(fn($item) => [
-                    'id'       => (string) $item['item_api_id'],
-                    'name'     => $item['name'],
-                    'tax'      => !empty($item['tax_api_id']) ? [['id' => (string) $item['tax_api_id']]] : [],
-                    'price'    => (float) $item['unit_price'],
-                    'quantity' => (float) $item['quantity'],
-                ])
-                ->values()
-                ->toArray();
-
-            if (empty($alegraItems)) {
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Ningún ítem seleccionado tiene ID de Alegra.']);
-                return;
-            }
-
-            $creditNoteTotal      = (int) round($selectedItems->sum('total'));
-            $creditNoteTotalAlegra = round($selectedItems->sum('total'), 2);
-
-            $alegraPayload = [
-                'client'   => ['id' => (string) $customerApiId],
-                'date'     => now()->format('Y-m-d'),
-                'items'    => $alegraItems,
-                'type'     => $this->creditNoteReason,
-                'invoices' => [
-                    ['id' => (int) $invoiceApiId, 'amount' => $creditNoteTotalAlegra],
-                ],
-            ];
-
-            Log::info('📤 Enviando nota crédito a Alegra', [
-                'json_enviado' => json_encode($alegraPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
-            ]);
-
-            $alegraResponse = $facturacionService->createCreditNote($invoiceApiId, $alegraPayload);
-
-            Log::info('📥 Respuesta completa de Alegra (nota crédito)', [
-                'success'       => $alegraResponse['success'] ?? false,
-                'status'        => $alegraResponse['status'] ?? null,
-                'message'       => $alegraResponse['message'] ?? null,
-                'data_completa' => $alegraResponse['data'] ?? null,
-            ]);
-
-            if (!($alegraResponse['success'] ?? false)) {
-                $alegraError = $alegraResponse['message']
-                    ?? $alegraResponse['data']['message']
-                    ?? 'Error desconocido de Alegra';
-
-                Log::warning('⚠️ No se pudo crear la nota crédito en Alegra', [
-                    'error_msg'   => $alegraError,
-                    'status_code' => $alegraResponse['status'] ?? null,
-                ]);
-
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error en Alegra: ' . $alegraError]);
-                return;
-            }
-
-            // ── Alegra OK: guardar localmente ───────────────────────────────
-            $alegraId = $alegraResponse['data']['id']
-                ?? $alegraResponse['data']['data']['id']
-                ?? $alegraResponse['data']['creditNote']['id']
-                ?? $alegraResponse['data']['consecutivo']
-                ?? null;
-
+            // ── Guardar localmente ──────────────────────────────────────────
             VntInvoices::where('id', $this->creditNoteInvoice['id'])
                 ->update([
                     'creditNote'   => $creditNoteTotal,
-                    'creditNoteId' => $alegraId,
+                    'creditNoteId' => null,
                 ]);
 
-            Log::info('✅ Nota crédito creada en Alegra', [
-                'alegra_credit_note_id' => $alegraId,
-                'invoice_local_id'      => $this->creditNoteInvoice['id'],
+            Log::info('✅ Nota crédito registrada localmente', [
+                'invoice_local_id' => $this->creditNoteInvoice['id'],
+                'total'            => $creditNoteTotal,
+                'reason'           => $this->creditNoteReason,
             ]);
 
             // ── Reintegrar stock al inventario ──────────────────────────────
@@ -1320,7 +1231,7 @@ class Invoices extends Component
             $this->closeCreditNoteModal();
             $this->dispatch('show-toast', [
                 'type'    => 'success',
-                'message' => 'Nota crédito creada exitosamente' . ($alegraId ? " (ID Alegra: {$alegraId})" : '') . '.',
+                'message' => 'Nota crédito registrada exitosamente.',
             ]);
         } catch (\Exception $e) {
             Log::error('❌ Error creando nota crédito: ' . $e->getMessage());
