@@ -506,7 +506,7 @@
                     <td class="col-code">
                         <div>{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
                         @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
-                            <div style="font-size: 7.5pt; color: #e74c3c; margin-top: 3px; font-weight: normal; font-family: 'Segoe UI', sans-serif;">{{ $detalle->item->picking }}</div>
+                            <div style="font-size: 10pt; color: #e74c3c; margin-top: 3px; font-weight: bold; font-family: 'Segoe UI', sans-serif;">{{ $detalle->item->picking }}</div>
                         @endif
                     </td>
                     <td class="col-desc">
