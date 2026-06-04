@@ -37,6 +37,15 @@ class CampaignService
             return false;
         }
 
+        // Validar que la campaña esté dentro del rango de fechas y activa
+        $today = now()->startOfDay();
+        if ($campaign->status !== 'activo'
+            || $today->lt($campaign->start_date)
+            || $today->gt($campaign->end_date)
+        ) {
+            return false;
+        }
+
         // Si ya se asignó regalo para esta remisión específica, no asignar de nuevo
         if ($remissionId) {
             $alreadyForThisRemission = DB::connection('tenant')
@@ -127,9 +136,17 @@ class CampaignService
         }
 
         return DB::connection('tenant')->transaction(function () use ($customer, $campaign, $remissionId) {
-            // Volver a verificar stock dentro de la transacción
+            // Volver a verificar dentro de la transacción: stock y fechas
             $freshCampaign = Campaign::lockForUpdate()->find($campaign->id);
-            
+
+            $today = now()->startOfDay();
+            if ($freshCampaign->status !== 'activo'
+                || $today->lt($freshCampaign->start_date)
+                || $today->gt($freshCampaign->end_date)
+            ) {
+                return false;
+            }
+
             if ($freshCampaign->gifts_sent >= $freshCampaign->gift_quantity) {
                 return false;
             }

@@ -238,7 +238,7 @@
                 <span class="text-xs font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight, 2, ',', '.') }} g</span>
+                <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight / 1000, 2, ',', '.') }} Kg</span>
                 <div class="{{ $isFreightApplied ? 'bg-indigo-600 group-hover:bg-indigo-700' : 'bg-red-600 group-hover:bg-red-700' }} text-white p-1 rounded-md transition-colors">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
