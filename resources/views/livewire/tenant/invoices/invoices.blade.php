@@ -304,16 +304,7 @@
                                                 </button>
                                             @endif
 
-                                            {{-- Botón de Pagar - Solo para facturas EMITIDAS y no pagadas --}}
-                                            @if($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO')
-                                                <button wire:click="openPaymentModal({{ $invoice->id }})"
-                                                    class="w-full text-left px-4 py-2 text-sm text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
-                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                                    </svg>
-                                                    Marcar como Pagada
-                                                </button>
-                                            @endif
+                                            {{-- Botón de Pagar oculto --}}
 
                                             {{-- Botón de Imprimir - Solo para facturas EMITIDAS --}}
                                             @if($invoice->status === 'FACTURADO')
