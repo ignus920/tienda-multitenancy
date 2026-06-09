@@ -428,8 +428,14 @@
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
-                            <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
-                            <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                            @php $emailVal = trim($customer->email ?? ''); @endphp
+                            @if($emailVal && $emailVal !== 'N/A')
+                            <div><strong>Email:</strong> {{ $emailVal }}</div>
+                            @endif
+                            @php $phoneVal = trim($customer->phone ?? $customer->personal_phone ?? ''); @endphp
+                            @if($phoneVal && $phoneVal !== 'N/A')
+                            <div><strong>Teléfono:</strong> {{ $phoneVal }}</div>
+                            @endif
                         </td>
                         <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 50%; padding-left: 12px;">
                             <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
@@ -455,8 +461,14 @@
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
                             <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                            <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
-                            <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
+                            @php $phoneVal2 = trim($customer->phone ?? $customer->personal_phone ?? ''); @endphp
+                            @if($phoneVal2 && $phoneVal2 !== 'N/A')
+                            <div><strong>Teléfono:</strong> {{ $phoneVal2 }}</div>
+                            @endif
+                            @php $emailVal2 = trim($customer->email ?? ''); @endphp
+                            @if($emailVal2 && $emailVal2 !== 'N/A')
+                            <div><strong>Email:</strong> {{ $emailVal2 }}</div>
+                            @endif
                             <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
                         </td>
                         <td style="text-align: left; font-size: 8.5pt; padding-left: 30px; line-height: 1.3; vertical-align: top; width: 33%;">
@@ -465,8 +477,14 @@
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
-                            <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
-                            <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
+                            @php $emailVal3 = trim($customer->email ?? ''); @endphp
+                            @if($emailVal3 && $emailVal3 !== 'N/A')
+                            <div><strong>Email:</strong> {{ $emailVal3 }}</div>
+                            @endif
+                            @php $phoneVal3 = trim($customer->phone ?? $customer->personal_phone ?? ''); @endphp
+                            @if($phoneVal3 && $phoneVal3 !== 'N/A')
+                            <div><strong>Teléfono:</strong> {{ $phoneVal3 }}</div>
+                            @endif
                         </td>
                         @endif
                     @endif
