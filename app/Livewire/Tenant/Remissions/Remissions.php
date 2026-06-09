@@ -345,6 +345,10 @@ class Remissions extends Component
      */
     public function facturarMasivo()
     {
+        if (in_array(auth()->user()?->profile_id, [4, 6, 9, 16])) {
+            return;
+        }
+
         if (empty($this->selectedRemissions)) {
             $this->dispatch('show-toast', [
                 'type' => 'warning',

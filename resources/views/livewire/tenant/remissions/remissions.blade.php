@@ -167,7 +167,7 @@
                     <option value="50">50</option>
                 </select>
             </div>
-            @if(!in_array(auth()->user()?->profile_id, [4, 9, 16]) && count($selectedRemissions) > 0)
+            @if(!in_array(auth()->user()?->profile_id, [4, 6, 9, 16]) && count($selectedRemissions) > 0)
             <div style="flex-shrink: 0;">
                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">&nbsp;</label>
                 <button wire:click="facturarMasivo"
@@ -263,7 +263,7 @@
                     @forelse($remissions as $remission)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-4 py-4 text-center">
-                                @if(!in_array(auth()->user()?->profile_id, [4, 9, 16]))
+                                @if(!in_array(auth()->user()?->profile_id, [4, 6, 9, 16]))
                                     @if($remission->status !== 'ANULADO' && !$remission->invoice)
                                         <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
                                             class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
