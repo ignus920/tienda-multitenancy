@@ -429,11 +429,11 @@
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
                             @php $emailVal = trim($customer->email ?? ''); @endphp
-                            @if($emailVal && $emailVal !== 'N/A')
+                            @if($emailVal && filter_var($emailVal, FILTER_VALIDATE_EMAIL))
                             <div><strong>Email:</strong> {{ $emailVal }}</div>
                             @endif
-                            @php $phoneVal = trim($customer->phone ?? $customer->personal_phone ?? ''); @endphp
-                            @if($phoneVal && $phoneVal !== 'N/A')
+                            @php $phoneVal = trim($customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal && preg_match('/\d{7,}/', $phoneVal))
                             <div><strong>Teléfono:</strong> {{ $phoneVal }}</div>
                             @endif
                         </td>
@@ -461,12 +461,12 @@
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
                             <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                            @php $phoneVal2 = trim($customer->phone ?? $customer->personal_phone ?? ''); @endphp
-                            @if($phoneVal2 && $phoneVal2 !== 'N/A')
+                            @php $phoneVal2 = trim($customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal2 && preg_match('/\d{7,}/', $phoneVal2))
                             <div><strong>Teléfono:</strong> {{ $phoneVal2 }}</div>
                             @endif
                             @php $emailVal2 = trim($customer->email ?? ''); @endphp
-                            @if($emailVal2 && $emailVal2 !== 'N/A')
+                            @if($emailVal2 && filter_var($emailVal2, FILTER_VALIDATE_EMAIL))
                             <div><strong>Email:</strong> {{ $emailVal2 }}</div>
                             @endif
                             <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
@@ -478,11 +478,11 @@
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
                             @php $emailVal3 = trim($customer->email ?? ''); @endphp
-                            @if($emailVal3 && $emailVal3 !== 'N/A')
+                            @if($emailVal3 && filter_var($emailVal3, FILTER_VALIDATE_EMAIL))
                             <div><strong>Email:</strong> {{ $emailVal3 }}</div>
                             @endif
-                            @php $phoneVal3 = trim($customer->phone ?? $customer->personal_phone ?? ''); @endphp
-                            @if($phoneVal3 && $phoneVal3 !== 'N/A')
+                            @php $phoneVal3 = trim($customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal3 && preg_match('/\d{7,}/', $phoneVal3))
                             <div><strong>Teléfono:</strong> {{ $phoneVal3 }}</div>
                             @endif
                         </td>
