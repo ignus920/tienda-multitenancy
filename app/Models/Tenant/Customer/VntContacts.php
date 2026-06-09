@@ -102,7 +102,8 @@ class VntContacts extends Model
         'short_name',
         'primary_phone',
         'identification',
-        'billingEmail'
+        'billingEmail',
+        'display_name',
     ];
 
     // --- Relaciones ---
@@ -209,7 +210,27 @@ class VntContacts extends Model
     }
 
     /**
-     * Obtiene el nombre completo del contacto.
+     * Obtiene el nombre para mostrar según el tipo de identificación de la empresa.
+     * - Si la empresa tiene typeIdentificationId = 2 (NIT/Jurídica) → businessName
+     * - Si la empresa tiene typeIdentificationId = 1 (CC/Natural) → firstName + secondName + lastName + secondLastName
+     * - Si no hay empresa asociada → concatena los campos del contacto directamente
+     *
+     * @return string
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        // Si el contacto tiene empresa, delegar la lógica al modelo VntCompany
+        if ($this->relationLoaded('company') && $this->company) {
+            return $this->company->display_name;
+        }
+
+        // Si no hay empresa, usar el nombre completo del contacto como fallback
+        return $this->getFullNameAttribute();
+    }
+
+    /**
+     * Obtiene el nombre completo del contacto (firstName + secondName + lastName + secondLastName).
+     * Nota: use `display_name` cuando necesites respetar el tipo de identificación.
      *
      * @return string
      */

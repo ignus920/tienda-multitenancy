@@ -424,7 +424,7 @@
                         @if($customer)
                         <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 50%;">
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
-                            <div><strong>{{ $customer->full_name }}</strong></div>
+                            <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
@@ -453,7 +453,7 @@
                         @if($customer)
                         <td style="text-align: left; font-size: 8.5pt; padding-left: 12px; line-height: 1.3; vertical-align: top; width: 33%;">
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
-                            <div><strong>{{ $customer->full_name }}</strong></div>
+                            <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
                             <div><strong>Teléfono:</strong> {{ $customer->phone ?? $customer->personal_phone ?? 'N/A' }}</div>
                             <div><strong>Email:</strong> {{ $customer->email ?? 'N/A' }}</div>
@@ -461,7 +461,7 @@
                         </td>
                         <td style="text-align: left; font-size: 8.5pt; padding-left: 30px; line-height: 1.3; vertical-align: top; width: 33%;">
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
-                            <div><strong>{{ $customer->full_name }}</strong></div>
+                            <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>

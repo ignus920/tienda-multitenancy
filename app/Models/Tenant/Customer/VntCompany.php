@@ -142,18 +142,33 @@ class VntCompany extends Model
 
     /**
      * Obtiene el nombre del cliente (Razón Social o Nombre Completo)
+     * Mantiene compatibilidad con código existente.
      */
     public function getCustomerNameAttribute()
     {
-        if ($this->businessName) {
-            return $this->businessName;
+        return $this->getDisplayNameAttribute();
+    }
+
+    /**
+     * Obtiene el nombre para mostrar según el tipo de identificación:
+     * - typeIdentificationId = 1 → Persona Natural → firstName + secondName + lastName + secondLastName
+     * - typeIdentificationId = 2 → Persona Jurídica → businessName
+     *
+     * @return string
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        // Tipo 2 = Persona Jurídica (NIT) → Razón Social
+        if ((int) $this->typeIdentificationId === 2) {
+            return $this->businessName ?? '';
         }
 
+        // Tipo 1 = Persona Natural (CC/CE) → Nombre completo concatenado
         return trim(implode(' ', array_filter([
             $this->firstName,
             $this->secondName,
             $this->lastName,
-            $this->secondLastName
+            $this->secondLastName,
         ])));
     }
 }
