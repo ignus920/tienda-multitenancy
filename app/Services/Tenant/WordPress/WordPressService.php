@@ -731,21 +731,29 @@ class WordPressService
             return false;
         }
 
-        $mediaId = $this->uploadMedia($image->img_path);
-        if (!$mediaId) {
-            Log::error('❌ [WP] syncImage cancelado: uploadMedia falló', [
-                'image_id' => $image->id,
-                'img_path' => $image->img_path,
+        if ($image->wp_media_id) {
+            Log::info('ℹ️ [WP] Imagen ya subida previamente, reutilizando wp_media_id', [
+                'image_id'    => $image->id,
+                'wp_media_id' => $image->wp_media_id,
             ]);
-            return false;
-        }
+            $mediaId = $image->wp_media_id;
+        } else {
+            $mediaId = $this->uploadMedia($image->img_path);
+            if (!$mediaId) {
+                Log::error('❌ [WP] syncImage cancelado: uploadMedia falló', [
+                    'image_id' => $image->id,
+                    'img_path' => $image->img_path,
+                ]);
+                return false;
+            }
 
-        $image->wp_media_id = $mediaId;
-        $image->save();
-        Log::info('💾 [WP] wp_media_id guardado en BD local', [
-            'image_id'    => $image->id,
-            'wp_media_id' => $mediaId,
-        ]);
+            $image->wp_media_id = $mediaId;
+            $image->save();
+            Log::info('💾 [WP] wp_media_id guardado en BD local', [
+                'image_id'    => $image->id,
+                'wp_media_id' => $mediaId,
+            ]);
+        }
 
         if ($image->type === 'PRINCIPAL') {
             Log::info('🌟 [WP] Asignando como imagen PRINCIPAL del producto');
