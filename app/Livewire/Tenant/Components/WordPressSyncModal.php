@@ -234,6 +234,41 @@ class WordPressSyncModal extends Component
         }
     }
 
+    public function reconcileImages()
+    {
+        Log::info('🔧 [WPSync] reconcileImages() iniciado', [
+            'item_id' => $this->itemId,
+            'sku'     => $this->productSku,
+        ]);
+
+        $this->ensureTenantConnection();
+        $this->syncing = true;
+
+        try {
+            $wpService = app(WordPressService::class);
+            $result    = $wpService->reconcileImageIds($this->itemId, $this->productSku);
+
+            $parts = [];
+            if ($result['corrected'] > 0)  $parts[] = "{$result['corrected']} ID(s) corregido(s)";
+            if ($result['already_ok'] > 0) $parts[] = "{$result['already_ok']} ya estaba(n) correctos";
+            if ($result['not_found'] > 0)  $parts[] = "{$result['not_found']} no encontrada(s) en WP (pendientes de subir)";
+
+            $msg  = empty($parts) ? 'No se procesaron imágenes.' : implode(', ', $parts) . '.';
+            $type = $result['not_found'] > 0 ? 'warning' : 'success';
+
+            $this->dispatch('show-toast', ['type' => $type, 'message' => $msg]);
+            $this->loadData();
+        } catch (\Exception $e) {
+            Log::error('❌ [WPSync] Error en reconcileImages', [
+                'item_id' => $this->itemId,
+                'error'   => $e->getMessage(),
+            ]);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al reconciliar: ' . $e->getMessage()]);
+        } finally {
+            $this->syncing = false;
+        }
+    }
+
     public function toggleSyncToWp($imageId)
     {
         $this->ensureTenantConnection();
@@ -277,16 +312,22 @@ class WordPressSyncModal extends Component
             ]);
 
             $wpService = app(WordPressService::class);
-            $success = $wpService->syncImage($image, $this->productSku);
+            $result = $wpService->syncImage($image, $this->productSku);
 
-            if ($success) {
-                Log::info('✅ [WPSync] Imagen principal sincronizada OK', [
+            if ($result === 'uploaded') {
+                Log::info('✅ [WPSync] Imagen principal subida y sincronizada OK', [
                     'item_id'     => $this->itemId,
                     'image_id'    => $image->id,
                     'wp_media_id' => $image->fresh()->wp_media_id,
                 ]);
                 $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Imagen principal sincronizada con éxito.']);
                 $this->loadData();
+            } elseif ($result === 'skipped') {
+                Log::info('ℹ️ [WPSync] Imagen principal ya estaba sincronizada, sin cambios', [
+                    'item_id'  => $this->itemId,
+                    'image_id' => $image->id,
+                ]);
+                $this->dispatch('show-toast', ['type' => 'info', 'message' => 'La imagen principal ya estaba sincronizada con WordPress.']);
             } else {
                 Log::error('❌ [WPSync] Falló la sincronización de imagen principal', [
                     'item_id'  => $this->itemId,
@@ -337,8 +378,9 @@ class WordPressSyncModal extends Component
             }
 
             $wpService = app(WordPressService::class);
-            $count = 0;
-            $errors = 0;
+            $uploaded = 0;
+            $skipped  = 0;
+            $errors   = 0;
 
             foreach ($gallery as $image) {
                 Log::info('🔄 [WPSync] Sincronizando imagen de galería', [
@@ -346,9 +388,14 @@ class WordPressSyncModal extends Component
                     'img_path' => $image->img_path,
                 ]);
 
-                if ($wpService->syncImage($image, $this->productSku)) {
-                    $count++;
-                    Log::info('✅ [WPSync] Imagen de galería sincronizada', ['image_id' => $image->id]);
+                $result = $wpService->syncImage($image, $this->productSku);
+
+                if ($result === 'uploaded') {
+                    $uploaded++;
+                    Log::info('✅ [WPSync] Imagen subida y sincronizada', ['image_id' => $image->id]);
+                } elseif ($result === 'skipped') {
+                    $skipped++;
+                    Log::info('ℹ️ [WPSync] Imagen ya estaba sincronizada', ['image_id' => $image->id]);
                 } else {
                     $errors++;
                     Log::error('❌ [WPSync] Falló sincronización de imagen de galería', ['image_id' => $image->id]);
@@ -356,16 +403,19 @@ class WordPressSyncModal extends Component
             }
 
             Log::info('📊 [WPSync] syncGallery finalizado', [
-                'item_id'    => $this->itemId,
-                'exitosas'   => $count,
-                'fallidas'   => $errors,
-                'total'      => $gallery->count(),
+                'item_id'  => $this->itemId,
+                'subidas'  => $uploaded,
+                'omitidas' => $skipped,
+                'fallidas' => $errors,
+                'total'    => $gallery->count(),
             ]);
 
-            $msg = "Se sincronizaron {$count} de {$gallery->count()} imágenes.";
-            if ($errors > 0) {
-                $msg .= " {$errors} fallaron — revisa los logs del servidor.";
-            }
+            $parts = [];
+            if ($uploaded > 0) $parts[] = "{$uploaded} subida(s) a WordPress";
+            if ($skipped > 0)  $parts[] = "{$skipped} ya estaba(n) sincronizada(s)";
+            if ($errors > 0)   $parts[] = "{$errors} fallaron";
+
+            $msg = implode(', ', $parts) . '.';
 
             $this->dispatch('show-toast', [
                 'type'    => $errors > 0 ? 'warning' : 'success',

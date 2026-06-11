@@ -89,12 +89,19 @@
                             </div>
                         </div>
 
-                        <!-- Botón cambio de vista -->
-                        <div class="mb-6 flex justify-center">
-                            <button @click="viewMode = 'comparison'" 
+                        <!-- Botones de acción -->
+                        <div class="mb-6 flex flex-wrap justify-center gap-3">
+                            <button @click="viewMode = 'comparison'"
                                     class="px-6 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl text-sm font-bold border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all flex items-center gap-2 shadow-sm">
                                 <i class="fas fa-layer-group"></i>
                                 Ver Comparación Detallada de Inventario
+                            </button>
+                            <button wire:click="reconcileImages"
+                                    wire:loading.attr="disabled"
+                                    wire:confirm="¿Buscar y corregir los IDs de las imágenes comparando con WordPress? Las imágenes no encontradas en WP quedarán marcadas para subir."
+                                    class="px-6 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm font-bold border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                                <span wire:loading.remove wire:target="reconcileImages"><i class="fas fa-link"></i> Reconciliar IDs con WP</span>
+                                <span wire:loading wire:target="reconcileImages"><i class="fas fa-spinner fa-spin"></i> Buscando en WP...</span>
                             </button>
                         </div>
 

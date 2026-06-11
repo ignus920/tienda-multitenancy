@@ -115,6 +115,89 @@ class WordPressService
         return null;
     }
 
+    public function reconcileImageIds(int $itemId, string $productSku): array
+    {
+        $counts = ['corrected' => 0, 'already_ok' => 0, 'not_found' => 0];
+
+        if (!$this->isConfigured()) return $counts;
+
+        $wpProduct = $this->findProductBySku($productSku);
+        if (!$wpProduct) return $counts;
+
+        $wpImages    = collect($wpProduct['images'] ?? []);
+        $localImages = ImageGallery::with('wpSync')
+            ->where('itemId', $itemId)
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($localImages as $image) {
+            if (!$image->sync_to_wp) continue;
+
+            $localFilename = basename($image->img_path);
+
+            // 1. Buscar entre las imágenes ya asignadas al producto en WP
+            $wpMatch = $wpImages->first(function ($wpImg) use ($localFilename) {
+                return basename(parse_url($wpImg['src'], PHP_URL_PATH)) === $localFilename;
+            });
+
+            // 2. Si no encontró, buscar en toda la biblioteca de medios de WP
+            if (!$wpMatch) {
+                $wpMatch = $this->searchMediaByFilename($localFilename);
+            }
+
+            if ($wpMatch) {
+                $correctId = $wpMatch['id'];
+                if ((int) $image->wp_media_id === (int) $correctId) {
+                    $counts['already_ok']++;
+                    Log::info('ℹ️ [WP] wp_media_id ya era correcto', ['image_id' => $image->id, 'wp_media_id' => $correctId]);
+                } else {
+                    $oldId = $image->wp_media_id;
+                    $image->wp_media_id = $correctId;
+                    $image->save();
+                    $counts['corrected']++;
+                    Log::info('✅ [WP] wp_media_id corregido', ['image_id' => $image->id, 'viejo' => $oldId, 'nuevo' => $correctId]);
+                }
+            } else {
+                if ($image->wp_media_id) {
+                    $image->wp_media_id = null;
+                    $image->save();
+                    Log::warning('⚠️ [WP] wp_media_id obsoleto limpiado (imagen no encontrada en WP)', ['image_id' => $image->id]);
+                }
+                $counts['not_found']++;
+                Log::warning('⚠️ [WP] Imagen no encontrada en WP, pendiente de subir', ['image_id' => $image->id, 'filename' => $localFilename]);
+            }
+        }
+
+        Log::info('📊 [WP] reconcileImageIds finalizado', array_merge(['item_id' => $itemId], $counts));
+
+        return $counts;
+    }
+
+    protected function searchMediaByFilename(string $filename): ?array
+    {
+        $wpV2Url        = rtrim($this->config->wp_url, '/') . '/wp-json/wp/v2/media';
+        $nameWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+
+        try {
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->get($wpV2Url, ['search' => $nameWithoutExt, 'per_page' => 10]);
+
+            if ($response->successful()) {
+                foreach ($response->json() as $item) {
+                    $wpFilename = basename(parse_url($item['source_url'], PHP_URL_PATH));
+                    if ($wpFilename === $filename) {
+                        Log::info('🔍 [WP] Media encontrada en biblioteca por filename', ['filename' => $filename, 'wp_media_id' => $item['id']]);
+                        return ['id' => $item['id'], 'src' => $item['source_url']];
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            Log::error('❌ [WP] Error buscando media por filename', ['filename' => $filename, 'error' => $e->getMessage()]);
+        }
+
+        return null;
+    }
+
     public function uploadMedia($localPath, $filename = null)
     {
         if (!$this->isConfigured()) {
@@ -731,6 +814,8 @@ class WordPressService
             return false;
         }
 
+        $wasUploaded = false;
+
         if ($image->wp_media_id) {
             Log::info('ℹ️ [WP] Imagen ya subida previamente, reutilizando wp_media_id', [
                 'image_id'    => $image->id,
@@ -747,6 +832,7 @@ class WordPressService
                 return false;
             }
 
+            $wasUploaded = true;
             $image->wp_media_id = $mediaId;
             $image->save();
             Log::info('💾 [WP] wp_media_id guardado en BD local', [
@@ -763,15 +849,26 @@ class WordPressService
             $result = $this->addToGallery($wpProduct['id'], $mediaId);
         }
 
-        Log::info($result ? '✅ [WP] syncImage completado con éxito' : '❌ [WP] syncImage terminó con error', [
+        if (!$result) {
+            Log::error('❌ [WP] syncImage terminó con error', [
+                'image_id'      => $image->id,
+                'wp_product_id' => $wpProduct['id'],
+                'wp_media_id'   => $mediaId,
+                'type'          => $image->type,
+            ]);
+            return false;
+        }
+
+        $status = $wasUploaded ? 'uploaded' : 'skipped';
+        Log::info('✅ [WP] syncImage completado', [
             'image_id'      => $image->id,
             'wp_product_id' => $wpProduct['id'],
             'wp_media_id'   => $mediaId,
             'type'          => $image->type,
-            'resultado'     => $result ? 'OK' : 'FALLO',
+            'estado'        => $status,
         ]);
 
-        return $result;
+        return $status;
     }
 
     protected function optimizeImage($path)
