@@ -166,11 +166,11 @@
             border: 1px solid #e1e8ee;
             padding: 8px 6px;
             vertical-align: middle;
-            font-size: 10pt;
+            font-size: 13pt;
         }
 
         .col-idx { width: 30px; text-align: center; }
-        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 11pt; font-weight: 600; }
+        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 22pt; font-weight: 600; }
         .col-desc { text-align: left; min-width: 200px; }
         .col-qty { width: 50px; text-align: center; }
         .col-delivered { width: 60px; text-align: center; }

@@ -112,12 +112,12 @@
         }
 
         .product-code {
-            font-size: 7pt;
+            font-size: 14pt;
             color: #666;
         }
 
         .product-name {
-            font-size: 8pt;
+            font-size: 11pt;
             font-weight: bold;
             margin: 1mm 0;
             word-wrap: break-word;
