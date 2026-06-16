@@ -427,7 +427,8 @@ class ProductQuoter extends Component
                 ->select(
                     'inv_items.*',
                     DB::raw('GROUP_CONCAT(DISTINCT CONCAT(central_warehouses.name, " - ", inv_store.name, ":", inv_items_store.stock_items_store) SEPARATOR ", ") as store_stock_details'),
-                    DB::raw('SUM(inv_items_store.stock_items_store) as total_stock')
+                    DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
+                    DB::raw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as sales_last_30_days')
                 )
                 ->where('inv_items.status', 1)
                 ->where('inv_items.type', '!=', 'INSUMO')

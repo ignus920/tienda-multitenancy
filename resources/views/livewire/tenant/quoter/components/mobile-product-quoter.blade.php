@@ -141,9 +141,27 @@ $header = 'Seleccionar productos';
                     </div>
 
                     {{-- Info del producto --}}
+                    @php
+                        $sales = $product->sales_last_30_days ?? 0;
+                        $hasNvpMobile = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                        if ($hasNvpMobile) {
+                            $mobileTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                            $mobileSkuClass = 'text-blue-500/80 dark:text-blue-400/80';
+                        } elseif ($sales == 0) {
+                            $mobileTextClass = 'text-red-600 dark:text-red-400 font-bold';
+                            $mobileSkuClass = 'text-red-500/80 dark:text-red-400/80';
+                        } elseif ($sales <= 5) {
+                            $mobileTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                            $mobileSkuClass = 'text-gray-700 dark:text-gray-400 font-bold';
+                        } else {
+                            $mobileTextClass = 'text-gray-900 dark:text-white font-medium';
+                            $mobileSkuClass = 'text-gray-500 dark:text-gray-400';
+                        }
+                    @endphp
                     <div class="p-3 flex-1 flex flex-col">
-                        <div class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold truncate">{{ $product->sku ?: 'SIN SKU' }}</div>
-                        <div class="font-bold text-gray-900 dark:text-white text-xs leading-tight line-clamp-2 mt-0.5 h-8">{{ $product->display_name }}</div>
+                        <div class="text-[10px] uppercase tracking-wider {{ $mobileSkuClass }} font-semibold truncate">{{ $product->sku ?: 'SIN SKU' }}</div>
+                        <div class="{{ $mobileTextClass }} text-xs leading-tight line-clamp-3 mt-0.5 min-h-[2rem]">{{ $product->display_name }}</div>
+                        
                         
                         @if($product->store_stock_details)
                             <div class="mt-1 flex flex-wrap gap-1">
@@ -215,23 +233,38 @@ $header = 'Seleccionar productos';
                             @else
                                 <div class="w-full h-full flex items-center justify-center"><span class="text-lg font-bold text-gray-400">{{ strtoupper(substr($product->name, 0, 1)) }}</span></div>
                             @endif
-                        </div>
+                                     @php
+                                         $sales = $product->sales_last_30_days ?? 0;
+                                         $hasNvpMobileList = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                                         if ($hasNvpMobileList) {
+                                             $mobileListTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                                             $mobileListSkuClass = 'text-blue-500/80 dark:text-blue-400/80';
+                                         } elseif ($sales == 0) {
+                                             $mobileListTextClass = 'text-red-600 dark:text-red-400 font-bold';
+                                             $mobileListSkuClass = 'text-red-500/80 dark:text-red-400/80';
+                                         } elseif ($sales <= 5) {
+                                             $mobileListTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                                             $mobileListSkuClass = 'text-gray-700 dark:text-gray-400 font-bold';
+                                         } else {
+                                             $mobileListTextClass = 'text-gray-900 dark:text-white font-medium';
+                                             $mobileListSkuClass = 'text-gray-500 dark:text-gray-400';
+                                         }
+                                     @endphp
+                                     <div class="flex-1 min-w-0">
+                                         <h3 class="text-sm font-medium {{ $mobileListTextClass }} truncate">{{ $product->display_name }}</h3>
+                                         @if($product->sku)<p class="text-xs {{ $mobileListSkuClass }}">SKU: {{ $product->sku }}</p>@endif
 
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $product->display_name }}</h3>
-                            @if($product->sku)<p class="text-xs text-gray-500 dark:text-gray-400">SKU: {{ $product->sku }}</p>@endif
-
-                            @if($product->store_stock_details)
-                                <div class="flex flex-wrap gap-1 mt-1">
+                            <div class="flex flex-wrap gap-1 mt-1 items-center">
+                                @if($product->store_stock_details)
                                     @foreach(explode(', ', $product->store_stock_details) as $storeDetail)
                                         @php $parts = explode(':', $storeDetail); @endphp
                                         @if(isset($parts[0]))
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ ($parts[1] ?? 0) > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/20' : 'bg-red-100 text-red-800' }}">{{ $parts[0] }}: {{ $parts[1] ?? 0 }}</span>
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {{ ($parts[1] ?? 0) > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/20' : 'bg-red-100 text-red-800' }}">{{ $parts[0] }}: {{ $parts[1] ?? 0 }}</span>
                                         @endif
                                     @endforeach
-                                </div>
-                            @endif
-                        </div>
+                                @endif
+                            </div>
+                        </div>               </div>
 
                         <div class="flex flex-col items-center gap-2 flex-shrink-0">
                             @if($quantity > 0 && !$hideQuoter)

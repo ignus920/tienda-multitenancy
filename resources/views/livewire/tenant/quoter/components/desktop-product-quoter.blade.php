@@ -268,16 +268,33 @@ $header = 'Seleccionar productos';
                             <div class="text-center flex-1">
                                 <!-- Información del producto -->
                                 <div class="p-3 flex flex-col h-full">
-                                    <!-- Nombre -->
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 h-10 flex items-center justify-center">
-                                        {{ $product->display_name }}
-                                    </div>
-                                    <!-- SKU -->
-                                    <div class="text-xs text-gray-500 dark:text-gray-500 mb-2 h-4 flex items-center justify-center">
-                                        @if($product->sku && trim($product->sku) !== '')
-                                        SKU: {{ $product->sku }}
-                                        @endif
-                                    </div>
+                                    @php
+                                         $sales = $product->sales_last_30_days ?? 0;
+                                         $hasNvp = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                                         if ($hasNvp) {
+                                             $textClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                                             $skuClass = 'text-blue-500/80 dark:text-blue-400/80';
+                                         } elseif ($sales == 0) {
+                                             $textClass = 'text-red-600 dark:text-red-400 font-bold';
+                                             $skuClass = 'text-red-500/80 dark:text-red-400/80';
+                                         } elseif ($sales <= 5) {
+                                             $textClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                                             $skuClass = 'text-gray-700 dark:text-gray-400 font-bold';
+                                         } else {
+                                             $textClass = 'text-gray-900 dark:text-white font-medium';
+                                             $skuClass = 'text-gray-500 dark:text-gray-500';
+                                         }
+                                     @endphp
+                                     <!-- Nombre -->
+                                     <div class="text-sm {{ $textClass }} mb-2 line-clamp-3 flex items-center justify-center text-center min-h-[3rem]">
+                                         {{ $product->display_name }}
+                                     </div>
+                                     <!-- SKU -->
+                                     <div class="text-xs {{ $skuClass }} mb-2 h-4 flex items-center justify-center">
+                                         @if($product->sku && trim($product->sku) !== '')
+                                         SKU: {{ $product->sku }}
+                                         @endif
+                                     </div>
 
                                     <!-- Bodegas disponibles -->
                                     @if($product->store_stock_details)
@@ -529,8 +546,21 @@ $header = 'Seleccionar productos';
                                         </td>
 
                                         <!-- Nombre -->
+                                        @php
+                                            $tableSales = $product->sales_last_30_days ?? 0;
+                                            $hasNvpTable = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                                            if ($hasNvpTable) {
+                                                $tableTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                                            } elseif ($tableSales == 0) {
+                                                $tableTextClass = 'text-red-600 dark:text-red-400 font-bold';
+                                            } elseif ($tableSales <= 5) {
+                                                $tableTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                                            } else {
+                                                $tableTextClass = 'text-gray-900 dark:text-white font-medium';
+                                            }
+                                        @endphp
                                         <td class="px-4 py-4">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs" title="{{ $product->display_name }}">
+                                            <div class="text-sm {{ $tableTextClass }} truncate max-w-xs" title="{{ $product->display_name }}">
                                                 {{ $product->display_name }}
                                             </div>
                                             @php $pickingLocation = $product->picking; @endphp
