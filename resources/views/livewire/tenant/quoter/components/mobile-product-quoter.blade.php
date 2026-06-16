@@ -130,6 +130,7 @@ $header = 'Seleccionar productos';
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
                                 </button>
                                 <div x-show="openMenu" @click.away="openMenu = false" x-cloak class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+                                    <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Reservas</button>
                                     <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Solicitud Soporte</button>
                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Imagen</button>
                                     <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Observaciones</button>
@@ -273,6 +274,7 @@ $header = 'Seleccionar productos';
                             <div class="relative">
                                 <button @click.stop="openMenu = !openMenu" class="p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-full shadow-sm"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
                                 <div x-show="openMenu" @click.away="openMenu = false" x-cloak class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border z-50 py-1">
+                                    <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Reservas</button>
                                     <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Solicitud Soporte</button>
                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Imagen</button>
                                     <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Observaciones</button>
@@ -545,6 +547,7 @@ $header = 'Seleccionar productos';
         </div>
     </div>
     @endif
+    @livewire('tenant.components.product-reservation-modal')
 </div>
 
 <script>
