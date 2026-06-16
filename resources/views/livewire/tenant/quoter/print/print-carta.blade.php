@@ -170,7 +170,7 @@
         }
 
         .col-idx { width: 30px; text-align: center; }
-        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 22pt; font-weight: 600; }
+        .col-code { width: 85px; text-align: center; font-family: 'Courier New', monospace; font-size: 13pt; font-weight: 600; }
         .col-desc { text-align: left; min-width: 200px; }
         .col-qty { width: 50px; text-align: center; }
         .col-delivered { width: 60px; text-align: center; }
@@ -524,7 +524,7 @@
                     <td class="col-code">
                         <div>{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
                         @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
-                            <div style="font-size: 10pt; color: #e74c3c; margin-top: 3px; font-weight: bold; font-family: 'Segoe UI', sans-serif;">{{ $detalle->item->picking }}</div>
+                            <div style="font-size: 13pt; color: #e74c3c; margin-top: 3px; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->picking }}</div>
                         @endif
                     </td>
                     <td class="col-desc">
