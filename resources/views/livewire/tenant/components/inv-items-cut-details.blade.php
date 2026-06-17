@@ -454,22 +454,26 @@
                                             Agregar Corte
                                         </button>
                                     </div>
-
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-48 overflow-y-auto custom-scrollbar p-1">
-                                        @foreach($cuts as $index => $cut)
-                                            <div class="relative group" wire:key="cut-{{ $index }}">
-                                                <label class="absolute -top-1 left-2 px-1 bg-white dark:bg-gray-800 text-[8px] font-black text-gray-400">CORTE #{{ $index + 1 }}</label>
-                                                <div class="flex items-center">
-                                                    <input type="number" wire:model.live.debounce.150ms="cuts.{{ $index }}" 
-                                                           class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm p-3 focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none transition-all shadow-inner"
-                                                           placeholder="0">
-                                                    <button wire:click="removeCut({{ $index }})" class="absolute -top-2 -right-2 p-1.5 bg-red-100 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm border border-white dark:border-gray-700 z-10" title="Eliminar corte">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                    <div class="flex items-center gap-4">
+                                         <span class="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">mm</span>
+                                         <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                                             @foreach($cuts as $index => $cut)
+                                                 <div class="flex flex-col items-center group" wire:key="cut-{{ $index }}">
+                                                     <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                                         {{ floatval($cut) > 0 ? (floatval($cut) / 10) . ' cm' : '0.0 cm' }}
+                                                     </span>
+                                                     <div class="relative w-full">
+                                                         <input type="number" wire:model.live.debounce.150ms="cuts.{{ $index }}" 
+                                                                class="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm p-2.5 text-center focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none transition-all shadow-inner"
+                                                                placeholder="0">
+                                                         <button wire:click="removeCut({{ $index }})" class="absolute -top-2 -right-2 p-1 bg-red-100 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm border border-white dark:border-gray-700 z-10" title="Eliminar corte">
+                                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                         </button>
+                                                     </div>
+                                                 </div>
+                                             @endforeach
+                                         </div>
+                                     </div>
                                     @error('cuts') <span class="text-[10px] text-red-500 font-bold block mt-2 text-center">{{ $message }}</span> @enderror
 
                                     <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 space-y-4">

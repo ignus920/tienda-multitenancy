@@ -302,12 +302,17 @@ class InvItemsCutDetails extends Component
 
         $customersQuery = Customer::on('tenant')->where('status', 1);
         if ($this->customerSearch) {
-            $customersQuery->where(function($q) {
-                $q->where('businessName', 'like', '%' . $this->customerSearch . '%')
-                  ->orWhere('firstName', 'like', '%' . $this->customerSearch . '%')
-                  ->orWhere('lastName', 'like', '%' . $this->customerSearch . '%')
-                  ->orWhere('identification', 'like', '%' . $this->customerSearch . '%')
-                  ->orWhere('id', 'like', '%' . $this->customerSearch . '%');
+            $words = array_filter(explode(' ', trim($this->customerSearch)));
+            $customersQuery->where(function($q) use ($words) {
+                foreach ($words as $word) {
+                    $q->where(function($subQ) use ($word) {
+                        $subQ->where('businessName', 'like', '%' . $word . '%')
+                             ->orWhere('firstName', 'like', '%' . $word . '%')
+                             ->orWhere('lastName', 'like', '%' . $word . '%')
+                             ->orWhere('identification', 'like', '%' . $word . '%')
+                             ->orWhere('id', 'like', '%' . $word . '%');
+                    });
+                }
             });
         }
         $customers = $customersQuery->orderByRaw('COALESCE(businessName, firstName)')->take(15)->get();
