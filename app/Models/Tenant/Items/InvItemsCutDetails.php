@@ -5,7 +5,7 @@ namespace App\Models\Tenant\Items;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Production\PrdProductionOrder;
-use App\Models\Tenant\Customer\VntContacts as Customer;
+use App\Models\Tenant\Customer\VntCompany as Customer;
 
 class InvItemsCutDetails extends Model
 {

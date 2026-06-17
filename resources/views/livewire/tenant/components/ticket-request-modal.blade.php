@@ -29,6 +29,20 @@
         this.quill.on('text-change', () => {
             $wire.set('detail', this.quill.root.innerHTML);
         });
+
+        // Observar cambios del servidor para limpiar o actualizar el editor Quill
+        this.$watch('$wire.detail', value => {
+            if (this.quill) {
+                const cleanValue = value || '';
+                // Si el servidor lo limpió, vaciamos el editor Quill
+                if (cleanValue === '') {
+                    this.quill.root.innerHTML = '';
+                } else if (this.quill.root.innerHTML !== cleanValue) {
+                    // Solo actualizar si realmente difiere para evitar bucles infinitos
+                    this.quill.root.innerHTML = cleanValue;
+                }
+            }
+        });
     }
 }"
 x-show="show"

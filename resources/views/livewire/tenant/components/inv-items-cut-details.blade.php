@@ -118,7 +118,7 @@
                                     <option value="">-- Seleccione un grupo de corte --</option>
                                     @foreach($cutGroups as $group)
                                         <option value="{{ $group->cut_id }}">
-                                            ( # {{ $group->cut_id }} ) {{ Carbon\Carbon::parse($group->created_at)->format('Y-m-d') }} / {{ mb_strtoupper($group->customer->firstName ?? '') }} {{ mb_strtoupper($group->customer->lastName ?? '') }}  {{ empty($group->customer->firstName) && empty($group->customer->lastName) ? 'SIN CLIENTE' : '' }}
+                                            ( # {{ $group->cut_id }} ) {{ Carbon\Carbon::parse($group->created_at)->format('Y-m-d') }} / {{ mb_strtoupper($group->customer->customer_name ?? 'SIN CLIENTE') }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -129,7 +129,18 @@
                         </div>
 
                         <!-- Data Table (Agrupada) -->
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <!-- Overlay de Carga (Spinner animado con blur de fondo) -->
+                            <div wire:loading.flex class="absolute inset-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-[2px] z-50 flex items-center justify-center transition-all duration-300">
+                                <div class="flex flex-col items-center gap-3">
+                                    <svg class="animate-spin h-10 w-10 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest animate-pulse">Cargando detalles del corte...</span>
+                                </div>
+                            </div>
+
                             <div class="overflow-x-auto custom-scrollbar">
                                 <table class="w-full text-left whitespace-nowrap min-w-max border-collapse">
                                     <thead>
@@ -309,7 +320,7 @@
                                                     class="w-full flex items-center justify-between bg-gray-50 dark:bg-gray-900 border @error('customerId') border-red-500 @else border-transparent @enderror rounded-xl text-sm p-3 focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all shadow-sm">
                                                 <span class="truncate">
                                                     @if($customerId)
-                                                        {{ $customers->firstWhere('id', $customerId)?->full_name }}
+                                                        {{ $customers->firstWhere('id', $customerId)?->customer_name }}
                                                     @else
                                                         Seleccione un cliente
                                                     @endif
@@ -330,7 +341,7 @@
                                                 <div class="max-h-60 overflow-y-auto p-2 space-y-1">
                                                     @forelse($customers as $customer)
                                                         <button wire:key="customer-{{ $customer->id }}" type="button" @click="$wire.set('customerId', '{{ $customer->id }}'); open = false" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                                                            <div class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">{{ $customer->full_name }}</div>
+                                                            <div class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">{{ $customer->customer_name }}</div>
                                                         </button>
                                                     @empty
                                                         <div class="p-4 text-center text-sm text-gray-500 italic">No se encontraron clientes</div>
@@ -454,22 +465,26 @@
                                             Agregar Corte
                                         </button>
                                     </div>
-
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-48 overflow-y-auto custom-scrollbar p-1">
-                                        @foreach($cuts as $index => $cut)
-                                            <div class="relative group" wire:key="cut-{{ $index }}">
-                                                <label class="absolute -top-1 left-2 px-1 bg-white dark:bg-gray-800 text-[8px] font-black text-gray-400">CORTE #{{ $index + 1 }}</label>
-                                                <div class="flex items-center">
-                                                    <input type="number" wire:model.live.debounce.150ms="cuts.{{ $index }}" 
-                                                           class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm p-3 focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none transition-all shadow-inner"
-                                                           placeholder="0">
-                                                    <button wire:click="removeCut({{ $index }})" class="absolute -top-2 -right-2 p-1.5 bg-red-100 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm border border-white dark:border-gray-700 z-10" title="Eliminar corte">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                    <div class="flex items-center gap-4">
+                                         <span class="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">mm</span>
+                                         <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                                             @foreach($cuts as $index => $cut)
+                                                 <div class="flex flex-col items-center group" wire:key="cut-{{ $index }}">
+                                                     <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                                         {{ floatval($cut) > 0 ? (floatval($cut) / 10) . ' cm' : '0.0 cm' }}
+                                                     </span>
+                                                     <div class="relative w-full">
+                                                         <input type="number" wire:model.live.debounce.150ms="cuts.{{ $index }}" 
+                                                                class="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm p-2.5 text-center focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none transition-all shadow-inner"
+                                                                placeholder="0">
+                                                         <button wire:click="removeCut({{ $index }})" class="absolute -top-2 -right-2 p-1 bg-red-100 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm border border-white dark:border-gray-700 z-10" title="Eliminar corte">
+                                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                         </button>
+                                                     </div>
+                                                 </div>
+                                             @endforeach
+                                         </div>
+                                     </div>
                                     @error('cuts') <span class="text-[10px] text-red-500 font-bold block mt-2 text-center">{{ $message }}</span> @enderror
 
                                     <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 space-y-4">

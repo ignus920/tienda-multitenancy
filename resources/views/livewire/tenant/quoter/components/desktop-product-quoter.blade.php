@@ -6,7 +6,7 @@ $header = 'Seleccionar productos';
 <div>
     <div class="flex {{ $hideQuoter ? 'flex-col' : 'pr-96' }}">
         <!-- Área principal de productos -->
-        <div class="flex-1 p-6">
+        <div class="flex-1 min-w-0 p-6">
             <!-- Cabecera con Botón de regresar y Switch de Modo Copia -->
             <div class="flex flex-wrap items-center gap-4 mb-6">
                 <a href="{{ route('tenant.quoter') }}" class="inline-flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 font-medium" wire:navigate.hover>
@@ -191,6 +191,13 @@ $header = 'Seleccionar productos';
                                 </button>
                                 <div x-show="open" @click.away="open = false" @click.stop x-cloak
                                     class="absolute left-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+                                    <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); open = false"
+                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                        <svg class="w-4 h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Reservas
+                                    </button>
                                     <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,16 +275,33 @@ $header = 'Seleccionar productos';
                             <div class="text-center flex-1">
                                 <!-- Información del producto -->
                                 <div class="p-3 flex flex-col h-full">
-                                    <!-- Nombre -->
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 h-10 flex items-center justify-center">
-                                        {{ $product->display_name }}
-                                    </div>
-                                    <!-- SKU -->
-                                    <div class="text-xs text-gray-500 dark:text-gray-500 mb-2 h-4 flex items-center justify-center">
-                                        @if($product->sku && trim($product->sku) !== '')
-                                        SKU: {{ $product->sku }}
-                                        @endif
-                                    </div>
+                                    @php
+                                         $sales = $product->sales_last_30_days ?? 0;
+                                         $hasNvp = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                                         if ($hasNvp) {
+                                             $textClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                                             $skuClass = 'text-blue-500/80 dark:text-blue-400/80';
+                                         } elseif ($sales == 0) {
+                                             $textClass = 'text-red-600 dark:text-red-400 font-bold';
+                                             $skuClass = 'text-red-500/80 dark:text-red-400/80';
+                                         } elseif ($sales <= 5) {
+                                             $textClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                                             $skuClass = 'text-gray-700 dark:text-gray-400 font-bold';
+                                         } else {
+                                             $textClass = 'text-gray-900 dark:text-white font-medium';
+                                             $skuClass = 'text-gray-500 dark:text-gray-500';
+                                         }
+                                     @endphp
+                                     <!-- Nombre -->
+                                     <div class="text-sm {{ $textClass }} mb-2 line-clamp-3 flex items-center justify-center text-center min-h-[3rem]">
+                                         {{ $product->display_name }}
+                                     </div>
+                                     <!-- SKU -->
+                                     <div class="text-xs {{ $skuClass }} mb-2 h-4 flex items-center justify-center">
+                                         @if($product->sku && trim($product->sku) !== '')
+                                         SKU: {{ $product->sku }}
+                                         @endif
+                                     </div>
 
                                     <!-- Bodegas disponibles -->
                                     @if($product->store_stock_details)
@@ -465,8 +489,8 @@ $header = 'Seleccionar productos';
             @else
                 <!-- Modo Tabla -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                    <div class="overflow-x-auto overflow-y-visible min-h-[300px]">
-                        <table class="w-full overflow-visible">
+                    <div class="w-full overflow-x-auto overflow-y-visible min-h-[300px]">
+                        <table class="w-full table-auto whitespace-nowrap overflow-visible">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
@@ -481,7 +505,7 @@ $header = 'Seleccionar productos';
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Maximo</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Minimo</th>
                                     @else
-                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant.</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bod / Sep</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lista</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">3%</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">5%</th>
@@ -513,12 +537,14 @@ $header = 'Seleccionar productos';
                                             @endphp
                                             <div class="flex justify-center">
                                                 @if($hasImage)
-                                                    <img @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' })" 
+                                                    <img @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })" 
+                                                        title="Generar reserva del item: {{ $product->display_name }} ({{ $product->internal_code ?: 'N/A' }})"
                                                         class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                                                         src="{{ $imgUrl }}"
                                                         alt="{{ $product->display_name }}">
                                                 @else
-                                                    <div @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' })"
+                                                    <div @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
+                                                        title="Generar reserva del item: {{ $product->display_name }} ({{ $product->internal_code ?: 'N/A' }})"
                                                         class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                                                         <span class="text-sm font-bold text-gray-400 dark:text-gray-500">
                                                             {{ strtoupper(substr($product->name, 0, 1)) }}
@@ -529,8 +555,21 @@ $header = 'Seleccionar productos';
                                         </td>
 
                                         <!-- Nombre -->
+                                        @php
+                                            $tableSales = $product->sales_last_30_days ?? 0;
+                                            $hasNvpTable = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                                            if ($hasNvpTable) {
+                                                $tableTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                                            } elseif ($tableSales == 0) {
+                                                $tableTextClass = 'text-red-600 dark:text-red-400 font-bold';
+                                            } elseif ($tableSales <= 5) {
+                                                $tableTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                                            } else {
+                                                $tableTextClass = 'text-gray-900 dark:text-white font-medium';
+                                            }
+                                        @endphp
                                         <td class="px-4 py-4">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs" title="{{ $product->display_name }}">
+                                            <div class="text-sm {{ $tableTextClass }} truncate max-w-xs" title="{{ $product->display_name }}">
                                                 {{ $product->display_name }}
                                             </div>
                                             @php $pickingLocation = $product->picking; @endphp
@@ -598,15 +637,36 @@ $header = 'Seleccionar productos';
                                                 {{ number_format($product->stock_min, 0) }}
                                             </td>
                                         @else
-                                            <!-- Cantidad -->
+                                            <!-- Cantidad (Bod / Sep Matrix) -->
                                             <td class="px-4 py-4 text-center">
-                                                @if($isSelected)
-                                                    <span class="inline-flex items-center justify-center w-10 h-10 bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-bold rounded-full">
-                                                        {{ $quantity }}
-                                                    </span>
-                                                @else
-                                                    <span class="text-gray-400">0</span>
-                                                @endif
+                                                <div class="inline-flex justify-center items-center">
+                                                    <div @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })" 
+                                                         title="Generar reserva del item: {{ $product->display_name }} ({{ $product->internal_code ?: 'N/A' }})"
+                                                         class="inline-block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden text-sm cursor-pointer hover:opacity-85 hover:scale-105 active:scale-95 transition-all">
+                                                        <table class="border-collapse text-center">
+                                                            <tbody>
+                                                                <tr class="border-b border-gray-200 dark:border-gray-750">
+                                                                    <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">S</td>
+                                                                    <td class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-12">
+                                                                        {{ number_format($product->stock_bodega ?? 0, 0) }}
+                                                                    </td>
+                                                                    <td class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12">
+                                                                        {{ ($product->reserved_stock ?? 0) > 0 ? number_format($product->reserved_stock, 0) : '' }}
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">T</td>
+                                                                    <td class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 text-gray-500 dark:text-gray-400 w-12">
+                                                                        {{ ($product->in_transit ?? 0) > 0 ? number_format($product->in_transit, 0) : '' }}
+                                                                    </td>
+                                                                    <td class="px-3 py-1 w-12 text-red-500 font-bold">
+                                                                        {{ ($product->reserved_transit ?? 0) > 0 ? number_format($product->reserved_transit, 0) : '' }}
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
                                             </td>
                                         @endif
 
@@ -774,6 +834,13 @@ $header = 'Seleccionar productos';
                                                 </button>
                                                 <div x-show="open" @click.away="open = false" @click.stop x-cloak
                                                     class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+                                                    <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); open = false"
+                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                        <svg class="w-4 h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        Reservas
+                                                    </button>
                                                     <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
                                                         class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
                                                         <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1552,6 +1619,7 @@ $header = 'Seleccionar productos';
     </div>
     @endif
 
+    @livewire('tenant.components.product-reservation-modal')
 </div>
 
 <script>

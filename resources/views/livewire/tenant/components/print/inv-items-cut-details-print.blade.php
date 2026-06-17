@@ -32,30 +32,30 @@
         <button onclick="window.print()" style="padding: 8px 16px; background: #1e3a8a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🖨️ CONFIRMAR IMPRESIÓN</button>
     </div>
 
-    <div class="header">
-        <div class="company-info">
-            <h1>{{ $company->name ?? 'FERVICOM' }}</h1>
-            <p>{{ $company->nit ?? '' }}</p>
-            <p>{{ $company->address ?? '' }}</p>
-            <p>{{ $company->phone ?? '' }}</p>
+    <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
+        <!-- Logo y eslogan de Fervicom -->
+        <div style="width: 35%; text-align: left;">
+            <h1 style="margin: 0; font-size: 16pt; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">Fervicom</h1>
+            <p style="margin: 2px 0 0 0; font-size: 7.5pt; font-weight: bold; color: #4b5563; text-transform: uppercase; letter-spacing: 1px;">Iluminación LED</p>
+            <p style="margin: 4px 0 2px 0; font-size: 8pt; color: #1e3a8a; font-weight: 600;">www.fervicom.com</p>
+            <p style="margin: 0; font-size: 8pt; color: #4b5563; font-style: italic;">Moderna iluminación a su alcance</p>
         </div>
-        <div class="report-title">
-            <h2>REPORTES DE CORTE</h2>
-            <p><b>CORTE #:</b> {{ $cutId }}</p>
-            <p><b>FECHA:</b> {{ $date->format('d/m/Y H:i') }}</p>
+        
+        <!-- Título Central con Usuario y Fecha -->
+        <div style="width: 35%; text-align: center;">
+            <h2 style="margin: 0 0 6px 0; font-size: 13pt; font-weight: 800; color: #111827; letter-spacing: 0.5px; text-transform: uppercase;">Cortes de Perfil</h2>
+            <p style="margin: 2px 0; font-size: 8.5pt; color: #374151;"><b>Usuario:</b> {{ $cutDetails->first()->created_by ?? 'N/A' }}</p>
+            <p style="margin: 2px 0; font-size: 8.5pt; color: #374151;"><b>Fecha:</b> {{ $date->format('Y-m-d H:i:s') }}</p>
+        </div>
+
+        <!-- Información del Corte y Cliente a la Derecha -->
+        <div style="width: 30%; text-align: right;">
+            <p style="margin: 0 0 4px 0; font-size: 11pt; color: #111827;"><b>Corte: #</b> {{ $cutId }}</p>
+            <p style="margin: 2px 0; font-size: 8.5pt; color: #374151;"><b>Cliente:</b> {{ $customer ? strtoupper($customer->firstName . ' ' . $customer->lastName) : 'CONSUMIDOR FINAL' }}</p>
         </div>
     </div>
 
-    <div class="details-grid">
-        <div class="detail-item">
-            <b>Cliente:</b>
-            {{ $customer ? $customer->firstName . ' ' . $customer->lastName : 'CONSUMIDOR FINAL' }}
-        </div>
-        <div class="detail-item">
-            <b>Usuario:</b>
-            {{ $cutDetails->first()->created_by ?? 'N/A' }}
-        </div>
-    </div>
+
 
     <table style="border: 2px solid #333;">
         <thead>
@@ -144,6 +144,32 @@
             @endforeach
         </tbody>
     </table>
+
+    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border: 1.5px solid #333; padding: 15px; border-radius: 8px; background: #fff; page-break-inside: avoid;">
+        <!-- Firmas / Sellos -->
+        <div style="display: flex; gap: 40px;">
+            <div style="text-align: center; width: 150px;">
+                <div style="height: 50px; border-bottom: 1px solid #666; margin-bottom: 5px;"></div>
+                <span style="font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #4b5563;">Firma Autorizada</span>
+            </div>
+            <div style="text-align: center; width: 150px;">
+                <div style="height: 50px; border-bottom: 1px solid #666; margin-bottom: 5px;"></div>
+                <span style="font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #4b5563;">Control de Calidad</span>
+            </div>
+        </div>
+
+        <!-- Caja de Verificación (Checklist) -->
+        <div style="border: 1.5px solid #1e3a8a; padding: 12px; border-radius: 6px; background: #f8fafc; min-width: 250px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <div style="width: 16px; height: 16px; border: 2px solid #1e3a8a; border-radius: 3px; margin-right: 10px; background: #fff;"></div>
+                <span style="font-size: 9.5pt; font-weight: bold; color: #1e3a8a;">Revisión de Perfil a cortar</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div style="width: 16px; height: 16px; border: 2px solid #1e3a8a; border-radius: 3px; margin-right: 10px; background: #fff;"></div>
+                <span style="font-size: 9.5pt; font-weight: bold; color: #1e3a8a;">Revisión de Perfiles cortados</span>
+            </div>
+        </div>
+    </div>
 
     <div class="footer">
         Generado automáticamente por {{ config('app.name') }} - {{ date('d/m/Y H:i:s') }}

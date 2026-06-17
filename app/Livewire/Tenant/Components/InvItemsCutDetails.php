@@ -7,7 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Tenant\Items\InvItemsCutDetails as CutDetail;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\InvItemsDimensions;
-use App\Models\Tenant\Customer\VntContacts as Customer;
+use App\Models\Tenant\Customer\VntCompany as Customer;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
@@ -120,6 +120,14 @@ class InvItemsCutDetails extends Component
 
     public function addCut()
     {
+        if ($this->remaining <= $this->kerf) {
+            $this->dispatch('swal', [
+                'icon' => 'warning',
+                'title' => 'Espacio insuficiente',
+                'text' => 'No queda espacio sobrante suficiente en el perfil para agregar más cortes.'
+            ]);
+            return;
+        }
         $this->cuts[] = '';
         $this->calculateTotals();
     }
@@ -131,9 +139,21 @@ class InvItemsCutDetails extends Component
         $this->calculateTotals();
     }
 
-    public function updatedCuts()
+    public function updatedCuts($value, $key)
     {
         $this->calculateTotals();
+
+        if ($this->accumulated > $this->profileLength) {
+            // Revertir el valor que causó el exceso en el input
+            $this->cuts[$key] = '';
+            $this->calculateTotals();
+
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'Límite excedido',
+                'text' => "La suma de cortes no puede superar el largo total de perfil {$this->profileLength} mm"
+            ]);
+        }
     }
 
     public function updatedRemissionId($value)
@@ -300,15 +320,22 @@ class InvItemsCutDetails extends Component
             if ($selectedItem) $items->push($selectedItem);
         }
 
-        $customersQuery = Customer::on('tenant')->active();
+        $customersQuery = Customer::on('tenant')->where('status', 1);
         if ($this->customerSearch) {
-            $customersQuery->where(function($q) {
-                $q->where('firstName', 'like', '%' . $this->customerSearch . '%')
-                  ->orWhere('lastName', 'like', '%' . $this->customerSearch . '%')
-                  ->orWhere('id', 'like', '%' . $this->customerSearch . '%');
+            $words = array_filter(explode(' ', trim($this->customerSearch)));
+            $customersQuery->where(function($q) use ($words) {
+                foreach ($words as $word) {
+                    $q->where(function($subQ) use ($word) {
+                        $subQ->where('businessName', 'like', '%' . $word . '%')
+                             ->orWhere('firstName', 'like', '%' . $word . '%')
+                             ->orWhere('lastName', 'like', '%' . $word . '%')
+                             ->orWhere('identification', 'like', '%' . $word . '%')
+                             ->orWhere('id', 'like', '%' . $word . '%');
+                    });
+                }
             });
         }
-        $customers = $customersQuery->orderBy('firstName')->take(15)->get();
+        $customers = $customersQuery->orderByRaw('COALESCE(businessName, firstName)')->take(15)->get();
         if ($this->customerId && !$customers->contains('id', $this->customerId)) {
             $selectedCustomer = Customer::on('tenant')->where('id', $this->customerId)->first();
             if ($selectedCustomer) $customers->push($selectedCustomer);
@@ -330,7 +357,7 @@ class InvItemsCutDetails extends Component
         $cutGroups = CutDetail::on('tenant')
             ->select('cut_id', 'customer_id')
             ->selectRaw('MAX(created_at) as created_at')
-            ->with('customer:id,firstName,lastName')
+            ->with('customer')
             ->whereNotNull('cut_id')
             ->groupBy('cut_id', 'customer_id')
             ->orderBy('created_at', 'desc')
