@@ -118,7 +118,7 @@
                                     <option value="">-- Seleccione un grupo de corte --</option>
                                     @foreach($cutGroups as $group)
                                         <option value="{{ $group->cut_id }}">
-                                            ( # {{ $group->cut_id }} ) {{ Carbon\Carbon::parse($group->created_at)->format('Y-m-d') }} / {{ mb_strtoupper($group->customer->firstName ?? '') }} {{ mb_strtoupper($group->customer->lastName ?? '') }}  {{ empty($group->customer->firstName) && empty($group->customer->lastName) ? 'SIN CLIENTE' : '' }}
+                                            ( # {{ $group->cut_id }} ) {{ Carbon\Carbon::parse($group->created_at)->format('Y-m-d') }} / {{ mb_strtoupper($group->customer->customer_name ?? 'SIN CLIENTE') }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -309,7 +309,7 @@
                                                     class="w-full flex items-center justify-between bg-gray-50 dark:bg-gray-900 border @error('customerId') border-red-500 @else border-transparent @enderror rounded-xl text-sm p-3 focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all shadow-sm">
                                                 <span class="truncate">
                                                     @if($customerId)
-                                                        {{ $customers->firstWhere('id', $customerId)?->full_name }}
+                                                        {{ $customers->firstWhere('id', $customerId)?->customer_name }}
                                                     @else
                                                         Seleccione un cliente
                                                     @endif
@@ -330,7 +330,7 @@
                                                 <div class="max-h-60 overflow-y-auto p-2 space-y-1">
                                                     @forelse($customers as $customer)
                                                         <button wire:key="customer-{{ $customer->id }}" type="button" @click="$wire.set('customerId', '{{ $customer->id }}'); open = false" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                                                            <div class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">{{ $customer->full_name }}</div>
+                                                            <div class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">{{ $customer->customer_name }}</div>
                                                         </button>
                                                     @empty
                                                         <div class="p-4 text-center text-sm text-gray-500 italic">No se encontraron clientes</div>

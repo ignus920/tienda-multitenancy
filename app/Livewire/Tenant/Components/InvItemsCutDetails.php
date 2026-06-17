@@ -7,7 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Tenant\Items\InvItemsCutDetails as CutDetail;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\InvItemsDimensions;
-use App\Models\Tenant\Customer\VntContacts as Customer;
+use App\Models\Tenant\Customer\VntCompany as Customer;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
@@ -303,12 +303,14 @@ class InvItemsCutDetails extends Component
         $customersQuery = Customer::on('tenant')->active();
         if ($this->customerSearch) {
             $customersQuery->where(function($q) {
-                $q->where('firstName', 'like', '%' . $this->customerSearch . '%')
+                $q->where('businessName', 'like', '%' . $this->customerSearch . '%')
+                  ->orWhere('firstName', 'like', '%' . $this->customerSearch . '%')
                   ->orWhere('lastName', 'like', '%' . $this->customerSearch . '%')
+                  ->orWhere('identification', 'like', '%' . $this->customerSearch . '%')
                   ->orWhere('id', 'like', '%' . $this->customerSearch . '%');
             });
         }
-        $customers = $customersQuery->orderBy('firstName')->take(15)->get();
+        $customers = $customersQuery->orderByRaw('COALESCE(businessName, firstName)')->take(15)->get();
         if ($this->customerId && !$customers->contains('id', $this->customerId)) {
             $selectedCustomer = Customer::on('tenant')->where('id', $this->customerId)->first();
             if ($selectedCustomer) $customers->push($selectedCustomer);
@@ -330,7 +332,7 @@ class InvItemsCutDetails extends Component
         $cutGroups = CutDetail::on('tenant')
             ->select('cut_id', 'customer_id')
             ->selectRaw('MAX(created_at) as created_at')
-            ->with('customer:id,firstName,lastName')
+            ->with('customer')
             ->whereNotNull('cut_id')
             ->groupBy('cut_id', 'customer_id')
             ->orderBy('created_at', 'desc')
