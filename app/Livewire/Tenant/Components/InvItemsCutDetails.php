@@ -120,6 +120,14 @@ class InvItemsCutDetails extends Component
 
     public function addCut()
     {
+        if ($this->remaining <= $this->kerf) {
+            $this->dispatch('swal', [
+                'icon' => 'warning',
+                'title' => 'Espacio insuficiente',
+                'text' => 'No queda espacio sobrante suficiente en el perfil para agregar más cortes.'
+            ]);
+            return;
+        }
         $this->cuts[] = '';
         $this->calculateTotals();
     }
@@ -131,9 +139,21 @@ class InvItemsCutDetails extends Component
         $this->calculateTotals();
     }
 
-    public function updatedCuts()
+    public function updatedCuts($value, $key)
     {
         $this->calculateTotals();
+
+        if ($this->accumulated > $this->profileLength) {
+            // Revertir el valor que causó el exceso en el input
+            $this->cuts[$key] = '';
+            $this->calculateTotals();
+
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'Límite excedido',
+                'text' => "La suma de cortes no puede superar el largo total de perfil {$this->profileLength} mm"
+            ]);
+        }
     }
 
     public function updatedRemissionId($value)
