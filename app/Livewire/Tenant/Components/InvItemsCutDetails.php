@@ -300,7 +300,7 @@ class InvItemsCutDetails extends Component
             if ($selectedItem) $items->push($selectedItem);
         }
 
-        $customersQuery = Customer::on('tenant')->active();
+        $customersQuery = Customer::on('tenant')->where('status', 1);
         if ($this->customerSearch) {
             $customersQuery->where(function($q) {
                 $q->where('businessName', 'like', '%' . $this->customerSearch . '%')
