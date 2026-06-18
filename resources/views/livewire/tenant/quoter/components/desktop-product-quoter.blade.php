@@ -493,8 +493,8 @@ $header = 'Seleccionar productos';
                         <table class="w-full table-auto whitespace-nowrap overflow-visible">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700 w-[120px] min-w-[120px] max-w-[120px]" style="position: sticky; left: 0px; z-index: 20;">Imagen</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700" style="position: sticky; left: 120px; z-index: 20;">Nombre</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Código</th>
                                     @if($hideQuoter)
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Existencias</th>
@@ -526,9 +526,9 @@ $header = 'Seleccionar productos';
                                         $allPrices = $product->all_prices;
                                     @endphp
 
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
+                                    <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
                                         <!-- Imagen con menú de acciones -->
-                                        <td class="px-4 py-4">
+                                        <td class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 w-[120px] min-w-[120px] max-w-[120px] {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }}" style="position: sticky; left: 0px; z-index: 10;">
                                             @php
                                                 $imgContext = $hideQuoter ? 'BODEGA' : 'COMERCIAL';
                                                 $imgUrl = $product->getPrincipalImageUrl($imgContext);
@@ -638,7 +638,7 @@ $header = 'Seleccionar productos';
                                                 $tableTextClass = 'text-gray-900 dark:text-white font-medium';
                                             }
                                         @endphp
-                                        <td class="px-4 py-4">
+                                        <td class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }}" style="position: sticky; left: 120px; z-index: 10;">
                                             <div class="text-sm {{ $tableTextClass }} truncate max-w-xs" title="{{ $product->display_name }}">
                                                 {{ $product->display_name }}
                                             </div>
