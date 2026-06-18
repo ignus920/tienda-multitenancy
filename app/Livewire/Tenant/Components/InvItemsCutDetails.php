@@ -200,6 +200,18 @@ class InvItemsCutDetails extends Component
             'accumulated' => $this->accumulated
         ]);
 
+        // Validar que no haya cortes en cero o vacíos
+        foreach ($this->cuts as $cutValue) {
+            if ($cutValue === '' || $cutValue === null || floatval($cutValue) <= 0) {
+                $this->dispatch('swal', [
+                    'icon' => 'warning',
+                    'title' => 'Cortes no válidos',
+                    'text' => 'Debe llenar el corte que está en cero o eliminarlo.'
+                ]);
+                return;
+            }
+        }
+
         try {
             $this->validate([
                 'selectedItemId' => 'required',
