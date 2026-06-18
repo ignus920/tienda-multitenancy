@@ -154,6 +154,7 @@
                     </button>
 
                     <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
+                        {{--
                         <!-- Administrar Etiquetas -->
                         <a href="{{ route('imports.imports-labels' )}}"
                             class="inline-flex items-center px-4 py-2 
@@ -184,6 +185,7 @@
                             </svg>
                             Instrucciones
                         </button>
+                        --}}
                     </div>
                     @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
                 </div>

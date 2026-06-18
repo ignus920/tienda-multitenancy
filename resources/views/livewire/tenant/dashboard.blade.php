@@ -16,7 +16,14 @@
         <!-- Estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <!-- Ventas Hoy -->
-            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" x-data="{ show: false }" @click="show = !show" title="Clic para mostrar/ocultar">
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
+                x-data="{ show: false }" 
+                @mousedown="show = true" 
+                @mouseup="show = false" 
+                @mouseleave="show = false"
+                @touchstart="show = true" 
+                @touchend="show = false"
+                title="Mantén presionado para ver">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-indigo-100 rounded-md p-3">
@@ -68,7 +75,14 @@
             </div>
 
             <!-- Ventas del Mes -->
-            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" x-data="{ show: false }" @click="show = !show" title="Clic para mostrar/ocultar">
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
+                x-data="{ show: false }" 
+                @mousedown="show = true" 
+                @mouseup="show = false" 
+                @mouseleave="show = false"
+                @touchstart="show = true" 
+                @touchend="show = false"
+                title="Mantén presionado para ver">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-purple-100 rounded-md p-3">
