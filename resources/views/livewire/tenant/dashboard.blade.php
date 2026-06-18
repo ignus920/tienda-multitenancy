@@ -16,7 +16,7 @@
         <!-- Estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <!-- Ventas Hoy -->
-            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" x-data="{ show: false }" @click="show = !show" title="Clic para mostrar/ocultar">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-indigo-100 rounded-md p-3">
@@ -26,7 +26,8 @@
                         </div>
                         <div class="ml-5">
                             <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas Hoy</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white">${{ number_format($stats['total_ventas_hoy'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" x-show="show">${{ number_format($stats['total_ventas_hoy'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500 tracking-widest" x-show="!show">••••••</p>
                         </div>
                     </div>
                 </div>
@@ -67,7 +68,7 @@
             </div>
 
             <!-- Ventas del Mes -->
-            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" x-data="{ show: false }" @click="show = !show" title="Clic para mostrar/ocultar">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-purple-100 rounded-md p-3">
@@ -77,7 +78,8 @@
                         </div>
                         <div class="ml-5">
                             <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas del Mes</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white">${{ number_format($stats['ventas_mes'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" x-show="show">${{ number_format($stats['ventas_mes'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500 tracking-widest" x-show="!show">••••••</p>
                         </div>
                     </div>
                 </div>
