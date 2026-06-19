@@ -1906,20 +1906,18 @@ class Remissions extends Component
                 return;
             }
 
-            // CARTERA: Validaciones de flujo dinámico entre Cartera y Pedidos
             $remission->load('authorizations');
-            $hasEmpaque = $remission->authorizations->where('auth_type', 'empaque')->where('status', 1)->isNotEmpty();
-            $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->where('status', 1)->isNotEmpty();
-            $hasPago = $remission->authorizations->where('auth_type', 'pago')->where('status', 1)->isNotEmpty();
-
+            $hasEmpaque = $remission->authorizations->where('auth_type', 'empaque')->sortByDesc('id')->first()?->status ?? false;
+            $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->sortByDesc('id')->first()?->status ?? false;
+            $hasPago = $remission->authorizations->where('auth_type', 'pago')->sortByDesc('id')->first()?->status ?? false;
             // Si tiene pago confirmado, se libera todo el flujo (prioridad máxima)
             if (!$hasPago) {
-                // 1. Si intenta pasar de ALISTAMIENTO a EMPACADO, requiere Despacho Autorizado
+                // 1. Si intenta pasar de ALISTAMIENTO a EMPACADO, requiere Empaque o Despacho Autorizado
                 if ($currentStatus === 'ALISTAMIENTO' && $nextStatus === 'EMPACADO') {
-                    if (!$hasDespacho) {
+                    if (!$hasEmpaque && !$hasDespacho) {
                         $this->dispatch('show-toast', [
                             'type' => 'warning',
-                            'message' => 'BLOQUEO DE CARTERA: No se puede avanzar a EMPACADO sin la autorización de DESPACHO.'
+                            'message' => 'BLOQUEO DE CARTERA: No se puede avanzar a EMPACADO sin la autorización de EMPAQUE.'
                         ]);
                         return;
                     }

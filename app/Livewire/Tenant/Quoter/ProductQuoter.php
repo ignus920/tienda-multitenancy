@@ -1829,10 +1829,11 @@ class ProductQuoter extends Component
                     ];
                 }
 
-                // Cargar ciudad y dirección desde la sucursal (branch) de la cotización
+                // Cargar ciudad, dirección y teléfono desde la sucursal (branch) de la cotización
                 if ($quote->branch) {
                     $this->selectedCustomer['cityName'] = $quote->branch->city->name ?? '';
                     $this->selectedCustomer['address'] = $quote->branch->address ?? '';
+                    $this->selectedCustomer['phone'] = $quote->branch->phone ?? '';
                 }
 
                 // Cargar sucursales de la empresa

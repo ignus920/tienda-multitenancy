@@ -93,12 +93,13 @@ class PackingTerminal extends Component
             return;
         }
 
-        // Verificar autorizaciones de Cartera (Despacho requerido para Empacado)
-        $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->where('status', 1)->isNotEmpty();
-        $hasPago = $remission->authorizations->where('auth_type', 'pago')->where('status', 1)->isNotEmpty();
+        // Verificar autorizaciones de Cartera (Empaque requerido para Empacado)
+        $hasEmpaque = $remission->authorizations->where('auth_type', 'empaque')->sortByDesc('id')->first()?->status ?? false;
+        $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->sortByDesc('id')->first()?->status ?? false;
+        $hasPago = $remission->authorizations->where('auth_type', 'pago')->sortByDesc('id')->first()?->status ?? false;
 
-        if (!$hasDespacho && !$hasPago) {
-            $this->msg_op = "BLOQUEO: Esta orden no tiene autorización de DESPACHO por parte de Cartera.";
+        if (!$hasEmpaque && !$hasDespacho && !$hasPago) {
+            $this->msg_op = "BLOQUEO: Esta orden no tiene autorización de EMPAQUE por parte de Cartera.";
             $this->msg_type = 'error';
             $this->opqr = '';
             return;
