@@ -10,6 +10,7 @@ use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Customer\VntCompany;
 use App\Models\Tenant\Customer\VntContacts;
+use App\Models\Tenant\Customer\VntWarehouse;
 use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Quoter\VntDetailQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
@@ -1027,6 +1028,16 @@ class ProductQuoter extends Component
         // Si hay un cliente seleccionado, refrescar sus sucursales
         if ($this->selectedCustomer && isset($this->selectedCustomer['id'])) {
             $this->loadBranches($this->selectedCustomer['id']);
+
+            // Si hay una sucursal seleccionada, refrescar los datos en el cliente seleccionado
+            if ($this->selectedBranchId) {
+                $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
+                if ($branch) {
+                    $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+                    $this->selectedCustomer['address'] = $branch['address'] ?? '';
+                    $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
+                }
+            }
         }
     }
 
@@ -1138,6 +1149,7 @@ class ProductQuoter extends Component
         if ($branch) {
             $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
             $this->selectedCustomer['address'] = $branch['address'] ?? '';
+            $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
         }
 
         $this->dispatch('show-toast', [
@@ -1150,6 +1162,110 @@ class ProductQuoter extends Component
 
         // Calcular retenciones en caso de que ya hayan productos en el carrito
         $this->calculateRetentionsForModal();
+    }
+
+    public function updateCustomerNameInline($newValue)
+    {
+        if (!$this->selectedCustomer) return;
+        
+        $newValue = trim($newValue);
+        if (empty($newValue)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El nombre no puede estar vacío']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $customer = VntCompany::find($this->selectedCustomer['id']);
+        if ($customer) {
+            if ((int)$customer->typeIdentificationId === 2) {
+                // Persona Jurídica
+                $customer->update(['businessName' => $newValue]);
+            } else {
+                // Persona Natural
+                $parts = explode(' ', $newValue, 2);
+                $customer->update([
+                    'firstName' => $parts[0],
+                    'lastName' => $parts[1] ?? ''
+                ]);
+            }
+
+            // Actualizar estado local
+            $this->selectedCustomer['businessName'] = $customer->businessName;
+            $this->selectedCustomer['firstName'] = $customer->firstName;
+            $this->selectedCustomer['lastName'] = $customer->lastName;
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Nombre del cliente actualizado']);
+        }
+    }
+
+    public function updateCustomerAddressInline($newValue)
+    {
+        if (!$this->selectedCustomer || !$this->selectedBranchId) return;
+
+        $newValue = trim($newValue);
+        if (empty($newValue)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La dirección no puede estar vacía']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $warehouse = VntWarehouse::find($this->selectedBranchId);
+        if ($warehouse) {
+            $warehouse->update(['address' => $newValue]);
+            $this->selectedCustomer['address'] = $newValue;
+
+            // Recargar sucursales
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Dirección de sucursal actualizada']);
+        }
+    }
+
+    public function updateCustomerPhoneInline($newValue)
+    {
+        if (!$this->selectedCustomer || !$this->selectedBranchId) return;
+
+        $newValue = trim($newValue);
+        $this->ensureTenantConnection();
+        $warehouse = VntWarehouse::find($this->selectedBranchId);
+        if ($warehouse) {
+            $warehouse->update(['phone' => $newValue]);
+            $this->selectedCustomer['phone'] = $newValue;
+
+            // Recargar sucursales
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Teléfono de sucursal actualizado']);
+        }
+    }
+
+    public function updateCustomerCityInline($newValue)
+    {
+        if (!$this->selectedCustomer || !$this->selectedBranchId) return;
+
+        $newValue = trim($newValue);
+        if (empty($newValue)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La ciudad no puede estar vacía']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $city = \App\Models\Central\CnfCity::where('name', 'like', '%' . $newValue . '%')->first();
+        if (!$city) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => "Ciudad '{$newValue}' no encontrada"]);
+            return;
+        }
+
+        $warehouse = VntWarehouse::find($this->selectedBranchId);
+        if ($warehouse) {
+            $warehouse->update(['cityId' => $city->id]);
+            $this->selectedCustomer['cityName'] = $city->name;
+
+            // Recargar sucursales
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Ciudad de sucursal actualizada']);
+        }
     }
 
     // Mantener searchCustomer por compatibilidad o si se presiona Enter, pero adaptado
@@ -1263,7 +1379,9 @@ class ProductQuoter extends Component
         // Verificar si es el cliente que está actualmente seleccionado
         if ($this->selectedCustomer && $this->selectedCustomer['id'] == $customerId) {
             // Buscar el cliente actualizado
-            $customer = VntCompany::find($customerId);
+            $customer = VntCompany::with(['warehouses' => function ($q) {
+                $q->where('status', 1)->with('city');
+            }])->find($customerId);
 
             if ($customer) {
                 // Actualizar los datos del cliente seleccionado (incluir api_data_id)
@@ -1279,6 +1397,19 @@ class ProductQuoter extends Component
                         'api_data_id' => $customer->api_data_id,
                     ]
                 );
+
+                // Recargar las sucursales
+                $this->branches = $customer->warehouses->toArray();
+
+                // Si hay una sucursal seleccionada, refrescar los datos en el cliente seleccionado
+                if ($this->selectedBranchId) {
+                    $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
+                    if ($branch) {
+                        $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+                        $this->selectedCustomer['address'] = $branch['address'] ?? '';
+                        $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
+                    }
+                }
 
                 // Limpiar estados del formulario de edición
                 $this->showCreateCustomerForm = false;

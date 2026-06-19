@@ -62,6 +62,7 @@ class VntWarehouse extends Model
         'api_data_id',
         'main',
         'branch_type',
+        'phone',
         // 'created_at' y 'updated_at' se manejan automáticamente
     ];
 

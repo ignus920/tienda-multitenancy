@@ -1296,26 +1296,49 @@ $header = 'Seleccionar productos';
                 $displayName = !empty($businessName) ? $businessName : ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName']);
             @endphp
             <div class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
-                <div class="flex items-center gap-2">
+                <!-- Nombre -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($displayName) }}' }" x-init="$watch('value', val => value = val)">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span class="font-bold text-gray-900 dark:text-white">{{ $displayName }}</span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="font-bold text-gray-900 dark:text-white cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
+                        {{ $displayName }}
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerNameInline(value)" @blur="editing = false; $wire.updateCustomerNameInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-bold">
                 </div>
                 
-                <div class="flex items-center gap-2">
+                <!-- Ciudad -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['cityName'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['cityName'] ?? 'N/A' }}</span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
+                        {{ $selectedCustomer['cityName'] ?? 'N/A' }}
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerCityInline(value)" @blur="editing = false; $wire.updateCustomerCityInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
                 </div>
 
-                <div class="flex items-center gap-2">
+                <!-- Dirección -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['address'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['address'] ?? 'N/A' }}</span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
+                        {{ $selectedCustomer['address'] ?? 'N/A' }}
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerAddressInline(value)" @blur="editing = false; $wire.updateCustomerAddressInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
+                </div>
+
+                <!-- Teléfono -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['phone'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" :class="value ? 'text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted' : 'text-amber-600 dark:text-amber-400 font-bold italic cursor-pointer hover:underline decoration-dotted'" title="Haga clic para editar">
+                        <span x-text="value || 'Añadir teléfono'"></span>
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" placeholder="Teléfono..." @keydown.enter="editing = false; $wire.updateCustomerPhoneInline(value)" @blur="editing = false; $wire.updateCustomerPhoneInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
                 </div>
 
                 <!-- Botón para gestionar sucursales -->

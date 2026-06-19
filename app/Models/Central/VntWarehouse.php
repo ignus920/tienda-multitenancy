@@ -26,7 +26,8 @@ class VntWarehouse extends Model
         'creditLimit',
         'status',
         'integrationDataId',
-        'main'
+        'main',
+        'phone'
     ];
 
     protected $casts = [

@@ -257,8 +257,9 @@
         @if($customer)
             <div class="customer-line bold">Cliente: {{ Str::limit($customer->businessName ?: $customer->firstName . ' ' . $customer->lastName, 35) }}</div>
             <div class="customer-line">{{ $customer->identification }}</div>
-            @if($customer->phone)
-                <div class="customer-line">Tel: {{ $customer->phone }}</div>
+            @php $phoneVal = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+            @if($phoneVal && $phoneVal !== 'N/A' && $phoneVal !== 'na' && $phoneVal !== 'n/a')
+                <div class="customer-line">Tel: {{ $phoneVal }}</div>
             @endif
             @if($customer->billingEmail)
                 <div class="customer-line">{{ Str::limit($customer->billingEmail, 30) }}</div>
