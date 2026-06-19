@@ -2194,6 +2194,125 @@ class Remissions extends Component
         };
     }
 
+    public function printShippingGuide($id)
+    {
+        $this->ensureTenantConnection();
+        
+        try {
+            Log::info('🖨️ printShippingGuide llamado', ['remission_id' => $id]);
+            
+            $remission = InvRemissions::findOrFail($id);
+            $remission->load(['quote.customer.company', 'quote.branch.city']);
+            
+            // Obtener remitente (datos de la empresa central/warehouse principal)
+            $userId = auth()->id();
+            $sender = null;
+            if ($userId) {
+                $sender = DB::connection('central')->table('users as u')
+                    ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                    ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                    ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                    ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                    ->join('cities as c', 'c.id', '=', 'w.cityId')
+                    ->where('u.id', $userId)
+                    ->where('w.main', 1)
+                    ->select([
+                        'v.businessName',
+                        'w.address as billingAddress',
+                        'c.name as city',
+                        'v.identification',
+                    ])
+                    ->first();
+            }
+            
+            if ($sender) {
+                $sender->phone = '318 2097143'; // Teléfono por defecto del remitente (Fervicom)
+            } else {
+                $sender = (object) [
+                    'businessName' => 'FERVICOM SAS',
+                    'billingAddress' => 'Cra 70B #3A-18 Nueva Marsella',
+                    'phone' => '318 2097143',
+                    'city' => 'Bogotá-Colombia',
+                    'identification' => '900.440.810-1',
+                ];
+            }
+            
+            $quote = $remission->quote;
+            $contact = $quote ? $quote->customer : null;
+            $branch = $quote ? $quote->branch : null;
+            
+            $customerName = $quote ? $quote->customer_name : 'N/A';
+            $contactName = $contact ? ($contact->firstName . ' ' . $contact->lastName) : '';
+            $phone = $branch ? $branch->phone : ($contact ? $contact->phone : 'N/A');
+            $email = $contact ? $contact->email : 'N/A';
+            $nit = ($contact && $contact->company) ? $contact->company->identification : ($contact ? $contact->identification : 'N/A');
+            $address = $branch ? $branch->address : ($contact ? $contact->address : 'N/A');
+            
+            $cityName = 'N/A';
+            $stateName = 'N/A';
+            
+            $cityId = $branch ? $branch->cityId : ($contact && $contact->warehouse ? $contact->warehouse->cityId : null);
+            if ($cityId) {
+                $city = DB::connection('central')->table('cities')->where('id', $cityId)->first();
+                if ($city) {
+                    $cityName = $city->name;
+                    $state = DB::connection('central')->table('district')->where('city_id', $city->id)->first();
+                    if ($state) {
+                        $stateName = $state->district;
+                    }
+                }
+            }
+            
+            $data = [
+                'remission' => $remission,
+                'consecutive' => $remission->consecutive,
+                'sender' => $sender,
+                'receiver' => [
+                    'name' => $customerName,
+                    'contact' => $contactName,
+                    'phone' => $phone,
+                    'nit' => $nit,
+                    'email' => $email,
+                    'address' => $address,
+                    'city' => $cityName,
+                    'state' => $stateName,
+                ]
+            ];
+            
+            $html = view('livewire.tenant.remissions.print-shipping-guide', $data)->render();
+            
+            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
+            $tempPath = storage_path('app/temp/' . $tempFileName);
+            
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+            
+            file_put_contents($tempPath, $html);
+            
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+            
+            $this->dispatch('open-print-window', [
+                'url' => $printUrl,
+                'format' => 'pos'
+            ]);
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Guía de envío de Pedido #' . $remission->consecutive . ' preparada para impresión.'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Error en printShippingGuide: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al generar la guía de envío: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     protected function getExportFilename(): string
     {
         return 'pedidos_' . now()->format('Y-m-d_His');

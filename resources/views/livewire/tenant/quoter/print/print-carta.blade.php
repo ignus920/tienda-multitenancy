@@ -151,9 +151,9 @@
         }
 
         .products-table th {
-            background-color: #34495e;
-            color: white;
-            border: 1px solid #2c3e50;
+            background-color: #ffffff;
+            color: #0a3d62;
+            border: 1px solid #0a3d62;
             padding: 10px 6px;
             text-align: center;
             font-weight: bold;
@@ -170,7 +170,8 @@
         }
 
         .col-idx { width: 30px; text-align: center; }
-        .col-code { width: 105px; text-align: center; font-family: 'Courier New', monospace; font-size: 20pt; font-weight: 600; }
+        .col-code { width: 105px; text-align: center; }
+        .products-table td.col-code { font-family: 'Courier New', monospace; font-size: 20pt; font-weight: 600; }
         .col-desc { text-align: left; min-width: 200px; }
         .col-qty { width: 50px; text-align: center; }
         .col-delivered { width: 60px; text-align: center; }
@@ -402,7 +403,9 @@
                 print-color-adjust: exact;
             }
             .products-table th {
-                background-color: #34495e;
+                background-color: #ffffff;
+                color: #0a3d62;
+                border: 1px solid #0a3d62;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }

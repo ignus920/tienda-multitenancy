@@ -123,6 +123,7 @@ class ProductQuoter extends Component
     public $selectedDeliveryType = null;
     public $deliveryDetails = '';
     public $orderDetails = '';
+    public $paymentDetails = '';
     public $showDeliveryModal = false;
     public $requiresDeliveryDetails = false;
 
@@ -2426,6 +2427,17 @@ class ProductQuoter extends Component
                 'proof_payment' => $proofPaymentPath
             ]);
 
+            // Guardar observaciones de forma de pago
+            if (!empty(trim($this->paymentDetails))) {
+                \App\Models\Tenant\Sales\VntObservation::create([
+                    'reference_id' => $remission->id,
+                    'reference_type' => 'remission',
+                    'observation_type' => 'payment_obs',
+                    'observation' => $this->paymentDetails,
+                    'userId' => auth()->id()
+                ]);
+            }
+
             // Copiar justificación de flete si existe
             $quoteObservation = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'quote')
                 ->where('reference_id', $quote->id)
@@ -2521,6 +2533,7 @@ class ProductQuoter extends Component
         $this->selectedDeliveryType = null;
         $this->deliveryDetails = '';
         $this->orderDetails = '';
+        $this->paymentDetails = '';
         $this->requiresDeliveryDetails = false;
         $this->selectedMethodPayment = null;
         $this->showOtherDeliveryInput = false;
@@ -3249,6 +3262,13 @@ class ProductQuoter extends Component
             $this->orderDetails = $remission->obs;
             $this->observaciones = $remission->observations_return; // Mantener por compatibilidad si es necesario
 
+            // Cargar observación de forma de pago
+            $paymentObs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'remission')
+                ->where('reference_id', $remission->id)
+                ->where('observation_type', 'payment_obs')
+                ->first();
+            $this->paymentDetails = $paymentObs ? $paymentObs->observation : '';
+
             $this->appliedFreight = $remission->flete ?? 0;
             if ($this->appliedFreight > 0) {
                 $this->isFreightApplied = true;
@@ -3362,6 +3382,19 @@ class ProductQuoter extends Component
                     ->delete();
             }
 
+            // Actualizar o crear observación de forma de pago
+            if (!empty(trim($this->paymentDetails))) {
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    ['reference_id' => $remission->id, 'reference_type' => 'remission', 'observation_type' => 'payment_obs'],
+                    ['observation' => $this->paymentDetails, 'userId' => auth()->id()]
+                );
+            } else {
+                \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remission->id)
+                    ->where('reference_type', 'remission')
+                    ->where('observation_type', 'payment_obs')
+                    ->delete();
+            }
+
             // Eliminar detalles existentes
             InvDetailRemissions::where('remissionId', $remission->id)->delete();
 
@@ -3410,6 +3443,7 @@ class ProductQuoter extends Component
         $this->customerSearch = '';
         $this->observaciones = null;
         $this->orderDetails = '';
+        $this->paymentDetails = '';
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
 
