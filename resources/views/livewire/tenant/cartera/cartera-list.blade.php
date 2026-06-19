@@ -183,7 +183,7 @@
                         <div class="bg-gray-100 dark:bg-slate-900/50 p-2 rounded-lg text-[11px] space-y-1">
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Total:</span>
-                                <span class="font-bold text-indigo-600">${{ number_format($remission->total_rem, 0) }}</span>
+                                <span class="font-bold text-indigo-600">${{ number_format($remission->sub_total_rem, 0) }}</span>
                             </div>
                             <div class="flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1">
                                 <span class="text-gray-500">Rfte: ${{ number_format($remission->invoice->retentionFuente ?? 0, 0) }}</span>
@@ -216,9 +216,10 @@
                                             {{ $remission->methodPayment->name ?? 'TRANSFERENCIA' }}
                                         </p>
                                         <p class="text-xs font-bold text-gray-700 dark:text-slate-300">
-                                            ${{ number_format($remission->total_rem, 0) }}
+                                            ${{ number_format($remission->sub_total_rem, 0) }}
                                         </p>
                                     </div>
+
                                     <a href="{{ asset('storage/' . $remission->proof_payment) }}" 
                                        target="_blank" 
                                        class="inline-flex items-center text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold mt-0.5 transition-colors gap-1"
