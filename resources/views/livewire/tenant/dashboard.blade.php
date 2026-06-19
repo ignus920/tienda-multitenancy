@@ -16,6 +16,7 @@
         <!-- Estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <!-- Ventas Hoy -->
+            @if(auth()->user()->profile_id != 5)
             <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
                 x-data="{ show: false }" 
                 @mousedown="show = true" 
@@ -39,6 +40,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Total Clientes -->
             <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg">
@@ -75,6 +77,7 @@
             </div>
 
             <!-- Ventas del Mes -->
+            @if(auth()->user()->profile_id != 5)
             <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
                 x-data="{ show: false }" 
                 @mousedown="show = true" 
@@ -98,6 +101,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- Accesos Rápidos -->

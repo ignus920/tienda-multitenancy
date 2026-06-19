@@ -522,10 +522,10 @@
                 <tr class="{{ $index % 2 == 0 ? '' : 'row-even' }}">
                     <td class="col-idx">{{ $index + 1 }}</td>
                     <td class="col-code">
-                        <div style="font-size: 20pt; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
                         @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
-                            <div style="font-size: 20pt; color: #e74c3c; margin-top: 3px; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->picking }}</div>
+                            <div style="font-size: 20pt; color: #e74c3c; font-weight: bold; font-family: 'Courier New', monospace; margin-bottom: 3px;">{{ $detalle->item->picking }}</div>
                         @endif
+                        <div style="font-size: 20pt; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
                     </td>
                     <td class="col-desc">
                         {{ $detalle->item->name ?? $detalle->item->display_name }}
