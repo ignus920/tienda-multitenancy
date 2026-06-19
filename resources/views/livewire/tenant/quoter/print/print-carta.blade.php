@@ -507,8 +507,8 @@
             <tr>
                 <th class="col-idx">#</th>
                 <th class="col-code">CÓDIGO</th>
-                <th class="col-desc">DESCRIPCIÓN</th>
                 <th class="col-qty">CANT.</th>
+                <th class="col-desc">DESCRIPCIÓN</th>
                 {{-- <th class="col-delivered">ENTREGADO</th>
                 <th class="col-pending">PENDIENTES</th> --}}
                 @if(!isset($showValues) || $showValues)
@@ -528,6 +528,17 @@
                         @endif
                         <div style="font-size: 20pt; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
                     </td>
+                    <td class="col-qty">
+                        @php
+                            $consumptionUnit = $detalle->item->consumptionUnit ?? null;
+                            $unitQty = ($consumptionUnit && $consumptionUnit->quantity > 1) ? $consumptionUnit->quantity : 0;
+                        @endphp
+                        @if($unitQty > 0 && $documentTitle === 'REMISIÓN')
+                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 0) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
+                        @else
+                            {{ number_format($detalle->quantity, 0) }}
+                        @endif
+                    </td>
                     <td class="col-desc">
                         {{ $detalle->item->name ?? $detalle->item->display_name }}
                         @if($detalle->description && $detalle->description != ($detalle->item->name ?? ''))
@@ -546,17 +557,6 @@
                                     </div>
                                 @endforeach
                             </div>
-                        @endif
-                    </td>
-                    <td class="col-qty">
-                        @php
-                            $consumptionUnit = $detalle->item->consumptionUnit ?? null;
-                            $unitQty = ($consumptionUnit && $consumptionUnit->quantity > 1) ? $consumptionUnit->quantity : 0;
-                        @endphp
-                        @if($unitQty > 0 && $documentTitle === 'REMISIÓN')
-                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 0) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
-                        @else
-                            {{ number_format($detalle->quantity, 0) }}
                         @endif
                     </td>
                     {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
