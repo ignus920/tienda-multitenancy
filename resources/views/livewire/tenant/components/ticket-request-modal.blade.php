@@ -89,45 +89,54 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
 
         <!-- Detalle o Formulario -->
         @if($selectedRequest)
-            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Historial de la solicitud</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto custom-scrollbar p-1">
+                <div class="flex flex-col gap-4 max-h-60 overflow-y-auto custom-scrollbar pr-2 py-1">
                     @foreach($selectedRequest->history as $history)
-                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm relative group transition-all hover:shadow-md">
-                            <div class="flex items-center justify-between mb-2.5">
-                                <span class="text-[13px] font-bold text-amber-500 dark:text-amber-400">
-                                    {{ $history->user->name ?? 'Usuario Sistema' }}
-                                </span>
-                                <div class="flex items-center gap-2">
-                                    @php
-                                        $statusName = $history->status->name ?? 'Estado N/A';
-                                        $statusColor = $history->status->color ?? 'gray';
-                                        $colorMap = [
-                                            'indigo' => '#4f46e5',
-                                            'green' => '#16a34a',
-                                            'blue' => '#2563eb',
-                                            'red' => '#dc2626',
-                                            'maroon' => '#800000',
-                                        ];
-                                        $finalColor = $colorMap[strtolower($statusColor)] ?? $statusColor;
-                                    @endphp
-                                    <span class="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase text-white tracking-wider" 
+                        @php
+                            $isMe = $history->user_id === auth()->id();
+                            $statusName = $history->status->name ?? 'Estado N/A';
+                            $statusColor = $history->status->color ?? 'gray';
+                            $colorMap = [
+                                'indigo' => '#4f46e5',
+                                'green' => '#16a34a',
+                                'blue' => '#2563eb',
+                                'red' => '#dc2626',
+                                'maroon' => '#800000',
+                            ];
+                            $finalColor = $colorMap[strtolower($statusColor)] ?? $statusColor;
+                        @endphp
+                        
+                        <div class="flex w-full {{ $isMe ? 'justify-end' : 'justify-start' }}">
+                            <div class="max-w-[75%] flex flex-col gap-1">
+                                <!-- Info / Header -->
+                                <div class="flex items-center gap-2 px-1 {{ $isMe ? 'justify-end flex-row-reverse' : 'justify-start' }}">
+                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                                        {{ $history->user->name ?? 'Usuario Sistema' }}
+                                    </span>
+                                    <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white tracking-wider" 
                                           style="background-color: {{ $finalColor }}">
                                         {{ $statusName }}
                                     </span>
                                 </div>
-                            </div>
-                            <div class="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
-                                <x-heroicon-o-clock class="w-3 h-3"/>
-                                {{ $history->created_at ? $history->created_at->format('Y-m-d H:i:s') : 'N/A' }}
-                            </div>
-                            <div class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-lg border border-gray-50 dark:border-gray-800">
-                                @if(trim(strip_tags($history->message)) == 'Solicitud creada.')
-                                    {!! $selectedRequest->detail !!}
-                                @else
-                                    {!! $history->message ?? 'Sin mensaje' !!}
-                                @endif
+
+                                <!-- Mensaje (Burbuja de Chat) -->
+                                <div class="text-[12px] leading-relaxed text-left rounded-2xl px-4 py-2.5
+                                            {{ $isMe 
+                                               ? 'bg-indigo-100 text-indigo-950 dark:bg-indigo-950/40 dark:text-indigo-100 rounded-tr-none' 
+                                               : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 rounded-tl-none' }}">
+                                    @if(trim(strip_tags($history->message)) == 'Solicitud creada.')
+                                        {!! $selectedRequest->detail !!}
+                                    @else
+                                        {!! $history->message ?? 'Sin mensaje' !!}
+                                    @endif
+                                </div>
+
+                                <!-- Hora -->
+                                <div class="text-[9px] text-gray-400 dark:text-gray-500 px-1 flex items-center gap-1 {{ $isMe ? 'justify-end' : 'justify-start' }}">
+                                    <span>{{ $history->created_at ? $history->created_at->format('d/m H:i') : 'N/A' }}</span>
+                                </div>
                             </div>
                         </div>
                     @endforeach
