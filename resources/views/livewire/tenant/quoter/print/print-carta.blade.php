@@ -151,10 +151,7 @@
         .products-table th {
             background-color: #ffffff;
             color: #0a3d62;
-            border-top: 1px solid #0a3d62;
-            border-bottom: 1px solid #0a3d62;
-            border-left: none;
-            border-right: none;
+            border: 1px solid #0a3d62;
             padding: 10px 6px;
             text-align: center;
             font-weight: bold;
@@ -164,10 +161,7 @@
         }
 
         .products-table td {
-            border-bottom: 1px solid #e1e8ee;
-            border-top: none;
-            border-left: none;
-            border-right: none;
+            border: 1px solid #e1e8ee;
             padding: 8px 6px;
             vertical-align: middle;
             font-size: 13pt;
@@ -409,10 +403,7 @@
             .products-table th {
                 background-color: #ffffff;
                 color: #0a3d62;
-                border-top: 1px solid #0a3d62;
-                border-bottom: 1px solid #0a3d62;
-                border-left: none;
-                border-right: none;
+                border: 1px solid #0a3d62;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
