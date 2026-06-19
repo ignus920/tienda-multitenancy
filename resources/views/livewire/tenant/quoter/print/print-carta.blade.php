@@ -31,7 +31,6 @@
             width: 100%;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 2px solid #3498db;
         }
 
         .header-left {
@@ -125,8 +124,7 @@
             padding-bottom: 5px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #3498db;
-            border-bottom: 2px solid #3498db;
+            color: #0a3d62;
         }
 
         .info-row {
@@ -153,7 +151,10 @@
         .products-table th {
             background-color: #ffffff;
             color: #0a3d62;
-            border: 1px solid #0a3d62;
+            border-top: 1px solid #0a3d62;
+            border-bottom: 1px solid #0a3d62;
+            border-left: none;
+            border-right: none;
             padding: 10px 6px;
             text-align: center;
             font-weight: bold;
@@ -163,7 +164,10 @@
         }
 
         .products-table td {
-            border: 1px solid #e1e8ee;
+            border-bottom: 1px solid #e1e8ee;
+            border-top: none;
+            border-left: none;
+            border-right: none;
             padding: 8px 6px;
             vertical-align: middle;
             font-size: 13pt;
@@ -214,7 +218,7 @@
             background-color: #f8f9fa;
             border-radius: 6px;
             line-height: 1.4;
-            border-left: 3px solid #3498db;
+            border: 1px solid #e1e8ee;
         }
 
         .notes-section {
@@ -405,7 +409,10 @@
             .products-table th {
                 background-color: #ffffff;
                 color: #0a3d62;
-                border: 1px solid #0a3d62;
+                border-top: 1px solid #0a3d62;
+                border-bottom: 1px solid #0a3d62;
+                border-left: none;
+                border-right: none;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
