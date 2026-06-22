@@ -271,7 +271,7 @@ class CarteraList extends Component
 
         // Si ya tiene soporte cargado, subir archivo es opcional, si no, es requerido.
         $rules = [
-            'selectedMethodPaymentId' => 'required|exists:vnt_method_payments,id',
+            'selectedMethodPaymentId' => 'required|exists:tenant.vnt_method_payments,id',
         ];
 
         if (!$remission->proof_payment || $this->proofPaymentFile) {
