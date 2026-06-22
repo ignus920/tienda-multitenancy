@@ -534,7 +534,7 @@
                             $unitQty = ($consumptionUnit && $consumptionUnit->quantity > 1) ? $consumptionUnit->quantity : 0;
                         @endphp
                         @if($unitQty > 0 && $documentTitle === 'REMISIÓN')
-                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 0) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
+                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 1) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
                         @else
                             {{ number_format($detalle->quantity, 0) }}
                         @endif
@@ -562,7 +562,12 @@
                     {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
                     <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td> --}}
                     @if(!isset($showValues) || $showValues)
-                    <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
+                    @php
+                        $valueWithoutTax = $detalle->tax > 0 
+                            ? $detalle->value / (1 + $detalle->tax / 100) 
+                            : $detalle->value;
+                    @endphp
+                    <td class="col-price">${{ number_format($valueWithoutTax, 2) }}</td>
                     <td class="col-discount">
                         @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
                             {{ $detalle->price_label }}
@@ -570,7 +575,7 @@
                             -
                         @endif
                     </td>
-                    <td class="col-total">${{ number_format($detalle->value * $detalle->quantity, 2) }}</td>
+                    <td class="col-total">${{ number_format($valueWithoutTax * $detalle->quantity, 2) }}</td>
                     @endif
                 </tr>
             @endforeach
