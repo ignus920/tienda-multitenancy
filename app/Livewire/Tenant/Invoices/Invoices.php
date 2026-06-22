@@ -17,6 +17,8 @@ use App\Services\Facturacion\TenantConfigManager;
 use App\Traits\HasCompanyConfiguration;
 use App\Models\Tenant\Items\InvItemsStore;
 use App\Traits\Livewire\HasDynamicButtons;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\GenericExport;
 
 class Invoices extends Component
 {
@@ -780,135 +782,203 @@ class Invoices extends Component
             ->groupBy("ixs.invoiceId");
     }
 
+    private function buildInvoicesQuery()
+    {
+        $centralDbName = config('database.connections.central.database');
+
+        // Subconsulta para totales de detalles de remisión - PRECISIÓN EXACTA con DEBUG
+        // CORRECCIÓN: El campo 'value' en inv_detail_remissions en realidad YA incluye impuestos
+        $remissionTotals = DB::connection('tenant')->table("inv_detail_remissions")
+            ->select(
+                "invoiceId",
+                DB::raw("CAST(SUM(value * quantity) AS DECIMAL(15,6)) as total_con_impuestos"), // El 'value' YA tiene impuestos
+                DB::raw("CAST(SUM((value / (1 + tax / 100)) * quantity) AS DECIMAL(15,6)) as total_sin_impuestos"), // Quitamos impuestos INDIVIDUALMENTE
+                DB::raw("COUNT(DISTINCT remissionId) as remissions_count"), // Para debug: cuántas remisiones
+                DB::raw("GROUP_CONCAT(CONCAT('R', remissionId, ':V', value, ':T', tax, ':Q', quantity) SEPARATOR '|') as debug_items") // Para debug
+            )
+            ->whereNotNull("invoiceId")
+            ->groupBy("invoiceId");
+
+        // Subconsulta para totales de detalles de cotización - PRECISIÓN EXACTA
+        // NOTA: Los valores en vnt_detail_quotes YA incluyen impuestos
+        $quoteTotals = DB::connection('tenant')->table("vnt_detail_quotes as dq")
+            ->select(
+                "ixs.invoiceId",
+                DB::raw("CAST(SUM(dq.value * dq.quantity) AS DECIMAL(15,6)) as total_con_impuestos"),
+                DB::raw("CAST(SUM((dq.value / (1 + dq.tax / 100)) * dq.quantity) AS DECIMAL(15,6)) as total_sin_impuestos")
+            )
+            ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
+            ->whereNotNull("ixs.invoiceId")
+            ->groupBy("ixs.invoiceId");
+
+        // Subconsulta para GROUP_CONCAT de consecutivos de remisión
+        $remissionConsecutives = DB::connection('tenant')->table("vnt_invoicesXsales as s_sub")
+            ->select(
+                "s_sub.invoiceId",
+                DB::raw("GROUP_CONCAT(r_sub.consecutive ORDER BY r_sub.consecutive SEPARATOR ', ') as remission_consecutive")
+            )
+            ->join("inv_remissions as r_sub", "s_sub.remissionId", "=", "r_sub.id")
+            ->groupBy("s_sub.invoiceId");
+
+        $query = VntInvoices::query()
+            ->select([
+                'vnt_invoices.id',
+                'vnt_invoices.consecutive',
+                'vnt_invoices.status',
+                'vnt_invoices.status_payment',
+                'vnt_invoices.api_data_id',
+                'vnt_invoices.api_data_id_pay',
+                'vnt_invoices.partialPayment',
+                'vnt_invoices.quoteId',
+                'vnt_invoices.warehouseId',
+                'vnt_invoices.remission',
+                'vnt_invoices.creditNoteId',
+                'vnt_invoices.invoiceNumber',
+                'vnt_invoices.retentionFuente',
+                'vnt_invoices.retentionIca',
+                'vnt_invoices.retentionIva',
+                'vnt_invoices.creditNote',
+                'vnt_invoices.orderNumber',
+                'vnt_invoices.created_at',
+                'vnt_invoices.updated_at',
+                'vnt_invoices.deleted_at',
+                DB::raw("MAX(remission_consecutives.remission_consecutive) as remission_consecutive"),
+                DB::raw("MAX(COALESCE(wr.name, wd.name)) as warehouse_name"),
+                DB::raw("MAX(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))) AS seller"),
+                DB::raw("MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))) AS client_name"),
+                DB::raw("MAX(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
+                DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
+                DB::raw("MAX(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
+                // Campos DEBUG para facturas agrupadas
+                DB::raw("MAX(dr_totals.remissions_count) as debug_remissions_count"),
+                DB::raw("MAX(dr_totals.debug_items) as debug_items_detail"),
+            ])
+            ->join("vnt_invoicesXsales as s", "s.invoiceId", "=", "vnt_invoices.id")
+            // Joins para la ruta de Remisión
+            ->leftJoin("inv_remissions as r", "s.remissionId", "=", "r.id")
+            ->leftJoin("inv_store as wr", "r.warehouseId", "=", "wr.id")
+            // Joins para la ruta de Cotización (puede venir de una remisión o directa)
+            ->leftJoin("vnt_quotes as qr", "r.quoteId", "=", "qr.id") // Cotización vía Remisión
+            ->leftJoin("vnt_quotes as qd", "s.quoteId", "=", "qd.id") // Cotización Directa
+            ->leftJoin("inv_store as wd", "qd.warehouseId", "=", "wd.id")
+            // Joins para datos de Cliente y Vendedor (usando COALESCE para tomar de cualquiera de las dos rutas)
+            // customerId guarda el warehouseId del contacto (vnt_contacts.warehouseId = vnt_quotes.customerId)
+            ->leftJoin("vnt_contacts as c", "c.warehouseId", "=", DB::raw("COALESCE(qr.customerId, qd.customerId)"))
+            ->leftJoin(DB::raw("{$centralDbName}.users as u"), "u.id", "=", DB::raw("COALESCE(qr.userId, qd.userId)"))
+            // Joins con las subconsultas
+            ->leftJoinSub($remissionTotals, "dr_totals", "vnt_invoices.id", "=", "dr_totals.invoiceId")
+            ->leftJoinSub($quoteTotals, "dq_totals", "vnt_invoices.id", "=", "dq_totals.invoiceId")
+            ->leftJoinSub($remissionConsecutives, "remission_consecutives", "vnt_invoices.id", "=", "remission_consecutives.invoiceId")
+            ->groupBy([
+                "vnt_invoices.id",
+                "vnt_invoices.consecutive",
+                "vnt_invoices.status",
+                "vnt_invoices.status_payment",
+                "vnt_invoices.api_data_id",
+                "vnt_invoices.api_data_id_pay",
+                "vnt_invoices.partialPayment",
+                "vnt_invoices.quoteId",
+                "vnt_invoices.warehouseId",
+                "vnt_invoices.remission",
+                "vnt_invoices.creditNoteId",
+                "vnt_invoices.invoiceNumber",
+                "vnt_invoices.retentionFuente",
+                "vnt_invoices.retentionIca",
+                "vnt_invoices.retentionIva",
+                "vnt_invoices.creditNote",
+                "vnt_invoices.orderNumber",
+                "vnt_invoices.created_at",
+                "vnt_invoices.updated_at",
+                "vnt_invoices.deleted_at"
+            ]);
+
+        // Aplicar búsqueda — todo en HAVING para compatibilidad con GROUP BY
+        $query->when($this->search, function ($q) {
+            $search = '%' . $this->search . '%';
+            $q->havingRaw("
+                vnt_invoices.invoiceNumber LIKE ?
+                OR MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))) LIKE ?
+                OR MAX(COALESCE(u.name, '')) LIKE ?
+                OR MAX(remission_consecutives.remission_consecutive) LIKE ?
+                OR vnt_invoices.consecutive LIKE ?
+            ", [$search, $search, $search, $search, $search]);
+        })
+        ->when($this->filterDateFrom, function ($q) {
+            $q->whereDate('vnt_invoices.created_at', '>=', $this->filterDateFrom);
+        })
+        ->when($this->filterDateTo, function ($q) {
+            $q->whereDate('vnt_invoices.created_at', '<=', $this->filterDateTo);
+        });
+
+        return $query;
+    }
+
+    public function exportToExcel()
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $invoices = $this->buildInvoicesQuery()
+                ->orderBy($this->sortField, $this->sortDirection)
+                ->get();
+
+            $headings = [
+                'FECHA',
+                'No. REM',
+                'FACTURA #',
+                'ESTADO FACTURA',
+                'ESTADO PAGO',
+                'SUCURSAL',
+                'VENDEDOR',
+                'SUBTOTAL',
+                'TOTAL',
+                'NOTA CRÉDITO',
+                'RET. FUENTE',
+                'RET. ICA',
+                'RET. IVA',
+                'No. ORDEN',
+                'VALOR CON RETENCIONES'
+            ];
+
+            $export = new GenericExport($invoices, $headings, function($invoice) {
+                $valorConRetenciones = $invoice->total_con_impuestos - $invoice->retentionFuente - $invoice->retentionIca - $invoice->retentionIva;
+                return [
+                    $invoice->created_at ? $invoice->created_at->format('d/m/Y') : '',
+                    $invoice->remission_consecutive,
+                    '#' . $invoice->invoiceNumber,
+                    $invoice->status,
+                    $invoice->status_payment,
+                    $invoice->warehouse_name,
+                    $invoice->seller,
+                    number_format($invoice->total_sin_impuestos, 2, '.', ''),
+                    number_format($invoice->total_con_impuestos, 2, '.', ''),
+                    $invoice->creditNoteId ?? 'Sin NC',
+                    number_format($invoice->retentionFuente, 2, '.', ''),
+                    number_format($invoice->retentionIca, 2, '.', ''),
+                    number_format($invoice->retentionIva, 2, '.', ''),
+                    $invoice->orderNumber ?? 'Sin orden',
+                    number_format($valorConRetenciones, 2, '.', '')
+                ];
+            });
+
+            $fileName = 'Facturas_' . now()->format('Ymd_His') . '.xlsx';
+
+            return Excel::download($export, $fileName);
+        } catch (\Exception $e) {
+            Log::error('❌ Error exportando facturas a Excel: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al exportar a Excel: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function render()
     {
         try {
-            $centralDbName = config('database.connections.central.database');
             $this->ensureTenantConnection();
 
-            // Subconsulta para totales de detalles de remisión - PRECISIÓN EXACTA con DEBUG
-            // CORRECCIÓN: El campo 'value' en inv_detail_remissions en realidad YA incluye impuestos
-            $remissionTotals = DB::connection('tenant')->table("inv_detail_remissions")
-                ->select(
-                    "invoiceId",
-                    DB::raw("CAST(SUM(value * quantity) AS DECIMAL(15,6)) as total_con_impuestos"), // El 'value' YA tiene impuestos
-                    DB::raw("CAST(SUM((value / (1 + tax / 100)) * quantity) AS DECIMAL(15,6)) as total_sin_impuestos"), // Quitamos impuestos INDIVIDUALMENTE
-                    DB::raw("COUNT(DISTINCT remissionId) as remissions_count"), // Para debug: cuántas remisiones
-                    DB::raw("GROUP_CONCAT(CONCAT('R', remissionId, ':V', value, ':T', tax, ':Q', quantity) SEPARATOR '|') as debug_items") // Para debug
-                )
-                ->whereNotNull("invoiceId")
-                ->groupBy("invoiceId");
-
-            // Subconsulta para totales de detalles de cotización - PRECISIÓN EXACTA
-            // NOTA: Los valores en vnt_detail_quotes YA incluyen impuestos
-            $quoteTotals = DB::connection('tenant')->table("vnt_detail_quotes as dq")
-                ->select(
-                    "ixs.invoiceId",
-                    DB::raw("CAST(SUM(dq.value * dq.quantity) AS DECIMAL(15,6)) as total_con_impuestos"),
-                    DB::raw("CAST(SUM((dq.value / (1 + dq.tax / 100)) * dq.quantity) AS DECIMAL(15,6)) as total_sin_impuestos")
-                )
-                ->join("vnt_invoicesXsales as ixs", "dq.quoteId", "=", "ixs.quoteId")
-                ->whereNotNull("ixs.invoiceId")
-                ->groupBy("ixs.invoiceId");
-
-            // Subconsulta para GROUP_CONCAT de consecutivos de remisión
-            $remissionConsecutives = DB::connection('tenant')->table("vnt_invoicesXsales as s_sub")
-                ->select(
-                    "s_sub.invoiceId",
-                    DB::raw("GROUP_CONCAT(r_sub.consecutive ORDER BY r_sub.consecutive SEPARATOR ', ') as remission_consecutive")
-                )
-                ->join("inv_remissions as r_sub", "s_sub.remissionId", "=", "r_sub.id")
-                ->groupBy("s_sub.invoiceId");
-
-            $query = VntInvoices::query()
-                ->select([
-                    'vnt_invoices.id',
-                    'vnt_invoices.consecutive',
-                    'vnt_invoices.status',
-                    'vnt_invoices.status_payment',
-                    'vnt_invoices.api_data_id',
-                    'vnt_invoices.api_data_id_pay',
-                    'vnt_invoices.partialPayment',
-                    'vnt_invoices.quoteId',
-                    'vnt_invoices.warehouseId',
-                    'vnt_invoices.remission',
-                    'vnt_invoices.creditNoteId',
-                    'vnt_invoices.invoiceNumber',
-                    'vnt_invoices.retentionFuente',
-                    'vnt_invoices.retentionIca',
-                    'vnt_invoices.retentionIva',
-                    'vnt_invoices.creditNote',
-                    'vnt_invoices.orderNumber',
-                    'vnt_invoices.created_at',
-                    'vnt_invoices.updated_at',
-                    'vnt_invoices.deleted_at',
-                    DB::raw("MAX(remission_consecutives.remission_consecutive) as remission_consecutive"),
-                    DB::raw("MAX(COALESCE(wr.name, wd.name)) as warehouse_name"),
-                    DB::raw("MAX(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))) AS seller"),
-                    DB::raw("MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))) AS client_name"),
-                    DB::raw("MAX(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
-                    DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
-                    DB::raw("MAX(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
-                    // Campos DEBUG para facturas agrupadas
-                    DB::raw("MAX(dr_totals.remissions_count) as debug_remissions_count"),
-                    DB::raw("MAX(dr_totals.debug_items) as debug_items_detail"),
-                ])
-                ->join("vnt_invoicesXsales as s", "s.invoiceId", "=", "vnt_invoices.id")
-                // Joins para la ruta de Remisión
-                ->leftJoin("inv_remissions as r", "s.remissionId", "=", "r.id")
-                ->leftJoin("inv_store as wr", "r.warehouseId", "=", "wr.id")
-                // Joins para la ruta de Cotización (puede venir de una remisión o directa)
-                ->leftJoin("vnt_quotes as qr", "r.quoteId", "=", "qr.id") // Cotización vía Remisión
-                ->leftJoin("vnt_quotes as qd", "s.quoteId", "=", "qd.id") // Cotización Directa
-                ->leftJoin("inv_store as wd", "qd.warehouseId", "=", "wd.id")
-                // Joins para datos de Cliente y Vendedor (usando COALESCE para tomar de cualquiera de las dos rutas)
-                // customerId guarda el warehouseId del contacto (vnt_contacts.warehouseId = vnt_quotes.customerId)
-                ->leftJoin("vnt_contacts as c", "c.warehouseId", "=", DB::raw("COALESCE(qr.customerId, qd.customerId)"))
-                ->leftJoin(DB::raw("{$centralDbName}.users as u"), "u.id", "=", DB::raw("COALESCE(qr.userId, qd.userId)"))
-                // Joins con las subconsultas
-                ->leftJoinSub($remissionTotals, "dr_totals", "vnt_invoices.id", "=", "dr_totals.invoiceId")
-                ->leftJoinSub($quoteTotals, "dq_totals", "vnt_invoices.id", "=", "dq_totals.invoiceId")
-                ->leftJoinSub($remissionConsecutives, "remission_consecutives", "vnt_invoices.id", "=", "remission_consecutives.invoiceId")
-                ->groupBy([
-                    "vnt_invoices.id",
-                    "vnt_invoices.consecutive",
-                    "vnt_invoices.status",
-                    "vnt_invoices.status_payment",
-                    "vnt_invoices.api_data_id",
-                    "vnt_invoices.api_data_id_pay",
-                    "vnt_invoices.partialPayment",
-                    "vnt_invoices.quoteId",
-                    "vnt_invoices.warehouseId",
-                    "vnt_invoices.remission",
-                    "vnt_invoices.creditNoteId",
-                    "vnt_invoices.invoiceNumber",
-                    "vnt_invoices.retentionFuente",
-                    "vnt_invoices.retentionIca",
-                    "vnt_invoices.retentionIva",
-                    "vnt_invoices.creditNote",
-                    "vnt_invoices.orderNumber",
-                    "vnt_invoices.created_at",
-                    "vnt_invoices.updated_at",
-                    "vnt_invoices.deleted_at"
-                ]);
-
-            // Aplicar búsqueda — todo en HAVING para compatibilidad con GROUP BY
-            $query->when($this->search, function ($q) {
-                $search = '%' . $this->search . '%';
-                $q->havingRaw("
-                    vnt_invoices.invoiceNumber LIKE ?
-                    OR MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.lastName, ''))) LIKE ?
-                    OR MAX(COALESCE(u.name, '')) LIKE ?
-                    OR MAX(remission_consecutives.remission_consecutive) LIKE ?
-                    OR vnt_invoices.consecutive LIKE ?
-                ", [$search, $search, $search, $search, $search]);
-            })
-            ->when($this->filterDateFrom, function ($q) {
-                $q->whereDate('vnt_invoices.created_at', '>=', $this->filterDateFrom);
-            })
-            ->when($this->filterDateTo, function ($q) {
-                $q->whereDate('vnt_invoices.created_at', '<=', $this->filterDateTo);
-            });
+            $query = $this->buildInvoicesQuery();
 
             // Aplicar ordenamiento
             $query->orderBy($this->sortField, $this->sortDirection);

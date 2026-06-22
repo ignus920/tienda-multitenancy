@@ -2256,9 +2256,9 @@ class Remissions extends Component
                 $city = DB::connection('central')->table('cities')->where('id', $cityId)->first();
                 if ($city) {
                     $cityName = $city->name;
-                    $state = DB::connection('central')->table('district')->where('city_id', $city->id)->first();
+                    $state = DB::connection('central')->table('states')->where('id', $city->state_id)->first();
                     if ($state) {
-                        $stateName = $state->district;
+                        $stateName = $state->name;
                     }
                 }
             }
