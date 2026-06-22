@@ -20,6 +20,8 @@ class CarteraList extends Component
     // Propiedades para soporte de pago
     public $showUploadModal = false;
     public $proofPaymentFile;
+    public $selectedMethodPaymentId;
+    public $methodPayments = [];
 
     // Filtros
     public $fromDate;
@@ -240,6 +242,16 @@ class CarteraList extends Component
         $this->ensureTenantConnection();
         $this->selectedRemissionId = $remissionId;
         $this->proofPaymentFile = null;
+        
+        $remission = InvRemissions::findOrFail($remissionId);
+        $this->selectedMethodPaymentId = $remission->methodPaymentId;
+        
+        // Cargar métodos de pago activos del tenant
+        $this->methodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
+            ->where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+            
         $this->showUploadModal = true;
     }
 
@@ -254,27 +266,41 @@ class CarteraList extends Component
             return;
         }
 
-        $this->validate([
-            'proofPaymentFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
-        ], [
+        $remission = InvRemissions::findOrFail($this->selectedRemissionId);
+
+        // Si ya tiene soporte cargado, subir archivo es opcional, si no, es requerido.
+        $rules = [
+            'selectedMethodPaymentId' => 'required|exists:vnt_method_payments,id',
+        ];
+
+        if (!$remission->proof_payment || $this->proofPaymentFile) {
+            $rules['proofPaymentFile'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:5120';
+        }
+
+        $this->validate($rules, [
             'proofPaymentFile.required' => 'El soporte de pago es obligatorio.',
             'proofPaymentFile.file' => 'El archivo no es válido.',
             'proofPaymentFile.mimes' => 'El soporte debe ser un archivo de tipo JPG, JPEG, PNG o PDF.',
             'proofPaymentFile.max' => 'El archivo no debe pesar más de 5MB.',
+            'selectedMethodPaymentId.required' => 'El método de pago es obligatorio.',
+            'selectedMethodPaymentId.exists' => 'El método de pago seleccionado no es válido.',
         ]);
 
         try {
             DB::connection('tenant')->beginTransaction();
 
-            $remission = InvRemissions::findOrFail($this->selectedRemissionId);
+            $updateData = [
+                'methodPaymentId' => $this->selectedMethodPaymentId
+            ];
 
-            // Almacenar archivo físicamente en disco public (storage/app/public/proof_payments)
-            $path = $this->proofPaymentFile->store('proof_payments', 'public');
+            if ($this->proofPaymentFile) {
+                // Almacenar archivo físicamente en disco public (storage/app/public/proof_payments)
+                $path = $this->proofPaymentFile->store('proof_payments', 'public');
+                $updateData['proof_payment'] = $path;
+            }
 
             // Actualizar en la base de datos del tenant
-            $remission->update([
-                'proof_payment' => $path
-            ]);
+            $remission->update($updateData);
 
             DB::connection('tenant')->commit();
 
@@ -284,7 +310,7 @@ class CarteraList extends Component
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Soporte de pago cargado exitosamente.'
+                'message' => 'Soporte y método de pago actualizados exitosamente.'
             ]);
 
         } catch (\Exception $e) {
@@ -311,7 +337,6 @@ class CarteraList extends Component
         $this->selectedRemissionId = null;
         $this->resetErrorBag();
     }
-
 
     /**
      * Imprime la cotización/remisión asociada a la OP de cartera.
