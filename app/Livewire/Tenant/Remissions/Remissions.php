@@ -2258,7 +2258,7 @@ class Remissions extends Component
             $customerName = $quote ? $quote->customer_name : 'N/A';
             $contactName = $contact ? ($contact->firstName . ' ' . $contact->lastName) : '';
             $phone = $branch ? $branch->phone : ($contact ? $contact->phone : 'N/A');
-            $email = $contact ? $contact->email : 'N/A';
+            $email = ($contact && $contact->company) ? $contact->company->billingEmail : ($contact ? $contact->email : 'N/A');
             $nit = ($contact && $contact->company) ? $contact->company->identification : ($contact ? $contact->identification : 'N/A');
             $address = $branch ? $branch->address : ($contact ? $contact->address : 'N/A');
             
