@@ -201,7 +201,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="header-logo">FERVIC<span>O</span>M</div>
+            <img src="{{ asset('images/logofervi.png') }}" alt="Logo Fervicom" style="height: 10mm; max-width: 90%; object-fit: contain; display: block; margin: 0 auto;">
             <div class="header-web">www.fervicom.com</div>
         </div>
 
@@ -258,10 +258,7 @@
                 Perfiles de Aluminio
             </div>
             <div class="footer-right">
-                <div class="logo-meanwell">
-                    <div class="logo-meanwell-mw">MW</div>
-                    <div class="logo-meanwell-text">MEAN WELL</div>
-                </div>
+                <img src="{{ asset('images/MeanWell.png') }}" alt="MeanWell" style="height: 10mm; max-width: 100%; object-fit: contain;">
             </div>
         </div>
     </div>
