@@ -1335,8 +1335,8 @@ $header = 'Seleccionar productos';
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
-                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" :class="value ? 'text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted' : 'text-amber-600 dark:text-amber-400 font-bold italic cursor-pointer hover:underline decoration-dotted'" title="Haga clic para editar">
-                        <span x-text="value || 'Añadir teléfono'"></span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" :class="value ? 'text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted' : 'text-red-600 dark:text-red-400 font-bold italic cursor-pointer hover:underline decoration-dotted'" title="Haga clic para editar">
+                        <span x-text="value || 'Añadir teléfono (Obligatorio) *'"></span>
                     </span>
                     <input x-show="editing" x-ref="input" type="text" x-model="value" placeholder="Teléfono..." @keydown.enter="editing = false; $wire.updateCustomerPhoneInline(value)" @blur="editing = false; $wire.updateCustomerPhoneInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
                 </div>

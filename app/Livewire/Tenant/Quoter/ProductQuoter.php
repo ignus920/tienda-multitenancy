@@ -2284,6 +2284,14 @@ class ProductQuoter extends Component
      */
     public function proceedWithRemissionCreation()
     {
+        if (!$this->selectedCustomer || empty(trim($this->selectedCustomer['phone'] ?? ''))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'El número de teléfono del cliente es requerido para crear la OP. Por favor, añádalo antes de continuar.'
+            ]);
+            return;
+        }
+
         if (!$this->selectedDeliveryType) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
