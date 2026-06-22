@@ -277,6 +277,11 @@ class Remissions extends Component
     {
         $this->ensureTenantConnection();
 
+        if (in_array(auth()->user()?->profile_id, [6, 7])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tiene permisos para anular pedidos.']);
+            return;
+        }
+
         try {
             DB::connection('tenant')->beginTransaction();
 
@@ -1014,6 +1019,11 @@ class Remissions extends Component
         Log::info('🖨️ Remissions.printInvoice llamado', ['remission_id' => $id]);
 
         $this->ensureTenantConnection();
+
+        if (in_array(auth()->user()?->profile_id, [6, 7])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tiene permisos para imprimir facturas de pedidos.']);
+            return;
+        }
         $this->initializeCompanyConfiguration();
 
         try {

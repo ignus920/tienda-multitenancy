@@ -454,7 +454,7 @@
                                                 @endif
                                             </button>
                                             @endif
-                                            @if($remission->status !== 'ANULADO')
+                                            @if($remission->status !== 'ANULADO' && !in_array(auth()->user()?->profile_id, [6, 7]))
                                             <button @click="window.confirmAnnulment({{ $remission->id }}, '{{ $remission->consecutive }}')"
                                                 class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -470,7 +470,7 @@
                                                 Devolución
                                             </button>
                                             @endif
-                                            @if($remission->invoice)
+                                            @if($remission->invoice && !in_array(auth()->user()?->profile_id, [6, 7]))
                                             <button wire:click="printInvoice({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                                 Imprimir Factura
