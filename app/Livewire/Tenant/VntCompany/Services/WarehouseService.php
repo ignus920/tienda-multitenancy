@@ -33,9 +33,9 @@ class WarehouseService
      */
     public function updateWarehouses(VntCompany $company, array $warehouses): void
     {
-        // Eliminar sucursales que ya no están en el array
+        // Eliminar sucursales que ya no están en el array (solo afectando a las principales)
         $existingIds = collect($warehouses)->pluck('id')->filter();
-        $company->warehouses()->whereNotIn('id', $existingIds)->delete();
+        $company->warehouses()->where('main', 1)->whereNotIn('id', $existingIds)->delete();
 
         foreach ($warehouses as $warehouseData) {
             // if ($this->isValidWarehouseData($warehouseData)) {
