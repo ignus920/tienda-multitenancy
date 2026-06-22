@@ -250,7 +250,8 @@ class CarteraList extends Component
         $this->methodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
             ->where('status', 1)
             ->orderBy('name', 'asc')
-            ->get();
+            ->get()
+            ->toArray();
             
         $this->showUploadModal = true;
     }

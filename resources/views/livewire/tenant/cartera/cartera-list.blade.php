@@ -463,7 +463,7 @@
                                     class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white text-sm focus:border-violet-500 focus:ring-violet-500">
                                 <option value="">Selecciona un método de pago</option>
                                 @foreach($methodPayments as $method)
-                                    <option value="{{ $method->id }}">{{ $method->name }}</option>
+                                    <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
                                 @endforeach
                             </select>
                             @error('selectedMethodPaymentId')
