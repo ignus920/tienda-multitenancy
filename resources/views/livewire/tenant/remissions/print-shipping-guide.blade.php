@@ -225,6 +225,9 @@
             <div class="receiver-info-grid" style="font-size: 11px; line-height: 1.4; margin-bottom: 2mm; text-align: center;">
                 <div><strong>Nit:</strong> {{ $receiver['nit'] !== 'N/A' ? $receiver['nit'] : '' }}</div>
                 <div><strong>Email:</strong> {{ $receiver['email'] !== 'N/A' ? $receiver['email'] : '' }}</div>
+                @if(!empty($receiver['phone']) && $receiver['phone'] !== 'N/A')
+                    <div><strong>Teléfono:</strong> {{ $receiver['phone'] }}</div>
+                @endif
             </div>
 
             <div class="receiver-address">{{ $receiver['address'] }}</div>
