@@ -199,26 +199,16 @@
 <body>
 
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <img src="{{ asset('images/logofervi.png') }}" alt="Logo Fervicom" style="height: 10mm; max-width: 90%; object-fit: contain; display: block; margin: 0 auto;">
-            <div class="header-web">www.fervicom.com</div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- Middle Section -->
+        <!-- Middle Section (now at the top) -->
         <div class="middle-section">
             <div class="qr-column">
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ $remission->id }}" alt="QR Code" class="qr-image">
                 <div class="qr-label">OP#{{ $consecutive }} - ERP{{ $remission->id }}</div>
             </div>
-            <div class="sender-column">
-                <div class="sender-title">{{ $sender->businessName }}</div>
-                <div>Nit: {{ $sender->identification }}</div>
-                <div>{{ $sender->billingAddress }}</div>
-                <div>{{ $sender->city }}</div>
-                <div>Tel: {{ $sender->phone }}</div>
+            <div class="sender-column" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-left: 2mm;">
+                <img src="{{ asset('images/logofervi.png') }}" alt="Logo Fervicom" style="width: 48mm; max-height: 14mm; object-fit: contain; margin-bottom: 2mm;">
+                <div style="font-size: 8px; line-height: 1.3; font-weight: bold;">{{ $sender->billingAddress }}</div>
+                <div style="font-size: 8px; line-height: 1.3; font-weight: bold;">{{ $sender->city }}</div>
             </div>
         </div>
 
@@ -232,16 +222,9 @@
                 <div class="receiver-contact">{{ $receiver['contact'] }}</div>
             @endif
             
-            <div class="receiver-info-grid">
-                @if(!empty($receiver['phone']) && $receiver['phone'] !== 'N/A')
-                    <div><strong>Cel:</strong> {{ $receiver['phone'] }}</div>
-                @endif
-                @if(!empty($receiver['nit']) && $receiver['nit'] !== 'N/A')
-                    <div><strong>Nit:</strong> {{ $receiver['nit'] }}</div>
-                @endif
-                @if(!empty($receiver['email']) && $receiver['email'] !== 'N/A')
-                    <div><strong>Email:</strong> {{ $receiver['email'] }}</div>
-                @endif
+            <div class="receiver-info-grid" style="font-size: 11px; line-height: 1.4; margin-bottom: 2mm; text-align: center;">
+                <div><strong>Nit:</strong> {{ $receiver['nit'] !== 'N/A' ? $receiver['nit'] : '' }}</div>
+                <div><strong>Email:</strong> {{ $receiver['email'] !== 'N/A' ? $receiver['email'] : '' }}</div>
             </div>
 
             <div class="receiver-address">{{ $receiver['address'] }}</div>
@@ -251,14 +234,9 @@
         <div class="divider"></div>
 
         <!-- Footer -->
-        <div class="footer-section">
-            <div class="footer-left">
-                Cintas Led - Módulos Led - Regletas Led<br>
-                Fuentes MeanWell<br>
-                Perfiles de Aluminio
-            </div>
-            <div class="footer-right">
-                <img src="{{ asset('images/MeanWell.png') }}" alt="MeanWell" style="height: 10mm; max-width: 100%; object-fit: contain;">
+        <div class="footer-section" style="display: block; text-align: center; padding: 2.5mm; background-color: #ffffff; box-sizing: border-box;">
+            <div style="font-size: 9px; font-weight: bold; color: #000000; letter-spacing: 0.2px; text-align: center; width: 100%;">
+                Cintas, Modulos, Regletas LED. Fuentes de Poder
             </div>
         </div>
     </div>
