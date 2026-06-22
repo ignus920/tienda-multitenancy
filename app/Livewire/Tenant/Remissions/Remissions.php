@@ -106,19 +106,14 @@ class Remissions extends Component
         $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
         $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
 
-        // Verificar permisos de edición para remisiones
+        // Verificar permisos de edición para remisiones: Solo Administradores (1, 2) y Jhon Gil (ID 205)
         $user = auth()->user();
-        if ($user && $user->profile_id) {
-            // Buscar el ID del permiso 'remisiones'
-            $permission = \App\Models\Central\UsrPermission::where('name', 'Ventas')->first();
-
-            if ($permission) {
-                $permissionProfile = UsrPermissionProfile::where('profileId', $user->profile_id)
-                    ->where('permissionId', $permission->id)
-                    ->first();
-
-                $this->canEditRemission = $permissionProfile && $permissionProfile->editer == 1;
-            }
+        if ($user) {
+            $isAdmin = in_array($user->profile_id, [1, 2]);
+            $isJhonGil = $user->id == 205;
+            $this->canEditRemission = ($isAdmin || $isJhonGil);
+        } else {
+            $this->canEditRemission = false;
         }
     }
 
@@ -799,6 +794,15 @@ class Remissions extends Component
      */
     public function editarRemision($id)
     {
+        $user = auth()->user();
+        $isAdmin = $user ? in_array($user->profile_id, [1, 2]) : false;
+        $isJhonGil = $user ? $user->id == 205 : false;
+
+        if (!$isAdmin && !$isJhonGil) {
+            session()->flash('error', 'No tiene permisos para editar esta remisión.');
+            return;
+        }
+
         $agent = new Agent();
 
         if ($agent->isMobile() || $agent->isTablet()) {
