@@ -218,9 +218,9 @@
         <div class="receiver-section">
             <div class="receiver-header">DESTINATARIO:</div>
             <div class="receiver-name">{{ $receiver['name'] }}</div>
-            @if(!empty($receiver['contact']))
+            {{-- @if(!empty($receiver['contact']))
                 <div class="receiver-contact">{{ $receiver['contact'] }}</div>
-            @endif
+            @endif --}}
             
             <div class="receiver-info-grid" style="font-size: 11px; line-height: 1.4; margin-bottom: 2mm; text-align: center;">
                 <div><strong>Nit:</strong> {{ $receiver['nit'] !== 'N/A' ? $receiver['nit'] : '' }}</div>
