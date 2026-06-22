@@ -220,7 +220,7 @@ class VntContacts extends Model
     public function getDisplayNameAttribute(): string
     {
         // Si el contacto tiene empresa, delegar la lógica al modelo VntCompany
-        if ($this->relationLoaded('company') && $this->company) {
+        if ($this->company) {
             return $this->company->display_name;
         }
 

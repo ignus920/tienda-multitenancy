@@ -159,11 +159,11 @@ class VntCompany extends Model
     public function getDisplayNameAttribute(): string
     {
         // Tipo 2 = Persona Jurídica (NIT) → Razón Social
-        if ((int) $this->typeIdentificationId === 2) {
-            return $this->businessName ?? '';
+        if ((int) $this->typeIdentificationId === 2 && !empty(trim($this->businessName ?? ''))) {
+            return $this->businessName;
         }
 
-        // Tipo 1 = Persona Natural (CC/CE) → Nombre completo concatenado
+        // Tipo 1 = Persona Natural (o fallback si businessName está vacío) → Nombre completo concatenado
         return trim(implode(' ', array_filter([
             $this->firstName,
             $this->secondName,
