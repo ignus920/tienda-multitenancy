@@ -1292,19 +1292,16 @@ $header = 'Seleccionar productos';
 
             @if($selectedCustomer)
             @php
-                $businessName = trim($selectedCustomer['businessName'] ?? '');
-                $displayName = !empty($businessName) ? $businessName : ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName']);
+                $selectedBranchName = collect($branches)->firstWhere('id', $selectedBranchId)['name']
+                    ?? (count($branches) === 1 ? $branches[0]['name'] : ($selectedCustomer['businessName'] ?? ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName'])));
             @endphp
-            <div class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
-                <!-- Nombre -->
-                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($displayName) }}' }" x-init="$watch('value', val => value = val)">
+            <div wire:key="modal-customer-info-{{ $selectedBranchId }}" class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
+                <!-- Nombre sucursal -->
+                <div class="flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="font-bold text-gray-900 dark:text-white cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
-                        {{ $displayName }}
-                    </span>
-                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerNameInline(value)" @blur="editing = false; $wire.updateCustomerNameInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-bold">
+                    <span class="font-bold text-gray-900 dark:text-white">{{ $selectedBranchName }}</span>
                 </div>
                 
                 <!-- Ciudad -->

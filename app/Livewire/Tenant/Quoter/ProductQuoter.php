@@ -800,11 +800,11 @@ class ProductQuoter extends Component
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
-                'customerId' => $this->selectedBranchId ?: $contact->warehouseId, // warehouseId del contacto en vnt_contacts
+                'customerId' => $contact->warehouseId, // warehouseId del contacto de la empresa (no cambia con la sucursal)
                 'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
-                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal seleccionada del cliente
+                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
                 'flete' => $this->appliedFreight // Guardar el flete aplicado
             ]);
 
@@ -1124,17 +1124,12 @@ class ProductQuoter extends Component
             if ($this->editingQuoteId) {
                 $quote = VntQuote::find($this->editingQuoteId);
                 if ($quote) {
-                    $updateData = [
-                        'branchId' => $branchId,
-                        'customerId' => $contact ? $contact->warehouseId : $quote->customerId,
-                    ];
-
-                    $quote->update($updateData);
+                    $quote->update(['branchId' => $branchId]);
 
                     Log::info('✅ Cotización actualizada con nueva sucursal', [
                         'quote_id' => $quote->id,
                         'new_branch_id' => $branchId,
-                        'new_customerId' => $updateData['customerId']
+                        'customerId_unchanged' => $quote->customerId
                     ]);
                 }
             }
@@ -2054,11 +2049,11 @@ class ProductQuoter extends Component
 
             // Actualizar la cotización
             $updateData = [
-                'customerId' => $this->selectedBranchId ?: $contact->warehouseId, // USAR EL warehouseId DEL CONTACTO para mantener consistencia con saveQuote
+                'customerId' => $contact->warehouseId, // warehouseId del contacto de la empresa (no cambia con la sucursal)
                 'observations' => $this->observaciones,
                 'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
-                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal seleccionada del cliente
+                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
                 'flete' => $this->appliedFreight // Guardar el flete aplicado
             ];
 
