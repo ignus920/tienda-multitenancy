@@ -607,7 +607,7 @@
 
                     <div class="p-6">
                         <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">
-                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Cartera' }}
+                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Facturación' }}
                         </label>
                         <textarea wire:model="justificacionText" 
                                   rows="4" 
