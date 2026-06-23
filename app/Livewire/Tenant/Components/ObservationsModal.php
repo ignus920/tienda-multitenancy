@@ -31,7 +31,8 @@ class ObservationsModal extends Component
         'impossibility_obs' => '',
         'payment_obs' => '',
         'no_stock_obs' => '',
-        'cartera_justificacion' => ''
+        'cartera_justificacion' => '',
+        'invoice_observation' => ''
     ];
 
     public $deliveryType = ''; // Para mostrar el tipo de entrega si aplica
@@ -99,14 +100,27 @@ class ObservationsModal extends Component
 
         // Cargar tipo de entrega y consecutivo si es una remisión
         if ($this->referenceType === 'remission') {
-            $remission = \App\Models\Tenant\Remissions\InvRemissions::with('deliveryTypeModel')->find($this->referenceId);
+            $remission = \App\Models\Tenant\Remissions\InvRemissions::with(['deliveryTypeModel', 'invoice'])->find($this->referenceId);
             $this->deliveryType = $remission?->deliveryTypeModel?->name ?? 'N/A';
             $this->consecutive = $remission?->consecutive;
             $this->orderObservations = $remission?->obs ?? '';
             $this->deliveryObservations = $remission?->observations_delivery ?? '';
+
+            // Cargar observación de facturación de la factura asociada si no se cargó ya de la remisión
+            if (empty($this->observationData['invoice_observation'])) {
+                $invoice = $remission ? $remission->invoice : null;
+                if ($invoice) {
+                    $invoiceObs = VntObservation::where('reference_id', $invoice->id)
+                        ->where('reference_type', 'invoice')
+                        ->where('observation_type', 'invoice_observation')
+                        ->first();
+                    $this->observationData['invoice_observation'] = $invoiceObs ? $invoiceObs->observation : '';
+                }
+            }
         } else {
             $this->orderObservations = '';
             $this->deliveryObservations = '';
+            $this->observationData['invoice_observation'] = '';
         }
     }
 

@@ -339,6 +339,15 @@
                                                     Crear Nota Crédito
                                                 </button>
                                             @endif
+
+                                            {{-- Agregar Observación --}}
+                                            <button wire:click="openJustificacionModal({{ $invoice->id }})"
+                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                                Agregar observación
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -779,5 +788,54 @@
         </div>{{-- /panel --}}
     </div>{{-- /modal --}}
     @endif
+
+    <!-- Modal de Justificación de Facturas -->
+    <template x-teleport="body">
+        <div x-show="$wire.showJustificacionModal" 
+             class="fixed inset-0 z-[100] overflow-y-auto" 
+             style="display: none;"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" @click="$wire.showJustificacionModal = false"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+                <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-slate-700">
+                    <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 text-center">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">
+                            Agregar observación
+                        </h3>
+                    </div>
+
+                    <div class="p-6">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">
+                            Observación de Facturación
+                        </label>
+                        <textarea wire:model="justificacionText" 
+                                  rows="4" 
+                                  class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                  placeholder="Escribe aquí tu comentario..."></textarea>
+                    </div>
+
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-center space-x-3">
+                        <button wire:click="saveJustificacion" 
+                                class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-blue-600/20">
+                            Guardar
+                        </button>
+                        <button @click="$wire.showJustificacionModal = false" 
+                                class="px-8 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-slate-600/20">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 
 </div>

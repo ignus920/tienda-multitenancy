@@ -127,8 +127,16 @@
 
                     <!-- Observación de Cartera -->
                     <div class="md:col-span-1">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-2">Observación de Facturación</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-2">Observación de Cartera</label>
                         <textarea readonly wire:model.defer="observationData.cartera_justificacion" rows="3" 
+                                  class="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 dark:text-gray-300 transition-all text-sm"
+                                  placeholder="N/A"></textarea>
+                    </div>
+
+                    <!-- Observación de Facturación -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-2">Observación de Facturación</label>
+                        <textarea readonly wire:model.defer="observationData.invoice_observation" rows="3" 
                                   class="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 dark:text-gray-300 transition-all text-sm"
                                   placeholder="N/A"></textarea>
                     </div>

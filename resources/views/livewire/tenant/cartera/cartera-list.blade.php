@@ -353,7 +353,7 @@
                                  x-transition:leave="transition ease-in duration-75"
                                  x-transition:leave-start="transform opacity-100 scale-100"
                                  x-transition:leave-end="transform opacity-0 scale-95"
-                                 class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-[60]"
+                                 class="absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-[60]"
                                  style="display: none;">
                                 <div class="py-1">
                                     @if($remission->quote)
@@ -368,7 +368,7 @@
                                     @endif
                                     <button wire:click="openObservationsModal({{ $remission->id }})" 
                                             @click="open = false"
-                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
                                         </svg>
@@ -376,11 +376,19 @@
                                     </button>
                                     <button wire:click="openJustificacionModal({{ $remission->id }})" 
                                             @click="open = false"
-                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors whitespace-nowrap">
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
-                                        Agregar observación
+                                        Agregar obs cartera
+                                    </button>
+                                    <button wire:click="openFacturacionModal({{ $remission->id }})" 
+                                            @click="open = false"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors whitespace-nowrap">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                        Agregar obs facturación
                                     </button>
                                     <button wire:click="openUploadModal({{ $remission->id }})" 
                                             @click="open = false"
@@ -601,13 +609,13 @@
                 <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-slate-700">
                     <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 text-center">
                         <h3 class="text-xl font-bold text-gray-800 dark:text-white">
-                            {{ $isDesconfirmarPago ? 'Justificación requerida' : 'Agregar observación' }}
+                            {{ $isDesconfirmarPago ? 'Justificación requerida' : 'Agregar observación de cartera' }}
                         </h3>
                     </div>
 
                     <div class="p-6">
                         <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">
-                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Facturación' }}
+                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Cartera' }}
                         </label>
                         <textarea wire:model="justificacionText" 
                                   rows="4" 
@@ -621,6 +629,55 @@
                             {{ $isDesconfirmarPago ? 'Enviar' : 'Guardar' }}
                         </button>
                         <button @click="$wire.showJustificacionModal = false" 
+                                class="px-8 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-slate-600/20">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal de Observación de Facturación (desde Cartera) -->
+    <template x-teleport="body">
+        <div x-show="$wire.showFacturacionModal" 
+             class="fixed inset-0 z-[100] overflow-y-auto" 
+             style="display: none;"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" @click="$wire.showFacturacionModal = false"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+                <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-slate-700">
+                    <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 text-center">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">
+                            Agregar observación
+                        </h3>
+                    </div>
+
+                    <div class="p-6">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">
+                            Observación de Facturación
+                        </label>
+                        <textarea wire:model="facturacionText" 
+                                  rows="4" 
+                                  class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                  placeholder="Escribe aquí tu comentario..."></textarea>
+                    </div>
+
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-center space-x-3">
+                        <button wire:click="saveFacturacion" 
+                                class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-blue-600/20">
+                            Guardar
+                        </button>
+                        <button @click="$wire.showFacturacionModal = false" 
                                 class="px-8 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-slate-600/20">
                             Cancelar
                         </button>

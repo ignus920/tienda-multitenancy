@@ -41,6 +41,11 @@ class CarteraList extends Component
     public $justificacionText = '';
     public $selectedRemissionId = null;
     public $isDesconfirmarPago = false;
+    
+    // Observaciones de Facturación
+    public $showFacturacionModal = false;
+    public $facturacionText = '';
+    public $selectedInvoiceId = null;
 
     protected $queryString = [
         'fromDate' => ['except' => ''],
@@ -170,7 +175,6 @@ class CarteraList extends Component
         $this->selectedRemissionId = $remissionId;
         $this->isDesconfirmarPago = false; // Resetear flag
         
-        // Cargar observación previa si existe
         $observation = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remissionId)
             ->where('reference_type', 'remission')
             ->where('observation_type', 'cartera_justificacion')
@@ -187,7 +191,7 @@ class CarteraList extends Component
         if (!$this->selectedRemissionId) return;
 
         if (empty(trim($this->justificacionText))) {
-            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'La justificación es obligatoria.']);
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'La observación es obligatoria.']);
             return;
         }
 
@@ -230,7 +234,54 @@ class CarteraList extends Component
 
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Acción realizada correctamente.'
+            'message' => 'Observación de cartera guardada correctamente.'
+        ]);
+    }
+
+    public function openFacturacionModal($remissionId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedRemissionId = $remissionId;
+        
+        $observation = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remissionId)
+            ->where('reference_type', 'remission')
+            ->where('observation_type', 'invoice_observation')
+            ->first();
+            
+        $this->facturacionText = $observation ? $observation->observation : '';
+        $this->showFacturacionModal = true;
+    }
+
+    public function saveFacturacion()
+    {
+        $this->ensureTenantConnection();
+        
+        if (!$this->selectedRemissionId) return;
+
+        if (empty(trim($this->facturacionText))) {
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'La observación de facturación es obligatoria.']);
+            return;
+        }
+
+        \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+            [
+                'reference_id' => $this->selectedRemissionId,
+                'reference_type' => 'remission',
+                'observation_type' => 'invoice_observation'
+            ],
+            [
+                'observation' => $this->facturacionText,
+                'userId' => auth()->id()
+            ]
+        );
+
+        $this->showFacturacionModal = false;
+        $this->facturacionText = '';
+        $this->selectedRemissionId = null;
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Observación de facturación guardada correctamente.'
         ]);
     }
 

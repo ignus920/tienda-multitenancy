@@ -34,6 +34,11 @@ class Invoices extends Component
     public $filterDateFrom = '';
     public $filterDateTo = '';
 
+    // Observaciones de Facturación
+    public $showJustificacionModal = false;
+    public $justificacionText = '';
+    public $selectedInvoiceId = null;
+
     // ── Nota Crédito ──────────────────────────────────────────
     public bool  $showCreditNoteModal = false;
     public array $creditNoteInvoice   = [];
@@ -1443,6 +1448,53 @@ class Invoices extends Component
             Log::error('❌ Error creando nota crédito: ' . $e->getMessage());
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear la nota crédito: ' . $e->getMessage()]);
         }
+    }
+
+    public function openJustificacionModal($invoiceId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedInvoiceId = $invoiceId;
+        
+        $observation = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $invoiceId)
+            ->where('reference_type', 'invoice')
+            ->where('observation_type', 'invoice_observation')
+            ->first();
+            
+        $this->justificacionText = $observation ? $observation->observation : '';
+        $this->showJustificacionModal = true;
+    }
+
+    public function saveJustificacion()
+    {
+        $this->ensureTenantConnection();
+        
+        if (!$this->selectedInvoiceId) return;
+
+        if (empty(trim($this->justificacionText))) {
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'La observación es obligatoria.']);
+            return;
+        }
+
+        \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+            [
+                'reference_id' => $this->selectedInvoiceId,
+                'reference_type' => 'invoice',
+                'observation_type' => 'invoice_observation'
+            ],
+            [
+                'observation' => $this->justificacionText,
+                'userId' => auth()->id()
+            ]
+        );
+
+        $this->showJustificacionModal = false;
+        $this->justificacionText = '';
+        $this->selectedInvoiceId = null;
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Observación guardada correctamente.'
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
