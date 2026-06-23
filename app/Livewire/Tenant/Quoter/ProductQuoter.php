@@ -1126,7 +1126,7 @@ class ProductQuoter extends Component
                 if ($quote) {
                     $updateData = [
                         'branchId' => $branchId,
-                        'customerId' => $branchId
+                        'customerId' => $contact ? $contact->warehouseId : $quote->customerId,
                     ];
 
                     $quote->update($updateData);
@@ -1134,7 +1134,7 @@ class ProductQuoter extends Component
                     Log::info('✅ Cotización actualizada con nueva sucursal', [
                         'quote_id' => $quote->id,
                         'new_branch_id' => $branchId,
-                        'new_customerId' => $branchId
+                        'new_customerId' => $updateData['customerId']
                     ]);
                 }
             }
