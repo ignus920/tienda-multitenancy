@@ -182,15 +182,19 @@
                     <td class="px-6 py-4">
                         <div class="bg-gray-100 dark:bg-slate-900/50 p-2 rounded-lg text-[11px] space-y-1">
                             <div class="flex justify-between">
-                                <span class="text-gray-500">Total:</span>
-                                <span class="font-bold text-indigo-600">${{ number_format($remission->sub_total_rem, 0) }}</span>
+                                <span class="text-gray-500">Subtotal:</span>
+                                <span class="text-gray-600">${{ number_format($remission->sub_total_rem, 0) }}</span>
                             </div>
                             @if($remission->flete > 0)
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Flete:</span>
-                                <span class="text-gray-600">${{ number_format($remission->flete, 0) }}</span>
+                                <span class="text-gray-600">+${{ number_format($remission->flete, 0) }}</span>
                             </div>
                             @endif
+                            <div class="flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1">
+                                <span class="font-semibold text-gray-600">Total:</span>
+                                <span class="font-bold text-indigo-600">${{ number_format($remission->total_rem, 0) }}</span>
+                            </div>
                             <div class="flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1">
                                 <span class="text-gray-500">Rfte: ${{ number_format($remission->invoice->retentionFuente ?? 0, 0) }}</span>
                                 <span class="text-gray-500">Rtica: ${{ number_format($remission->invoice->retentionIca ?? 0, 0) }}</span>
@@ -222,7 +226,7 @@
                                             {{ $remission->methodPayment->name ?? 'TRANSFERENCIA' }}
                                         </p>
                                         <p class="text-xs font-bold text-gray-700 dark:text-slate-300">
-                                            ${{ number_format($remission->sub_total_rem, 0) }}
+                                            ${{ number_format($remission->total_rem, 0) }}
                                         </p>
                                     </div>
 
