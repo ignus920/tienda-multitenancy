@@ -45,6 +45,7 @@ class ImportCostCalculator extends Component
 
     public function mount()
     {
+        $this->ensureTenantConnection();
         $this->loadGlobalSettings();
     }
 
