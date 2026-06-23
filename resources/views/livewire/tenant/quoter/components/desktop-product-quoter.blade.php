@@ -413,7 +413,7 @@ $header = 'Seleccionar productos';
                                             @endphp
                                             <button
                                                 @if($isCopyMode)
-                                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}', $event)"
                                                 @else
                                                     wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                                     wire:loading.attr="disabled"
@@ -847,7 +847,7 @@ $header = 'Seleccionar productos';
                                                         @endphp
                                                         <button
                                                          @if($isCopyMode)
-                                                                @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}')"
+                                                                @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}', $event)"
                                                             @elseif(!$hideQuoter)
                                                                 wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
                                                                 wire:loading.attr="disabled"
@@ -1663,9 +1663,9 @@ $header = 'Seleccionar productos';
 </div>
 
 <script>
-    function copyProductToClipboard(sku, price, name, id) {
+    function copyProductToClipboard(sku, price, name, id, event) {
         const priceFormatted = new Intl.NumberFormat().format(Math.round(price));
-        const link = `https://www.fervicom.com/producto/${sku.toLowerCase()}`;
+        const link = `https://www.fervicom.com/?s=${sku.toLowerCase()}&post_type=product`;
         
         // Formato solicitado: Código - $Precio incluido iva \n Descripción \n Detalles en: [Link]
         const textToCopy = `${sku} - $${priceFormatted} incluido iva\n${name}\nDetalles en:\n${link}`;
@@ -1673,17 +1673,17 @@ $header = 'Seleccionar productos';
         // Usar la API moderna de portapapeles
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(textToCopy).then(() => {
-                showCopyFeedback();
+                showCopyFeedback(event);
             }).catch(err => {
                 console.error('Error al copiar:', err);
-                fallbackCopyToClipboard(textToCopy);
+                fallbackCopyToClipboard(textToCopy, event);
             });
         } else {
-            fallbackCopyToClipboard(textToCopy);
+            fallbackCopyToClipboard(textToCopy, event);
         }
     }
 
-    function fallbackCopyToClipboard(text) {
+    function fallbackCopyToClipboard(text, event) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
         textArea.style.position = "fixed";
@@ -1694,16 +1694,48 @@ $header = 'Seleccionar productos';
         textArea.select();
         try {
             document.execCommand('copy');
-            showCopyFeedback();
+            showCopyFeedback(event);
         } catch (err) {
             console.error('Fallback error:', err);
         }
         document.body.removeChild(textArea);
     }
 
-    function showCopyFeedback() {
-        // Usar el sistema de brindado por el componente para consistencia
-        if (window.Livewire) {
+    function showCopyFeedback(event) {
+        if (event && event.currentTarget) {
+            const el = event.currentTarget;
+            const originalBg = el.style.backgroundColor;
+            const originalBorder = el.style.borderColor;
+            const originalColor = el.style.color;
+            const originalTransition = el.style.transition;
+            
+            el.style.transition = 'all 0.3s ease';
+            el.style.backgroundColor = '#fef08a'; // yellow-200
+            el.style.borderColor = '#facc15'; // yellow-400
+            el.style.color = '#713f12'; // yellow-900
+            
+            setTimeout(() => {
+                el.style.backgroundColor = originalBg;
+                el.style.borderColor = originalBorder;
+                el.style.color = originalColor;
+                setTimeout(() => {
+                    el.style.transition = originalTransition;
+                }, 300);
+            }, 1000);
+        }
+
+        if (typeof Swal !== 'undefined') {
+            Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            }).fire({
+                icon: 'success',
+                title: '¡Copiado al portapapeles!'
+            });
+        } else if (window.Livewire) {
             Livewire.dispatch('show-toast', {
                 type: 'success',
                 message: '¡Texto copiado al portapapeles!'
