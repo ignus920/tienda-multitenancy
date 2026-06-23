@@ -119,6 +119,7 @@
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors duration-300">Nueva Venta</span>
                     </a>
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('customers.customers') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-green-300 dark:hover:border-green-500 hover:shadow-lg hover:shadow-green-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full group-hover:bg-green-200 dark:group-hover:bg-green-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +128,9 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-300">Clientes</span>
                     </a>
+                    @endif
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('items') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-yellow-50 hover:to-amber-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-yellow-300 dark:hover:border-yellow-500 hover:shadow-lg hover:shadow-yellow-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700 dark:group-hover:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +139,9 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-300">Productos</span>
                     </a>
+                    @endif
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('petty-cash.petty-cash') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-purple-50 hover:to-violet-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-lg hover:shadow-purple-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +150,9 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300">Cajas</span>
                     </a>
+                    @endif
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('tenant.reports.list') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-teal-50 hover:to-cyan-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-teal-300 dark:hover:border-teal-500 hover:shadow-lg hover:shadow-teal-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-full group-hover:bg-teal-200 dark:group-hover:bg-teal-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-teal-600 dark:text-teal-400 group-hover:text-teal-700 dark:group-hover:text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,6 +161,7 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors duration-300">Informes</span>
                     </a>
+                    @endif
                 </div>
             </div>
         </div>
