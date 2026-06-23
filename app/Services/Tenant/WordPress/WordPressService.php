@@ -553,10 +553,24 @@ class WordPressService
             'stock_wp'    => $stockWP,
         ]);
 
-        // 5. Precio Regular con IVA redondeado a la decena más cercana
+        // 5. Precio Crédito con IVA redondeado a la decena más cercana (con fallbacks a Precio Base y Precio Regular)
         $precioRecord = InvValues::where('itemId', $item->id)
-            ->where('label', 'Precio Regular')
+            ->where('label', 'Precio Crédito')
             ->first();
+
+        // Fallback 1: Si no tiene Precio Crédito, buscar Precio Base
+        if (!$precioRecord) {
+            $precioRecord = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Base')
+                ->first();
+        }
+
+        // Fallback 2: Si tampoco tiene Precio Base, buscar Precio Regular
+        if (!$precioRecord) {
+            $precioRecord = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Regular')
+                ->first();
+        }
 
         $precioWP = 0;
         if ($precioRecord && (float) $precioRecord->values > 0) {
