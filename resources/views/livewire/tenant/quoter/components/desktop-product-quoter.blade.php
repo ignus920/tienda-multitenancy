@@ -413,7 +413,7 @@ $header = 'Seleccionar productos';
                                             @endphp
                                             <button
                                                 @if($isCopyMode)
-                                                    @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}', $event)"
+                                                    @click.stop="window.lastClickedCopyButton = $event.currentTarget; $wire.copyProduct({{ $product->id }}, {{ $price }})"
                                                 @else
                                                     wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"
                                                     wire:loading.attr="disabled"
@@ -847,7 +847,7 @@ $header = 'Seleccionar productos';
                                                         @endphp
                                                         <button
                                                          @if($isCopyMode)
-                                                                @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}', $event)"
+                                                                @click.stop="window.lastClickedCopyButton = $event.currentTarget; $wire.copyProduct({{ $product->id }}, {{ $price }})"
                                                             @elseif(!$hideQuoter)
                                                                 wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $priceKey }}')"
                                                                 wire:loading.attr="disabled"
@@ -1662,28 +1662,31 @@ $header = 'Seleccionar productos';
     @livewire('tenant.components.product-reservation-modal')
 </div>
 
-<script>
-    function copyProductToClipboard(sku, price, name, id, event) {
-        const priceFormatted = new Intl.NumberFormat().format(Math.round(price));
-        const link = `https://www.fervicom.com/?s=${sku.toLowerCase()}&post_type=product`;
-        
-        // Formato solicitado: Código - $Precio incluido iva \n Descripción \n Detalles en: [Link]
-        const textToCopy = `${sku} - $${priceFormatted} incluido iva\n${name}\nDetalles en:\n${link}`;
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('product-copied', (event) => {
+            const data = Array.isArray(event) ? event[0] : event;
+            const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
+            
+            let textToCopy = `${data.sku} - $${priceFormatted} incluido iva\n${data.name}`;
+            if (data.hasLink) {
+                const link = `https://www.fervicom.com/?s=${data.sku.toLowerCase()}&post_type=product`;
+                textToCopy += `\nDetalles en:\n${link}`;
+            }
 
-        // Usar la API moderna de portapapeles
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                showCopyFeedback(event);
-            }).catch(err => {
-                console.error('Error al copiar:', err);
-                fallbackCopyToClipboard(textToCopy, event);
-            });
-        } else {
-            fallbackCopyToClipboard(textToCopy, event);
-        }
-    }
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showCopyFeedback(window.lastClickedCopyButton);
+                }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    fallbackCopyToClipboard(textToCopy, window.lastClickedCopyButton);
+                });
+            } else {
+                fallbackCopyToClipboard(textToCopy, window.lastClickedCopyButton);
+            }
+        });
+    });
 
-    function fallbackCopyToClipboard(text, event) {
+    function fallbackCopyToClipboard(text, el) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
         textArea.style.position = "fixed";
@@ -1694,16 +1697,15 @@ $header = 'Seleccionar productos';
         textArea.select();
         try {
             document.execCommand('copy');
-            showCopyFeedback(event);
+            showCopyFeedback(el);
         } catch (err) {
             console.error('Fallback error:', err);
         }
         document.body.removeChild(textArea);
     }
 
-    function showCopyFeedback(event) {
-        if (event && event.currentTarget) {
-            const el = event.currentTarget;
+    function showCopyFeedback(el) {
+        if (el) {
             const originalBg = el.style.backgroundColor;
             const originalBorder = el.style.borderColor;
             const originalColor = el.style.color;
@@ -1741,6 +1743,5 @@ $header = 'Seleccionar productos';
                 message: '¡Texto copiado al portapapeles!'
             });
         }
-        console.log('Copiado exitosamente');
     }
 </script>

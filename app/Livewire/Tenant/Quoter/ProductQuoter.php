@@ -3843,4 +3843,27 @@ class ProductQuoter extends Component
 
         return $payloadData;
     }
+
+    public function copyProduct($itemId, $price)
+    {
+        $item = Items::find($itemId);
+        if (!$item) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Producto no encontrado.']);
+            return;
+        }
+
+        // Verificar en WordPress
+        $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+        $wpProduct = $item->sku ? $wpService->findProductBySku($item->sku) : null;
+
+        $hasLink = !empty($wpProduct);
+        
+        $this->dispatch('product-copied', [
+            'sku' => $item->sku,
+            'price' => $price,
+            'name' => $item->name,
+            'id' => $item->id,
+            'hasLink' => $hasLink
+        ]);
+    }
 }

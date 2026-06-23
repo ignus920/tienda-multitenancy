@@ -193,7 +193,7 @@ $header = 'Seleccionar productos';
                                     <div class="grid grid-cols-2 gap-1.5">
                                         @foreach($allPrices as $label => $price)
                                             @php $isThisPriceSelected = $this->isPriceSelected($product->id, $label); @endphp
-                                            <button @if($isCopyMode) @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}', $event)" @else wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" wire:loading.attr="disabled" @endif class="relative w-full py-1.5 px-2 rounded-lg border transition-colors overflow-hidden {{ $isThisPriceSelected ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30 ring-2' : 'border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10' }}">
+                                            <button @if($isCopyMode) @click.stop="window.lastClickedCopyButton = $event.currentTarget; $wire.copyProduct({{ $product->id }}, {{ $price }})" @else wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" wire:loading.attr="disabled" @endif class="relative w-full py-1.5 px-2 rounded-lg border transition-colors overflow-hidden {{ $isThisPriceSelected ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30 ring-2' : 'border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10' }}">
                                                 <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')">
                                                     <div class="text-[9px] uppercase font-bold truncate text-emerald-600 dark:text-emerald-400">{{ $label }} @if($isThisPriceSelected) ✓ @endif</div>
                                                     <div class="text-[13px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($price) }}</div>
@@ -288,7 +288,7 @@ $header = 'Seleccionar productos';
                         <div class="mt-3 flex flex-wrap gap-2">
                             @foreach($allPrices as $label => $price)
                                 @php $isThisPriceSelected = $this->isPriceSelected($product->id, $label); @endphp
-                                <button @if($isCopyMode) @click.stop="copyProductToClipboard('{{ $product->sku }}', {{ $price }}, '{{ addslashes($product->display_name) }}', '{{ $product->id }}', $event)" @else wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" @endif class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors {{ $isThisPriceSelected ? 'border-blue-500 bg-blue-100 text-blue-700' : 'border-gray-300 bg-white text-gray-700' }}">
+                                <button @if($isCopyMode) @click.stop="window.lastClickedCopyButton = $event.currentTarget; $wire.copyProduct({{ $product->id }}, {{ $price }})" @else wire:click.stop="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')" @endif class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors {{ $isThisPriceSelected ? 'border-blue-500 bg-blue-100 text-blue-700' : 'border-gray-300 bg-white text-gray-700' }}">
                                     <div wire:loading.remove wire:target="addToQuoter({{ $product->id }}, {{ $price }}, '{{ $label }}')"><div class="font-bold">${{ number_format($price) }}</div></div>
                                 </button>
                             @endforeach
@@ -549,16 +549,21 @@ $header = 'Seleccionar productos';
     @endif
     @livewire('tenant.components.product-reservation-modal')
 </div>
-
 <script>
-    if (typeof copyProductToClipboard === 'undefined') {
-        function copyProductToClipboard(sku, price, name, id, event) {
-            const priceFormatted = new Intl.NumberFormat().format(Math.round(price));
-            const textToCopy = `${sku} - $${priceFormatted}\n${name}`;
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('product-copied', (event) => {
+            const data = Array.isArray(event) ? event[0] : event;
+            const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
             
+            let textToCopy = `${data.sku} - $${priceFormatted}\n${data.name}`;
+            if (data.hasLink) {
+                const link = `https://www.fervicom.com/?s=${data.sku.toLowerCase()}&post_type=product`;
+                textToCopy += `\nDetalles en:\n${link}`;
+            }
+
             const performFeedback = () => {
-                if (event && event.currentTarget) {
-                    const el = event.currentTarget;
+                const el = window.lastClickedCopyButton;
+                if (el) {
                     const originalBg = el.style.backgroundColor;
                     const originalBorder = el.style.borderColor;
                     const originalColor = el.style.color;
@@ -604,24 +609,24 @@ $header = 'Seleccionar productos';
             } else {
                 fallbackCopyToClipboardMobile(textToCopy, performFeedback);
             }
-        }
+        });
+    });
 
-        function fallbackCopyToClipboardMobile(text, callback) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            textArea.style.top = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                if (callback) callback();
-            } catch (err) {
-                console.error('Fallback error:', err);
-            }
-            document.body.removeChild(textArea);
+    function fallbackCopyToClipboardMobile(text, callback) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            if (callback) callback();
+        } catch (err) {
+            console.error('Fallback error:', err);
         }
+        document.body.removeChild(textArea);
     }
 </script>
