@@ -575,7 +575,8 @@ class WordPressService
         $precioWP = 0;
         if ($precioRecord && (float) $precioRecord->values > 0) {
             $taxRate  = (float) ($item->tax?->percentage ?? 0);
-            $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
+            $precioWP = round((1 + ($taxRate / 100)) * ((float) $precioRecord->values));
+            // $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
         }
 
         $result['precio_wp'] = $precioWP;
@@ -718,7 +719,7 @@ class WordPressService
         $precioWP = 0;
         if ($precioRecord && (float) $precioRecord->values > 0) {
             $taxRate  = (float) ($item->tax?->percentage ?? 0);
-            $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
+            $precioWP = round((1 + ($taxRate / 100)) * ((float) $precioRecord->values));
         }
 
         $result['precio_wp'] = $precioWP;
