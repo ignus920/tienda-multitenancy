@@ -441,7 +441,6 @@
                         <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 50%; padding-left: 12px;">
                             <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
                             <div>{{ $quote->seller_name }}</div>
-                            <div><strong>Tel:</strong> {{ $quote->seller_phone }}</div>
                             <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
                         </td>
                         @endif
@@ -454,7 +453,6 @@
                             <div style="margin-top: 8px;">
                                 <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
                                 <div>{{ $quote->seller_name }}</div>
-                                <div><strong>Tel:</strong> {{ $quote->seller_phone }}</div>
                             </div>
                         </td>
                         @if($customer)
