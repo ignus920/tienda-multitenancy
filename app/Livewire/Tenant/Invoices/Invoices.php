@@ -849,6 +849,7 @@ class Invoices extends Component
                 DB::raw("MAX(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
                 DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
                 DB::raw("MAX(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
+                DB::raw("MAX(COALESCE(qr.consecutive, qd.consecutive)) as quote_consecutive"),
                 // Campos DEBUG para facturas agrupadas
                 DB::raw("MAX(dr_totals.remissions_count) as debug_remissions_count"),
                 DB::raw("MAX(dr_totals.debug_items) as debug_items_detail"),
@@ -918,54 +919,100 @@ class Invoices extends Component
         $this->ensureTenantConnection();
 
         try {
+            // Obtener formas de pago activas en el tenant (excluyendo retenciones)
+            $methodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::where('status', 1)
+                ->get()
+                ->filter(function($method) {
+                    $name = strtolower($method->name);
+                    return !str_contains($name, 'retencion') && !str_contains($name, 'rte') && !str_contains($name, 'ret.');
+                })
+                ->values();
+
+            // Cargar facturas con relaciones de pagos y métodos de pago
             $invoices = $this->buildInvoicesQuery()
+                ->with(['quote', 'payments.methodPayment'])
                 ->orderBy($this->sortField, $this->sortDirection)
                 ->get();
 
-            $headings = [
-                'FECHA',
-                'No. REM',
-                'FACTURA #',
-                'ESTADO FACTURA',
-                'ESTADO PAGO',
-                'SUCURSAL',
-                'VENDEDOR',
-                'SUBTOTAL',
-                'TOTAL',
-                'NOTA CRÉDITO',
-                'RET. FUENTE',
-                'RET. ICA',
-                'RET. IVA',
-                'No. ORDEN',
-                'VALOR CON RETENCIONES'
-            ];
+            // Cabeceras exactas basadas en el cierre de caja del productivo
+            $headings = array_merge(
+                ['#', 'Cliente', 'Cotizacion', 'OP', '# factura', 'Fecha factura', 'Recaudo'],
+                $methodPayments->pluck('name')->map(fn($n) => strtoupper($n))->toArray(),
+                ['Subtotal', 'Iva', 'Rtefte', 'Rteica', 'Total a pagar', 'Total pagado', 'Obs Pedido']
+            );
 
-            $export = new GenericExport($invoices, $headings, function($invoice) {
-                $valorConRetenciones = $invoice->total_con_impuestos - $invoice->retentionFuente - $invoice->retentionIca - $invoice->retentionIva;
-                return [
-                    $invoice->created_at ? $invoice->created_at->format('d/m/Y') : '',
-                    $invoice->remission_consecutive,
-                    '#' . $invoice->invoiceNumber,
-                    $invoice->status,
-                    $invoice->status_payment,
-                    $invoice->warehouse_name,
-                    $invoice->seller,
-                    number_format($invoice->total_sin_impuestos, 2, '.', ''),
-                    number_format($invoice->total_con_impuestos, 2, '.', ''),
-                    $invoice->creditNoteId ?? 'Sin NC',
-                    number_format($invoice->retentionFuente, 2, '.', ''),
-                    number_format($invoice->retentionIca, 2, '.', ''),
-                    number_format($invoice->retentionIva, 2, '.', ''),
-                    $invoice->orderNumber ?? 'Sin orden',
-                    number_format($valorConRetenciones, 2, '.', '')
-                ];
+            $counter = 0;
+            $export = new GenericExport($invoices, $headings, function($invoice) use ($methodPayments, &$counter) {
+                $counter++;
+
+                // Pagos de la factura
+                $invoicePayments = $invoice->payments ?? collect();
+
+                // Obtener primer pago para la fecha de recaudo (excluyendo retenciones)
+                $firstPayment = $invoicePayments->filter(function($p) {
+                    if (!$p->methodPayment) return true;
+                    $name = strtolower($p->methodPayment->name);
+                    return !str_contains($name, 'retencion') && !str_contains($name, 'rte') && !str_contains($name, 'ret.');
+                })->first();
+
+                $fechaRecaudo = '';
+                if ($firstPayment) {
+                    $fechaRecaudo = $firstPayment->created_at ? \Carbon\Carbon::parse($firstPayment->created_at)->format('d/m/Y') : '';
+                } elseif ($invoice->status_payment === 'PAGADO') {
+                    $fechaRecaudo = $invoice->updated_at ? $invoice->updated_at->format('d/m/Y') : '';
+                }
+
+                // Mapear valores por cada forma de pago
+                $paymentValues = [];
+                foreach ($methodPayments as $method) {
+                    $val = $invoicePayments->where('methodPaymentId', $method->id)->sum('value');
+                    $paymentValues[] = $val > 0 ? (float)$val : 0.0;
+                }
+
+                // Subtotal e IVA
+                $subtotal = (float)$invoice->total_sin_impuestos;
+                $iva = (float)($invoice->total_con_impuestos - $invoice->total_sin_impuestos);
+
+                // Retenciones
+                $rtefte = (float)($invoice->retentionFuente ?? 0);
+                $rteica = (float)($invoice->retentionIca ?? 0);
+
+                // Totales
+                $totalAPagar = (float)($invoice->total_con_impuestos - $rtefte - $rteica - ($invoice->retentionIva ?? 0));
+                $totalPagado = (float)$invoicePayments->sum('value');
+
+                // Observaciones del pedido/cotización
+                $obsPedido = $invoice->quote?->observations ?? '';
+
+                return array_merge(
+                    [$counter],
+                    [
+                        $invoice->client_name,
+                        $invoice->quote_consecutive ?? '',
+                        $invoice->orderNumber ?? '',
+                        $invoice->invoiceNumber,
+                        $invoice->created_at ? $invoice->created_at->format('d/m/Y') : '',
+                        $fechaRecaudo
+                    ],
+                    $paymentValues,
+                    [
+                        $subtotal,
+                        $iva,
+                        $rtefte,
+                        $rteica,
+                        $totalAPagar,
+                        $totalPagado,
+                        $obsPedido
+                    ]
+                );
             });
 
-            $fileName = 'Facturas_' . now()->format('Ymd_His') . '.xlsx';
+            // Nombre del archivo basado en el reporte de caja
+            $fileName = 'Reporte_de_caja_facturas_' . now()->format('Ymd_His') . '.xlsx';
 
             return Excel::download($export, $fileName);
         } catch (\Exception $e) {
-            Log::error('❌ Error exportando facturas a Excel: ' . $e->getMessage());
+            Log::error('❌ Error exportando facturas a Excel: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error al exportar a Excel: ' . $e->getMessage()
