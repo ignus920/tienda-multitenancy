@@ -886,11 +886,23 @@ class Remissions extends Component
             Log::info('🔄 Cargando cliente desde quote...');
             try {
                 $remission->load('quote.customer.company');
+                $remission->load('quote.branch');
                 Log::info('👤 Cliente cargado', ['customer_id' => $remission->quote->customerId ?? 'N/A']);
             } catch (\Exception $customerError) {
                 Log::error('❌ Error cargando cliente', ['error' => $customerError->getMessage()]);
-                // Continuar sin cliente para debug
             }
+
+            // Obtener la sucursal de entrega (branch) y su ciudad manualmente (evita cross-DB eager load)
+            $deliveryBranch = $remission->quote->branch ?? null;
+            if (!$deliveryBranch && $remission->quote && $remission->quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($remission->quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+            Log::info('🏭 Sucursal de entrega cargada', ['branch_id' => $deliveryBranch->id ?? 'N/A', 'city' => $deliveryBranchCityName ?? 'N/A']);
 
             // Nota: No cargamos warehouse aquí porque se consultará directamente desde central en getCompanyInfo()
             Log::info('🔄 WarehouseId de la remisión: ' . $remission->warehouseId);
@@ -958,6 +970,8 @@ class Remissions extends Component
                 'obs' => $observations->obs ?? null,
                 'delivery_type' => $deliveryType ?? null,
                 'showValues' => false,
+                'deliveryBranch' => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -2216,7 +2230,7 @@ class Remissions extends Component
             Log::info('🖨️ printShippingGuide llamado', ['remission_id' => $id]);
             
             $remission = InvRemissions::findOrFail($id);
-            $remission->load(['quote.customer.company', 'quote.branch.city']);
+            $remission->load(['quote.customer.company', 'quote.branch']);
             
             // Obtener remitente (datos de la empresa central/warehouse principal)
             $userId = auth()->id();
@@ -2254,17 +2268,22 @@ class Remissions extends Component
             $quote = $remission->quote;
             $contact = $quote ? $quote->customer : null;
             $branch = $quote ? $quote->branch : null;
-            
+
+            // Si branchId está en la cotización pero la relación no cargó, cargar manualmente
+            if (!$branch && $quote && $quote->branchId) {
+                $branch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+
             $customerName = $quote ? $quote->customer_name : 'N/A';
             $contactName = $contact ? ($contact->firstName . ' ' . $contact->lastName) : '';
-            $phone = $branch ? $branch->phone : ($contact ? $contact->phone : 'N/A');
+            $phone = $branch ? $branch->phone : ($contact ? ($contact->business_phone ?? $contact->personal_phone ?? 'N/A') : 'N/A');
             $email = ($contact && $contact->company) ? $contact->company->billingEmail : ($contact ? $contact->email : 'N/A');
             $nit = ($contact && $contact->company) ? $contact->company->identification : ($contact ? $contact->identification : 'N/A');
-            $address = $branch ? $branch->address : ($contact ? $contact->address : 'N/A');
-            
+            $address = $branch ? $branch->address : ($contact && $contact->warehouse ? $contact->warehouse->address : 'N/A');
+
             $cityName = 'N/A';
             $stateName = 'N/A';
-            
+
             $cityId = $branch ? $branch->cityId : ($contact && $contact->warehouse ? $contact->warehouse->cityId : null);
             if ($cityId) {
                 $city = DB::connection('central')->table('cities')->where('id', $cityId)->first();
