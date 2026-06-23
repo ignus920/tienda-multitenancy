@@ -148,6 +148,7 @@
                     $empaque = $remission->authorizations->where('auth_type', 'empaque')->last();
                     $despacho = $remission->authorizations->where('auth_type', 'despacho')->last();
                     $pago = $remission->authorizations->where('auth_type', 'pago')->last();
+                    $totalConFlete = $remission->sub_total_rem + ($remission->flete ?? 0);
                 @endphp
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors">
                     <td class="px-6 py-4">
@@ -193,7 +194,7 @@
                             @endif
                             <div class="flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1">
                                 <span class="font-semibold text-gray-600">Total:</span>
-                                <span class="font-bold text-indigo-600">${{ number_format($remission->total_rem, 0) }}</span>
+                                <span class="font-bold text-indigo-600">${{ number_format($totalConFlete, 0) }}</span>
                             </div>
                             <div class="flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1">
                                 <span class="text-gray-500">Rfte: ${{ number_format($remission->invoice->retentionFuente ?? 0, 0) }}</span>
@@ -226,7 +227,7 @@
                                             {{ $remission->methodPayment->name ?? 'TRANSFERENCIA' }}
                                         </p>
                                         <p class="text-xs font-bold text-gray-700 dark:text-slate-300">
-                                            ${{ number_format($remission->total_rem, 0) }}
+                                            ${{ number_format($totalConFlete, 0) }}
                                         </p>
                                     </div>
 
