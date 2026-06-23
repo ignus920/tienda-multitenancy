@@ -574,7 +574,7 @@ class WordPressService
 
         $precioWP = 0;
         if ($precioRecord && (float) $precioRecord->values > 0) {
-            $taxRate  = (float) ($item->tax?->percentage ?? 0);
+            $taxRate  = 0; // Omitir IVA temporalmente para pruebas
             $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
         }
 
