@@ -185,6 +185,12 @@
                                 <span class="text-gray-500">Total:</span>
                                 <span class="font-bold text-indigo-600">${{ number_format($remission->sub_total_rem, 0) }}</span>
                             </div>
+                            @if($remission->flete > 0)
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Flete:</span>
+                                <span class="text-gray-600">${{ number_format($remission->flete, 0) }}</span>
+                            </div>
+                            @endif
                             <div class="flex justify-between border-t border-gray-200 dark:border-slate-700 pt-1">
                                 <span class="text-gray-500">Rfte: ${{ number_format($remission->invoice->retentionFuente ?? 0, 0) }}</span>
                                 <span class="text-gray-500">Rtica: ${{ number_format($remission->invoice->retentionIca ?? 0, 0) }}</span>
