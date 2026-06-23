@@ -1659,6 +1659,7 @@ $header = 'Seleccionar productos';
     @livewire('tenant.components.product-reservation-modal')
 </div>
 
+<script>
     document.addEventListener('livewire:init', () => {
         Livewire.on('product-copied', (event) => {
             const data = Array.isArray(event) ? event[0] : event;
