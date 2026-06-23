@@ -31,7 +31,6 @@
             width: 100%;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 2px solid #3498db;
         }
 
         .header-left {
@@ -125,8 +124,7 @@
             padding-bottom: 5px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #3498db;
-            border-bottom: 2px solid #3498db;
+            color: #0a3d62;
         }
 
         .info-row {
@@ -151,9 +149,9 @@
         }
 
         .products-table th {
-            background-color: #34495e;
-            color: white;
-            border: 1px solid #2c3e50;
+            background-color: #ffffff;
+            color: #0a3d62;
+            border: 1px solid #0a3d62;
             padding: 10px 6px;
             text-align: center;
             font-weight: bold;
@@ -170,7 +168,8 @@
         }
 
         .col-idx { width: 30px; text-align: center; }
-        .col-code { width: 105px; text-align: center; font-family: 'Courier New', monospace; font-size: 20pt; font-weight: 600; }
+        .col-code { width: 105px; text-align: center; }
+        .products-table td.col-code { font-family: 'Courier New', monospace; font-size: 20pt; font-weight: 600; }
         .col-desc { text-align: left; min-width: 200px; }
         .col-qty { width: 50px; text-align: center; }
         .col-delivered { width: 60px; text-align: center; }
@@ -213,7 +212,7 @@
             background-color: #f8f9fa;
             border-radius: 6px;
             line-height: 1.4;
-            border-left: 3px solid #3498db;
+            border: 1px solid #e1e8ee;
         }
 
         .notes-section {
@@ -402,7 +401,9 @@
                 print-color-adjust: exact;
             }
             .products-table th {
-                background-color: #34495e;
+                background-color: #ffffff;
+                color: #0a3d62;
+                border: 1px solid #0a3d62;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -432,8 +433,8 @@
                             @if($emailVal && filter_var($emailVal, FILTER_VALIDATE_EMAIL))
                             <div><strong>Email:</strong> {{ $emailVal }}</div>
                             @endif
-                            @php $phoneVal = trim($customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
-                            @if($phoneVal && preg_match('/\d{7,}/', $phoneVal))
+                            @php $phoneVal = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal && $phoneVal !== 'N/A' && $phoneVal !== 'na' && $phoneVal !== 'n/a')
                             <div><strong>Teléfono:</strong> {{ $phoneVal }}</div>
                             @endif
                         </td>
@@ -461,8 +462,8 @@
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
                             <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                            @php $phoneVal2 = trim($customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
-                            @if($phoneVal2 && preg_match('/\d{7,}/', $phoneVal2))
+                            @php $phoneVal2 = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal2 && $phoneVal2 !== 'N/A' && $phoneVal2 !== 'na' && $phoneVal2 !== 'n/a')
                             <div><strong>Teléfono:</strong> {{ $phoneVal2 }}</div>
                             @endif
                             @php $emailVal2 = trim($customer->email ?? ''); @endphp
@@ -481,8 +482,8 @@
                             @if($emailVal3 && filter_var($emailVal3, FILTER_VALIDATE_EMAIL))
                             <div><strong>Email:</strong> {{ $emailVal3 }}</div>
                             @endif
-                            @php $phoneVal3 = trim($customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
-                            @if($phoneVal3 && preg_match('/\d{7,}/', $phoneVal3))
+                            @php $phoneVal3 = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal3 && $phoneVal3 !== 'N/A' && $phoneVal3 !== 'na' && $phoneVal3 !== 'n/a')
                             <div><strong>Teléfono:</strong> {{ $phoneVal3 }}</div>
                             @endif
                         </td>
@@ -506,8 +507,8 @@
             <tr>
                 <th class="col-idx">#</th>
                 <th class="col-code">CÓDIGO</th>
-                <th class="col-desc">DESCRIPCIÓN</th>
                 <th class="col-qty">CANT.</th>
+                <th class="col-desc">DESCRIPCIÓN</th>
                 {{-- <th class="col-delivered">ENTREGADO</th>
                 <th class="col-pending">PENDIENTES</th> --}}
                 @if(!isset($showValues) || $showValues)
@@ -522,9 +523,20 @@
                 <tr class="{{ $index % 2 == 0 ? '' : 'row-even' }}">
                     <td class="col-idx">{{ $index + 1 }}</td>
                     <td class="col-code">
-                        <div style="font-size: 20pt; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
                         @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
-                            <div style="font-size: 20pt; color: #e74c3c; margin-top: 3px; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->picking }}</div>
+                            <div style="font-size: 20pt; color: #e74c3c; font-weight: bold; font-family: 'Courier New', monospace; margin-bottom: 3px;">{{ $detalle->item->picking }}</div>
+                        @endif
+                        <div style="font-size: 20pt; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
+                    </td>
+                    <td class="col-qty">
+                        @php
+                            $consumptionUnit = $detalle->item->consumptionUnit ?? null;
+                            $unitQty = ($consumptionUnit && $consumptionUnit->quantity > 1) ? $consumptionUnit->quantity : 0;
+                        @endphp
+                        @if($unitQty > 0 && $documentTitle === 'REMISIÓN')
+                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 1) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
+                        @else
+                            {{ number_format($detalle->quantity, 0) }}
                         @endif
                     </td>
                     <td class="col-desc">
@@ -547,21 +559,15 @@
                             </div>
                         @endif
                     </td>
-                    <td class="col-qty">
-                        @php
-                            $consumptionUnit = $detalle->item->consumptionUnit ?? null;
-                            $unitQty = ($consumptionUnit && $consumptionUnit->quantity > 1) ? $consumptionUnit->quantity : 0;
-                        @endphp
-                        @if($unitQty > 0 && $documentTitle === 'REMISIÓN')
-                            {{ number_format($detalle->quantity, 0) }}({{ number_format($detalle->quantity / $unitQty, 0) }}{{ strtolower(substr($consumptionUnit->description, 0, 2)) }})
-                        @else
-                            {{ number_format($detalle->quantity, 0) }}
-                        @endif
-                    </td>
                     {{-- <td class="col-delivered">{{ $detalle->delivered ?? 0 }}</td>
                     <td class="col-pending">{{ ($detalle->quantity) - ($detalle->delivered ?? 0) }}</td> --}}
                     @if(!isset($showValues) || $showValues)
-                    <td class="col-price">${{ number_format($detalle->value, 2) }}</td>
+                    @php
+                        $valueWithoutTax = $detalle->tax > 0 
+                            ? $detalle->value / (1 + $detalle->tax / 100) 
+                            : $detalle->value;
+                    @endphp
+                    <td class="col-price">${{ number_format($valueWithoutTax, 2) }}</td>
                     <td class="col-discount">
                         @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
                             {{ $detalle->price_label }}
@@ -569,7 +575,7 @@
                             -
                         @endif
                     </td>
-                    <td class="col-total">${{ number_format($detalle->value * $detalle->quantity, 2) }}</td>
+                    <td class="col-total">${{ number_format($valueWithoutTax * $detalle->quantity, 2) }}</td>
                     @endif
                 </tr>
             @endforeach

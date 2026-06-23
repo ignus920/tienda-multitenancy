@@ -257,8 +257,9 @@
         @if($customer)
             <div class="customer-line bold">Cliente: {{ Str::limit($customer->businessName ?: $customer->firstName . ' ' . $customer->lastName, 35) }}</div>
             <div class="customer-line">{{ $customer->identification }}</div>
-            @if($customer->phone)
-                <div class="customer-line">Tel: {{ $customer->phone }}</div>
+            @php $phoneVal = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+            @if($phoneVal && $phoneVal !== 'N/A' && $phoneVal !== 'na' && $phoneVal !== 'n/a')
+                <div class="customer-line">Tel: {{ $phoneVal }}</div>
             @endif
             @if($customer->billingEmail)
                 <div class="customer-line">{{ Str::limit($customer->billingEmail, 30) }}</div>
@@ -273,13 +274,23 @@
     <!-- Products -->
     <div class="products-section">
         @php
+            $subtotalGlobal = 0;
+            $ivaGlobal = 0;
             $totalGeneral = 0;
         @endphp
 
         @foreach($quote->detalles as $index => $detalle)
             @php
-                $subtotalItem = $detalle->value * $detalle->quantity;
-                $totalGeneral += $subtotalItem;
+                $valueWithoutTax = $detalle->tax > 0 
+                    ? $detalle->value / (1 + $detalle->tax / 100) 
+                    : $detalle->value;
+                $subtotalItem = $valueWithoutTax * $detalle->quantity;
+                $subtotalGlobal += $subtotalItem;
+                
+                $itemIva = ($detalle->value * $detalle->quantity) - $subtotalItem;
+                $ivaGlobal += $itemIva;
+                
+                $totalGeneral += ($detalle->value * $detalle->quantity);
             @endphp
 
             <div class="product-item">
@@ -314,7 +325,7 @@
 
                 <div class="quantity-price">
                     @if(!isset($showValues) || $showValues)
-                        <span>{{ $detalle->quantity }} x ${{ number_format($detalle->value, 0) }}</span>
+                        <span>{{ $detalle->quantity }} x ${{ number_format($valueWithoutTax, 0) }}</span>
                         <span class="bold">${{ number_format($subtotalItem, 0) }}</span>
                     @else
                         <span>Cantidad: {{ $detalle->quantity }}</span>
@@ -331,15 +342,25 @@
     <div class="totals-section">
         <div class="total-line">
             <span>Subtotal:</span>
-            <span>${{ number_format($totalGeneral, 0) }}</span>
+            <span>${{ number_format($subtotalGlobal, 0) }}</span>
         </div>
         <div class="total-line">
-            <span>IVA (0%):</span>
-            <span>$0</span>
+            <span>IVA:</span>
+            <span>${{ number_format($ivaGlobal, 0) }}</span>
         </div>
+        @php
+            $flete = $quote->flete ?? 0;
+            $totalFinal = $totalGeneral + $flete;
+        @endphp
+        @if($flete > 0)
+        <div class="total-line">
+            <span>Flete:</span>
+            <span>${{ number_format($flete, 0) }}</span>
+        </div>
+        @endif
         <div class="total-line final-total">
             <span>TOTAL:</span>
-            <span>${{ number_format($totalGeneral, 0) }}</span>
+            <span>${{ number_format($totalFinal, 0) }}</span>
         </div>
     </div>
     @endif

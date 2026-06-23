@@ -214,6 +214,14 @@ class Orders extends Component
             ->when($this->selectedShipp > 0, function ($query) {
                 return $query->where('pk.shipping_id', $this->selectedShipp);
             })
+            ->when($this->search, function ($query) {
+                return $query->where(function ($q) {
+                    $q->where('iv.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
+                      ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
+                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%');
+                });
+            })
             ->paginate($this->perPage);
     }
 

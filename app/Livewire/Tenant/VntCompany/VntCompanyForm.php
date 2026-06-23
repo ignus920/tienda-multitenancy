@@ -569,6 +569,7 @@ class VntCompanyForm extends Component
             'cityId' => $this->warehouseCityId,
             'main' => true, // Siempre es la sucursal principal
             'district' => $this->districtId ?: null,
+            'phone' => $this->business_phone ?: $this->personal_phone,
         ]];
         // dd($warehouses);
         try {

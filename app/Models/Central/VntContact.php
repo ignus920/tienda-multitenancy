@@ -44,6 +44,11 @@ class VntContact extends Model
         return $this->belongsTo(VntWarehouse::class, 'warehouseId');
     }
 
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(CnfPosition::class, 'positionId');
+    }
+
     /**
      * Get the selected store from the tenant database.
      * Returns null if no store is selected.

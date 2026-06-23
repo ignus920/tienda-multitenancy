@@ -106,19 +106,14 @@ class Remissions extends Component
         $this->searchStartDate = now()->subDays(7)->format('Y-m-d');
         $this->searchEndDate = now()->addDays(7)->format('Y-m-d');
 
-        // Verificar permisos de edición para remisiones
+        // Verificar permisos de edición para remisiones: Solo Administradores (1, 2) y Jhon Gil (ID 205)
         $user = auth()->user();
-        if ($user && $user->profile_id) {
-            // Buscar el ID del permiso 'remisiones'
-            $permission = \App\Models\Central\UsrPermission::where('name', 'Ventas')->first();
-
-            if ($permission) {
-                $permissionProfile = UsrPermissionProfile::where('profileId', $user->profile_id)
-                    ->where('permissionId', $permission->id)
-                    ->first();
-
-                $this->canEditRemission = $permissionProfile && $permissionProfile->editer == 1;
-            }
+        if ($user) {
+            $isAdmin = in_array($user->profile_id, [1, 2]);
+            $isJhonGil = $user->id == 205;
+            $this->canEditRemission = ($isAdmin || $isJhonGil);
+        } else {
+            $this->canEditRemission = false;
         }
     }
 
@@ -276,6 +271,11 @@ class Remissions extends Component
     public function annulRemission($id, $reason)
     {
         $this->ensureTenantConnection();
+
+        if (in_array(auth()->user()?->profile_id, [6, 7])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tiene permisos para anular pedidos.']);
+            return;
+        }
 
         try {
             DB::connection('tenant')->beginTransaction();
@@ -794,6 +794,15 @@ class Remissions extends Component
      */
     public function editarRemision($id)
     {
+        $user = auth()->user();
+        $isAdmin = $user ? in_array($user->profile_id, [1, 2]) : false;
+        $isJhonGil = $user ? $user->id == 205 : false;
+
+        if (!$isAdmin && !$isJhonGil) {
+            session()->flash('error', 'No tiene permisos para editar esta remisión.');
+            return;
+        }
+
         $agent = new Agent();
 
         if ($agent->isMobile() || $agent->isTablet()) {
@@ -1014,6 +1023,11 @@ class Remissions extends Component
         Log::info('🖨️ Remissions.printInvoice llamado', ['remission_id' => $id]);
 
         $this->ensureTenantConnection();
+
+        if (in_array(auth()->user()?->profile_id, [6, 7])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tiene permisos para imprimir facturas de pedidos.']);
+            return;
+        }
         $this->initializeCompanyConfiguration();
 
         try {
@@ -1906,20 +1920,18 @@ class Remissions extends Component
                 return;
             }
 
-            // CARTERA: Validaciones de flujo dinámico entre Cartera y Pedidos
             $remission->load('authorizations');
-            $hasEmpaque = $remission->authorizations->where('auth_type', 'empaque')->where('status', 1)->isNotEmpty();
-            $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->where('status', 1)->isNotEmpty();
-            $hasPago = $remission->authorizations->where('auth_type', 'pago')->where('status', 1)->isNotEmpty();
-
+            $hasEmpaque = $remission->authorizations->where('auth_type', 'empaque')->sortByDesc('id')->first()?->status ?? false;
+            $hasDespacho = $remission->authorizations->where('auth_type', 'despacho')->sortByDesc('id')->first()?->status ?? false;
+            $hasPago = $remission->authorizations->where('auth_type', 'pago')->sortByDesc('id')->first()?->status ?? false;
             // Si tiene pago confirmado, se libera todo el flujo (prioridad máxima)
             if (!$hasPago) {
-                // 1. Si intenta pasar de ALISTAMIENTO a EMPACADO, requiere Despacho Autorizado
+                // 1. Si intenta pasar de ALISTAMIENTO a EMPACADO, requiere Empaque o Despacho Autorizado
                 if ($currentStatus === 'ALISTAMIENTO' && $nextStatus === 'EMPACADO') {
-                    if (!$hasDespacho) {
+                    if (!$hasEmpaque && !$hasDespacho) {
                         $this->dispatch('show-toast', [
                             'type' => 'warning',
-                            'message' => 'BLOQUEO DE CARTERA: No se puede avanzar a EMPACADO sin la autorización de DESPACHO.'
+                            'message' => 'BLOQUEO DE CARTERA: No se puede avanzar a EMPACADO sin la autorización de EMPAQUE.'
                         ]);
                         return;
                     }
@@ -2194,6 +2206,125 @@ class Remissions extends Component
                 $remission->invoice ? ($remission->invoice->invoiceNumber ? '#' . $remission->invoice->invoiceNumber : $remission->invoice->status) : 'Sin facturar'
             ];
         };
+    }
+
+    public function printShippingGuide($id)
+    {
+        $this->ensureTenantConnection();
+        
+        try {
+            Log::info('🖨️ printShippingGuide llamado', ['remission_id' => $id]);
+            
+            $remission = InvRemissions::findOrFail($id);
+            $remission->load(['quote.customer.company', 'quote.branch.city']);
+            
+            // Obtener remitente (datos de la empresa central/warehouse principal)
+            $userId = auth()->id();
+            $sender = null;
+            if ($userId) {
+                $sender = DB::connection('central')->table('users as u')
+                    ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                    ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                    ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                    ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                    ->join('cities as c', 'c.id', '=', 'w.cityId')
+                    ->where('u.id', $userId)
+                    ->where('w.main', 1)
+                    ->select([
+                        'v.businessName',
+                        'w.address as billingAddress',
+                        'c.name as city',
+                        'v.identification',
+                    ])
+                    ->first();
+            }
+            
+            if ($sender) {
+                $sender->phone = '318 2097143'; // Teléfono por defecto del remitente (Fervicom)
+            } else {
+                $sender = (object) [
+                    'businessName' => 'FERVICOM SAS',
+                    'billingAddress' => 'Cra 70B #3A-18 Nueva Marsella',
+                    'phone' => '318 2097143',
+                    'city' => 'Bogotá-Colombia',
+                    'identification' => '900.440.810-1',
+                ];
+            }
+            
+            $quote = $remission->quote;
+            $contact = $quote ? $quote->customer : null;
+            $branch = $quote ? $quote->branch : null;
+            
+            $customerName = $quote ? $quote->customer_name : 'N/A';
+            $contactName = $contact ? ($contact->firstName . ' ' . $contact->lastName) : '';
+            $phone = $branch ? $branch->phone : ($contact ? $contact->phone : 'N/A');
+            $email = ($contact && $contact->company) ? $contact->company->billingEmail : ($contact ? $contact->email : 'N/A');
+            $nit = ($contact && $contact->company) ? $contact->company->identification : ($contact ? $contact->identification : 'N/A');
+            $address = $branch ? $branch->address : ($contact ? $contact->address : 'N/A');
+            
+            $cityName = 'N/A';
+            $stateName = 'N/A';
+            
+            $cityId = $branch ? $branch->cityId : ($contact && $contact->warehouse ? $contact->warehouse->cityId : null);
+            if ($cityId) {
+                $city = DB::connection('central')->table('cities')->where('id', $cityId)->first();
+                if ($city) {
+                    $cityName = $city->name;
+                    $state = DB::connection('central')->table('states')->where('id', $city->state_id)->first();
+                    if ($state) {
+                        $stateName = $state->name;
+                    }
+                }
+            }
+            
+            $data = [
+                'remission' => $remission,
+                'consecutive' => $remission->consecutive,
+                'sender' => $sender,
+                'receiver' => [
+                    'name' => $customerName,
+                    'contact' => $contactName,
+                    'phone' => $phone,
+                    'nit' => $nit,
+                    'email' => $email,
+                    'address' => $address,
+                    'city' => $cityName,
+                    'state' => $stateName,
+                ]
+            ];
+            
+            $html = view('livewire.tenant.remissions.print-shipping-guide', $data)->render();
+            
+            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
+            $tempPath = storage_path('app/temp/' . $tempFileName);
+            
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+            
+            file_put_contents($tempPath, $html);
+            
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+            
+            $this->dispatch('open-print-window', [
+                'url' => $printUrl,
+                'format' => 'pos'
+            ]);
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Guía de envío de Pedido #' . $remission->consecutive . ' preparada para impresión.'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Error en printShippingGuide: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al generar la guía de envío: ' . $e->getMessage()
+            ]);
+        }
     }
 
     protected function getExportFilename(): string

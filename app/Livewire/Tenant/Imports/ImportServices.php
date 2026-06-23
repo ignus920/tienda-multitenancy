@@ -302,7 +302,7 @@ class ImportServices extends Component
                 Log::info('Item Setup EXW: ' . ($itemSetup->exw ?? 'NULL'));
             }
 
-            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $itemId)->first();
+            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::withTrashed()->where('item_id', $itemId)->first();
 
             // Si no existe el registro, obtener la cantidad del item desde la query
             if (!$unconfirmedQty) {
@@ -336,6 +336,9 @@ class ImportServices extends Component
                 ]);
                 Log::info('Registro inv_unconfirmed_qty creado con ID: ' . $unconfirmedQty->id);
             } else {
+                if ($unconfirmedQty->trashed()) {
+                    $unconfirmedQty->restore();
+                }
                 Log::info('Registro inv_unconfirmed_qty encontrado:');
                 Log::info('  - ID: ' . $unconfirmedQty->id);
                 Log::info('  - Item ID: ' . $unconfirmedQty->item_id);
@@ -524,7 +527,7 @@ class ImportServices extends Component
             }
 
             // Buscar el registro en inv_unconfirmed_qty para obtener la cantidad
-            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::where('item_id', $this->selectedItemId)->first();
+            $unconfirmedQty = \App\Models\Tenant\Imports\InvUnconfirmedQty::withTrashed()->where('item_id', $this->selectedItemId)->first();
 
             // Si no existe el registro, usar la cantidad del selectedItemData
             if (!$unconfirmedQty) {
@@ -548,6 +551,9 @@ class ImportServices extends Component
                 ]);
                 Log::info('Registro inv_unconfirmed_qty creado con ID: ' . $unconfirmedQty->id);
             } else {
+                if ($unconfirmedQty->trashed()) {
+                    $unconfirmedQty->restore();
+                }
                 Log::info('Registro inv_unconfirmed_qty encontrado:');
                 Log::info('  - ID: ' . $unconfirmedQty->id);
                 Log::info('  - Item ID: ' . $unconfirmedQty->item_id);

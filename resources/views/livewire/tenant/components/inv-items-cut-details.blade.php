@@ -47,8 +47,7 @@
             <div class="relative z-10 bg-white dark:bg-gray-800 rounded-2xl w-full max-w-6xl max-h-[90vh] shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
                  x-transition:enter="ease-out duration-300"
                  x-transition:enter-start="opacity-0 scale-95"
-                 x-transition:enter-end="opacity-100 scale-100"
-                 @click.stop>
+                 x-transition:enter-end="opacity-100 scale-100">
 
                 <!-- Header Premium Style -->
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-900">

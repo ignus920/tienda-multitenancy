@@ -39,7 +39,6 @@ class ImportList extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'page' => ['except' => 1],
     ];
 
     protected $listeners = [
@@ -197,7 +196,7 @@ class ImportList extends Component
                 'inv_items.description',
                 'inv_items.name',
                 'inv_items.internal_code',
-                'inv_items_store.stock_items_store',
+                DB::raw('COALESCE(inv_items_store.stock_items_store, 0) AS stock_items_store'),
                 DB::raw(
                     $this->selectedLabelId
                         ? 'COALESCE(imp_imports.qty_requested, 0) AS quantity'
@@ -206,14 +205,19 @@ class ImportList extends Component
                 DB::raw('0 AS percentage'),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "entrada" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS insideMovement'),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "salida" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS outsideMovement'),
-                'imp_items_setup.exw'
+                DB::raw('COALESCE(imp_items_setup.exw, 0) AS exw')
             ])
-            ->join('inv_items_store', 'inv_items_store.itemId', '=', 'inv_items.id')
-            ->join('imp_items_setup', 'imp_items_setup.item_id', '=', 'inv_items.id')
-            ->join('inv_store', 'inv_store.id', '=', 'inv_items_store.storeId')
+            ->leftJoin('inv_items_store', function ($join) use ($principalStore) {
+                $join->on('inv_items_store.itemId', '=', 'inv_items.id')
+                     ->where('inv_items_store.storeId', '=', $principalStore->id);
+            })
+            ->leftJoin('imp_items_setup', 'imp_items_setup.item_id', '=', 'inv_items.id')
             ->leftJoin('inv_detail_inv_adjustments', 'inv_detail_inv_adjustments.itemId', '=', 'inv_items.id')
             ->leftJoin('inv_inventory_adjustments', 'inv_inventory_adjustments.id', '=', 'inv_detail_inv_adjustments.inventoryAdjustmentId')
-            ->leftJoin('imp_unconfirmed_qty', 'imp_unconfirmed_qty.item_id', '=', 'inv_items.id')
+            ->leftJoin('imp_unconfirmed_qty', function ($join) {
+                $join->on('imp_unconfirmed_qty.item_id', '=', 'inv_items.id')
+                     ->whereNull('imp_unconfirmed_qty.deleted_at');
+            })
             ->when($this->selectedLabelId, function ($query) {
                 // INNER JOIN imp_imports to filter only items with this label
                 $query->join('imp_imports', function ($join) {
@@ -229,8 +233,6 @@ class ImportList extends Component
                 });
             })
             ->where('inv_items.status', 1)
-            ->where('inv_store.id', $principalStore->id)
-            ->where('inv_items.type', 'IMPORTADO')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('inv_items.name', 'like', '%' . $this->search . '%')
@@ -312,14 +314,29 @@ class ImportList extends Component
             // Convertir a entero y asegurar que no sea negativo
             $quantity = max(0, (int) $quantity);
 
-            // Buscar o crear el registro
-            InvUnconfirmedQty::updateOrCreate(
-                ['item_id' => $itemId],
-                [
+            $unconfirmedQty = InvUnconfirmedQty::withTrashed()->where('item_id', $itemId)->first();
+
+            if ($unconfirmedQty) {
+                $unconfirmedQty->restore();
+                $unconfirmedQty->update([
                     'qty' => $quantity,
                     'status' => true
-                ]
-            );
+                ]);
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Cantidad actualizada'
+                ]);
+            } else {
+                InvUnconfirmedQty::create([
+                    'item_id' => $itemId,
+                    'qty' => $quantity,
+                    'status' => true
+                ]);
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Cantidad registrada'
+                ]);
+            }
 
             // Actualizar el array local
             $this->selectedQuantities[$itemId] = $quantity;

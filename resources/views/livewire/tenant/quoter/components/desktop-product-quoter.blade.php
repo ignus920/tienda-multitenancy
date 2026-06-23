@@ -489,12 +489,12 @@ $header = 'Seleccionar productos';
             @else
                 <!-- Modo Tabla -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                    <div class="w-full overflow-x-auto overflow-y-visible min-h-[300px]">
+                    <div class="w-full overflow-x-auto overflow-y-visible" style="min-height: 380px;">
                         <table class="w-full table-auto whitespace-nowrap overflow-visible">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700 w-[120px] min-w-[120px] max-w-[120px]" style="position: sticky; left: 0px; z-index: 20;">Imagen</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700" style="position: sticky; left: 120px; z-index: 20;">Nombre</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Código</th>
                                     @if($hideQuoter)
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Existencias</th>
@@ -516,7 +516,6 @@ $header = 'Seleccionar productos';
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Crédito</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-purple-500 dark:text-purple-400 uppercase tracking-wider">x Caja</th>
                                     @endif
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 overflow-visible">
@@ -527,30 +526,104 @@ $header = 'Seleccionar productos';
                                         $allPrices = $product->all_prices;
                                     @endphp
 
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
-                                        <!-- Imagen -->
-                                        <td class="px-4 py-4 text-center">
+                                    <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
+                                        <!-- Imagen con menú de acciones -->
+                                        <td x-data="{ open: false }" class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 w-[120px] min-w-[120px] max-w-[120px] {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }} z-10" :class="open ? '!z-30' : ''" style="position: sticky; left: 0px;">
                                             @php
                                                 $imgContext = $hideQuoter ? 'BODEGA' : 'COMERCIAL';
                                                 $imgUrl = $product->getPrincipalImageUrl($imgContext);
                                                 $hasImage = $product->getPrincipalImageUrl($imgContext) !== asset('images/placeholder-item.png');
                                             @endphp
-                                            <div class="flex justify-center">
-                                                @if($hasImage)
-                                                    <img @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })" 
-                                                        title="Generar reserva del item: {{ $product->display_name }} ({{ $product->internal_code ?: 'N/A' }})"
-                                                        class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                        src="{{ $imgUrl }}"
-                                                        alt="{{ $product->display_name }}">
-                                                @else
-                                                    <div @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
-                                                        title="Generar reserva del item: {{ $product->display_name }} ({{ $product->internal_code ?: 'N/A' }})"
-                                                        class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
-                                                        <span class="text-sm font-bold text-gray-400 dark:text-gray-500">
-                                                            {{ strtoupper(substr($product->name, 0, 1)) }}
-                                                        </span>
-                                                    </div>
-                                                @endif
+                                            <div class="flex items-center gap-2 justify-center">
+                                                <!-- Menú de Acciones -->
+                                                <div class="relative inline-block">
+                                                    <button @click.stop="open = !open" x-ref="button"
+                                                        class="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                                                        </svg>
+                                                    </button>
+                                                    <template x-teleport="body">
+                                                        <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                                                            x-anchor.bottom-start.offset.4="$refs.button"
+                                                            class="w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[9999] py-1">
+                                                            <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                                Reservas
+                                                            </button>
+                                                            <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                                                </svg>
+                                                                Solicitud Soporte
+                                                            </button>
+                                                            <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $hideQuoter ? 'BODEGA' : 'COMERCIAL' }}' }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                                Imagen
+                                                            </button>
+
+                                                            <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                </svg>
+                                                                Observaciones
+                                                            </button>
+
+                                                            @if($product->accessories_count > 0)
+                                                            <button @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $product->id }} }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                                                </svg>
+                                                                Accesorios
+                                                            </button>
+                                                            @endif
+
+                                                            <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
+                                                                </svg>
+                                                                Cálculos
+                                                            </button>
+
+                                                            <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); open = false"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                                                <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                Sol. Confirmación
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                </div>
+
+                                                <!-- Imagen -->
+                                                <div>
+                                                    @if($hasImage)
+                                                        <img @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' })" 
+                                                            title="Ver imágenes de: {{ $product->display_name }}"
+                                                            class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                            src="{{ $imgUrl }}"
+                                                            alt="{{ $product->display_name }}">
+                                                    @else
+                                                        <div @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' })"
+                                                            title="Ver imágenes de: {{ $product->display_name }}"
+                                                            class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                                                            <span class="text-sm font-bold text-gray-400 dark:text-gray-500">
+                                                                {{ strtoupper(substr($product->name, 0, 1)) }}
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </td>
 
@@ -568,7 +641,7 @@ $header = 'Seleccionar productos';
                                                 $tableTextClass = 'text-gray-900 dark:text-white font-medium';
                                             }
                                         @endphp
-                                        <td class="px-4 py-4">
+                                        <td class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }}" style="position: sticky; left: 120px; z-index: 10;">
                                             <div class="text-sm {{ $tableTextClass }} truncate max-w-xs" title="{{ $product->display_name }}">
                                                 {{ $product->display_name }}
                                             </div>
@@ -824,74 +897,7 @@ $header = 'Seleccionar productos';
                                                 </td>
                                             @endforeach
                                         @endif
-                                        <td class="px-4 py-4 text-center">
-                                            <div x-data="{ open: false }" class="relative inline-block">
-                                                <button @click.stop="open = !open"
-                                                    class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                                                    </svg>
-                                                </button>
-                                                <div x-show="open" @click.away="open = false" @click.stop x-cloak
-                                                    class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
-                                                    <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                        Reservas
-                                                    </button>
-                                                    <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                                                        </svg>
-                                                        Solicitud Soporte
-                                                    </button>
-                                                    <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $hideQuoter ? 'BODEGA' : 'COMERCIAL' }}' }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                        Imagen
-                                                    </button>
 
-                                                    <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                        </svg>
-                                                        Observaciones
-                                                    </button>
-
-                                                    @if($product->accessories_count > 0)
-                                                    <button @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $product->id }} }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                                        </svg>
-                                                        Accesorios
-                                                    </button>
-                                                    @endif
-
-                                                    <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
-                                                        </svg>
-                                                        Cálculos
-                                                    </button>
-
-                                                    <button @click.stop="$dispatch('openConfirmationModal', { productId: {{ $product->id }} }); open = false"
-                                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                        <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                       Sol. Confirmación
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
@@ -1290,26 +1296,49 @@ $header = 'Seleccionar productos';
                 $displayName = !empty($businessName) ? $businessName : ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName']);
             @endphp
             <div class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
-                <div class="flex items-center gap-2">
+                <!-- Nombre -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($displayName) }}' }" x-init="$watch('value', val => value = val)">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span class="font-bold text-gray-900 dark:text-white">{{ $displayName }}</span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="font-bold text-gray-900 dark:text-white cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
+                        {{ $displayName }}
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerNameInline(value)" @blur="editing = false; $wire.updateCustomerNameInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-bold">
                 </div>
                 
-                <div class="flex items-center gap-2">
+                <!-- Ciudad -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['cityName'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['cityName'] ?? 'N/A' }}</span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
+                        {{ $selectedCustomer['cityName'] ?? 'N/A' }}
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerCityInline(value)" @blur="editing = false; $wire.updateCustomerCityInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
                 </div>
 
-                <div class="flex items-center gap-2">
+                <!-- Dirección -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['address'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <span class="text-gray-700 dark:text-slate-300 font-medium">{{ $selectedCustomer['address'] ?? 'N/A' }}</span>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
+                        {{ $selectedCustomer['address'] ?? 'N/A' }}
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerAddressInline(value)" @blur="editing = false; $wire.updateCustomerAddressInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
+                </div>
+
+                <!-- Teléfono -->
+                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['phone'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" :class="value ? 'text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted' : 'text-red-600 dark:text-red-400 font-bold italic cursor-pointer hover:underline decoration-dotted'" title="Haga clic para editar">
+                        <span x-text="value || 'Añadir teléfono (Obligatorio) *'"></span>
+                    </span>
+                    <input x-show="editing" x-ref="input" type="text" x-model="value" placeholder="Teléfono..." @keydown.enter="editing = false; $wire.updateCustomerPhoneInline(value)" @blur="editing = false; $wire.updateCustomerPhoneInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
                 </div>
 
                 <!-- Botón para gestionar sucursales -->
@@ -1377,6 +1406,17 @@ $header = 'Seleccionar productos';
                                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                     </div>
 
+                    <!-- Observaciones de Pago -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Observaciones de Pago
+                        </label>
+                        <textarea wire:model="paymentDetails"
+                                  rows="3"
+                                  placeholder="Detalles para el pago..."
+                                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    </div>
+
                     <!-- Observaciones Pedido -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -1389,7 +1429,7 @@ $header = 'Seleccionar productos';
                     </div>
 
                     <!-- Adjuntar Soporte de Pago -->
-                    <div class="md:col-span-2">
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Soporte de Pago (Imagen / PDF)
                         </label>

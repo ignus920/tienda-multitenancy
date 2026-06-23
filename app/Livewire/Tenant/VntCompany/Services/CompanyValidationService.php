@@ -58,7 +58,7 @@ class CompanyValidationService
 
             // Persona natural
             'firstName.required' => 'El primer nombre es obligatorio para personas naturales.',
-            'lastName.required' => 'El segundo nombre es obligatorio para personas naturales.',
+            'lastName.required' => 'El primer apellido es obligatorio para personas naturales.',
 
             // Warehouse (campos individuales)
             // 'warehouseName.required' => 'El nombre de la sucursal es obligatorio.',

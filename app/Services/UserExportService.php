@@ -95,9 +95,10 @@ class UserExportService
             return [
                 'success' => true,
                 'message' => 'Exportación exitosa',
-                'download' => Response::make($content, 200, [
+                'download' => response()->streamDownload(function () use ($content) {
+                    echo $content;
+                }, $filename, [
                     'Content-Type' => 'application/vnd.ms-excel',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                     'Cache-Control' => 'max-age=0',
                 ])
             ];
@@ -141,9 +142,10 @@ class UserExportService
             return [
                 'success' => true,
                 'message' => 'Exportación exitosa',
-                'download' => Response::make($html, 200, [
+                'download' => response()->streamDownload(function () use ($html) {
+                    echo $html;
+                }, $filename, [
                     'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                     'Cache-Control' => 'max-age=0',
                 ])
             ];
@@ -186,9 +188,10 @@ class UserExportService
             return [
                 'success' => true,
                 'message' => 'Exportación exitosa',
-                'download' => Response::make($content, 200, [
+                'download' => response()->streamDownload(function () use ($content) {
+                    echo $content;
+                }, $filename, [
                     'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                     'Cache-Control' => 'max-age=0',
                 ])
             ];

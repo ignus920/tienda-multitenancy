@@ -183,7 +183,7 @@
                         <div class="bg-gray-100 dark:bg-slate-900/50 p-2 rounded-lg text-[11px] space-y-1">
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Total:</span>
-                                <span class="font-bold text-indigo-600">${{ number_format($remission->total_rem, 0) }}</span>
+                                <span class="font-bold text-indigo-600">${{ number_format($remission->sub_total_rem, 0) }}</span>
                             </div>
                             @if($remission->flete > 0)
                             <div class="flex justify-between">
@@ -222,9 +222,10 @@
                                             {{ $remission->methodPayment->name ?? 'TRANSFERENCIA' }}
                                         </p>
                                         <p class="text-xs font-bold text-gray-700 dark:text-slate-300">
-                                            ${{ number_format($remission->total_rem, 0) }}
+                                            ${{ number_format($remission->sub_total_rem, 0) }}
                                         </p>
                                     </div>
+
                                     <a href="{{ asset('storage/' . $remission->proof_payment) }}" 
                                        target="_blank" 
                                        class="inline-flex items-center text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold mt-0.5 transition-colors gap-1"
@@ -460,6 +461,22 @@
                     <!-- Cuerpo del modal -->
                     <div class="p-6">
 
+                        <!-- Select Formas de Pago -->
+                        <div class="mb-4 text-left">
+                            <label for="modal-payment-method" class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase mb-1">Método de Pago *</label>
+                            <select id="modal-payment-method" 
+                                    wire:model="selectedMethodPaymentId" 
+                                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white text-sm focus:border-violet-500 focus:ring-violet-500">
+                                <option value="">Selecciona un método de pago</option>
+                                @foreach($methodPayments as $method)
+                                    <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedMethodPaymentId')
+                                <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
+                            @enderror
+                        </div>
+
                         <!-- Zona de drop de archivo -->
                         <div
                             x-data="{ isDragging: false }"
@@ -596,7 +613,7 @@
 
                     <div class="p-6">
                         <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-4 text-center uppercase tracking-wide">
-                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Cartera' }}
+                            {{ $isDesconfirmarPago ? 'Por favor, justifique por qué está desconfirmando el pago:' : 'Observación de Facturación' }}
                         </label>
                         <textarea wire:model="justificacionText" 
                                   rows="4" 
