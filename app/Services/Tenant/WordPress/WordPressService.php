@@ -553,30 +553,15 @@ class WordPressService
             'stock_wp'    => $stockWP,
         ]);
 
-        // 5. Precio Crédito con IVA redondeado a la decena más cercana (con fallbacks a Precio Base y Precio Regular)
+        // 5. Precio Crédito con IVA redondeado
         $precioRecord = InvValues::where('itemId', $item->id)
             ->where('label', 'Precio Crédito')
             ->first();
-
-        // Fallback 1: Si no tiene Precio Crédito, buscar Precio Base
-        if (!$precioRecord) {
-            $precioRecord = InvValues::where('itemId', $item->id)
-                ->where('label', 'Precio Base')
-                ->first();
-        }
-
-        // Fallback 2: Si tampoco tiene Precio Base, buscar Precio Regular
-        if (!$precioRecord) {
-            $precioRecord = InvValues::where('itemId', $item->id)
-                ->where('label', 'Precio Regular')
-                ->first();
-        }
 
         $precioWP = 0;
         if ($precioRecord && (float) $precioRecord->values > 0) {
             $taxRate  = (float) ($item->tax?->percentage ?? 0);
             $precioWP = round((1 + ($taxRate / 100)) * ((float) $precioRecord->values));
-            // $precioWP = round((float) $precioRecord->values * (1 + $taxRate / 100) / 10) * 10;
         }
 
         $result['precio_wp'] = $precioWP;
@@ -701,20 +686,6 @@ class WordPressService
         $precioRecord = InvValues::where('itemId', $item->id)
             ->where('label', 'Precio Crédito')
             ->first();
-
-        // Fallback 1: Si no tiene Precio Crédito, buscar Precio Base
-        if (!$precioRecord) {
-            $precioRecord = InvValues::where('itemId', $item->id)
-                ->where('label', 'Precio Base')
-                ->first();
-        }
-
-        // Fallback 2: Si tampoco tiene Precio Base, buscar Precio Regular
-        if (!$precioRecord) {
-            $precioRecord = InvValues::where('itemId', $item->id)
-                ->where('label', 'Precio Regular')
-                ->first();
-        }
 
         $precioWP = 0;
         if ($precioRecord && (float) $precioRecord->values > 0) {

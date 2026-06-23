@@ -50,12 +50,8 @@ class SyncWordPressStockJob implements ShouldQueue
                 return;
             }
 
-            // Obtener todos los items activos con SKU (filtrado temporalmente para el test del item 6700137)
+            // Obtener todos los items activos con SKU
             $items = Items::where('status', 1)
-                ->where(function($query) {
-                    $query->where('internal_code', '6700137')
-                          ->orWhere('sku', '6700137');
-                })
                 ->whereNotNull('sku')
                 ->where('sku', '!=', '')
                 ->with(['tax', 'invItemsStore'])
