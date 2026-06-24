@@ -850,7 +850,17 @@ class Invoices extends Component
                 DB::raw("MAX(remission_consecutives.remission_consecutive) as remission_consecutive"),
                 DB::raw("MAX(COALESCE(wr.name, wd.name)) as warehouse_name"),
                 DB::raw("MAX(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.name, ''))) AS seller"),
-                DB::raw("MAX(CONCAT(COALESCE(c.firstName, ''), ' ', COALESCE(c.secondName, ''), ' ', COALESCE(c.lastName, ''), ' ', COALESCE(c.secondLastName, ''))) AS client_name"),
+                DB::raw("MAX(
+                    CASE 
+                        WHEN comp.typeIdentificationId = 2 AND COALESCE(comp.businessName, '') != '' THEN comp.businessName
+                        ELSE TRIM(CONCAT(
+                            COALESCE(comp.firstName, c.firstName, ''), ' ',
+                            COALESCE(comp.secondName, c.secondName, ''), ' ',
+                            COALESCE(comp.lastName, c.lastName, ''), ' ',
+                            COALESCE(comp.secondLastName, c.secondLastName, '')
+                        ))
+                    END
+                ) AS client_name"),
                 DB::raw("MAX(COALESCE(dr_totals.total_sin_impuestos, dq_totals.total_sin_impuestos, 0)) AS total_sin_impuestos"),
                 DB::raw("MAX(COALESCE(dr_totals.total_con_impuestos, dq_totals.total_con_impuestos, 0)) AS total_con_impuestos"),
                 DB::raw("MAX(IF(s.remissionId IS NOT NULL, 'REMISIONADA', 'COTIZADA')) as tipo_factura"),
@@ -870,6 +880,8 @@ class Invoices extends Component
             // Joins para datos de Cliente y Vendedor (usando COALESCE para tomar de cualquiera de las dos rutas)
             // customerId guarda el warehouseId del contacto (vnt_contacts.warehouseId = vnt_quotes.customerId)
             ->leftJoin("vnt_contacts as c", "c.warehouseId", "=", DB::raw("COALESCE(qr.customerId, qd.customerId)"))
+            ->leftJoin("vnt_warehouses as cw", "cw.id", "=", "c.warehouseId")
+            ->leftJoin("vnt_companies as comp", "comp.id", "=", "cw.companyId")
             ->leftJoin(DB::raw("{$centralDbName}.users as u"), "u.id", "=", DB::raw("COALESCE(qr.userId, qd.userId)"))
             // Joins con las subconsultas
             ->leftJoinSub($remissionTotals, "dr_totals", "vnt_invoices.id", "=", "dr_totals.invoiceId")
@@ -994,7 +1006,7 @@ class Invoices extends Component
                     [
                         $invoice->client_name,
                         $invoice->quote_consecutive ?? '',
-                        $invoice->orderNumber ?? '',
+                        $invoice->remission_consecutive ?? '',
                         $invoice->invoiceNumber,
                         $invoice->created_at ? $invoice->created_at->format('d/m/Y') : '',
                         $fechaRecaudo
@@ -1096,12 +1108,7 @@ class Invoices extends Component
 
                 if ($clientName === '—' && $remission?->quote?->customer) {
                     $contact    = $remission->quote->customer;
-                    $clientName = trim(collect([
-                        $contact->firstName,
-                        $contact->secondName,
-                        $contact->lastName,
-                        $contact->secondLastName,
-                    ])->filter()->implode(' '));
+                    $clientName = $contact->display_name;
                     // Misma prioridad que InvoiceDataBuilder: company->api_data_id primero, luego contact
                     $customerApiId = $contact->company?->api_data_id ?? $contact->api_data_id ?? null;
                 }
@@ -1149,12 +1156,7 @@ class Invoices extends Component
 
                 if ($clientName === '—' && $quote?->customer) {
                     $contact    = $quote->customer;
-                    $clientName = trim(collect([
-                        $contact->firstName,
-                        $contact->secondName,
-                        $contact->lastName,
-                        $contact->secondLastName,
-                    ])->filter()->implode(' '));
+                    $clientName = $contact->display_name;
                     // Misma prioridad que InvoiceDataBuilder: company->api_data_id primero, luego contact
                     $customerApiId = $customerApiId ?? ($contact->company?->api_data_id ?? $contact->api_data_id ?? null);
                 }
