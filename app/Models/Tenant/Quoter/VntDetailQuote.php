@@ -20,6 +20,7 @@ class VntDetailQuote extends Model
         'description',
         'priceList',
         'price_label',
+        'justification',
     ];
 
     protected $casts = [

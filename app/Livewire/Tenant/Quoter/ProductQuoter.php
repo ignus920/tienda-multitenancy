@@ -537,8 +537,49 @@ class ProductQuoter extends Component
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si ya existe, incrementar la cantidad
-            $this->quoterItems[$existingIndex]['quantity']++;
+            // Obtener el producto para verificar dimensiones y precios reales
+            $this->ensureTenantConnection();
+            $product = Items::with(['tax', 'dimensions', 'invValues'])->find($productId);
+            
+            $quntityxbox = 0;
+            if ($product) {
+                $quntityxbox = (int) ($product->dimensions->quntityxbox ?? 0);
+                if ($quntityxbox <= 0) {
+                    $quntityxbox = (int) DB::connection('tenant')
+                        ->table('inv_items_dimensions')
+                        ->where('item_id', $product->id)
+                        ->whereNull('deleted_at')
+                        ->value('quntityxbox');
+                }
+            }
+
+            // Determinar de forma robusta si es precio de caja
+            $isBoxPrice = false;
+            if (str_contains(strtolower($priceLabel), 'caja')) {
+                $isBoxPrice = true;
+            } elseif ($product) {
+                $allPrices = $product->all_prices;
+                $boxPriceValue = $allPrices['Precio unitario x caja'] ?? null;
+                if ($boxPriceValue !== null && abs((float)$selectedPrice - (float)$boxPriceValue) < 0.01) {
+                    $isBoxPrice = true;
+                }
+            }
+
+            // Actualizar información y cantidad
+            if ($isBoxPrice) {
+                $this->quoterItems[$existingIndex]['price_label'] = 'Precio unitario x caja';
+                $this->quoterItems[$existingIndex]['quntityxbox'] = $quntityxbox;
+                $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+                if ($quntityxbox > 0) {
+                    $this->quoterItems[$existingIndex]['quantity'] += $quntityxbox;
+                } else {
+                    $this->quoterItems[$existingIndex]['quantity']++;
+                }
+            } else {
+                $this->quoterItems[$existingIndex]['price_label'] = $priceLabel;
+                $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+                $this->quoterItems[$existingIndex]['quantity']++;
+            }
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
@@ -565,24 +606,51 @@ class ProductQuoter extends Component
             $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
             $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
 
-            // Si no existe, agregarlo al inicio de la lista
+            // Obtener quntityxbox de forma ultra-segura
+            $quntityxbox = (int) ($product->dimensions->quntityxbox ?? 0);
+            if ($quntityxbox <= 0) {
+                $quntityxbox = (int) DB::connection('tenant')
+                    ->table('inv_items_dimensions')
+                    ->where('item_id', $product->id)
+                    ->whereNull('deleted_at')
+                    ->value('quntityxbox');
+            }
+
+            // Determinar de forma robusta si es precio de caja
+            $isBoxPrice = false;
+            if (str_contains(strtolower($priceLabel), 'caja')) {
+                $isBoxPrice = true;
+            } else {
+                $allPrices = $product->all_prices;
+                $boxPriceValue = $allPrices['Precio unitario x caja'] ?? null;
+                if ($boxPriceValue !== null && abs((float)$selectedPrice - (float)$boxPriceValue) < 0.01) {
+                    $isBoxPrice = true;
+                }
+            }
+
+            $actualPriceLabel = $isBoxPrice ? 'Precio unitario x caja' : $priceLabel;
+            $initialQuantity = ($isBoxPrice && $quntityxbox > 0) ? (int)$quntityxbox : 1;
+
+            // Agregar el nuevo item
             array_unshift($this->quoterItems, [
                 'id'             => $product->id,
                 'name'           => $product->display_name,
                 'sku'            => $product->sku,
                 'price'          => $selectedPrice,
-                'original_price' => $selectedPrice,   // precio base para calcular el máximo
-                'min_price'      => $minPrice,         // mínimo: Precio Regular con IVA (= columna Mínimo)
+                'original_price' => $selectedPrice,
+                'min_price'      => $minPrice,
                 'tax'            => $product->tax->percentage,
                 'tax_label'      => $product->tax->name,
-                'price_label'    => $priceLabel,
-                'quantity'       => 1,
+                'price_label'    => $actualPriceLabel,
+                'quantity'       => $initialQuantity,
                 'description'    => $product->description,
                 'weight'         => $product->dimensions->weight ?? 0,
                 'category_id'    => $product->categoryId,
                 'consumption_unit'=> $product->consumption_unit,
                 'total_stock'    => $totalStock,
                 'inventoriable'  => (int) $product->inventoriable,
+                'quntityxbox'    => (int)$quntityxbox,
+                'justification'  => null,
             ]);
         }
 
@@ -838,7 +906,8 @@ class ProductQuoter extends Component
                     'itemId' => $item['id'],
                     'description' => $item['name'],
                     'priceList' => $item['price'],
-                    'price_label' => $item['price_label'] ?? 'Precio' // Guardar el label de la lista de precios
+                    'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
+                    'justification' => $item['justification'] ?? null,
                 ]);
             }
 
@@ -899,15 +968,23 @@ class ProductQuoter extends Component
         // Livewire ya actualiza el valor antes de llamar a este método.
 
         if ($index === null) {
+            $hasPendingJustification = false;
             // En caso de que se llame sin índice, validamos todos los items
             foreach ($this->quoterItems as $idx => $item) {
-                $this->sanitizeItemQuantity($idx);
+                if (!$this->sanitizeItemQuantity($idx)) {
+                    $hasPendingJustification = true;
+                }
+            }
+            if ($hasPendingJustification) {
+                return;
             }
         } else {
             if (!isset($this->quoterItems[$index])) {
                 return;
             }
-            $this->sanitizeItemQuantity($index);
+            if (!$this->sanitizeItemQuantity($index)) {
+                return; // Retornar inmediatamente para evitar mandar el Toast que cierra el modal
+            }
         }
 
         // Actualizar sesión
@@ -973,15 +1050,77 @@ class ProductQuoter extends Component
         ]);
     }
 
-    private function sanitizeItemQuantity($index)
+    private function sanitizeItemQuantity($index): bool
     {
         $quantity = $this->quoterItems[$index]['quantity'];
 
         if ($quantity === '' || !is_numeric($quantity) || intval($quantity) < 1) {
             $this->quoterItems[$index]['quantity'] = 1;
-        } else {
-            $this->quoterItems[$index]['quantity'] = intval($quantity);
+            return true;
         }
+
+        $newQty = intval($quantity);
+        $item = $this->quoterItems[$index];
+        $quntityxbox = (int) ($item['quntityxbox'] ?? 0);
+        $isBoxPrice = str_contains(strtolower($item['price_label'] ?? ''), 'caja');
+
+        if ($isBoxPrice && $quntityxbox > 0) {
+            if ($newQty % $quntityxbox !== 0) {
+                // Obtener el valor anterior de la sesión para revertir
+                $sessionItems = session('quoter_items', []);
+                $oldQty = isset($sessionItems[$index]['quantity']) ? (int) $sessionItems[$index]['quantity'] : $quntityxbox;
+
+                $this->quoterItems[$index]['quantity'] = $oldQty;
+
+                // Lanzar evento para abrir modal de justificación
+                $this->dispatch('open-box-justification-modal', [
+                    'index' => $index,
+                    'requestedQuantity' => $newQty,
+                    'quntityxbox' => $quntityxbox
+                ]);
+                return false;
+            }
+        }
+
+        $this->quoterItems[$index]['quantity'] = $newQty;
+        return true;
+    }
+
+    public function applyJustifiedQuantity($index, $requestedQuantity, $justification)
+    {
+        if (!isset($this->quoterItems[$index])) {
+            return;
+        }
+
+        $requestedQuantity = intval($requestedQuantity);
+        if ($requestedQuantity < 1) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cantidad inválida.']);
+            return;
+        }
+
+        if (empty(trim($justification))) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La justificación es obligatoria.']);
+            return;
+        }
+
+        // Forzar cantidad y almacenar la justificación
+        $this->quoterItems[$index]['quantity'] = $requestedQuantity;
+        $this->quoterItems[$index]['justification'] = trim($justification);
+
+        // Guardar en sesión
+        session(['quoter_items' => $this->quoterItems]);
+
+        // Recalcular
+        $this->calculateTotal();
+
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Cantidad justificada aplicada correctamente.'
+        ]);
     }
 
 
@@ -1922,6 +2061,8 @@ class ProductQuoter extends Component
                         'consumption_unit'=> $product->consumption_unit,
                         'total_stock'    => $totalStock,
                         'inventoriable'  => (int) $product->inventoriable,
+                        'quntityxbox'    => (int) ($product->dimensions->quntityxbox ?? 0),
+                        'justification'  => $detalle->justification,
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -2111,7 +2252,8 @@ class ProductQuoter extends Component
                     'itemId' => $item['id'],
                     'description' => $item['name'],
                     'priceList' => $item['price'],
-                    'price_label' => $item['price_label'] ?? 'Precio' // Guardar el label de la lista de precios
+                    'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
+                    'justification' => $item['justification'] ?? null,
                 ];
 
                 Log::info("📦 Creando detalle #{$index}", [
