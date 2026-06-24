@@ -1519,7 +1519,8 @@ class ProductQuoter extends Component
         ];
         $this->totalTaxes = 0;
 
-        $pesoTotal = 0;
+        $pesoRealTotal = 0;
+        $pesoCalculoFlete = 0;
         $hayFactor3 = false;
 
         // 2. Procesar ítems para calcular subtotal, impuestos y PESO
@@ -1534,7 +1535,8 @@ class ProductQuoter extends Component
             $factorPeso = ($categoryId == 3) ? 2 : 1;
             if ($categoryId == 3) $hayFactor3 = true;
 
-            $pesoTotal += ($pesoProducto * $quantity * $factorPeso);
+            $pesoRealTotal += ($pesoProducto * $quantity);
+            $pesoCalculoFlete += ($pesoProducto * $quantity * $factorPeso);
 
             if ($taxPercentage > 0) {
                 $priceBase = round($priceWithTax / (1 + ($taxPercentage / 100)), 2);
@@ -1563,19 +1565,19 @@ class ProductQuoter extends Component
         $recargo = $hayFactor3 ? 10000 : 0;
 
         if ($this->subTotal < 1000000) {
-            $fleteBase = max($fleteBase, $pesoTotal * 1.7);
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 1.7);
         } elseif ($this->subTotal < 5000000) {
-            $fleteBase = max($fleteBase, $pesoTotal * 1.4);
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 1.4);
         } elseif ($this->subTotal < 15000000) {
-            $fleteBase = max($fleteBase, $pesoTotal * 1.2);
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 1.2);
         } else {
-            $fleteBase = max($fleteBase, $pesoTotal * 0.96);
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 0.96);
         }
 
         $seguro = $this->subTotal * 0.007;
         $fleteCalculado = $fleteBase + $recargo + $seguro;
 
-        $this->totalWeight = round($pesoTotal, 2);
+        $this->totalWeight = round($pesoRealTotal, 2);
         $this->estimatedFreight = round($fleteCalculado, 2);
 
         // 5. ASIGNAR FLETE APLICADO SI EL FLAG ESTÁ ACTIVO
