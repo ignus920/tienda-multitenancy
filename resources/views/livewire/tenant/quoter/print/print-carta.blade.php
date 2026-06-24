@@ -480,7 +480,9 @@
                             <div style="font-weight: bold; font-size: 8.5pt; color: #3498db; margin-bottom: 4px;">ASESOR COMERCIAL</div>
                             <div>{{ $quote->seller_name }}</div>
                             @php $sellerPhone = trim($quote->seller_phone ?? ''); @endphp
-                            <div><strong>Tel:</strong> {{ $sellerPhone && $sellerPhone !== 'N/A' ? $sellerPhone : '' }}</div>
+                            @if($documentTitle !== 'COTIZACIÓN')
+                                <div><strong>Tel:</strong> {{ $sellerPhone && $sellerPhone !== 'N/A' ? $sellerPhone : '' }}</div>
+                            @endif
                         </td>
                     </tr>
                     @if($customer)
