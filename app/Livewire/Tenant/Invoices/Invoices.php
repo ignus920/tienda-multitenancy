@@ -19,6 +19,7 @@ use App\Models\Tenant\Items\InvItemsStore;
 use App\Traits\Livewire\HasDynamicButtons;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GenericExport;
+use App\Exports\InvoicesExport;
 
 class Invoices extends Component
 {
@@ -951,78 +952,22 @@ class Invoices extends Component
                 ->orderBy($this->sortField, $this->sortDirection)
                 ->get();
 
-            // Cabeceras exactas basadas en el cierre de caja del productivo
-            $headings = array_merge(
-                ['#', 'Cliente', 'Cotizacion', 'OP', '# factura', 'Fecha factura', 'Recaudo'],
-                $methodPayments->pluck('name')->map(fn($n) => strtoupper($n))->toArray(),
-                ['Subtotal', 'Iva', 'Rtefte', 'Rteica', 'Total a pagar', 'Total pagado', 'Obs Pedido']
-            );
-
-            $counter = 0;
-            $export = new GenericExport($invoices, $headings, function($invoice) use ($methodPayments, &$counter) {
-                $counter++;
-
-                // Pagos de la factura
-                $invoicePayments = $invoice->payments ?? collect();
-
-                // Obtener primer pago para la fecha de recaudo (excluyendo retenciones)
-                $firstPayment = $invoicePayments->filter(function($p) {
-                    if (!$p->methodPayment) return true;
-                    $name = strtolower($p->methodPayment->name);
-                    return !str_contains($name, 'retencion') && !str_contains($name, 'rte') && !str_contains($name, 'ret.');
-                })->first();
-
-                $fechaRecaudo = '';
-                if ($firstPayment) {
-                    $fechaRecaudo = $firstPayment->created_at ? \Carbon\Carbon::parse($firstPayment->created_at)->format('d/m/Y') : '';
-                } elseif ($invoice->status_payment === 'PAGADO') {
-                    $fechaRecaudo = $invoice->updated_at ? $invoice->updated_at->format('d/m/Y') : '';
+            $dateTitle = '';
+            if ($this->filterDateFrom && $this->filterDateTo) {
+                if ($this->filterDateFrom === $this->filterDateTo) {
+                    $dateTitle = $this->filterDateFrom;
+                } else {
+                    $dateTitle = $this->filterDateFrom . ' a ' . $this->filterDateTo;
                 }
+            } elseif ($this->filterDateFrom) {
+                $dateTitle = 'desde ' . $this->filterDateFrom;
+            } elseif ($this->filterDateTo) {
+                $dateTitle = 'hasta ' . $this->filterDateTo;
+            } else {
+                $dateTitle = 'todas las fechas';
+            }
 
-                // Mapear valores por cada forma de pago
-                $paymentValues = [];
-                foreach ($methodPayments as $method) {
-                    $val = $invoicePayments->where('methodPaymentId', $method->id)->sum('value');
-                    $paymentValues[] = $val > 0 ? (float)$val : 0.0;
-                }
-
-                // Subtotal e IVA
-                $subtotal = (float)$invoice->total_sin_impuestos;
-                $iva = (float)($invoice->total_con_impuestos - $invoice->total_sin_impuestos);
-
-                // Retenciones
-                $rtefte = (float)($invoice->retentionFuente ?? 0);
-                $rteica = (float)($invoice->retentionIca ?? 0);
-
-                // Totales
-                $totalAPagar = (float)($invoice->total_con_impuestos - $rtefte - $rteica - ($invoice->retentionIva ?? 0));
-                $totalPagado = (float)$invoicePayments->sum('value');
-
-                // Observaciones del pedido/cotización
-                $obsPedido = $invoice->quote?->observations ?? '';
-
-                return array_merge(
-                    [$counter],
-                    [
-                        $invoice->client_name,
-                        $invoice->quote_consecutive ?? '',
-                        $invoice->remission_consecutive ?? '',
-                        $invoice->invoiceNumber,
-                        $invoice->created_at ? $invoice->created_at->format('d/m/Y') : '',
-                        $fechaRecaudo
-                    ],
-                    $paymentValues,
-                    [
-                        $subtotal,
-                        $iva,
-                        $rtefte,
-                        $rteica,
-                        $totalAPagar,
-                        $totalPagado,
-                        $obsPedido
-                    ]
-                );
-            });
+            $export = new InvoicesExport($invoices, $methodPayments, $dateTitle);
 
             // Nombre del archivo basado en el reporte de caja
             $fileName = 'Reporte_de_caja_facturas_' . now()->format('Ymd_His') . '.xlsx';
