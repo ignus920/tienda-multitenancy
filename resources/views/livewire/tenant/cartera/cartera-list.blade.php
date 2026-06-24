@@ -124,6 +124,28 @@
                 </select>
             </div>
         </div>
+
+        <!-- Segunda Fila de Filtros (Confirmaciones) -->
+        <div class="mt-4" style="display: flex; align-items: flex-end; gap: 12px;">
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Confirmacion de despacho</label>
+                <select wire:model.live="statusDispatch" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
+                    <option value="">Seleccione una opcion</option>
+                    <option value="1">Confirmada</option>
+                    <option value="0">No confirmada</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Confirmacion de pago</label>
+                <select wire:model.live="statusPayment" class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
+                    <option value="">Seleccione una opcion</option>
+                    <option value="1">Confirmada</option>
+                    <option value="0">No confirmada</option>
+                </select>
+            </div>
+            <!-- Espaciador para empujar los filtros a la izquierda -->
+            <div style="flex: 4;"></div>
+        </div>
     </div>
 
     <!-- Data Table -->

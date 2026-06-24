@@ -157,7 +157,7 @@ class CarteraList extends Component
 
     public function clearFilters()
     {
-        $this->reset(['search', 'activeFilter', 'searchNit', 'searchName', 'searchQuote', 'showAdvancedSearch']);
+        $this->reset(['search', 'activeFilter', 'searchNit', 'searchName', 'searchQuote', 'showAdvancedSearch', 'statusDispatch', 'statusPayment']);
         $this->fromDate = Carbon::now()->subDays(7)->format('Y-m-d');
         $this->toDate = Carbon::now()->addDays(7)->format('Y-m-d');
         $this->resetPage();
@@ -501,12 +501,21 @@ class CarteraList extends Component
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('consecutive', 'like', "%{$this->search}%")
+                  ->orWhereHas('quote.branch.company', function($cc) {
+                      $cc->where('businessName', 'like', "%{$this->search}%")
+                        ->orWhere('identification', 'like', "%{$this->search}%")
+                        ->orWhere('firstName', 'like', "%{$this->search}%")
+                        ->orWhere('secondName', 'like', "%{$this->search}%")
+                        ->orWhere('lastName', 'like', "%{$this->search}%")
+                        ->orWhere('secondLastName', 'like', "%{$this->search}%");
+                  })
                   ->orWhereHas('quote.customer', function($cq) {
                       $cq->where(function($sub) {
                           $sub->where('firstName', 'like', "%{$this->search}%")
                               ->orWhere('lastName', 'like', "%{$this->search}%")
                               ->orWhereHas('company', function($cc) {
-                                  $cc->where('businessName', 'like', "%{$this->search}%");
+                                  $cc->where('businessName', 'like', "%{$this->search}%")
+                                    ->orWhere('identification', 'like', "%{$this->search}%");
                               });
                       });
                   });
@@ -515,18 +524,30 @@ class CarteraList extends Component
 
         // Filtros Búsqueda Avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer.company', function($q) {
-                $q->where('identification', 'like', "%{$this->searchNit}%");
+            $query->where(function($q) {
+                $q->whereHas('quote.branch.company', function($qb) {
+                    $qb->where('identification', 'like', "%{$this->searchNit}%");
+                })->orWhereHas('quote.customer.company', function($qc) {
+                    $qc->where('identification', 'like', "%{$this->searchNit}%");
+                });
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote.customer.company', function($q) {
-                $q->where('businessName', 'like', "%{$this->searchName}%")
-                    ->orWhere('firstName', 'like', "%{$this->searchName}%")
-                    ->orWhere('secondName', 'like', "%{$this->searchName}%")
-                    ->orWhere('lastName', 'like', "%{$this->searchName}%")
-                    ->orWhere('secondLastName', 'like', "%{$this->searchName}%");
+            $query->where(function($q) {
+                $q->whereHas('quote.branch.company', function($qb) {
+                    $qb->where('businessName', 'like', "%{$this->searchName}%")
+                        ->orWhere('firstName', 'like', "%{$this->searchName}%")
+                        ->orWhere('secondName', 'like', "%{$this->searchName}%")
+                        ->orWhere('lastName', 'like', "%{$this->searchName}%")
+                        ->orWhere('secondLastName', 'like', "%{$this->searchName}%");
+                })->orWhereHas('quote.customer.company', function($qc) {
+                    $qc->where('businessName', 'like', "%{$this->searchName}%")
+                        ->orWhere('firstName', 'like', "%{$this->searchName}%")
+                        ->orWhere('secondName', 'like', "%{$this->searchName}%")
+                        ->orWhere('lastName', 'like', "%{$this->searchName}%")
+                        ->orWhere('secondLastName', 'like', "%{$this->searchName}%");
+                });
             });
         }
 
@@ -534,6 +555,48 @@ class CarteraList extends Component
             $query->whereHas('quote', function($q) {
                 $q->where('consecutive', 'like', "%{$this->searchQuote}%");
             });
+        }
+
+        // Filtro por Confirmación de Despacho
+        if ($this->statusDispatch !== '') {
+            if ($this->statusDispatch == '1') {
+                $query->whereHas('authorizations', function($q) {
+                    $q->where('auth_type', 'despacho')
+                      ->where('status', 1)
+                      ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = vnt_order_authorizations.remission_id AND a2.auth_type = "despacho")');
+                });
+            } else {
+                $query->where(function($q) {
+                    $q->whereDoesntHave('authorizations', function($sub) {
+                        $sub->where('auth_type', 'despacho');
+                    })->orWhereHas('authorizations', function($sub) {
+                        $sub->where('auth_type', 'despacho')
+                            ->where('status', 0)
+                            ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = vnt_order_authorizations.remission_id AND a2.auth_type = "despacho")');
+                    });
+                });
+            }
+        }
+
+        // Filtro por Confirmación de Pago
+        if ($this->statusPayment !== '') {
+            if ($this->statusPayment == '1') {
+                $query->whereHas('authorizations', function($q) {
+                    $q->where('auth_type', 'pago')
+                      ->where('status', 1)
+                      ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = vnt_order_authorizations.remission_id AND a2.auth_type = "pago")');
+                });
+            } else {
+                $query->where(function($q) {
+                    $q->whereDoesntHave('authorizations', function($sub) {
+                        $sub->where('auth_type', 'pago');
+                    })->orWhereHas('authorizations', function($sub) {
+                        $sub->where('auth_type', 'pago')
+                            ->where('status', 0)
+                            ->whereRaw('id = (SELECT max(id) FROM vnt_order_authorizations as a2 WHERE a2.remission_id = vnt_order_authorizations.remission_id AND a2.auth_type = "pago")');
+                    });
+                });
+            }
         }
 
         // Filtro por tarjetas (Lógica de "Solo los que tienen este estado como ÚLTIMO registro")
