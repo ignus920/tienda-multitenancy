@@ -623,30 +623,58 @@ class Remissions extends Component
     {
         $query->where(function ($q) {
             $q->where('consecutive', 'like', '%' . $this->search . '%')
+                ->orWhereHas('quote.branch.company', function ($cc) {
+                    $cc->where('businessName', 'like', '%' . $this->search . '%')
+                        ->orWhere('identification', 'like', '%' . $this->search . '%')
+                        ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                        ->orWhere('secondName', 'like', '%' . $this->search . '%')
+                        ->orWhere('lastName', 'like', '%' . $this->search . '%')
+                        ->orWhere('secondLastName', 'like', '%' . $this->search . '%');
+                })
                 ->orWhereHas('quote.customer.company', function ($sub) {
-                    $sub->where('firstName', 'like', '%' . $this->search . '%')
+                    $sub->where('businessName', 'like', '%' . $this->search . '%')
+                        ->orWhere('identification', 'like', '%' . $this->search . '%')
+                        ->orWhere('firstName', 'like', '%' . $this->search . '%')
                         ->orWhere('lastName', 'like', '%' . $this->search . '%');
                 })
                 ->orWhereHas('invoice', function ($sub) {
                     $sub->where('status', 'like', '%' . $this->search . '%')
                         ->orWhere('invoiceNumber', 'like', '%' . $this->search . '%');
+                })
+                ->orWhereHas('methodPayment', function ($mp) {
+                    $mp->where('name', 'like', '%' . $this->search . '%');
+                })
+                ->orWhereHas('invoice.payments.methodPayment', function ($mp) {
+                    $mp->where('name', 'like', '%' . $this->search . '%');
                 });
         });
 
         // Búsqueda avanzada
         if ($this->searchNit) {
-            $query->whereHas('quote.customer.company', function ($q) {
-                $q->where('identification', 'like', '%' . $this->searchNit . '%');
+            $query->where(function ($q) {
+                $q->whereHas('quote.branch.company', function ($qb) {
+                    $qb->where('identification', 'like', '%' . $this->searchNit . '%');
+                })->orWhereHas('quote.customer.company', function ($qc) {
+                    $qc->where('identification', 'like', '%' . $this->searchNit . '%');
+                });
             });
         }
 
         if ($this->searchName) {
-            $query->whereHas('quote.customer.company', function ($q) {
-                $q->where('businessName', 'like', '%' . $this->searchName . '%')
-                    ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
-                    ->orWhere('secondName', 'like', '%' . $this->searchName . '%')
-                    ->orWhere('lastName', 'like', '%' . $this->searchName . '%')
-                    ->orWhere('secondLastName', 'like', '%' . $this->searchName . '%');
+            $query->where(function ($q) {
+                $q->whereHas('quote.branch.company', function ($qb) {
+                    $qb->where('businessName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('secondName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('lastName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('secondLastName', 'like', '%' . $this->searchName . '%');
+                })->orWhereHas('quote.customer.company', function ($qc) {
+                    $qc->where('businessName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('firstName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('secondName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('lastName', 'like', '%' . $this->searchName . '%')
+                        ->orWhere('secondLastName', 'like', '%' . $this->searchName . '%');
+                });
             });
         }
 

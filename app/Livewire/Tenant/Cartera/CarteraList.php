@@ -518,6 +518,12 @@ class CarteraList extends Component
                                     ->orWhere('identification', 'like', "%{$this->search}%");
                               });
                       });
+                  })
+                  ->orWhereHas('methodPayment', function($mp) {
+                      $mp->where('name', 'like', "%{$this->search}%");
+                  })
+                  ->orWhereHas('invoice.payments.methodPayment', function($mp) {
+                      $mp->where('name', 'like', "%{$this->search}%");
                   });
             });
         }
