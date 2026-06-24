@@ -3853,11 +3853,8 @@ class ProductQuoter extends Component
             return;
         }
 
-        // Verificar en WordPress
-        $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
-        $wpProduct = $item->sku ? $wpService->findProductBySku($item->sku) : null;
-
-        $hasLink = !empty($wpProduct);
+        // Si tiene SKU, asumimos que tiene link (que redirigirá a la búsqueda de Fervicom usando el SKU)
+        $hasLink = !empty($item->sku);
         
         $this->dispatch('product-copied', [
             'sku' => $item->sku,
