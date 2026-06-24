@@ -230,7 +230,6 @@
                                 </svg>
                             </div>
                         </th>
-                        @if(auth()->user()?->profile_id != 6)
                         <th class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center justify-end space-x-1">
                                 <span>TOTAL</span>
@@ -239,7 +238,6 @@
                                 </svg>
                             </div>
                         </th>
-                        @endif
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center space-x-1">
                                 <span>ESTADO</span>
@@ -337,7 +335,6 @@
                                     @endif
                                 </div>
                             </td>
-                            @if(auth()->user()?->profile_id != 6)
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white font-medium">
                                 @php
                                     $total = $remission->details->sum(function ($detail) {
@@ -346,7 +343,6 @@
                                 @endphp
                                 ${{ number_format($total, 2, ',', '.') }}
                             </td>
-                            @endif
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 @if($remission->status === 'ENTREGADO')
                                     {{-- Estado ENTREGADO no es clickeable --}}

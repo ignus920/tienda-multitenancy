@@ -361,10 +361,23 @@
             border: 1px solid #ccc;
             padding: 8px;
             border-radius: 4px;
+            height: 190px;
+            display: inline-block;
+            vertical-align: top;
+            margin: 0 10px 15px 0;
+        }
+
+        .image-card img {
+            max-width: 130px;
+            max-height: 120px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 6px auto;
         }
 
         .image-card .product-code {
-            font-size: 7pt;
+            font-size: 7.5pt;
+            font-weight: bold;
             color: #666;
             margin-bottom: 4px;
             white-space: nowrap;
@@ -372,9 +385,18 @@
             text-overflow: ellipsis;
         }
 
+        .image-card .product-name {
+            font-size: 8pt;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 4px;
+        }
+
         .image-card .no-image-placeholder {
             width: 130px;
-            height: 130px;
+            height: 120px;
             background-color: #f5f5f5;
             border: 1px dashed #ccc;
             display: flex;
@@ -418,10 +440,10 @@
             <img src="{{ asset('images/QR-Fervicom.png') }}" alt="QR Code" style="display: block; width: 100px; height: 100px; margin: 6px auto 0;">
         </div>
         <div class="header-center">
-            <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
-            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-                <tr>
-                    @if($documentTitle === 'REMISIÓN')
+            @if($documentTitle === 'REMISIÓN')
+                <div class="company-name">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
+                <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                    <tr>
                         @if($customer)
                         <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 50%;">
                             <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
@@ -444,57 +466,47 @@
                             <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
                         </td>
                         @endif
-                    @else
-                        <td style="text-align: left; font-size: 8.5pt; vertical-align: top; width: 34%;">
-                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS EMPRESA</div>
-                            <div><strong>NIT:</strong> {{ $company->identification ?? '901.123.456-7' }}-{{ $company->checkDigit ?? '' }}</div>
-                            <div><strong>Dirección:</strong> {{ $company->billingAddress ?? 'Calle Principal No. 123' }}</div>
-                            <div><strong>Email:</strong> {{ $company->billingEmail ?? 'ventas@fervicom.com' }}</div>
-                            <div style="margin-top: 8px;">
-                                <div style="font-weight: bold; font-size: 9pt; color: #3498db;">ASESOR COMERCIAL</div>
-                                <div>{{ $quote->seller_name }}</div>
-                            </div>
+                    </tr>
+                </table>
+            @else
+                <table style="width: 100%; border-collapse: collapse; table-layout: fixed; border: 1.5px solid #3498db;">
+                    <tr>
+                        <td style="text-align: left; font-size: 8pt; vertical-align: top; width: 50%; border-bottom: 1.5px solid #3498db; padding: 8px; line-height: 1.35;">
+                            <div style="font-size: 11pt; font-weight: bold; color: #0a3d62; margin-bottom: 4px;">{{ $company->businessName ?? 'FERVICOM S.A.S.' }}</div>
+                            <div><strong>NIT:</strong> {{ $company->identification ?? '900.440.810' }}-{{ $company->checkDigit ?? '' }}</div>
+                            <div><strong>Dirección:</strong> {{ $company->billingAddress ?? 'Cra 70B #3A-18 Nueva Marsella' }}</div>
                         </td>
-                        @if($customer)
-                        <td style="text-align: left; font-size: 8.5pt; padding-left: 12px; line-height: 1.3; vertical-align: top; width: 33%;">
-                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DEL CLIENTE</div>
+                        <td style="text-align: left; font-size: 8pt; vertical-align: top; width: 50%; border-bottom: 1.5px solid #3498db; padding: 8px; line-height: 1.35;">
+                            <div style="font-weight: bold; font-size: 8.5pt; color: #3498db; margin-bottom: 4px;">ASESOR COMERCIAL</div>
+                            <div>{{ $quote->seller_name }}</div>
+                            @php $sellerPhone = trim($quote->seller_phone ?? ''); @endphp
+                            <div><strong>Tel:</strong> {{ $sellerPhone && $sellerPhone !== 'N/A' ? $sellerPhone : '' }}</div>
+                        </td>
+                    </tr>
+                    @if($customer)
+                    <tr>
+                        <td style="text-align: left; font-size: 8pt; vertical-align: top; width: 50%; padding: 8px; line-height: 1.35;">
+                            <div style="font-weight: bold; font-size: 8.5pt; color: #3498db; margin-bottom: 4px;">DATOS DEL CLIENTE</div>
                             <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                            @php $phoneVal2 = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
-                            @if($phoneVal2 && $phoneVal2 !== 'N/A' && $phoneVal2 !== 'na' && $phoneVal2 !== 'n/a')
-                            <div><strong>Teléfono:</strong> {{ $phoneVal2 }}</div>
-                            @endif
-                            @php $emailVal2 = trim($customer->email ?? ''); @endphp
-                            @if($emailVal2 && filter_var($emailVal2, FILTER_VALIDATE_EMAIL))
-                            <div><strong>Email:</strong> {{ $emailVal2 }}</div>
-                            @endif
-                            <div><small>Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</small></div>
+                            <div style="font-size: 7.5pt; color: #7f8c8d; margin-top: 2px;">Fecha Registro: {{ $quote->created_at->format('Y-m-d H:i') }}</div>
                         </td>
-                        <td style="text-align: left; font-size: 8.5pt; padding-left: 30px; line-height: 1.3; vertical-align: top; width: 33%;">
-                            <div style="font-weight: bold; font-size: 9pt; margin-bottom: 6px; color: #3498db;">DATOS DE ENVÍO</div>
+                        <td style="text-align: left; font-size: 8pt; vertical-align: top; width: 50%; padding: 8px; line-height: 1.35;">
+                            <div style="font-weight: bold; font-size: 8.5pt; color: #3498db; margin-bottom: 4px;">DATOS DE ENVÍO</div>
                             <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
                             <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
                             <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
-                            @php $emailVal3 = trim($customer->email ?? ''); @endphp
-                            @if($emailVal3 && filter_var($emailVal3, FILTER_VALIDATE_EMAIL))
-                            <div><strong>Email:</strong> {{ $emailVal3 }}</div>
-                            @endif
-                            @php $phoneVal3 = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
-                            @if($phoneVal3 && $phoneVal3 !== 'N/A' && $phoneVal3 !== 'na' && $phoneVal3 !== 'n/a')
-                            <div><strong>Teléfono:</strong> {{ $phoneVal3 }}</div>
-                            @endif
                         </td>
-                        @endif
+                    </tr>
                     @endif
-                </tr>
-            </table>
+                </table>
+            @endif
         </div>
         <div class="header-right">
             <div class="document-box">
                 <span class="document-title">{{ $documentTitle }}</span>
                 <span class="document-number">{{ $quote->consecutive }}</span>
-                <canvas id="qr-header" style="max-width: 50px; margin-top: 8px;"></canvas>
             </div>
         </div>
     </div>
@@ -511,17 +523,33 @@
                 <th class="col-pending">PENDIENTES</th> --}}
                 @if(!isset($showValues) || $showValues)
                 <th class="col-price">V.UNIT.</th>
-                <th class="col-discount">DESCUENTO</th>
+                <th class="col-discount" style="font-size: 8pt; line-height: 1.1;">DESCUENTO<br>APLICADO</th>
                 <th class="col-total">SUBTOTAL</th>
                 @endif
             </tr>
         </thead>
         <tbody>
-            @foreach($quote->detalles as $index => $detalle)
+            @php
+                $sortedDetalles = $quote->detalles->sortBy(function ($detalle) {
+                    $sku = strtolower($detalle->item->sku ?? '');
+                    $name = strtolower($detalle->item->name ?? $detalle->item->display_name ?? '');
+                    $type = strtolower($detalle->item->type ?? '');
+
+                    // Prioridades: 1 = Productos, 2 = Cortes/Servicios, 3 = Fletes
+                    if (str_contains($sku, 'flete') || str_contains($name, 'flete')) {
+                        return 3;
+                    }
+                    if (str_contains($sku, 'corte') || str_contains($name, 'corte') || str_contains($type, 'servicio')) {
+                        return 2;
+                    }
+                    return 1;
+                })->values();
+            @endphp
+            @foreach($sortedDetalles as $index => $detalle)
                 <tr class="{{ $index % 2 == 0 ? '' : 'row-even' }}">
                     <td class="col-idx">{{ $index + 1 }}</td>
                     <td class="col-code">
-                        @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
+                        @if((!isset($showValues) || !$showValues) && $detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
                             <div style="font-size: 20pt; color: #e74c3c; font-weight: bold; font-family: 'Courier New', monospace; margin-bottom: 3px;">{{ $detalle->item->picking }}</div>
                         @endif
                         <div style="font-size: 20pt; font-weight: bold; font-family: 'Courier New', monospace;">{{ $detalle->item->internal_code ?? $detalle->item->sku ?? 'N/A' }}</div>
@@ -744,15 +772,7 @@
     </div>
 
     <!-- QR Footer -->
-    <div class="qr-footer">
-        <canvas id="qr-footer"></canvas>
-        {{-- <div>
-            <strong>📱 ESCANEA PARA CONSULTAR NUESTRO CATÁLOGO VIRTUAL</strong>
-        </div> --}}
-        {{-- <div style="font-size: 7.5pt; color: #7f8c8d; margin-top: 5px;">
-            Generado automáticamente por el Sistema de Gestión Fervicom
-        </div> --}}
-        
+    <div class="qr-footer" style="border-top: 2px solid #e1e8ee; padding-top: 15px; margin-top: 25px;">
         <div class="provider-logos">
             <span>🔌 Fuentes de poder | 💡 Cintas LED | 📐 Perfiles para cintas | 🎯 Perfiles para pasamanajes | ⚡ Fuentes dimerizables | 🧵 Materiales Pasamanajes</span>
         </div>
@@ -783,16 +803,5 @@
         </div>
     </div>
     @endif
-
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var consecutivo = "{{ $quote->consecutive }}";
-        var opts = { width: 80, margin: 1 };
-
-        QRCode.toCanvas(document.getElementById('qr-header'), consecutivo, { width: 50, margin: 1 });
-        QRCode.toCanvas(document.getElementById('qr-footer'), consecutivo, opts);
-    });
-</script>
 </body>
 </html>
