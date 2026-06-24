@@ -580,6 +580,7 @@ class ProductQuoter extends Component
                 'description'    => $product->description,
                 'weight'         => $product->dimensions->weight ?? 0,
                 'category_id'    => $product->categoryId,
+                'consumption_unit'=> $product->consumption_unit,
                 'total_stock'    => $totalStock,
                 'inventoriable'  => (int) $product->inventoriable,
             ]);
@@ -1531,9 +1532,8 @@ class ProductQuoter extends Component
 
             // Cálculo de peso para flete
             $pesoProducto = isset($item['weight']) ? (float)$item['weight'] : 0.0;
-            $description = $item['description'] ?? '';
-            $name = $item['name'] ?? '';
-            $isPerfil = str_contains(strtolower($description), 'perfil') || str_contains(strtolower($name), 'perfil');
+            $consumptionUnit = $item['consumption_unit'] ?? 0;
+            $isPerfil = ($consumptionUnit == 37);
             $factorPeso = $isPerfil ? 2 : 1;
             if ($isPerfil) $hayFactor3 = true;
 
@@ -1919,6 +1919,7 @@ class ProductQuoter extends Component
                         'tax_label'      => $product->tax->name ?? 'IVA',
                         'weight'         => $product->dimensions->weight ?? 0,
                         'category_id'    => $product->categoryId,
+                        'consumption_unit'=> $product->consumption_unit,
                         'total_stock'    => $totalStock,
                         'inventoriable'  => (int) $product->inventoriable,
                     ];
@@ -3320,6 +3321,7 @@ class ProductQuoter extends Component
                         'tax_label'     => $detalle->tax_label ?? 'N/A',
                         'weight'        => $detalle->item->dimensions->weight ?? 0,
                         'category_id'   => $detalle->item->categoryId,
+                        'consumption_unit'=> $detalle->item->consumption_unit,
                         'inventoriable' => (int) $detalle->item->inventoriable,
                     ];
                 }
