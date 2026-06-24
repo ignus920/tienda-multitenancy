@@ -1531,9 +1531,11 @@ class ProductQuoter extends Component
 
             // Cálculo de peso para flete
             $pesoProducto = isset($item['weight']) ? (float)$item['weight'] : 0.0;
-            $categoryId = $item['category_id'] ?? 0;
-            $factorPeso = ($categoryId == 3) ? 2 : 1;
-            if ($categoryId == 3) $hayFactor3 = true;
+            $description = $item['description'] ?? '';
+            $name = $item['name'] ?? '';
+            $isPerfil = str_contains(strtolower($description), 'perfil') || str_contains(strtolower($name), 'perfil');
+            $factorPeso = $isPerfil ? 2 : 1;
+            if ($isPerfil) $hayFactor3 = true;
 
             $pesoRealTotal += ($pesoProducto * $quantity);
             $pesoCalculoFlete += ($pesoProducto * $quantity * $factorPeso);
