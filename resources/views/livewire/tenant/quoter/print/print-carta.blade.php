@@ -497,8 +497,12 @@
                             <div style="font-weight: bold; font-size: 8.5pt; color: #3498db; margin-bottom: 4px;">DATOS DE ENVÍO</div>
                             <div><strong>{{ $customer->display_name }}</strong></div>
                             <div><strong>NIT/CC:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}</div>
-                            <div><strong>Dirección:</strong> {{ $customer->warehouse->address ?? 'N/A' }}</div>
-                            <div><strong>Ciudad:</strong> {{ $customer->warehouse->city->name ?? 'N/A' }}</div>
+                            <div><strong>Dirección:</strong> {{ ($deliveryBranch ?? null)->address ?? $customer->warehouse->address ?? 'N/A' }}</div>
+                            <div><strong>Ciudad:</strong> {{ ($deliveryBranchCityName ?? null) ?? $customer->warehouse->city->name ?? 'N/A' }}</div>
+                            @php $phoneVal = trim(($deliveryBranch ?? null)->phone ?? $customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+                            @if($phoneVal && $phoneVal !== 'N/A' && $phoneVal !== 'na' && $phoneVal !== 'n/a')
+                            <div><strong>Teléfono:</strong> {{ $phoneVal }}</div>
+                            @endif
                         </td>
                     </tr>
                     @endif

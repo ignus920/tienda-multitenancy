@@ -227,6 +227,17 @@ class GestionVentas extends Component
             // Determinar el título del documento
             $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
 
+            // Cargar sucursal de entrega
+            $deliveryBranch = $quote->branch ?? null;
+            if (!$deliveryBranch && $quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+
             // Datos para la vista
             $data = [
                 'quote' => $quote,
@@ -239,6 +250,8 @@ class GestionVentas extends Component
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
                 'delivery_type' => $deliveryType,
+                'deliveryBranch' => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
             ];
 
             // Seleccionar la vista según el formato

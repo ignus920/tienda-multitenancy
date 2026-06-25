@@ -322,6 +322,21 @@ class Quoter extends Component
                 $quote->customer = null;
             }
 
+            // Cargar sucursal de entrega
+            $deliveryBranch = $quote->branch ?? null;
+            if (!$deliveryBranch && $quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+            Log::info('🏭 Sucursal de entrega cargada en printQuote', [
+                'branch_id' => $deliveryBranch->id ?? 'N/A',
+                'city' => $deliveryBranchCityName ?? 'N/A'
+            ]);
+
             // Nota: No cargamos warehouse aquí porque se consultará directamente desde central en getCompanyInfo()
             Log::info('🔄 WarehouseId de la cotización: ' . $quote->warehouseId);
 
@@ -383,6 +398,8 @@ class Quoter extends Component
                 'obs' => $observations->obs ?? null,
                 'delivery_type' => $deliveryType ?? null,
                 'showValues' => true,
+                'deliveryBranch' => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -573,6 +590,17 @@ class Quoter extends Component
             $quote = VntQuote::findOrFail($id);
             $quote->load(['detalles.item', 'customer']);
 
+            // Cargar sucursal de entrega
+            $deliveryBranch = $quote->branch ?? null;
+            if (!$deliveryBranch && $quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+
             // Intentar obtener el número de factura real
             $invoice = VntInvoices::where('quoteId', $id)->first();
             if ($invoice && $invoice->invoiceNumber) {
@@ -589,7 +617,9 @@ class Quoter extends Component
                 'documentTitle' => 'FACTURA',
                 'showQR' => true,
                 'defaultObservations' => 'Factura electrónica (Copia Local)',
-                'showValues' => true
+                'showValues' => true,
+                'deliveryBranch' => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
             ];
 
             $viewName = ($printFormat === 1)

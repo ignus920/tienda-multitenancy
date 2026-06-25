@@ -423,6 +423,17 @@ class CarteraList extends Component
             $printFormat   = $this->getPrintCopiesLimit();
             $documentTitle = ($quote->status === 'REMISIÓN') ? 'REMISIÓN' : 'COTIZACIÓN';
 
+            // Cargar sucursal de entrega
+            $deliveryBranch = $quote->branch ?? null;
+            if (!$deliveryBranch && $quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+
             $data = [
                 'quote'                 => $quote,
                 'customer'              => $quote->customer,
@@ -434,6 +445,8 @@ class CarteraList extends Component
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs'                   => $observations->obs ?? null,
                 'showValues'            => true,
+                'deliveryBranch'        => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
             ];
 
             $viewName = ($printFormat === 1)
