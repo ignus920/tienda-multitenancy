@@ -120,14 +120,14 @@
     </tbody>
     <tfoot>
         <!-- Fila de Totales (Primero) -->
-        <tr style="font-weight: bold; background-color: #e2e2e2;">
-            <td style="border: 1px solid #000000; text-align: center;">TOTALES</td>
-            <td style="border: 1px solid #000000;"></td>
-            <td style="border: 1px solid #000000;"></td>
-            <td style="border: 1px solid #000000;"></td>
-            <td style="border: 1px solid #000000;"></td>
-            <td style="border: 1px solid #000000;"></td>
-            <td style="border: 1px solid #000000;"></td>
+        <tr style="font-weight: bold; background-color: #f2f2f2;">
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: center;">TOTALES</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
             
             <!-- Totales de cada Método de Pago -->
             @foreach($methodPayments as $method)
@@ -153,7 +153,7 @@
                         $totalMethod += $invoicePayments->where('methodPaymentId', $method->id)->sum('value');
                     }
                 @endphp
-                <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalMethod, 0, ',', '.') }}</td>
+                <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalMethod, 0, ',', '.') }}</td>
             @endforeach
 
             <!-- Totales de Subtotal, Iva, Rtefte, Rteica, Total a Pagar, Total Pagado -->
@@ -193,13 +193,13 @@
                 }
             @endphp
 
-            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalSubtotal, 0, ',', '.') }}</td>
-            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalIva, 0, ',', '.') }}</td>
-            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalRtefte, 0, ',', '.') }}</td>
-            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalRteica, 0, ',', '.') }}</td>
-            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalPagarSum, 0, ',', '.') }}</td>
-            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalPagadoSum, 0, ',', '.') }}</td>
-            <td style="border: 1px solid #000000;"></td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalSubtotal, 0, ',', '.') }}</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalIva, 0, ',', '.') }}</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalRtefte, 0, ',', '.') }}</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalRteica, 0, ',', '.') }}</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalPagarSum, 0, ',', '.') }}</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2; text-align: right;">${{ number_format($totalPagadoSum, 0, ',', '.') }}</td>
+            <td style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;"></td>
         </tr>
 
         <!-- Cabecera repetida en el Footer (Segundo) -->
