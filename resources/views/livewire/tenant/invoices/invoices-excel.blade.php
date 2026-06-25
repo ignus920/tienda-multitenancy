@@ -22,7 +22,7 @@
             <th style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;">Rteica</th>
             <th style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;">Total a pagar</th>
             <th style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;">Total pagado</th>
-            <th style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;">Obs Pedido</th>
+            <th style="font-weight: bold; border: 1px solid #000000; background-color: #f2f2f2;">Obs Facturación</th>
         </tr>
     </thead>
     <tbody>
@@ -32,16 +32,56 @@
                 $counter++;
                 $invoicePayments = $invoice->payments ?? collect();
                 
+                // Retenciones
+                $rtefte = (float)($invoice->retentionFuente ?? 0);
+                $rteica = (float)($invoice->retentionIca ?? 0);
+
+                // Totales
+                $totalAPagar = (float)($invoice->total_con_impuestos - $rtefte - $rteica - ($invoice->retentionIva ?? 0));
+
+                // Si no hay pagos locales registrados en vnt_invoice_payments, buscar el método de pago original en la remisión
+                $remissionId = DB::connection('tenant')->table('vnt_invoicesXsales')->where('invoiceId', $invoice->id)->value('remissionId');
+                if ($invoicePayments->isEmpty()) {
+                    if ($remissionId) {
+                        $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
+                        if ($remission && $remission->methodPaymentId) {
+                            $invoicePayments = collect([
+                                (object)[
+                                    'methodPaymentId' => $remission->methodPaymentId,
+                                    'value' => $totalAPagar
+                                ]
+                            ]);
+                        }
+                    }
+                }
+
+                // Obtener observación de facturación de vnt_observations
+                $obsFacturacion = '';
+                if ($remissionId) {
+                    $obsFacturacion = DB::connection('tenant')->table('vnt_observations')
+                        ->where('reference_id', $remissionId)
+                        ->where('reference_type', 'remission')
+                        ->where('observation_type', 'invoice_observation')
+                        ->value('observation') ?? '';
+                }
+                if (empty($obsFacturacion) && $invoice->quoteId) {
+                    $obsFacturacion = DB::connection('tenant')->table('vnt_observations')
+                        ->where('reference_id', $invoice->quoteId)
+                        ->where('reference_type', 'quote')
+                        ->where('observation_type', 'invoice_observation')
+                        ->value('observation') ?? '';
+                }
+
                 // Obtener primer pago para la fecha de recaudo
                 $firstPayment = $invoicePayments->filter(function($p) {
-                    if (!$p->methodPayment) return true;
-                    $name = strtolower($p->methodPayment->name);
+                    if (!isset($p->methodPayment) && !isset($p->methodPaymentId)) return true;
+                    $name = isset($p->methodPayment) ? strtolower($p->methodPayment->name) : '';
                     return !str_contains($name, 'retencion') && !str_contains($name, 'rte') && !str_contains($name, 'ret.');
                 })->first();
 
                 $fechaRecaudo = '';
                 if ($firstPayment) {
-                    $fechaRecaudo = $firstPayment->created_at ? \Carbon\Carbon::parse($firstPayment->created_at)->format('d/m/Y') : '';
+                    $fechaRecaudo = isset($firstPayment->created_at) ? \Carbon\Carbon::parse($firstPayment->created_at)->format('d/m/Y') : ($invoice->updated_at ? $invoice->updated_at->format('d/m/Y') : '');
                 } elseif ($invoice->status_payment === 'PAGADO') {
                     $fechaRecaudo = $invoice->updated_at ? $invoice->updated_at->format('d/m/Y') : '';
                 }
@@ -50,12 +90,6 @@
                 $subtotal = (float)$invoice->total_sin_impuestos;
                 $iva = (float)($invoice->total_con_impuestos - $invoice->total_sin_impuestos);
 
-                // Retenciones
-                $rtefte = (float)($invoice->retentionFuente ?? 0);
-                $rteica = (float)($invoice->retentionIca ?? 0);
-
-                // Totales
-                $totalAPagar = (float)($invoice->total_con_impuestos - $rtefte - $rteica - ($invoice->retentionIva ?? 0));
                 $totalPagado = (float)$invoicePayments->sum('value');
             @endphp
             <tr>
@@ -80,7 +114,7 @@
                 <td style="border: 1px solid #d3d3d3; text-align: right;">${{ number_format($rteica, 0, ',', '.') }}</td>
                 <td style="border: 1px solid #d3d3d3; text-align: right;">${{ number_format($totalAPagar, 0, ',', '.') }}</td>
                 <td style="border: 1px solid #d3d3d3; text-align: right;">${{ number_format($totalPagado, 0, ',', '.') }}</td>
-                <td style="border: 1px solid #d3d3d3;">{{ $invoice->quote?->observations ?? '' }}</td>
+                <td style="border: 1px solid #d3d3d3;">{{ $obsFacturacion }}</td>
             </tr>
         @endforeach
     </tbody>
