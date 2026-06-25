@@ -119,27 +119,7 @@
         @endforeach
     </tbody>
     <tfoot>
-        <!-- Cabecera repetida en el Footer -->
-        <tr style="font-weight: bold; background-color: #f2f2f2;">
-            <th style="border: 1px solid #000000;">#</th>
-            <th style="border: 1px solid #000000;">Cliente</th>
-            <th style="border: 1px solid #000000;">Cotizacion</th>
-            <th style="border: 1px solid #000000;">OP</th>
-            <th style="border: 1px solid #000000;"># factura</th>
-            <th style="border: 1px solid #000000;">Fecha factura</th>
-            <th style="border: 1px solid #000000;">Recaudo</th>
-            @foreach($methodPayments as $method)
-                <th style="border: 1px solid #000000;">{{ strtoupper($method->name) }}</th>
-            @endforeach
-            <th style="border: 1px solid #000000;">Subtotal</th>
-            <th style="border: 1px solid #000000;">Iva</th>
-            <th style="border: 1px solid #000000;">Rtefte</th>
-            <th style="border: 1px solid #000000;">Rteica</th>
-            <th style="border: 1px solid #000000;">Total a pagar</th>
-            <th style="border: 1px solid #000000;">Total pagado</th>
-            <th style="border: 1px solid #000000;">Obs Facturación</th>
-        </tr>
-        <!-- Fila de Totales -->
+        <!-- Fila de Totales (Primero) -->
         <tr style="font-weight: bold; background-color: #e2e2e2;">
             <td style="border: 1px solid #000000; text-align: center;">TOTALES</td>
             <td style="border: 1px solid #000000;"></td>
@@ -220,6 +200,27 @@
             <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalPagarSum, 0, ',', '.') }}</td>
             <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalPagadoSum, 0, ',', '.') }}</td>
             <td style="border: 1px solid #000000;"></td>
+        </tr>
+
+        <!-- Cabecera repetida en el Footer (Segundo) -->
+        <tr style="font-weight: bold; background-color: #f2f2f2;">
+            <th style="border: 1px solid #000000;">#</th>
+            <th style="border: 1px solid #000000;">Cliente</th>
+            <th style="border: 1px solid #000000;">Cotizacion</th>
+            <th style="border: 1px solid #000000;">OP</th>
+            <th style="border: 1px solid #000000;"># factura</th>
+            <th style="border: 1px solid #000000;">Fecha factura</th>
+            <th style="border: 1px solid #000000;">Recaudo</th>
+            @foreach($methodPayments as $method)
+                <th style="border: 1px solid #000000;">{{ strtoupper($method->name) }}</th>
+            @endforeach
+            <th style="border: 1px solid #000000;">Subtotal</th>
+            <th style="border: 1px solid #000000;">Iva</th>
+            <th style="border: 1px solid #000000;">Rtefte</th>
+            <th style="border: 1px solid #000000;">Rteica</th>
+            <th style="border: 1px solid #000000;">Total a pagar</th>
+            <th style="border: 1px solid #000000;">Total pagado</th>
+            <th style="border: 1px solid #000000;">Obs Facturación</th>
         </tr>
     </tfoot>
 </table>
