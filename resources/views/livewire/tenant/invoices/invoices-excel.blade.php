@@ -118,4 +118,108 @@
             </tr>
         @endforeach
     </tbody>
+    <tfoot>
+        <!-- Cabecera repetida en el Footer -->
+        <tr style="font-weight: bold; background-color: #f2f2f2;">
+            <th style="border: 1px solid #000000;">#</th>
+            <th style="border: 1px solid #000000;">Cliente</th>
+            <th style="border: 1px solid #000000;">Cotizacion</th>
+            <th style="border: 1px solid #000000;">OP</th>
+            <th style="border: 1px solid #000000;"># factura</th>
+            <th style="border: 1px solid #000000;">Fecha factura</th>
+            <th style="border: 1px solid #000000;">Recaudo</th>
+            @foreach($methodPayments as $method)
+                <th style="border: 1px solid #000000;">{{ strtoupper($method->name) }}</th>
+            @endforeach
+            <th style="border: 1px solid #000000;">Subtotal</th>
+            <th style="border: 1px solid #000000;">Iva</th>
+            <th style="border: 1px solid #000000;">Rtefte</th>
+            <th style="border: 1px solid #000000;">Rteica</th>
+            <th style="border: 1px solid #000000;">Total a pagar</th>
+            <th style="border: 1px solid #000000;">Total pagado</th>
+            <th style="border: 1px solid #000000;">Obs Facturación</th>
+        </tr>
+        <!-- Fila de Totales -->
+        <tr style="font-weight: bold; background-color: #e2e2e2;">
+            <td style="border: 1px solid #000000; text-align: center;">TOTALES</td>
+            <td style="border: 1px solid #000000;"></td>
+            <td style="border: 1px solid #000000;"></td>
+            <td style="border: 1px solid #000000;"></td>
+            <td style="border: 1px solid #000000;"></td>
+            <td style="border: 1px solid #000000;"></td>
+            <td style="border: 1px solid #000000;"></td>
+            
+            <!-- Totales de cada Método de Pago -->
+            @foreach($methodPayments as $method)
+                @php
+                    $totalMethod = 0;
+                    foreach($invoices as $invoice) {
+                        $rtefte = (float)($invoice->retentionFuente ?? 0);
+                        $rteica = (float)($invoice->retentionIca ?? 0);
+                        $totalAPagar = (float)($invoice->total_con_impuestos - $rtefte - $rteica - ($invoice->retentionIva ?? 0));
+                        $invoicePayments = $invoice->payments ?? collect();
+                        $remissionId = DB::connection('tenant')->table('vnt_invoicesXsales')->where('invoiceId', $invoice->id)->value('remissionId');
+                        if ($invoicePayments->isEmpty() && $remissionId) {
+                            $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
+                            if ($remission && $remission->methodPaymentId) {
+                                $invoicePayments = collect([
+                                    (object)[
+                                        'methodPaymentId' => $remission->methodPaymentId,
+                                        'value' => $totalAPagar
+                                    ]
+                                ]);
+                            }
+                        }
+                        $totalMethod += $invoicePayments->where('methodPaymentId', $method->id)->sum('value');
+                    }
+                @endphp
+                <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalMethod, 0, ',', '.') }}</td>
+            @endforeach
+
+            <!-- Totales de Subtotal, Iva, Rtefte, Rteica, Total a Pagar, Total Pagado -->
+            @php
+                $totalSubtotal = 0;
+                $totalIva = 0;
+                $totalRtefte = 0;
+                $totalRteica = 0;
+                $totalPagarSum = 0;
+                $totalPagadoSum = 0;
+
+                foreach($invoices as $invoice) {
+                    $rtefte = (float)($invoice->retentionFuente ?? 0);
+                    $rteica = (float)($invoice->retentionIca ?? 0);
+                    $totalSubtotal += (float)$invoice->total_sin_impuestos;
+                    $totalIva += (float)($invoice->total_con_impuestos - $invoice->total_sin_impuestos);
+                    $totalRtefte += $rtefte;
+                    $totalRteica += $rteica;
+                    
+                    $totalAPagar = (float)($invoice->total_con_impuestos - $rtefte - $rteica - ($invoice->retentionIva ?? 0));
+                    $totalPagarSum += $totalAPagar;
+                    
+                    $invoicePayments = $invoice->payments ?? collect();
+                    $remissionId = DB::connection('tenant')->table('vnt_invoicesXsales')->where('invoiceId', $invoice->id)->value('remissionId');
+                    if ($invoicePayments->isEmpty() && $remissionId) {
+                        $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
+                        if ($remission && $remission->methodPaymentId) {
+                            $invoicePayments = collect([
+                                (object)[
+                                    'methodPaymentId' => $remission->methodPaymentId,
+                                    'value' => $totalAPagar
+                                ]
+                            ]);
+                        }
+                    }
+                    $totalPagadoSum += (float)$invoicePayments->sum('value');
+                }
+            @endphp
+
+            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalSubtotal, 0, ',', '.') }}</td>
+            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalIva, 0, ',', '.') }}</td>
+            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalRtefte, 0, ',', '.') }}</td>
+            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalRteica, 0, ',', '.') }}</td>
+            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalPagarSum, 0, ',', '.') }}</td>
+            <td style="border: 1px solid #000000; text-align: right;">${{ number_format($totalPagadoSum, 0, ',', '.') }}</td>
+            <td style="border: 1px solid #000000;"></td>
+        </tr>
+    </tfoot>
 </table>
