@@ -55,9 +55,14 @@
                     }
                 }
 
-                // Obtener observación de facturación de vnt_observations
-                $obsFacturacion = '';
-                if ($remissionId) {
+                // Obtener observación de facturación de vnt_observations (buscando primero por la Factura, luego Remisión, luego Cotización)
+                $obsFacturacion = DB::connection('tenant')->table('vnt_observations')
+                    ->where('reference_id', $invoice->id)
+                    ->where('reference_type', 'invoice')
+                    ->where('observation_type', 'invoice_observation')
+                    ->value('observation') ?? '';
+
+                if (empty($obsFacturacion) && $remissionId) {
                     $obsFacturacion = DB::connection('tenant')->table('vnt_observations')
                         ->where('reference_id', $remissionId)
                         ->where('reference_type', 'remission')
