@@ -39,6 +39,8 @@ class ProductQuoter extends Component
     use WithPagination, HasDynamicButtons, WithFileUploads;
 
     public $proofPaymentFile;
+    public $additionalPayments = [];
+    public $additionalPaymentFiles = [];
     public $search = '';
     public $perPage = 12;
     public $sortField = 'id';
@@ -2339,8 +2341,127 @@ class ProductQuoter extends Component
             return;
         }
 
+        $totalConFlete = floatval($this->totalAmount);
+        if ($this->editingQuoteId) {
+            $quote = VntQuote::find($this->editingQuoteId);
+            if ($quote) {
+                $totalConFlete += floatval($quote->flete ?? 0);
+            }
+        }
+
+        $this->additionalPayments = [
+            [
+                'method_payment_id' => '',
+                'value' => $totalConFlete,
+                'observation' => ''
+            ]
+        ];
+        $this->additionalPaymentFiles = [];
+
         // Mostrar modal de selección de tipo de entrega
         $this->showDeliveryModal = true;
+    }
+
+    public function addAdditionalPayment()
+    {
+        $this->additionalPayments[] = [
+            'method_payment_id' => '',
+            'value' => 0,
+            'observation' => ''
+        ];
+    }
+
+    public function removeAdditionalPayment($index)
+    {
+        if (isset($this->additionalPayments[$index])) {
+            unset($this->additionalPayments[$index]);
+            $this->additionalPayments = array_values($this->additionalPayments);
+        }
+        if (isset($this->additionalPaymentFiles[$index])) {
+            unset($this->additionalPaymentFiles[$index]);
+            $this->additionalPaymentFiles = array_values($this->additionalPaymentFiles);
+        }
+
+        // Recalcular la fila principal
+        $totalConFlete = floatval($this->totalAmount);
+        if ($this->editingQuoteId) {
+            $quote = VntQuote::find($this->editingQuoteId);
+            if ($quote) {
+                $totalConFlete += floatval($quote->flete ?? 0);
+            }
+        }
+        
+        $sumOthers = 0;
+        foreach ($this->additionalPayments as $k => $payment) {
+            if ($k > 0) {
+                $sumOthers += floatval($payment['value'] ?? 0);
+            }
+        }
+        if (isset($this->additionalPayments[0])) {
+            $this->additionalPayments[0]['value'] = max(0, $totalConFlete - $sumOthers);
+        }
+    }
+
+    public function updatedAdditionalPayments($value, $key)
+    {
+        if (str_contains($key, '.value')) {
+            $parts = explode('.', $key);
+            $index = intval($parts[0]);
+            
+            $totalConFlete = floatval($this->totalAmount);
+            if ($this->editingQuoteId) {
+                $quote = VntQuote::find($this->editingQuoteId);
+                if ($quote) {
+                    $totalConFlete += floatval($quote->flete ?? 0);
+                }
+            }
+
+            if ($index > 0) {
+                // Sumar las demás filas secundarias (de la 1 en adelante, excepto la fila actual que se editó)
+                $sumOthers = 0;
+                foreach ($this->additionalPayments as $k => $payment) {
+                    if ($k > 0 && $k != $index) {
+                        $sumOthers += floatval($payment['value'] ?? 0);
+                    }
+                }
+                
+                $currentInputVal = floatval($value);
+                
+                // Si excede el total
+                if ($sumOthers + $currentInputVal > $totalConFlete) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => 'La suma de las formas de pago no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
+                    ]);
+                    // Borrar el valor ingresado en la fila actual
+                    $this->additionalPayments[$index]['value'] = 0;
+                    $currentInputVal = 0;
+                }
+                
+                // Ajustar la fila principal (índice 0)
+                $newSumOthers = $sumOthers + $currentInputVal;
+                $this->additionalPayments[0]['value'] = max(0, $totalConFlete - $newSumOthers);
+            } else {
+                // Si edita la fila principal (índice 0)
+                $sumOthers = 0;
+                foreach ($this->additionalPayments as $k => $payment) {
+                    if ($k > 0) {
+                        $sumOthers += floatval($payment['value'] ?? 0);
+                    }
+                }
+                
+                $currentInputVal = floatval($value);
+                
+                if ($currentInputVal + $sumOthers > $totalConFlete) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => 'La suma de las formas de pago no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
+                    ]);
+                    // Resetear al máximo posible
+                    $this->additionalPayments[0]['value'] = max(0, $totalConFlete - $sumOthers);
+                }
+            }
+        }
     }
 
     /**
@@ -2442,13 +2563,7 @@ class ProductQuoter extends Component
             return;
         }
 
-        if (!$this->selectedMethodPayment) {
-            $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'Debes seleccionar un método de pago'
-            ]);
-            return;
-        }
+
 
         // Buscar en el array de tipos
         $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $this->selectedDeliveryType);
@@ -2469,27 +2584,59 @@ class ProductQuoter extends Component
             ]);
             return;
         }
-
-        // Validar soporte de pago si existe
-        if ($this->proofPaymentFile) {
-            try {
-                $this->validate([
-                    'proofPaymentFile' => [
-                        'file',
-                        'max:10240', // 10MB
-                        'mimes:jpg,jpeg,png,webp,pdf,gif,doc,docx'
-                    ]
-                ], [
-                    'proofPaymentFile.mimes' => 'El soporte de pago debe ser una imagen (jpg, jpeg, png, webp, gif), PDF o documento Word. Archivos de Excel no están permitidos.',
-                    'proofPaymentFile.max' => 'El soporte de pago no debe pesar más de 10 MB.',
-                ]);
-            } catch (\Illuminate\Validation\ValidationException $e) {
+        // Validar formas de pago
+        $sumAdditional = 0;
+        foreach ($this->additionalPayments as $index => $payment) {
+            if (empty($payment['method_payment_id'])) {
                 $this->dispatch('show-toast', [
                     'type' => 'error',
-                    'message' => $e->validator->errors()->first('proofPaymentFile')
+                    'message' => 'Debes seleccionar el método de pago en todas las formas de pago ingresadas.'
                 ]);
                 return;
             }
+            if (floatval($payment['value'] ?? 0) <= 0) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'El valor de todas las formas de pago ingresadas debe ser mayor a 0.'
+                ]);
+                return;
+            }
+            $sumAdditional += floatval($payment['value']);
+
+            // Validar archivo de soporte para este pago si fue cargado
+            if (isset($this->additionalPaymentFiles[$index])) {
+                try {
+                    $this->validate([
+                        "additionalPaymentFiles.{$index}" => 'file|max:10240|mimes:jpg,jpeg,png,webp,pdf,gif,doc,docx'
+                    ], [
+                        "additionalPaymentFiles.{$index}.mimes" => 'El soporte de pago debe ser una imagen, PDF o documento Word.',
+                        "additionalPaymentFiles.{$index}.max" => 'El soporte de pago no debe pesar más de 10 MB.'
+                    ]);
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $e->validator->errors()->first("additionalPaymentFiles.{$index}")
+                    ]);
+                    return;
+                }
+            }
+        }
+
+        // Validar que la suma no supere el total
+        $totalConFlete = floatval($this->totalAmount);
+        if ($this->editingQuoteId) {
+            $quote = VntQuote::find($this->editingQuoteId);
+            if ($quote) {
+                $totalConFlete += floatval($quote->flete ?? 0);
+            }
+        }
+
+        if ($sumAdditional > $totalConFlete) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'La suma de los pagos adicionales no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
+            ]);
+            return;
         }
 
         // Cerrar modal y crear remisión
@@ -2551,12 +2698,29 @@ class ProductQuoter extends Component
                 $observationsReturn = $this->otherDeliveryDetails;
             }
 
-            // Subir soporte de pago si existe
-            $proofPaymentPath = null;
-            if ($this->proofPaymentFile) {
-                $tenantId = session('tenant_id', 'default');
-                $proofPaymentPath = $this->proofPaymentFile->store("remissions/proofs/{$tenantId}", 'public');
+            // Construir el JSON de pagos detallados con archivos de soporte y observaciones
+            $paymentsArray = [];
+            $tenantId = session('tenant_id', 'default');
+            
+            foreach ($this->additionalPayments as $index => $payment) {
+                $proofPaymentPath = null;
+                if (isset($this->additionalPaymentFiles[$index])) {
+                    $proofPaymentPath = $this->additionalPaymentFiles[$index]->store("remissions/proofs/{$tenantId}", 'public');
+                }
+                
+                $paymentsArray[] = [
+                    'method_payment_id' => $payment['method_payment_id'],
+                    'value' => floatval($payment['value']),
+                    'proof_payment' => $proofPaymentPath,
+                    'observation' => $payment['observation'] ?? ''
+                ];
             }
+
+            // Para mantener compatibilidad con registros históricos, usamos el primer pago para rellenar
+            // las columnas físicas clásicas de la remisión
+            $firstPayment = $paymentsArray[0] ?? null;
+            $fallbackMethodPaymentId = $firstPayment ? $firstPayment['method_payment_id'] : null;
+            $fallbackProofPaymentPath = $firstPayment ? $firstPayment['proof_payment'] : null;
 
             // Crear Remisión con tipo de entrega y método de pago
             $remission = InvRemissions::create([
@@ -2565,7 +2729,7 @@ class ProductQuoter extends Component
                 'quoteId' => $quote->id,
                 'warehouseId' => $quote->warehouseId,
                 'deliveryTypeId' => $this->selectedDeliveryType,
-                'methodPaymentId' => $this->selectedMethodPayment,
+                'methodPaymentId' => $fallbackMethodPaymentId,
                 'userId' => auth()->id(),
                 'deliveryDate' => now()->format('Y-m-d'),
                 'expiration' => 0,
@@ -2574,7 +2738,8 @@ class ProductQuoter extends Component
                 'obs' => $this->orderDetails,
                 'observations_delivery' => $this->deliveryDetails,
                 'flete' => $quote->flete,
-                'proof_payment' => $proofPaymentPath
+                'proof_payment' => $fallbackProofPaymentPath,
+                'payment_details' => $paymentsArray
             ]);
 
             // Guardar observaciones de forma de pago

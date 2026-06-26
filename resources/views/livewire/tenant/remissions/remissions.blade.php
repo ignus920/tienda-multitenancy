@@ -309,18 +309,42 @@
                                     </div>
 
                                     {{-- Método de Pago --}}
-                                    <div class="flex items-center">
-                                        <svg class="w-3 h-3 text-green-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
-                                        </svg>
-                                        @if($remission->methodPayment)
-                                            <span class="text-xs font-medium text-green-700 dark:text-green-300">
-                                                {{ $remission->methodPayment->name }}
-                                            </span>
-                                        @else
-                                            <span class="text-gray-400 dark:text-gray-500 text-xs">Sin método</span>
-                                        @endif
-                                    </div>
+                                    @php
+                                        $details = $remission->payment_details;
+                                        if (is_string($details)) {
+                                            $details = json_decode($details, true);
+                                        }
+                                    @endphp
+                                    @if(is_array($details) && count($details) > 0)
+                                        <div class="flex flex-col gap-0.5 mt-1">
+                                            @foreach($details as $pDetail)
+                                                @php
+                                                    $methodName = $allMethodPayments[$pDetail['method_payment_id'] ?? '']['name'] ?? ($remission->methodPayment->name ?? 'PAGO');
+                                                @endphp
+                                                <div class="flex items-center">
+                                                    <svg class="w-3 h-3 text-green-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    <span class="text-xs font-semibold text-green-700 dark:text-green-300">
+                                                        {{ $methodName }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="flex items-center">
+                                            <svg class="w-3 h-3 text-green-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                            </svg>
+                                            @if($remission->methodPayment)
+                                                <span class="text-xs font-medium text-green-700 dark:text-green-300">
+                                                    {{ $remission->methodPayment->name }}
+                                                </span>
+                                            @else
+                                                <span class="text-gray-400 dark:text-gray-500 text-xs">Sin método</span>
+                                            @endif
+                                        </div>
+                                    @endif
 
                                     {{-- Observaciones si es tipo "Otro" --}}
                                     @if($remission->deliveryTypeModel && strtolower($remission->deliveryTypeModel->name) === 'otro' && !empty($remission->observations_return))

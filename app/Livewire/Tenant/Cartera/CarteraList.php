@@ -22,6 +22,7 @@ class CarteraList extends Component
     public $proofPaymentFile;
     public $selectedMethodPaymentId;
     public $methodPayments = [];
+    public $allMethodPayments = [];
 
     // Filtros
     public $fromDate;
@@ -285,6 +286,10 @@ class CarteraList extends Component
         ]);
     }
 
+    // Propiedades adicionales para múltiples pagos en cartera
+    public $paymentRows = [];
+    public $paymentFiles = [];
+
     /**
      * Abre el modal de carga de soporte de pago para una remisión.
      */
@@ -293,9 +298,10 @@ class CarteraList extends Component
         $this->ensureTenantConnection();
         $this->selectedRemissionId = $remissionId;
         $this->proofPaymentFile = null;
+        $this->paymentRows = [];
+        $this->paymentFiles = [];
         
         $remission = InvRemissions::findOrFail($remissionId);
-        $this->selectedMethodPaymentId = $remission->methodPaymentId;
         
         // Cargar métodos de pago activos del tenant
         $this->methodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
@@ -303,8 +309,58 @@ class CarteraList extends Component
             ->orderBy('name', 'asc')
             ->get()
             ->toArray();
+
+        $totalRemission = $remission->sub_total_rem + ($remission->flete ?? 0);
+
+        $details = $remission->payment_details;
+        if (is_string($details)) {
+            $details = json_decode($details, true);
+        }
+
+        if (!empty($details) && is_array($details)) {
+            $this->paymentRows = $details;
+        } else {
+            // Inicializar con la información clásica (retrocompatibilidad)
+            $this->paymentRows = [
+                [
+                    'method_payment_id' => $remission->methodPaymentId ?? '',
+                    'value' => $totalRemission,
+                    'proof_payment' => $remission->proof_payment ?? null
+                ]
+            ];
+        }
             
         $this->showUploadModal = true;
+    }
+
+    public function addPaymentRow()
+    {
+        $this->paymentRows[] = [
+            'method_payment_id' => '',
+            'value' => 0,
+            'proof_payment' => null
+        ];
+    }
+
+    public function removePaymentRow($index)
+    {
+        if (isset($this->paymentRows[$index])) {
+            unset($this->paymentRows[$index]);
+            $this->paymentRows = array_values($this->paymentRows);
+        }
+        if (isset($this->paymentFiles[$index])) {
+            unset($this->paymentFiles[$index]);
+            $this->paymentFiles = array_values($this->paymentFiles);
+        }
+    }
+
+    public function getPaymentRowsTotal()
+    {
+        $sum = 0;
+        foreach ($this->paymentRows as $row) {
+            $sum += floatval($row['value'] ?? 0);
+        }
+        return $sum;
     }
 
     /**
@@ -319,36 +375,93 @@ class CarteraList extends Component
         }
 
         $remission = InvRemissions::findOrFail($this->selectedRemissionId);
+        $totalRemission = floatval($remission->sub_total_rem + ($remission->flete ?? 0));
 
-        // Si ya tiene soporte cargado, subir archivo es opcional, si no, es requerido.
-        $rules = [
-            'selectedMethodPaymentId' => 'required|exists:tenant.vnt_method_payments,id',
-        ];
+        // Validaciones de filas
+        foreach ($this->paymentRows as $index => $row) {
+            if (empty($row['method_payment_id'])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Debes seleccionar el método de pago en todos los pagos.'
+                ]);
+                return;
+            }
+            if (floatval($row['value'] ?? 0) <= 0) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'El valor de todos los pagos debe ser mayor a 0.'
+                ]);
+                return;
+            }
 
-        if (!$remission->proof_payment || $this->proofPaymentFile) {
-            $rules['proofPaymentFile'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:5120';
+            // Si no tiene archivo previo y no se ha subido uno nuevo, es requerido
+            $hasPrevFile = !empty($row['proof_payment']);
+            $hasNewFile = isset($this->paymentFiles[$index]);
+            
+            if (!$hasPrevFile && !$hasNewFile) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'El soporte de pago es obligatorio para todos los registros.'
+                ]);
+                return;
+            }
+
+            if ($hasNewFile) {
+                try {
+                    $this->validate([
+                        "paymentFiles.{$index}" => 'file|mimes:jpg,jpeg,png,pdf|max:5120'
+                    ], [
+                        "paymentFiles.{$index}.file" => 'El archivo no es válido.',
+                        "paymentFiles.{$index}.mimes" => 'El soporte debe ser un archivo de tipo JPG, JPEG, PNG o PDF.',
+                        "paymentFiles.{$index}.max" => 'El archivo no debe pesar más de 5MB.'
+                    ]);
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $e->validator->errors()->first("paymentFiles.{$index}")
+                    ]);
+                    return;
+                }
+            }
         }
 
-        $this->validate($rules, [
-            'proofPaymentFile.required' => 'El soporte de pago es obligatorio.',
-            'proofPaymentFile.file' => 'El archivo no es válido.',
-            'proofPaymentFile.mimes' => 'El soporte debe ser un archivo de tipo JPG, JPEG, PNG o PDF.',
-            'proofPaymentFile.max' => 'El archivo no debe pesar más de 5MB.',
-            'selectedMethodPaymentId.required' => 'El método de pago es obligatorio.',
-            'selectedMethodPaymentId.exists' => 'El método de pago seleccionado no es válido.',
-        ]);
+        // Validar que la suma total no exceda la remisión
+        $totalPayments = $this->getPaymentRowsTotal();
+        if ($totalPayments > $totalRemission) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'La suma de los pagos no puede superar el total del pedido ($' . number_format($totalRemission, 0) . ').'
+            ]);
+            return;
+        }
 
         try {
             DB::connection('tenant')->beginTransaction();
 
+            $paymentsArray = [];
+            foreach ($this->paymentRows as $index => $row) {
+                $filePath = $row['proof_payment'] ?? null;
+                
+                if (isset($this->paymentFiles[$index])) {
+                    $filePath = $this->paymentFiles[$index]->store('proof_payments', 'public');
+                }
+
+                $paymentsArray[] = [
+                    'method_payment_id' => $row['method_payment_id'],
+                    'value' => floatval($row['value']),
+                    'proof_payment' => $filePath
+                ];
+            }
+
+            // Para mantener compatibilidad, actualizamos la remisión clásica con el primer pago
+            $firstPayment = $paymentsArray[0] ?? null;
             $updateData = [
-                'methodPaymentId' => $this->selectedMethodPaymentId
+                'payment_details' => $paymentsArray
             ];
 
-            if ($this->proofPaymentFile) {
-                // Almacenar archivo físicamente en disco public (storage/app/public/proof_payments)
-                $path = $this->proofPaymentFile->store('proof_payments', 'public');
-                $updateData['proof_payment'] = $path;
+            if ($firstPayment) {
+                $updateData['methodPaymentId'] = $firstPayment['method_payment_id'];
+                $updateData['proof_payment'] = $firstPayment['proof_payment'];
             }
 
             // Actualizar en la base de datos del tenant
@@ -358,23 +471,25 @@ class CarteraList extends Component
 
             $this->showUploadModal = false;
             $this->proofPaymentFile = null;
+            $this->paymentRows = [];
+            $this->paymentFiles = [];
             $this->selectedRemissionId = null;
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Soporte y método de pago actualizados exitosamente.'
+                'message' => 'Pagos y soportes actualizados exitosamente.'
             ]);
 
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
-            Log::error('❌ Error al guardar soporte de pago', [
+            Log::error('❌ Error al guardar soportes de pago en cartera', [
                 'error' => $e->getMessage(),
                 'remissionId' => $this->selectedRemissionId
             ]);
 
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'Error al guardar el soporte: ' . $e->getMessage()
+                'message' => 'Error al guardar los soportes: ' . $e->getMessage()
             ]);
         }
     }
@@ -502,6 +617,15 @@ class CarteraList extends Component
     public function render()
     {
         $this->ensureTenantConnection();
+
+        try {
+            $this->allMethodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
+                ->get()
+                ->keyBy('id')
+                ->toArray();
+        } catch (\Exception $e) {
+            $this->allMethodPayments = [];
+        }
 
         $query = InvRemissions::with(['authorizations', 'quote', 'invoice.payments.methodPayment', 'details', 'methodPayment', 'deliveryTypeModel']);
 

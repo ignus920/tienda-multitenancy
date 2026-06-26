@@ -44,13 +44,28 @@
                 if ($invoicePayments->isEmpty()) {
                     if ($remissionId) {
                         $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
-                        if ($remission && $remission->methodPaymentId) {
-                            $invoicePayments = collect([
-                                (object)[
-                                    'methodPaymentId' => $remission->methodPaymentId,
-                                    'value' => $totalAPagar
-                                ]
-                            ]);
+                        if ($remission) {
+                            $paymentDetails = $remission->payment_details;
+                            if (is_string($paymentDetails)) {
+                                $paymentDetails = json_decode($paymentDetails, true);
+                            }
+                            if (is_array($paymentDetails) && count($paymentDetails) > 0) {
+                                $mappedPayments = [];
+                                foreach ($paymentDetails as $pDetail) {
+                                    $mappedPayments[] = (object)[
+                                        'methodPaymentId' => $pDetail['method_payment_id'],
+                                        'value' => (float)($pDetail['value'] ?? 0)
+                                    ];
+                                }
+                                $invoicePayments = collect($mappedPayments);
+                            } elseif ($remission->methodPaymentId) {
+                                $invoicePayments = collect([
+                                    (object)[
+                                        'methodPaymentId' => $remission->methodPaymentId,
+                                        'value' => $totalAPagar
+                                    ]
+                                ]);
+                            }
                         }
                     }
                 }
@@ -146,13 +161,28 @@
                         $remissionId = DB::connection('tenant')->table('vnt_invoicesXsales')->where('invoiceId', $invoice->id)->value('remissionId');
                         if ($invoicePayments->isEmpty() && $remissionId) {
                             $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
-                            if ($remission && $remission->methodPaymentId) {
-                                $invoicePayments = collect([
-                                    (object)[
-                                        'methodPaymentId' => $remission->methodPaymentId,
-                                        'value' => $totalAPagar
-                                    ]
-                                ]);
+                            if ($remission) {
+                                $paymentDetails = $remission->payment_details;
+                                if (is_string($paymentDetails)) {
+                                    $paymentDetails = json_decode($paymentDetails, true);
+                                }
+                                if (is_array($paymentDetails) && count($paymentDetails) > 0) {
+                                    $mappedPayments = [];
+                                    foreach ($paymentDetails as $pDetail) {
+                                        $mappedPayments[] = (object)[
+                                            'methodPaymentId' => $pDetail['method_payment_id'],
+                                            'value' => (float)($pDetail['value'] ?? 0)
+                                        ];
+                                    }
+                                    $invoicePayments = collect($mappedPayments);
+                                } elseif ($remission->methodPaymentId) {
+                                    $invoicePayments = collect([
+                                        (object)[
+                                            'methodPaymentId' => $remission->methodPaymentId,
+                                            'value' => $totalAPagar
+                                        ]
+                                    ]);
+                                }
                             }
                         }
                         $totalMethod += $invoicePayments->where('methodPaymentId', $method->id)->sum('value');
@@ -184,16 +214,31 @@
                     $invoicePayments = $invoice->payments ?? collect();
                     $remissionId = DB::connection('tenant')->table('vnt_invoicesXsales')->where('invoiceId', $invoice->id)->value('remissionId');
                     if ($invoicePayments->isEmpty() && $remissionId) {
-                        $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
-                        if ($remission && $remission->methodPaymentId) {
-                            $invoicePayments = collect([
-                                (object)[
-                                    'methodPaymentId' => $remission->methodPaymentId,
-                                    'value' => $totalAPagar
-                                ]
-                            ]);
-                        }
-                    }
+                         $remission = DB::connection('tenant')->table('inv_remissions')->where('id', $remissionId)->first();
+                         if ($remission) {
+                             $paymentDetails = $remission->payment_details;
+                             if (is_string($paymentDetails)) {
+                                 $paymentDetails = json_decode($paymentDetails, true);
+                             }
+                             if (is_array($paymentDetails) && count($paymentDetails) > 0) {
+                                 $mappedPayments = [];
+                                 foreach ($paymentDetails as $pDetail) {
+                                     $mappedPayments[] = (object)[
+                                         'methodPaymentId' => $pDetail['method_payment_id'],
+                                         'value' => (float)($pDetail['value'] ?? 0)
+                                     ];
+                                 }
+                                 $invoicePayments = collect($mappedPayments);
+                             } elseif ($remission->methodPaymentId) {
+                                 $invoicePayments = collect([
+                                     (object)[
+                                         'methodPaymentId' => $remission->methodPaymentId,
+                                         'value' => $totalAPagar
+                                     ]
+                                 ]);
+                             }
+                         }
+                     }
                     $totalPagadoSum += (float)$invoicePayments->sum('value');
                 }
             @endphp

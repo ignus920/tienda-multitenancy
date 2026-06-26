@@ -106,6 +106,28 @@ class ObservationsModal extends Component
             $this->orderObservations = $remission?->obs ?? '';
             $this->deliveryObservations = $remission?->observations_delivery ?? '';
 
+            // Cargar observaciones específicas de cada forma de pago desde payment_details
+            $paymentDetails = $remission?->payment_details;
+            if (is_string($paymentDetails)) {
+                $paymentDetails = json_decode($paymentDetails, true);
+            }
+            if (is_array($paymentDetails) && count($paymentDetails) > 0) {
+                $paymentObsList = [];
+                $allMethods = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')->get()->keyBy('id');
+                foreach ($paymentDetails as $pDetail) {
+                    $methodName = $allMethods[$pDetail['method_payment_id'] ?? '']?->name ?? 'MÉTODO';
+                    $obsValue = trim($pDetail['observation'] ?? '');
+                    if ($obsValue !== '') {
+                        $paymentObsList[] = "[$methodName]: $obsValue";
+                    }
+                }
+                if (!empty($paymentObsList)) {
+                    $this->observationData['payment_obs'] = implode("\n", $paymentObsList);
+                } else {
+                    $this->observationData['payment_obs'] = 'N/A';
+                }
+            }
+
             // Cargar observación de facturación de la factura asociada si no se cargó ya de la remisión
             if (empty($this->observationData['invoice_observation'])) {
                 $invoice = $remission ? $remission->invoice : null;
