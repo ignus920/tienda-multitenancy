@@ -642,7 +642,7 @@ $header = 'Seleccionar productos';
                                         @endphp
 
                                         <td class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }}" style="position: sticky; left: 120px; z-index: 10;">
-                                            <div class="text-sm {{ $tableTextClass }} whitespace-normal break-words max-w-[280px]" title="{{ $product->display_name }}">
+                                            <div class="text-sm {{ $tableTextClass }} whitespace-normal break-words max-w-md" title="{{ $product->display_name }}">
                                                 @php $pickingLocation = $product->picking; @endphp
                                                 @if($pickingLocation && $pickingLocation !== 'N/A')
                                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300 mr-1.5 align-middle">
