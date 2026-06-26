@@ -53,11 +53,13 @@ class Dashboard extends Component
     protected function loadStats()
     {
         try {
-            // 1. Ventas Hoy: Suma de (cantidad * valor) de detalles de cotizaciones de hoy
+            // 1. Ventas Hoy: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN hoy
             $ventasHoy = VntDetailQuote::whereHas('cotizacion', function($query) {
-                $query->whereDate('created_at', now()->today());
+                $query->whereDate('created_at', now()->today())
+                      ->where('status', 'REMISIÓN');
             })->get()->sum(function($detalle) {
-                return $detalle->quantity * $detalle->value;
+                $valorBase = $detalle->value / (1 + ($detalle->tax ?? 0) / 100);
+                return $detalle->quantity * $valorBase;
             });
 
             // 2. Total Clientes: Conteo de empresas registradas (excluyendo eliminados por SoftDeletes)
@@ -66,12 +68,14 @@ class Dashboard extends Component
             // 3. Total Productos: Conteo de items activos
             $totalProductos = Items::active()->count();
 
-            // 4. Ventas del Mes: Suma de (cantidad * valor) de cotizaciones del mes actual
+            // 4. Ventas del Mes: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN en el mes actual
             $ventasMes = VntDetailQuote::whereHas('cotizacion', function($query) {
                 $query->whereMonth('created_at', now()->month)
-                      ->whereYear('created_at', now()->year);
+                      ->whereYear('created_at', now()->year)
+                      ->where('status', 'REMISIÓN');
             })->get()->sum(function($detalle) {
-                return $detalle->quantity * $detalle->value;
+                $valorBase = $detalle->value / (1 + ($detalle->tax ?? 0) / 100);
+                return $detalle->quantity * $valorBase;
             });
 
             $this->stats = [
