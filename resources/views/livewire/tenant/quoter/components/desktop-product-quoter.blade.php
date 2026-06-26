@@ -495,7 +495,6 @@ $header = 'Seleccionar productos';
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700 w-[120px] min-w-[120px] max-w-[120px]" style="position: sticky; left: 0px; z-index: 20;">Imagen</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-700" style="position: sticky; left: 120px; z-index: 20;">Nombre</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Código</th>
                                     @if($hideQuoter)
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Existencias</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tránsito</th>
@@ -641,19 +640,20 @@ $header = 'Seleccionar productos';
                                                 $tableTextClass = 'text-gray-900 dark:text-white font-medium';
                                             }
                                         @endphp
+
                                         <td class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }}" style="position: sticky; left: 120px; z-index: 10;">
-                                            <div class="text-sm {{ $tableTextClass }} truncate max-w-xs" title="{{ $product->display_name }}">
-                                                {{ $product->display_name }}
+                                            <div class="text-sm {{ $tableTextClass }} whitespace-normal break-words max-w-[280px]" title="{{ $product->display_name }}">
+                                                @php $pickingLocation = $product->picking; @endphp
+                                                @if($pickingLocation && $pickingLocation !== 'N/A')
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300 mr-1.5 align-middle">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                        {{ $pickingLocation }}
+                                                    </span>
+                                                @endif
+                                                <span class="text-gray-500 dark:text-gray-400 font-mono mr-1.5 align-middle">{{ $product->internal_code }}</span>
+                                                <span class="align-middle">{{ $product->display_name }}</span>
                                             </div>
-                                            @php $pickingLocation = $product->picking; @endphp
-                                            <div class="flex flex-wrap gap-1 mt-1">
-                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium
-                                                    {{ $pickingLocation && $pickingLocation !== 'N/A'
-                                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
-                                                        : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                                   {{ $pickingLocation ?? 'N/A' }}
-                                                </span>
+                                            <div class="flex flex-wrap gap-1 mt-1.5">
                                                 @foreach(explode(', ', $product->store_stock_details ?? '') as $storeDetail)
                                                     @php
                                                         $parts = explode(':', $storeDetail);
@@ -671,11 +671,6 @@ $header = 'Seleccionar productos';
                                                     @endif
                                                 @endforeach
                                             </div>
-                                        </td>
-
-                                        <!-- Código/SKU -->
-                                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $product->internal_code ?: 'N/A' }}
                                         </td>
 
                                         @if($hideQuoter)
