@@ -1313,10 +1313,22 @@ class Remissions extends Component
             ]);
         }
 
+        // Cargar todos los métodos de pago para traducir IDs a nombres
+        $allMethodPayments = [];
+        try {
+            $allMethodPayments = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
+                ->get()
+                ->keyBy('id')
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error cargando métodos de pago en render de remisiones: ' . $e->getMessage());
+        }
+
         Log::info('✅ Render completado - Todas las remisiones procesadas');
 
         return view('livewire.tenant.remissions.remissions', [
-            'remissions' => $remissions
+            'remissions' => $remissions,
+            'allMethodPayments' => $allMethodPayments
         ])->layout('layouts.app', ['header' => 'Pedidos']);
     }
 
@@ -1430,6 +1442,37 @@ class Remissions extends Component
                 'invoiceId' => $invoice->id
             ]);
 
+            // Traspasar formas de pago y soportes de la remisión a la factura
+            if (!empty($remission->payment_details) && is_array($remission->payment_details)) {
+                foreach ($remission->payment_details as $payDetail) {
+                    if (!empty($payDetail['method_payment_id']) && floatval($payDetail['value'] ?? 0) > 0) {
+                        \App\Models\Tenant\Invoices\VntInvoicePayments::create([
+                            'value' => floatval($payDetail['value']),
+                            'invoiceId' => $invoice->id,
+                            'methodPaymentId' => $payDetail['method_payment_id'],
+                            'proof_payment' => $payDetail['proof_payment'] ?? null
+                        ]);
+                    }
+                }
+                Log::info('💳 Pagos de remisión copiados a pagos de factura', [
+                    'remission_id' => $remission->id,
+                    'invoice_id' => $invoice->id,
+                    'payments_count' => count($remission->payment_details)
+                ]);
+            } elseif ($remission->proof_payment && $remission->methodPaymentId) {
+                // Fallback para datos históricos
+                \App\Models\Tenant\Invoices\VntInvoicePayments::create([
+                    'value' => floatval($remission->sub_total_rem + ($remission->flete ?? 0)),
+                    'invoiceId' => $invoice->id,
+                    'methodPaymentId' => $remission->methodPaymentId,
+                    'proof_payment' => $remission->proof_payment
+                ]);
+                Log::info('💳 Pago único histórico copiado a pagos de factura', [
+                    'remission_id' => $remission->id,
+                    'invoice_id' => $invoice->id
+                ]);
+            }
+
             // 4. ACTUALIZAR EL CAMPO invoiceId EN LOS DETALLES DE LA REMISIÓN
             \App\Models\Tenant\Remissions\InvDetailRemissions::where('remissionId', $remission->id)
                 ->update(['invoiceId' => $invoice->id]);
@@ -1539,6 +1582,37 @@ class Remissions extends Component
                     'quoteId' => $remission->quote->id,
                     'invoiceId' => $invoice->id
                 ]);
+
+                // Traspasar formas de pago y soportes de cada remisión a la factura agrupada
+                if (!empty($remission->payment_details) && is_array($remission->payment_details)) {
+                    foreach ($remission->payment_details as $payDetail) {
+                        if (!empty($payDetail['method_payment_id']) && floatval($payDetail['value'] ?? 0) > 0) {
+                            \App\Models\Tenant\Invoices\VntInvoicePayments::create([
+                                'value' => floatval($payDetail['value']),
+                                'invoiceId' => $invoice->id,
+                                'methodPaymentId' => $payDetail['method_payment_id'],
+                                'proof_payment' => $payDetail['proof_payment'] ?? null
+                            ]);
+                        }
+                    }
+                    Log::info('💳 Pagos de remisión agrupada copiados a pagos de factura', [
+                        'remission_id' => $remission->id,
+                        'invoice_id' => $invoice->id,
+                        'payments_count' => count($remission->payment_details)
+                    ]);
+                } elseif ($remission->proof_payment && $remission->methodPaymentId) {
+                    // Fallback para datos históricos
+                    \App\Models\Tenant\Invoices\VntInvoicePayments::create([
+                        'value' => floatval($remission->sub_total_rem + ($remission->flete ?? 0)),
+                        'invoiceId' => $invoice->id,
+                        'methodPaymentId' => $remission->methodPaymentId,
+                        'proof_payment' => $remission->proof_payment
+                    ]);
+                    Log::info('💳 Pago único histórico agrupado copiado a pagos de factura', [
+                        'remission_id' => $remission->id,
+                        'invoice_id' => $invoice->id
+                    ]);
+                }
             }
 
             // 4. ACTUALIZAR EL CAMPO invoiceId EN LOS DETALLES DE TODAS LAS REMISIONES

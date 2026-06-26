@@ -36,11 +36,13 @@ class InvRemissions extends Model
         'flete',
         'print_count',
         'proof_payment',
+        'payment_details',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'payment_details' => 'array',
     ];
 
     public function quote()

@@ -1348,7 +1348,7 @@ $header = 'Seleccionar productos';
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Selección de Tipo de Entrega -->
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Tipo de Entrega <span class="text-red-500">*</span>
                         </label>
@@ -1361,21 +1361,7 @@ $header = 'Seleccionar productos';
                         </select>
                     </div>
 
-                    <!-- Selección de Método de Pago -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                            Método de Pago <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model.live="selectedMethodPayment"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Selecciona un método de pago</option>
-                            @foreach($methodPayments as $method)
-                                <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Campo para especificar "Otro" tipo de entrega -->
+                     <!-- Campo para especificar "Otro" tipo de entrega -->
                     @if($showOtherDeliveryInput)
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -1398,17 +1384,6 @@ $header = 'Seleccionar productos';
                                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                     </div>
 
-                    <!-- Observaciones de Pago -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                            Observaciones de Pago
-                        </label>
-                        <textarea wire:model="paymentDetails"
-                                  rows="3"
-                                  placeholder="Detalles para el pago..."
-                                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                    </div>
-
                     <!-- Observaciones Pedido -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -1420,52 +1395,92 @@ $header = 'Seleccionar productos';
                                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                     </div>
 
-                    <!-- Adjuntar Soporte de Pago -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                            Soporte de Pago (Imagen / PDF)
-                        </label>
-                        <div class="flex flex-col space-y-2">
-                            <div class="flex items-center justify-center w-full">
-                                <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-slate-600 dark:hover:border-slate-500 dark:hover:bg-slate-600 transition-colors">
-                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <svg class="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2l2 2"/>
-                                        </svg>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            <span class="font-semibold">Haz clic para subir</span> o arrastra
-                                        </p>
-                                    </div>
-                                    <input type="file" wire:model="proofPaymentFile" class="hidden" accept="image/*,application/pdf" />
-                                </label>
-                            </div>
-                            
-                            <div wire:loading wire:target="proofPaymentFile" class="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                Cargando archivo...
-                            </div>
-
-                            @if($proofPaymentFile)
-                                <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs">
-                                    <div class="flex items-center space-x-2 truncate">
-                                        <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        <span class="text-indigo-700 dark:text-indigo-300 truncate font-medium max-w-[200px]">
-                                            {{ $proofPaymentFile->getClientOriginalName() }}
-                                        </span>
-                                    </div>
-                                    <button type="button" wire:click="$set('proofPaymentFile', null)" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            @endif
-
-                            @error('proofPaymentFile')
-                                <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>
-                            @enderror
+                    <!-- Formas de Pago (Múltiples Pagos) -->
+                    <div class="md:col-span-2 border-t border-gray-200 dark:border-slate-700 pt-4 mt-2">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Formas de Pago</h4>
+                            <button type="button" wire:click="addAdditionalPayment"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-blue-200 dark:border-blue-800">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Añadir Forma de Pago
+                            </button>
                         </div>
+
+                        @if(empty($additionalPayments))
+                            <p class="text-xs text-gray-400 italic">No se han registrado formas de pago.</p>
+                        @else
+                            <div class="space-y-3">
+                                @foreach($additionalPayments as $index => $payment)
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-gray-50 dark:bg-slate-900/40 rounded-lg border border-gray-200 dark:border-slate-700 items-start" wire:key="add-payment-{{ $index }}">
+                                        <!-- Método de pago -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Método de Pago</label>
+                                            @php
+                                                $selectedIds = collect($additionalPayments)
+                                                    ->pluck('method_payment_id')
+                                                    ->filter()
+                                                    ->all();
+                                            @endphp
+                                            <select wire:model.live="additionalPayments.{{ $index }}.method_payment_id"
+                                                    class="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                                <option value="">Selecciona método</option>
+                                                @foreach($methodPayments as $method)
+                                                    @if($method['id'] == $payment['method_payment_id'] || !in_array($method['id'], $selectedIds))
+                                                        <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <!-- Valor -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Valor</label>
+                                            <input type="number" wire:model.blur="additionalPayments.{{ $index }}.value"
+                                                   placeholder="0"
+                                                   class="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        </div>
+
+                                        <!-- Soporte (Imagen / PDF) -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Soporte</label>
+                                            @if(isset($additionalPaymentFiles[$index]))
+                                                <div class="flex items-center justify-between p-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs">
+                                                    <span class="text-indigo-700 dark:text-indigo-300 truncate max-w-[120px]">
+                                                        {{ $additionalPaymentFiles[$index]->getClientOriginalName() }}
+                                                    </span>
+                                                    <button type="button" wire:click="$set('additionalPaymentFiles.{{ $index }}', null)" class="text-red-500 hover:text-red-700">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            @else
+                                                <input type="file" wire:model="additionalPaymentFiles.{{ $index }}" accept="image/*,application/pdf"
+                                                       class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 hover:file:bg-indigo-100 cursor-pointer">
+                                            @endif
+                                        </div>
+
+                                        <!-- Observación de Pago Adicional -->
+                                        <div class="flex items-end gap-2">
+                                            <div class="flex-1">
+                                                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Observación</label>
+                                                <input type="text" wire:model.blur="additionalPayments.{{ $index }}.observation"
+                                                       placeholder="Detalle del pago..."
+                                                       class="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                            </div>
+                                            <button type="button" wire:click="removeAdditionalPayment({{ $index }})"
+                                                    class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/50 mb-0.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Información del tipo seleccionado -->
