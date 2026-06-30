@@ -947,9 +947,10 @@ class Invoices extends Component
                 ->values();
 
             // Cargar facturas con relaciones de pagos y métodos de pago
+            // Se ordena en orden ascendente (asc) para que la última factura del día se muestre al final del informe
             $invoices = $this->buildInvoicesQuery()
                 ->with(['quote', 'payments.methodPayment'])
-                ->orderBy($this->sortField, $this->sortDirection)
+                ->orderBy('vnt_invoices.invoiceNumber', 'asc')
                 ->get();
 
             $dateTitle = '';

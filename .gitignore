@@ -28,3 +28,7 @@ Homestead.yaml
 Thumbs.db
 vite.config.js
 /scratch/
+/inv_EXW.xlsx
+/update_exw.sql
+/reporte_exw_procesamiento.txt
+.env.example
