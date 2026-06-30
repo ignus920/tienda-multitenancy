@@ -3,7 +3,65 @@
 $header = 'Seleccionar productos';
 @endphp
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data @product-copied.window="
+    const data = Array.isArray($event.detail) ? $event.detail[0] : $event.detail;
+    const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
+    
+    let textToCopy = `${data.sku} - $${priceFormatted}\n${data.name}`;
+    if (data.hasLink) {
+        const link = `https://www.fervicom.com/?s=${data.sku.toLowerCase()}&post_type=product`;
+        textToCopy += `\nDetalles en:\n${link}`;
+    }
+
+    const performFeedback = () => {
+        const el = window.lastClickedCopyButton;
+        if (el) {
+            const originalBg = el.style.backgroundColor;
+            const originalBorder = el.style.borderColor;
+            const originalColor = el.style.color;
+            const originalTransition = el.style.transition;
+            
+            el.style.transition = 'all 0.3s ease';
+            el.style.backgroundColor = '#fef08a';
+            el.style.borderColor = '#facc15';
+            el.style.color = '#713f12';
+            
+            setTimeout(() => {
+                el.style.backgroundColor = originalBg;
+                el.style.borderColor = originalBorder;
+                el.style.color = originalColor;
+                setTimeout(() => {
+                    el.style.transition = originalTransition;
+                }, 300);
+            }, 1000);
+        }
+        if (typeof Swal !== 'undefined') {
+            Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            }).fire({
+                icon: 'success',
+                title: '¡Copiado al portapapeles!'
+            });
+        } else if (window.Livewire) {
+            Livewire.dispatch('show-toast', { type: 'success', message: '¡Texto copiado!' });
+        }
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            performFeedback();
+        }).catch(err => {
+            console.error('Error al copiar:', err);
+            fallbackCopyToClipboardMobile(textToCopy, performFeedback);
+        });
+    } else {
+        fallbackCopyToClipboardMobile(textToCopy, performFeedback);
+    }
+">
     <!-- Header fijo con búsqueda y carrito -->
     <div class="sticky top-16 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div class="px-4 py-3">
@@ -520,67 +578,6 @@ $header = 'Seleccionar productos';
     @livewire('tenant.components.product-reservation-modal')
 </div>
 <script>
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('product-copied', (event) => {
-            const data = Array.isArray(event) ? event[0] : event;
-            const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
-            
-            let textToCopy = `${data.sku} - $${priceFormatted}\n${data.name}`;
-            if (data.hasLink) {
-                const link = `https://www.fervicom.com/?s=${data.sku.toLowerCase()}&post_type=product`;
-                textToCopy += `\nDetalles en:\n${link}`;
-            }
-
-            const performFeedback = () => {
-                const el = window.lastClickedCopyButton;
-                if (el) {
-                    const originalBg = el.style.backgroundColor;
-                    const originalBorder = el.style.borderColor;
-                    const originalColor = el.style.color;
-                    const originalTransition = el.style.transition;
-                    
-                    el.style.transition = 'all 0.3s ease';
-                    el.style.backgroundColor = '#fef08a'; // yellow-200
-                    el.style.borderColor = '#facc15'; // yellow-400
-                    el.style.color = '#713f12'; // yellow-900
-                    
-                    setTimeout(() => {
-                        el.style.backgroundColor = originalBg;
-                        el.style.borderColor = originalBorder;
-                        el.style.color = originalColor;
-                        setTimeout(() => {
-                            el.style.transition = originalTransition;
-                        }, 300);
-                    }, 1000);
-                }
-                if (typeof Swal !== 'undefined') {
-                    Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 2000,
-                        timerProgressBar: true
-                    }).fire({
-                        icon: 'success',
-                        title: '¡Copiado al portapapeles!'
-                    });
-                } else if (window.Livewire) {
-                    Livewire.dispatch('show-toast', { type: 'success', message: '¡Texto copiado!' });
-                }
-            };
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    performFeedback();
-                }).catch(err => {
-                    console.error('Error al copiar:', err);
-                    fallbackCopyToClipboardMobile(textToCopy, performFeedback);
-                });
-            } else {
-                fallbackCopyToClipboardMobile(textToCopy, performFeedback);
-            }
-        });
-    });
 
     function fallbackCopyToClipboardMobile(text, callback) {
         const textArea = document.createElement("textarea");

@@ -4,7 +4,27 @@ $header = 'Seleccionar productos';
 @endphp
 
 <div>
-    <div class="flex {{ $hideQuoter ? 'flex-col' : 'pr-96' }}">
+    <div class="flex {{ $hideQuoter ? 'flex-col' : 'pr-96' }}" x-data @product-copied.window="
+        const data = Array.isArray($event.detail) ? $event.detail[0] : $event.detail;
+        const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
+        
+        let textToCopy = `${data.sku} - $${priceFormatted} incluido iva\n${data.name}`;
+        if (data.hasLink) {
+            const link = `https://www.fervicom.com/?s=${data.sku.toLowerCase()}&post_type=product`;
+            textToCopy += `\nDetalles en:\n${link}`;
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showCopyFeedback(window.lastClickedCopyButton);
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+                fallbackCopyToClipboard(textToCopy, window.lastClickedCopyButton);
+            });
+        } else {
+            fallbackCopyToClipboard(textToCopy, window.lastClickedCopyButton);
+        }
+    ">
         <!-- Área principal de productos -->
         <div class="flex-1 min-w-0 p-6">
             <!-- Cabecera con Botón de regresar y Switch de Modo Copia -->
@@ -1436,10 +1456,13 @@ $header = 'Seleccionar productos';
 
                                         <!-- Valor -->
                                         <div>
-                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Valor</label>
-                                            <input type="number" wire:model.blur="additionalPayments.{{ $index }}.value"
-                                                   placeholder="0"
-                                                   class="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Valor</label>
+                                             <input type="text"
+                                                    wire:model.blur="additionalPayments.{{ $index }}.value"
+                                                    x-data
+                                                    x-on:input="$event.target.value = $event.target.value.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')"
+                                                    placeholder="0"
+                                                    class="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
                                         </div>
 
                                         <!-- Soporte (Imagen / PDF) -->
@@ -1671,28 +1694,6 @@ $header = 'Seleccionar productos';
 
 <script>
     document.addEventListener('livewire:init', () => {
-        Livewire.on('product-copied', (event) => {
-            const data = Array.isArray(event) ? event[0] : event;
-            const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
-            
-            let textToCopy = `${data.sku} - $${priceFormatted} incluido iva\n${data.name}`;
-            if (data.hasLink) {
-                const link = `https://www.fervicom.com/?s=${data.sku.toLowerCase()}&post_type=product`;
-                textToCopy += `\nDetalles en:\n${link}`;
-            }
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    showCopyFeedback(window.lastClickedCopyButton);
-                }).catch(err => {
-                    console.error('Error al copiar:', err);
-                    fallbackCopyToClipboard(textToCopy, window.lastClickedCopyButton);
-                });
-            } else {
-                fallbackCopyToClipboard(textToCopy, window.lastClickedCopyButton);
-            }
-        });
-
         Livewire.on('open-box-justification-modal', (event) => {
             const data = Array.isArray(event) ? event[0] : event;
             const index = data.index;

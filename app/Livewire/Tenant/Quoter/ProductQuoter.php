@@ -2341,18 +2341,19 @@ class ProductQuoter extends Component
             return;
         }
 
-        $totalConFlete = floatval($this->totalAmount);
+        $totalConFlete = round(floatval($this->totalAmount));
         if ($this->editingQuoteId) {
             $quote = VntQuote::find($this->editingQuoteId);
             if ($quote) {
-                $totalConFlete += floatval($quote->flete ?? 0);
+                $totalConFlete += round(floatval($quote->flete ?? 0));
             }
         }
+        $totalConFlete = round($totalConFlete);
 
         $this->additionalPayments = [
             [
                 'method_payment_id' => '',
-                'value' => $totalConFlete,
+                'value' => number_format($totalConFlete, 0, '', '.'),
                 'observation' => ''
             ]
         ];
@@ -2383,22 +2384,23 @@ class ProductQuoter extends Component
         }
 
         // Recalcular la fila principal
-        $totalConFlete = floatval($this->totalAmount);
+        $totalConFlete = round(floatval($this->totalAmount));
         if ($this->editingQuoteId) {
             $quote = VntQuote::find($this->editingQuoteId);
             if ($quote) {
-                $totalConFlete += floatval($quote->flete ?? 0);
+                $totalConFlete += round(floatval($quote->flete ?? 0));
             }
         }
+        $totalConFlete = round($totalConFlete);
         
         $sumOthers = 0;
         foreach ($this->additionalPayments as $k => $payment) {
             if ($k > 0) {
-                $sumOthers += floatval($payment['value'] ?? 0);
+                $sumOthers += $this->getCleanPaymentValue($payment['value'] ?? 0);
             }
         }
         if (isset($this->additionalPayments[0])) {
-            $this->additionalPayments[0]['value'] = max(0, $totalConFlete - $sumOthers);
+            $this->additionalPayments[0]['value'] = number_format(max(0, $totalConFlete - $sumOthers), 0, '', '.');
         }
     }
 
@@ -2408,60 +2410,67 @@ class ProductQuoter extends Component
             $parts = explode('.', $key);
             $index = intval($parts[0]);
             
-            $totalConFlete = floatval($this->totalAmount);
+            $totalConFlete = round(floatval($this->totalAmount));
             if ($this->editingQuoteId) {
                 $quote = VntQuote::find($this->editingQuoteId);
                 if ($quote) {
-                    $totalConFlete += floatval($quote->flete ?? 0);
+                    $totalConFlete += round(floatval($quote->flete ?? 0));
                 }
             }
+            $totalConFlete = round($totalConFlete);
+
+            // Limpiar y formatear el valor que acaba de ingresar el usuario
+            $cleanInputVal = $this->getCleanPaymentValue($value);
+            $this->additionalPayments[$index]['value'] = number_format($cleanInputVal, 0, '', '.');
 
             if ($index > 0) {
-                // Sumar las demás filas secundarias (de la 1 en adelante, excepto la fila actual que se editó)
+                // Sumar las demás filas secundarias
                 $sumOthers = 0;
                 foreach ($this->additionalPayments as $k => $payment) {
                     if ($k > 0 && $k != $index) {
-                        $sumOthers += floatval($payment['value'] ?? 0);
+                        $sumOthers += $this->getCleanPaymentValue($payment['value'] ?? 0);
                     }
                 }
                 
-                $currentInputVal = floatval($value);
-                
                 // Si excede el total
-                if ($sumOthers + $currentInputVal > $totalConFlete) {
+                if ($sumOthers + $cleanInputVal > $totalConFlete) {
                     $this->dispatch('show-toast', [
                         'type' => 'error',
                         'message' => 'La suma de las formas de pago no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
                     ]);
-                    // Borrar el valor ingresado en la fila actual
-                    $this->additionalPayments[$index]['value'] = 0;
-                    $currentInputVal = 0;
+                    $this->additionalPayments[$index]['value'] = '0';
+                    $cleanInputVal = 0;
                 }
                 
                 // Ajustar la fila principal (índice 0)
-                $newSumOthers = $sumOthers + $currentInputVal;
-                $this->additionalPayments[0]['value'] = max(0, $totalConFlete - $newSumOthers);
+                $newSumOthers = $sumOthers + $cleanInputVal;
+                $this->additionalPayments[0]['value'] = number_format(max(0, $totalConFlete - $newSumOthers), 0, '', '.');
             } else {
                 // Si edita la fila principal (índice 0)
                 $sumOthers = 0;
                 foreach ($this->additionalPayments as $k => $payment) {
                     if ($k > 0) {
-                        $sumOthers += floatval($payment['value'] ?? 0);
+                        $sumOthers += $this->getCleanPaymentValue($payment['value'] ?? 0);
                     }
                 }
                 
-                $currentInputVal = floatval($value);
-                
-                if ($currentInputVal + $sumOthers > $totalConFlete) {
+                if ($cleanInputVal + $sumOthers > $totalConFlete) {
                     $this->dispatch('show-toast', [
                         'type' => 'error',
                         'message' => 'La suma de las formas de pago no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
                     ]);
-                    // Resetear al máximo posible
-                    $this->additionalPayments[0]['value'] = max(0, $totalConFlete - $sumOthers);
+                    $this->additionalPayments[0]['value'] = number_format(max(0, $totalConFlete - $sumOthers), 0, '', '.');
                 }
             }
         }
+    }
+
+    private function getCleanPaymentValue($val)
+    {
+        if (is_string($val)) {
+            $val = str_replace('.', '', $val);
+        }
+        return round(floatval($val));
     }
 
     /**
@@ -2594,14 +2603,14 @@ class ProductQuoter extends Component
                 ]);
                 return;
             }
-            if (floatval($payment['value'] ?? 0) <= 0) {
+            if ($this->getCleanPaymentValue($payment['value'] ?? 0) <= 0) {
                 $this->dispatch('show-toast', [
                     'type' => 'error',
                     'message' => 'El valor de todas las formas de pago ingresadas debe ser mayor a 0.'
                 ]);
                 return;
             }
-            $sumAdditional += floatval($payment['value']);
+            $sumAdditional += $this->getCleanPaymentValue($payment['value']);
 
             // Validar archivo de soporte para este pago si fue cargado
             if (isset($this->additionalPaymentFiles[$index])) {
@@ -2623,13 +2632,14 @@ class ProductQuoter extends Component
         }
 
         // Validar que la suma no supere el total
-        $totalConFlete = floatval($this->totalAmount);
+        $totalConFlete = round(floatval($this->totalAmount));
         if ($this->editingQuoteId) {
             $quote = VntQuote::find($this->editingQuoteId);
             if ($quote) {
-                $totalConFlete += floatval($quote->flete ?? 0);
+                $totalConFlete += round(floatval($quote->flete ?? 0));
             }
         }
+        $totalConFlete = round($totalConFlete);
 
         if ($sumAdditional > $totalConFlete) {
             $this->dispatch('show-toast', [
@@ -2710,7 +2720,7 @@ class ProductQuoter extends Component
                 
                 $paymentsArray[] = [
                     'method_payment_id' => $payment['method_payment_id'],
-                    'value' => floatval($payment['value']),
+                    'value' => $this->getCleanPaymentValue($payment['value']),
                     'proof_payment' => $proofPaymentPath,
                     'observation' => $payment['observation'] ?? ''
                 ];
