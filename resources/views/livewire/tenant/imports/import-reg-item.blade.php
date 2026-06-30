@@ -85,14 +85,14 @@
         <div class="mb-3 grid grid-cols-2 gap-2">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">$EXW
-                <input wire:model="exw" type="number" id="exw"
+                <input wire:model="exw" type="number" step="any" id="exw"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Ingrese nombre del producto">
                 @error('exw') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Incr. Fletes
-                <input wire:model="freight_increase" type="number" id="freight_increase"
+                <input wire:model="freight_increase" type="number" step="any" id="freight_increase"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Ingrese nombre del producto">
                 @error('freight_increase') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
@@ -101,14 +101,14 @@
         <div class="mb-3 grid grid-cols-2 gap-2">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Factor PVP1
-                <input wire:model="pvp_factor" type="number" id="pvp_factor"
+                <input wire:model="pvp_factor" type="number" step="any" id="pvp_factor"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Ingrese nombre del producto">
                 @error('pvp_factor') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Factor PVP Mín
-                <input wire:model="pvp_min_factor" type="number" id="pvp_min_factor"
+                <input wire:model="pvp_min_factor" type="number" step="any" id="pvp_min_factor"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Ingrese nombre del producto">
                 @error('pvp_min_factor') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
