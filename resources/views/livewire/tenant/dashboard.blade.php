@@ -13,6 +13,31 @@
             </div>
         </div>
 
+        <!-- Filtros de Fecha -->
+        <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtrar Período de Ventas</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Por defecto calcula el rango de corte comercial (del 26 al 25 del siguiente mes)</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Desde:</span>
+                            <input type="date" wire:model.live="startDate" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Hasta:</span>
+                            <input type="date" wire:model.live="endDate" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <button type="button" wire:click="clearFilters" class="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-800 border border-indigo-200 dark:border-gray-700 rounded-lg transition-colors">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <!-- Ventas Hoy -->
@@ -94,9 +119,10 @@
                             </svg>
                         </div>
                         <div class="ml-5">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas del Mes</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" x-show="show">${{ number_format($stats['ventas_mes'], 0) }}</p>
-                            <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500 tracking-widest" x-show="!show">••••••</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas del Período</p>
+                            <p class="text-2xl font-semibold text-gray-900 dark:text-white mt-1" x-show="show">${{ number_format($stats['ventas_mes'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500 tracking-widest mt-1" x-show="!show">••••••</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 truncate">Periodo: {{ $activePeriodLabel }}</p>
                         </div>
                     </div>
                 </div>
