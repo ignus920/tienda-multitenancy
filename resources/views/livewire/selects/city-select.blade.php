@@ -88,7 +88,7 @@
                     x-on:click="$wire.selectCity({{ $city->id }}); close($refs.button)"
                 >
                     <span class="font-normal block truncate {{ $cityId == $city->id ? 'font-semibold' : '' }}">
-                        {{ $city->name }}
+                        {{ $city->name }} - {{ $city->state_name }}
                     </span>
 
                     <!-- Checkmark si está seleccionado -->
