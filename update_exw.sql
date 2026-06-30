@@ -1,4 +1,0 @@
-INSERT INTO imp_items_setup (item_id, exw, created_at, updated_at) VALUES (1116, 0, NOW(), NOW()) ON DUPLICATE KEY UPDATE exw = 0, updated_at = NOW();
-INSERT INTO imp_items_setup (item_id, exw, created_at, updated_at) VALUES (1119, 0, NOW(), NOW()) ON DUPLICATE KEY UPDATE exw = 0, updated_at = NOW();
-INSERT INTO imp_items_setup (item_id, exw, created_at, updated_at) VALUES (1115, 0.69, NOW(), NOW()) ON DUPLICATE KEY UPDATE exw = 0.69, updated_at = NOW();
-INSERT INTO imp_items_setup (item_id, exw, created_at, updated_at) VALUES (1120, 0, NOW(), NOW()) ON DUPLICATE KEY UPDATE exw = 0, updated_at = NOW();
