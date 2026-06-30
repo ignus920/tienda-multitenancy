@@ -64,10 +64,13 @@ Route::get('/settings/2fa', Enable2FA::class)
     ->middleware(['auth', 'company.complete'])
     ->name('settings.2fa');
 
-// Dashboard original de Breeze (redirige a selección de tenant)
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified', 'company.complete'])
-    ->name('dashboard');
+// Dashboard original de Breeze (redirige al dashboard del tenant o a la selección de sucursal)
+Route::get('dashboard', function () {
+    if (session()->has('tenant_id')) {
+        return redirect()->route('tenant.dashboard');
+    }
+    return redirect()->route('tenant.select');
+})->middleware(['auth', 'verified', 'company.complete'])->name('dashboard');
 
 Route::view('profile', 'profile')
     ->middleware(['auth', 'company.complete'])
