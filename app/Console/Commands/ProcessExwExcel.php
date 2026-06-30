@@ -29,11 +29,16 @@ class ProcessExwExcel extends Command
     {
         $dbName = $this->argument('database');
 
+        $host = config('database.connections.mysql.host', '127.0.0.1');
+        $port = config('database.connections.mysql.port', '3306');
+        $username = config('database.connections.mysql.username', 'root');
+        $password = config('database.connections.mysql.password', '');
+
         if (!$dbName) {
             // Listar bases de datos locales que comiencen con tenant_ o company_
             try {
-                // Conectarse a MySQL local para listar las bases de datos reales locales
-                $pdo = new \PDO("mysql:host=127.0.0.1;port=3306;charset=utf8", "root", "");
+                // Conectarse a MySQL usando credenciales del entorno
+                $pdo = new \PDO("mysql:host=$host;port=$port;charset=utf8", $username, $password);
                 $stmt = $pdo->query("SHOW DATABASES");
                 $databases = $stmt->fetchAll(\PDO::FETCH_COLUMN);
                 
@@ -52,7 +57,7 @@ class ProcessExwExcel extends Command
                 }
                 
                 if (empty($dbList)) {
-                    $this->error("No se encontraron bases de datos de tipo tenant en tu MySQL local.");
+                    $this->error("No se encontraron bases de datos de tipo tenant.");
                     $dbName = $this->ask("Por favor escribe el nombre exacto de la base de datos del tenant a utilizar:");
                 } else {
                     $dbName = $this->choice(
@@ -80,11 +85,11 @@ class ProcessExwExcel extends Command
 
         // Configurar la conexión del tenant
         config([
-            'database.connections.tenant.host' => '127.0.0.1',
-            'database.connections.tenant.port' => '3306',
+            'database.connections.tenant.host' => $host,
+            'database.connections.tenant.port' => $port,
             'database.connections.tenant.database' => $dbName,
-            'database.connections.tenant.username' => 'root',
-            'database.connections.tenant.password' => '',
+            'database.connections.tenant.username' => $username,
+            'database.connections.tenant.password' => $password,
         ]);
         
         DB::purge('tenant');
