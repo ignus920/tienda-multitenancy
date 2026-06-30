@@ -25,6 +25,19 @@ class Dashboard extends Component
     public $endDate;
     public $activePeriodLabel;
 
+    public function boot()
+    {
+        $tenantId = Session::get('tenant_id');
+        if ($tenantId) {
+            $tenant = Tenant::find($tenantId);
+            if ($tenant) {
+                $tenantManager = app(\App\Services\Tenant\TenantManager::class);
+                $tenantManager->setConnection($tenant);
+                tenancy()->initialize($tenant);
+            }
+        }
+    }
+
     public function mount()
     {
         $this->user = Auth::user();
