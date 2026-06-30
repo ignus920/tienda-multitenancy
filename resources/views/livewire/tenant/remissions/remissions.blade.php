@@ -277,7 +277,13 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                #{{ $remission->consecutive }}
+                                @if($remission->isEmpaqueAuthorizedButDespachoPending())
+                                    <span class="inline-block px-2.5 py-1 rounded-md font-bold shadow-sm" style="background-color: #f97316 !important; color: #ffffff !important;">
+                                        #{{ $remission->consecutive }}
+                                    </span>
+                                @else
+                                    #{{ $remission->consecutive }}
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
                                 {{ $remission->created_at->format('d/m/Y') }}

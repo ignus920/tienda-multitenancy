@@ -147,6 +147,21 @@ class InvRemissions extends Model
     }
 
     /**
+     * Determina si el pedido tiene empaque autorizado pero despacho de cartera pendiente/sin autorizar
+     */
+    public function isEmpaqueAuthorizedButDespachoPending(): bool
+    {
+        if (in_array($this->status, ['ANULADO', 'ENTREGADO'])) {
+            return false;
+        }
+
+        $hasEmpaque = $this->authorizations->where('auth_type', 'empaque')->where('status', 1)->isNotEmpty();
+        $hasDespacho = $this->authorizations->where('auth_type', 'despacho')->where('status', 1)->isNotEmpty();
+
+        return $hasEmpaque && !$hasDespacho;
+    }
+
+    /**
      * Getters para compatibilidad con las vistas de impresión del cotizador
      */
     public function getDetallesAttribute()

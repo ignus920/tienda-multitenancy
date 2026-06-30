@@ -2063,6 +2063,17 @@ class Remissions extends Component
                         return;
                     }
                 }
+
+                // 3. Si intenta pasar a despacho (EN RECORRIDO) o entrega (ENTREGADO), requiere Despacho Autorizado
+                if (in_array($nextStatus, ['EN RECORRIDO', 'ENTREGADO'])) {
+                    if (!$hasDespacho) {
+                        $this->dispatch('show-toast', [
+                            'type' => 'warning',
+                            'message' => 'BLOQUEO DE CARTERA: No se puede despachar ni entregar el pedido sin la autorización de DESPACHO.'
+                        ]);
+                        return;
+                    }
+                }
             }
 
             // Actualizar el estado
