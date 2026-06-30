@@ -4170,8 +4170,23 @@ class ProductQuoter extends Component
             return;
         }
 
-        // Si tiene SKU, asumimos que tiene link (que redirigirá a la búsqueda de Fervicom usando el SKU)
-        $hasLink = !empty($item->sku);
+        // Verificar si el SKU realmente existe en WordPress usando caché para alta velocidad (7 días)
+        $hasLink = false;
+        if (!empty($item->sku)) {
+            $cacheKey = 'wp_product_exists_' . $item->sku;
+            $hasLink = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addDays(7), function () use ($item) {
+                $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                if ($wpService->isConfigured()) {
+                    try {
+                        return !empty($wpService->findProductBySku($item->sku));
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Error consultando SKU en WordPress para Modo Copia: ' . $e->getMessage());
+                        return false;
+                    }
+                }
+                return false;
+            });
+        }
         
         $this->dispatch('product-copied', [
             'sku' => $item->sku,
