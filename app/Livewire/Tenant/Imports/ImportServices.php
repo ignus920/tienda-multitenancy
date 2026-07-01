@@ -30,6 +30,10 @@ class ImportServices extends Component
     public $selectedItemId = null;
     public $selectedItemQuantity = 0;
     public $selectedItemData = [];
+    public $selectedItemPriority = null;
+    public $selectedItemPriorityDate = null;
+    public $selectedLabelId = null;
+    public $selectedLabelName = 'Programación';
 
     // Array para almacenar las asignaciones del item seleccionado
     public $itemAssignments = [];
@@ -149,8 +153,19 @@ class ImportServices extends Component
     private function loadMonthlyQuantities()
     {
         try {
+            // Inicializar array con los últimos 12 meses móviles (del más antiguo al mes actual)
+            $quantities = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $key = $date->format('Y-m');
+                $quantities[$key] = [
+                    'label' => $date->translatedFormat('M y'),
+                    'qty' => 0
+                ];
+            }
+
             if (!$this->selectedItemId) {
-                return array_fill(1, 12, 0);
+                return $quantities;
             }
 
             $this->ensureTenantConnection();
@@ -171,22 +186,30 @@ class ImportServices extends Component
                 ->where('idr.itemId', $this->selectedItemId)
                 ->whereBetween(DB::raw('COALESCE(ir.created_at, ir.updated_at)'), [$startDate, $endDate])
                 ->groupBy(DB::raw('YEAR(COALESCE(ir.created_at, ir.updated_at))'), DB::raw('MONTH(COALESCE(ir.created_at, ir.updated_at))'))
-                ->orderBy('anio', 'ASC')
-                ->orderBy('mes', 'ASC')
                 ->get();
-
-            // Inicializar array con 0 para todos los meses
-            $quantities = array_fill(1, 12, 0);
 
             // Llenar con los datos obtenidos
             foreach ($monthlyData as $data) {
-                $quantities[$data->mes] = (int) $data->TotalQuantity;
+                $key = $data->anio . '-' . str_pad($data->mes, 2, '0', STR_PAD_LEFT);
+                if (isset($quantities[$key])) {
+                    $quantities[$key]['qty'] = (int) $data->TotalQuantity;
+                }
             }
 
             return $quantities;
         } catch (\Exception $e) {
             Log::error('Error en loadMonthlyQuantities: ' . $e->getMessage());
-            return array_fill(1, 12, 0);
+            
+            // Generar fallback en caso de error
+            $fallback = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $fallback[$date->format('Y-m')] = [
+                    'label' => $date->translatedFormat('M y'),
+                    'qty' => 0
+                ];
+            }
+            return $fallback;
         }
     }
 
@@ -223,11 +246,29 @@ class ImportServices extends Component
         Log::info('Data recibida: ' . json_encode($data));
 
         $this->selectedItemId = $data['itemId'];
-        $this->selectedItemQuantity = $data['quantity'];
         $this->selectedItemData = $data;
+        $this->selectedItemPriority = $data['priority'] ?? null;
+        $this->selectedItemPriorityDate = $data['priority_assigned_at'] ?? null;
+
+        $this->ensureTenantConnection();
+        if ($this->selectedLabelId) {
+            $imp = ImpImports::where('item_id', $this->selectedItemId)
+                ->where('label_id', $this->selectedLabelId)
+                ->where('status', '<', 8)
+                ->whereNull('deleted_at')
+                ->first();
+            $this->selectedItemQuantity = $imp ? $imp->qty_requested : 0;
+        } else {
+            $imp = ImpImports::where('item_id', $this->selectedItemId)
+                ->whereNull('label_id')
+                ->where('status', '<', 8)
+                ->whereNull('deleted_at')
+                ->first();
+            $this->selectedItemQuantity = $imp ? $imp->qty_requested : 0;
+        }
 
         Log::info('Selected Item ID establecido: ' . $this->selectedItemId);
-        Log::info('Selected Item Quantity establecida: ' . $this->selectedItemQuantity);
+        Log::info('Selected Item Quantity establecida desde imp_imports: ' . $this->selectedItemQuantity);
 
         // Cargar las asignaciones del item seleccionado
         Log::info('Cargando asignaciones del item...');
@@ -244,6 +285,50 @@ class ImportServices extends Component
         Log::info('Total asignaciones cargadas: ' . count($this->itemAssignments));
         Log::info('Cantidades mensuales: ' . json_encode($this->monthlyQuantities));
         Log::info('=== FIN ITEM SELECCIONADO ===');
+    }
+
+    #[On('labelSelected')]
+    #[On('label-selected')]
+    public function onLabelSelected($labelId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            
+            $this->selectedLabelId = ($labelId == -1) ? null : (($labelId == 0) ? 0 : $labelId);
+            
+            // Buscar el nombre de la etiqueta
+            if ($this->selectedLabelId === null) {
+                $this->selectedLabelName = 'Programación';
+            } else {
+                $lbl = ImpLabels::find($this->selectedLabelId);
+                $this->selectedLabelName = $lbl ? $lbl->name : 'Programación';
+            }
+
+            Log::info("Etiqueta sincronizada en el Padre - ID: " . ($this->selectedLabelId ?? 'NULL') . ", Name: " . $this->selectedLabelName);
+
+            // Si hay un item seleccionado, actualizar su cantidad para esta etiqueta
+            if ($this->selectedItemId) {
+                if ($this->selectedLabelId) {
+                    $imp = ImpImports::where('item_id', $this->selectedItemId)
+                        ->where('label_id', $this->selectedLabelId)
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    $this->selectedItemQuantity = $imp ? $imp->qty_requested : 0;
+                } else {
+                    $imp = ImpImports::where('item_id', $this->selectedItemId)
+                        ->whereNull('label_id')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    $this->selectedItemQuantity = $imp ? $imp->qty_requested : 0;
+                }
+                
+                Log::info("Cantidad de item seleccionado actualizada para la nueva etiqueta: " . $this->selectedItemQuantity);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en onLabelSelected del padre: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -638,6 +723,178 @@ class ImportServices extends Component
             Log::error('=== FIN ERROR ===');
 
             session()->flash('error', 'Error al asignar la programación: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar la prioridad de un ítem individual
+     */
+    public function updateItemPriority($itemId, $newPriority)
+    {
+        try {
+            $this->ensureTenantConnection();
+            
+             // Validar prioridad
+             $validPriorities = ['ASAP', 'Second', 'Third', null];
+             if (!in_array($newPriority, $validPriorities)) {
+                 $newPriority = null;
+             }
+
+             // Validar que el ítem tenga cantidad mayor a 0 antes de asignar prioridad (solo si no es para quitar prioridad)
+             if ($newPriority !== null) {
+                 $qty = $this->selectedItemId == $itemId ? $this->selectedItemQuantity : 0;
+                 if ($qty <= 0) {
+                     $unconfirmed = DB::connection('tenant')
+                         ->table('imp_unconfirmed_qty')
+                         ->where('item_id', $itemId)
+                         ->whereNull('deleted_at')
+                         ->first(['qty']);
+                     $qty = $unconfirmed ? $unconfirmed->qty : 0;
+                 }
+
+                 if ($qty <= 0) {
+                     $this->dispatch('show-toast', [
+                         'type' => 'warning',
+                         'message' => 'No se puede definir prioridad a un ítem con cantidad igual a 0'
+                     ]);
+                     return;
+                 }
+             }
+
+            // Buscar la importación activa en imp_imports
+            $import = ImpImports::where('item_id', $itemId)
+                ->where('status', '<', 8)
+                ->whereNull('deleted_at')
+                ->first();
+
+            // COMENTADO: Anteriormente se requería una etiqueta obligatoria para definir prioridad.
+            // Ahora se permite crear el registro en imp_imports directamente con la prioridad si no existe.
+            /*
+            if ($import) {
+            */
+                // Obtener la cantidad acumulada preliminar de imp_unconfirmed_qty
+                $unconfirmed = DB::connection('tenant')
+                    ->table('imp_unconfirmed_qty')
+                    ->where('item_id', $itemId)
+                    ->whereNull('deleted_at')
+                    ->first();
+
+                $unconfirmedQty = $unconfirmed ? $unconfirmed->qty : 0;
+
+                if ($import) {
+                    $import->update([
+                        'priority' => $newPriority,
+                        'priority_assigned_at' => $newPriority ? now() : null,
+                        'qty_requested' => $unconfirmedQty > 0 ? $unconfirmedQty : $import->qty_requested,
+                        'user_id' => \Illuminate\Support\Facades\Auth::id()
+                    ]);
+                } else {
+                    ImpImports::create([
+                        'item_id' => $itemId,
+                        'priority' => $newPriority,
+                        'priority_assigned_at' => $newPriority ? now() : null,
+                        'qty_requested' => $unconfirmedQty,
+                        'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'status' => 1
+                    ]);
+                }
+
+
+
+                // Si es el item seleccionado, actualizar variables locales
+                if ($this->selectedItemId == $itemId) {
+                    $this->selectedItemPriority = $newPriority;
+                    $this->selectedItemPriorityDate = $newPriority ? now()->format('Y-m-d H:i:s') : null;
+                }
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Prioridad y cantidad asignadas exitosamente'
+                ]);
+
+                $this->dispatch('refresh-import-list');
+            /*
+            } else {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'El ítem debe tener una etiqueta asignada antes de definir su prioridad'
+                ]);
+            }
+            */
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar prioridad: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al actualizar la prioridad: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Rotar las prioridades en bloque (desplazamiento)
+     */
+    public function rotatePriorities()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            DB::connection('tenant')->transaction(function () {
+                // 1. ASAP pasa a null (ya recibidos)
+                ImpImports::where('priority', 'ASAP')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => null,
+                        'priority_assigned_at' => null
+                    ]);
+
+                // 2. Second pasa a ASAP
+                ImpImports::where('priority', 'Second')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => 'ASAP',
+                        'priority_assigned_at' => now()
+                    ]);
+
+                // 3. Third pasa a Second
+                ImpImports::where('priority', 'Third')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => 'Second',
+                        'priority_assigned_at' => now()
+                    ]);
+            });
+
+            // Refrescar el seleccionado si aplica
+            if ($this->selectedItemId) {
+                $import = ImpImports::where('item_id', $this->selectedItemId)
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->first(['priority', 'priority_assigned_at']);
+
+                if ($import) {
+                    $this->selectedItemPriority = $import->priority;
+                    $this->selectedItemPriorityDate = $import->priority_assigned_at;
+                } else {
+                    $this->selectedItemPriority = null;
+                    $this->selectedItemPriorityDate = null;
+                }
+            }
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Prioridades rotadas en bloque exitosamente'
+            ]);
+
+            $this->dispatch('refresh-import-list');
+        } catch (\Exception $e) {
+            Log::error('Error al rotar prioridades: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al rotar las prioridades: ' . $e->getMessage()
+            ]);
         }
     }
 

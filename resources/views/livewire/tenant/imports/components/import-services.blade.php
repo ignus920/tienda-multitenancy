@@ -153,6 +153,8 @@
                         Agregar Nuevo Item
                     </button>
 
+
+
                     <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
                         {{--
                         <!-- Administrar Etiquetas -->
@@ -191,7 +193,73 @@
                 </div>
             </div>
 
-        <!-- Sección de Etiquetas -->
+        <!-- Item seleccionado (opcional - posicionado arriba para prioridad) -->
+        @if($selectedItemId)
+        <div x-data 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100"
+             class="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            Item seleccionado: <span class="font-bold">{{ $selectedItemData['sku'] ?? 'N/A' }} - {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
+                        </p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300">
+                            Etiqueta: <span class="font-bold uppercase text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 px-1.5 py-0.5 rounded">{{ $selectedLabelName }}</span> | 
+                            Cantidad: <span class="font-semibold">{{ $selectedItemQuantity }}</span> | 
+                            Stock: {{ $selectedItemData['stock'] ?? 0 }} |
+                            Prioridad: <span class="font-bold uppercase">{{ $selectedItemPriority ?? 'Sin prioridad' }}</span>
+                            @if($selectedItemPriorityDate)
+                                <span class="text-[10px] text-gray-500">({{ \Carbon\Carbon::parse($selectedItemPriorityDate)->format('d/m/Y H:i') }})</span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+                <button wire:click="$set('selectedItemId', null)" 
+                        class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Tabla de meses -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-blue-200 dark:divide-blue-700">
+                        <thead class="bg-blue-100 dark:bg-blue-900/30">
+                            <tr>
+                                @foreach($monthlyQuantities as $data)
+                                <th scope="col" class="px-3 py-2 text-center text-xs font-semibold text-blue-900 dark:text-blue-100 uppercase tracking-wider">
+                                    {{ $data['label'] }}
+                                </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-blue-100 dark:divide-blue-800">
+                            <tr>
+                                @foreach($monthlyQuantities as $data)
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <span class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                        {{ $data['qty'] }}
+                                    </span>
+                                </td>
+                                @endforeach
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- 
+        <!-- Sección de Etiquetas (Comentado temporalmente por requerimiento del cliente) -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4 sm:mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
                 <div class="flex items-center gap-2">
@@ -237,14 +305,7 @@
                 <div class="relative inline-flex items-center">
                     <button
                         @click="
-                            console.log('=== CLICK EN ETIQUETA ===');
-                            console.log('Label ID:', {{ $label->id }});
-                            console.log('Label Name:', '{{ $label->name }}');
-                            console.log('Is Assigned:', {{ $isAssigned ? 'true' : 'false' }});
-                            console.log('selectedLabelId ANTES:', selectedLabelId);
                             selectedLabelId = {{ $isAssigned ? 'null' : $label->id }};
-                            console.log('selectedLabelId DESPUÉS:', selectedLabelId);
-                            console.log('=== FIN CLICK ETIQUETA ===');
                         "
                         @if($isAssigned) disabled @endif
                         class="label-btn inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-1 rounded-full 
@@ -258,165 +319,18 @@
                         data-light-color="{{ $colors['light'] }}"
                         data-dark-color="{{ $colors['dark'] }}"
                         data-label-id="{{ $label->id }}"
-                        data-label-name="{{ $label->name }}"
-                        @if($isAssigned)
-                        aria-disabled="true"
-                        aria-label="{{ $label->name }} - Ya asignado (Cantidad: {{ $assignedQty }})"
-                        title="Ya asignado - Cantidad: {{ $assignedQty }}"
-                        @endif>
-
+                        data-label-name="{{ $label->name }}">
                         <span>{{ $label->name }}</span>
-
-                        @if($isAssigned)
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            {{ $assignedQty }}
-                        </span>
-                        @endif
                     </button>
-                    @if($isAssigned)
-                    <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 dark:bg-green-600 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                        <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    @endif
                 </div>
                 @empty
                 <div class="flex flex-col items-center justify-center w-full py-6 sm:py-8">
-                    <svg class="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M7 7h.01M3 11l8.586 8.586a2 2 0 002.828 0l6.172-6.172a2 2 0 000-2.828L12 3H5a2 2 0 00-2 2v6z" />
-                    </svg>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        No hay etiquetas disponibles
-                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No hay etiquetas disponibles</p>
                 </div>
                 @endforelse
             </div>
-
-            <!-- Botón de Asignar Programación (aparece cuando se selecciona una etiqueta) -->
-            <div x-show="selectedLabelId !== null"
-                x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 transform translate-y-2"
-                x-transition:enter-end="opacity-100 transform translate-y-0"
-                style="display: none;"
-                class="mt-4 flex justify-center mb-2">
-                <button
-                    @click="
-                        console.log('=== CLICK EN ASIGNAR ETIQUETA ===');
-                        console.log('selectedLabelId:', selectedLabelId);
-                        console.log('selectedItemData:', selectedItemData);
-                        console.log('selectedItemData.itemId:', selectedItemData ? selectedItemData.itemId : 'NO DATA');
-                        
-                        if (selectedItemData && selectedItemData.itemId) {
-                            const btn = document.querySelector('[data-label-id=\'' + selectedLabelId + '\']');
-                            const labelName = btn ? btn.getAttribute('data-label-name') : '';
-                            console.log('Label Name:', labelName);
-                            console.log('Llamando a $wire.assignLabelToItem...');
-                            
-                            $wire.assignLabelToItem(selectedLabelId, labelName).then(() => {
-                                console.log('assignLabelToItem completado exitosamente');
-                                console.log('Reseteando selectedLabelId a null');
-                                selectedLabelId = null;
-                            }).catch((error) => {
-                                console.error('Error en assignLabelToItem:', error);
-                            });
-                        } else {
-                            console.warn('No hay item seleccionado');
-                            warningMessage = 'Por favor, selecciona un item de la lista antes de asignar una etiqueta';
-                            showWarningNotification = true;
-                            setTimeout(() => showWarningNotification = false, 4000);
-                        }
-                        console.log('=== FIN CLICK ===');
-                    "
-                    class="inline-flex items-center px-3 py-2 
-                           bg-indigo-600 hover:bg-indigo-700 
-                           dark:bg-indigo-500 dark:hover:bg-indigo-600
-                           border border-transparent rounded-lg 
-                           font-semibold text-sm text-white tracking-widest 
-                           shadow-lg hover:shadow-xl
-                           focus:outline-none focus:ring-2 focus:ring-indigo-500 
-                           focus:ring-offset-2 dark:focus:ring-offset-gray-800 
-                           transition-all duration-200 ease-in-out
-                           transform hover:scale-105">
-                    <svg class="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Asignar Etiqueta
-                </button>
-            </div>
-
-            <!-- Item seleccionado (opcional - para debug) -->
-            @if($selectedItemId)
-            <div x-data 
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="opacity-0 transform scale-95"
-                 x-transition:enter-end="opacity-100 transform scale-100"
-                 class="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                        <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div>
-                            <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                Item seleccionado: <span class="font-bold">{{ $selectedItemData['sku'] ?? 'N/A' }}</span>
-                            </p>
-                            <p class="text-xs text-blue-700 dark:text-blue-300">
-                                Cantidad: <span class="font-semibold">{{ $selectedItemQuantity }}</span> | 
-                                ID: {{ $selectedItemId }} |
-                                Stock: {{ $selectedItemData['stock'] ?? 0 }}
-                            </p>
-                        </div>
-                    </div>
-                    <button wire:click="$set('selectedItemId', null)" 
-                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Tabla de meses -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-blue-200 dark:divide-blue-700">
-                            <thead class="bg-blue-100 dark:bg-blue-900/30">
-                                <tr>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Enero</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Febrero</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Marzo</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Abril</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Mayo</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Junio</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Julio</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Agosto</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Septiembre</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Octubre</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Noviembre</th>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wider">Diciembre</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-blue-100 dark:divide-blue-800">
-                                <tr>
-                                    @for($month = 1; $month <= 12; $month++)
-                                    <td class="px-3 py-2 whitespace-nowrap">
-                                        <span class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            {{ $monthlyQuantities[$month] ?? 0 }}
-                                        </span>
-                                    </td>
-                                    @endfor
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            @endif
         </div>
+        --}}
 
         <!-- Import List Component -->
         @livewire('tenant.imports.import-list')

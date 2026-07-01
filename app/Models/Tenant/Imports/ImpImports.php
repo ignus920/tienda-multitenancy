@@ -46,6 +46,8 @@ class ImpImports extends Model
         'status',
         'packing_id',
         'news',
+        'priority',
+        'priority_assigned_at',
     ];
 
     /**

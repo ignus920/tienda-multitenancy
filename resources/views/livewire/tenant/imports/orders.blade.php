@@ -211,8 +211,47 @@
                                 ], key('label-select-' . ($selectedLabelId ?? 'none') . '-' . now()->timestamp))
                                 @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                             </div>
-                            @if ($showButtonShipping)
+                            
+                            <!-- Botón Desfiltrar / Limpiar Filtros -->
+                            <button wire:click="clearFilters" 
+                                    class="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                                    title="Limpiar todos los filtros y restablecer el tablero">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                             @if ($showButtonShipping)
                                 <button wire:click="openModalShipping({{ $filterPacking }})" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
+                            @endif
+                            @if ($profileUser != '17' && count($selectedOrders) > 0)
+                                <div class="flex items-center gap-2">
+                                    <button wire:click="approvePricesInBatch" 
+                                            class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <x-heroicon-o-check class="w-4 h-4 mr-2"/> Aprobar Seleccionados
+                                    </button>
+                                    
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 font-medium ml-2">Prioridad:</span>
+                                    <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
+                                            style="background-color: #dc2626; color: #ffffff;"
+                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                                        ASAP
+                                    </button>
+                                    <button wire:click="assignPriorityToSelectedOrders('Second')" 
+                                            style="background-color: #d97706; color: #ffffff;"
+                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                                        Second
+                                    </button>
+                                    <button wire:click="assignPriorityToSelectedOrders('Third')" 
+                                            style="background-color: #2563eb; color: #ffffff;"
+                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                                        Third
+                                    </button>
+                                    <button wire:click="assignPriorityToSelectedOrders(null)" 
+                                            style="background-color: #ffffff; color: #374151; border: 1px solid #d1d5db;"
+                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                                        Quitar
+                                    </button>
+                                </div>
                             @endif
                             @if ($filterStatus == 7)
                                 <select wire:model.live="selectedShipp"
@@ -252,9 +291,14 @@
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <tr>
+                            @if ($profileUser != '17')
                             <th class="px-4 py-4 text-left w-12">
-                                <!-- Columna para selección -->
+                                <input type="checkbox" wire:model.live="selectAll"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                    title="Seleccionar todos los de esta página"
+                                >
                             </th>
+                            @endif
                             <th class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Item
                             </th>
@@ -293,13 +337,17 @@
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse ($this->orders as $order)
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
+                                @if ($profileUser != '17')
                                 <td class="px-4 py-4">
+                                    @if ($order->status != 4)
                                     <input type="checkbox" 
                                         wire:model.live="selectedOrders" 
                                         value="{{ $order->id }}"
                                         class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                     >
+                                    @endif
                                 </td>
+                                @endif
                                 <td class="px-4 py-4 max-w-[200px]">
                                     <div class="text-xs font-medium text-gray-900 dark:text-white line-clamp-2">
                                         {{ $order->item}}
@@ -334,9 +382,18 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 text-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-300">
-                                        {{ $order->label ?? 'N/A' }}
-                                    </span>
+                                    @if (!empty($order->priority))
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                            {{ $order->priority === 'ASAP' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}
+                                            {{ $order->priority === 'Second' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
+                                            {{ $order->priority === 'Third' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}">
+                                            {{ $order->priority }}
+                                        </span>
+                                    @else
+                                        <span class="text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $order->label ?? 'N/A' }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-4 text-center"
                                     x-data="{ priceQ: {{ $order->price ?? 0 }} }"
@@ -370,19 +427,10 @@
                                                 placeholder="Añadir comentario...">
                                             <button 
                                                 @click="$wire.openModalHistory({{ $order->id }})"
-                                                class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ isset($order->news) && $order->news == 1 ? 'animate-pulse' : '' }}"
                                                 title="Ver historial">
                                                 <x-heroicon-o-eye class="w-4 h-4" />
                                             </button>
-                                            @if(isset($order->news) && $order->news == 1)
-                                                <span class="relative flex">
-                                                    <span class="absolute -top-1 -right-1 flex h-3 w-3">
-                                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
-                                                    </span>
-                                                    <x-heroicon-o-chat-bubble-left-ellipsis class="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                                                </span>
-                                            @endif
                                         </div>
                                         
                                         @php
@@ -562,138 +610,101 @@
                     </div>
                     
                     <!-- Modal Content -->
-                    <div class="p-6 space-y-8">
-                        <!-- SECCIÓN 1: COMENTARIOS -->
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <x-heroicon-o-chat-bubble-left-right class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                                <span class="font-semibold text-indigo-600 dark:text-indigo-400">Comentarios</span>
-                            </div>
-
-                            @if(count($this->historyComments) > 0)
-                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    @foreach($this->historyComments as $comment)
-                                        @php
-                                            // Asignar color característico por usuario
-                                            static $userColors = [];
-                                            $colorClasses = [
-                                                ['bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900/30', 'dark:text-yellow-200'],
-                                                ['bg-blue-100', 'text-blue-800', 'dark:bg-blue-900/30', 'dark:text-blue-200'],
-                                                ['bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-200'],
-                                                ['bg-pink-100', 'text-pink-800', 'dark:bg-pink-900/30', 'dark:text-pink-200'],
-                                                ['bg-purple-100', 'text-purple-800', 'dark:bg-purple-900/30', 'dark:text-purple-200'],
-                                            ];
-                                    
-                                            if (!isset($userColors[$comment->name])) {
-                                                $userColors[$comment->name] = $colorClasses[count($userColors) % count($colorClasses)];
-                                            }
-                                            $classes = $userColors[$comment->name];
-
-                                            $data = is_string($comment->comment) ? json_decode($comment->comment, true) : null;
-                                        @endphp
-                                
-                                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
-                                            <!-- Header del comentario -->
-                                            <div class="flex items-center justify-between mb-3">
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $classes[0] }} {{ $classes[1] }} {{ $classes[2] }} {{ $classes[3] }}">
-                                                        {{ $comment->name }}
+                    <div class="p-6 space-y-6">
+                        @if(count($this->timelineEvents) > 0)
+                            <div class="space-y-6">
+                                @foreach($this->timelineEvents as $event)
+                                    <div class="flex items-start gap-4">
+                                        <!-- Columna izquierda: Icono del Timeline y Línea conectora -->
+                                        <div class="flex flex-col items-center flex-shrink-0">
+                                            <span class="flex items-center justify-center w-8 h-8 rounded-full shadow-sm
+                                                {{ $event->event_type === 'comment' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+                                                @if($event->event_type === 'comment')
+                                                    <x-heroicon-o-chat-bubble-left-ellipsis class="w-4 h-4" />
+                                                @else
+                                                    <x-heroicon-o-arrow-path class="w-4 h-4" />
+                                                @endif
+                                            </span>
+                                            @if(!$loop->last)
+                                                <div class="w-0.5 bg-gray-200 dark:bg-gray-700 min-h-[3rem] flex-1 my-1"></div>
+                                            @endif
+                                        </div>
+                                        
+                                        <!-- Columna derecha: Tarjeta del Evento -->
+                                        <div class="flex-1 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                        {{ $event->name }}
                                                     </span>
-                                                    @if(isset($comment->type))
-                                                        <span class="px-2.5 py-1 rounded-full text-xs font-medium 
-                                                            {{ $comment->type === 'importaciones' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' }}">
-                                                            {{ $comment->type }}
-                                                        </span>
-                                                    @endif
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider 
+                                                        {{ $event->event_type === 'comment' ? 'bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-green-50 text-green-700 border border-green-100 dark:bg-green-900/30 dark:text-green-400' }}">
+                                                        {{ $event->event_type === 'comment' ? 'Comentario' : 'Cambio de Estado' }}
+                                                    </span>
                                                 </div>
-                                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $comment->created_at->format('d/m/Y H:i') }}</span>
+                                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                    {{ \Carbon\Carbon::parse($event->created_at)->format('d/m/Y H:i') }}
+                                                </span>
                                             </div>
-                                    
-                                            <!-- Contenido del comentario -->
-                                            @if(is_array($data) && isset($data['type']))
-                                                <div class="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
-                                                    <div class="flex items-center gap-2 mb-2">
-                                                        <x-heroicon-o-arrow-path class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                                        <span class="font-semibold text-sm text-blue-700 dark:text-blue-400">
-                                                            {{ $data['type'] === 'qty_change' ? 'Cambio de Cantidad' : 'Cambio de Precio' }}
+                                            
+                                            <!-- Detalle del Evento -->
+                                            @if($event->event_type === 'comment')
+                                                @php
+                                                    $data = is_string($event->comment) ? json_decode($event->comment, true) : null;
+                                                @endphp
+                                                @if(is_array($data) && isset($data['type']))
+                                                    <div class="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded border border-blue-100 dark:border-blue-900/50 text-sm">
+                                                        <span class="font-medium text-blue-700 dark:text-blue-400">
+                                                            {{ $data['type'] === 'qty_change' ? 'Ajuste de Cantidad' : 'Ajuste de Precio' }}
                                                         </span>
-                                                    </div>
-                                                    <div class="text-sm space-y-1">
-                                                        <p class="text-gray-700 dark:text-gray-300">
-                                                            De: <span class="font-semibold">{{ $data['old'] }}</span> 
+                                                        <p class="mt-1 font-mono text-gray-700 dark:text-gray-300">
+                                                            De: <span class="line-through text-gray-400">{{ $data['old'] }}</span> 
                                                             <span class="mx-2">→</span> 
-                                                            A: <span class="font-semibold">{{ $data['new'] }}</span>
+                                                            A: <span class="font-bold text-gray-900 dark:text-white">{{ $data['new'] }}</span>
                                                         </p>
                                                         @if(!empty($data['note']))
-                                                            <p class="text-gray-600 dark:text-gray-400 italic mt-2 text-sm border-l-2 border-blue-300 pl-2">
+                                                            <p class="mt-2 text-xs italic text-gray-500 dark:text-gray-400 border-l-2 border-blue-300 pl-2">
                                                                 "{{ $data['note'] }}"
                                                             </p>
                                                         @endif
                                                     </div>
-                                                </div>
+                                                @else
+                                                    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                                        {{ $event->comment }}
+                                                    </p>
+                                                @endif
                                             @else
-                                                <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                                                    {{ $comment->comment }}
+                                                <div class="flex items-center gap-4 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded border border-gray-100 dark:border-gray-800 text-sm">
+                                                    <div class="text-center flex-1">
+                                                        <span class="block text-[10px] text-gray-400 uppercase tracking-wider mb-1">Estado Anterior</span>
+                                                        <span class="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                                            {{ $event->previousStatus->translated_name ?? $event->previousStatus->name ?? 'N/A' }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-gray-300 dark:text-gray-600">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="text-center flex-1">
+                                                        <span class="block text-[10px] text-gray-400 uppercase tracking-wider mb-1">Estado Nuevo</span>
+                                                        <span class="px-2.5 py-1 rounded text-xs font-semibold bg-green-50 text-green-700 border border-green-100 dark:bg-green-900/30 dark:text-green-400">
+                                                            {{ $event->newStatus->translated_name ?? $event->newStatus->name ?? 'N/A' }}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             @endif
                                         </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="text-center text-gray-500 dark:text-gray-400 py-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                                    <x-heroicon-o-chat-bubble-left-right class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                                    <p>No hay comentarios en el historial</p>
-                                </div>
-                            @endif
-                        </div>
-
-                        <!-- SECCIÓN 2: HISTORIAL DE ESTADOS -->
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <x-heroicon-o-clock class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                                <span class="font-semibold text-indigo-600 dark:text-indigo-400">Historial de Estados</span>
+                                    </div>
+                                @endforeach
                             </div>
-
-                            @if(count($this->historyStatus) > 0)
-                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    @foreach ($this->historyStatus as $hs)
-                                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $hs->created_at->format('d/m/Y H:i') }}</span>
-                                                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                                                    {{ $hs->name }}
-                                                </span>
-                                            </div>
-
-                                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                                                <div class="flex-1 text-center">
-                                                    <span class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Estado anterior</span>
-                                                    <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 inline-block">
-                                                        {{ $hs->previousStatus->name ?? 'N/A' }}
-                                                    </span>
-                                                </div>
-
-                                                <div class="px-3">
-                                                    <x-heroicon-o-arrow-right class="w-5 h-5 text-gray-400" />
-                                                </div>
-
-                                                <div class="flex-1 text-center">
-                                                    <span class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Estado nuevo</span>
-                                                    <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 inline-block">
-                                                        {{ $hs->newStatus->name ?? 'N/A' }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="text-center text-gray-500 dark:text-gray-400 py-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                                    <x-heroicon-o-clock class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                                    <p>No hay cambios de estado en el historial</p>
-                                </div>
-                            @endif
-                        </div>
+                        @else
+                            <div class="text-center text-gray-500 dark:text-gray-400 py-12 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                                <x-heroicon-o-clock class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                                <p class="text-lg font-medium">Línea de tiempo vacía</p>
+                                <p class="text-sm">No se han registrado eventos o comentarios para esta importación.</p>
+                            </div>
+                        @endif
 
                         <!-- Botón Finish (si aplica) -->
                         @if($this->initiatorCanFinish)

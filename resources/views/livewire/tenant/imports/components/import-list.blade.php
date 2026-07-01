@@ -72,12 +72,46 @@
         </div>
     </div>
 
+    @if(count($selectedItems) > 0)
+        <div class="mb-4 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300">
+                    {{ count($selectedItems) }}
+                </span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">ítems seleccionados. Definir prioridad en lote:</span>
+            </div>
+             <div class="flex items-center gap-2">
+                 <button wire:click="assignPriorityToSelected('ASAP')" 
+                         style="background-color: #dc2626; color: #ffffff;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                     ASAP
+                 </button>
+                 <button wire:click="assignPriorityToSelected('Second')" 
+                         style="background-color: #d97706; color: #ffffff;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                     Second
+                 </button>
+                 <button wire:click="assignPriorityToSelected('Third')" 
+                         style="background-color: #2563eb; color: #ffffff;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                     Third
+                 </button>
+                 <button wire:click="assignPriorityToSelected(null)" 
+                         style="background-color: #ffffff; color: #374151; border: 1px solid #d1d5db;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 shadow">
+                     Quitar
+                 </button>
+             </div>
+        </div>
+    @endif
+
     <!-- Vista Desktop (tabla) - oculta en móvil -->
     <div class="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
+                        <th scope="col" class="w-10 px-6 py-3"></th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('name')">
                             <div class="flex items-center space-x-1">
@@ -114,6 +148,17 @@
                         class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700' }} cursor-pointer transition-colors relative group"
                         wire:click="selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})">
 
+                        <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                                @php
+                                    $itemCurrentQty = $selectedQuantities[$item->id] ?? $item->quantity ?? 0;
+                                @endphp
+                                <input type="checkbox" 
+                                    wire:model.live="selectedItems" 
+                                    value="{{ $item->id }}"
+                                    {{ $itemCurrentQty <= 0 ? 'disabled' : '' }}
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 {{ $itemCurrentQty <= 0 ? 'opacity-50 cursor-not-allowed bg-gray-100' : '' }}"
+                                >
+                            </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
@@ -175,6 +220,7 @@
                 $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
             });
         "
+                                title="{{ !empty($item->label_assignments) ? "Cantidades pedidas por etiqueta:\n" . $item->label_assignments : 'Sin etiquetas programadas' }}"
                                 class="block w-24 px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                 placeholder="0">
                         </td>
@@ -329,6 +375,7 @@
                     $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
                 });
             "
+                        title="{{ !empty($item->label_assignments) ? "Cantidades pedidas por etiqueta:\n" . $item->label_assignments : 'Sin etiquetas programadas' }}"
                         class="block w-full px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                         placeholder="0">
                 </div>
