@@ -94,7 +94,7 @@ class Dashboard extends Component
             // 1. Ventas Hoy: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN hoy
             $ventasHoy = VntDetailQuote::whereHas('cotizacion', function($query) {
                 $query->whereDate('created_at', now()->today())
-                      ->where('status', 'REMISIÓN');
+                      ->whereIn('status', ['REMISIÓN', 'FACTURADO']);
             })->get()->sum(function($detalle) {
                 $valorBase = floatval($detalle->value) / (1 + (floatval($detalle->tax) ?? 0) / 100);
                 return round(floatval($detalle->quantity) * $valorBase);
@@ -110,7 +110,7 @@ class Dashboard extends Component
             // 4. Ventas del Periodo: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN en el rango de fechas
             $ventasPeriodo = VntDetailQuote::whereHas('cotizacion', function($query) use ($start, $end) {
                 $query->whereBetween('created_at', [$start, $end])
-                      ->where('status', 'REMISIÓN');
+                      ->whereIn('status', ['REMISIÓN', 'FACTURADO']);
             })->get()->sum(function($detalle) {
                 $valorBase = floatval($detalle->value) / (1 + (floatval($detalle->tax) ?? 0) / 100);
                 return round(floatval($detalle->quantity) * $valorBase);
