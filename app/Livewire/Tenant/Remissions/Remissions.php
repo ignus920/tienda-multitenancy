@@ -623,6 +623,12 @@ class Remissions extends Component
     {
         $query->where(function ($q) {
             $q->where('consecutive', 'like', '%' . $this->search . '%')
+                ->orWhere('status', 'like', '%' . $this->search . '%')
+                ->orWhere(DB::raw("DATE_FORMAT(created_at, '%d/%m/%Y')"), 'like', '%' . $this->search . '%')
+                ->orWhere(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), 'like', '%' . $this->search . '%')
+                ->orWhereHas('quote', function ($sub) {
+                    $sub->where('consecutive', 'like', '%' . $this->search . '%');
+                })
                 ->orWhereHas('quote.branch.company', function ($cc) {
                     $cc->where('businessName', 'like', '%' . $this->search . '%')
                         ->orWhere('identification', 'like', '%' . $this->search . '%')
@@ -637,6 +643,9 @@ class Remissions extends Component
                         ->orWhere('firstName', 'like', '%' . $this->search . '%')
                         ->orWhere('lastName', 'like', '%' . $this->search . '%');
                 })
+                ->orWhereHas('deliveryTypeModel', function ($sub) {
+                    $sub->where('name', 'like', '%' . $this->search . '%');
+                })
                 ->orWhereHas('invoice', function ($sub) {
                     $sub->where('status', 'like', '%' . $this->search . '%')
                         ->orWhere('invoiceNumber', 'like', '%' . $this->search . '%');
@@ -646,6 +655,12 @@ class Remissions extends Component
                 })
                 ->orWhereHas('invoice.payments.methodPayment', function ($mp) {
                     $mp->where('name', 'like', '%' . $this->search . '%');
+                })
+                ->orWhere(function ($sub) {
+                    $cleanedSearch = strtolower($this->search);
+                    if (str_contains($cleanedSearch, 'sin facturar') || str_contains($cleanedSearch, 'sin fact')) {
+                        $sub->whereDoesntHave('invoiceSale');
+                    }
                 });
         });
 
