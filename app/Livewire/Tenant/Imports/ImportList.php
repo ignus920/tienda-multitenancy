@@ -29,6 +29,7 @@ class ImportList extends Component
 
     // Array para almacenar las cantidades seleccionadas por item
     public $selectedQuantities = [];
+    public $selectedItems = [];
 
     // Array para almacenar los labels
     public $allLabels = [];
@@ -197,15 +198,18 @@ class ImportList extends Component
                 'inv_items.name',
                 'inv_items.internal_code',
                 DB::raw('COALESCE(inv_items_store.stock_items_store, 0) AS stock_items_store'),
-                DB::raw(
-                    $this->selectedLabelId
-                        ? 'COALESCE(imp_imports.qty_requested, 0) AS quantity'
-                        : 'COALESCE(MAX(imp_unconfirmed_qty.qty), 0) AS quantity'
-                ),
+                 DB::raw(
+                     $this->selectedLabelId
+                         ? 'COALESCE(imp_imports.qty_requested, 0) AS quantity'
+                         : 'COALESCE(MAX(imp_unconfirmed_qty.qty), 0) AS quantity'
+                 ),
                 DB::raw('0 AS percentage'),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "entrada" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS insideMovement'),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "salida" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS outsideMovement'),
-                DB::raw('COALESCE(imp_items_setup.exw, 0) AS exw')
+                DB::raw('COALESCE(imp_items_setup.exw, 0) AS exw'),
+                DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
+                DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at'),
+                DB::raw("(SELECT GROUP_CONCAT(CONCAT(il.name, ': ', ii.qty_requested, ' uds') SEPARATOR ' \n ') FROM imp_imports ii JOIN imp_labels il ON ii.label_id = il.id WHERE ii.item_id = inv_items.id AND ii.status < 8 AND ii.deleted_at IS NULL) AS label_assignments")
             ])
             ->leftJoin('inv_items_store', function ($join) use ($principalStore) {
                 $join->on('inv_items_store.itemId', '=', 'inv_items.id')
@@ -357,9 +361,25 @@ class ImportList extends Component
     {
         try {
             $this->ensureTenantConnection();
+            $principalStore = $this->getPrincipalStore();
 
-            // Obtener información completa del item
-            $item = Items::find($itemId);
+            // Obtener información completa del item incluyendo el stock y prioridades
+            $item = Items::query()
+                ->select([
+                    'inv_items.id',
+                    'inv_items.sku',
+                    'inv_items.name',
+                    'inv_items.description',
+                    DB::raw('COALESCE(inv_items_store.stock_items_store, 0) AS stock_items_store'),
+                    DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
+                    DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at')
+                ])
+                ->leftJoin('inv_items_store', function ($join) use ($principalStore) {
+                    $join->on('inv_items_store.itemId', '=', 'inv_items.id')
+                         ->where('inv_items_store.storeId', '=', $principalStore->id);
+                })
+                ->where('inv_items.id', $itemId)
+                ->first();
 
             if (!$item) {
                 Log::warning("Item no encontrado: {$itemId}");
@@ -377,7 +397,9 @@ class ImportList extends Component
                 'sku' => $item->sku,
                 'name' => $item->name,
                 'description' => $item->description,
-                'stock' => $item->stock_items_store ?? 0
+                'stock' => $item->stock_items_store ?? 0,
+                'priority' => $item->priority,
+                'priority_assigned_at' => $item->priority_assigned_at
             ]);
         } catch (\Exception $e) {
             Log::error('Error al seleccionar item: ' . $e->getMessage());
@@ -598,6 +620,91 @@ class ImportList extends Component
         $tenantManager->setConnection($tenant);
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+    }
+
+    public function assignPriorityToSelected($priority)
+    {
+        try {
+            if (empty($this->selectedItems)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No hay ítems seleccionados'
+                ]);
+                return;
+            }
+
+            $this->ensureTenantConnection();
+
+            DB::connection('tenant')->transaction(function () use ($priority) {
+                foreach ($this->selectedItems as $itemId) {
+                    $import = ImpImports::where('item_id', $itemId)
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->first();
+
+                    $unconfirmed = DB::connection('tenant')
+                        ->table('imp_unconfirmed_qty')
+                        ->where('item_id', $itemId)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    $unconfirmedQty = $unconfirmed ? $unconfirmed->qty : 0;
+
+                    if (!$import) {
+                        if ($unconfirmedQty > 0 || $priority === null) {
+                            if ($priority !== null) {
+                                ImpImports::create([
+                                    'item_id' => $itemId,
+                                    'priority' => $priority,
+                                    'priority_assigned_at' => now(),
+                                    'qty_requested' => $unconfirmedQty,
+                                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                                    'status' => 1
+                                ]);
+
+                                DB::connection('tenant')
+                                    ->table('imp_unconfirmed_qty')
+                                    ->where('item_id', $itemId)
+                                    ->update([
+                                        'qty' => 0,
+                                        'updated_at' => now()
+                                    ]);
+                            }
+                        }
+                    } else {
+                        $import->update([
+                            'priority' => $priority,
+                            'priority_assigned_at' => $priority ? now() : null,
+                            'user_id' => \Illuminate\Support\Facades\Auth::id()
+                        ]);
+
+                        if ($priority !== null && $unconfirmedQty > 0) {
+                            DB::connection('tenant')
+                                ->table('imp_unconfirmed_qty')
+                                ->where('item_id', $itemId)
+                                ->update([
+                                    'qty' => 0,
+                                    'updated_at' => now()
+                                ]);
+                        }
+                    }
+                }
+            });
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Prioridades asignadas en lote exitosamente'
+            ]);
+
+            $this->selectedItems = [];
+            $this->dispatch('$refresh');
+
+        } catch (\Exception $e) {
+            Log::error('Error al asignar prioridades en lote: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al asignar las prioridades: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**

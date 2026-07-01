@@ -45,6 +45,7 @@ class Orders extends Component
     public $showModalChangeQtyShip = false;
     public $showModalShipping = false;
     public $refreshCounter = 0;
+    public $selectAll = false;
 
     public $import_id;
     public $oldQty;
@@ -176,6 +177,7 @@ class Orders extends Component
                 'il.name AS label',
                 'ist.translated_name',
                 'i.status',
+                'i.priority',
                 'i.qty_shipped',
                 'i.news',
                 'i.price',
@@ -190,15 +192,15 @@ class Orders extends Component
                         LIMIT 1
                     ) AS ultimo_comentario")
             ])
-            ->join('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
-            ->join('inv_items as iv', 'iis.item_id', '=', 'iv.id')
-            ->join('imp_labels as il', 'i.label_id', '=', 'il.id')
+            ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
+            ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
+            ->leftJoin('imp_labels as il', 'i.label_id', '=', 'il.id')
             ->join('imp_status as ist', 'i.status', '=', 'ist.id')
             ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
             ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
-            // ->when(Auth::user()->profile_id == 17, function ($query) {
-            //     return $query->where('iis.supplier_id', Auth::id());
-            // })
+            ->when(Auth::user()->profile_id == 17, function ($query) {
+                return $query->where('iis.supplier_id', Auth::id());
+            })
             ->when($this->filterStatus, function ($query) {
                 return $query->where('i.status', $this->filterStatus);
             })
@@ -300,15 +302,21 @@ class Orders extends Component
         }
     }
 
+    public function updatedSelectAll($value)
+    {
+        $this->ensureTenantConnection();
+        if ($value) {
+            $this->selectedOrders = collect($this->orders->items())->pluck('id')->map(fn($id) => (string)$id)->toArray();
+        } else {
+            $this->selectedOrders = [];
+        }
+    }
+
     public function updatedSelectedOrders($value)
     {
         $this->ensureTenantConnection();
+        // Si no hay packs seleccionados, dejamos que el usuario marque los checkboxes libremente para otras acciones
         if (empty($this->selectedPackingIds)) {
-            $this->selectedOrders = [];
-            $this->dispatch('show-toast', [
-                'type' => 'warning',
-                'message' => 'Seleccione uno o más PACKS primero'
-            ]);
             return;
         }
 
@@ -368,6 +376,41 @@ class Orders extends Component
             ->where('imp_comments.import_id', $this->import_id)
             ->orderBy('imp_comments.created_at', 'DESC')
             ->get();
+    }
+
+    #[Computed]
+    public function timelineEvents()
+    {
+        if (!$this->import_id) {
+            return collect();
+        }
+
+        $centralDbName = config('database.connections.central.database');
+
+        // 1. Obtener comentarios
+        $comments = ImpComments::query()
+            ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
+            ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
+            ->where('imp_comments.import_id', $this->import_id)
+            ->get()
+            ->map(function ($item) {
+                $item->event_type = 'comment';
+                return $item;
+            });
+
+        // 2. Obtener cambios de estado
+        $statuses = ImpStatusHistory::query()->with(['previousStatus', 'newStatus'])
+            ->select('imp_status_history.created_at', 'imp_status_history.previous_state', 'imp_status_history.new_state', 'u.name')
+            ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_status_history.user_id')
+            ->where('imp_status_history.import_id', $this->import_id)
+            ->get()
+            ->map(function ($item) {
+                $item->event_type = 'status_change';
+                return $item;
+            });
+
+        // 3. Unificar y ordenar cronológicamente
+        return $comments->concat($statuses)->sortByDesc('created_at');
     }
 
     #[Computed]
@@ -445,6 +488,27 @@ class Orders extends Component
         Log::info("selectedLabelId final: " . ($this->selectedLabelId ?? 'null'));
         Log::info("selectedLabelName final: " . $this->selectedLabelName);
         Log::info("=== FIN LABEL SELECTED EVENT ===");
+    }
+
+    public function clearFilters()
+    {
+        $this->ensureTenantConnection();
+        $this->selectedLabelId = null;
+        $this->selectedLabelName = 'Programming';
+        $this->filterStatus = '';
+        $this->filterNews = '';
+        $this->filterPacking = '';
+        $this->search = '';
+        $this->selectedShipp = 0;
+        $this->resetPage();
+        
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Filtros restablecidos'
+        ]);
+
+        unset($this->orders);
+        $this->dispatch('$refresh');
     }
 
     public $selectedLabel = [
@@ -689,6 +753,54 @@ class Orders extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'No se pudo aprobar el precio'
+            ]);
+        }
+    }
+
+    public function approvePricesInBatch()
+    {
+        $this->ensureTenantConnection();
+        
+        if (empty($this->selectedOrders)) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'Por favor, selecciona al menos una orden'
+            ]);
+            return;
+        }
+
+        try {
+            DB::connection('tenant')->transaction(function () {
+                $imports = ImpImports::whereIn('id', $this->selectedOrders)
+                    ->whereIn('status', [1, 2]) // Solicitado o Cotizado
+                    ->get();
+
+                foreach ($imports as $import) {
+                    $oldStatus = $import->status;
+                    $newStatus = 4; // Aprobado / Producción
+
+                    // Guardar historial de estado
+                    ImpStatusHistory::create([
+                        'import_id' => $import->id,
+                        'previous_state' => $oldStatus,
+                        'new_state' => $newStatus,
+                        'user_id' => Auth::id()
+                    ]);
+
+                    $import->update(['status' => $newStatus]);
+                }
+            });
+
+            $this->selectedOrders = []; // Limpiar selección
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Órdenes aprobadas en lote exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error al aprobar en lote: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudieron aprobar las órdenes seleccionadas'
             ]);
         }
     }
@@ -1030,6 +1142,97 @@ class Orders extends Component
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+    }
+
+    public function rotatePriorities()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            DB::connection('tenant')->transaction(function () {
+                // 1. ASAP pasa a null
+                ImpImports::where('priority', 'ASAP')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => null,
+                        'priority_assigned_at' => null
+                    ]);
+
+                // 2. Second pasa a ASAP
+                ImpImports::where('priority', 'Second')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => 'ASAP',
+                        'priority_assigned_at' => now()
+                    ]);
+
+                // 3. Third pasa a Second
+                ImpImports::where('priority', 'Third')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => 'Second',
+                        'priority_assigned_at' => now()
+                    ]);
+            });
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Prioridades rotadas correctamente'
+            ]);
+
+            unset($this->orders);
+            $this->dispatch('$refresh');
+
+        } catch (\Exception $e) {
+            Log::error("Error al rotar prioridades: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudieron rotar las prioridades'
+            ]);
+        }
+    }
+    public function assignPriorityToSelectedOrders($priority)
+    {
+        try {
+            if (empty($this->selectedOrders)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No hay órdenes seleccionadas'
+                ]);
+                return;
+            }
+
+            $this->ensureTenantConnection();
+
+            DB::connection('tenant')->transaction(function () use ($priority) {
+                ImpImports::whereIn('id', $this->selectedOrders)
+                    ->update([
+                        'priority' => $priority,
+                        'priority_assigned_at' => $priority ? now() : null,
+                        'user_id' => Auth::id()
+                    ]);
+            });
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Prioridades actualizadas en lote exitosamente'
+            ]);
+
+            $this->selectedOrders = [];
+            $this->selectAll = false;
+            unset($this->orders);
+            $this->dispatch('$refresh');
+
+        } catch (\Exception $e) {
+            Log::error('Error al asignar prioridades en lote a las órdenes: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al asignar las prioridades: ' . $e->getMessage()
+            ]);
+        }
     }
 
     private function resetForm()
