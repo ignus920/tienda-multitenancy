@@ -808,6 +808,8 @@ class Quoter extends Component
                         ->orWhere('status', 'like', '%' . $this->search . '%')
                         ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
                         ->orWhere('observations', 'like', '%' . $this->search . '%')
+                        ->orWhere(DB::raw("DATE_FORMAT(created_at, '%d/%m/%Y')"), 'like', '%' . $this->search . '%')
+                        ->orWhere(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), 'like', '%' . $this->search . '%')
                         ->orWhereHas('customer', function ($subQ) {
                             $subQ->where('firstName', 'like', '%' . $this->search . '%')
                                 ->orWhere('secondName', 'like', '%' . $this->search . '%')
@@ -816,6 +818,56 @@ class Quoter extends Component
                                 ->orWhere('email', 'like', '%' . $this->search . '%')
                                 ->orWhere('business_phone', 'like', '%' . $this->search . '%')
                                 ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('customer.company', function ($subQ) {
+                            $subQ->where('businessName', 'like', '%' . $this->search . '%')
+                                ->orWhere('identification', 'like', '%' . $this->search . '%')
+                                ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                                ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('branch.company', function ($subQ) {
+                            $subQ->where('businessName', 'like', '%' . $this->search . '%')
+                                ->orWhere('identification', 'like', '%' . $this->search . '%')
+                                ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                                ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhere(function ($subQ) {
+                            // Buscar vendedor por nombre o teléfono en base de datos central
+                            $userIds = DB::connection('central')->table('users')
+                                ->where('name', 'like', '%' . $this->search . '%')
+                                ->orWhere('phone', 'like', '%' . $this->search . '%')
+                                ->pluck('id')
+                                ->toArray();
+                            if (!empty($userIds)) {
+                                $subQ->whereIn('userId', $userIds);
+                            }
+                        })
+                        ->orWhere(function ($subQ) {
+                            // Buscar bodegas en tenant que coincidan por nombre
+                            $storeIds = DB::connection('tenant')->table('inv_store')
+                                ->where('name', 'like', '%' . $this->search . '%')
+                                ->pluck('id')
+                                ->toArray();
+                            
+                            if (!empty($storeIds)) {
+                                // Obtener contactos de central con esa bodega
+                                $contactIds = DB::connection('central')->table('vnt_contacts')
+                                    ->whereIn('store', $storeIds)
+                                    ->pluck('id')
+                                    ->toArray();
+                                    
+                                if (!empty($contactIds)) {
+                                    // Obtener usuarios con esos contactos
+                                    $userIds = DB::connection('central')->table('users')
+                                        ->whereIn('contact_id', $contactIds)
+                                        ->pluck('id')
+                                        ->toArray();
+                                        
+                                    if (!empty($userIds)) {
+                                        $subQ->whereIn('userId', $userIds);
+                                    }
+                                }
+                            }
                         });
                 });
             })
