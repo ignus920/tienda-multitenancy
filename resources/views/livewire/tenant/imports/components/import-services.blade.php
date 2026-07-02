@@ -209,16 +209,16 @@
                          <!-- Contenedor Horizontal de Tarjetas de Prioridades (ASAP, Second, Third) -->
                          <div class="flex flex-wrap items-end gap-4">
                              @forelse($selectedItemPriorities as $prior)
-                                 <div class="flex flex-col items-center">
+                                 <div class="flex flex-col items-center w-16">
                                      <!-- Badge de Prioridad arriba -->
-                                     <span class="inline-flex items-center justify-center px-3 py-1 rounded-t-md text-[10px] font-extrabold text-white uppercase tracking-wider min-w-[70px] text-center shadow-sm
+                                     <span class="inline-flex items-center justify-center px-1 py-1 rounded-t-md text-[10px] font-extrabold text-white uppercase tracking-wider w-full text-center shadow-sm
                                          {{ $prior['priority'] === 'ASAP' ? 'bg-rose-600' : '' }}
                                          {{ $prior['priority'] === 'Second' ? 'bg-amber-600' : '' }}
                                          {{ $prior['priority'] === 'Third' ? 'bg-blue-600' : '' }}">
                                          {{ $prior['priority'] }}
                                      </span>
                                      <!-- Caja blanca con cantidad abajo -->
-                                     <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md w-[70px] py-1.5 text-center shadow-sm font-mono font-bold text-sm text-gray-900 dark:text-white">
+                                     <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md w-full py-1.5 text-center shadow-sm font-mono font-bold text-sm text-gray-900 dark:text-white">
                                          {{ $prior['qty_requested'] }}
                                      </div>
                                      <!-- Fecha debajo de la caja -->
