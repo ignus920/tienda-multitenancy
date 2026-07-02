@@ -96,11 +96,13 @@
                          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
                      Third
                  </button>
+                 {{-- 
                  <button wire:click="assignPriorityToSelected(null)" 
                          style="background-color: #ffffff; color: #374151; border: 1px solid #d1d5db;"
                          class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 shadow">
                      Quitar
                  </button>
+                 --}}
              </div>
         </div>
     @endif

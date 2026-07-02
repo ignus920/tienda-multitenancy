@@ -255,11 +255,13 @@
                                             class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
                                         Third
                                     </button>
+                                    {{-- 
                                     <button wire:click="assignPriorityToSelectedOrders(null)" 
                                             style="background-color: #ffffff; color: #374151; border: 1px solid #d1d5db;"
                                             class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
                                         Quitar
                                     </button>
+                                    --}}
                                 </div>
                             @endif
                             @if ($filterStatus == 7)
