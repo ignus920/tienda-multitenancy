@@ -22,7 +22,7 @@ class ImportList extends Component
     use WithPagination, HasCompanyConfiguration;
 
     public $search = '';
-    public $perPage = 10;
+    public $perPage = 20;
     public $sortField = 'id';
     public $sortDirection = 'asc';
     //public $storeId = 1; // Warehouse/Store ID configurable
