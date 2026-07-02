@@ -363,10 +363,15 @@
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
                                 @if ($profileUser != '17')
                                 <td class="px-4 py-4">
+                                    @php
+                                        $hasPrice = isset($order->price) && floatval($order->price) > 0;
+                                    @endphp
                                     <input type="checkbox" 
                                         wire:model.live="selectedOrders" 
                                         value="{{ $order->id }}"
-                                        class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                        {{ !$hasPrice ? 'disabled' : '' }}
+                                        class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 {{ !$hasPrice ? 'opacity-40 cursor-not-allowed bg-gray-150' : '' }}"
+                                        title="{{ !$hasPrice ? 'No se puede seleccionar hasta tener precio cotizado' : 'Seleccionar ítem' }}"
                                     >
                                 </td>
                                 @endif
