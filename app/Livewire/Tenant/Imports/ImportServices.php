@@ -792,11 +792,18 @@ class ImportServices extends Component
 
 
 
-                // Si es el item seleccionado, actualizar variables locales
+                // Si es el item seleccionado, actualizar variables locales y reiniciar cantidad a 0
                 if ($this->selectedItemId == $itemId) {
                     $this->selectedItemPriority = $newPriority;
                     $this->selectedItemPriorityDate = $newPriority ? now()->format('Y-m-d H:i:s') : null;
+                    $this->selectedItemQuantity = 0;
                 }
+
+                // Despachar evento para limpiar visualmente el input en el listado
+                $this->dispatch('update-item-quantity', [
+                    'itemId' => $itemId,
+                    'quantity' => 0
+                ]);
 
                 $this->dispatch('show-toast', [
                     'type' => 'success',

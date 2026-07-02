@@ -209,13 +209,26 @@
                         <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
                             Item seleccionado: <span class="font-bold">{{ $selectedItemData['sku'] ?? 'N/A' }} - {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
                         </p>
-                        <p class="text-xs text-blue-700 dark:text-blue-300">
-                            Etiqueta: <span class="font-bold uppercase text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 px-1.5 py-0.5 rounded">{{ $selectedLabelName }}</span> | 
-                            Cantidad: <span class="font-semibold">{{ $selectedItemQuantity }}</span> | 
-                            Stock: {{ $selectedItemData['stock'] ?? 0 }} |
-                            Prioridad: <span class="font-bold uppercase">{{ $selectedItemPriority ?? 'Sin prioridad' }}</span>
-                            @if($selectedItemPriorityDate)
-                                <span class="text-[10px] text-gray-500">({{ \Carbon\Carbon::parse($selectedItemPriorityDate)->format('d/m/Y H:i') }})</span>
+                        <p class="text-xs text-blue-700 dark:text-blue-300 flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1">
+                            <span>Etiqueta: <span class="font-bold uppercase text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 px-1.5 py-0.5 rounded">{{ $selectedLabelName }}</span></span>
+                            <span>Cantidad: <span class="font-semibold">{{ $selectedItemQuantity }}</span></span>
+                            <span>Stock: {{ $selectedItemData['stock'] ?? 0 }}</span>
+                            
+                            @if($selectedItemPriority)
+                                <span class="flex items-center gap-1">
+                                    Prioridad: 
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white uppercase
+                                        {{ $selectedItemPriority === 'ASAP' ? 'bg-rose-600' : '' }}
+                                        {{ $selectedItemPriority === 'Second' ? 'bg-amber-600' : '' }}
+                                        {{ $selectedItemPriority === 'Third' ? 'bg-blue-600' : '' }}">
+                                        {{ $selectedItemPriority }}
+                                    </span>
+                                    @if($selectedItemPriorityDate)
+                                        <span class="text-[10px] text-gray-500 font-mono">({{ \Carbon\Carbon::parse($selectedItemPriorityDate)->format('d/m/Y') }})</span>
+                                    @endif
+                                </span>
+                            @else
+                                <span>Prioridad: <span class="font-semibold text-gray-400">Sin prioridad</span></span>
                             @endif
                         </p>
                     </div>
