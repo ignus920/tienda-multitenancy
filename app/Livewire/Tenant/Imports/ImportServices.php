@@ -366,20 +366,8 @@ class ImportServices extends Component
             $this->ensureTenantConnection();
             Log::info('Conexión tenant establecida');
 
-            // Verificar si ya existe una asignación
-            $existingAssignment = ImpImports::where('item_id', $itemId)
-                ->where('label_id', $labelId)
-                ->where('status', 1)
-                ->whereNull('deleted_at')
-                ->first();
-
-            if ($existingAssignment) {
-                Log::warning('La etiqueta ya está asignada a este item');
-                Log::info('Asignación existente: ' . json_encode($existingAssignment->toArray()));
-                session()->flash('error', "La etiqueta '{$labelName}' ya está asignada a este item");
-                return;
-            }
-            Log::info('No existe asignación previa - OK para continuar');
+            // Siempre permitir crear un nuevo registro de importación sin validar existencia previa
+            Log::info('Procediendo con la inserción del nuevo pedido de importación...');
 
             $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
             Log::info('Item Setup encontrado: ' . ($itemSetup ? 'SI' : 'NO'));
@@ -594,19 +582,8 @@ class ImportServices extends Component
             }
 
             // Verificar si ya existe una asignación
-            $existingAssignment = ImpImports::where('item_id', $this->selectedItemId)
-                ->where('label_id', $labelId)
-                ->where('status', 1)
-                ->whereNull('deleted_at')
-                ->first();
-
-            if ($existingAssignment) {
-                Log::warning('La etiqueta ya está asignada a este item');
-                Log::info('Asignación existente: ' . json_encode($existingAssignment->toArray()));
-                session()->flash('error', "La etiqueta '{$labelName}' ya está asignada a este item");
-                return;
-            }
-            Log::info('No existe asignación previa - OK para continuar');
+            // Siempre permitir crear un nuevo registro de importación sin validar existencia previa
+            Log::info('Procediendo con la inserción del nuevo pedido de importación...');
 
             $itemSetup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $this->selectedItemId)->first();
             Log::info('Item Setup encontrado: ' . ($itemSetup ? 'SI' : 'NO'));
