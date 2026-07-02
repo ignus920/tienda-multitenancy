@@ -567,20 +567,47 @@ class ProductQuoter extends Component
                 }
             }
 
+            $currentQty = (int) $this->quoterItems[$existingIndex]['quantity'];
+            $previousPriceLabel = $this->quoterItems[$existingIndex]['price_label'] ?? '';
+            $wasBoxPrice = str_contains(strtolower($previousPriceLabel), 'caja');
+
             // Actualizar información y cantidad
             if ($isBoxPrice) {
                 $this->quoterItems[$existingIndex]['price_label'] = 'Precio unitario x caja';
                 $this->quoterItems[$existingIndex]['quntityxbox'] = $quntityxbox;
                 $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+                
                 if ($quntityxbox > 0) {
-                    $this->quoterItems[$existingIndex]['quantity'] += $quntityxbox;
+                    // Si antes NO era precio de caja (ej: precio lista), reescribimos la cantidad a 1 caja (quntityxbox)
+                    // Si ya era precio de caja, le sumamos otra caja entera (quntityxbox)
+                    if (!$wasBoxPrice) {
+                        $this->quoterItems[$existingIndex]['quantity'] = $quntityxbox;
+                    } else {
+                        // Si ya era de caja pero por alguna razón no era múltiplo (tiene justificación), validamos si al sumar quntityxbox sigue sin ser múltiplo
+                        $newQty = $currentQty + $quntityxbox;
+                        if ($newQty % $quntityxbox !== 0) {
+                            // Lanzar evento para justificación ya que no es múltiplo
+                            $this->dispatch('open-box-justification-modal', [
+                                'index' => $existingIndex,
+                                'requestedQuantity' => $newQty,
+                                'quntityxbox' => $quntityxbox
+                            ]);
+                            return;
+                        }
+                        $this->quoterItems[$existingIndex]['quantity'] = $newQty;
+                    }
                 } else {
                     $this->quoterItems[$existingIndex]['quantity']++;
                 }
             } else {
                 $this->quoterItems[$existingIndex]['price_label'] = $priceLabel;
                 $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
-                $this->quoterItems[$existingIndex]['quantity']++;
+                // Si antes era precio de caja y ahora cambia a unitario, reajustamos la cantidad a 1 unidad para comenzar el flujo unitario
+                if ($wasBoxPrice) {
+                    $this->quoterItems[$existingIndex]['quantity'] = 1;
+                } else {
+                    $this->quoterItems[$existingIndex]['quantity']++;
+                }
             }
         } else {
             // Obtener el producto solo cuando es necesario
@@ -991,6 +1018,10 @@ class ProductQuoter extends Component
 
         // Actualizar sesión
         session(['quoter_items' => $this->quoterItems]);
+
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
 
         // Recalcular total
         $this->calculateTotal();
