@@ -493,6 +493,9 @@ class ImportServices extends Component
                 'quantity' => 0
             ]);
 
+            // Forzar refresco de la tabla del listado
+            $this->dispatch('refresh-import-list');
+
             // Si es el item seleccionado, limpiar la selección para cerrar el panel
             if ($this->selectedItemId == $itemId) {
                 $this->selectedItemId = null;
