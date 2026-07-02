@@ -523,6 +523,7 @@ new class extends Component
                 <a href="{{ route('tenant.parameters.buttons') }}" wire:navigate
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.parameters.buttons') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Botones
+                </a>
                 <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.parameters.access-control') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Control de Acceso
@@ -546,6 +547,7 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Control Acceso</a>
             </div>
         </div>
+        @endif
 
         <!-- Mercadeo -->
         @if(!$isOperario && PermissionHelper::userCan('Mercadeo', 'show'))
