@@ -195,11 +195,11 @@
 
         <!-- Item seleccionado (opcional - posicionado arriba para prioridad) -->
         @if($selectedItemId)
-        <div x-data 
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 transform scale-95"
-             x-transition:enter-end="opacity-100 transform scale-100"
-             class="sticky top-0 z-[45] mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg shadow-md">
+         <div x-data 
+              x-transition:enter="transition ease-out duration-200"
+              x-transition:enter-start="opacity-0 transform scale-95"
+              x-transition:enter-end="opacity-100 transform scale-100"
+              class="sticky top-0 z-[100] mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg shadow-lg">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
                     <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
