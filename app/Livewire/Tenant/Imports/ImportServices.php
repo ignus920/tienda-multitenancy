@@ -32,6 +32,7 @@ class ImportServices extends Component
     public $selectedItemData = [];
     public $selectedItemPriority = null;
     public $selectedItemPriorityDate = null;
+    public $selectedItemPriorities = []; // Array de prioridades activas (ASAP, Second, Third) con sus cantidades y fechas
     public $selectedLabelId = null;
     public $selectedLabelName = 'Programación';
 
@@ -274,6 +275,15 @@ class ImportServices extends Component
         Log::info('Cargando asignaciones del item...');
         $this->loadItemAssignments();
 
+        // Cargar todas las prioridades activas del ítem para mostrarlas en el banner
+        $this->selectedItemPriorities = ImpImports::where('item_id', $this->selectedItemId)
+            ->where('status', '<', 8)
+            ->whereNotNull('priority')
+            ->whereNull('deleted_at')
+            ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third')")
+            ->get(['priority', 'qty_requested', 'priority_assigned_at'])
+            ->toArray();
+
         // Cargar las cantidades mensuales del item seleccionado
         Log::info('Cargando cantidades mensuales del item...');
         $this->monthlyQuantities = $this->loadMonthlyQuantities();
@@ -284,6 +294,7 @@ class ImportServices extends Component
         Log::info('Datos completos: ' . json_encode($this->selectedItemData));
         Log::info('Total asignaciones cargadas: ' . count($this->itemAssignments));
         Log::info('Cantidades mensuales: ' . json_encode($this->monthlyQuantities));
+        Log::info('Prioridades activas encontradas: ' . json_encode($this->selectedItemPriorities));
         Log::info('=== FIN ITEM SELECCIONADO ===');
     }
 
