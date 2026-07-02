@@ -660,42 +660,32 @@ class ImportList extends Component
                         ->first();
                     $unconfirmedQty = $unconfirmed ? $unconfirmed->qty : 0;
 
-                    if (!$import) {
-                        if ($unconfirmedQty > 0 || $priority === null) {
-                            if ($priority !== null) {
-                                ImpImports::create([
-                                    'item_id' => $itemId,
-                                    'priority' => $priority,
-                                    'priority_assigned_at' => now(),
-                                    'qty_requested' => $unconfirmedQty,
-                                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
-                                    'status' => 1
-                                ]);
-
-                                DB::connection('tenant')
-                                    ->table('imp_unconfirmed_qty')
-                                    ->where('item_id', $itemId)
-                                    ->update([
-                                        'qty' => 0,
-                                        'updated_at' => now()
-                                    ]);
-                            }
-                        }
-                    } else {
-                        $import->update([
+                    // Si hay una cantidad sin confirmar (> 0), en la vista de Movimiento siempre insertamos un nuevo pedido
+                    if ($unconfirmedQty > 0 && $priority !== null) {
+                        ImpImports::create([
+                            'item_id' => $itemId,
                             'priority' => $priority,
-                            'priority_assigned_at' => $priority ? now() : null,
-                            'user_id' => \Illuminate\Support\Facades\Auth::id()
+                            'priority_assigned_at' => now(),
+                            'qty_requested' => $unconfirmedQty,
+                            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                            'status' => 1
                         ]);
 
-                        if ($priority !== null && $unconfirmedQty > 0) {
-                            DB::connection('tenant')
-                                ->table('imp_unconfirmed_qty')
-                                ->where('item_id', $itemId)
-                                ->update([
-                                    'qty' => 0,
-                                    'updated_at' => now()
-                                ]);
+                        DB::connection('tenant')
+                            ->table('imp_unconfirmed_qty')
+                            ->where('item_id', $itemId)
+                            ->update([
+                                'qty' => 0,
+                                'updated_at' => now()
+                            ]);
+                    } else {
+                        // Si no hay cantidad nueva, o es para quitar la prioridad, actualizamos el registro existente
+                        if ($import) {
+                            $import->update([
+                                'priority' => $priority,
+                                'priority_assigned_at' => $priority ? now() : null,
+                                'user_id' => \Illuminate\Support\Facades\Auth::id()
+                            ]);
                         }
                     }
                 }

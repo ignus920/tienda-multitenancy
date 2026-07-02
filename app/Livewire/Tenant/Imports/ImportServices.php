@@ -761,22 +761,33 @@ class ImportServices extends Component
 
                 $unconfirmedQty = $unconfirmed ? $unconfirmed->qty : 0;
 
-                if ($import) {
-                    $import->update([
-                        'priority' => $newPriority,
-                        'priority_assigned_at' => $newPriority ? now() : null,
-                        'qty_requested' => $unconfirmedQty > 0 ? $unconfirmedQty : $import->qty_requested,
-                        'user_id' => \Illuminate\Support\Facades\Auth::id()
-                    ]);
-                } else {
+                // Si hay una cantidad preliminar mayor a 0, siempre insertamos un nuevo pedido en movimiento
+                if ($unconfirmedQty > 0 && $newPriority !== null) {
                     ImpImports::create([
                         'item_id' => $itemId,
                         'priority' => $newPriority,
-                        'priority_assigned_at' => $newPriority ? now() : null,
+                        'priority_assigned_at' => now(),
                         'qty_requested' => $unconfirmedQty,
                         'user_id' => \Illuminate\Support\Facades\Auth::id(),
                         'status' => 1
                     ]);
+
+                    DB::connection('tenant')
+                        ->table('imp_unconfirmed_qty')
+                        ->where('item_id', $itemId)
+                        ->update([
+                            'qty' => 0,
+                            'updated_at' => now()
+                        ]);
+                } else {
+                    // Si no hay cantidad nueva, o es para quitar la prioridad, actualizamos el registro existente
+                    if ($import) {
+                        $import->update([
+                            'priority' => $newPriority,
+                            'priority_assigned_at' => $newPriority ? now() : null,
+                            'user_id' => \Illuminate\Support\Facades\Auth::id()
+                        ]);
+                    }
                 }
 
 
