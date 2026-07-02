@@ -200,58 +200,59 @@
               x-transition:enter-start="opacity-0 transform scale-95"
               x-transition:enter-end="opacity-100 transform scale-100"
               class="sticky top-0 z-[100] mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg shadow-lg">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-start justify-between gap-4">
+                <!-- Izquierda: Prioridades y cantidades -->
+                <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                     <div class="space-y-4">
-                         <!-- Contenedor Horizontal de Tarjetas de Prioridades (ASAP, Second, Third) -->
-                         <div class="flex flex-wrap items-end gap-4">
-                             @forelse($selectedItemPriorities as $prior)
-                                 <div class="flex flex-col items-center w-16">
-                                     <!-- Badge de Prioridad arriba -->
-                                     <span class="inline-flex items-center justify-center px-1 py-1 rounded-t-md text-[10px] font-extrabold text-white uppercase tracking-wider w-full text-center shadow-sm
-                                         {{ $prior['priority'] === 'ASAP' ? 'bg-rose-600' : '' }}
-                                         {{ $prior['priority'] === 'Second' ? 'bg-amber-600' : '' }}
-                                         {{ $prior['priority'] === 'Third' ? 'bg-blue-600' : '' }}">
-                                         {{ $prior['priority'] }}
-                                     </span>
-                                     <!-- Caja blanca con cantidad abajo -->
-                                     <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md w-full py-1.5 text-center shadow-sm font-mono font-bold text-sm text-gray-900 dark:text-white">
-                                         {{ $prior['qty_requested'] }}
-                                     </div>
-                                     <!-- Fecha debajo de la caja -->
-                                     @if($prior['priority_assigned_at'])
-                                         <span class="text-[9px] text-gray-500 dark:text-gray-400 font-mono mt-1">
-                                             {{ \Carbon\Carbon::parse($prior['priority_assigned_at'])->format('d/m/Y') }}
-                                         </span>
-                                     @endif
-                                 </div>
-                             @empty
-                                 <span class="text-xs text-gray-400 italic">Sin prioridades programadas en este momento</span>
-                             @endforelse
-                         </div>
+                    <!-- Contenedor Horizontal de Tarjetas de Prioridades (ASAP, Second, Third) -->
+                    <div class="flex flex-wrap items-end gap-4">
+                        @forelse($selectedItemPriorities as $prior)
+                            <div class="flex flex-col items-center w-16">
+                                <!-- Badge de Prioridad arriba -->
+                                <span class="inline-flex items-center justify-center px-1 py-1 rounded-t-md text-[10px] font-extrabold text-white uppercase tracking-wider w-full text-center shadow-sm
+                                    {{ $prior['priority'] === 'ASAP' ? 'bg-rose-600' : '' }}
+                                    {{ $prior['priority'] === 'Second' ? 'bg-amber-600' : '' }}
+                                    {{ $prior['priority'] === 'Third' ? 'bg-blue-600' : '' }}">
+                                    {{ $prior['priority'] }}
+                                </span>
+                                <!-- Caja blanca con cantidad abajo -->
+                                <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md w-full py-1.5 text-center shadow-sm font-mono font-bold text-sm text-gray-900 dark:text-white">
+                                    {{ $prior['qty_requested'] }}
+                                </div>
+                                <!-- Fecha debajo de la caja -->
+                                @if($prior['priority_assigned_at'])
+                                    <span class="text-[9px] text-gray-500 dark:text-gray-400 font-mono mt-1">
+                                        {{ \Carbon\Carbon::parse($prior['priority_assigned_at'])->format('d/m/Y') }}
+                                    </span>
+                                @endif
+                            </div>
+                        @empty
+                            <span class="text-xs text-gray-400 italic mt-1">Sin prioridades programadas en este momento</span>
+                        @endforelse
+                    </div>
+                </div>
 
-                         <!-- Nombre y Detalles del Producto abajo -->
-                         <div>
-                             <p class="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-1.5">
-                                 <span class="font-bold text-blue-950 dark:text-blue-200">{{ $selectedItemData['sku'] ?? 'N/A' }}</span>
-                                 <span class="text-blue-800 dark:text-blue-300">- {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
-                             </p>
-                         </div>
-                     </div>
-                 </div>
-                 <button wire:click="$set('selectedItemId', null)" 
-                         class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors self-start mt-1">
-                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                     </svg>
-                 </button>
+                <!-- Derecha: Información del producto y botón de cerrar -->
+                <div class="flex items-center gap-4 text-right">
+                    <div class="max-w-md sm:max-w-xl md:max-w-2xl">
+                        <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            <span class="font-bold text-blue-950 dark:text-blue-200">{{ $selectedItemData['sku'] ?? 'N/A' }}</span>
+                            <span class="text-blue-800 dark:text-blue-300">- {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
+                        </p>
+                    </div>
+                    <button wire:click="$set('selectedItemId', null)" 
+                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors flex-shrink-0">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- Tabla de meses -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 overflow-hidden mt-4">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-blue-200 dark:divide-blue-700">
                         <thead class="bg-blue-100 dark:bg-blue-900/30">
