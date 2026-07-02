@@ -344,6 +344,17 @@ class ImportList extends Component
 
             // Actualizar el array local
             $this->selectedQuantities[$itemId] = $quantity;
+
+            // Seleccionar automáticamente el checkbox de la fila si la cantidad es mayor a 0
+            if ($quantity > 0) {
+                if (!in_array($itemId, $this->selectedItems)) {
+                    $this->selectedItems[] = $itemId;
+                }
+            } else {
+                // Si la cantidad es 0, deseleccionar el checkbox
+                $this->selectedItems = array_values(array_filter($this->selectedItems, fn($id) => $id != $itemId));
+            }
+
             $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
             $this->dispatch('refresh-import-list');
         } catch (\Exception $e) {
