@@ -289,6 +289,17 @@ class CarteraList extends Component
     // Propiedades adicionales para múltiples pagos en cartera
     public $paymentRows = [];
     public $paymentFiles = [];
+    public $originalPaymentRows = [];
+    public $editJustificacionText = '';
+
+    /**
+     * Determina si el usuario autenticado tiene permiso para editar las formas de pago.
+     * Caleb = 194, 198; Yaneth = 206
+     */
+    public function getCanEditPaymentsProperty()
+    {
+        return in_array(auth()->id(), [194, 198, 206]);
+    }
 
     /**
      * Abre el modal de carga de soporte de pago para una remisión.
@@ -300,6 +311,7 @@ class CarteraList extends Component
         $this->proofPaymentFile = null;
         $this->paymentRows = [];
         $this->paymentFiles = [];
+        $this->editJustificacionText = '';
         
         $remission = InvRemissions::findOrFail($remissionId);
         
@@ -329,6 +341,8 @@ class CarteraList extends Component
                 ]
             ];
         }
+
+        $this->originalPaymentRows = $this->paymentRows;
             
         $this->showUploadModal = true;
     }
@@ -435,8 +449,69 @@ class CarteraList extends Component
             return;
         }
 
+        // Si es Caleb/Yaneth, verificar si hubo cambios en los pagos en comparación con originalPaymentRows
+        $hasChanges = false;
+        if (count($this->paymentRows) !== count($this->originalPaymentRows)) {
+            $hasChanges = true;
+        } else {
+            foreach ($this->paymentRows as $index => $row) {
+                $orig = $this->originalPaymentRows[$index] ?? null;
+                if (!$orig 
+                    || $row['method_payment_id'] != $orig['method_payment_id'] 
+                    || floatval($row['value']) != floatval($orig['value'])) {
+                    $hasChanges = true;
+                    break;
+                }
+            }
+        }
+
+        if ($hasChanges && $this->canEditPayments) {
+            if (empty(trim($this->editJustificacionText))) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'La justificación del cambio es obligatoria para guardar las modificaciones en las formas de pago.'
+                ]);
+                return;
+            }
+        }
+
         try {
             DB::connection('tenant')->beginTransaction();
+
+            // Guardar justificación si hubo cambios y se escribió
+            if ($hasChanges && !empty(trim($this->editJustificacionText))) {
+                $userName = auth()->user()->name;
+                $date = now()->format('Y-m-d H:i');
+
+                // Obtener observación actual
+                $existingObs = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $this->selectedRemissionId)
+                    ->where('reference_type', 'remission')
+                    ->where('observation_type', 'payment_obs')
+                    ->first();
+
+                // Formatear la nueva justificación
+                $newLog = "[MODIFICADO POR {$userName} ({$date})]: " . trim($this->editJustificacionText);
+                
+                // Si la existente es "N/A" o vacía, la reemplazamos. Si no, concatenamos.
+                $currentText = $existingObs ? trim($existingObs->observation) : '';
+                if ($currentText === '' || strtoupper($currentText) === 'N/A') {
+                    $finalText = $newLog;
+                } else {
+                    $finalText = $currentText . "\n" . $newLog;
+                }
+
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    [
+                        'reference_id' => $this->selectedRemissionId,
+                        'reference_type' => 'remission',
+                        'observation_type' => 'payment_obs'
+                    ],
+                    [
+                        'observation' => $finalText,
+                        'userId' => auth()->id()
+                    ]
+                );
+            }
 
             $paymentsArray = [];
             foreach ($this->paymentRows as $index => $row) {
@@ -473,6 +548,8 @@ class CarteraList extends Component
             $this->proofPaymentFile = null;
             $this->paymentRows = [];
             $this->paymentFiles = [];
+            $this->originalPaymentRows = [];
+            $this->editJustificacionText = '';
             $this->selectedRemissionId = null;
 
             $this->dispatch('show-toast', [

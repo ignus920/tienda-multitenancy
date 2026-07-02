@@ -111,8 +111,8 @@ class ObservationsModal extends Component
             if (is_string($paymentDetails)) {
                 $paymentDetails = json_decode($paymentDetails, true);
             }
+            $paymentObsList = [];
             if (is_array($paymentDetails) && count($paymentDetails) > 0) {
-                $paymentObsList = [];
                 $allMethods = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')->get()->keyBy('id');
                 foreach ($paymentDetails as $pDetail) {
                     $methodName = $allMethods[$pDetail['method_payment_id'] ?? '']?->name ?? 'MÉTODO';
@@ -121,11 +121,18 @@ class ObservationsModal extends Component
                         $paymentObsList[] = "[$methodName]: $obsValue";
                     }
                 }
-                if (!empty($paymentObsList)) {
-                    $this->observationData['payment_obs'] = implode("\n", $paymentObsList);
-                } else {
-                    $this->observationData['payment_obs'] = 'N/A';
-                }
+            }
+
+            // También cargar el historial/trazabilidad acumulada en la tabla vnt_observations
+            $historyPaymentObs = $observations->where('observation_type', 'payment_obs')->first();
+            if ($historyPaymentObs && !empty(trim($historyPaymentObs->observation))) {
+                $paymentObsList[] = trim($historyPaymentObs->observation);
+            }
+
+            if (!empty($paymentObsList)) {
+                $this->observationData['payment_obs'] = implode("\n", $paymentObsList);
+            } else {
+                $this->observationData['payment_obs'] = 'N/A';
             }
 
             // Cargar observación de facturación de la factura asociada si no se cargó ya de la remisión
