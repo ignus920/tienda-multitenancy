@@ -178,6 +178,7 @@ class Orders extends Component
                 'ist.translated_name',
                 'i.status',
                 'i.priority',
+                'i.priority_assigned_at',
                 'i.qty_shipped',
                 'i.news',
                 'i.price',

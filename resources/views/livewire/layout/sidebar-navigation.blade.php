@@ -767,33 +767,56 @@ new class extends Component
         @endif
         --}}
 
-        <!-- Importaciones -->
-        @if(Auth::user()?->profile_id === 2 || (!$isOperario && PermissionHelper::userCan('Importaciones', 'show') && Auth::user()?->profile_id != 17))
-        <a href="{{ route('imports.imports') }}" wire:navigate
-            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
-
+        <!-- Importaciones (Menú Desplegable Exclusivo para Analistas / Admin) -->
+        @if((Auth::user()?->profile_id === 2 || (!$isOperario && PermissionHelper::userCan('Importaciones', 'show'))) && Auth::user()?->profile_id != 17)
+        <div x-data="{
+            tooltip: false,
+            open: {{ request()->routeIs('imports.*') ? 'true' : 'false' }},
+            _t: null
+        }" class="w-full relative">
+            <!-- Botón Principal -->
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('imports.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
+                @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)"
+                @click="open = !open">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                      stroke-width="2" stroke="currentColor" class="h-5 w-5 shrink-0">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M3 9 12 4l9 5-9 5-9-5Zm0 6 9 5 9-5" />
                 </svg>
-
-            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
-                class="ml-3">
-                Importaciones
-            </span>
-
-            <!-- Tooltip -->
-            <div x-show="tooltip" x-transition
-                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
-                Importaciones
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>Importaciones</span>
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                     class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                     stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
             </div>
-        </a>
+
+            <!-- Submenú expandido -->
+            <div x-show="open && !sidebarCollapsed" x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400 font-medium">
+                <a href="{{ route('imports.imports') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('imports.imports') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Movimiento
+                </a>
+                <a href="{{ route('imports.costing') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('imports.costing') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Costeo de Importaciones
+                </a>
+            </div>
+
+            <!-- Tooltip colapsado -->
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Importaciones</div>
+                <a href="{{ route('imports.imports') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Movimiento</a>
+                <a href="{{ route('imports.costing') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Costeo</a>
+            </div>
+        </div>
         @endif
 
         <!-- Ordenes -->

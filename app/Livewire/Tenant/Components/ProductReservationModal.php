@@ -23,6 +23,7 @@ class ProductReservationModal extends Component
     public $productId = null;
     public $productName = null;
     public $productCode = null;
+    public $transitImports = [];
 
     // Campos del Formulario de Reserva
     public $stock_type = ''; // 1: En stock, 2: En tránsito
@@ -74,21 +75,33 @@ class ProductReservationModal extends Component
         $this->productName = null;
         $this->productCode = null;
         
+        $this->resetValidation();
+        $this->reset([
+            'stock_type', 'advance_payment', 'quantity', 'due_date', 
+            'customer_id', 'description', 'customerSearch', 'selectedCustomerName',
+            'showEditStatusModal', 'editingReservationId', 'newStatusId', 'statusObservations',
+            'transitImports'
+        ]);
+
         if ($productId) {
             $this->ensureTenantConnection();
             $product = Items::find($productId);
             if ($product) {
                 $this->productName = $product->name;
                 $this->productCode = $product->internal_code ?? $product->sku;
+                
+                $this->transitImports = DB::connection('tenant')
+                    ->table('imp_imports as i')
+                    ->select('i.qty_requested', 's.etd', 's.operation_number')
+                    ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
+                    ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
+                    ->where('i.item_id', $productId)
+                    ->where('i.status', 7) // 7 = En tránsito
+                    ->whereNull('i.deleted_at')
+                    ->get()
+                    ->toArray();
             }
         }
-
-        $this->resetValidation();
-        $this->reset([
-            'stock_type', 'advance_payment', 'quantity', 'due_date', 
-            'customer_id', 'description', 'customerSearch', 'selectedCustomerName',
-            'showEditStatusModal', 'editingReservationId', 'newStatusId', 'statusObservations'
-        ]);
         
         // Poner fecha de vencimiento por defecto a 10 días
         $this->due_date = now()->addDays(10)->format('Y-m-d');
@@ -179,6 +192,8 @@ class ProductReservationModal extends Component
             $transitoDisponible = (int) DB::connection('tenant')
                 ->table('imp_imports')
                 ->where('item_id', $this->productId)
+                ->where('status', 7) // 7 = En tránsito
+                ->whereNull('deleted_at')
                 ->sum('qty_requested');
 
             if (($alreadyReserved + $this->quantity) > $transitoDisponible) {

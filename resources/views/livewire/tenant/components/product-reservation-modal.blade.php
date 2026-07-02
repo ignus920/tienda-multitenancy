@@ -41,7 +41,7 @@
                             <!-- Ubicacion stock -->
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Ubicación Stock *</label>
-                                <select wire:model="stock_type" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm">
+                                <select wire:model.live="stock_type" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm">
                                     <option value="">Seleccione una opción</option>
                                     <option value="1">En stock</option>
                                     <option value="2">En tránsito</option>
@@ -146,6 +146,43 @@
                                 @error('description') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
+
+                        <!-- Información de Embarques en Tránsito Activos -->
+                        @if ($stock_type == '2' && !empty($transitImports))
+                            <div class="mt-4 p-4 bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900 rounded-xl space-y-2">
+                                <div class="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Embarques activos en Tránsito
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-xs text-indigo-950 dark:text-indigo-200">
+                                        <thead>
+                                            <tr class="border-b border-indigo-100 dark:border-indigo-900 font-semibold">
+                                                <th class="py-1 pr-4">Operación #</th>
+                                                <th class="py-1 pr-4 text-center">Unidades</th>
+                                                <th class="py-1">Llegada Estimada (ETD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-indigo-100/50 dark:divide-indigo-900/50 font-mono">
+                                            @foreach ($transitImports as $ti)
+                                                @php
+                                                    $tiData = (object)$ti;
+                                                @endphp
+                                                <tr>
+                                                    <td class="py-1.5 pr-4 font-semibold">{{ $tiData->operation_number ?? 'N/A' }}</td>
+                                                    <td class="py-1.5 pr-4 text-center">{{ number_format($tiData->qty_requested ?? 0) }}</td>
+                                                    <td class="py-1.5 font-semibold text-slate-700 dark:text-slate-300">
+                                                        {{ $tiData->etd ? \Carbon\Carbon::parse($tiData->etd)->format('d/m/Y') : 'Por confirmar' }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Botones de Guardar / Cancelar -->
                         <div class="flex justify-end gap-3 pt-2">

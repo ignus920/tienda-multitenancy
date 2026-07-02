@@ -225,10 +225,19 @@
                             @endif
                             @if ($profileUser != '17' && count($selectedOrders) > 0)
                                 <div class="flex items-center gap-2">
+                                    @php
+                                        // Verificar si en los seleccionados hay al menos una orden en estado "Solicitado" (1) o "Cotizado" (2)
+                                        $hasPendingApprovals = \App\Models\Tenant\Imports\ImpImports::whereIn('id', $selectedOrders)
+                                            ->whereIn('status', [1, 2])
+                                            ->exists();
+                                    @endphp
+                                    
+                                    @if ($hasPendingApprovals)
                                     <button wire:click="approvePricesInBatch" 
                                             class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                         <x-heroicon-o-check class="w-4 h-4 mr-2"/> Aprobar Seleccionados
                                     </button>
+                                    @endif
                                     
                                     <span class="text-xs text-gray-500 dark:text-gray-400 font-medium ml-2">Prioridad:</span>
                                     <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
@@ -254,15 +263,28 @@
                                 </div>
                             @endif
                             @if ($filterStatus == 7)
-                                <select wire:model.live="selectedShipp"
-                                    class="block w-96 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                        <option value="0">Select shippment</option>
-                                    @forelse ($this->shippments as $sp)
-                                        <option value="{{ $sp->id }}">{{ $sp->way }} - {{ $sp->operation_number }} (#{{ $sp->consecutive }})</option>
-                                    @empty
-                                        <option value=""></option>
-                                    @endforelse
-                                </select>
+                                <div class="flex items-center gap-3">
+                                    <select wire:model.live="selectedShipp"
+                                        class="block w-96 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                            <option value="0">Select shippment</option>
+                                        @forelse ($this->shippments as $sp)
+                                            <option value="{{ $sp->id }}">{{ $sp->way }} - {{ $sp->operation_number }} (#{{ $sp->consecutive }})</option>
+                                        @empty
+                                            <option value=""></option>
+                                        @endforelse
+                                    </select>
+
+                                    @if ($profileUser != '17')
+                                        <button wire:click="rotatePriorities" 
+                                                class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                title="Al recibir el pedido ASAP, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
+                                            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
+                                            </svg>
+                                            Confirmar Recepción y Rotar
+                                        </button>
+                                    @endif
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -339,13 +361,11 @@
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
                                 @if ($profileUser != '17')
                                 <td class="px-4 py-4">
-                                    @if ($order->status != 4)
                                     <input type="checkbox" 
                                         wire:model.live="selectedOrders" 
                                         value="{{ $order->id }}"
                                         class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                     >
-                                    @endif
                                 </td>
                                 @endif
                                 <td class="px-4 py-4 max-w-[200px]">
@@ -383,12 +403,19 @@
                                 </td>
                                 <td class="px-4 py-4 text-center">
                                     @if (!empty($order->priority))
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                            {{ $order->priority === 'ASAP' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}
-                                            {{ $order->priority === 'Second' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
-                                            {{ $order->priority === 'Third' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}">
-                                            {{ $order->priority }}
-                                        </span>
+                                        <div class="flex flex-col items-center gap-1">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                                {{ $order->priority === 'ASAP' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}
+                                                {{ $order->priority === 'Second' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
+                                                {{ $order->priority === 'Third' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}">
+                                                {{ $order->priority }}
+                                            </span>
+                                            @if (!empty($order->priority_assigned_at))
+                                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono whitespace-nowrap" title="Fecha de asignación">
+                                                    {{ \Carbon\Carbon::parse($order->priority_assigned_at)->format('d/m/Y H:i') }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     @else
                                         <span class="text-sm text-gray-600 dark:text-gray-300">
                                             {{ $order->label ?? 'N/A' }}
