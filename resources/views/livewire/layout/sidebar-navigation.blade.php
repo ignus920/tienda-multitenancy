@@ -548,6 +548,7 @@ new class extends Component
         </div>
 
         <!-- Mercadeo -->
+        @if(!$isOperario && PermissionHelper::userCan('Mercadeo', 'show'))
         <div x-data="{
             tooltip: false,
             open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') ? 'true' : 'false' }},
@@ -563,8 +564,8 @@ new class extends Component
                 </svg>
                 <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>Mercadeo</span>
                 <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
-                    class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
-                    stroke-width="2" viewBox="0 0 24 24">
+                     class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                     stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                 </svg>
             </div>
