@@ -545,7 +545,9 @@
                                     ${{ number_format($paymentTotal, 0) }}
                                 </span>
                             </div>
-                                         <div class="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                        </div>
+
+                        <div class="space-y-4 max-h-[300px] overflow-y-auto pr-1">
                             @foreach($paymentRows as $index => $row)
                                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 bg-gray-50/50 dark:bg-slate-900/30 rounded-lg border border-gray-200 dark:border-slate-700 items-end" wire:key="cartera-payment-{{ $index }}">
                                     <!-- Método -->
@@ -640,7 +642,7 @@
                                           placeholder="Escriba el motivo detallado de la modificación de las formas de pago..."></textarea>
                             </div>
                         @endif
-                    </div>              </div>
+                    </div>
 
                     <!-- Footer con botones -->
                     <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/40 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
