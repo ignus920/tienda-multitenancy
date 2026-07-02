@@ -205,36 +205,49 @@
                     <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <div>
-                        <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                            Item seleccionado: <span class="font-bold">{{ $selectedItemData['sku'] ?? 'N/A' }} - {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
-                        </p>
-                        <p class="text-xs text-blue-700 dark:text-blue-300 flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1.5">
-                            @forelse($selectedItemPriorities as $prior)
-                                <span class="inline-flex items-center gap-1.5">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white uppercase
-                                        {{ $prior['priority'] === 'ASAP' ? 'bg-rose-600' : '' }}
-                                        {{ $prior['priority'] === 'Second' ? 'bg-amber-600' : '' }}
-                                        {{ $prior['priority'] === 'Third' ? 'bg-blue-600' : '' }}">
-                                        {{ $prior['priority'] }}
-                                    </span>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ $prior['qty_requested'] }}</span>
-                                    @if($prior['priority_assigned_at'])
-                                        <span class="text-[10px] text-gray-500 font-mono">({{ \Carbon\Carbon::parse($prior['priority_assigned_at'])->format('d/m/Y') }})</span>
-                                    @endif
-                                </span>
-                            @empty
-                                <span class="text-gray-400">Sin prioridades programadas</span>
-                            @endforelse
-                        </p>
-                    </div>
-                </div>
-                <button wire:click="$set('selectedItemId', null)" 
-                        class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+                     <div class="space-y-4">
+                         <!-- Contenedor Horizontal de Tarjetas de Prioridades (ASAP, Second, Third) -->
+                         <div class="flex flex-wrap items-end gap-4">
+                             @forelse($selectedItemPriorities as $prior)
+                                 <div class="flex flex-col items-center">
+                                     <!-- Badge de Prioridad arriba -->
+                                     <span class="inline-flex items-center justify-center px-3 py-1 rounded-t-md text-[10px] font-extrabold text-white uppercase tracking-wider min-w-[70px] text-center shadow-sm
+                                         {{ $prior['priority'] === 'ASAP' ? 'bg-rose-600' : '' }}
+                                         {{ $prior['priority'] === 'Second' ? 'bg-amber-600' : '' }}
+                                         {{ $prior['priority'] === 'Third' ? 'bg-blue-600' : '' }}">
+                                         {{ $prior['priority'] }}
+                                     </span>
+                                     <!-- Caja blanca con cantidad abajo -->
+                                     <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md w-[70px] py-1.5 text-center shadow-sm font-mono font-bold text-sm text-gray-900 dark:text-white">
+                                         {{ $prior['qty_requested'] }}
+                                     </div>
+                                     <!-- Fecha debajo de la caja -->
+                                     @if($prior['priority_assigned_at'])
+                                         <span class="text-[9px] text-gray-500 dark:text-gray-400 font-mono mt-1">
+                                             {{ \Carbon\Carbon::parse($prior['priority_assigned_at'])->format('d/m/Y') }}
+                                         </span>
+                                     @endif
+                                 </div>
+                             @empty
+                                 <span class="text-xs text-gray-400 italic">Sin prioridades programadas en este momento</span>
+                             @endforelse
+                         </div>
+
+                         <!-- Nombre y Detalles del Producto abajo -->
+                         <div>
+                             <p class="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-1.5">
+                                 <span class="font-bold text-blue-950 dark:text-blue-200">{{ $selectedItemData['sku'] ?? 'N/A' }}</span>
+                                 <span class="text-blue-800 dark:text-blue-300">- {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
+                             </p>
+                         </div>
+                     </div>
+                 </div>
+                 <button wire:click="$set('selectedItemId', null)" 
+                         class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors self-start mt-1">
+                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                     </svg>
+                 </button>
             </div>
 
             <!-- Tabla de meses -->
