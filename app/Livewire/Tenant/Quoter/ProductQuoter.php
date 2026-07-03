@@ -1181,7 +1181,7 @@ class ProductQuoter extends Component
         $cleanValue = preg_replace('/[^0-9a-zA-Z]/', '', $value);
         $words = array_filter(explode(' ', trim($value)));
 
-        $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
+        $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'secondName', 'lastName', 'secondLastName', 'identification', 'billingEmail')
             ->whereNot('type', 'PROVEEDOR') // Excluir proveedores
             ->where(function ($query) use ($value, $cleanValue, $words) {
                 // Búsqueda por coincidencia exacta o parcial en identificación/correo
@@ -1189,15 +1189,17 @@ class ProductQuoter extends Component
                     ->orWhere('identification', 'like', '%' . $cleanValue . '%')
                     ->orWhere('billingEmail', 'like', '%' . $value . '%');
 
-                // Si hay palabras, buscar cada una en nombre, apellido o concatenado
+                // Si hay palabras, buscar cada una en nombre, apellido o concatenado (los 4 campos)
                 if (!empty($words)) {
                     $query->orWhere(function ($q) use ($words) {
                         foreach ($words as $word) {
                             $q->where(function ($sub) use ($word) {
                                 $sub->where('businessName', 'like', '%' . $word . '%')
                                     ->orWhere('firstName', 'like', '%' . $word . '%')
+                                    ->orWhere('secondName', 'like', '%' . $word . '%')
                                     ->orWhere('lastName', 'like', '%' . $word . '%')
-                                    ->orWhere(DB::raw("CONCAT(COALESCE(firstName, ''), ' ', COALESCE(lastName, ''))"), 'like', '%' . $word . '%');
+                                    ->orWhere('secondLastName', 'like', '%' . $word . '%')
+                                    ->orWhere(DB::raw("CONCAT(COALESCE(firstName, ''), ' ', COALESCE(secondName, ''), ' ', COALESCE(lastName, ''), ' ', COALESCE(secondLastName, ''))"), 'like', '%' . $word . '%');
                             });
                         }
                     });
