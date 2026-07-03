@@ -32,3 +32,4 @@ vite.config.js
 /update_exw.sql
 /reporte_exw_procesamiento.txt
 .env.example
+/db rap/

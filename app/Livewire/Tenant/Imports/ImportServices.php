@@ -180,7 +180,13 @@ class ImportServices extends Component
             $startDate = now()->startOfMonth()->subMonths(11)->format('Y-m-d');
             $endDate = now()->endOfMonth()->format('Y-m-d 23:59:59');
 
-            // Usar created_at como campo principal, con fallback a updated_at
+            // 1. Obtener SKU para buscar en el histórico
+            $sku = $this->selectedItemData['sku'] ?? null;
+            if (!$sku && $this->selectedItemId) {
+                $sku = DB::connection('tenant')->table('inv_items')->where('id', $this->selectedItemId)->value('sku');
+            }
+
+            // 2. Cargar cantidades del nuevo ERP
             $monthlyData = DB::connection('tenant')
                 ->table('inv_remissions as ir')
                 ->join('inv_detail_remissions as idr', 'idr.remissionId', '=', 'ir.id')
@@ -194,11 +200,27 @@ class ImportServices extends Component
                 ->groupBy(DB::raw('YEAR(COALESCE(ir.created_at, ir.updated_at))'), DB::raw('MONTH(COALESCE(ir.created_at, ir.updated_at))'))
                 ->get();
 
-            // Llenar con los datos obtenidos
+            // Llenar con los datos obtenidos del nuevo ERP
             foreach ($monthlyData as $data) {
                 $key = $data->anio . '-' . str_pad($data->mes, 2, '0', STR_PAD_LEFT);
                 if (isset($quantities[$key])) {
-                    $quantities[$key]['qty'] = (int) $data->TotalQuantity;
+                    $quantities[$key]['qty'] += (int) $data->TotalQuantity;
+                }
+            }
+
+            // 3. Cargar cantidades del ERP antiguo (Historial)
+            if ($sku) {
+                $legacyData = DB::connection('tenant')
+                    ->table('legacy_sales_history')
+                    ->select('year as anio', 'month as mes', 'quantity as TotalQuantity')
+                    ->where('sku', $sku)
+                    ->get();
+
+                foreach ($legacyData as $data) {
+                    $key = $data->anio . '-' . str_pad($data->mes, 2, '0', STR_PAD_LEFT);
+                    if (isset($quantities[$key])) {
+                        $quantities[$key]['qty'] += (int) $data->TotalQuantity;
+                    }
                 }
             }
 
@@ -1032,12 +1054,22 @@ class ImportServices extends Component
                 })
                 ->leftJoin(DB::raw('
                     (
-                        SELECT idr.itemId, SUM(idr.quantity) as salidas_7_meses
-                        FROM inv_detail_remissions idr
-                        INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
-                        WHERE ir.status != \'ANULADO\'
-                        AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
-                        GROUP BY idr.itemId
+                        SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                        FROM (
+                            SELECT idr.itemId, idr.quantity as qty
+                            FROM inv_detail_remissions idr
+                            INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                            WHERE ir.status != \'ANULADO\'
+                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+
+                            UNION ALL
+
+                            SELECT item_sub.id as itemId, lsh.quantity as qty
+                            FROM legacy_sales_history lsh
+                            INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        ) sub
+                        GROUP BY sub.itemId
                     ) s7m
                 '), 's7m.itemId', '=', 'iv.id')
                 ->where('iv.status', 1)
