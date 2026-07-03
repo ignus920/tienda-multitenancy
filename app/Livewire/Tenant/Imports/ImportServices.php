@@ -25,6 +25,11 @@ class ImportServices extends Component
     public $selectedService = '';
     public $showModalRegisItem = false;
     public $moduleKey = 'imports';
+    
+    // Variables para productos críticos
+    public $showCriticalModal = false;
+    public $criticalProducts = [];
+    public $searchCritical = '';
 
     // Variables para el item seleccionado
     public $selectedItemId = null;
@@ -958,6 +963,120 @@ class ImportServices extends Component
         }
     }
 
+    /**
+     * Alternar visibilidad del modal de productos críticos
+     */
+    #[On('toggle-critical-items')]
+    public function toggleCriticalItems()
+    {
+        $this->showCriticalModal = !$this->showCriticalModal;
+        $this->searchCritical = '';
+        if ($this->showCriticalModal) {
+            $this->loadCriticalProducts();
+        }
+    }
+
+    /**
+     * Cargar listado de productos críticos
+     */
+    public function loadCriticalProducts()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            // 1. Obtener etiquetas del mes actual y los siguientes 2 meses
+            $meses_es = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+            $etiquetas_busqueda = ['ASAP'];
+
+            for ($i = 0; $i < 3; $i++) {
+                $date = now()->addMonths($i);
+                $mes_idx = (int)$date->format('n') - 1;
+                $anio = $date->format('y');
+                $etiquetas_busqueda[] = $meses_es[$mes_idx] . $anio;
+            }
+
+            // Para la exclusión estricta, separamos 'ASAP' de los nombres de etiquetas mensuales
+            $etiquetas_sin_asap = array_values(array_filter($etiquetas_busqueda, fn($e) => $e !== 'ASAP'));
+
+            // 2. Consulta principal adaptada al nuevo esquema
+            $this->criticalProducts = DB::connection('tenant')
+                ->table('inv_items as iv')
+                ->select([
+                    'iv.sku as codigo',
+                    'iv.description',
+                    DB::raw('COALESCE(inv_items_store.stock_items_store, 0) AS existencias'),
+                    'iv.type as tipo_nombre',
+                    DB::raw('COALESCE(s7m.salidas_7_meses, 0) AS salidas_7_meses'),
+                    DB::raw('
+                        CASE 
+                            WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
+                            THEN ROUND((COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)))
+                            ELSE 0 
+                        END AS porcentaje
+                    '),
+                    DB::raw('
+                        (
+                            SELECT GROUP_CONCAT(CONCAT(ilf.name, \' (\', iif.qty_requested, \')\') SEPARATOR \'<br>\')
+                            FROM imp_imports iif
+                            INNER JOIN imp_labels ilf ON iif.label_id = ilf.id
+                            WHERE iif.item_id = iv.id
+                            AND ilf.name NOT IN (\'' . implode('\',\'', $etiquetas_busqueda) . '\')
+                            AND iif.status < 8
+                            AND iif.deleted_at IS NULL
+                        ) AS pedidos_futuros
+                    ')
+                ])
+                ->leftJoin('inv_items_store', function ($join) {
+                    $join->on('inv_items_store.itemId', '=', 'iv.id')
+                         ->where('inv_items_store.storeId', '=', 1);
+                })
+                ->leftJoin(DB::raw('
+                    (
+                        SELECT idr.itemId, SUM(idr.quantity) as salidas_7_meses
+                        FROM inv_detail_remissions idr
+                        INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                        WHERE ir.status != \'ANULADO\'
+                        AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        GROUP BY idr.itemId
+                    ) s7m
+                '), 's7m.itemId', '=', 'iv.id')
+                ->where('iv.status', 1)
+                ->where('iv.type', 'IMPORTADO')
+                ->where(DB::raw('
+                    CASE 
+                        WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
+                        THEN (COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0))
+                        ELSE 0 
+                    END
+                '), '<', 50)
+                ->whereNotExists(function ($query) use ($etiquetas_sin_asap) {
+                    $query->select(DB::raw(1))
+                        ->from('imp_imports as iim')
+                        ->leftJoin('imp_labels as ilm', 'iim.label_id', '=', 'ilm.id')
+                        ->whereColumn('iim.item_id', 'iv.id')
+                        ->where('iim.status', '<', 8)
+                        ->whereNull('iim.deleted_at')
+                        ->where(function ($sub) use ($etiquetas_sin_asap) {
+                            $sub->whereIn('ilm.name', $etiquetas_sin_asap)
+                                ->orWhere('iim.priority', 'ASAP');
+                        });
+                })
+                ->orderBy('porcentaje', 'asc')
+                ->get()
+                ->toArray();
+
+            Log::info('Productos críticos cargados exitosamente. Cantidad: ' . count($this->criticalProducts));
+        } catch (\Exception $e) {
+            Log::error('Error al cargar productos críticos: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            $this->criticalProducts = [];
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al cargar productos críticos: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function render()
     {
         $labels = $this->labels;
@@ -968,9 +1087,18 @@ class ImportServices extends Component
             'assignments_count' => count($this->itemAssignments),
         ];
 
+        // Filtrar productos críticos localmente para mayor velocidad
+        $filteredCriticalProducts = empty($this->searchCritical)
+            ? $this->criticalProducts
+            : array_filter($this->criticalProducts, function($prod) {
+                return (isset($prod->codigo) && str_contains(strtolower($prod->codigo), strtolower($this->searchCritical)))
+                    || (isset($prod->description) && str_contains(strtolower($prod->description), strtolower($this->searchCritical)));
+            });
+
         return view('livewire.tenant.imports.components.import-services', [
             'labels' => $labels,
-            'debugInfo' => $debugInfo
+            'debugInfo' => $debugInfo,
+            'filteredCriticalProducts' => $filteredCriticalProducts
         ]);
     }
 
