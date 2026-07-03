@@ -270,6 +270,7 @@ class ImportList extends Component
                     $q->where('inv_items.name', 'like', '%' . $this->search . '%')
                         ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
                         ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%');
+                });
             })
             ->when($this->filterCritical, function ($query) {
                 // 1. Obtener etiquetas de los próximos meses
