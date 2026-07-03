@@ -52,7 +52,7 @@
             <div class="flex items-start justify-between">
                 <div class="flex-1">
                     <h4 class="font-semibold text-green-800 dark:text-green-200 text-sm">
-                        {{ $selectedCustomer['businessName'] ?: $selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName'] }}
+                        {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) }}
                     </h4>
 
                     <p class="text-xs text-green-600 dark:text-green-300">
@@ -197,7 +197,7 @@
                         wire:click="selectCustomer({{ $result['id'] }})"
                         class="w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors">
                         <div class="font-bold text-sm text-gray-900 dark:text-white">
-                            {{ $result['businessName'] ?: ($result['firstName'] . ' ' . $result['lastName']) }}
+                            {{ $result['businessName'] ?: trim(($result['firstName'] ?? '') . ' ' . ($result['secondName'] ?? '') . ' ' . ($result['lastName'] ?? '') . ' ' . ($result['secondLastName'] ?? '')) }}
                         </div>
                         <div class="text-[10px] text-gray-500 dark:text-gray-400">
                             {{ $result['identification'] }}

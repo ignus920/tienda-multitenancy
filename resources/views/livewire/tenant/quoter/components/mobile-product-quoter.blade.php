@@ -380,7 +380,7 @@ $header = 'Seleccionar productos';
                     <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-lg p-3 mb-4">
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
-                                <h4 class="font-semibold text-green-800 dark:text-green-200 text-sm">{{ $selectedCustomer['businessName'] ?: $selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName'] }}</h4>
+                                <h4 class="font-semibold text-green-800 dark:text-green-200 text-sm">{{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) }}</h4>
                                 <p class="text-xs text-green-600 dark:text-green-300">Identificación: {{ $selectedCustomer['identification'] }}</p>
                             </div>
                             <div class="flex items-center ml-2">
@@ -396,7 +396,7 @@ $header = 'Seleccionar productos';
                     @if(!empty($customerResults))
                         <div class="mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border max-h-60 overflow-y-auto">
                             @foreach($customerResults as $result)
-                                <button wire:click="selectCustomer({{ $result['id'] }})" class="w-full text-left px-4 py-3 hover:bg-indigo-50 border-b last:border-0"><div class="font-bold">{{ $result['businessName'] ?: ($result['firstName'] . ' ' . $result['lastName']) }}</div><div class="text-xs text-gray-500">{{ $result['identification'] }}</div></button>
+                                <button wire:click="selectCustomer({{ $result['id'] }})" class="w-full text-left px-4 py-3 hover:bg-indigo-50 border-b last:border-0"><div class="font-bold">{{ $result['businessName'] ?: trim(($result['firstName'] ?? '') . ' ' . ($result['secondName'] ?? '') . ' ' . ($result['lastName'] ?? '') . ' ' . ($result['secondLastName'] ?? '')) }}</div><div class="text-xs text-gray-500">{{ $result['identification'] }}</div></button>
                             @endforeach
                         </div>
                     @endif

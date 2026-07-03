@@ -975,7 +975,7 @@ $header = 'Seleccionar productos';
                         <h1 class="text-lg lg:text-2xl font-bold">MÉTODOS DE PAGO</h1>
                         <p class="text-gray-300 text-sm lg:text-base mt-1">
                             @if($selectedCustomer)
-                                <span class="block lg:inline">{{ $selectedCustomer['businessName'] ?? $selectedCustomer['firstName'] ?? 'Cliente' }}</span>
+                                <span class="block lg:inline">{{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) ?: 'Cliente' }}</span>
                                 <span class="hidden lg:inline"> - </span>
                                 <span class="block lg:inline">{{ $selectedCustomer['cityName'] ?? '' }}</span>
                                 <span class="hidden lg:inline"> - </span>
@@ -1308,7 +1308,7 @@ $header = 'Seleccionar productos';
             @if($selectedCustomer)
             @php
                 $selectedBranchName = collect($branches)->firstWhere('id', $selectedBranchId)['name']
-                    ?? (count($branches) === 1 ? $branches[0]['name'] : ($selectedCustomer['businessName'] ?? ($selectedCustomer['firstName'] . ' ' . $selectedCustomer['lastName'])));
+                    ?? (count($branches) === 1 ? $branches[0]['name'] : ($selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? ''))));
             @endphp
             <div wire:key="modal-customer-info-{{ $selectedBranchId }}" class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
                 <!-- Nombre sucursal -->
