@@ -200,14 +200,14 @@
               x-transition:enter-start="opacity-0 transform scale-95"
               x-transition:enter-end="opacity-100 transform scale-100"
               class="sticky top-0 z-[100] mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg shadow-lg">
-            <div class="flex items-start justify-between gap-4">
+             <div class="flex flex-col lg:flex-row gap-4 items-start">
                 <!-- Izquierda: Prioridades y cantidades -->
-                <div class="flex items-start gap-3">
+                <div class="flex items-start gap-3 flex-shrink-0">
                     <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <!-- Contenedor Horizontal de Tarjetas de Prioridades (ASAP, Second, Third) -->
-                    <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex flex-wrap items-end gap-3">
                         @forelse($selectedItemPriorities as $prior)
                             <div class="flex flex-col items-center w-16">
                                 <!-- Badge de Prioridad arriba -->
@@ -229,53 +229,55 @@
                                 @endif
                             </div>
                         @empty
-                            <span class="text-xs text-gray-400 italic mt-1">Sin prioridades programadas en este momento</span>
+                            <span class="text-xs text-gray-400 italic mt-1">Sin prioridades programadas</span>
                         @endforelse
                     </div>
                 </div>
 
-                <!-- Derecha: Información del producto y botón de cerrar -->
-                <div class="flex items-center gap-4 text-right">
-                    <div class="max-w-md sm:max-w-xl md:max-w-2xl">
-                        <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                            <span class="font-bold text-blue-950 dark:text-blue-200">{{ $selectedItemData['sku'] ?? 'N/A' }}</span>
-                            <span class="text-blue-800 dark:text-blue-300">- {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
-                        </p>
+                <!-- Derecha: Información del producto, botón cerrar y tabla de meses -->
+                <div class="flex-1 min-w-0 w-full">
+                    <div class="flex items-center justify-between gap-4 mb-2">
+                        <div class="max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-4xl">
+                            <p class="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                                <span class="font-bold text-blue-950 dark:text-blue-200">{{ $selectedItemData['sku'] ?? 'N/A' }}</span>
+                                <span class="text-blue-800 dark:text-blue-300">- {{ $selectedItemData['description'] ?? $selectedItemData['name'] ?? '' }}</span>
+                            </p>
+                        </div>
+                        <button wire:click="$set('selectedItemId', null)" 
+                                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors flex-shrink-0">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
-                    <button wire:click="$set('selectedItemId', null)" 
-                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors flex-shrink-0">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
 
-            <!-- Tabla de meses -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 overflow-hidden mt-4">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-blue-200 dark:divide-blue-700">
-                        <thead class="bg-blue-100 dark:bg-blue-900/30">
-                            <tr>
-                                @foreach($monthlyQuantities as $data)
-                                <th scope="col" class="px-3 py-2 text-center text-xs font-semibold text-blue-900 dark:text-blue-100 uppercase tracking-wider">
-                                    {{ $data['label'] }}
-                                </th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-blue-100 dark:divide-blue-800">
-                            <tr>
-                                @foreach($monthlyQuantities as $data)
-                                <td class="px-3 py-2 whitespace-nowrap">
-                                    <span class="block w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                        {{ $data['qty'] }}
-                                    </span>
-                                </td>
-                                @endforeach
-                            </tr>
-                        </tbody>
-                    </table>
+                    <!-- Tabla de meses -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-blue-200 dark:divide-blue-700">
+                                <thead class="bg-blue-100 dark:bg-blue-900/30">
+                                    <tr>
+                                        @foreach($monthlyQuantities as $data)
+                                        <th scope="col" class="px-2 py-1.5 text-center text-[10px] font-semibold text-blue-900 dark:text-blue-100 uppercase tracking-wider">
+                                            {{ $data['label'] }}
+                                        </th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-blue-100 dark:divide-blue-800">
+                                    <tr>
+                                        @foreach($monthlyQuantities as $data)
+                                        <td class="px-2 py-1.5 whitespace-nowrap">
+                                            <span class="block w-full px-1.5 py-0.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded text-center">
+                                                {{ $data['qty'] }}
+                                            </span>
+                                        </td>
+                                        @endforeach
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

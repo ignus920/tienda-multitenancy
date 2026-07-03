@@ -317,10 +317,6 @@
                         <tr>
                             @if ($profileUser != '17')
                             <th class="px-4 py-4 text-left w-12">
-                                <input type="checkbox" wire:model.live="selectAll"
-                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                    title="Seleccionar todos los de esta página"
-                                >
                             </th>
                             @endif
                             <th class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
@@ -419,7 +415,7 @@
                                             </span>
                                             @if (!empty($order->priority_assigned_at))
                                                 <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono whitespace-nowrap" title="Fecha de asignación">
-                                                    {{ \Carbon\Carbon::parse($order->priority_assigned_at)->format('d/m/Y H:i') }}
+                                                    {{ \Carbon\Carbon::parse($order->priority_assigned_at)->format('d/m/Y') }}
                                                 </span>
                                             @endif
                                         </div>
