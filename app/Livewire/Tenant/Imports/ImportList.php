@@ -37,6 +37,7 @@ class ImportList extends Component
     // Property to track selected label for filtering
     public $selectedLabelId = null; // null = show all, number = filter by label
     public $selectedLabelName = 'Programación'; // Nombre a mostrar en el dropdown
+    public $filterCritical = false; // Filtrar por productos críticos
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -269,7 +270,41 @@ class ImportList extends Component
                     $q->where('inv_items.name', 'like', '%' . $this->search . '%')
                         ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
                         ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%');
-                });
+            })
+            ->when($this->filterCritical, function ($query) {
+                // 1. Obtener etiquetas de los próximos meses
+                $meses_es = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+                $etiquetas_busqueda = ['ASAP'];
+
+                for ($i = 0; $i < 3; $i++) {
+                    $date = now()->addMonths($i);
+                    $mes_idx = (int)$date->format('n') - 1;
+                    $anio = $date->format('y');
+                    $etiquetas_busqueda[] = $meses_es[$mes_idx] . $anio;
+                }
+
+                $etiquetas_sin_asap = array_values(array_filter($etiquetas_busqueda, fn($e) => $e !== 'ASAP'));
+
+                $query->where('inv_items.type', 'IMPORTADO')
+                    ->where(DB::raw('
+                        CASE 
+                            WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
+                            THEN (COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0))
+                            ELSE 0 
+                        END
+                    '), '<', 50)
+                    ->whereNotExists(function ($subQuery) use ($etiquetas_sin_asap) {
+                        $subQuery->select(DB::raw(1))
+                            ->from('imp_imports as iim')
+                            ->leftJoin('imp_labels as ilm', 'iim.label_id', '=', 'ilm.id')
+                            ->whereColumn('iim.item_id', 'inv_items.id')
+                            ->where('iim.status', '<', 8)
+                            ->whereNull('iim.deleted_at')
+                            ->where(function ($sub) use ($etiquetas_sin_asap) {
+                                $sub->whereIn('ilm.name', $etiquetas_sin_asap)
+                                    ->orWhere('iim.priority', 'ASAP');
+                            });
+                    });
             })
             ->groupBy(array_filter([
                 'inv_items.id',

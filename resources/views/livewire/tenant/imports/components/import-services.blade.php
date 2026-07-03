@@ -137,21 +137,6 @@
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Administración de items del sistema</p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-                    <!-- Botón Productos Críticos -->
-                    <button wire:click="$dispatch('toggle-critical-items')"
-                        class="inline-flex items-center justify-center px-4 py-2 
-                               bg-red-600 hover:bg-red-700 
-                               dark:bg-red-500 dark:hover:bg-red-600
-                               border border-transparent rounded-lg 
-                               font-semibold text-xs text-white uppercase tracking-widest 
-                               focus:outline-none focus:ring-2 focus:ring-red-500 
-                               focus:ring-offset-2 dark:focus:ring-offset-gray-800 
-                               transition ease-in-out duration-150">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        Prod. Críticos
-                    </button>
 
                     <!-- Botón Principal -->
                     <button wire:click="showModalRegis"
@@ -686,96 +671,4 @@
         </div>
     @endif
 
-    <!-- Modal Productos Críticos -->
-    @if ($showCriticalModal)
-        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4"
-            x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
-            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-            x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0">
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                
-                <!-- Header -->
-                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 rounded-t-xl">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                            Productos Críticos (Stock &lt; 50%)
-                        </h3>
-                    </div>
-                    <button wire:click="$set('showCriticalModal', false)"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <x-heroicon-o-x-mark class="w-6 h-6" />
-                    </button>
-                </div>
-
-                <!-- Body (Scrollable) -->
-                <div class="p-6 overflow-y-auto flex-1">
-                    <!-- Buscador -->
-                    <div class="mb-4">
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                            </div>
-                            <input wire:model.live.debounce.300ms="searchCritical" type="text" placeholder="Buscar por código o descripción..."
-                                class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Código</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">%</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Existencias</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Salidas (7m)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse($filteredCriticalProducts as $prod)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                        <td class="px-4 py-3 whitespace-nowrap font-bold text-gray-900 dark:text-white">{{ $prod->codigo }}</td>
-                                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $prod->description }}</td>
-                                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                {{ $prod->porcentaje }}%
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center whitespace-nowrap font-semibold">{{ number_format($prod->existencias, 2) }}</td>
-                                        <td class="px-4 py-3 text-center whitespace-nowrap text-gray-600 dark:text-gray-400">{{ number_format($prod->salidas_7_meses, 2) }}</td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
-                                            No se encontraron productos críticos con stock menor al 50% y sin órdenes activas.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end bg-gray-50 dark:bg-gray-700/30 rounded-b-xl">
-                    <button wire:click="$set('showCriticalModal', false)"
-                        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-semibold transition-colors">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
 </div>
