@@ -364,6 +364,48 @@ class ImportServices extends Component
     }
 
     /**
+     * Refrescar la información y prioridades del item seleccionado actual
+     */
+    #[On('refresh-selected-item')]
+    public function refreshSelectedItem()
+    {
+        if ($this->selectedItemId) {
+            $this->ensureTenantConnection();
+            
+            // Recargar todas las prioridades activas para el banner
+            $this->selectedItemPriorities = ImpImports::where('item_id', $this->selectedItemId)
+                ->where('status', '<', 8)
+                ->whereNotNull('priority')
+                ->whereNull('deleted_at')
+                ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third')")
+                ->get(['priority', 'qty_requested', 'priority_assigned_at'])
+                ->toArray();
+                
+            // Cargar asignaciones
+            $this->loadItemAssignments();
+            
+            // Cargar cantidad del item seleccionado
+            if ($this->selectedLabelId) {
+                $imp = ImpImports::where('item_id', $this->selectedItemId)
+                    ->where('label_id', $this->selectedLabelId)
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->first();
+                $this->selectedItemQuantity = $imp ? $imp->qty_requested : 0;
+            } else {
+                $imp = ImpImports::where('item_id', $this->selectedItemId)
+                    ->whereNull('label_id')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->first();
+                $this->selectedItemQuantity = $imp ? $imp->qty_requested : 0;
+            }
+
+            Log::info("Refrescado el item seleccionado {$this->selectedItemId}. Nuevas prioridades: " . json_encode($this->selectedItemPriorities));
+        }
+    }
+
+    /**
      * Asignar etiqueta a un item por ID (sin necesidad de selección previa)
      */
     public function assignLabelToItemById($itemId, $labelId, $labelName)
@@ -808,6 +850,15 @@ class ImportServices extends Component
                     $this->selectedItemPriority = $newPriority;
                     $this->selectedItemPriorityDate = $newPriority ? now()->format('Y-m-d H:i:s') : null;
                     $this->selectedItemQuantity = 0;
+                    
+                    // Recargar prioridades activas para el banner
+                    $this->selectedItemPriorities = ImpImports::where('item_id', $this->selectedItemId)
+                        ->where('status', '<', 8)
+                        ->whereNotNull('priority')
+                        ->whereNull('deleted_at')
+                        ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third')")
+                        ->get(['priority', 'qty_requested', 'priority_assigned_at'])
+                        ->toArray();
                 }
 
                 // Despachar evento para limpiar visualmente el input en el listado

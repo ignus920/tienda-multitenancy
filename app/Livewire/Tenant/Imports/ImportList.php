@@ -688,6 +688,13 @@ class ImportList extends Component
                             ]);
                         }
                     }
+
+                    // Limpiar localmente la cantidad de este ítem
+                    unset($this->selectedQuantities[$itemId]);
+                    $this->dispatch('update-item-quantity', [
+                        'itemId' => $itemId,
+                        'quantity' => 0
+                    ]);
                 }
             });
 
@@ -697,6 +704,10 @@ class ImportList extends Component
             ]);
 
             $this->selectedItems = [];
+            
+            // Notificar al componente padre para que actualice la información del item seleccionado
+            $this->dispatch('refresh-selected-item');
+            
             $this->dispatch('$refresh');
 
         } catch (\Exception $e) {

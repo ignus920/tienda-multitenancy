@@ -714,8 +714,16 @@ class UserRapForm extends Component
             ->with(['profile', 'contact.warehouse.company'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('email', 'like', '%' . $this->search . '%');
+                    $q->where('users.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('users.email', 'like', '%' . $this->search . '%')
+                      ->orWhere('users.phone', 'like', '%' . $this->search . '%')
+                      ->orWhere('users.id', 'like', '%' . $this->search . '%')
+                      ->orWhereHas('profile', function ($pq) {
+                          $pq->where('name', 'like', '%' . $this->search . '%');
+                      })
+                      ->orWhereHas('contact.warehouse', function ($wq) {
+                          $wq->where('name', 'like', '%' . $this->search . '%');
+                      });
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection)
