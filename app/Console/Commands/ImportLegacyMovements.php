@@ -52,6 +52,20 @@ class ImportLegacyMovements extends Command
             return 1;
         }
 
+        // Crear índices temporales para optimizar la consulta si es necesario
+        $this->info("Creando/verificando índices temporales en la base de datos heredada...");
+        try {
+            // Intentar añadir índices para acelerar el JOIN y el filtro por fecha
+            DB::connection('legacy_temp')->statement("ALTER TABLE v_orden_p ADD INDEX `idx_temp_id_ped_fecha_reg` (`id_ped`, `fecha_reg`)");
+        } catch (\Exception $e) {
+            $this->line("Nota: El índice en v_orden_p puede que ya exista.");
+        }
+        try {
+            DB::connection('legacy_temp')->statement("ALTER TABLE v_mov_pt ADD INDEX `idx_temp_doc_id_producto` (`doc`, `id_producto`)");
+        } catch (\Exception $e) {
+            $this->line("Nota: El índice en v_mov_pt puede que ya exista.");
+        }
+
         // 2. Establecer la conexión del Tenant
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
