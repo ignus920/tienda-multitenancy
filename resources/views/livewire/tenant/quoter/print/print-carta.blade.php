@@ -570,12 +570,8 @@
                         @else
                             {{ number_format($detalle->quantity, 0) }}
                         @endif
-                    </td>
                     <td class="col-desc">
                         {{ $detalle->item->name ?? $detalle->item->display_name }}
-                        @if($detalle->description && strtolower(trim($detalle->description)) !== strtolower(trim($detalle->item->name ?? '')))
-                            <div style="font-size: 8.5pt; color: #7f8c8d; margin-top: 3px;">{{ $detalle->description }}</div>
-                        @endif
                         @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
                             <div style="color: red; font-size: 10.5pt; margin-top: 3px;">
                                 @foreach($detalle->item->accessories as $accessory)
