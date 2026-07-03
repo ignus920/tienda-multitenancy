@@ -186,7 +186,7 @@ class ImportServices extends Component
                 $sku = DB::connection('tenant')->table('inv_items')->where('id', $this->selectedItemId)->value('sku');
             }
 
-            // 2. Cargar cantidades del nuevo ERP
+            // 2. Cargar cantidades del nuevo ERP (solo a partir del 1 de junio de 2026)
             $monthlyData = DB::connection('tenant')
                 ->table('inv_remissions as ir')
                 ->join('inv_detail_remissions as idr', 'idr.remissionId', '=', 'ir.id')
@@ -196,7 +196,9 @@ class ImportServices extends Component
                     DB::raw('SUM(idr.quantity) AS TotalQuantity')
                 )
                 ->where('idr.itemId', $this->selectedItemId)
+                ->where('ir.status', '!=', 'ANULADO')
                 ->whereBetween(DB::raw('COALESCE(ir.created_at, ir.updated_at)'), [$startDate, $endDate])
+                ->where(DB::raw('COALESCE(ir.created_at, ir.updated_at)'), '>=', '2026-06-01')
                 ->groupBy(DB::raw('YEAR(COALESCE(ir.created_at, ir.updated_at))'), DB::raw('MONTH(COALESCE(ir.created_at, ir.updated_at))'))
                 ->get();
 
@@ -1061,6 +1063,7 @@ class ImportServices extends Component
                             INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
                             WHERE ir.status != \'ANULADO\'
                             AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
 
                             UNION ALL
 

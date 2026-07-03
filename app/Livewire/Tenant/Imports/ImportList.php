@@ -237,6 +237,7 @@ class ImportList extends Component
                         INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
                         WHERE ir.status != \'ANULADO\'
                         AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
 
                         UNION ALL
 

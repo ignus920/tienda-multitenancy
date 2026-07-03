@@ -1178,18 +1178,32 @@ class ProductQuoter extends Component
 
         $this->ensureTenantConnection();
 
+        $cleanValue = preg_replace('/[^0-9a-zA-Z]/', '', $value);
+        $words = array_filter(explode(' ', trim($value)));
+
         $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
             ->whereNot('type', 'PROVEEDOR') // Excluir proveedores
-            ->where(function ($query) use ($value) {
-                // Limpiar el valor de búsqueda para ser más flexible con NITs
-                $cleanValue = preg_replace('/[^0-9a-zA-Z]/', '', $value);
+            ->where(function ($query) use ($value, $cleanValue, $words) {
+                // Búsqueda por coincidencia exacta o parcial en identificación/correo
                 $query->where('identification', 'like', '%' . $value . '%')
                     ->orWhere('identification', 'like', '%' . $cleanValue . '%')
-                    ->orWhere('businessName', 'like', '%' . $value . '%')
-                    ->orWhere('firstName', 'like', '%' . $value . '%')
-                    ->orWhere('lastName', 'like', '%' . $value . '%');
+                    ->orWhere('billingEmail', 'like', '%' . $value . '%');
+
+                // Si hay palabras, buscar cada una en nombre, apellido o concatenado
+                if (!empty($words)) {
+                    $query->orWhere(function ($q) use ($words) {
+                        foreach ($words as $word) {
+                            $q->where(function ($sub) use ($word) {
+                                $sub->where('businessName', 'like', '%' . $word . '%')
+                                    ->orWhere('firstName', 'like', '%' . $word . '%')
+                                    ->orWhere('lastName', 'like', '%' . $word . '%')
+                                    ->orWhere(DB::raw("CONCAT(COALESCE(firstName, ''), ' ', COALESCE(lastName, ''))"), 'like', '%' . $word . '%');
+                            });
+                        }
+                    });
+                }
             })
-            ->limit(5)
+            ->limit(10)
             ->get()
             ->toArray();
     }
