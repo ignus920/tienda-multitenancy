@@ -90,6 +90,10 @@ class JustificationReport extends Component
         return DB::connection('tenant')->table('vnt_detail_quotes as dq')
             ->join('vnt_quotes as q', 'dq.quoteId', '=', 'q.id')
             ->join('inv_items as i', 'dq.itemId', '=', 'i.id')
+            ->leftJoin('inv_items_dimensions as idim', function($join) {
+                $join->on('i.id', '=', 'idim.item_id')
+                     ->whereNull('idim.deleted_at');
+            })
             ->leftJoin(config('database.connections.central.database') . '.users as u', 'q.userId', '=', 'u.id')
             ->whereNotNull('dq.justification')
             ->where('dq.justification', '!=', '')
@@ -113,7 +117,7 @@ class JustificationReport extends Component
                 'i.internal_code as codigo',
                 'i.name as producto',
                 'dq.quantity as cantidad',
-                'i.quantity_x_box as unidades_x_caja',
+                'idim.quntityxbox as unidades_x_caja',
                 'dq.justification as justificacion'
             ])
             ->orderBy('q.created_at', 'desc');

@@ -1898,8 +1898,16 @@ class ProductQuoter extends Component
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si ya existe, incrementar la cantidad
-            $this->quoterItems[$existingIndex]['quantity']++;
+            $item = $this->quoterItems[$existingIndex];
+            $quntityxbox = (int) ($item['quntityxbox'] ?? 0);
+            $isBoxPrice = str_contains(strtolower($item['price_label'] ?? ''), 'caja');
+
+            if ($isBoxPrice && $quntityxbox > 0) {
+                // Incrementar por caja completa para mantener múltiplos
+                $this->quoterItems[$existingIndex]['quantity'] += $quntityxbox;
+            } else {
+                $this->quoterItems[$existingIndex]['quantity']++;
+            }
 
             // Guardar en sesión
             session(['quoter_items' => $this->quoterItems]);
@@ -1921,9 +1929,14 @@ class ProductQuoter extends Component
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si la cantidad es mayor a 1, disminuir
-            if ($this->quoterItems[$existingIndex]['quantity'] > 1) {
-                $this->quoterItems[$existingIndex]['quantity']--;
+            $item = $this->quoterItems[$existingIndex];
+            $quntityxbox = (int) ($item['quntityxbox'] ?? 0);
+            $isBoxPrice = str_contains(strtolower($item['price_label'] ?? ''), 'caja');
+
+            $decrement = ($isBoxPrice && $quntityxbox > 0) ? $quntityxbox : 1;
+
+            if ($this->quoterItems[$existingIndex]['quantity'] > $decrement) {
+                $this->quoterItems[$existingIndex]['quantity'] -= $decrement;
                 $this->calculateTotal();
                 session(['quoter_items' => $this->quoterItems]);
 
@@ -1933,7 +1946,6 @@ class ProductQuoter extends Component
                     'message' => 'Cantidad disminuida: ' . $productName
                 ]);
             } else {
-                // Si la cantidad es 1, preguntar o remover (según diseño suele ser remover)
                 $this->removeFromQuoter($existingIndex);
             }
         }

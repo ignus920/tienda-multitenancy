@@ -578,6 +578,40 @@ $header = 'Seleccionar productos';
     @livewire('tenant.components.product-reservation-modal')
 </div>
 <script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('open-box-justification-modal', (event) => {
+            const data = Array.isArray(event) ? event[0] : event;
+            const index = data.index;
+            const requestedQuantity = data.requestedQuantity;
+            const quntityxbox = data.quntityxbox;
+
+            Swal.fire({
+                title: 'Justificación Requerida',
+                text: `La cantidad ingresada (${requestedQuantity}) no es múltiplo de la cantidad por caja (${quntityxbox}). Por favor, justifique el cambio:`,
+                input: 'textarea',
+                inputPlaceholder: 'Escriba la justificación aquí...',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Aplicar Cantidad',
+                cancelButtonText: 'Cancelar',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827',
+                preConfirm: (value) => {
+                    if (!value || value.trim() === '') {
+                        Swal.showValidationMessage('La justificación es obligatoria');
+                    }
+                    return value;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Livewire.find('{{ $this->getId() }}').call('applyJustifiedQuantity', index, requestedQuantity, result.value);
+                } else {
+                    Livewire.find('{{ $this->getId() }}').$refresh();
+                }
+            });
+        });
+    });
 
     function fallbackCopyToClipboardMobile(text, callback) {
         const textArea = document.createElement("textarea");
