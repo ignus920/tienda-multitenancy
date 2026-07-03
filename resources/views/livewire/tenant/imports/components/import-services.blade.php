@@ -215,7 +215,7 @@
               x-transition:enter="transition ease-out duration-200"
               x-transition:enter-start="opacity-0 transform scale-95"
               x-transition:enter-end="opacity-100 transform scale-100"
-              class="sticky top-0 z-30 mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg shadow-lg">
+              class="sticky top-16 z-30 mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg shadow-lg">
              <div class="flex flex-col lg:flex-row gap-4 items-start">
                 <!-- Izquierda: Prioridades y cantidades -->
                 <div class="flex items-start gap-3 flex-shrink-0">
