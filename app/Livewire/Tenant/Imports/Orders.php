@@ -96,16 +96,24 @@ class Orders extends Component
     #[Computed]
     public function status()
     {
-        // Primera consulta: Registros agrupados por estado
+        // Primera consulta: Registros agrupados por estado, filtrados por proveedor si corresponde
         $estados = DB::connection('tenant')
             ->table('imp_imports as i')
+            ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
             ->select('s.name as nombre_estado', 's.translated_name', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
+            ->when(Auth::user()->profile_id == 17, function ($query) {
+                return $query->where(function ($q) {
+                    $q->where('iis.supplier_id', Auth::id())
+                      ->orWhereNull('i.id');
+                });
+            })
             ->groupBy('s.id', 's.name', 's.translated_name');
 
-        // Segunda consulta: Solo novedades
+        // Segunda consulta: Solo novedades, filtradas por proveedor si corresponde
         $novedades = DB::connection('tenant')
             ->table('imp_imports as i')
+            ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->select(
                 DB::raw("'Novedades' as nombre_estado"),
                 DB::raw("'Novedades' as translated_name"),
@@ -113,6 +121,9 @@ class Orders extends Component
                 DB::raw("10 as id")
             )
             ->where('i.news', 1)
+            ->when(Auth::user()->profile_id == 17, function ($query) {
+                return $query->where('iis.supplier_id', Auth::id());
+            })
             ->groupBy('i.news');
 
         // Unir las consultas y ordenar
