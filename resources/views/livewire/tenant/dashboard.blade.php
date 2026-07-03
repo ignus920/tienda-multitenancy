@@ -14,6 +14,7 @@
         </div>
 
         <!-- Filtros de Fecha -->
+        @if(in_array(auth()->user()->profile_id, [1, 2]))
         <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg mb-6">
             <div class="p-6 border-b border-gray-200 dark:border-gray-800">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -37,11 +38,12 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <!-- Ventas Hoy -->
-            @if(auth()->user()->profile_id != 6)
+            @if(in_array(auth()->user()->profile_id, [1, 2]))
             <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
                 x-data="{ show: false }" 
                 @mousedown="show = true" 
@@ -102,7 +104,7 @@
             </div>
 
             <!-- Ventas del Mes -->
-            @if(auth()->user()->profile_id != 6)
+            @if(in_array(auth()->user()->profile_id, [1, 2]))
             <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
                 x-data="{ show: false }" 
                 @mousedown="show = true" 
