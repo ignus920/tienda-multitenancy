@@ -203,9 +203,15 @@ class ImportList extends Component
                          ? 'COALESCE(imp_imports.qty_requested, 0) AS quantity'
                          : 'COALESCE(MAX(imp_unconfirmed_qty.qty), 0) AS quantity'
                  ),
-                DB::raw('0 AS percentage'),
+                DB::raw('
+                    CASE 
+                        WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
+                        THEN ROUND((COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END AS percentage
+                '),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "entrada" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS insideMovement'),
-                DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "salida" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS outsideMovement'),
+                DB::raw('COALESCE(s7m.salidas_7_meses, 0) AS outsideMovement'),
                 DB::raw('COALESCE(imp_items_setup.exw, 0) AS exw'),
                 DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
                 DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at'),
@@ -222,6 +228,26 @@ class ImportList extends Component
                 $join->on('imp_unconfirmed_qty.item_id', '=', 'inv_items.id')
                      ->whereNull('imp_unconfirmed_qty.deleted_at');
             })
+            ->leftJoin(DB::raw('
+                (
+                    SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                    FROM (
+                        SELECT idr.itemId, idr.quantity as qty
+                        FROM inv_detail_remissions idr
+                        INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                        WHERE ir.status != \'ANULADO\'
+                        AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+
+                        UNION ALL
+
+                        SELECT item_sub.id as itemId, lsh.quantity as qty
+                        FROM legacy_sales_history lsh
+                        INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                        WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                    ) sub
+                    GROUP BY sub.itemId
+                ) s7m
+            '), 's7m.itemId', '=', 'inv_items.id')
             ->when($this->selectedLabelId, function ($query) {
                 // INNER JOIN imp_imports to filter only items with this label
                 $query->join('imp_imports', function ($join) {
@@ -252,6 +278,7 @@ class ImportList extends Component
                 'inv_items.internal_code',
                 'inv_items_store.stock_items_store',
                 'imp_items_setup.exw',
+                's7m.salidas_7_meses',
                 $this->selectedLabelId ? 'imp_imports.qty_requested' : null,
             ]))
             ->orderBy($this->sortField, $this->sortDirection);
