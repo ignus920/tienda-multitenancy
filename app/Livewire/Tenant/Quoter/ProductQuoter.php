@@ -718,21 +718,24 @@ class ProductQuoter extends Component
 
         $this->ensureTenantConnection();
 
-        $sku = 'GEN-' . strtoupper(substr(uniqid(), -6));
+        $sku = 'GENERICO';
+        $product = Items::where('sku', $sku)->first();
 
-        $product = Items::create([
-            'name'             => $this->genericProductName,
-            'sku'              => $sku,
-            'internal_code'    => $sku,
-            'type'             => 'COMPRA NACIONAL',
-            'taxId'            => $this->genericProductTaxId,
-            'categoryId'       => 1,
-            'purchasing_unit'  => 35,
-            'consumption_unit' => 35,
-            'inventoriable'    => 0,
-            'status'           => 1,
-            'generic'          => 1,
-        ]);
+        if (!$product) {
+            $product = Items::create([
+                'name'             => 'PRODUCTO GENERICO',
+                'sku'              => $sku,
+                'internal_code'    => $sku,
+                'type'             => 'COMPRA NACIONAL',
+                'taxId'            => $this->genericProductTaxId,
+                'categoryId'       => 1,
+                'purchasing_unit'  => 35,
+                'consumption_unit' => 35,
+                'inventoriable'    => 0,
+                'status'           => 1,
+                'generic'          => 1,
+            ]);
+        }
 
         InvValues::create([
             'date'        => now(),
@@ -746,7 +749,7 @@ class ProductQuoter extends Component
 
         array_unshift($this->quoterItems, [
             'id'          => $product->id,
-            'name'        => $product->name,
+            'name'        => $this->genericProductName,
             'sku'         => $sku,
             'price'       => (float) $this->genericProductPrice,
             'tax'         => $tax->percentage,
