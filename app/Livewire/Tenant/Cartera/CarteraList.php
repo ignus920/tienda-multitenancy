@@ -710,7 +710,7 @@ class CarteraList extends Component
             $query->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
         }
 
-        $query->latest();
+        $query->orderBy('consecutive', 'desc');
 
         if ($this->search) {
             $query->where(function($q) {

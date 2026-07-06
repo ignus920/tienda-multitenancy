@@ -122,9 +122,9 @@
 
     <!-- Vista Desktop (tabla) - oculta en móvil -->
     <div class="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-[70vh] overflow-y-auto custom-scrollbar">
             <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                <thead class="bg-gray-50 dark:bg-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th scope="col" class="w-10 px-6 py-3"></th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
@@ -187,7 +187,6 @@
                                 </div>
                                 <div class="ml-4">
                                     <div class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ $item->sku }}</div>
-                                    <div class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">{{ $item->internal_code }}</div>
                                 </div>
                             </div>
                         </td>
@@ -221,7 +220,7 @@
                                 </div>
                             </div>
 
-                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 2) }}</div>
+                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 0) }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                             <input type="number" 
@@ -241,10 +240,10 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $item->percentage ?? 0 }}%</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-red-600 dark:text-red-400">{{ number_format($item->outsideMovement ?? 0, 2) }}</div>
+                            <div class="text-sm text-red-600 dark:text-red-400">{{ number_format($item->outsideMovement ?? 0, 0) }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-green-600 dark:text-green-400">{{ number_format($item->insideMovement ?? 0, 2) }}</div>
+                            <div class="text-sm text-green-600 dark:text-green-400">{{ number_format($item->insideMovement ?? 0, 0) }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-semibold text-gray-900 dark:text-white">${{ number_format($item->exw ?? 0, 2) }}</div>
@@ -360,7 +359,7 @@
             <div class="grid grid-cols-2 gap-3 mb-3">
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Existencias ERP</p>
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 2) }}</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 0) }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Porcentaje</p>
@@ -368,11 +367,11 @@
                 </div>
                 <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Salida ERP</p>
-                    <p class="text-sm font-semibold text-red-600 dark:text-red-400">{{ number_format($item->outsideMovement ?? 0, 2) }}</p>
+                    <p class="text-sm font-semibold text-red-600 dark:text-red-400">{{ number_format($item->outsideMovement ?? 0, 0) }}</p>
                 </div>
                 <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Entrada ERP</p>
-                    <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ number_format($item->insideMovement ?? 0, 2) }}</p>
+                    <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ number_format($item->insideMovement ?? 0, 0) }}</p>
                 </div>
             </div>
 
