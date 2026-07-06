@@ -73,10 +73,29 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                 </div>
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">
-                    {{ $title }}
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center flex-wrap gap-2">
+                    <span>{{ $title }}</span>
+                    @if($selectedRequest)
+                        @php
+                            $statusColor = $selectedRequest->status->color ?? 'gray';
+                            $colorMap = [
+                                'indigo' => '#4f46e5',
+                                'green' => '#16a34a',
+                                'blue' => '#2563eb',
+                                'red' => '#dc2626',
+                                'maroon' => '#800000',
+                            ];
+                            $badgeColor = $colorMap[strtolower($statusColor)] ?? $statusColor;
+                        @endphp
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase text-white tracking-wider" 
+                              style="background-color: {{ $badgeColor }}">
+                            {{ $selectedRequest->status->name }}
+                        </span>
+                    @endif
                     @if($productName)
-                        <span class="text-indigo-500 dark:text-indigo-400 font-normal ml-2">— {{ $productName }}</span>
+                        <span class="text-indigo-500 dark:text-indigo-400 font-normal ml-2">
+                            — @if($productCode){{ $productCode }} - @endif{{ $productName }}
+                        </span>
                     @endif
                 </h3>
             </div>
@@ -250,8 +269,19 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                         {!! Str::words(strip_tags($req->detail), 8) !!}
                                     </td>
                                     <td class="px-3 py-3 text-center">
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white"
-                                            style="background-color: #3b82f6">
+                                        @php
+                                            $statusColor = $req->status->color ?? 'gray';
+                                            $colorMap = [
+                                                'indigo' => '#4f46e5',
+                                                'green' => '#16a34a',
+                                                'blue' => '#2563eb',
+                                                'red' => '#dc2626',
+                                                'maroon' => '#800000',
+                                            ];
+                                            $badgeColor = $colorMap[strtolower($statusColor)] ?? $statusColor;
+                                        @endphp
+                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white shadow-sm"
+                                            style="background-color: {{ $badgeColor }}">
                                             {{ $req->status->name }}
                                         </span>
                                     </td>

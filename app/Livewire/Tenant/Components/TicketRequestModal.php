@@ -25,6 +25,7 @@ class TicketRequestModal extends Component
     public $isOpen = false;
     public $productId = null;
     public $productName = null;
+    public $productCode = null;
     public $title = 'Nueva Solicitud';
     public $selectedRequestId = null; // Guardamos solo el ID para evitar errores de hidratación multitenant
 
@@ -129,12 +130,14 @@ class TicketRequestModal extends Component
 
         $this->productId = $productId;
         $this->productName = null;
+        $this->productCode = null;
         
         if ($productId) {
             $this->ensureTenantConnection();
             $product = Items::find($productId);
             if ($product) {
                 $this->productName = $product->name;
+                $this->productCode = $product->internal_code;
             }
         }
 
@@ -157,11 +160,13 @@ class TicketRequestModal extends Component
 
         $this->ensureTenantConnection();
         $this->selectedRequestId = $id;
+        $this->productCode = null;
         
         $request = TickRequest::with('product')->find($id);
         if ($request) {
             $this->title = 'Detalle de Solicitud #' . $id;
             $this->productName = $request->product->name ?? null;
+            $this->productCode = $request->product->internal_code ?? null;
         }
 
         $this->resetValidation();
@@ -260,8 +265,8 @@ class TicketRequestModal extends Component
             DB::connection('tenant')->commit();
 
             $this->dispatch('show-toast', [
-                'icon' => 'success',
-                'title' => 'Solicitud enviada correctamente'
+                'type' => 'success',
+                'message' => 'Solicitud enviada correctamente'
             ]);
 
             $this->reset(['department_id', 'detail']);
@@ -271,8 +276,8 @@ class TicketRequestModal extends Component
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             $this->dispatch('show-toast', [
-                'icon' => 'error',
-                'title' => 'Error al guardar: ' . $e->getMessage()
+                'type' => 'error',
+                'message' => 'Error al guardar: ' . $e->getMessage()
             ]);
         }
     }
