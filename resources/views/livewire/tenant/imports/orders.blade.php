@@ -461,8 +461,8 @@
                                     >
                                 </td>
                                 @endif
-                                <td class="px-4 py-4 max-w-[200px]">
-                                    <div class="text-xs font-medium text-gray-900 dark:text-white line-clamp-2">
+                                <td class="px-4 py-4 max-w-[300px]">
+                                    <div class="text-xs font-medium text-gray-900 dark:text-white break-words">
                                         {{ $order->item}}
                                     </div>
                                 </td>
