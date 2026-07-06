@@ -1701,14 +1701,14 @@ $header = 'Seleccionar productos';
             const quntityxbox = data.quntityxbox;
 
             Swal.fire({
-                title: 'Justificación Requerida',
-                text: `La cantidad ingresada (${requestedQuantity}) no es múltiplo de la cantidad por caja (${quntityxbox}). Por favor, justifique el cambio:`,
+                title: '¿Cotizar cajas incompletas?',
+                text: 'Para ofrecer precio x caja se deben cotizar cajas completas, Si esta seguro de querer continuar, cual es la razón para cotizar cajas incompletas ?',
                 input: 'textarea',
                 inputPlaceholder: 'Escriba la justificación aquí...',
                 showCancelButton: true,
                 confirmButtonColor: '#4f46e5',
                 cancelButtonColor: '#ef4444',
-                confirmButtonText: 'Aplicar Cantidad',
+                confirmButtonText: 'Continuar',
                 cancelButtonText: 'Cancelar',
                 background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                 color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827',

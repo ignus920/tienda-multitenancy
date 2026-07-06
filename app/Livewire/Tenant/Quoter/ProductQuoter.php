@@ -1104,6 +1104,7 @@ class ProductQuoter extends Component
                 $oldQty = isset($sessionItems[$index]['quantity']) ? (int) $sessionItems[$index]['quantity'] : $quntityxbox;
 
                 $this->quoterItems[$index]['quantity'] = $oldQty;
+                session(['quoter_items' => $this->quoterItems]); // Guardar estado revertido en sesión
 
                 // Lanzar evento para abrir modal de justificación
                 $this->dispatch('open-box-justification-modal', [

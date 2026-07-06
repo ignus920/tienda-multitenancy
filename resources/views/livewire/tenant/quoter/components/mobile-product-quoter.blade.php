@@ -272,7 +272,7 @@ $header = 'Seleccionar productos';
                                             <button wire:click.stop="decreaseQuantity({{ $product->id }})" class="flex-1 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-lg active:scale-95"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button>
                                             <div class="w-12 h-12 flex items-center justify-center bg-white dark:bg-gray-700 rounded-lg shadow-inner">
                                                 @php $itemIndex = $this->findProductInQuoter($product->id); @endphp
-                                                <input type="number" wire:model.live="quoterItems.{{ $itemIndex }}.quantity" wire:change="validateQuantity({{ $itemIndex }})" class="w-full bg-transparent border-none text-center font-black text-indigo-700 dark:text-indigo-300 text-lg focus:ring-0 p-0">
+                                                <input type="number" wire:model.blur="quoterItems.{{ $itemIndex }}.quantity" wire:change="validateQuantity({{ $itemIndex }})" class="w-full bg-transparent border-none text-center font-black text-indigo-700 dark:text-indigo-300 text-lg focus:ring-0 p-0">
                                             </div>
                                             <button wire:click.stop="increaseQuantity({{ $product->id }})" class="flex-1 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-lg active:scale-95"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
                                         </div>
@@ -415,7 +415,7 @@ $header = 'Seleccionar productos';
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-2">
-                                        <input type="number" wire:model.lazy="quoterItems.{{ $index }}.quantity" wire:change="validateQuantity({{ $index }})" class="w-12 px-1 py-0.5 text-center text-sm font-bold border border-gray-300 rounded bg-gray-50">
+                                        <input type="number" wire:model.blur="quoterItems.{{ $index }}.quantity" wire:change="validateQuantity({{ $index }})" class="w-12 px-1 py-0.5 text-center text-sm font-bold border border-gray-300 rounded bg-gray-50">
                                     </div>
                                     <div class="text-sm font-black text-indigo-700">${{ number_format($item['price'] * $item['quantity']) }}</div>
                                 </div>
@@ -586,14 +586,14 @@ $header = 'Seleccionar productos';
             const quntityxbox = data.quntityxbox;
 
             Swal.fire({
-                title: 'Justificación Requerida',
-                text: `La cantidad ingresada (${requestedQuantity}) no es múltiplo de la cantidad por caja (${quntityxbox}). Por favor, justifique el cambio:`,
+                title: '¿Cotizar cajas incompletas?',
+                text: 'Para ofrecer precio x caja se deben cotizar cajas completas, Si esta seguro de querer continuar, cual es la razón para cotizar cajas incompletas ?',
                 input: 'textarea',
                 inputPlaceholder: 'Escriba la justificación aquí...',
                 showCancelButton: true,
                 confirmButtonColor: '#4f46e5',
                 cancelButtonColor: '#ef4444',
-                confirmButtonText: 'Aplicar Cantidad',
+                confirmButtonText: 'Continuar',
                 cancelButtonText: 'Cancelar',
                 background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                 color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827',

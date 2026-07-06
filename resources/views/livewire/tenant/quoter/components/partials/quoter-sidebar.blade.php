@@ -369,7 +369,7 @@
             <input
                 id="quantity-{{ $index }}"
                 type="number"
-                wire:model.lazy="quoterItems.{{ $index }}.quantity"
+                wire:model.blur="quoterItems.{{ $index }}.quantity"
                 wire:change="validateQuantity({{ $index }})"
                 min="1"
                 max="999999"
