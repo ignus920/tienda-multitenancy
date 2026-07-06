@@ -174,7 +174,31 @@
     
     <!-- DataTable Card -->
     <div class="max-w-12xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+             x-data="{ 
+                 showCols: { 
+                     factoryRef: true, 
+                     lastPrice: true, 
+                     label: true, 
+                     quotedPrice: true, 
+                     comment: true, 
+                     action: true, 
+                     status: true, 
+                     qtyShipped: true, 
+                     shippingInfo: true 
+                 },
+                 init() {
+                     const stored = localStorage.getItem('order_table_cols');
+                     if (stored) {
+                         try {
+                             this.showCols = Object.assign({}, this.showCols, JSON.parse(stored));
+                         } catch(e) {}
+                     }
+                     this.$watch('showCols', value => {
+                         localStorage.setItem('order_table_cols', JSON.stringify(value));
+                     }, { deep: true });
+                 }
+             }">
             <!-- Toolbar -->
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -293,6 +317,72 @@
 
                     <!-- Controles -->
                     <div class="flex items-center gap-3">
+                        <!-- Visibilidad de Columnas -->
+                        <div x-data="{ open: false }" class="relative inline-block text-left" @click.away="open = false">
+                            <button @click="open = !open" 
+                                    class="inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm">
+                                <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                Columnas
+                                <svg class="w-4 h-4 ml-1.5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div x-show="open" 
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                 class="absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 ring-1 ring-black ring-opacity-5 z-50 focus:outline-none"
+                                 x-cloak>
+                                <div class="py-2 px-3 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
+                                    <div class="font-semibold text-gray-400 dark:text-gray-500 pb-1 border-b border-gray-150 dark:border-gray-600 mb-1">
+                                        Visibilidad de columnas
+                                    </div>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.factoryRef" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Factory Ref</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.lastPrice" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>$ Last</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.label" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Label</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.quotedPrice" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Quoted Price</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.comment" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Coment</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.action" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Action</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.status" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Status</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.qtyShipped" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Qty Shipped</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
+                                        <input type="checkbox" x-model="showCols.shippingInfo" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Shipping Info</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Registros por página -->
                         <div class="flex items-center gap-2">
                             <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
@@ -322,34 +412,34 @@
                             <th class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Item
                             </th>
-                            <th class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.factoryRef" class="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Factory Ref
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.lastPrice" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 $ Last
                             </th>
                             <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Qty Ordered
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.label" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Label
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.quotedPrice" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Quoted price
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.comment" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Coment
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.action" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Action
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.status" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Status
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.qtyShipped" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Qty Shipped
                             </th>
-                            <th class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.shippingInfo" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Shipping Information
                             </th>
                         </tr>
@@ -376,12 +466,12 @@
                                         {{ $order->item}}
                                     </div>
                                 </td>
-                                <td class="px-4 py-4">
+                                <td x-show="showCols.factoryRef" class="px-4 py-4">
                                     <div class="text-sm text-gray-600 dark:text-gray-300 font-mono">
                                         {{ $order->factory_ref ?? 'N/A' }}
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 text-center">
+                                <td x-show="showCols.lastPrice" class="px-4 py-4 text-center">
                                     <span class="text-sm font-mono text-gray-600 dark:text-gray-300">
                                         ${{ number_format($order->exw ?? 0, 2) }}
                                     </span>
@@ -404,7 +494,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4 text-center">
+                                <td x-show="showCols.label" class="px-4 py-4 text-center">
                                     @if (!empty($order->priority))
                                         <div class="flex flex-col items-center gap-1">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
@@ -425,7 +515,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4 text-center"
+                                <td x-show="showCols.quotedPrice" class="px-4 py-4 text-center"
                                     x-data="{ priceQ: {{ $order->price ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.priceInput) priceQ = {{ $order->price ?? 0 }}">
                                     @if ($profileUser == '17' && in_array($order->status, [1,2,4,6,7]))
@@ -446,7 +536,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4">
+                                <td x-show="showCols.comment" class="px-4 py-4">
                                     <div class="space-y-2 min-w-[200px]">
                                         <div x-data="{ comment: '' }" class="flex items-center gap-1">
                                             <input type="text" 
@@ -493,7 +583,7 @@
                                         @endif
                                     </div> 
                                 </td>
-                                <td class="px-4 py-4 text-center">
+                                <td x-show="showCols.action" class="px-4 py-4 text-center">
                                     @if($order->status == 2 && $order->news == 0 && $profileUser != '17')
                                         <button wire:click="openModalConfirmPrice({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                             <x-heroicon-o-check class="w-4 h-4" /> Approve price
@@ -506,12 +596,12 @@
                                         <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4 text-center">
+                                <td x-show="showCols.status" class="px-4 py-4 text-center">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                         {{ $order->translated_name ?? 'N/A' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 text-center"
+                                <td x-show="showCols.qtyShipped" class="px-4 py-4 text-center"
                                     x-data="{ qtyShip: {{ $order->qty_shipped ?? $order->qty_requested ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.qtyShipInput) qtyShip = {{ $order->qty_shipped ?? $order->qty_requested ?? 0 }}">
                                     @if ($profileUser == '17' && ($order->status == 6))
@@ -531,7 +621,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4">
+                                <td x-show="showCols.shippingInfo" class="px-4 py-4">
                                     <div class="space-y-1 text-xs min-w-[200px]">
                                         @if($order->packing_number)
                                             <div class="flex items-center gap-1">
@@ -578,7 +668,7 @@
                             </tr>
                         @empty
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                <td colspan="10" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="12" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
