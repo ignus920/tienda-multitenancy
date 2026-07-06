@@ -269,8 +269,8 @@
                                     <tr>
                                         @foreach($monthlyQuantities as $data)
                                         <td class="px-2 py-1.5 whitespace-nowrap">
-                                            <span class="block w-full px-1.5 py-0.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded text-center">
-                                                {{ $data['qty'] }}
+                                            <span class="block w-full px-1.5 py-0.5 text-sm font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded text-center">
+                                                {{ number_format($data['qty'] ?? 0, 0) }}
                                             </span>
                                         </td>
                                         @endforeach
