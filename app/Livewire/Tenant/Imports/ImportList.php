@@ -266,11 +266,14 @@ class ImportList extends Component
             })
             ->where('inv_items.status', 1)
             ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('inv_items.name', 'like', '%' . $this->search . '%')
-                        ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
-                        ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%');
-                });
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('inv_items.name', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%');
+                    });
+                }
             })
             ->when($this->filterCritical, function ($query) {
                 // 1. Obtener etiquetas de los próximos meses
