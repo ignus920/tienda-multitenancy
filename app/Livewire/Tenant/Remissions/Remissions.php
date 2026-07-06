@@ -2300,7 +2300,7 @@ class Remissions extends Component
                         });
                 }
             })
-            ->orderBy('created_at', 'desc');
+            ->orderBy('consecutive', 'desc');
     }
 
     /**
