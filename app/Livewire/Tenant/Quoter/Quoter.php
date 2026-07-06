@@ -894,7 +894,7 @@ class Quoter extends Component
             ->when($this->filterDateTo, function ($query) {
                 $query->whereDate('created_at', '<=', $this->filterDateTo);
             })
-            ->orderBy('created_at', 'desc');
+            ->orderBy('consecutive', 'desc');
     }
 
     /**
