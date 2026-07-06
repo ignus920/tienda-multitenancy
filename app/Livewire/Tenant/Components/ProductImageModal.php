@@ -18,6 +18,7 @@ class ProductImageModal extends Component
     public $isOpen = false;
     public $productId;
     public $productName;
+    public $productCode;
     
     // Para subida de archivos
     public $mainImage;
@@ -78,6 +79,7 @@ class ProductImageModal extends Component
         
         if ($product) {
             $this->productName = $product->name;
+            $this->productCode = $product->internal_code;
             $this->isOpen = true;
             
             // Perfil del usuario
@@ -214,7 +216,7 @@ class ProductImageModal extends Component
     public function close()
     {
         $this->isOpen = false;
-        $this->reset(['mainImage', 'galleryImages', 'productId', 'productName']);
+        $this->reset(['mainImage', 'galleryImages', 'productId', 'productName', 'productCode']);
     }
 
     public function render()
