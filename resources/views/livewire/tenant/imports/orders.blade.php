@@ -53,25 +53,20 @@
     </div>
 
     <!-- Status Summary -->
-	<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
         @foreach($this->status as $stat)
             @php
                 $isActive = ($filterStatus == $stat->{'id'}) || ($stat->{'id'} == 10 && $filterNews == 1);
             @endphp
-            <button wire:click="putFilter({{ $stat->{'id'} }})" class="text-left transition-transform transform hover:scale-105">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex items-center p-4 border {{ $isActive ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900' : 'border-gray-200 dark:border-gray-700' }}">
-                    <div class="flex-shrink-0 {{ $isActive ? 'bg-indigo-600' : 'bg-indigo-100 dark:bg-indigo-900' }} rounded-lg p-3 mr-4 transition-colors">
-                        <x-heroicon-o-document-text class="w-8 h-8 {{ $isActive ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}" />
-                    </div>
-                    <div>
+            <button wire:click="putFilter({{ $stat->{'id'} }})" class="w-full text-center transition-transform transform hover:scale-105">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex items-center justify-center py-2 px-3 border {{ $isActive ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900' : 'border-gray-200 dark:border-gray-700' }}">
+                    <div class="flex items-center justify-center gap-1.5 min-w-0 w-full text-xs font-semibold text-gray-500 dark:text-gray-400">
                         @if (Auth::user()?->profile_id == 17)
-                            <div class="text-gray-500 dark:text-gray-400 font-semibold text-sm">{{ $stat->{'translated_name'} }}</div>
+                            <span class="truncate">{{ $stat->{'translated_name'} }}:</span>
                         @else
-                            <div class="text-gray-500 dark:text-gray-400 font-semibold text-sm">{{ $stat->{'nombre_estado'} }}</div>
+                            <span class="truncate">{{ $stat->{'nombre_estado'} }}:</span>
                         @endif
-                        <div class="text-xl font-bold text-gray-900 dark:text-white">
-                            {{ $stat->{'cantidad'} }}
-                        </div>
+                        <span class="text-xl font-black text-indigo-600 dark:text-indigo-400 ml-1.5">{{ $stat->{'cantidad'} }}</span>
                     </div>
                 </div>
             </button>
