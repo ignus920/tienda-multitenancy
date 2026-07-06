@@ -27,7 +27,9 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">
                     Confirmación de Inventario
                     @if($product)
-                        <span class="text-blue-500 dark:text-blue-400 font-normal ml-2">— {{ $product->name }}</span>
+                        <span class="text-blue-500 dark:text-blue-400 font-normal ml-2">
+                            — @if($product->internal_code){{ $product->internal_code }} - @endif{{ $product->name }}
+                        </span>
                     @endif
                 </h3>
             </div>
