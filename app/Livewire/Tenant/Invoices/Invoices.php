@@ -1299,6 +1299,19 @@ class Invoices extends Component
             return;
         }
 
+        // Validación de seguridad: no permitir acreditar más del valor total de la factura
+        $totalAlreadyAccredited = (float) \App\Models\Tenant\Invoices\VntCreditNote::where('invoice_id', $invoice->id)->sum('total');
+        $newCreditNoteTotalVal  = (float) $selectedItems->sum('total');
+        $invoiceTotalVal        = (float) ($this->creditNoteInvoice['total'] ?? 0);
+
+        if (($totalAlreadyAccredited + $newCreditNoteTotalVal) > ($invoiceTotalVal + 1.0)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error', 
+                'message' => 'El valor total acreditado acumulado ($' . number_format($totalAlreadyAccredited + $newCreditNoteTotalVal, 0, ',', '.') . ') no puede superar el valor total de la factura ($' . number_format($invoiceTotalVal, 0, ',', '.') . ').'
+            ]);
+            return;
+        }
+
         try {
             $invoiceApiId  = $this->creditNoteInvoice['invoice_api_data_id'] ?? null;
             $customerApiId = $this->creditNoteInvoice['customer_api_id'] ?? null;
