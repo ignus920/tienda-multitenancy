@@ -266,7 +266,32 @@
                                 {{ number_format($invoice->total_con_impuestos, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-white">
-                                {{ $invoice->creditNoteId ?? 'Sin NC' }}
+                                @php
+                                    $creditNoteIds = [];
+                                    if (!empty($invoice->creditNoteId)) {
+                                        $creditNoteIds[] = $invoice->creditNoteId;
+                                    }
+                                    if ($invoice->creditNotes) {
+                                        foreach ($invoice->creditNotes as $cn) {
+                                            if (!empty($cn->api_data_id)) {
+                                                $creditNoteIds[] = $cn->api_data_id;
+                                            }
+                                        }
+                                    }
+                                    $creditNoteIds = array_unique(array_filter($creditNoteIds));
+                                @endphp
+                                @if(count($creditNoteIds) > 0)
+                                    <span title="Valor total acreditado: $ {{ number_format($invoice->creditNote, 2, ',', '.') }}">
+                                        @foreach($creditNoteIds as $cnId)
+                                            <span class="block">{{ $cnId }}</span>
+                                        @endforeach
+                                        @if($invoice->creditNote > 0) 
+                                            <span class="text-xs text-red-500 block">(${{ number_format($invoice->creditNote, 0, ',', '.') }})</span>
+                                        @endif
+                                    </span>
+                                @else
+                                    Sin NC
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                 {{ number_format($invoice->retentionFuente, 2) }}
@@ -336,8 +361,8 @@
                                                 <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                                             @endif
 
-                                            {{-- Nota Crédito - Solo para facturas FACTURADAS, sin nota crédito y NO pagadas --}}
-                                            @if($invoice->status === 'FACTURADO' && !$invoice->creditNote && $invoice->status_payment !== 'PAGADO')
+                                            {{-- Nota Crédito - Para facturas FACTURADAS cuyo saldo acreditado no supere el total --}}
+                                            @if($invoice->status === 'FACTURADO' && $invoice->status_payment !== 'PAGADO' && $invoice->status_payment !== 'ANULADO' && (float)($invoice->creditNote) < (float)($invoice->total_con_impuestos))
                                                 <button wire:click="openCreditNoteModal({{ $invoice->id }})"
                                                     class="w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
                                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

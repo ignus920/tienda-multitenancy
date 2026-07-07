@@ -826,7 +826,7 @@ class Invoices extends Component
             ->join("inv_remissions as r_sub", "s_sub.remissionId", "=", "r_sub.id")
             ->groupBy("s_sub.invoiceId");
 
-        $query = VntInvoices::query()
+        $query = VntInvoices::with('creditNotes')
             ->select([
                 'vnt_invoices.id',
                 'vnt_invoices.consecutive',
@@ -1026,6 +1026,7 @@ class Invoices extends Component
 
     public function openCreditNoteModal(int $invoiceId): void
     {
+        Log::info('🔍 openCreditNoteModal invocado', ['invoice_id' => $invoiceId]);
         $this->ensureTenantConnection();
 
         $invoice = VntInvoices::findOrFail($invoiceId);
@@ -1035,10 +1036,20 @@ class Invoices extends Component
             return;
         }
 
-        if ($invoice->creditNote) {
-            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Esta factura ya tiene una nota crédito asociada.']);
-            return;
-        }
+        // Obtener cantidades ya devueltas en notas de crédito previas
+        $returnedQuantities = \App\Models\Tenant\Invoices\VntCreditNoteItem::whereHas('creditNote', function ($query) use ($invoiceId) {
+            $query->where('invoice_id', $invoiceId);
+        })
+        ->get()
+        ->groupBy(function ($item) {
+            return 'item_' . ($item->item_id ?? 'x_' . $item->detail_id);
+        })
+        ->map(function ($items) {
+            return $items->sum('quantity');
+        })
+        ->toArray();
+
+        Log::info('🔍 Cantidades devueltas previas', ['returnedQuantities' => $returnedQuantities]);
 
         // Cargar TODOS los registros de ventas vinculados a esta factura
         $sales           = VntInvoicesXsales::where('invoiceId', $invoiceId)->get();
@@ -1146,6 +1157,33 @@ class Invoices extends Component
                     }
                 }
             }
+        }
+
+        Log::info('🔍 Ítems originales agrupados antes de restar', ['grouped' => $grouped]);
+
+        // Restar cantidades ya devueltas y actualizar totales de cada ítem
+        foreach ($grouped as $key => &$item) {
+            $alreadyReturned = (float) ($returnedQuantities[$key] ?? 0);
+            $qtyAvailable = max(0.0, $item['quantity'] - $alreadyReturned);
+
+            if ($qtyAvailable <= 0) {
+                unset($grouped[$key]);
+            } else {
+                $item['quantity'] = $qtyAvailable;
+                $item['max_qty']  = $qtyAvailable;
+                $subtotal = round($item['unit_price'] * $qtyAvailable, 2);
+                $item['subtotal'] = $subtotal;
+                $item['total']    = $subtotal + round($subtotal * $item['tax'] / 100, 2);
+            }
+        }
+        unset($item);
+
+        Log::info('🔍 Ítems resultantes después de restar', ['grouped_after' => $grouped]);
+
+        if (empty($grouped)) {
+            Log::warning('⚠️ openCreditNoteModal finalizó porque no hay ítems disponibles');
+            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Todos los ítems de esta factura ya han sido devueltos en notas de crédito anteriores.']);
+            return;
         }
 
         // Convertir el array agrupado a lista plana y calcular total general
@@ -1355,15 +1393,47 @@ class Invoices extends Component
                 ?? $alegraResponse['data']['consecutivo']
                 ?? null;
 
-            VntInvoices::where('id', $this->creditNoteInvoice['id'])
-                ->update([
-                    'creditNote'   => $creditNoteTotal,
-                    'creditNoteId' => $alegraId,
-                ]);
+            // Crear el registro de la nota de crédito local
+            $creditNoteLocal = \App\Models\Tenant\Invoices\VntCreditNote::create([
+                'invoice_id'     => $invoice->id,
+                'reason'         => $this->creditNoteReason,
+                'payment_method' => $this->creditNotePayment,
+                'observations'   => $this->creditNoteObs,
+                'total'          => $creditNoteTotalAlegra,
+                'status'         => 'PROCESADA',
+                'api_data_id'    => $alegraId,
+            ]);
 
-            Log::info('✅ Nota crédito creada en Alegra', [
+            // Guardar los ítems asociados
+            foreach ($selectedItems as $item) {
+                \App\Models\Tenant\Invoices\VntCreditNoteItem::create([
+                    'credit_note_id' => $creditNoteLocal->id,
+                    'item_id'        => $item['item_id'] ?? null,
+                    'item_name'      => $item['name'] ?? '',
+                    'item_code'      => $item['code'] ?? '',
+                    'quantity'       => $item['quantity'],
+                    'unit_price'     => $item['unit_price'],
+                    'tax'            => $item['tax'],
+                    'subtotal'       => $item['subtotal'],
+                    'total'          => $item['total'],
+                    'detail_type'    => $item['detail_type'] ?? null,
+                    'detail_id'      => $item['detail_id'] ?? null,
+                ]);
+            }
+
+            // Sumatoria total de todas las notas crédito para esta factura
+            $totalCreditNotesVal = \App\Models\Tenant\Invoices\VntCreditNote::where('invoice_id', $invoice->id)->sum('total');
+
+            // Actualizar la factura
+            $invoice->update([
+                'creditNote'   => (int) round($totalCreditNotesVal),
+                'creditNoteId' => $alegraId,
+            ]);
+
+            Log::info('✅ Nota crédito creada en Alegra y guardada localmente', [
                 'alegra_credit_note_id' => $alegraId,
-                'invoice_local_id'      => $this->creditNoteInvoice['id'],
+                'invoice_local_id'      => $invoice->id,
+                'credit_note_local_id'  => $creditNoteLocal->id,
             ]);
 
             // ── Reintegrar stock al inventario ──────────────────────────────
