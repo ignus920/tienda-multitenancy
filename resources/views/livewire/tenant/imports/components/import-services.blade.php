@@ -213,18 +213,41 @@
                             <div class="flex flex-col items-center w-16">
                                 <!-- Badge de Prioridad arriba -->
                                 <span class="inline-flex items-center justify-center px-1 py-1 rounded-t-md text-[10px] font-extrabold text-white uppercase tracking-wider w-full text-center shadow-sm
-                                    {{ $prior['priority'] === 'ASAP' ? 'bg-rose-600' : '' }}
-                                    {{ $prior['priority'] === 'Second' ? 'bg-amber-600' : '' }}
-                                    {{ $prior['priority'] === 'Third' ? 'bg-blue-600' : '' }}">
+                                    {{ in_array($prior['priority'], ['ASAP', 'Express']) ? 'bg-rose-600' : '' }}
+                                    {{ in_array($prior['priority'], ['Second', 'Express 2']) ? 'bg-amber-600' : '' }}
+                                    {{ in_array($prior['priority'], ['Third', 'Express 3']) ? 'bg-blue-600' : '' }}">
                                     {{ $prior['priority'] }}
                                 </span>
                                 <!-- Caja blanca con cantidad abajo -->
                                 <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md w-full py-1.5 text-center shadow-sm font-mono font-bold text-sm text-gray-900 dark:text-white">
                                     {{ $prior['qty_requested'] }}
                                 </div>
+                                <!-- Estado e hito del pedido -->
+                                @if(isset($prior['status']))
+                                    @php
+                                        $statusName = $prior['status']['translated_name'] ?? $prior['status']['name'] ?? '';
+                                        $statusNameLower = strtolower($statusName);
+                                        if ($statusNameLower === 'quoted') {
+                                            $statusName = 'Cotizado';
+                                        } elseif ($statusNameLower === 'requested') {
+                                            $statusName = 'Solicitado';
+                                        } elseif ($statusNameLower === 'approved') {
+                                            $statusName = 'Aprobado';
+                                        } elseif ($statusNameLower === 'production') {
+                                            $statusName = 'Producción';
+                                        } elseif ($statusNameLower === 'received') {
+                                            $statusName = 'Recibido';
+                                        } elseif ($statusNameLower === 'delayed') {
+                                            $statusName = 'Retrasado';
+                                        }
+                                    @endphp
+                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-extrabold text-blue-800 bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300 uppercase tracking-wider w-full text-center mt-1 shadow-sm">
+                                        {{ $statusName }}
+                                    </span>
+                                @endif
                                 <!-- Fecha debajo de la caja -->
                                 @if($prior['priority_assigned_at'])
-                                    <span class="text-[9px] text-gray-500 dark:text-gray-400 font-mono mt-1">
+                                    <span class="text-[9px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">
                                         {{ \Carbon\Carbon::parse($prior['priority_assigned_at'])->format('d/m/Y') }}
                                     </span>
                                 @endif

@@ -110,6 +110,26 @@
                          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
                      Third
                  </button>
+                 
+                 {{-- Nuevas Prioridades Express --}}
+                 <span class="text-gray-300 mx-1">|</span>
+                 
+                 <button wire:click="assignPriorityToSelected('Express')" 
+                         style="background-color: #dc2626; color: #ffffff;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                     Express
+                 </button>
+                 <button wire:click="assignPriorityToSelected('Express 2')" 
+                         style="background-color: #d97706; color: #ffffff;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                     Express 2
+                 </button>
+                 <button wire:click="assignPriorityToSelected('Express 3')" 
+                         style="background-color: #2563eb; color: #ffffff;"
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                     Express 3
+                 </button>
+
                  {{-- 
                  <button wire:click="assignPriorityToSelected(null)" 
                          style="background-color: #ffffff; color: #374151; border: 1px solid #d1d5db;"

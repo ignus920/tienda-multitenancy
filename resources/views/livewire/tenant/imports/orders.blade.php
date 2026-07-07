@@ -73,6 +73,7 @@
 		@endforeach
 	</div>
 
+    {{-- 
     <!-- PACKINGS CARDS (Tarjetas de Packs) -->
     @if($filterStatus == 5 && $profileUser == 17)
     <div class="mb-6">
@@ -108,7 +109,9 @@
         </div>
     </div>
     @endif
+    --}}
 
+    {{-- 
     @if($filterStatus == 6)
         <!-- Chips/etiquetas de los seleccionados -->
         <div class="mt-4 mb-2 flex flex-wrap gap-3">
@@ -166,6 +169,7 @@
             </div>
         </div>
     @endif
+    --}}
     
     <!-- DataTable Card -->
     <div class="max-w-12xl mx-auto">
@@ -239,8 +243,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
                             </button>
-                             @if ($showButtonShipping)
-                                <button wire:click="openModalShipping({{ $filterPacking }})" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
+                            @if (count($selectedOrders) > 0 && $filterStatus == 5)
+                                <button wire:click="openModalShipping" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
                             @endif
                             @if ($profileUser != '17' && count($selectedOrders) > 0)
                                 <div class="flex items-center gap-2">
@@ -257,23 +261,7 @@
                                         <x-heroicon-o-check class="w-4 h-4 mr-2"/> Aprobar Seleccionados
                                     </button>
                                     @endif
-                                    
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 font-medium ml-2">Prioridad:</span>
-                                    <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
-                                            style="background-color: #dc2626; color: #ffffff;"
-                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
-                                        ASAP
-                                    </button>
-                                    <button wire:click="assignPriorityToSelectedOrders('Second')" 
-                                            style="background-color: #d97706; color: #ffffff;"
-                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
-                                        Second
-                                    </button>
-                                    <button wire:click="assignPriorityToSelectedOrders('Third')" 
-                                            style="background-color: #2563eb; color: #ffffff;"
-                                            class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
-                                        Third
-                                    </button>
+
                                     {{-- 
                                     <button wire:click="assignPriorityToSelectedOrders(null)" 
                                             style="background-color: #ffffff; color: #374151; border: 1px solid #d1d5db;"
@@ -284,29 +272,19 @@
                                 </div>
                             @endif
                             @if ($filterStatus == 7)
-                                <div class="flex items-center gap-3">
-                                    <select wire:model.live="selectedShipp"
-                                        class="block w-96 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                            <option value="0">Select shippment</option>
-                                        @forelse ($this->shippments as $sp)
-                                            <option value="{{ $sp->id }}">{{ $sp->way }} - {{ $sp->operation_number }} (#{{ $sp->consecutive }})</option>
-                                        @empty
-                                            <option value=""></option>
-                                        @endforelse
-                                    </select>
-
-                                    @if ($profileUser != '17')
-                                        <button wire:click="rotatePriorities" 
-                                                class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                                title="Al recibir el pedido ASAP, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
-                                            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
-                                            </svg>
-                                            Confirmar Recepción y Rotar
-                                        </button>
-                                    @endif
-                                </div>
-                            @endif
+                                 <div class="flex items-center gap-3">
+                                     @if ($profileUser != '17' && count($selectedOrders) > 0)
+                                         <button wire:click="rotatePriorities" 
+                                                 class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                 title="Al recibir los productos seleccionados, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
+                                             <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
+                                             </svg>
+                                             Confirmar Recepción y Rotar
+                                         </button>
+                                     @endif
+                                 </div>
+                             @endif
                         </div>
                     </div>
 
@@ -393,6 +371,45 @@
                         <x-export-buttons />
                     </div>
                 </div>
+                
+                @if ($profileUser != '17' && count($selectedOrders) > 0)
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mr-2">Prioridad en Lote:</span>
+                        <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
+                                style="background-color: #dc2626; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            ASAP
+                        </button>
+                        <button wire:click="assignPriorityToSelectedOrders('Second')" 
+                                style="background-color: #d97706; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Second
+                        </button>
+                        <button wire:click="assignPriorityToSelectedOrders('Third')" 
+                                style="background-color: #2563eb; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Third
+                        </button>
+                        
+                        <span class="text-gray-300 dark:text-gray-600 mx-1">|</span>
+                        
+                        <button wire:click="assignPriorityToSelectedOrders('Express')" 
+                                style="background-color: #dc2626; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express
+                        </button>
+                        <button wire:click="assignPriorityToSelectedOrders('Express 2')" 
+                                style="background-color: #d97706; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express 2
+                        </button>
+                        <button wire:click="assignPriorityToSelectedOrders('Express 3')" 
+                                style="background-color: #2563eb; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express 3
+                        </button>
+                    </div>
+                @endif
             </div>
 
             <!-- Tabla -->
@@ -400,7 +417,7 @@
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <tr>
-                            @if ($profileUser != '17')
+                            @if(!in_array($filterStatus, [6, 8]))
                             <th class="px-4 py-4 text-left w-12">
                             </th>
                             @endif
@@ -442,18 +459,20 @@
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse ($this->orders as $order)
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
-                                @if ($profileUser != '17')
+                                @if(!in_array($filterStatus, [6, 8]))
                                 <td class="px-4 py-4">
-                                    @php
-                                        $hasPrice = isset($order->price) && floatval($order->price) > 0;
-                                    @endphp
-                                    <input type="checkbox" 
-                                        wire:model.live="selectedOrders" 
-                                        value="{{ $order->id }}"
-                                        {{ !$hasPrice ? 'disabled' : '' }}
-                                        class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 {{ !$hasPrice ? 'opacity-40 cursor-not-allowed bg-gray-150' : '' }}"
-                                        title="{{ !$hasPrice ? 'No se puede seleccionar hasta tener precio cotizado' : 'Seleccionar ítem' }}"
-                                    >
+                                    @if(!in_array($order->status, [6, 8]))
+                                        @php
+                                            $hasPrice = isset($order->price) && floatval($order->price) > 0;
+                                        @endphp
+                                        <input type="checkbox" 
+                                            wire:model.live="selectedOrders" 
+                                            value="{{ $order->id }}"
+                                            {{ !$hasPrice ? 'disabled' : '' }}
+                                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 {{ !$hasPrice ? 'opacity-40 cursor-not-allowed bg-gray-150' : '' }}"
+                                            title="{{ !$hasPrice ? 'No se puede seleccionar hasta tener precio cotizado' : 'Seleccionar ítem' }}"
+                                        >
+                                    @endif
                                 </td>
                                 @endif
                                 <td class="px-4 py-4 max-w-[300px]">
@@ -493,9 +512,9 @@
                                     @if (!empty($order->priority))
                                         <div class="flex flex-col items-center gap-1">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                                {{ $order->priority === 'ASAP' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}
-                                                {{ $order->priority === 'Second' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
-                                                {{ $order->priority === 'Third' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}">
+                                                {{ in_array($order->priority, ['ASAP', 'Express']) ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}
+                                                {{ in_array($order->priority, ['Second', 'Express 2']) ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
+                                                {{ in_array($order->priority, ['Third', 'Express 3']) ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}">
                                                 {{ $order->priority }}
                                             </span>
                                             @if (!empty($order->priority_assigned_at))
@@ -618,12 +637,14 @@
                                 </td>
                                 <td x-show="showCols.shippingInfo" class="px-4 py-4">
                                     <div class="space-y-1 text-xs min-w-[200px]">
+                                        {{-- 
                                         @if($order->packing_number)
                                             <div class="flex items-center gap-1">
                                                 <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Pack:</span>
                                                 <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ $order->packing_number }}</span>
                                             </div>
                                         @endif
+                                        --}}
 
                                         @if($order->operation_number)
                                             <div class="flex items-center gap-1">
@@ -656,7 +677,13 @@
 
                                         <div class="flex items-center gap-1">
                                             <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Rec:</span>
-                                            <span class="text-gray-400 dark:text-gray-500">—</span>
+                                            <span>
+                                                @if($order->received_at)
+                                                    {{ \Carbon\Carbon::parse($order->received_at)->format('d/m/Y') }}
+                                                @else
+                                                    <span class="text-gray-400 dark:text-gray-500">—</span>
+                                                @endif
+                                            </span>
                                         </div>
                                     </div>
                                 </td>
@@ -1521,27 +1548,16 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                     </svg>
                                 </div>
-                                <h3 class="font-medium text-indigo-900 dark:text-indigo-200">Selected Packings</h3>
+                                <h3 class="font-medium text-indigo-900 dark:text-indigo-200">Selected Products</h3>
                             </div>
                     
-                            <div class="grid grid-cols-2 gap-3">
-                                <!-- Resumen de packs seleccionados -->
-                                @foreach ($this->infoPacking as $ip)
-                                <div class="bg-white dark:bg-gray-800/80 rounded-lg p-2 shadow-sm border border-indigo-200/50 dark:border-indigo-800/30">
-                                    <div class="flex items-center gap-3 mb-1">
-                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-0">Packings</p>
-                                        <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ $ip->number_packing ?? 0 }}</span>
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="bg-white dark:bg-gray-800/80 rounded-lg p-3 shadow-sm border border-indigo-200/50 dark:border-indigo-800/30">
+                                    <div class="flex items-center gap-3">
+                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider mb-0">Total Products to Ship:</p>
+                                        <span class="text-base font-black text-indigo-700 dark:text-indigo-300">{{ count($selectedOrders) }}</span>
                                     </div>
                                 </div>
-
-                                <!-- Total productos -->
-                                <div class="bg-white dark:bg-gray-800/80 rounded-lg p-2 shadow-sm border border-indigo-200/50 dark:border-indigo-800/30">
-                                    <div class="flex items-center gap-3 mb-1">
-                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-1">Total Products</p>
-                                        <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ $ip->imports_count ?? 0 }}</span>
-                                    </div>
-                                </div>
-                                @endforeach
                             </div>
                     
                             {{-- <!-- Lista detallada de packs (opcional) -->
@@ -1588,8 +1604,8 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     VIA <span class="text-red-500">*</span>
                                 </label>
-                                <select wire:model.live="way"
-                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center]">
+                                <select wire:model.live="way" {{ $lockWay ? 'disabled' : '' }}
+                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center] {{ $lockWay ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-600' : '' }}">
                                     <option value="">Select route</option>
                                     <option value="Aerea" class="py-2">AIR</option>
                                     <option value="Maritima" class="py-2">MARITIME</option>

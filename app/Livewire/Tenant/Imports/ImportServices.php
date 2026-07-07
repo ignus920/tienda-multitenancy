@@ -301,12 +301,13 @@ class ImportServices extends Component
         $this->loadItemAssignments();
 
         // Cargar todas las prioridades activas del ítem para mostrarlas en el banner
-        $this->selectedItemPriorities = ImpImports::where('item_id', $this->selectedItemId)
+        $this->selectedItemPriorities = ImpImports::with('status')
+            ->where('item_id', $this->selectedItemId)
             ->where('status', '<', 8)
             ->whereNotNull('priority')
             ->whereNull('deleted_at')
-            ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third')")
-            ->get(['priority', 'qty_requested', 'priority_assigned_at'])
+            ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3')")
+            ->get(['priority', 'qty_requested', 'priority_assigned_at', 'status'])
             ->toArray();
 
         // Cargar las cantidades mensuales del item seleccionado
@@ -398,12 +399,13 @@ class ImportServices extends Component
             $this->ensureTenantConnection();
             
             // Recargar todas las prioridades activas para el banner
-            $this->selectedItemPriorities = ImpImports::where('item_id', $this->selectedItemId)
+            $this->selectedItemPriorities = ImpImports::with('status')
+                ->where('item_id', $this->selectedItemId)
                 ->where('status', '<', 8)
                 ->whereNotNull('priority')
                 ->whereNull('deleted_at')
-                ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third')")
-                ->get(['priority', 'qty_requested', 'priority_assigned_at'])
+                ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3')")
+                ->get(['priority', 'qty_requested', 'priority_assigned_at', 'status'])
                 ->toArray();
                 
             // Cargar asignaciones
@@ -793,7 +795,7 @@ class ImportServices extends Component
             $this->ensureTenantConnection();
             
              // Validar prioridad
-             $validPriorities = ['ASAP', 'Second', 'Third', null];
+             $validPriorities = ['ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3', null];
              if (!in_array($newPriority, $validPriorities)) {
                  $newPriority = null;
              }
@@ -877,12 +879,13 @@ class ImportServices extends Component
                     $this->selectedItemQuantity = 0;
                     
                     // Recargar prioridades activas para el banner
-                    $this->selectedItemPriorities = ImpImports::where('item_id', $this->selectedItemId)
+                    $this->selectedItemPriorities = ImpImports::with('status')
+                        ->where('item_id', $this->selectedItemId)
                         ->where('status', '<', 8)
                         ->whereNotNull('priority')
                         ->whereNull('deleted_at')
-                        ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third')")
-                        ->get(['priority', 'qty_requested', 'priority_assigned_at'])
+                        ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3')")
+                        ->get(['priority', 'qty_requested', 'priority_assigned_at', 'status'])
                         ->toArray();
                 }
 
@@ -948,6 +951,24 @@ class ImportServices extends Component
                     ->whereNull('deleted_at')
                     ->update([
                         'priority' => 'Second',
+                        'priority_assigned_at' => now()
+                    ]);
+
+                // 4. Express 2 pasa a Express
+                ImpImports::where('priority', 'Express 2')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => 'Express',
+                        'priority_assigned_at' => now()
+                    ]);
+
+                // 5. Express 3 pasa a Express 2
+                ImpImports::where('priority', 'Express 3')
+                    ->where('status', '<', 8)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'priority' => 'Express 2',
                         'priority_assigned_at' => now()
                     ]);
             });

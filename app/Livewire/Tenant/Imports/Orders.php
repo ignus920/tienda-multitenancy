@@ -44,6 +44,7 @@ class Orders extends Component
     public $showButtonShipping = false;
     public $showModalChangeQtyShip = false;
     public $showModalShipping = false;
+    public $lockWay = false;
     public $refreshCounter = 0;
     public $selectAll = false;
 
@@ -101,6 +102,7 @@ class Orders extends Component
             ->table('imp_imports as i')
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
+            ->where('s.id', '!=', 6)
             ->select('s.name as nombre_estado', 's.translated_name', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
             ->when(Auth::user()->profile_id == 17, function ($query) {
                 return $query->where(function ($q) {
@@ -202,7 +204,13 @@ class Orders extends Component
                         WHERE import_id = i.id 
                         ORDER BY created_at DESC 
                         LIMIT 1
-                    ) AS ultimo_comentario")
+                    ) AS ultimo_comentario"),
+                DB::raw("(SELECT created_at 
+                        FROM imp_status_history 
+                        WHERE import_id = i.id AND new_state = 8 
+                        ORDER BY created_at DESC 
+                        LIMIT 1
+                    ) AS received_at")
             ])
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
@@ -326,6 +334,7 @@ class Orders extends Component
 
     public function updatedSelectedOrders($value)
     {
+        /*
         $this->ensureTenantConnection();
         // Si no hay packs seleccionados, dejamos que el usuario marque los checkboxes libremente para otras acciones
         if (empty($this->selectedPackingIds)) {
@@ -372,6 +381,7 @@ class Orders extends Component
                 'message' => 'No se pudo realizar la asociación'
             ]);
         }
+        */
     }
 
     #[Computed]
@@ -537,6 +547,7 @@ class Orders extends Component
         $this->showModalJustifyChangePrice = false;
         $this->showModalConfirmProduction = false;
         $this->showModalChangeQtyShip = false;
+        $this->showModalShipping = false;
         $this->resetForm();
         $this->refreshCounter++;
     }
@@ -899,6 +910,7 @@ class Orders extends Component
     #[Computed]
     public function packings()
     {
+        /*
         $this->ensureTenantConnection();
         return ImpPacking::select('id', 'number_packing')
             ->addSelect([
@@ -914,6 +926,8 @@ class Orders extends Component
                 })->orWhereDoesntHave('imports');
             })
             ->get();
+        */
+        return collect();
     }
 
     public function openModalHistory($import_id)
@@ -922,6 +936,7 @@ class Orders extends Component
         $this->showModalHistory = true;
     }
 
+    /*
     public function togglePacking($packingId)
     {
         if (in_array($packingId, $this->selectedPackingIds)) {
@@ -960,6 +975,7 @@ class Orders extends Component
             ->withCount('imports')
             ->get();
     }
+    */
 
     public function updateQtyShip($importId, $qtyShip)
     {
@@ -1029,6 +1045,49 @@ class Orders extends Component
 
     public function openModalShipping()
     {
+        $this->ensureTenantConnection();
+        if (empty($this->selectedOrders)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe seleccionar al menos un producto'
+            ]);
+            return;
+        }
+
+        // Obtener productos seleccionados
+        $imports = ImpImports::whereIn('id', $this->selectedOrders)->get();
+        
+        $hasMaritime = false;
+        $hasAir = false;
+
+        foreach ($imports as $import) {
+            $prio = trim($import->priority);
+            if (in_array($prio, ['ASAP', 'Second', 'Third'])) {
+                $hasMaritime = true;
+            } elseif (in_array($prio, ['Express', 'Express 2', 'Express 3'])) {
+                $hasAir = true;
+            }
+        }
+
+        if ($hasMaritime && $hasAir) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'You cannot mix Air (Express) and Maritime (ASAP/Second/Third) products in the same shipment.'
+            ]);
+            return;
+        }
+
+        if ($hasMaritime) {
+            $this->way = 'Maritima';
+            $this->lockWay = true;
+        } elseif ($hasAir) {
+            $this->way = 'Aerea';
+            $this->lockWay = true;
+        } else {
+            $this->way = '';
+            $this->lockWay = false;
+        }
+
         $this->showModalShipping = true;
     }
 
@@ -1040,7 +1099,19 @@ class Orders extends Component
             'operation_number' => 'required',
             'way' => 'required'
         ]);
+
+        if (empty($this->selectedOrders)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe seleccionar al menos un producto'
+            ]);
+            return;
+        }
+
         try {
+            DB::connection('tenant')->beginTransaction();
+
+            // 1. Crear el Shipment
             $lastConsecutive = ImpShippments::where('way', $this->way)->max('consecutive');
             $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
             $shippingData = [
@@ -1051,26 +1122,31 @@ class Orders extends Component
                 'conveyor' => $this->conveyor,
                 'obs' => $this->observations
             ];
-
-            // Registro de la información de envio
             $newShipping = ImpShippments::create($shippingData);
 
-            // Busqueda del packing seleccionado
-            $packing = ImpPacking::findOrFail($this->filterPacking);
+            // 2. Crear un PACK en segundo plano automáticamente para asociarle estos productos
+            $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
+            $nextNumber = 1;
+            if ($lastPacking) {
+                $lastNumber = (int) filter_var($lastPacking->number_packing, FILTER_SANITIZE_NUMBER_INT);
+                $nextNumber = $lastNumber + 1;
+            }
+            $newPackingName = 'PACK' . $nextNumber;
+            
+            $packing = ImpPacking::create([
+                'number_packing' => $newPackingName,
+                'shipping_id' => $newShipping->id // Asociar pack al envío
+            ]);
 
-            // Modificación del campo shipping_id en la tabla imp_packing 
-            $packing->update(['shipping_id' => $newShipping->id]);
-
-            //Busqueda de las importaciones asociadas al packing seleccionado
-            $imports = ImpImports::where('packing_id', $this->filterPacking);
-
-            // Cambio de estado a "En transito"
-            $imports = ImpImports::where('packing_id', $this->filterPacking)->get();
-
+            // 3. Asociar los productos seleccionados al Pack y pasarlos a In Transit (status 7)
+            $imports = ImpImports::whereIn('id', $this->selectedOrders)->get();
             foreach ($imports as $import) {
                 $oldStatus = $import->status;
 
-                $import->update(['status' => 7]);
+                $import->update([
+                    'packing_id' => $packing->id,
+                    'status' => 7
+                ]);
 
                 ImpStatusHistory::create([
                     'import_id' => $import->id,
@@ -1080,31 +1156,25 @@ class Orders extends Component
                 ]);
             }
 
-            // Crear el NUEVO PACK
-            $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
-            $nextNumber = 1;
-
-            if ($lastPacking) {
-                $lastNumber = (int) filter_var($lastPacking->number_packing, FILTER_SANITIZE_NUMBER_INT);
-                $nextNumber = $lastNumber + 1;
-            }
-
-            $newPackingName = 'PACK' . $nextNumber;
-
+            // 4. Crear un Pack disponible para futuros usos (como hacía el flujo original)
+            $nextNumber++;
             ImpPacking::create([
-                'number_packing' => $newPackingName
+                'number_packing' => 'PACK' . $nextNumber
             ]);
 
             DB::connection('tenant')->commit();
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Shipping data assigned successfully. Packing processed: ' . $packing->number_packing . 'Consecutive: ' . $newConsecutive
+                'message' => 'Shipping data assigned successfully. Packing processed: ' . $packing->number_packing . ' Consecutive: ' . $newConsecutive
             ]);
+
+            $this->selectedOrders = [];
             $this->showModalShipping = false;
             $this->resetForm();
             $this->resetPage();
         } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
             Log::error("Error al guardar la información: " . $e->getMessage());
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -1158,51 +1228,120 @@ class Orders extends Component
 
     public function rotatePriorities()
     {
+        $this->ensureTenantConnection();
+
+        if (empty($this->selectedOrders)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Please select the products you wish to receive.'
+            ]);
+            return;
+        }
+
         try {
-            $this->ensureTenantConnection();
+            // Detectar qué tipo de prioridades tienen los productos seleccionados
+            $selectedImports = ImpImports::whereIn('id', $this->selectedOrders)->get();
+            $hasMaritime = false;
+            $hasAir = false;
 
-            DB::connection('tenant')->transaction(function () {
-                // 1. ASAP pasa a null
-                ImpImports::where('priority', 'ASAP')
-                    ->where('status', '<', 8)
-                    ->whereNull('deleted_at')
-                    ->update([
-                        'priority' => null,
-                        'priority_assigned_at' => null
-                    ]);
+            foreach ($selectedImports as $import) {
+                $prio = trim($import->priority);
+                if (in_array($prio, ['ASAP', 'Second', 'Third'])) {
+                    $hasMaritime = true;
+                } elseif (in_array($prio, ['Express', 'Express 2', 'Express 3'])) {
+                    $hasAir = true;
+                }
+            }
 
-                // 2. Second pasa a ASAP
-                ImpImports::where('priority', 'Second')
-                    ->where('status', '<', 8)
-                    ->whereNull('deleted_at')
-                    ->update([
-                        'priority' => 'ASAP',
-                        'priority_assigned_at' => now()
-                    ]);
+            DB::connection('tenant')->transaction(function () use ($selectedImports, $hasMaritime, $hasAir) {
+                // 1. Mover los productos seleccionados a Recibido (status 8)
+                foreach ($selectedImports as $import) {
+                    $oldStatus = $import->status;
+                    $import->update(['status' => 8]);
 
-                // 3. Third pasa a Second
-                ImpImports::where('priority', 'Third')
-                    ->where('status', '<', 8)
-                    ->whereNull('deleted_at')
-                    ->update([
-                        'priority' => 'Second',
-                        'priority_assigned_at' => now()
+                    ImpStatusHistory::create([
+                        'import_id' => $import->id,
+                        'previous_state' => $oldStatus,
+                        'new_state' => 8,
+                        'user_id' => Auth::id()
                     ]);
+                }
+
+                // 2. Rotar prioridades de los productos restantes (status < 8) de forma independiente
+                if ($hasMaritime) {
+                    // - ASAP pasa a null (por si queda alguno)
+                    ImpImports::where('priority', 'ASAP')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->update([
+                            'priority' => null,
+                            'priority_assigned_at' => null
+                        ]);
+
+                    // - Second pasa a ASAP
+                    ImpImports::where('priority', 'Second')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->update([
+                            'priority' => 'ASAP',
+                            'priority_assigned_at' => now()
+                        ]);
+
+                    // - Third pasa a Second
+                    ImpImports::where('priority', 'Third')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->update([
+                            'priority' => 'Second',
+                            'priority_assigned_at' => now()
+                        ]);
+                }
+
+                if ($hasAir) {
+                    // - Express pasa a null (por si queda alguno)
+                    ImpImports::where('priority', 'Express')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->update([
+                            'priority' => null,
+                            'priority_assigned_at' => null
+                        ]);
+
+                    // - Express 2 pasa a Express
+                    ImpImports::where('priority', 'Express 2')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->update([
+                            'priority' => 'Express',
+                            'priority_assigned_at' => now()
+                        ]);
+
+                    // - Express 3 pasa a Express 2
+                    ImpImports::where('priority', 'Express 3')
+                        ->where('status', '<', 8)
+                        ->whereNull('deleted_at')
+                        ->update([
+                            'priority' => 'Express 2',
+                            'priority_assigned_at' => now()
+                        ]);
+                }
             });
+
+            $this->selectedOrders = [];
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Prioridades rotadas correctamente'
+                'message' => 'Products received and priorities rotated successfully.'
             ]);
 
             unset($this->orders);
             $this->dispatch('$refresh');
 
         } catch (\Exception $e) {
-            Log::error("Error al rotar prioridades: " . $e->getMessage());
+            Log::error("Error al recibir productos y rotar: " . $e->getMessage());
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'No se pudieron rotar las prioridades'
+                'message' => 'Could not process reception and rotation'
             ]);
         }
     }
