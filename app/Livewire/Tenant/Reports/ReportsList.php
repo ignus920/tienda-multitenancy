@@ -421,13 +421,13 @@ class ReportsList extends Component
     {
         switch ($this->activeReport) {
             case 'ventas_vendedor':
-                return ['Vendedor', 'Cotización', 'Estado', 'Remisión', 'Factura', 'Fecha', 'Descripción', 'Cant', 'Precio con IVA', 'Subtotal', 'Total', 'Clasificación', 'Forma Pago'];
+                return ['Vendedor', 'Cotización', 'Estado', 'Remisión', 'Factura', 'Fecha', 'Descripción', 'Subtotal', 'Total', 'Clasif.', 'Pago'];
             case 'cotizaciones_producto':
-                return ['Código', 'Producto', 'Cotizaciones', 'Pedidos', '% Efectividad', 'Unidades Cotizadas', 'Unidades Pedidas'];
+                return ['Producto', 'Cotiz.', 'Ped.', '% Efec.', 'Cant. Cotizada', 'Cant. Pedida'];
             case 'productos_cliente':
-                return ['ID', 'Cliente', 'Cotizaciones', 'Pedidos', 'Valor Cotizado', 'Valor Pedido', '% Efectividad'];
+                return ['Nombre', 'Cotizaciones', 'Pedidos', 'V cotizados', 'V pedidos', '% Pedidos'];
             case 'pedidos_estado':
-                return ['Consecutivo', 'Fecha', 'Cliente', 'Cotiz ERP', 'Estado', 'Tipo Entrega', 'Factura', 'Creador'];
+                return ['#OP', 'Fecha', 'Cliente', 'Cotiz ERP', 'Estado', 'Entrega', 'Factura', 'Creador'];
             default:
                 return [];
         }
@@ -435,9 +435,59 @@ class ReportsList extends Component
 
     protected function getExportMapping($item = null)
     {
-        if (!$item) return [];
+        if ($item === null) {
+            return null;
+        }
 
-        return (array)$item;
+        $row = (object)$item;
+
+        switch ($this->activeReport) {
+            case 'ventas_vendedor':
+                return [
+                    $row->vendedor,
+                    $row->cot,
+                    $row->estado,
+                    $row->remission,
+                    $row->factura ?: '---',
+                    \Carbon\Carbon::parse($row->fecha)->format('Y-m-d'),
+                    $row->descripcion,
+                    $row->subtotal,
+                    $row->total,
+                    $row->clasificacion ?: '---',
+                    $row->forma_pago ?: '---',
+                ];
+            case 'cotizaciones_producto':
+                return [
+                    $row->codigo . ' - ' . $row->producto,
+                    $row->cotizaciones,
+                    $row->pedidos,
+                    $row->porcentaje_pedidos . '%',
+                    $row->unidades,
+                    $row->unidades_pedidas,
+                ];
+            case 'productos_cliente':
+                return [
+                    $row->nombre,
+                    $row->cotizaciones,
+                    $row->pedidos,
+                    $row->v_cotizados,
+                    $row->v_pedidos,
+                    $row->porcentaje_pedidos . '%',
+                ];
+            case 'pedidos_estado':
+                return [
+                    $row->consecutive,
+                    \Carbon\Carbon::parse($row->fecha)->format('Y-m-d H:i:s'),
+                    $row->cliente,
+                    'ERP' . $row->erp_quote,
+                    $row->estado_texto,
+                    $row->entrega ?: 'No especificado',
+                    $row->factura ?: '---',
+                    $row->creator,
+                ];
+            default:
+                return (array)$item;
+        }
     }
 
     protected function getExportFilename(): string
