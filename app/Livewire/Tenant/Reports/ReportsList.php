@@ -433,7 +433,7 @@ class ReportsList extends Component
         }
     }
 
-    protected function getExportMapping($item = null)
+    public function getExportMapping($item = null)
     {
         if ($item === null) {
             return null;
