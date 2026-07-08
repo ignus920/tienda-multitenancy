@@ -368,7 +368,7 @@ class ReportsList extends Component
                 DB::raw("CONCAT(COALESCE(c.firstName,''), ' ', COALESCE(c.lastName,'')) as cliente"),
                 'q.consecutive as erp_quote',
                 'r.status',
-                'r.observations as entrega',
+                'r.observations_delivery as entrega',
                 'inv.invoiceNumber as factura',
                 'u.name as creator',
                 DB::raw('CASE 
