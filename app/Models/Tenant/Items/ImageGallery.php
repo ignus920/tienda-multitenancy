@@ -130,7 +130,7 @@ class ImageGallery extends Model
             $cleanPath = $this->cleanMalformedUrl($this->img_path);
 
             // Si ya es una URL completa, devolverla directamente
-            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+            if (str_starts_with(strtolower($cleanPath), 'http://') || str_starts_with(strtolower($cleanPath), 'https://')) {
                 return $cleanPath;
             }
 
@@ -157,7 +157,7 @@ class ImageGallery extends Model
             $cleanPath = $this->cleanMalformedUrl($this->img_path);
 
             // Si ya es una URL completa, devolverla directamente
-            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+            if (str_starts_with(strtolower($cleanPath), 'http://') || str_starts_with(strtolower($cleanPath), 'https://')) {
                 return $cleanPath;
             }
 
@@ -189,7 +189,7 @@ class ImageGallery extends Model
     {
         if ($this->img_path) {
             $cleanPath = $this->cleanMalformedUrl($this->img_path);
-            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+            if (str_starts_with(strtolower($cleanPath), 'http://') || str_starts_with(strtolower($cleanPath), 'https://')) {
                 return $cleanPath;
             }
             if (Storage::disk('public')->exists($cleanPath)) {
