@@ -33,3 +33,8 @@ vite.config.js
 /reporte_exw_procesamiento.txt
 .env.example
 /db rap/
+/accesorios/
+/documentacion/
+/diagnostico_local.php
+/verificar_alegra_item.php
+
