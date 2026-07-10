@@ -453,6 +453,43 @@ class VntCompanyForm extends Component
 
         Log::info('✅ Validación de formulario exitosa');
 
+        // Verificar coincidencias de datos de contacto con sucursales de otros terceros
+        $inputPhone = trim($this->business_phone ?: $this->personal_phone ?: '');
+        $inputAddress = trim($this->warehouseAddress ?? '');
+
+        if (!empty($inputPhone) || !empty($inputAddress)) {
+            $this->ensureTenantConnection();
+            $duplicateWarehouseQuery = \App\Models\Tenant\Customer\VntWarehouse::query();
+            
+            if ($this->editingId) {
+                $duplicateWarehouseQuery->where('companyId', '!=', $this->editingId);
+            }
+
+            $duplicateWarehouse = $duplicateWarehouseQuery->where(function ($q) use ($inputPhone, $inputAddress) {
+                $hasCond = false;
+                if (!empty($inputPhone)) {
+                    $q->where('phone', $inputPhone);
+                    $hasCond = true;
+                }
+                if (!empty($inputAddress)) {
+                    if ($hasCond) {
+                        $q->orWhere('address', $inputAddress);
+                    } else {
+                        $q->where('address', $inputAddress);
+                    }
+                }
+            })->first();
+
+            if ($duplicateWarehouse) {
+                $dupCompany = \App\Models\Tenant\Customer\VntCompany::find($duplicateWarehouse->companyId);
+                $dupCompanyName = $dupCompany ? ($dupCompany->businessName ?: trim($dupCompany->firstName . ' ' . $dupCompany->lastName)) : "ID {$duplicateWarehouse->companyId}";
+                
+                $this->addError('business_phone', "¡Advertencia! El teléfono o dirección coincide con la sucursal '{$duplicateWarehouse->name}' del cliente '{$dupCompanyName}'. Verifique para evitar sobreescritura.");
+                Log::info('❌ Guardado detenido: Coincidencia de datos de contacto con otra empresa');
+                return;
+            }
+        }
+
         // SINCRONIZACIÓN CON API - PASO 1: Verificar si debe sincronizar con API
         Log::info('🔍 ANTES DE shouldSyncWithApi()');
         $shouldSyncWithApi = $this->shouldSyncWithApi();

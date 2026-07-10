@@ -205,6 +205,22 @@ class ApiClient
                 ]);
             }
 
+            // Registrar log de la petición a Alegra
+            try {
+                \App\Models\Tenant\CnfAlegraLog::create([
+                    'endpoint' => $endpoint,
+                    'method' => strtoupper($method),
+                    'request_payload' => $data,
+                    'response_payload' => $responseData,
+                    'status_code' => $statusCode,
+                    'response_time_ms' => $responseTime,
+                ]);
+            } catch (\Exception $eLog) {
+                Log::error('❌ Error guardando log de Alegra en cnf_alegra_logs', [
+                    'error' => $eLog->getMessage()
+                ]);
+            }
+
             $result = [
                 'success' => $response->successful(),
                 'status' => $statusCode,
@@ -241,6 +257,22 @@ class ApiClient
 
             // Categorizar el error
             $errorType = $this->categorizeError($e);
+
+            // Registrar log de error de conexión/excepción a Alegra
+            try {
+                \App\Models\Tenant\CnfAlegraLog::create([
+                    'endpoint' => $endpoint,
+                    'method' => strtoupper($method),
+                    'request_payload' => $data,
+                    'response_payload' => ['error' => $e->getMessage()],
+                    'status_code' => $errorType['http_code'] ?? 500,
+                    'response_time_ms' => $responseTime,
+                ]);
+            } catch (\Exception $eLog) {
+                Log::error('❌ Error guardando log de excepción de Alegra en cnf_alegra_logs', [
+                    'error' => $eLog->getMessage()
+                ]);
+            }
 
             Log::error('❌ Error en petición a API de facturación', [
                 'method' => strtoupper($method),

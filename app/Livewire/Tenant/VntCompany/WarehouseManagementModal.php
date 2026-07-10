@@ -138,6 +138,42 @@ class WarehouseManagementModal extends Component
             'warehouseForm.phone.max' => 'El teléfono no puede exceder 25 caracteres',
         ]);
 
+        // Verificar coincidencia de teléfono o dirección en otras sucursales
+        $phone = trim($this->warehouseForm['phone'] ?? '');
+        $address = trim($this->warehouseForm['address'] ?? '');
+
+        if (!empty($phone) || !empty($address)) {
+            $this->ensureTenantConnection();
+            $duplicateQuery = VntWarehouse::query();
+            
+            if ($this->formMode === 'edit') {
+                $duplicateQuery->where('id', '!=', $this->editingWarehouseId);
+            }
+            
+            $duplicate = $duplicateQuery->where(function ($q) use ($phone, $address) {
+                $hasCond = false;
+                if (!empty($phone)) {
+                    $q->where('phone', $phone);
+                    $hasCond = true;
+                }
+                if (!empty($address)) {
+                    if ($hasCond) {
+                        $q->orWhere('address', $address);
+                    } else {
+                        $q->where('address', $address);
+                    }
+                }
+            })->first();
+
+            if ($duplicate && $duplicate->companyId != $this->companyId) {
+                $dupCompany = VntCompany::find($duplicate->companyId);
+                $dupCompanyName = $dupCompany ? ($dupCompany->businessName ?: trim($dupCompany->firstName . ' ' . $dupCompany->lastName)) : "ID {$duplicate->companyId}";
+                
+                $this->errorMessage = "¡Advertencia! El teléfono o dirección coincide con la sucursal '{$duplicate->name}' del cliente '{$dupCompanyName}'. Para evitar sobreescritura, por favor verifique los datos.";
+                return;
+            }
+        }
+
         try {
             if ($this->formMode === 'create') {
                 $this->ensureTenantConnection();
