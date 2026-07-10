@@ -848,17 +848,17 @@
                             Remisiones Seleccionadas
                         </h4>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 sm:col-span-1">
                                 <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ count($selectedRemissionsData) }}</p>
                                 <p class="text-sm text-gray-500 dark:text-slate-400">Remisiones</p>
                             </div>
-                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 sm:col-span-1">
                                 <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $totalItems }}</p>
                                 <p class="text-sm text-gray-500 dark:text-slate-400">Items Totales</p>
                             </div>
-                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
-                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 sm:col-span-2 flex flex-col justify-center items-center overflow-hidden">
+                                <p class="text-xl sm:text-lg md:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400 truncate w-full" title="${{ number_format(array_sum(array_column($selectedRemissionsData, 'total_value')), 2, ',', '.') }}">
                                     ${{ number_format(array_sum(array_column($selectedRemissionsData, 'total_value')), 2, ',', '.') }}
                                 </p>
                                 <p class="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>

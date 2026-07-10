@@ -37,4 +37,6 @@ vite.config.js
 /documentacion/
 /diagnostico_local.php
 /verificar_alegra_item.php
+/.agents/
+
 
