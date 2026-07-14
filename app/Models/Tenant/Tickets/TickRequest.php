@@ -66,7 +66,7 @@ class TickRequest extends Model
      */
     public function history()
     {
-        return $this->hasMany(TickRequestHistory::class, 'request_id')->orderBy('created_at', 'desc');
+        return $this->hasMany(TickRequestHistory::class, 'request_id')->orderBy('created_at', 'asc');
     }
 
     /**
