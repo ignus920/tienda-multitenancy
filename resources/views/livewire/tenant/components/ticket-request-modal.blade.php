@@ -109,7 +109,9 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <!-- Detalle o Formulario -->
         @if($selectedRequest)
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Historial de la solicitud</p>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    Historial de la solicitud — Solicitado por: <span class="text-indigo-600 dark:text-indigo-400">{{ $selectedRequest->creator->name ?? 'Usuario Sistema' }}</span>
+                </p>
                 
                 <div class="flex flex-col gap-4 max-h-60 overflow-y-auto custom-scrollbar pr-2 py-1">
                     @foreach($selectedRequest->history as $history)
@@ -133,6 +135,11 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                 <div class="flex items-center gap-2 px-1 {{ $isMe ? 'justify-end flex-row-reverse' : 'justify-start' }}">
                                     <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400">
                                         {{ $history->user->name ?? 'Usuario Sistema' }}
+                                        @if(is_null($history->from_status_id))
+                                            <span class="text-gray-400 font-normal">(Solicitante)</span>
+                                        @else
+                                            <span class="text-indigo-500 dark:text-indigo-400 font-normal">(Respuesta)</span>
+                                        @endif
                                     </span>
                                     <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white tracking-wider" 
                                           style="background-color: {{ $finalColor }}">
