@@ -308,7 +308,7 @@
                 @endif
 
                 <div class="product-name">
-                    {{ Str::limit($detalle->item?->name ?? $detalle->item?->display_name ?? 'Producto no encontrado', 35) }}
+                    {{ Str::limit($detalle->description ?? $detalle->item?->name ?? $detalle->item?->display_name ?? 'Producto no encontrado', 35) }}
                 </div>
                 @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
                     <div style="color: red; font-size: 7pt; margin-top: 1mm;">

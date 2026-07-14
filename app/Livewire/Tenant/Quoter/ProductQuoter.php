@@ -701,6 +701,19 @@ class ProductQuoter extends Component
         // ]);
     }
 
+    public function openGenericProductModal()
+    {
+        $this->ensureTenantConnection();
+        // Buscar el impuesto del 19%
+        $tax19 = \App\Models\Tenant\CnfTaxes::where('percentage', 19)->where('status', 1)->first();
+        if ($tax19) {
+            $this->genericProductTaxId = $tax19->id;
+        } else {
+            $this->genericProductTaxId = \App\Models\Tenant\CnfTaxes::where('status', 1)->first()?->id;
+        }
+        $this->showGenericProductModal = true;
+    }
+
     public function saveGenericProduct()
     {
         $this->validate([
@@ -718,7 +731,7 @@ class ProductQuoter extends Component
 
         $this->ensureTenantConnection();
 
-        $sku = 'GENERICO';
+        $sku = '9999999';
         $product = Items::where('sku', $sku)->first();
 
         if (!$product) {
