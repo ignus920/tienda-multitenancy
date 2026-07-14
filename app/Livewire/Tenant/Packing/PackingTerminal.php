@@ -127,6 +127,8 @@ class PackingTerminal extends Component
         $this->remission->update(['status' => 'EMPACADO']);
 
         // 2. Preparar datos para impresión
+        $sucursal = $this->remission->quote?->branch;
+
         $datosEnvio = [
             'id_op' => $this->remission->id,
             'cant_cajas' => $this->cant_cajas,
@@ -134,10 +136,10 @@ class PackingTerminal extends Component
             'impresora' => $this->config->printer_name,
             'cliente' => $this->remission->quote?->customer?->name ?? 'SIN CLIENTE',
             'nit' => $this->remission->quote?->customer?->document ?? '',
-            'telefono' => $this->remission->quote?->customer?->phone ?? '',
-            'direccion' => $this->remission->quote?->customer?->address ?? '',
-            'ciudad' => $this->remission->quote?->customer?->city?->name ?? '',
-            'depto' => $this->remission->quote?->customer?->city?->state?->name ?? '',
+            'telefono' => $sucursal?->phone ?? $this->remission->quote?->customer?->phone ?? '',
+            'direccion' => $sucursal?->address ?? $this->remission->quote?->customer?->address ?? '',
+            'ciudad' => $sucursal?->city?->name ?? $this->remission->quote?->customer?->city?->name ?? '',
+            'depto' => $sucursal?->city?->state?->name ?? $this->remission->quote?->customer?->city?->state?->name ?? '',
         ];
 
         // 3. Disparar evento para que el JS envíe la petición al proxy (para evitar problemas de CORS desde PHP)
