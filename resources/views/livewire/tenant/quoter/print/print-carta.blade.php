@@ -351,28 +351,28 @@
         .images-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 0px;
             justify-content: flex-start;
         }
 
         .image-card {
-            width: 150px;
+            width: 135px;
             text-align: center;
             border: 1px solid #ccc;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
-            height: 190px;
+            height: 145px;
             display: inline-block;
             vertical-align: top;
-            margin: 0 10px 15px 0;
+            margin: 0 6px 8px 0;
         }
 
         .image-card img {
-            max-width: 130px;
-            max-height: 120px;
+            max-width: 120px;
+            max-height: 90px;
             object-fit: contain;
             display: block;
-            margin: 0 auto 6px auto;
+            margin: 0 auto 4px auto;
         }
 
         .image-card .product-code {
@@ -395,14 +395,14 @@
         }
 
         .image-card .no-image-placeholder {
-            width: 130px;
-            height: 120px;
+            width: 120px;
+            height: 90px;
             background-color: #f5f5f5;
             border: 1px dashed #ccc;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 6px auto;
+            margin: 0 auto 4px auto;
             font-size: 8pt;
             color: #999;
         }
