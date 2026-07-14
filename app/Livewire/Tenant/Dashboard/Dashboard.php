@@ -42,6 +42,10 @@ class Dashboard extends Component
     {
         $this->user = Auth::user();
 
+        if ($this->user && $this->user->profile_id == 17) {
+            return redirect()->route('imports.imports-orders');
+        }
+
         // Obtener tenant actual de la sesión
         $tenantId = Session::get('tenant_id');
 

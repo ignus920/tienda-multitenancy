@@ -58,7 +58,8 @@ class SelectTenant extends Component
 
         // Establecer bandera para abrir el modal de selección de bodega
         session()->put('needs_warehouse_selection', true);
-        session()->put('warehouse_redirect_route', 'tenant.dashboard');
+        $redirectRoute = Auth::user()->profile_id == 17 ? 'imports.imports-orders' : 'tenant.dashboard';
+        session()->put('warehouse_redirect_route', $redirectRoute);
 
         // NO redirigir, solo recargar el componente para que el modal se abra
         $this->dispatch('$refresh');

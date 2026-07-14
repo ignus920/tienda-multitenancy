@@ -67,6 +67,9 @@ Route::get('/settings/2fa', Enable2FA::class)
 // Dashboard original de Breeze (redirige al dashboard del tenant o a la selección de sucursal)
 Route::get('dashboard', function () {
     if (session()->has('tenant_id')) {
+        if (auth()->user() && auth()->user()->profile_id == 17) {
+            return redirect()->route('imports.imports-orders');
+        }
         return redirect()->route('tenant.dashboard');
     }
     return redirect()->route('tenant.select');
