@@ -74,6 +74,11 @@ class ImportRegItem extends Component
         Log::info('🎈 Cargando itemId', [
             'itemId' => $this->itemId
         ]);
+
+        if (empty($this->data_suppliers['supplierId'])) {
+            $this->data_suppliers['supplierId'] = 219;
+            $this->data_suppliers['supplierName'] = 'Shenzhen Riyi International';
+        }
     }
 
     public function saveInfoImport()
@@ -242,7 +247,8 @@ class ImportRegItem extends Component
         $this->internal_code = '';
         $this->descripcion = 'NEW_PRODUCT';
         $this->data_suppliers = [
-            'supplierId' => '',
+            'supplierId' => 219,
+            'supplierName' => 'Shenzhen Riyi International'
         ];
     }
 
