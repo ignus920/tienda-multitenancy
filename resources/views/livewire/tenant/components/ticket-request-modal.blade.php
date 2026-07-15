@@ -113,7 +113,14 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     Historial de la solicitud — Solicitado por: <span class="text-indigo-600 dark:text-indigo-400">{{ $selectedRequest->creator->name ?? 'Usuario Sistema' }}</span>
                 </p>
                 
-                <div class="flex flex-col gap-4 max-h-60 overflow-y-auto custom-scrollbar pr-2 py-1">
+                <div x-init="
+                        const scroll = () => { $el.scrollTop = $el.scrollHeight };
+                        scroll();
+                        $watch('show', value => { if (value) setTimeout(scroll, 100) });
+                        const observer = new MutationObserver(scroll);
+                        observer.observe($el, { childList: true, subtree: true });
+                     "
+                     class="flex flex-col gap-4 max-h-60 overflow-y-auto custom-scrollbar pr-2 py-1">
                     @foreach($selectedRequest->history as $history)
                         @php
                             $isMe = $history->user_id === auth()->id();
