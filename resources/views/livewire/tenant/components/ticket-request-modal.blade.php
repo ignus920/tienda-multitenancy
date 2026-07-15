@@ -115,8 +115,12 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 
                 <div x-init="
                         const scroll = () => { $el.scrollTop = $el.scrollHeight };
-                        scroll();
+                        $nextTick(() => scroll());
+                        setTimeout(scroll, 50);
+                        setTimeout(scroll, 200);
+                        setTimeout(scroll, 500);
                         $watch('show', value => { if (value) setTimeout(scroll, 100) });
+                        $watch('$wire.selectedRequestId', value => { if (value) setTimeout(scroll, 150) });
                         const observer = new MutationObserver(scroll);
                         observer.observe($el, { childList: true, subtree: true });
                      "
