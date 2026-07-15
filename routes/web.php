@@ -206,6 +206,9 @@ require __DIR__ . '/tenants/dispatches.php';
 // Incluir rutas de WordPress
 require __DIR__ . '/tenants/wordpress.php';
 
+// Incluir rutas de Catálogos
+require __DIR__ . '/tenants/catalogs.php';
+
 
 
 

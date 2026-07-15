@@ -576,10 +576,10 @@ new class extends Component
         @if(!$isOperario && PermissionHelper::userCan('Mercadeo', 'show'))
         <div x-data="{
             tooltip: false,
-            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') ? 'true' : 'false' }},
+            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') ? 'true' : 'false' }},
             _t: null
         }" class="w-full relative">
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
                 @mouseenter="tooltip = sidebarCollapsed"
                 @mouseleave="_t = setTimeout(() => tooltip = false, 200)"
@@ -606,6 +606,10 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.wordpress.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     WordPress Stock
                 </a>
+                <a href="{{ route('tenant.catalogs') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.catalogs') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Catálogos
+                </a>
             </div>
 
             <!-- Tooltip colapsado -->
@@ -617,6 +621,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Campañas</a>
                 <a href="{{ route('tenant.wordpress.stock-sync') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">WordPress Stock</a>
+                <a href="{{ route('tenant.catalogs') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Catálogos</a>
             </div>
         </div>
         @endif
