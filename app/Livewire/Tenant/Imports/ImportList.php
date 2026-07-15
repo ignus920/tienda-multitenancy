@@ -289,7 +289,7 @@ class ImportList extends Component
 
                 $etiquetas_sin_asap = array_values(array_filter($etiquetas_busqueda, fn($e) => $e !== 'ASAP'));
 
-                $query->where('inv_items.type', 'IMPORTADO')
+                $query->whereIn('inv_items.type', ['IMPORTADO', 'CZCL'])
                     ->where(DB::raw('
                         CASE 
                             WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
