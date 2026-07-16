@@ -133,6 +133,7 @@ class ManageItems extends Component
         'INSUMO'          => 'Insumo',
         'ENSAMBLADO'      => 'Ensamblado',
         'PROYECTADOS'     => 'Proyectados',
+        'DESCONTINUADOS'  => 'Descontinuados',
         'CZCL'            => 'CZCL',
     ];
 

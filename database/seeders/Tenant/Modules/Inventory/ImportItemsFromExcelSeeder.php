@@ -93,6 +93,8 @@ class ImportItemsFromExcelSeeder extends Seeder
         'ENSAMBLADO'      => 'ENSAMBLADO',
         'PRODUCIDO'       => 'PRODUCIDO',
         'PROYECTADOS'     => 'PROYECTADOS',
+        'DESCONTINUADOS'  => 'DESCONTINUADOS',
+        'DESCONTINUADO'   => 'DESCONTINUADOS',
         'CZCL'            => 'CZCL',
         'COMBO'           => 'COMBO',
         'INSUMO'          => 'INSUMO',

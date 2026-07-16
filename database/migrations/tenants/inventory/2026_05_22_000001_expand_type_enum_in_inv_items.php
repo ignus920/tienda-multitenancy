@@ -20,6 +20,7 @@ return new class extends Migration
             'INSUMO',
             'ENSAMBLADO',
             'PROYECTADOS',
+            'DESCONTINUADOS',
             'CZCL'
         ) NOT NULL");
     }
