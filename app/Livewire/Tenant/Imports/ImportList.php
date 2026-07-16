@@ -265,6 +265,7 @@ class ImportList extends Component
                 });
             })
             ->where('inv_items.status', 1)
+            ->where('inv_items.type', '!=', 'DESCONTINUADOS')
             ->when($this->search, function ($query) {
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
