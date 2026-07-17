@@ -2418,12 +2418,6 @@ class ProductQuoter extends Component
         }
 
         $totalConFlete = round(floatval($this->totalAmount));
-        if ($this->editingQuoteId) {
-            $quote = VntQuote::find($this->editingQuoteId);
-            if ($quote) {
-                $totalConFlete += round(floatval($quote->flete ?? 0));
-            }
-        }
         $totalConFlete = round($totalConFlete);
 
         $this->additionalPayments = [
@@ -2481,12 +2475,6 @@ class ProductQuoter extends Component
 
         // Recalcular la fila principal
         $totalConFlete = round(floatval($this->totalAmount));
-        if ($this->editingQuoteId) {
-            $quote = VntQuote::find($this->editingQuoteId);
-            if ($quote) {
-                $totalConFlete += round(floatval($quote->flete ?? 0));
-            }
-        }
         $totalConFlete = round($totalConFlete);
         
         $sumOthers = 0;
@@ -2525,12 +2513,6 @@ class ProductQuoter extends Component
             $index = intval($parts[0]);
             
             $totalConFlete = round(floatval($this->totalAmount));
-            if ($this->editingQuoteId) {
-                $quote = VntQuote::find($this->editingQuoteId);
-                if ($quote) {
-                    $totalConFlete += round(floatval($quote->flete ?? 0));
-                }
-            }
             $totalConFlete = round($totalConFlete);
 
             // Limpiar y formatear el valor que acaba de ingresar el usuario
