@@ -643,7 +643,8 @@ class Orders extends Component
             // Cambiar a status 11 (Eliminado) y guardar justificación
             $import->update([
                 'status' => 11,
-                'delete_justification' => $this->deleteJustification
+                'delete_justification' => $this->deleteJustification,
+                'news' => 0
             ]);
 
             ImpStatusHistory::create([
