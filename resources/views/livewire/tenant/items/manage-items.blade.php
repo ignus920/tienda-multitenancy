@@ -431,8 +431,8 @@
                                     </div>
                                 </button>
 
-                                <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO o CZCL -->
-                                @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL']))
+                                <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
+                                @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
@@ -891,7 +891,7 @@
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
                     <!-- PESTAÑA 2: Contenido según el tipo del item -->
                     @if($showProductionSection)
-                        @if(in_array($type, ['IMPORTADO', 'CZCL']))
+                        @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                             @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
                         @elseif($type == 'PRODUCIDO')
                             @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
