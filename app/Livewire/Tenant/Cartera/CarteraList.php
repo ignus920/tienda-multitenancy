@@ -291,6 +291,7 @@ class CarteraList extends Component
     public $paymentFiles = [];
     public $originalPaymentRows = [];
     public $editJustificacionText = '';
+    public $paymentObservations = '';
 
     /**
      * Determina si el usuario autenticado tiene permiso para editar las formas de pago.
@@ -312,6 +313,12 @@ class CarteraList extends Component
         $this->paymentRows = [];
         $this->paymentFiles = [];
         $this->editJustificacionText = '';
+
+        $existingObs = \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remissionId)
+            ->where('reference_type', 'remission')
+            ->where('observation_type', 'payment_obs')
+            ->first();
+        $this->paymentObservations = $existingObs ? trim($existingObs->observation) : 'Sin observaciones de pago registradas.';
         
         $remission = InvRemissions::findOrFail($remissionId);
         

@@ -2451,6 +2451,26 @@ class ProductQuoter extends Component
     public function removeAdditionalPayment($index)
     {
         if (isset($this->additionalPayments[$index])) {
+            $payment = $this->additionalPayments[$index];
+            $methodId = $payment['method_payment_id'] ?? null;
+            if ($methodId) {
+                $method = collect($this->methodPayments)->firstWhere('id', $methodId);
+                if ($method) {
+                    $methodName = $method['name'] ?? 'Método';
+                    
+                    // Separar el texto por líneas y eliminar la que corresponde al método
+                    $lines = explode("\n", $this->paymentDetails);
+                    $newLines = [];
+                    foreach ($lines as $line) {
+                        if (str_starts_with(strtolower(trim($line)), strtolower($methodName) . ':') || strtolower(trim($line)) === strtolower($methodName)) {
+                            continue;
+                        }
+                        $newLines[] = $line;
+                    }
+                    $this->paymentDetails = implode("\n", $newLines);
+                }
+            }
+
             unset($this->additionalPayments[$index]);
             $this->additionalPayments = array_values($this->additionalPayments);
         }
@@ -2482,6 +2502,24 @@ class ProductQuoter extends Component
 
     public function updatedAdditionalPayments($value, $key)
     {
+        if (str_contains($key, '.method_payment_id')) {
+            $parts = explode('.', $key);
+            $index = intval($parts[0]);
+            
+            $method = collect($this->methodPayments)->firstWhere('id', $value);
+            if ($method) {
+                $methodName = $method['name'] ?? 'Método';
+                
+                // Agregar el nombre del método a la caja única de observaciones de pago si no está ya escrito
+                if (!str_contains(strtolower($this->paymentDetails), strtolower($methodName))) {
+                    if (!empty(trim($this->paymentDetails))) {
+                        $this->paymentDetails .= "\n";
+                    }
+                    $this->paymentDetails .= $methodName . ": ";
+                }
+            }
+        }
+
         if (str_contains($key, '.value')) {
             $parts = explode('.', $key);
             $index = intval($parts[0]);

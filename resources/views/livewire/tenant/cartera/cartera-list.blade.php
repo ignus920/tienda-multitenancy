@@ -498,7 +498,7 @@
                 <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm" @click="$wire.set('showUploadModal', false)"></div>
 
                 <!-- Panel del modal -->
-                <div class="relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-100 dark:border-slate-700 overflow-hidden"
+                <div class="relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl border border-gray-100 dark:border-slate-700 overflow-hidden"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="opacity-0 scale-95 translate-y-4"
                      x-transition:enter-end="opacity-100 scale-100 translate-y-0"
@@ -547,101 +547,114 @@
                             </div>
                         </div>
 
-                        <div class="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-                            @foreach($paymentRows as $index => $row)
-                                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 bg-gray-50/50 dark:bg-slate-900/30 rounded-lg border border-gray-200 dark:border-slate-700 items-end" wire:key="cartera-payment-{{ $index }}">
-                                    <!-- Método -->
-                                    <div class="text-left md:col-span-4">
-                                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Método de Pago</label>
-                                        @php
-                                            $selectedCarteraIds = collect($paymentRows)
-                                                ->pluck('method_payment_id')
-                                                ->filter()
-                                                ->all();
-                                        @endphp
-                                        <select {{ $this->canEditPayments ? '' : 'disabled' }} wire:model.live="paymentRows.{{ $index }}.method_payment_id"
-                                                class="w-full rounded-lg border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-gray-300 text-xs focus:ring-indigo-500 {{ $this->canEditPayments ? '' : 'cursor-not-allowed bg-gray-100' }}">
-                                            <option value="">Selecciona método</option>
-                                            @foreach($methodPayments as $method)
-                                                @if($method['id'] == $row['method_payment_id'] || !in_array($method['id'], $selectedCarteraIds))
-                                                    <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                    </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <!-- Columna Izquierda: Formas de Pago -->
+                            <div class="lg:col-span-2">
+                                <div class="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                                    @foreach($paymentRows as $index => $row)
+                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-gray-50/50 dark:bg-slate-900/30 rounded-lg border border-gray-200 dark:border-slate-700 items-end" wire:key="cartera-payment-{{ $index }}">
+                                            <!-- Método -->
+                                            <div class="text-left md:col-span-2">
+                                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 whitespace-nowrap">Método de Pago</label>
+                                                @php
+                                                    $selectedCarteraIds = collect($paymentRows)
+                                                        ->pluck('method_payment_id')
+                                                        ->filter()
+                                                        ->all();
+                                                @endphp
+                                                <select {{ $this->canEditPayments ? '' : 'disabled' }} wire:model.live="paymentRows.{{ $index }}.method_payment_id"
+                                                        class="w-full rounded-lg border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-gray-300 text-xs focus:ring-indigo-500 {{ $this->canEditPayments ? '' : 'cursor-not-allowed bg-gray-100' }}">
+                                                    <option value="">Selecciona método</option>
+                                                    @foreach($methodPayments as $method)
+                                                        @if($method['id'] == $row['method_payment_id'] || !in_array($method['id'], $selectedCarteraIds))
+                                                            <option value="{{ $method['id'] }}">{{ $method['name'] }}</option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                            </div>
 
-                                    <!-- Valor -->
-                                    <div class="text-left md:col-span-4">
-                                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Valor</label>
-                                        <input type="number" {{ $this->canEditPayments ? '' : 'readonly' }} wire:model.blur="paymentRows.{{ $index }}.value"
-                                               class="w-full rounded-lg border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-gray-300 text-xs focus:ring-indigo-500 {{ $this->canEditPayments ? '' : 'cursor-not-allowed bg-gray-100' }}" placeholder="0">
-                                    </div>
+                                            <!-- Valor -->
+                                            <div class="text-left md:col-span-1">
+                                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Valor</label>
+                                                <input type="number" {{ $this->canEditPayments ? '' : 'readonly' }} wire:model.blur="paymentRows.{{ $index }}.value"
+                                                       class="w-full rounded-lg border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-gray-300 text-xs focus:ring-indigo-500 {{ $this->canEditPayments ? '' : 'cursor-not-allowed bg-gray-100' }}" placeholder="0">
+                                            </div>
 
-                                    <!-- Soporte -->
-                                    <div class="text-left md:col-span-3">
-                                        <div class="w-full">
-                                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Soporte</label>
-                                            @if(isset($paymentFiles[$index]))
-                                                <div class="flex items-center justify-between p-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-lg text-[10px]">
-                                                    <span class="text-green-800 dark:text-green-300 truncate max-w-[120px] font-medium">
-                                                        {{ $paymentFiles[$index]->getClientOriginalName() }}
-                                                    </span>
-                                                    <button type="button" wire:click="$set('paymentFiles.{{ $index }}', null)" class="text-red-500 hover:text-red-700">
-                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                    </button>
+                                            <!-- Soporte -->
+                                            <div class="text-left md:col-span-1">
+                                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Soporte</label>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="flex-1 min-w-0">
+                                                        @if(isset($paymentFiles[$index]))
+                                                            <div class="flex items-center justify-between p-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-lg text-[10px]">
+                                                                <span class="text-green-800 dark:text-green-300 truncate max-w-[90px] font-medium">
+                                                                    {{ $paymentFiles[$index]->getClientOriginalName() }}
+                                                                </span>
+                                                                <button type="button" wire:click="$set('paymentFiles.{{ $index }}', null)" class="text-red-500 hover:text-red-700 flex-shrink-0">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                </button>
+                                                            </div>
+                                                        @elseif(!empty($row['proof_payment']))
+                                                            <div class="flex items-center justify-between p-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 rounded-lg text-[10px]">
+                                                                <a href="{{ asset('storage/' . $row['proof_payment']) }}" target="_blank" class="text-indigo-700 dark:text-indigo-300 font-bold hover:underline truncate max-w-[90px]">
+                                                                    Ver Soporte
+                                                                </a>
+                                                                <input type="file" wire:model="paymentFiles.{{ $index }}" accept="image/*,application/pdf" class="hidden" id="file-input-{{ $index }}">
+                                                                <button type="button" onclick="document.getElementById('file-input-{{ $index }}').click()" class="text-indigo-500 hover:text-indigo-700 flex-shrink-0" title="Reemplazar soporte">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                                                </button>
+                                                            </div>
+                                                        @else
+                                                            <input type="file" wire:model="paymentFiles.{{ $index }}" accept="image/*,application/pdf"
+                                                                   class="w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 hover:file:bg-indigo-100 cursor-pointer">
+                                                        @endif
+                                                    </div>
+                                                    @if($this->canEditPayments && count($paymentRows) > 1)
+                                                        <button type="button" wire:click="removePaymentRow({{ $index }})" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors flex-shrink-0">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                            </svg>
+                                                        </button>
+                                                    @endif
                                                 </div>
-                                            @elseif(!empty($row['proof_payment']))
-                                                <div class="flex items-center justify-between p-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 rounded-lg text-[10px]">
-                                                    <a href="{{ asset('storage/' . $row['proof_payment']) }}" target="_blank" class="text-indigo-700 dark:text-indigo-300 font-bold hover:underline truncate max-w-[120px]">
-                                                        Ver Soporte
-                                                    </a>
-                                                    <input type="file" wire:model="paymentFiles.{{ $index }}" accept="image/*,application/pdf" class="hidden" id="file-input-{{ $index }}">
-                                                    <button type="button" onclick="document.getElementById('file-input-{{ $index }}').click()" class="text-indigo-500 hover:text-indigo-700" title="Reemplazar soporte">
-                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                    </button>
-                                                </div>
-                                            @else
-                                                <input type="file" wire:model="paymentFiles.{{ $index }}" accept="image/*,application/pdf"
-                                                       class="w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 hover:file:bg-indigo-100 cursor-pointer">
-                                            @endif
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <!-- Eliminar fila (Solo Caleb o Yaneth si hay más de 1 fila) -->
-                                    <div class="md:col-span-1 flex justify-center pb-1">
-                                        @if($this->canEditPayments && count($paymentRows) > 1)
-                                            <button type="button" wire:click="removePaymentRow({{ $index }})" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </button>
-                                        @endif
-                                    </div>
+                                    @endforeach
                                 </div>
-                            @endforeach
+
+                                <!-- Botón Agregar fila (Solo Caleb o Yaneth) -->
+                                @if($this->canEditPayments)
+                                    <div class="mt-3 flex justify-start">
+                                        <button type="button" wire:click="addPaymentRow" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/20 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-900 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            Agregar Forma de Pago
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Columna Derecha: Observaciones de Pago + Justificación -->
+                            <div class="lg:col-span-1 flex flex-col gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase mb-2">Observaciones de Pago</label>
+                                    <textarea readonly rows="6"
+                                              class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900/50 dark:text-gray-300 text-xs focus:ring-indigo-500 cursor-not-allowed resize-none min-h-[120px]"
+                                              placeholder="Sin observaciones de pago registradas...">{{ $paymentObservations }}</textarea>
+                                </div>
+
+                                <!-- Campo de Justificación (Solo Caleb o Yaneth) -->
+                                @if($this->canEditPayments)
+                                    <div class="flex-grow flex flex-col">
+                                        <label class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase mb-2">Justificación del Cambio (Requerida si modifica)</label>
+                                        <textarea wire:model="editJustificacionText" rows="4"
+                                                  class="w-full flex-grow rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-xs focus:ring-indigo-500 focus:border-indigo-500 resize-none min-h-[100px]"
+                                                  placeholder="Escriba el motivo detallado de la modificación..."></textarea>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
-
-                        <!-- Botón Agregar fila (Solo Caleb o Yaneth) -->
-                        @if($this->canEditPayments)
-                            <div class="mt-3 flex justify-start">
-                                <button type="button" wire:click="addPaymentRow" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/20 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-900 transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    Agregar Forma de Pago
-                                </button>
-                            </div>
-                        @endif
-
-                        <!-- Campo de Justificación (Solo Caleb o Yaneth) -->
-                        @if($this->canEditPayments)
-                            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
-                                <label class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase mb-2">Justificación del Cambio (Requerida si modifica formas de pago)</label>
-                                <textarea wire:model="editJustificacionText" rows="3"
-                                          class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-xs focus:ring-indigo-500 focus:border-indigo-500"
-                                          placeholder="Escriba el motivo detallado de la modificación de las formas de pago..."></textarea>
-                            </div>
-                        @endif
                     </div>
 
                     <!-- Footer con botones -->
