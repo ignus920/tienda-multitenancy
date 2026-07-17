@@ -148,6 +148,8 @@ class Orders extends Component
 
     public function putFilter($statusId)
     {
+        $this->selectedShipp = 0;
+
         if ($statusId == 10) {
             // Si ya estamos filtrando por novedades, lo limpiamos
             if ($this->filterNews == 1) {
