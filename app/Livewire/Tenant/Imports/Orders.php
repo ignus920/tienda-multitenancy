@@ -1225,10 +1225,10 @@ class Orders extends Component
 
         if ($hasMaritime) {
             $this->way = 'Maritima';
-            $this->lockWay = true;
+            $this->lockWay = false;
         } elseif ($hasAir) {
             $this->way = 'Aerea';
-            $this->lockWay = true;
+            $this->lockWay = false;
         } else {
             $this->way = '';
             $this->lockWay = false;
@@ -1368,8 +1368,22 @@ class Orders extends Component
     public function shippments()
     {
         $this->ensureTenantConnection();
-        return ImpShippments::select(['id', DB::raw("CONCAT('ID=',consecutive,' - ', way) AS way")])
-            ->get()
+        return ImpShippments::all()
+            ->map(function ($sh) {
+                $dateStr = $sh->etd ? \Carbon\Carbon::parse($sh->etd)->format('d/m/Y') : '';
+                $conveyorStr = $sh->conveyor ? " " . $sh->conveyor : '';
+                $etdStr = $dateStr ? " ETD: " . $dateStr : '';
+                
+                $wayStr = $sh->way;
+                if ($wayStr === 'Aerea') $wayStr = 'Aérea';
+                elseif ($wayStr === 'Maritima') $wayStr = 'Marítima';
+                elseif ($wayStr === 'Express') $wayStr = 'Express';
+
+                return [
+                    'id' => $sh->id,
+                    'way' => "{$wayStr}{$conveyorStr}{$etdStr}"
+                ];
+            })
             ->toArray();
     }
 

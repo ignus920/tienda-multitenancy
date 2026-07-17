@@ -239,7 +239,7 @@
 
                             <!-- Selector de Envíos - Solo visible en estado En tránsito (7) -->
                             @if($filterStatus == 7)
-                                <div class="w-full sm:w-64">
+                                <div class="w-full sm:w-[420px]">
                                     @livewire('selects.generic-select', [
                                         'selectedValue' => $selectedShipp,
                                         'items' => $this->shippments,
@@ -1725,11 +1725,12 @@
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         VIA <span class="text-red-500">*</span>
                                     </label>
-                                    <select wire:model.live="way" {{ $lockWay ? 'disabled' : '' }}
-                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center] {{ $lockWay ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-600' : '' }}">
+                                    <select wire:model.live="way"
+                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center]">
                                         <option value="">Select route</option>
                                         <option value="Aerea" class="py-2">AIR</option>
                                         <option value="Maritima" class="py-2">MARITIME</option>
+                                        <option value="Express" class="py-2">EXPRESS</option>
                                     </select>
                                     @error('way')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
                                 </div>
