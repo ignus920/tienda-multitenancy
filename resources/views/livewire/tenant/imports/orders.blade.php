@@ -218,6 +218,7 @@
 
                     <div class="flex-1">
                         <div class="flex items-center gap-4">
+                            {{-- Selector de Etiquetas (Programaciones/Labels) - Ocultado temporalmente
                             <div class="w-full sm:w-48">
                                 @livewire('selects.generic-select', [
                                     'selectedValue' => $selectedLabelId,
@@ -234,6 +235,27 @@
                                 ], key('label-select-' . ($selectedLabelId ?? 'none') . '-' . now()->timestamp))
                                 @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                             </div>
+                            --}}
+
+                            <!-- Selector de Envíos - Solo visible en estado En tránsito (7) -->
+                            @if($filterStatus == 7)
+                                <div class="w-full sm:w-64">
+                                    @livewire('selects.generic-select', [
+                                        'selectedValue' => $selectedShipp,
+                                        'items' => $this->shippments,
+                                        'name' => 'selectedShipp',
+                                        'placeholder' => $selectedShipp > 0 && $this->selectedShippmentData ? 'Envío: ' . $this->selectedShippmentData->way : 'Filtrar por Envío',
+                                        'label' => '',
+                                        'required' => false,
+                                        'showLabel' => false,
+                                        'class' => 'block w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ' . ($selectedShipp ? 'bg-indigo-50 border-indigo-500 text-indigo-900 dark:bg-indigo-900/30 dark:border-indigo-400 dark:text-indigo-200 ring-1 ring-indigo-500' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'),
+                                        'eventName' => 'shippmentSelected',
+                                        'displayField' => 'way',
+                                        'valueField' => 'id',
+                                    ], key('shippment-select-' . ($selectedShipp ?? 'none') . '-' . now()->timestamp))
+                                    @error('selectedShipp') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                                </div>
+                            @endif
                             
                             <!-- Botón Desfiltrar / Limpiar Filtros -->
                             <button wire:click="clearFilters" 
@@ -412,6 +434,44 @@
                 @endif
             </div>
 
+            @if($this->selectedShippmentData)
+                <div class="m-6 bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-600 p-5 rounded-r-lg shadow-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Número de Operación</p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                {{ $this->selectedShippmentData->operation_number ?? 'N/A' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETD (Fecha de Salida)</p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                {{ $this->selectedShippmentData->etd ? \Carbon\Carbon::parse($this->selectedShippmentData->etd)->format('d/m/Y') : 'N/A' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Vía</p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                #{{ $this->selectedShippmentData->consecutive }} 
+                                {{ $this->selectedShippmentData->way == 'Aerea' ? 'Aérea' : ($this->selectedShippmentData->way == 'Maritima' ? 'Marítima' : $this->selectedShippmentData->way) }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Transportador</p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                {{ $this->selectedShippmentData->conveyor ?? 'N/A' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Notas del Envío</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mt-0.5 italic">
+                                "{{ $this->selectedShippmentData->obs ?? 'Sin observaciones' }}"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Tabla -->
             <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
@@ -451,7 +511,7 @@
                             <th x-show="showCols.qtyShipped" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Qty Shipped
                             </th>
-                            <th x-show="showCols.shippingInfo" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                            <th x-show="showCols.shippingInfo && !$wire.selectedShipp" class="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                                 Shipping Information
                             </th>
                         </tr>
@@ -598,17 +658,29 @@
                                     </div> 
                                 </td>
                                 <td x-show="showCols.action" class="px-4 py-4 text-center">
-                                    @if($order->status == 2 && $order->news == 0 && $profileUser != '17')
-                                        <button wire:click="openModalConfirmPrice({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
-                                            <x-heroicon-o-check class="w-4 h-4" /> Approve price
-                                        </button>
-                                    @elseif($order->status == 4 && $order->news == 0 && $profileUser == '17')
-                                        <button wire:click="openModalConfirmProduction({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
-                                            <x-heroicon-o-check class="w-4 h-4" /> Production
-                                        </button>
-                                    @else
-                                        <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
-                                    @endif
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        @if($order->status == 2 && $order->news == 0 && $profileUser != '17')
+                                            <button wire:click="openModalConfirmPrice({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
+                                                <x-heroicon-o-check class="w-4 h-4" /> Approve price
+                                            </button>
+                                        @elseif($order->status == 4 && $order->news == 0 && $profileUser == '17')
+                                            <button wire:click="openModalConfirmProduction({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
+                                                <x-heroicon-o-check class="w-4 h-4" /> Production
+                                            </button>
+                                        @elseif($order->status == 7)
+                                            <button wire:click="removeFromShipment({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 whitespace-nowrap" title="Regresar a Producción">
+                                                <x-heroicon-o-arrow-path class="w-4 h-4" /> Sacar del envío
+                                            </button>
+                                        @else
+                                            <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
+                                        @endif
+
+                                        @if($filterNews == 1 && $order->status != 11)
+                                            <button wire:click="confirmDelete({{ $order->id }})" class="p-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:ring-2 focus:ring-red-500 focus:ring-offset-2" title="Eliminar Producto">
+                                                <x-heroicon-o-trash class="w-4 h-4" />
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td x-show="showCols.status" class="px-4 py-4 text-center">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -635,57 +707,78 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td x-show="showCols.shippingInfo" class="px-4 py-4">
-                                    <div class="space-y-1 text-xs min-w-[200px]">
-                                        {{-- 
-                                        @if($order->packing_number)
-                                            <div class="flex items-center gap-1">
-                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Pack:</span>
-                                                <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ $order->packing_number }}</span>
+                                <td x-show="showCols.shippingInfo && !$wire.selectedShipp" class="px-4 py-4">
+                                    @if($order->status == 11)
+                                        <div class="space-y-1 text-xs min-w-[220px]">
+                                            <div class="flex flex-col gap-1 bg-red-50 dark:bg-red-950/30 p-2.5 rounded-lg border border-red-100 dark:border-red-900/40">
+                                                <div class="flex items-center gap-1 text-red-700 dark:text-red-400 font-semibold">
+                                                    <svg class="w-3.5 h-3.5 text-red-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                                    </svg>
+                                                    <span>Eliminado por:</span>
+                                                </div>
+                                                <span class="text-gray-900 dark:text-white font-medium pl-4.5">{{ $order->deleted_by_user ?? 'N/A' }}</span>
+                                                
+                                                <div class="flex items-center gap-1 text-red-700 dark:text-red-400 font-semibold mt-1">
+                                                    <span>Justificación:</span>
+                                                </div>
+                                                <p class="text-gray-700 dark:text-gray-300 italic pl-4.5 break-words">
+                                                    "{{ $order->delete_justification ?? 'Sin registrar' }}"
+                                                </p>
                                             </div>
-                                        @endif
-                                        --}}
+                                        </div>
+                                    @else
+                                        <div class="space-y-1 text-xs min-w-[200px]">
+                                            {{-- 
+                                            @if($order->packing_number)
+                                                <div class="flex items-center gap-1">
+                                                    <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Pack:</span>
+                                                    <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ $order->packing_number }}</span>
+                                                </div>
+                                            @endif
+                                            --}}
 
-                                        @if($order->operation_number)
-                                            <div class="flex items-center gap-1">
-                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">O.N:</span>
-                                                <span class="font-mono">{{ $order->operation_number }}</span>
-                                            </div>
-                                        @endif
+                                            @if($order->operation_number)
+                                                <div class="flex items-center gap-1">
+                                                    <span class="font-medium text-gray-500 dark:text-gray-400 w-12">O.N:</span>
+                                                    <span class="font-mono">{{ $order->operation_number }}</span>
+                                                </div>
+                                            @endif
 
-                                        @if($order->etd)
-                                            <div class="flex items-center gap-1">
-                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">ETD:</span>
-                                                <span>{{ \Carbon\Carbon::parse($order->etd)->format('d/m/Y') }}</span>
-                                            </div>
-                                        @endif
+                                            @if($order->etd)
+                                                <div class="flex items-center gap-1">
+                                                    <span class="font-medium text-gray-500 dark:text-gray-400 w-12">ETD:</span>
+                                                    <span>{{ \Carbon\Carbon::parse($order->etd)->format('d/m/Y') }}</span>
+                                                </div>
+                                            @endif
 
-                                        @if($order->way)
+                                            @if($order->way)
+                                                <div class="flex items-center gap-1">
+                                                    <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Via:</span>
+                                                    <span class="flex items-center gap-1">
+                                                        @if($order->way == 'Aerea')
+                                                            Air
+                                                        @elseif($order->way == 'Maritima')
+                                                            Maritime
+                                                        @else
+                                                            {{ $order->way }}
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            @endif
+
                                             <div class="flex items-center gap-1">
-                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Via:</span>
-                                                <span class="flex items-center gap-1">
-                                                    @if($order->way == 'Aerea')
-                                                        Air
-                                                    @elseif($order->way == 'Maritima')
-                                                        Maritime
+                                                <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Rec:</span>
+                                                <span>
+                                                    @if($order->received_at)
+                                                        {{ \Carbon\Carbon::parse($order->received_at)->format('d/m/Y') }}
                                                     @else
-                                                        {{ $order->way }}
+                                                        <span class="text-gray-400 dark:text-gray-500">—</span>
                                                     @endif
                                                 </span>
                                             </div>
-                                        @endif
-
-                                        <div class="flex items-center gap-1">
-                                            <span class="font-medium text-gray-500 dark:text-gray-400 w-12">Rec:</span>
-                                            <span>
-                                                @if($order->received_at)
-                                                    {{ \Carbon\Carbon::parse($order->received_at)->format('d/m/Y') }}
-                                                @else
-                                                    <span class="text-gray-400 dark:text-gray-500">—</span>
-                                                @endif
-                                            </span>
                                         </div>
-                                    </div>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -1578,59 +1671,88 @@
                         </div>
 
                         <div class="space-y-5">
-                            <!-- ETD -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    ETD <span class="text-red-500">*</span>
+                            <!-- Selector: Nuevo o Existente -->
+                            <div class="flex items-center gap-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="is_existing_shipp" wire:model.live="isExistingShipping" value="0" class="text-indigo-600 focus:ring-indigo-500">
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Crear Nuevo Envío</span>
                                 </label>
-                                <input wire:model="etd" type="date" 
-                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
-                                @error('etd') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="is_existing_shipp" wire:model.live="isExistingShipping" value="1" class="text-indigo-600 focus:ring-indigo-500">
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Asociar a Envío Existente</span>
+                                </label>
                             </div>
 
-                            <!-- OPERATION NUMBER -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    OPERATION NUMBER <span class="text-red-500">*</span>
-                                </label>
-                                <input wire:model="operation_number" type="text" 
-                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm"
-                                    placeholder="e.g., OP-2024-001">
-                                @error('operation_number')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
-                            </div>
+                            @if($isExistingShipping)
+                                <!-- SELECT ENVIO EXISTENTE -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Seleccionar Envío Creado <span class="text-red-500">*</span>
+                                    </label>
+                                    <select wire:model="selectedExistingShippingId"
+                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
+                                        <option value="">-- Selecciona un envío activo --</option>
+                                        @foreach($this->shippments as $sh)
+                                            <option value="{{ $sh['id'] }}">{{ $sh['way'] }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('selectedExistingShippingId') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                                </div>
+                            @else
+                                <!-- ETD -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        ETD <span class="text-red-500">*</span>
+                                    </label>
+                                    <input wire:model="etd" type="date" 
+                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
+                                    @error('etd') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                                </div>
 
-                            <!-- VIA -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    VIA <span class="text-red-500">*</span>
-                                </label>
-                                <select wire:model.live="way" {{ $lockWay ? 'disabled' : '' }}
-                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center] {{ $lockWay ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-600' : '' }}">
-                                    <option value="">Select route</option>
-                                    <option value="Aerea" class="py-2">AIR</option>
-                                    <option value="Maritima" class="py-2">MARITIME</option>
-                                </select>
-                                @error('way')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
-                            </div>
-                            <!-- Conveyor -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    CONVEYOR
-                                </label>
-                                <input wire:model="conveyor" type="text" id="conveyor"
-                                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
-                            </div>
-                            <!-- Observations -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    OBSERVATIONS
-                                </label>
-                                <textarea wire:model="observations"
-                                    rows="4"
-                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm resize-none"
-                                    placeholder="Add any additional notes or instructions...">
-                                </textarea>
-                            </div>
+                                <!-- OPERATION NUMBER -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        OPERATION NUMBER <span class="text-red-500">*</span>
+                                    </label>
+                                    <input wire:model="operation_number" type="text" 
+                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm"
+                                        placeholder="e.g., OP-2024-001">
+                                    @error('operation_number')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
+                                </div>
+
+                                <!-- VIA -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        VIA <span class="text-red-500">*</span>
+                                    </label>
+                                    <select wire:model.live="way" {{ $lockWay ? 'disabled' : '' }}
+                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm appearance-none bg-no-repeat bg-[length:20px_20px] bg-[right_1rem_center] {{ $lockWay ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-600' : '' }}">
+                                        <option value="">Select route</option>
+                                        <option value="Aerea" class="py-2">AIR</option>
+                                        <option value="Maritima" class="py-2">MARITIME</option>
+                                    </select>
+                                    @error('way')<span class="text-red-600 text-xs mt-1">{{ $message }}</span>@enderror
+                                </div>
+                                <!-- Conveyor -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        CONVEYOR
+                                    </label>
+                                    <input wire:model="conveyor" type="text" id="conveyor"
+                                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm">
+                                </div>
+                                <!-- Observations -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        OBSERVATIONS
+                                    </label>
+                                    <textarea wire:model="observations"
+                                        rows="4"
+                                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-shadow hover:shadow-sm resize-none"
+                                        placeholder="Add any additional notes or instructions...">
+                                    </textarea>
+                                </div>
+                            @endif
                             <div class="border-t border-gray-200 dark:border-gray-700 pt-6 flex flex-col sm:flex-row justify-end gap-3">
                                 <button type="button" wire:click="cancel"
                                     class="w-full sm:w-auto px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-all duration-200 hover:shadow focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 order-2 sm:order-1">
@@ -1650,6 +1772,66 @@
                             </div>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal confirmación y justificación de eliminación -->
+    @if ($showModalDelete)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+            x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0">
+            <div class="relative min-h-screen flex items-center justify-center p-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6"
+                    x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                    
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-bold text-red-600 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            Eliminar Producto
+                        </h3>
+                        <button type="button" wire:click="$set('showModalDelete', false)" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                            <x-heroicon-o-x-mark class="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            ¿Estás seguro de que deseas eliminar este producto? Esta acción cambiará el estado del producto a <strong class="text-gray-900 dark:text-white">ELIMINADO</strong> para fines de auditoría.
+                        </p>
+                        
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Justificación de la Eliminación <span class="text-red-500">*</span>
+                            </label>
+                            <textarea wire:model="deleteJustification"
+                                rows="3"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none transition-shadow resize-none"
+                                placeholder="Escribe la razón o justificación detallada por la cual eliminas este producto..."></textarea>
+                            @error('deleteJustification') <span class="text-red-600 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <button type="button" wire:click="$set('showModalDelete', false)"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-all duration-200">
+                            Cancelar
+                        </button>
+                        <button type="button" wire:click="deleteOrderWithJustification"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 border border-transparent rounded-lg font-medium text-sm text-white transition-all duration-200 hover:shadow-lg focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            Confirmar Eliminación
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

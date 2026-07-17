@@ -48,6 +48,7 @@ class ImpImports extends Model
         'news',
         'priority',
         'priority_assigned_at',
+        'delete_justification',
     ];
 
     /**

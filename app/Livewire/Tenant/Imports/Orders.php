@@ -48,6 +48,13 @@ class Orders extends Component
     public $refreshCounter = 0;
     public $selectAll = false;
 
+    // Propiedades para envío existente y eliminación justificada
+    public $isExistingShipping = false;
+    public $selectedExistingShippingId = null;
+    public $deleteJustification = '';
+    public $selectedOrderIdForDelete = null;
+    public $showModalDelete = false;
+
     public $import_id;
     public $oldQty;
     public $newQty;
@@ -64,6 +71,7 @@ class Orders extends Component
 
     protected $listeners = [
         'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
+        'shippmentSelected' => 'onShippmentSelected',
         'testEvent' => 'testEvent',
     ];
 
@@ -71,10 +79,12 @@ class Orders extends Component
         'commentChangeQuantity' => 'required',
         'commentAccept' => 'required',
         'commentChangeQtyShip' => 'required',
-        'commentJustifyPrice' => 'required'
+        'commentJustifyPrice' => 'required',
+        'deleteJustification' => 'required'
     ];
 
     protected $messages = [
+        'deleteJustification.required' => 'Debe ingresar una justificación para eliminar el producto',
         'commentChangeQuantity.required' => 'Debe ingresar un comentario',
         'commentAccept.required' => 'Debe ingresar un comentario',
         'commentChangeQtyShip.required' => 'You must enter a comment',
@@ -179,6 +189,7 @@ class Orders extends Component
     #[Computed]
     public function orders()
     {
+        $centralDbName = config('database.connections.central.database');
         return DB::connection('tenant')
             ->table('imp_imports as i')
             ->select([
@@ -195,6 +206,7 @@ class Orders extends Component
                 'i.qty_shipped',
                 'i.news',
                 'i.price',
+                'i.delete_justification',
                 'pk.number_packing as packing_number',
                 's.operation_number',
                 's.etd',
@@ -210,7 +222,14 @@ class Orders extends Component
                         WHERE import_id = i.id AND new_state = 8 
                         ORDER BY created_at DESC 
                         LIMIT 1
-                    ) AS received_at")
+                    ) AS received_at"),
+                DB::raw("(SELECT u.name 
+                         FROM imp_status_history sh 
+                         JOIN {$centralDbName}.users u ON sh.user_id = u.id 
+                         WHERE sh.import_id = i.id AND sh.new_state = 11 
+                         ORDER BY sh.created_at DESC 
+                         LIMIT 1
+                    ) AS deleted_by_user")
             ])
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
@@ -449,6 +468,24 @@ class Orders extends Component
         return $initiator->import->news == 1 && $initiator->user_id == Auth::id();
     }
 
+    #[On('shippmentSelected')]
+    public function onShippmentSelected($shippmentId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedShipp = (int) $shippmentId;
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function selectedShippmentData()
+    {
+        if ($this->selectedShipp > 0) {
+            $this->ensureTenantConnection();
+            return \App\Models\Tenant\Imports\ImpShippments::find($this->selectedShipp);
+        }
+        return null;
+    }
+
     #[On('labelSelected')]
     public function onLabelSelected($labelId)
     {
@@ -531,6 +568,112 @@ class Orders extends Component
 
         unset($this->orders);
         $this->dispatch('$refresh');
+    }
+
+    public function removeFromShipment($importId)
+    {
+        $this->ensureTenantConnection();
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $import = ImpImports::findOrFail($importId);
+            $oldStatus = $import->status;
+
+            // Desvincular del pack y regresar a producción (status 5)
+            $import->update([
+                'packing_id' => null,
+                'status' => 5
+            ]);
+
+            ImpStatusHistory::create([
+                'import_id' => $import->id,
+                'previous_state' => $oldStatus,
+                'new_state' => 5,
+                'user_id' => Auth::id()
+            ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Producto sacado del envío y regresado a Producción'
+            ]);
+
+            unset($this->orders);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error("Error al sacar de envío: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo retirar el producto'
+            ]);
+        }
+    }
+
+    public function confirmDelete($importId)
+    {
+        $this->selectedOrderIdForDelete = $importId;
+        $this->deleteJustification = '';
+        $this->showModalDelete = true;
+    }
+
+    public function deleteOrderWithJustification()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'deleteJustification' => 'required'
+        ]);
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $import = ImpImports::findOrFail($this->selectedOrderIdForDelete);
+            
+            if ($import->news != 1) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Solo se pueden eliminar productos que tengan una novedad activa.'
+                ]);
+                return;
+            }
+
+            $oldStatus = $import->status;
+
+            // Cambiar a status 11 (Eliminado) y guardar justificación
+            $import->update([
+                'status' => 11,
+                'delete_justification' => $this->deleteJustification
+            ]);
+
+            ImpStatusHistory::create([
+                'import_id' => $import->id,
+                'previous_state' => $oldStatus,
+                'new_state' => 11,
+                'user_id' => Auth::id()
+            ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showModalDelete = false;
+            $this->selectedOrderIdForDelete = null;
+            $this->deleteJustification = '';
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Producto eliminado correctamente'
+            ]);
+
+            unset($this->orders);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error("Error al eliminar producto: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo eliminar el producto'
+            ]);
+        }
     }
 
     public $selectedLabel = [
@@ -1094,11 +1237,18 @@ class Orders extends Component
     public function saveShippingData()
     {
         $this->ensureTenantConnection();
-        $this->validate([
-            'etd' => 'required',
-            'operation_number' => 'required',
-            'way' => 'required'
-        ]);
+        
+        if ($this->isExistingShipping) {
+            $this->validate([
+                'selectedExistingShippingId' => 'required'
+            ]);
+        } else {
+            $this->validate([
+                'etd' => 'required',
+                'operation_number' => 'required',
+                'way' => 'required'
+            ]);
+        }
 
         if (empty($this->selectedOrders)) {
             $this->dispatch('show-toast', [
@@ -1111,32 +1261,64 @@ class Orders extends Component
         try {
             DB::connection('tenant')->beginTransaction();
 
-            // 1. Crear el Shipment
-            $lastConsecutive = ImpShippments::where('way', $this->way)->max('consecutive');
-            $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
-            $shippingData = [
-                'consecutive' => $newConsecutive,
-                'etd' => $this->etd,
-                'operation_number' => $this->operation_number,
-                'way' => $this->way,
-                'conveyor' => $this->conveyor,
-                'obs' => $this->observations
-            ];
-            $newShipping = ImpShippments::create($shippingData);
+            if ($this->isExistingShipping) {
+                // 1. Obtener el envío existente
+                $existingShipping = ImpShippments::findOrFail($this->selectedExistingShippingId);
+                
+                // 2. Buscar si ya hay un packing asociado a este envío
+                $packing = ImpPacking::where('shipping_id', $existingShipping->id)->first();
+                
+                // Si no hay, crear un pack asociado automáticamente
+                if (!$packing) {
+                    $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
+                    $nextNumber = 1;
+                    if ($lastPacking) {
+                        $lastNumber = (int) filter_var($lastPacking->number_packing, FILTER_SANITIZE_NUMBER_INT);
+                        $nextNumber = $lastNumber + 1;
+                    }
+                    $packing = ImpPacking::create([
+                        'number_packing' => 'PACK' . $nextNumber,
+                        'shipping_id' => $existingShipping->id
+                    ]);
+                }
+                
+                $consecutiveText = $existingShipping->consecutive;
+            } else {
+                // 1. Crear el Shipment nuevo
+                $lastConsecutive = ImpShippments::where('way', $this->way)->max('consecutive');
+                $newConsecutive = $lastConsecutive ? $lastConsecutive + 1 : 1;
+                $shippingData = [
+                    'consecutive' => $newConsecutive,
+                    'etd' => $this->etd,
+                    'operation_number' => $this->operation_number,
+                    'way' => $this->way,
+                    'conveyor' => $this->conveyor,
+                    'obs' => $this->observations
+                ];
+                $newShipping = ImpShippments::create($shippingData);
 
-            // 2. Crear un PACK en segundo plano automáticamente para asociarle estos productos
-            $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
-            $nextNumber = 1;
-            if ($lastPacking) {
-                $lastNumber = (int) filter_var($lastPacking->number_packing, FILTER_SANITIZE_NUMBER_INT);
-                $nextNumber = $lastNumber + 1;
+                // 2. Crear un PACK en segundo plano automáticamente para asociarle estos productos
+                $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
+                $nextNumber = 1;
+                if ($lastPacking) {
+                    $lastNumber = (int) filter_var($lastPacking->number_packing, FILTER_SANITIZE_NUMBER_INT);
+                    $nextNumber = $lastNumber + 1;
+                }
+                $newPackingName = 'PACK' . $nextNumber;
+                
+                $packing = ImpPacking::create([
+                    'number_packing' => $newPackingName,
+                    'shipping_id' => $newShipping->id // Asociar pack al envío
+                ]);
+
+                // 4. Crear un Pack disponible para futuros usos (como hacía el flujo original)
+                $nextNumber++;
+                ImpPacking::create([
+                    'number_packing' => 'PACK' . $nextNumber
+                ]);
+                
+                $consecutiveText = $newConsecutive;
             }
-            $newPackingName = 'PACK' . $nextNumber;
-            
-            $packing = ImpPacking::create([
-                'number_packing' => $newPackingName,
-                'shipping_id' => $newShipping->id // Asociar pack al envío
-            ]);
 
             // 3. Asociar los productos seleccionados al Pack y pasarlos a In Transit (status 7)
             $imports = ImpImports::whereIn('id', $this->selectedOrders)->get();
@@ -1156,21 +1338,17 @@ class Orders extends Component
                 ]);
             }
 
-            // 4. Crear un Pack disponible para futuros usos (como hacía el flujo original)
-            $nextNumber++;
-            ImpPacking::create([
-                'number_packing' => 'PACK' . $nextNumber
-            ]);
-
             DB::connection('tenant')->commit();
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Shipping data assigned successfully. Packing processed: ' . $packing->number_packing . ' Consecutive: ' . $newConsecutive
+                'message' => 'Datos de envío asignados con éxito. Packing: ' . $packing->number_packing . ' Consecutivo: ' . $consecutiveText
             ]);
 
             $this->selectedOrders = [];
             $this->showModalShipping = false;
+            $this->isExistingShipping = false;
+            $this->selectedExistingShippingId = null;
             $this->resetForm();
             $this->resetPage();
         } catch (\Exception $e) {
@@ -1178,7 +1356,7 @@ class Orders extends Component
             Log::error("Error al guardar la información: " . $e->getMessage());
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'Shipping information could not be saved'
+                'message' => 'No se pudo guardar la información del envío'
             ]);
         }
     }
@@ -1187,7 +1365,9 @@ class Orders extends Component
     public function shippments()
     {
         $this->ensureTenantConnection();
-        return ImpShippments::select(['id', DB::raw("CONCAT('ID=',consecutive,' - ', way) AS way")])->get();
+        return ImpShippments::select(['id', DB::raw("CONCAT('ID=',consecutive,' - ', way) AS way")])
+            ->get()
+            ->toArray();
     }
 
     public function render()
