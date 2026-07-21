@@ -157,7 +157,12 @@ class Orders extends Component
 
     public function putFilter($statusId)
     {
-        $this->selectedShipp = 0;
+        // No resetear el envío seleccionado si se navega entre "En tránsito" (7) y "Recibido" (6)
+        if (!in_array($statusId, [6, 7]) || !in_array($this->filterStatus, [6, 7])) {
+            $this->selectedShipp = 0;
+            $this->shipmentEta = '';
+            $this->shipmentFervicomArrival = '';
+        }
 
         if ($statusId == 10) {
             // Si ya estamos filtrando por novedades, lo limpiamos
@@ -630,6 +635,9 @@ class Orders extends Component
                 }
             });
 
+            $this->filterStatus = 6;
+            $this->shipmentEta = $this->receivedEta;
+            $this->shipmentFervicomArrival = $this->receivedFervicomArrival;
             $this->showModalMarkReceived = false;
             $this->dispatch('show-toast', [
                 'type' => 'success',

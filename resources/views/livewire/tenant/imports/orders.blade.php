@@ -469,7 +469,7 @@
                                      {{ $this->selectedShippmentData->eta ? \Carbon\Carbon::parse($this->selectedShippmentData->eta)->format('d/m/Y') : 'N/A' }}
                                  </p>
                              @else
-                                 <input type="date" wire:model.blur="shipmentEta" wire:change="updateShipmentDates"
+                                 <input type="date" wire:model="shipmentEta" wire:change="updateShipmentDates"
                                      class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mt-0.5 focus:ring-1 focus:ring-indigo-500">
                              @endif
                          </div>
@@ -480,7 +480,7 @@
                                      {{ $this->selectedShippmentData->fervicom_arrival_date ? \Carbon\Carbon::parse($this->selectedShippmentData->fervicom_arrival_date)->format('d/m/Y') : 'N/A' }}
                                  </p>
                              @else
-                                 <input type="date" wire:model.blur="shipmentFervicomArrival" wire:change="updateShipmentDates"
+                                 <input type="date" wire:model="shipmentFervicomArrival" wire:change="updateShipmentDates"
                                      class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mt-0.5 focus:ring-1 focus:ring-indigo-500">
                              @endif
                          </div>
