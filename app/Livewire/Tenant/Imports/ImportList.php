@@ -15,6 +15,7 @@ use App\Models\Tenant\Imports\InvUnconfirmedQty;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Traits\HasCompanyConfiguration;
 
 class ImportList extends Component
@@ -23,6 +24,7 @@ class ImportList extends Component
 
     public $search = '';
     public $perPage = 20;
+    public $selectedSupplierId = null;
     public $sortField = 'id';
     public $sortDirection = 'asc';
     //public $storeId = 1; // Warehouse/Store ID configurable
@@ -48,7 +50,22 @@ class ImportList extends Component
         'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
         'testEvent' => 'testEvent',
         'update-item-quantity' => 'onUpdateItemQuantity',
+        'supplier-selected' => 'onSupplierSelected',
     ];
+
+    public function mount()
+    {
+        if (Auth::user()?->profile_id == 17) {
+            $this->selectedSupplierId = Auth::id();
+        }
+    }
+
+    #[On('supplier-selected')]
+    public function onSupplierSelected($supplierId)
+    {
+        $this->selectedSupplierId = $supplierId ?: null;
+        $this->resetPage();
+    }
 
 
     #[On('labelSelected')]
@@ -266,6 +283,9 @@ class ImportList extends Component
             })
             ->where('inv_items.status', 1)
             ->where('inv_items.type', '!=', 'DESCONTINUADOS')
+            ->when($this->selectedSupplierId, function ($query) {
+                return $query->where('imp_items_setup.supplier_id', $this->selectedSupplierId);
+            })
             ->when($this->search, function ($query) {
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {

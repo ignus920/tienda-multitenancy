@@ -138,6 +138,19 @@
                 </div>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
 
+                    @if(auth()->user()?->profile_id != 17)
+                        <!-- Filtro Proveedor -->
+                        <div class="w-full sm:w-64">
+                            <select wire:model.live="selectedSupplierId"
+                                class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Filtrar por Proveedor</option>
+                                @foreach($this->suppliers as $sup)
+                                    <option value="{{ $sup['id'] }}">{{ $sup['firstName'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
                     <!-- Botón Principal -->
                     <button wire:click="showModalRegis"
                         class="inline-flex items-center justify-center px-4 py-2 
@@ -382,7 +395,7 @@
         --}}
 
         <!-- Import List Component -->
-        @livewire('tenant.imports.import-list')
+        @livewire('tenant.imports.import-list', ['selectedSupplierId' => $selectedSupplierId])
     </div>
 
     <!-- Modal de Etiqueta -->

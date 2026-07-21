@@ -25,6 +25,7 @@ class ImportServices extends Component
     public $selectedService = '';
     public $showModalRegisItem = false;
     public $moduleKey = 'imports';
+    public $selectedSupplierId = null;
     
 
     // Variables para el item seleccionado
@@ -1018,6 +1019,36 @@ class ImportServices extends Component
             'labels' => $labels,
             'debugInfo' => $debugInfo
         ]);
+    }
+
+    #[Computed]
+    public function suppliers()
+    {
+        $this->ensureTenantConnection();
+        $sessionTenant = session('tenant_id');
+
+        return \App\Models\Auth\User::select('users.id', 'users.name')
+            ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+            ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                $query->where('tenants.id', $sessionTenant);
+            })
+            ->where('users.profile_id', 17)
+            ->where('vnt_contacts.status', 1)
+            ->whereNull('vnt_contacts.deleted_at')
+            ->distinct()
+            ->get()
+            ->map(function ($supplier) {
+                return [
+                    'id' => $supplier->id,
+                    'firstName' => $supplier->name
+                ];
+            })
+            ->toArray();
+    }
+
+    public function updatedSelectedSupplierId($value)
+    {
+        $this->dispatch('supplier-selected', supplierId: $value);
     }
 
     private function ensureTenantConnection(): void
