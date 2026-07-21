@@ -122,6 +122,7 @@ class Orders extends Component
             ->table('imp_imports as i')
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
+            ->where('s.id', '!=', 6)
             ->select('s.name as nombre_estado', 's.translated_name', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
             ->when(Auth::user()->profile_id == 17, function ($query) {
                 return $query->where(function ($q) {
@@ -157,8 +158,8 @@ class Orders extends Component
 
     public function putFilter($statusId)
     {
-        // No resetear el envío seleccionado si se navega entre "En tránsito" (7) y "Recibido" (6)
-        if (!in_array($statusId, [6, 7]) || !in_array($this->filterStatus, [6, 7])) {
+        // No resetear el envío seleccionado si se navega entre "En tránsito" (7) y "Recibido" (8)
+        if (!in_array($statusId, [7, 8]) || !in_array($this->filterStatus, [7, 8])) {
             $this->selectedShipp = 0;
             $this->shipmentEta = '';
             $this->shipmentFervicomArrival = '';
@@ -638,16 +639,16 @@ class Orders extends Component
                             ImpStatusHistory::create([
                                 'import_id' => $importId,
                                 'previous_state' => $oldStatus,
-                                'new_state' => 6, // Recibido
+                                'new_state' => 8, // Recibido
                                 'user_id' => Auth::id()
                             ]);
-                            $import->update(['status' => 6]);
+                            $import->update(['status' => 8]);
                         }
                     }
                 }
             });
 
-            $this->filterStatus = 6;
+            $this->filterStatus = 8;
             $this->shipmentEta = $this->receivedEta;
             $this->shipmentFervicomArrival = $this->receivedFervicomArrival;
             $this->showModalMarkReceived = false;

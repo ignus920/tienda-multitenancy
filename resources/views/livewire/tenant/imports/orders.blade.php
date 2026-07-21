@@ -237,8 +237,8 @@
                             </div>
                             --}}
 
-                            <!-- Selector de Envíos - Visible en En tránsito (7) o Recibido (6) -->
-                            @if($filterStatus == 7 || $filterStatus == 6)
+                            <!-- Selector de Envíos - Visible en En tránsito (7) o Recibido (8) -->
+                            @if($filterStatus == 7 || $filterStatus == 8)
                                 <div class="w-full sm:w-[420px]">
                                     @livewire('selects.generic-select', [
                                         'selectedValue' => $selectedShipp,
