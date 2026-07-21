@@ -436,6 +436,24 @@ class Orders extends Component
             ->get();
     }
 
+    private function translateText($text, $from, $to)
+    {
+        try {
+            $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" . $from . "&tl=" . $to . "&dt=t&q=" . urlencode($text);
+            $response = \Illuminate\Support\Facades\Http::get($url);
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                if (isset($result[0][0][0])) {
+                    return $result[0][0][0];
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error al traducir comentario automático: " . $e->getMessage());
+        }
+        return null;
+    }
+
     public function saveShipmentComment()
     {
         $this->ensureTenantConnection();
@@ -453,9 +471,27 @@ class Orders extends Component
         }
 
         try {
+            $originalComment = trim($this->shipmentComment);
+            $finalComment = $originalComment;
+
+            $profileId = Auth::user()?->profile_id;
+            if ($profileId == 17) {
+                // Riyi: Traducir de inglés a español
+                $translated = $this->translateText($originalComment, 'en', 'es');
+                if ($translated) {
+                    $finalComment = $originalComment . "\n\n--- Traducido al Español ---\n" . $translated;
+                }
+            } else {
+                // Fervicom: Traducir de español a inglés
+                $translated = $this->translateText($originalComment, 'es', 'en');
+                if ($translated) {
+                    $finalComment = $originalComment . "\n\n--- Translated to English ---\n" . $translated;
+                }
+            }
+
             ImpShipmentComments::create([
                 'shipment_id' => $targetShipmentId,
-                'comment' => trim($this->shipmentComment),
+                'comment' => $finalComment,
                 'user_id' => Auth::id(),
             ]);
 
@@ -494,7 +530,7 @@ class Orders extends Component
             ->select('imp_shipment_comments.created_at', 'imp_shipment_comments.comment', 'u.name')
             ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_shipment_comments.user_id')
             ->where('imp_shipment_comments.shipment_id', $targetShipmentId)
-            ->orderBy('imp_shipment_comments.created_at', 'DESC')
+            ->orderBy('imp_shipment_comments.created_at', 'ASC')
             ->get();
     }
 
