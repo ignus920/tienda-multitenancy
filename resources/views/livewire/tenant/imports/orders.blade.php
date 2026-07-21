@@ -237,8 +237,8 @@
                             </div>
                             --}}
 
-                            <!-- Selector de Envíos - Solo visible en estado En tránsito (7) -->
-                            @if($filterStatus == 7)
+                            <!-- Selector de Envíos - Visible en En tránsito (7) o Recibido (6) -->
+                            @if($filterStatus == 7 || $filterStatus == 6)
                                 <div class="w-full sm:w-[420px]">
                                     @livewire('selects.generic-select', [
                                         'selectedValue' => $selectedShipp,
@@ -436,54 +436,84 @@
 
             @if($this->selectedShippmentData)
                 <div class="m-6 bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-600 p-5 rounded-r-lg shadow-sm">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                        <div>
-                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Número de Operación</p>
-                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                {{ $this->selectedShippmentData->operation_number ?? 'N/A' }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETD (Fecha de Salida)</p>
-                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                {{ $this->selectedShippmentData->etd ? \Carbon\Carbon::parse($this->selectedShippmentData->etd)->format('d/m/Y') : 'N/A' }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Vía</p>
-                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                #{{ $this->selectedShippmentData->consecutive }} 
-                                {{ $this->selectedShippmentData->way == 'Aerea' ? 'Aérea' : ($this->selectedShippmentData->way == 'Maritima' ? 'Marítima' : $this->selectedShippmentData->way) }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Transportador</p>
-                            <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                {{ $this->selectedShippmentData->conveyor ?? 'N/A' }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Notas del Envío</p>
-                            <div class="flex items-center gap-1 mt-1">
-                                <input type="text" 
-                                    wire:model.live="shipmentComment"
-                                    wire:keydown.enter="saveShipmentComment"
-                                    class="w-full px-2.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Añadir comentario...">
-                                <button 
-                                    wire:click="saveShipmentComment"
-                                    class="p-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shrink-0"
-                                    title="Guardar comentario">
-                                    <x-heroicon-o-paper-airplane class="w-4 h-4" />
-                                </button>
-                                <button 
-                                    wire:click="openModalShipmentHistory"
-                                    class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shrink-0"
-                                    title="Historial del envío / Shipping History">
-                                    <x-heroicon-o-eye class="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
+                    <div class="flex flex-wrap lg:flex-nowrap items-end justify-between gap-4 w-full">
+                         <div class="flex-1 min-w-[100px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Número de Operación</p>
+                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                 {{ $this->selectedShippmentData->operation_number ?? 'N/A' }}
+                             </p>
+                         </div>
+                         <div class="flex-1 min-w-[100px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETD (Salida)</p>
+                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                 {{ $this->selectedShippmentData->etd ? \Carbon\Carbon::parse($this->selectedShippmentData->etd)->format('d/m/Y') : 'N/A' }}
+                             </p>
+                         </div>
+                         <div class="flex-1 min-w-[80px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Vía</p>
+                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                 #{{ $this->selectedShippmentData->consecutive }} 
+                                 {{ $this->selectedShippmentData->way == 'Aerea' ? 'Aérea' : ($this->selectedShippmentData->way == 'Maritima' ? 'Marítima' : $this->selectedShippmentData->way) }}
+                             </p>
+                         </div>
+                         <div class="flex-1 min-w-[100px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Transportador</p>
+                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                 {{ $this->selectedShippmentData->conveyor ?? 'N/A' }}
+                             </p>
+                         </div>
+                         <div class="flex-1 min-w-[125px] max-w-[145px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETA (Puerto)</p>
+                             @if($profileUser == '17')
+                                 <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                     {{ $this->selectedShippmentData->eta ? \Carbon\Carbon::parse($this->selectedShippmentData->eta)->format('d/m/Y') : 'N/A' }}
+                                 </p>
+                             @else
+                                 <input type="date" wire:model.blur="shipmentEta" wire:change="updateShipmentDates"
+                                     class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mt-0.5 focus:ring-1 focus:ring-indigo-500">
+                             @endif
+                         </div>
+                         <div class="flex-1 min-w-[125px] max-w-[145px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Llega a Fervicom</p>
+                             @if($profileUser == '17')
+                                 <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                     {{ $this->selectedShippmentData->fervicom_arrival_date ? \Carbon\Carbon::parse($this->selectedShippmentData->fervicom_arrival_date)->format('d/m/Y') : 'N/A' }}
+                                 </p>
+                             @else
+                                 <input type="date" wire:model.blur="shipmentFervicomArrival" wire:change="updateShipmentDates"
+                                     class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mt-0.5 focus:ring-1 focus:ring-indigo-500">
+                             @endif
+                         </div>
+                         <div class="flex-1 min-w-[210px] max-w-[250px]">
+                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Notas / Acciones</p>
+                             <div class="flex items-center gap-1 mt-1">
+                                 <input type="text" 
+                                     wire:model.live="shipmentComment"
+                                     wire:keydown.enter="saveShipmentComment"
+                                     class="w-full px-2.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                     placeholder="Notas...">
+                                 <button 
+                                     wire:click="saveShipmentComment"
+                                     class="p-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shrink-0"
+                                     title="Guardar comentario">
+                                     <x-heroicon-o-paper-airplane class="w-4 h-4" />
+                                 </button>
+                                 <button 
+                                     wire:click="openModalShipmentHistory"
+                                     class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shrink-0"
+                                     title="Historial del envío / Shipping History">
+                                     <x-heroicon-o-eye class="w-4 h-4" />
+                                 </button>
+                                 @if($filterStatus == 7 && $profileUser != '17')
+                                     <button 
+                                         wire:click="openMarkReceivedModal"
+                                         class="p-1.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 transition-colors focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 shrink-0 flex items-center justify-center"
+                                         title="Marcar como Recibido / Mark as Received">
+                                         <x-heroicon-o-check-circle class="w-4 h-4" />
+                                     </button>
+                                 @endif
+                             </div>
+                         </div>
                     </div>
                 </div>
             @endif
@@ -1911,6 +1941,58 @@
                             Cerrar
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL MARCAR COMO RECIBIDO / MARK RECEIVED -->
+    @if ($showModalMarkReceived)
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="$set('showModalMarkReceived', false)"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                
+                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-200 dark:border-gray-700">
+                    <div class="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                            Recibir Envío / Mark as Received
+                        </h3>
+                        <button type="button" wire:click="$set('showModalMarkReceived', false)" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                            <x-heroicon-o-x-mark class="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    <form wire:submit.prevent="markShipmentAsReceived" class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                ETA (Llegada a Puerto) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" wire:model="receivedEta" 
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            @error('receivedEta') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Llega a Fervicom <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" wire:model="receivedFervicomArrival" 
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            @error('receivedFervicomArrival') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" wire:click="$set('showModalMarkReceived', false)"
+                                class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm transition-all">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg font-medium text-sm text-white transition-all hover:shadow">
+                                Confirmar Recepción
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

@@ -58,6 +58,13 @@ class Orders extends Component
     public $selectedOrderIdForDelete = null;
     public $showModalDelete = false;
 
+    // Propiedades para recibir envío y editar fechas
+    public $showModalMarkReceived = false;
+    public $receivedEta = '';
+    public $receivedFervicomArrival = '';
+    public $shipmentEta = '';
+    public $shipmentFervicomArrival = '';
+
     public $import_id;
     public $oldQty;
     public $newQty;
@@ -115,7 +122,6 @@ class Orders extends Component
             ->table('imp_imports as i')
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
-            ->where('s.id', '!=', 6)
             ->select('s.name as nombre_estado', 's.translated_name', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
             ->when(Auth::user()->profile_id == 17, function ($query) {
                 return $query->where(function ($q) {
@@ -551,6 +557,121 @@ class Orders extends Component
             return \App\Models\Tenant\Imports\ImpShippments::find($this->selectedShipp);
         }
         return null;
+    }
+
+    public function updatedSelectedShipp($value)
+    {
+        if ($value > 0) {
+            $this->ensureTenantConnection();
+            $sh = \App\Models\Tenant\Imports\ImpShippments::find($value);
+            if ($sh) {
+                $this->shipmentEta = $sh->eta;
+                $this->shipmentFervicomArrival = $sh->fervicom_arrival_date;
+            }
+        } else {
+            $this->shipmentEta = '';
+            $this->shipmentFervicomArrival = '';
+        }
+    }
+
+    public function openMarkReceivedModal()
+    {
+        if ($this->selectedShipp > 0 && $this->selectedShippmentData) {
+            $this->receivedEta = $this->selectedShippmentData->eta ?: '';
+            $this->receivedFervicomArrival = $this->selectedShippmentData->fervicom_arrival_date ?: '';
+            $this->showModalMarkReceived = true;
+        } else {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'Por favor selecciona un envío primero.'
+            ]);
+        }
+    }
+
+    public function markShipmentAsReceived()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'receivedEta' => 'required|date',
+            'receivedFervicomArrival' => 'required|date',
+        ]);
+
+        try {
+            DB::connection('tenant')->transaction(function () {
+                $shipmentId = $this->selectedShipp;
+                $sh = \App\Models\Tenant\Imports\ImpShippments::findOrFail($shipmentId);
+                $sh->update([
+                    'eta' => $this->receivedEta,
+                    'fervicom_arrival_date' => $this->receivedFervicomArrival,
+                ]);
+
+                // Obtener imports de este envío a través del packing_id
+                $importIds = DB::connection('tenant')
+                    ->table('imp_imports as i')
+                    ->join('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
+                    ->where('pk.shipping_id', $shipmentId)
+                    ->pluck('i.id');
+
+                if (count($importIds) > 0) {
+                    // Registrar el cambio en la historia de cada uno
+                    foreach ($importIds as $importId) {
+                        $import = ImpImports::find($importId);
+                        if ($import) {
+                            $oldStatus = $import->status;
+                            ImpStatusHistory::create([
+                                'import_id' => $importId,
+                                'previous_state' => $oldStatus,
+                                'new_state' => 6, // Recibido
+                                'user_id' => Auth::id()
+                            ]);
+                            $import->update(['status' => 6]);
+                        }
+                    }
+                }
+            });
+
+            $this->showModalMarkReceived = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'El envío y todos sus productos han sido marcados como Recibidos.'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            Log::error("Error al marcar el envío como recibido: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Ocurrió un error al procesar la recepción.'
+            ]);
+        }
+    }
+
+    public function updateShipmentDates()
+    {
+        if ($this->profileUser == '17') {
+            return;
+        }
+
+        if ($this->selectedShipp > 0) {
+            $this->ensureTenantConnection();
+            try {
+                $sh = \App\Models\Tenant\Imports\ImpShippments::findOrFail($this->selectedShipp);
+                $sh->update([
+                    'eta' => $this->shipmentEta ?: null,
+                    'fervicom_arrival_date' => $this->shipmentFervicomArrival ?: null,
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Fechas actualizadas correctamente'
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Error al actualizar fechas de envío: " . $e->getMessage());
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'No se pudieron actualizar las fechas.'
+                ]);
+            }
+        }
     }
 
     #[On('labelSelected')]
@@ -1454,9 +1575,13 @@ class Orders extends Component
                 elseif ($wayStr === 'Maritima') $wayStr = 'Marítima';
                 elseif ($wayStr === 'Express') $wayStr = 'Express';
 
+                // Agregar ETA y Llega a Fervicom
+                $etaStr = $sh->eta ? " ETA: " . \Carbon\Carbon::parse($sh->eta)->format('d/m/Y') : '';
+                $fervicomStr = $sh->fervicom_arrival_date ? " Llega a Fervicom: " . \Carbon\Carbon::parse($sh->fervicom_arrival_date)->format('d/m/Y') : '';
+
                 return [
                     'id' => $sh->id,
-                    'way' => "{$wayStr}{$conveyorStr}{$etdStr}"
+                    'way' => "{$wayStr}{$conveyorStr}{$etdStr}{$etaStr}{$fervicomStr}"
                 ];
             })
             ->toArray();

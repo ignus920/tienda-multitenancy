@@ -43,6 +43,8 @@ class ImpShippments extends Model
         'way',
         'conveyor',
         'obs',
+        'eta',
+        'fervicom_arrival_date',
     ];
 
     /**
