@@ -916,7 +916,10 @@ class Orders extends Component
 
             ImpStatusHistory::create($dataStatus);
 
-            $import->update(['status' => $newStatus]);
+            $import->update([
+                'status' => $newStatus,
+                'news' => 0
+            ]);
 
             $this->showModalConfirmPrice = false;
             $this->dispatch('show-toast', [
@@ -1022,19 +1025,20 @@ class Orders extends Component
         $this->showModalConfirmProduction = true;
     }
 
-    public function saveSendProduction()
+    public function saveSendProduction($importId = null)
     {
+        $targetId = $importId ?? $this->import_id;
         $this->ensureTenantConnection();
         try {
-            DB::connection('tenant')->transaction(function () {
-                $import = ImpImports::findOrFail($this->import_id);
+            DB::connection('tenant')->transaction(function () use ($targetId) {
+                $import = ImpImports::findOrFail($targetId);
 
                 $oldStatus = $import->status;
 
                 $newStatus = 5;
 
                 $dataStatus = [
-                    'import_id' => $this->import_id,
+                    'import_id' => $targetId,
                     'previous_state' => $oldStatus,
                     'new_state' => $newStatus,
                     'user_id' => Auth::id()
