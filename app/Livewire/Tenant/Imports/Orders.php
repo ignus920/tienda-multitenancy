@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Tenant\Imports\ImpLabels;
 use App\Models\Tenant\Imports\ImpShippments;
+use App\Models\Tenant\Imports\ImpShipmentComments;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,6 +37,8 @@ class Orders extends Component
     public $selectedShipp = 0;
     public $allLabels = [];
     public $showModalHistory = false;
+    public $shipmentComment = '';
+    public $showModalShipmentHistory = false;
     public $showModalChangeQuantity = false;
     public $showModalAcceptNew = false;
     public $showModalConfirmPrice = false;
@@ -418,6 +421,68 @@ class Orders extends Component
             ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
             ->where('imp_comments.import_id', $this->import_id)
             ->orderBy('imp_comments.created_at', 'DESC')
+            ->get();
+    }
+
+    public function saveShipmentComment()
+    {
+        $this->ensureTenantConnection();
+        if (!\Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('imp_shipment_comments')) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'La tabla de comentarios del envío no existe en la BD.'
+            ]);
+            return;
+        }
+
+        $targetShipmentId = $this->selectedShipp > 0 ? $this->selectedShipp : ($this->filterPacking ?: ($this->selectedShippmentData->id ?? null));
+        if (!$targetShipmentId || trim($this->shipmentComment) === '') {
+            return;
+        }
+
+        try {
+            ImpShipmentComments::create([
+                'shipment_id' => $targetShipmentId,
+                'comment' => trim($this->shipmentComment),
+                'user_id' => Auth::id(),
+            ]);
+
+            $this->shipmentComment = '';
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Comentario del envío registrado'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            Log::error('Error al guardar comentario del envío: ' . $e->getMessage());
+        }
+    }
+
+    public function openModalShipmentHistory()
+    {
+        $this->showModalShipmentHistory = true;
+    }
+
+    #[Computed]
+    public function shipmentComments()
+    {
+        $targetShipmentId = $this->selectedShipp > 0 ? $this->selectedShipp : ($this->filterPacking ?: ($this->selectedShippmentData->id ?? null));
+        if (!$targetShipmentId) {
+            return collect();
+        }
+
+        $this->ensureTenantConnection();
+        if (!\Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('imp_shipment_comments')) {
+            return collect();
+        }
+
+        $centralDbName = config('database.connections.central.database');
+
+        return ImpShipmentComments::query()
+            ->select('imp_shipment_comments.created_at', 'imp_shipment_comments.comment', 'u.name')
+            ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_shipment_comments.user_id')
+            ->where('imp_shipment_comments.shipment_id', $targetShipmentId)
+            ->orderBy('imp_shipment_comments.created_at', 'DESC')
             ->get();
     }
 
