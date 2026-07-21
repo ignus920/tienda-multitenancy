@@ -1621,7 +1621,19 @@ class Orders extends Component
     public function shippments()
     {
         $this->ensureTenantConnection();
-        return ImpShippments::all()
+        $query = ImpShippments::query();
+
+        if ($this->filterStatus == 7) {
+            $query->whereHas('packings.imports', function ($q) {
+                $q->where('status', 7);
+            });
+        } elseif ($this->filterStatus == 8) {
+            $query->whereHas('packings.imports', function ($q) {
+                $q->where('status', 8);
+            });
+        }
+
+        return $query->get()
             ->map(function ($sh) {
                 $dateStr = $sh->etd ? \Carbon\Carbon::parse($sh->etd)->format('d/m/Y') : '';
                 $conveyorStr = $sh->conveyor ? " " . $sh->conveyor : '';
