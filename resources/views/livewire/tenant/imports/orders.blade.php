@@ -1675,11 +1675,11 @@
                             <div class="flex items-center gap-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="is_existing_shipp" wire:model.live="isExistingShipping" value="0" class="text-indigo-600 focus:ring-indigo-500">
-                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Crear Nuevo Envío</span>
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">New Shipment</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="is_existing_shipp" wire:model.live="isExistingShipping" value="1" class="text-indigo-600 focus:ring-indigo-500">
-                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Asociar a Envío Existente</span>
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Existing Shipment</span>
                                 </label>
                             </div>
 
