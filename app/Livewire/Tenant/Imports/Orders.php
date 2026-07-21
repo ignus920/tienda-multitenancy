@@ -479,13 +479,13 @@ class Orders extends Component
                 // Riyi: Traducir de inglés a español
                 $translated = $this->translateText($originalComment, 'en', 'es');
                 if ($translated) {
-                    $finalComment = $originalComment . "\n\n--- Traducido al Español ---\n" . $translated;
+                    $finalComment = $originalComment . "[TRANSLATED]" . $translated;
                 }
             } else {
                 // Fervicom: Traducir de español a inglés
                 $translated = $this->translateText($originalComment, 'es', 'en');
                 if ($translated) {
-                    $finalComment = $originalComment . "\n\n--- Translated to English ---\n" . $translated;
+                    $finalComment = $originalComment . "[TRANSLATED]" . $translated;
                 }
             }
 
@@ -501,6 +501,7 @@ class Orders extends Component
                 'message' => 'Comentario del envío registrado'
             ]);
             $this->dispatch('$refresh');
+            $this->dispatch('scroll-to-bottom');
         } catch (\Exception $e) {
             Log::error('Error al guardar comentario del envío: ' . $e->getMessage());
         }
@@ -509,6 +510,7 @@ class Orders extends Component
     public function openModalShipmentHistory()
     {
         $this->showModalShipmentHistory = true;
+        $this->dispatch('scroll-to-bottom');
     }
 
     #[Computed]

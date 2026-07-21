@@ -1901,7 +1901,10 @@
                         </button>
                     </div>
 
-                    <div class="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+                    <div class="p-6 max-h-[60vh] overflow-y-auto space-y-4"
+                         x-data
+                         x-init="$nextTick(() => { $el.scrollTop = $el.scrollHeight });"
+                         @scroll-to-bottom.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight })">
                         @forelse($this->shipmentComments as $sc)
                             <div class="flex gap-3">
                                 <div class="flex flex-col items-center">
@@ -1910,23 +1913,37 @@
                                     </div>
                                     <div class="w-0.5 h-full bg-gray-200 dark:bg-gray-700 my-1"></div>
                                 </div>
-                                <div class="flex-1 bg-white dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 rounded-xl p-4 shadow-sm">
-                                    <div class="flex items-center justify-between gap-2 mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-bold text-gray-900 dark:text-white text-sm">
-                                                {{ strtoupper($sc->name) }}
+                                <div class="flex-1 bg-white dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 rounded-xl p-2.5 shadow-sm">
+                                    <div class="flex items-center justify-between gap-2 mb-1">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="font-bold text-gray-900 dark:text-white text-xs" title="{{ $sc->name }}">
+                                                {{ \Illuminate\Support\Str::limit(strtoupper($sc->name), 22, '...') }}
                                             </span>
-                                            <span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800 uppercase">
+                                            <span class="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800 uppercase">
                                                 COMENTARIO
                                             </span>
                                         </div>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                        <span class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">
                                             {{ \Carbon\Carbon::parse($sc->created_at)->format('d/m/Y H:i') }}
                                         </span>
                                     </div>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-left">
-                                        {{ $sc->comment }}
-                                    </p>
+                                    <div class="w-full text-left" style="text-align: left !important;">
+                                        @if(strpos($sc->comment, '[TRANSLATED]') !== false)
+                                            @php
+                                                $parts = explode('[TRANSLATED]', $sc->comment);
+                                            @endphp
+                                            <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
+                                                {{ $parts[0] }}
+                                            </p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-normal italic text-left mt-0.5" style="text-align: left !important; margin: 0; padding: 0;">
+                                                {{ $parts[1] }}
+                                            </p>
+                                        @else
+                                            <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
+                                                {{ $sc->comment }}
+                                            </p>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         @empty
