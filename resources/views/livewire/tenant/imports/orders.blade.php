@@ -1928,19 +1928,31 @@
                                         </span>
                                     </div>
                                     <div class="w-full text-left" style="text-align: left !important;">
-                                        @if(strpos($sc->comment, '[TRANSLATED]') !== false)
-                                            @php
-                                                $parts = explode('[TRANSLATED]', $sc->comment);
-                                            @endphp
-                                            <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
-                                                {{ $parts[0] }}
-                                            </p>
+                                        @php
+                                            $commentText = $sc->comment;
+                                            $original = $commentText;
+                                            $translation = null;
+
+                                            if (strpos($commentText, '[TRANSLATED]') !== false) {
+                                                $parts = explode('[TRANSLATED]', $commentText);
+                                                $original = $parts[0];
+                                                $translation = $parts[1];
+                                            } elseif (strpos($commentText, '--- Translated to English ---') !== false) {
+                                                $parts = explode('--- Translated to English ---', $commentText);
+                                                $original = $parts[0];
+                                                $translation = $parts[1];
+                                            } elseif (strpos($commentText, '--- Traducido al Español ---') !== false) {
+                                                $parts = explode('--- Traducido al Español ---', $commentText);
+                                                $original = $parts[0];
+                                                $translation = $parts[1];
+                                            }
+                                        @endphp
+                                        <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
+                                            {{ trim($original) }}
+                                        </p>
+                                        @if($translation)
                                             <p class="text-sm text-gray-500 dark:text-gray-400 leading-normal italic text-left mt-0.5" style="text-align: left !important; margin: 0; padding: 0;">
-                                                {{ $parts[1] }}
-                                            </p>
-                                        @else
-                                            <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
-                                                {{ $sc->comment }}
+                                                {{ trim($translation) }}
                                             </p>
                                         @endif
                                     </div>
