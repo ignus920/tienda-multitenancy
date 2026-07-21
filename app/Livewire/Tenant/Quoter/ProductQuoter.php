@@ -905,8 +905,8 @@ class ProductQuoter extends Component
                 ]);
             }
 
-            // Obtener el siguiente consecutivo
-            $lastQuote = VntQuote::orderBy('consecutive', 'desc')->first();
+            // Obtener el siguiente consecutivo con bloqueo de fila
+            $lastQuote = VntQuote::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
 
             // Crear la cotización
@@ -2794,8 +2794,8 @@ class ProductQuoter extends Component
                 }
             }
 
-            // Obtener siguiente consecutivo de remisiones
-            $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
+            // Obtener siguiente consecutivo de remisiones con bloqueo de fila
+            $lastRemission = InvRemissions::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
 
             // Determinar las observaciones de retorno
