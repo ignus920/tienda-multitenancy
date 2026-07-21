@@ -675,7 +675,7 @@
                                             <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
                                         @endif
 
-                                        @if($filterNews == 1 && $order->status != 11)
+                                        @if($filterNews == 1 && $order->status != 11 && $profileUser != '17')
                                             <button wire:click="confirmDelete({{ $order->id }})" class="p-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:ring-2 focus:ring-red-500 focus:ring-offset-2" title="Eliminar Producto">
                                                 <x-heroicon-o-trash class="w-4 h-4" />
                                             </button>

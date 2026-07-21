@@ -615,6 +615,9 @@ class Orders extends Component
 
     public function confirmDelete($importId)
     {
+        if ($this->profileUser == '17') {
+            return;
+        }
         $this->selectedOrderIdForDelete = $importId;
         $this->deleteJustification = '';
         $this->showModalDelete = true;
@@ -622,6 +625,9 @@ class Orders extends Component
 
     public function deleteOrderWithJustification()
     {
+        if ($this->profileUser == '17') {
+            return;
+        }
         $this->ensureTenantConnection();
         $this->validate([
             'deleteJustification' => 'required'
