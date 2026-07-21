@@ -551,6 +551,18 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->selectedShipp = (int) $shippmentId;
+
+        if ($this->selectedShipp > 0) {
+            $sh = \App\Models\Tenant\Imports\ImpShippments::find($this->selectedShipp);
+            if ($sh) {
+                $this->shipmentEta = $sh->eta;
+                $this->shipmentFervicomArrival = $sh->fervicom_arrival_date;
+            }
+        } else {
+            $this->shipmentEta = '';
+            $this->shipmentFervicomArrival = '';
+        }
+
         $this->resetPage();
     }
 
