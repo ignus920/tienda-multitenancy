@@ -709,7 +709,7 @@
                                             <button wire:click="approvePrice({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                                 <x-heroicon-o-check class="w-4 h-4" /> Approve price
                                             </button>
-                                        @elseif($order->status == 4 && $order->news == 0 && $profileUser == '17')
+                                        @elseif($order->status == 4 && $profileUser == '17')
                                             <button wire:click="saveSendProduction({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                                 <x-heroicon-o-check class="w-4 h-4" /> Production
                                             </button>
