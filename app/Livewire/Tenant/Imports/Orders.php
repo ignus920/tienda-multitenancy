@@ -1894,7 +1894,24 @@ class Orders extends Component
                 'i.status',
                 'i.priority',
                 'i.qty_shipped',
-                'i.price'
+                'i.price',
+                'i.delete_justification',
+                's.operation_number',
+                's.etd',
+                DB::raw("CONCAT('#', s.consecutive, ' ', s.way) AS way"),
+                DB::raw("(SELECT created_at 
+                        FROM imp_status_history 
+                        WHERE import_id = i.id AND new_state = 8 
+                        ORDER BY created_at DESC 
+                        LIMIT 1
+                    ) AS received_at"),
+                DB::raw("(SELECT u.name 
+                         FROM imp_status_history sh 
+                         JOIN {$centralDbName}.users u ON sh.user_id = u.id 
+                         WHERE sh.import_id = i.id AND sh.new_state = 11 
+                         ORDER BY sh.created_at DESC 
+                         LIMIT 1
+                    ) AS deleted_by_user")
             ])
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
@@ -1962,12 +1979,29 @@ class Orders extends Component
                 'i.priority',
                 'i.qty_shipped',
                 'i.price',
+                'i.delete_justification',
+                's.operation_number',
+                's.etd',
+                DB::raw("CONCAT('#', s.consecutive, ' ', s.way) AS way"),
                 DB::raw("(SELECT comment 
                         FROM imp_comments 
                         WHERE import_id = i.id 
                         ORDER BY created_at DESC 
                         LIMIT 1
-                    ) AS ultimo_comentario")
+                    ) AS ultimo_comentario"),
+                DB::raw("(SELECT created_at 
+                        FROM imp_status_history 
+                        WHERE import_id = i.id AND new_state = 8 
+                        ORDER BY created_at DESC 
+                        LIMIT 1
+                    ) AS received_at"),
+                DB::raw("(SELECT u.name 
+                         FROM imp_status_history sh 
+                         JOIN {$centralDbName}.users u ON sh.user_id = u.id 
+                         WHERE sh.import_id = i.id AND sh.new_state = 11 
+                         ORDER BY sh.created_at DESC 
+                         LIMIT 1
+                    ) AS deleted_by_user")
             ])
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
@@ -2027,10 +2061,23 @@ class Orders extends Component
                 'QUOTED PRICE', 
                 'QTY SHIPPED', 
                 'LAST COMMENT', 
+                'SHIPPING INFO / DELETE JUSTIFICATION',
                 'STATUS'
             ], ';');
 
             foreach ($orders as $row) {
+                // Formatear información de envío
+                $shipInfo = '';
+                if ($row->status == 11) {
+                    $shipInfo = "Eliminado por: " . ($row->deleted_by_user ?? 'N/A') . " | Justificación: " . ($row->delete_justification ?? '');
+                } elseif ($row->operation_number || $row->way || $row->etd) {
+                    $recDate = $row->received_at ? \Carbon\Carbon::parse($row->received_at)->format('d/m/Y') : '—';
+                    $etdDate = $row->etd ? \Carbon\Carbon::parse($row->etd)->format('d/m/Y') : '—';
+                    $shipInfo = "O.N: " . ($row->operation_number ?? '—') . " | ETD: " . $etdDate . " | Vía: " . ($row->way ?? '—') . " | Rec: " . $recDate;
+                } else {
+                    $shipInfo = '—';
+                }
+
                 fputcsv($file, [
                     $row->id,
                     $row->item,
@@ -2041,6 +2088,7 @@ class Orders extends Component
                     $row->price ?? 0,
                     $row->qty_shipped ?? 0,
                     $row->ultimo_comentario ?? '',
+                    $shipInfo,
                     $row->translated_name ?? 'N/A'
                 ], ';');
             }
