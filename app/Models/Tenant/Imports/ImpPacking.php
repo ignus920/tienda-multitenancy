@@ -62,6 +62,14 @@ class ImpPacking extends Model
         return $this->hasMany(ImpImports::class, 'packing_id');
     }
 
+    /**
+     * Relación con el envío (shipping)
+     */
+    public function shipping()
+    {
+        return $this->belongsTo(ImpShippments::class, 'shipping_id');
+    }
+
     // Scope para la consulta específica
     public function scopeAvailableForPacking($query)
     {

@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\Livewire\HasDynamicButtons;
 use Livewire\WithFileUploads;
+use Carbon\Carbon;
 
 class ProductQuoter extends Component
 {
@@ -108,6 +109,12 @@ class ProductQuoter extends Component
     public $selectedBranchId = null; // ID de la sucursal seleccionada
     public $selectedContactId = null; // ID del contacto seleccionado
 
+    // Propiedades para modal de tránsito (ETD, ETA, Fervicom)
+    public $showTransitModal = false;
+    public $transitProductCode = '';
+    public $transitProductName = '';
+    public $transitDetails = [];
+
     // Propiedades para retenciones
     public $retentions = [
         'retention_fuente' => 0,
@@ -165,7 +172,8 @@ class ProductQuoter extends Component
         'customer-updated' => 'onCustomerUpdated',
         'customer-form-cancelled' => 'cancelCreateCustomer',
         'refreshProductList' => '$refresh',
-        'warehouse-selected' => 'selectBranch'
+        'warehouse-selected' => 'selectBranch',
+        'openTransitDetailsModal' => 'loadTransitDetails'
     ];
 
     public function updatedObservaciones()
@@ -524,6 +532,71 @@ class ProductQuoter extends Component
         return view($viewName, [
             'products' => $products
         ])->layout('layouts.app');
+    }
+
+    public function loadTransitDetails($data = null)
+    {
+        try {
+            $productId = $data['productId'] ?? null;
+            if (!$productId) {
+                return;
+            }
+
+            $this->ensureTenantConnection();
+            $product = Items::find($productId);
+
+            if (!$product) {
+                return;
+            }
+
+            $this->transitProductCode = $product->internal_code ?? $product->sku;
+            $this->transitProductName = $product->name;
+
+            // Obtener importaciones en tránsito (status = 7)
+            $imports = \App\Models\Tenant\Imports\ImpImports::where('item_id', $productId)
+                ->where('status', 7)
+                ->whereNull('deleted_at')
+                ->whereHas('packing.shipping')
+                ->with(['packing.shipping'])
+                ->get();
+
+            $this->transitDetails = $imports->map(function ($import) {
+                $shipping = $import->packing->shipping;
+                
+                // Formatear fechas a: Julio 21 2026
+                $etdFormatted = $shipping->etd 
+                    ? Carbon::parse($shipping->etd)->translatedFormat('F d Y') 
+                    : 'No especificada';
+                $etaFormatted = $shipping->eta 
+                    ? Carbon::parse($shipping->eta)->translatedFormat('F d Y') 
+                    : 'No especificada';
+                $fervicomFormatted = $shipping->fervicom_arrival_date 
+                    ? Carbon::parse($shipping->fervicom_arrival_date)->translatedFormat('F d Y') 
+                    : 'No especificada';
+
+                // Capitalizar el nombre del mes
+                $etdFormatted = ucfirst($etdFormatted);
+                $etaFormatted = ucfirst($etaFormatted);
+                $fervicomFormatted = ucfirst($fervicomFormatted);
+
+                return [
+                    'qty' => $import->qty_requested,
+                    'operation_number' => $shipping->operation_number,
+                    'way' => $shipping->way,
+                    'etd' => $etdFormatted,
+                    'eta' => $etaFormatted,
+                    'fervicom_arrival_date' => $fervicomFormatted
+                ];
+            })->toArray();
+
+            $this->showTransitModal = true;
+        } catch (\Exception $e) {
+            Log::error('Error al cargar detalles de tránsito: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al obtener detalles de tránsito: ' . $e->getMessage()
+            ]);
+        }
     }
 
     // Método para obtener las categorías

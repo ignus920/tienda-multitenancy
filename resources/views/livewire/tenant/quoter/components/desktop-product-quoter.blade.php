@@ -728,26 +728,40 @@ $header = 'Seleccionar productos';
                                             <!-- Cantidad (Bod / Sep Matrix) -->
                                             <td class="px-4 py-4 text-center">
                                                 <div class="inline-flex justify-center items-center">
-                                                    <div @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })" 
-                                                         title="Generar reserva del item: {{ $product->display_name }} ({{ $product->internal_code ?: 'N/A' }})"
-                                                         class="inline-block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden text-sm cursor-pointer hover:opacity-85 hover:scale-105 active:scale-95 transition-all">
+                                                    <div class="inline-block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden text-sm transition-all">
                                                         <table class="border-collapse text-center">
                                                             <tbody>
+                                                                <!-- Fila Stock Físico (S) -->
                                                                 <tr class="border-b border-gray-200 dark:border-gray-750">
                                                                     <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">S</td>
-                                                                    <td class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-12">
+                                                                    <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
+                                                                        title="Haga clic para generar reserva física de: {{ $product->display_name }}"
+                                                                        class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                                                                         {{ number_format($product->stock_bodega ?? 0, 0) }}
                                                                     </td>
-                                                                    <td class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12">
+                                                                    <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
+                                                                        title="Haga clic para generar reserva física de: {{ $product->display_name }}"
+                                                                        class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                                                                         {{ ($product->reserved_stock ?? 0) > 0 ? number_format($product->reserved_stock, 0) : '' }}
                                                                     </td>
                                                                 </tr>
+                                                                <!-- Fila Tránsito (T) -->
                                                                 <tr>
                                                                     <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">T</td>
-                                                                    <td class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 text-gray-500 dark:text-gray-400 w-12">
+                                                                    <!-- Casilla 1: Cantidades en tránsito y modal de detalles -->
+                                                                    <td @if(($product->in_transit ?? 0) > 0)
+                                                                            @click.stop="$wire.loadTransitDetails({ productId: {{ $product->id }} })"
+                                                                            title="Ver detalles de las cantidades en Tránsito"
+                                                                            class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 text-blue-600 dark:text-blue-400 font-semibold underline decoration-dotted w-12 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                                        @else
+                                                                            class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 text-gray-500 dark:text-gray-400 w-12"
+                                                                        @endif>
                                                                         {{ ($product->in_transit ?? 0) > 0 ? number_format($product->in_transit, 0) : '' }}
                                                                     </td>
-                                                                    <td class="px-3 py-1 w-12 text-red-500 font-bold">
+                                                                    <!-- Casilla 2: Separaciones / Reservas en tránsito -->
+                                                                    <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
+                                                                        title="Generar separación / reserva en tránsito"
+                                                                        class="px-3 py-1 w-12 text-red-500 font-bold cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                                                                         {{ ($product->reserved_transit ?? 0) > 0 ? number_format($product->reserved_transit, 0) : '' }}
                                                                     </td>
                                                                 </tr>
@@ -1700,7 +1714,165 @@ $header = 'Seleccionar productos';
     @endif
 
     @livewire('tenant.components.product-reservation-modal')
-</div>
+
+    <!-- Modal de Detalles de Tránsito -->
+    @teleport('body')
+        <div x-data="{ open: @entangle('showTransitModal') }"
+             x-show="open"
+             x-cloak
+             class="fixed inset-0"
+             style="display: none; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999999 !important; overflow: hidden; background: transparent;">
+        <!-- Backdrop/Overlay -->
+        <div x-show="open"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/50"
+             style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 99999998 !important;"
+             @click="open = false"></div>
+
+        <!-- Modal Wrapper -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0" style="position: relative; z-index: 99999999 !important; background: transparent;">
+            <div x-show="open"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-md mx-4 sm:mx-0 border border-gray-100 dark:border-gray-700"
+                 style="position: relative; z-index: 999999 !important;">
+                
+                <!-- Encabezado -->
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                            Cantidades en Tránsito
+                        </h3>
+                    </div>
+                    <button type="button" @click="open = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Contenido -->
+                <div class="px-6 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-4">
+                    <!-- Información del Producto -->
+                    <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-gray-750 rounded-xl">
+                        <div class="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-mono font-bold">
+                            {{ $transitProductCode }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Producto</div>
+                            <div class="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                                {{ $transitProductName }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Listado de Importaciones/Pedidos en Tránsito -->
+                    <div class="space-y-4">
+                        @forelse($transitDetails as $detail)
+                            @php
+                                $isSea = strpos(strtolower($detail['way'] ?? ''), 'marit') !== false;
+                            @endphp
+                            <div class="bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 rounded-2xl p-4 shadow-sm space-y-3.5">
+                                
+                                <!-- Header de la Importación -->
+                                <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
+                                    <div class="flex items-center gap-2">
+                                        @if($isSea)
+                                            <!-- Icono Barco en HSL/Celeste pastel -->
+                                            <div class="p-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                                </svg>
+                                            </div>
+                                        @else
+                                            <!-- Icono Avión en Morado pastel -->
+                                            <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                                </svg>
+                                            </div>
+                                        @endif
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Importación</span>
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                {{ $detail['way'] }} {{ $detail['operation_number'] }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cantidad</div>
+                                        <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                            {{ number_format($detail['qty'], 0) }} uds
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fechas en formato de Línea de Tiempo Minimalista -->
+                                <div class="space-y-3.5 pl-1">
+                                    <!-- ETD (Salida) -->
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div>
+                                        <div class="flex-1 flex justify-between items-baseline gap-2">
+                                            <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Despachado por proveedor</span>
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                {{ $detail['etd'] !== 'No especificada' ? $detail['etd'] : '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <!-- ETA (Puerto) -->
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                                        <div class="flex-1 flex justify-between items-baseline gap-2">
+                                            <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Llega a Colombia</span>
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                {{ $detail['eta'] !== 'No especificada' ? $detail['eta'] : '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <!-- LLEGA A FERVICOM -->
+                                    <div class="flex items-start gap-3 pt-2.5 border-t border-dashed border-gray-100 dark:border-gray-700">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 flex-shrink-0"></div>
+                                        <div class="flex-1 flex justify-between items-baseline gap-2">
+                                            <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Llega a Fervicom</span>
+                                            <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                                {{ $detail['fervicom_arrival_date'] !== 'No especificada' ? $detail['fervicom_arrival_date'] : '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        @empty
+                            <div class="py-10 text-center space-y-2">
+                                <svg class="w-8 h-8 text-gray-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p class="text-xs text-gray-400">No hay importaciones activas en tránsito.</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-3.5 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                    <button type="button" @click="open = false" class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    @endteleport
 
 <script>
     document.addEventListener('livewire:init', () => {
