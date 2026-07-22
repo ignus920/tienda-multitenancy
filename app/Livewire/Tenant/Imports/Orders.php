@@ -1869,4 +1869,128 @@ class Orders extends Component
         $this->conveyor = '';
         $this->observations = '';
     }
+
+    public function exportExcel()
+    {
+        return $this->downloadCsvFile('orders_export_' . now()->format('Y-m-d') . '.csv');
+    }
+
+    public function exportPdf()
+    {
+        // Si no hay librería PDF, redireccionamos a exportExcel/CSV
+        return $this->exportExcel();
+    }
+
+    public function exportCsv()
+    {
+        return $this->downloadCsvFile('orders_export_' . now()->format('Y-m-d') . '.csv');
+    }
+
+    private function downloadCsvFile($fileName)
+    {
+        $this->ensureTenantConnection();
+        $centralDbName = config('database.connections.central.database');
+        
+        // Obtener todos los registros sin paginación, usando los filtros actuales
+        $orders = DB::connection('tenant')
+            ->table('imp_imports as i')
+            ->select([
+                'i.id',
+                DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
+                'iis.factory_ref',
+                'iis.exw',
+                'i.qty_requested',
+                'il.name AS label',
+                'ist.translated_name',
+                'i.status',
+                'i.priority',
+                'i.qty_shipped',
+                'i.price',
+                DB::raw("(SELECT comment 
+                        FROM imp_comments 
+                        WHERE import_id = i.id 
+                        ORDER BY created_at DESC 
+                        LIMIT 1
+                    ) AS ultimo_comentario")
+            ])
+            ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
+            ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
+            ->leftJoin('imp_labels as il', 'i.label_id', '=', 'il.id')
+            ->join('imp_status as ist', 'i.status', '=', 'ist.id')
+            ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
+            ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
+            ->when(Auth::user()->profile_id == 17, function ($query) {
+                return $query->where('iis.supplier_id', Auth::id());
+            })
+            ->when($this->filterStatus, function ($query) {
+                return $query->where('i.status', $this->filterStatus);
+            })
+            ->when($this->filterNews, function ($query) {
+                return $query->where('i.news', $this->filterNews);
+            })
+            ->when($this->selectedLabelId, function ($query) {
+                return $query->where('i.label_id', $this->selectedLabelId);
+            })
+            ->when($this->filterPacking, function ($query) {
+                return $query->where('i.packing_id', $this->filterPacking);
+            })
+            ->when($this->selectedShipp > 0, function ($query) {
+                return $query->where('pk.shipping_id', $this->selectedShipp);
+            })
+            ->when($this->search, function ($query) {
+                return $query->where(function ($q) {
+                    $q->where('iv.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
+                      ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
+                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->get();
+
+        $headers = [
+            "Content-type" => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename={$fileName}",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $callback = function() use ($orders) {
+            $file = fopen('php://output', 'w');
+            // Agregar el BOM UTF-8 para que Excel lo abra con los caracteres y tildes bien decodificados
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Encabezados del CSV
+            fputcsv($file, [
+                'ID', 
+                'ITEM / PRODUCTO', 
+                'FACTORY REF', 
+                'LAST PRICE ($)', 
+                'QTY ORDERED', 
+                'LABEL', 
+                'QUOTED PRICE', 
+                'QTY SHIPPED', 
+                'LAST COMMENT', 
+                'STATUS'
+            ], ';');
+
+            foreach ($orders as $row) {
+                fputcsv($file, [
+                    $row->id,
+                    $row->item,
+                    $row->factory_ref ?? 'N/A',
+                    $row->exw ?? 0,
+                    $row->qty_requested ?? 0,
+                    $row->label ?? $row->priority ?? 'N/A',
+                    $row->price ?? 0,
+                    $row->qty_shipped ?? 0,
+                    $row->ultimo_comentario ?? '',
+                    $row->translated_name ?? 'N/A'
+                ], ';');
+            }
+            fclose($file);
+        };
+
+        return response()->streamDownload($callback, $fileName, $headers);
+    }
 }
