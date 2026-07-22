@@ -1877,8 +1877,64 @@ class Orders extends Component
 
     public function exportPdf()
     {
-        // Si no hay librería PDF, redireccionamos a exportExcel/CSV
-        return $this->exportExcel();
+        $this->ensureTenantConnection();
+        $centralDbName = config('database.connections.central.database');
+        
+        // Obtener todos los registros sin paginación, usando los filtros actuales
+        $orders = DB::connection('tenant')
+            ->table('imp_imports as i')
+            ->select([
+                'i.id',
+                DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
+                'iis.factory_ref',
+                'iis.exw',
+                'i.qty_requested',
+                'il.name AS label',
+                'ist.translated_name',
+                'i.status',
+                'i.priority',
+                'i.qty_shipped',
+                'i.price'
+            ])
+            ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
+            ->join('inv_items as iv', 'i.item_id', '=', 'iv.id')
+            ->leftJoin('imp_labels as il', 'i.label_id', '=', 'il.id')
+            ->join('imp_status as ist', 'i.status', '=', 'ist.id')
+            ->leftJoin('imp_packing as pk', 'i.packing_id', '=', 'pk.id')
+            ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
+            ->when(Auth::user()->profile_id == 17, function ($query) {
+                return $query->where('iis.supplier_id', Auth::id());
+            })
+            ->when($this->filterStatus, function ($query) {
+                return $query->where('i.status', $this->filterStatus);
+            })
+            ->when($this->filterNews, function ($query) {
+                return $query->where('i.news', $this->filterNews);
+            })
+            ->when($this->selectedLabelId, function ($query) {
+                return $query->where('i.label_id', $this->selectedLabelId);
+            })
+            ->when($this->filterPacking, function ($query) {
+                return $query->where('i.packing_id', $this->filterPacking);
+            })
+            ->when($this->selectedShipp > 0, function ($query) {
+                return $query->where('pk.shipping_id', $this->selectedShipp);
+            })
+            ->when($this->search, function ($query) {
+                return $query->where(function ($q) {
+                    $q->where('iv.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
+                      ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
+                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.orders-pdf', compact('orders'));
+        return response()->streamDownload(
+            fn() => print($pdf->output()),
+            'reporte_ordenes_' . now()->format('Y-m-d') . '.pdf'
+        );
     }
 
     public function exportCsv()
