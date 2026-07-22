@@ -29,11 +29,14 @@ use Illuminate\Support\Facades\Auth;
 use App\Traits\HasCompanyConfiguration;
 use Livewire\Attributes\On;
 use App\Traits\Livewire\HasDynamicButtons;
+use Livewire\Attributes\Computed;
 
 class ManageItems extends Component
 {
 
     use WithPagination, HasCompanyConfiguration, WithExport, HasDynamicButtons;
+
+    public $selectedSupplierId = null;
 
     protected $listeners = [
         'command-changed' => 'onCommandSelected',
@@ -263,12 +266,21 @@ class ManageItems extends Component
         // DEBUG: Limpiar caché para testing
         $this->clearConfigurationCache();
 
+        if (Auth::user()?->profile_id == 17) {
+            $this->selectedSupplierId = Auth::id();
+        }
+
         // DEBUG: Log para verificar inicialización
         Log::info('🔍 Items mount() ejecutado', [
             'currentCompanyId' => $this->currentCompanyId,
             'currentPlainId' => $this->currentPlainId,
             'configService_exists' => $this->configService ? 'YES' : 'NO'
         ]);
+    }
+
+    public function updatedSelectedSupplierId($value)
+    {
+        $this->resetPage();
     }
 
     private function ensureTenantConnection()
@@ -353,6 +365,11 @@ class ManageItems extends Component
 
         $items = Items::query()
             ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
+            ->when($this->selectedSupplierId, function ($query) {
+                $query->whereHas('importSetup', function ($q) {
+                    $q->where('supplier_id', $this->selectedSupplierId);
+                });
+            })
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('sku', 'like', '%' . $this->search . '%')
@@ -367,6 +384,31 @@ class ManageItems extends Component
             'categories' => Category::where('status', 1)->get(),
             'types' => $this->types
         ]);
+    }
+
+    #[Computed]
+    public function suppliers()
+    {
+        $this->ensureTenantConnection();
+        $sessionTenant = session('tenant_id');
+
+        return \App\Models\Auth\User::select('users.id', 'users.name')
+            ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+            ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                $query->where('tenants.id', $sessionTenant);
+            })
+            ->where('users.profile_id', 17)
+            ->where('vnt_contacts.status', 1)
+            ->whereNull('vnt_contacts.deleted_at')
+            ->distinct()
+            ->get()
+            ->map(function ($supplier) {
+                return [
+                    'id' => $supplier->id,
+                    'firstName' => $supplier->name
+                ];
+            })
+            ->toArray();
     }
 
     public function toggleGeneric()
