@@ -18,6 +18,8 @@ class TickRequest extends Model
         'department_id',
         'status_id',
         'product_id',
+        'supplier_id',
+        'is_reactivated',
         'created_by',
         'assigned_to',
         'detail',
@@ -75,5 +77,13 @@ class TickRequest extends Model
     public function product()
     {
         return $this->belongsTo(Items::class, 'product_id');
+    }
+
+    /**
+     * Proveedor asignado a la solicitud (Base de datos central).
+     */
+    public function supplier()
+    {
+        return $this->belongsTo(User::class, 'supplier_id');
     }
 }

@@ -282,7 +282,7 @@ class ImportList extends Component
                 });
             })
             ->where('inv_items.status', 1)
-            ->where('inv_items.type', '!=', 'DESCONTINUADOS')
+            // ->where('inv_items.type', '!=', 'DESCONTINUADOS')
             ->when($this->selectedSupplierId, function ($query) {
                 return $query->where('imp_items_setup.supplier_id', $this->selectedSupplierId);
             })

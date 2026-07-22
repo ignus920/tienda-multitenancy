@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Components;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Computed;
 use App\Models\Tenant\Tickets\TickDepartment;
 use App\Models\Tenant\Tickets\TickRequest;
 use App\Models\Tenant\Tickets\TickStatus;
@@ -31,8 +32,14 @@ class TicketRequestModal extends Component
 
     // Campos del Formulario
     public $department_id;
+    public $supplier_id;
     public $detail;
     
+    // Control de Solicitudes a Proveedores
+    public $activeTab = 'internal'; // 'internal' o 'supplier'
+    public $canCreateSupplierRequest = false;
+    public $hasDefaultSupplier = false;
+
     // Filtros del Historial
     public $dateFrom;
     public $dateTo;
@@ -48,6 +55,15 @@ class TicketRequestModal extends Component
         $this->dateFrom = now()->subMonths(3)->format('Y-m-d');
         $this->dateTo = now()->format('Y-m-d');
         
+        // El perfil 1 (Gerente) o usuarios con perfil de Importaciones pueden crear solicitudes a proveedores
+        $user = auth()->user();
+        if ($user) {
+            // Perfiles autorizados: Gerencia (1), Administradores o Jefe de Importaciones (Camilo)
+            // Agregamos también la validación por nombre/correo de Camilo por si tiene otro perfil
+            $isCamilo = strpos(strtolower($user->name), 'camilo') !== false || strpos(strtolower($user->email), 'camilo') !== false;
+            $this->canCreateSupplierRequest = in_array($user->profile_id, [1, 2, 8]) || $isCamilo;
+        }
+
         // Ejecutar check solo en el mount inicial si no está en sesión
         $this->checkModuleStatus();
     }
@@ -131,13 +147,22 @@ class TicketRequestModal extends Component
         $this->productId = $productId;
         $this->productName = null;
         $this->productCode = null;
+        $this->supplier_id = null;
+        $this->hasDefaultSupplier = false;
+        $this->activeTab = 'internal';
         
         if ($productId) {
             $this->ensureTenantConnection();
-            $product = Items::find($productId);
+            $product = Items::with('importSetup')->find($productId);
             if ($product) {
                 $this->productName = $product->name;
                 $this->productCode = $product->internal_code;
+                
+                // Preseleccionar el proveedor del producto si existe
+                if ($product->importSetup && $product->importSetup->supplier_id) {
+                    $this->supplier_id = $product->importSetup->supplier_id;
+                    $this->hasDefaultSupplier = true;
+                }
             }
         }
 
@@ -229,13 +254,21 @@ class TicketRequestModal extends Component
         if (!$this->isModuleActive) return;
 
         $this->ensureTenantConnection();
-        $this->validate([
-            'department_id' => [
-                'required',
-                Rule::exists('tenant.tick_departments', 'id')
-            ],
-            'detail' => 'required|min:10',
-        ]);
+        
+        if ($this->activeTab === 'supplier') {
+            $this->validate([
+                'supplier_id' => 'required',
+                'detail' => 'required|min:10',
+            ]);
+        } else {
+            $this->validate([
+                'department_id' => [
+                    'required',
+                    Rule::exists('tenant.tick_departments', 'id')
+                ],
+                'detail' => 'required|min:10',
+            ]);
+        }
 
         try {
             DB::connection('tenant')->beginTransaction();
@@ -245,33 +278,95 @@ class TicketRequestModal extends Component
                 ->orWhere('id', 1)
                 ->first();
 
-            $request = TickRequest::create([
-                'department_id' => $this->department_id,
-                'status_id' => $initialStatus->id ?? 1,
-                'product_id' => $this->productId,
-                'created_by' => auth()->id(),
-                'detail' => $this->detail,
-            ]);
+            $initialStatusId = $initialStatus->id ?? 1;
 
-            // Crear entrada en el historial
-            TickRequestHistory::create([
-                'request_id' => $request->id,
-                'from_status_id' => null,
-                'to_status_id' => $request->status_id,
-                'user_id' => auth()->id(),
-                'message' => $this->detail,
-            ]);
+            if ($this->activeTab === 'supplier') {
+                // Verificar si existe una solicitud previa ya resuelta del mismo producto y proveedor
+                // Los estados resueltos suelen ser "Solucionado" (id 3 o similar) o "Cerrado" (id 4)
+                $solvedStatusIds = TickStatus::where('name', 'like', '%Solucionado%')
+                    ->orWhere('name', 'like', '%Resuelto%')
+                    ->orWhere('name', 'like', '%Cerrado%')
+                    ->orWhereIn('id', [3, 4])
+                    ->pluck('id')
+                    ->toArray();
+
+                $existingRequest = TickRequest::where('product_id', $this->productId)
+                    ->where('supplier_id', $this->supplier_id)
+                    ->whereIn('status_id', $solvedStatusIds)
+                    ->first();
+
+                if ($existingRequest) {
+                    // Reactivar la solicitud existente
+                    $oldStatusId = $existingRequest->status_id;
+                    $existingRequest->update([
+                        'status_id' => $initialStatusId,
+                        'is_reactivated' => 1,
+                        'detail' => $this->detail // Actualizamos el detalle con el nuevo requerimiento
+                    ]);
+
+                    // Crear historial para el seguimiento
+                    TickRequestHistory::create([
+                        'request_id' => $existingRequest->id,
+                        'from_status_id' => $oldStatusId,
+                        'to_status_id' => $initialStatusId,
+                        'user_id' => auth()->id(),
+                        'message' => 'Solicitud reactivada: ' . $this->detail,
+                    ]);
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => 'Solicitud previa reactivada'
+                    ]);
+                } else {
+                    // Crear nueva solicitud de proveedor
+                    $request = TickRequest::create([
+                        'supplier_id' => $this->supplier_id,
+                        'status_id' => $initialStatusId,
+                        'product_id' => $this->productId,
+                        'created_by' => auth()->id(),
+                        'detail' => $this->detail,
+                    ]);
+
+                    TickRequestHistory::create([
+                        'request_id' => $request->id,
+                        'from_status_id' => null,
+                        'to_status_id' => $request->status_id,
+                        'user_id' => auth()->id(),
+                        'message' => $this->detail,
+                    ]);
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => 'Solicitud al proveedor enviada'
+                    ]);
+                }
+            } else {
+                // Flujo normal de solicitudes internas
+                $request = TickRequest::create([
+                    'department_id' => $this->department_id,
+                    'status_id' => $initialStatusId,
+                    'product_id' => $this->productId,
+                    'created_by' => auth()->id(),
+                    'detail' => $this->detail,
+                ]);
+
+                TickRequestHistory::create([
+                    'request_id' => $request->id,
+                    'from_status_id' => null,
+                    'to_status_id' => $request->status_id,
+                    'user_id' => auth()->id(),
+                    'message' => $this->detail,
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Solicitud enviada correctamente'
+                ]);
+            }
 
             DB::connection('tenant')->commit();
 
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Solicitud enviada correctamente'
-            ]);
-
             $this->reset(['department_id', 'detail']);
-            // No cerramos el modal para que vea la actualización en el listado inferior
-            // o lo cerramos si el usuario lo prefiere. Por ahora, lo mantenemos abierto.
             
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
@@ -295,13 +390,25 @@ class TicketRequestModal extends Component
                 $departments = TickDepartment::where('status', 1)->orderBy('name')->get();
 
                 if ($this->selectedRequestId) {
-                    $selectedRequest = TickRequest::with(['status', 'department', 'creator', 'history.status', 'history.user'])
+                    $selectedRequest = TickRequest::with(['status', 'department', 'creator', 'history.status', 'history.user', 'supplier'])
                         ->find($this->selectedRequestId);
                 }
 
-                $requests = TickRequest::with(['status', 'department', 'creator'])
+                $requests = TickRequest::with(['status', 'department', 'creator', 'supplier'])
                     ->when($this->productId, function($q) {
                         return $q->where('product_id', $this->productId);
+                    })
+                    ->when(!$this->selectedRequestId && auth()->user()?->profile_id != 17 && $this->activeTab === 'supplier', function($q) {
+                        // En modo creación: si está en pestaña proveedor, filtrar por proveedor
+                        return $q->whereNotNull('supplier_id');
+                    })
+                    ->when(!$this->selectedRequestId && auth()->user()?->profile_id != 17 && $this->activeTab === 'internal', function($q) {
+                        // En modo creación: si está en pestaña interna, filtrar por departamento
+                        return $q->whereNotNull('department_id');
+                    })
+                    ->when(auth()->user()?->profile_id == 17, function($q) {
+                        // Si el usuario logueado es proveedor, forzar a ver solo las de proveedor (su ID)
+                        return $q->where('supplier_id', auth()->id());
                     })
                     ->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
                     ->where(function($q) {
@@ -322,5 +429,23 @@ class TicketRequestModal extends Component
             'selectedRequest' => $selectedRequest,
             'isModuleActive' => $this->isModuleActive
         ]);
+    }
+
+    #[Computed]
+    public function suppliers()
+    {
+        $this->ensureTenantConnection();
+        $sessionTenant = session('tenant_id');
+
+        return \App\Models\Auth\User::select('users.id', 'users.name')
+            ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+            ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                $query->where('tenants.id', $sessionTenant);
+            })
+            ->where('users.profile_id', 17)
+            ->where('vnt_contacts.status', 1)
+            ->whereNull('vnt_contacts.deleted_at')
+            ->distinct()
+            ->get();
     }
 }

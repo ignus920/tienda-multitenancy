@@ -66,6 +66,7 @@
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Panel de Solicitudes</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestión y seguimiento de requerimientos</p>
                 </div>
+                @if(!$isSupplier)
                 <div class="flex items-center gap-3">
                     <a href="{{ route('tenant.tickets.departments') }}"
                         class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
@@ -75,6 +76,7 @@
                         Gestionar Departamentos
                     </a>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -113,6 +115,7 @@
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <!-- Fila 1: Filtros -->
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end mb-4">
+                    @if(!$isSupplier)
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Departamento</label>
                         <select wire:model.live="departmentId"
@@ -123,7 +126,18 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="lg:col-span-2 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Proveedor</label>
+                        <select wire:model.live="supplierIdFilter"
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Todos los Proveedores</option>
+                            @foreach($suppliersList as $sup)
+                                <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+                    <div class="{{ $isSupplier ? 'lg:col-span-3' : 'lg:col-span-1' }} grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Desde</label>
                             <input type="date" wire:model.live="dateFrom"
@@ -167,8 +181,10 @@
                         <tr>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-36">Fecha/Hora</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Solicitud</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Departamento</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Solicitud / Producto</th>
+                            @if(!$isSupplier)
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Depto. / Prov.</th>
+                            @endif
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -182,26 +198,66 @@
                                 <span class="text-xs text-gray-400 dark:text-gray-500">{{ $req->created_at->format('H:i') }}</span>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white leading-tight uppercase">
-                                    {{ strip_tags($req->detail) }}
-                                </div>
-                                @if($req->product)
-                                <div class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1 uppercase font-bold flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                    </svg>
-                                    {{ $req->product->name }}
-                                </div>
-                                @endif
-                                <div class="text-xs text-indigo-500 dark:text-indigo-400 font-medium mt-1 uppercase">
-                                    DE: {{ $req->creator->name ?? 'USUARIO SISTEMA' }}
+                                <div class="flex items-start gap-3">
+                                    @if($req->product)
+                                        @php
+                                            $imageName = $req->product->image_name ?? $req->product->image;
+                                            $imgUrl = $imageName 
+                                                ? 'https://cloud.ticsia.com/fervicom/storage/items/' . $imageName
+                                                : null;
+                                        @endphp
+                                        @if($imgUrl)
+                                            <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0 border border-gray-200 dark:border-gray-600">
+                                                <img class="w-full h-full object-cover" src="{{ $imgUrl }}" alt="{{ $req->product->name }}">
+                                            </div>
+                                        @else
+                                            <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs flex-shrink-0 border border-indigo-100 dark:border-indigo-900/50">
+                                                {{ strtoupper(substr($req->product->name, 0, 1)) }}
+                                            </div>
+                                        @endif
+                                    @endif
+                                    
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white leading-tight uppercase flex items-center gap-1.5 flex-wrap">
+                                            @if($req->is_reactivated)
+                                                <!-- Icono/Signo de nueva solicitud o reactivación en Naranja -->
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider animate-pulse gap-1">
+                                                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Nueva Solicitud
+                                                </span>
+                                            @endif
+                                            {{ strip_tags($req->detail) }}
+                                        </div>
+                                        @if($req->product)
+                                            <div class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1 uppercase font-bold flex items-center gap-1">
+                                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                                </svg>
+                                                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                                                    {{ $req->product->internal_code ?: 'SIN COD' }}
+                                                </span>
+                                                — {{ $req->product->name }}
+                                            </div>
+                                        @endif
+                                        <div class="text-xs text-indigo-500 dark:text-indigo-400 font-medium mt-1 uppercase">
+                                            DE: {{ $req->creator->name ?? 'USUARIO SISTEMA' }}
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
+                            @if(!$isSupplier)
                             <td class="px-6 py-4 text-center">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 uppercase">
-                                    {{ $req->department->name ?? 'Sin Dept.' }}
+                                    @if($req->supplier_id)
+                                        {{ $req->supplier?->name ?? 'Sin Proveedor' }}
+                                    @else
+                                        {{ $req->department?->name ?? 'Sin Dept.' }}
+                                    @endif
                                 </span>
                             </td>
+                            @endif
                             <td class="px-6 py-4 text-center">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white uppercase"
                                     style="background-color: var(--tw-color-{{ $req->status->color }}-500, #{{ $req->status->color == 'indigo' ? '6366f1' : ($req->status->color == 'green' ? '22c55e' : ($req->status->color == 'blue' ? '3b82f6' : 'ef4444')) }})">

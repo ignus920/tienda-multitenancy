@@ -627,7 +627,6 @@ new class extends Component
         </div>
         @endif
 
-        @if (Auth::user()?->profile_id != 17)
         <!-- Solicitudes -->
         <a href="{{ route('tenant.tickets') }}" wire:navigate
             class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.tickets') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
@@ -636,7 +635,7 @@ new class extends Component
 
             <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2" />
             </svg>
 
             <span x-show="!sidebarCollapsed" class="ml-3" x-transition>
@@ -648,10 +647,6 @@ new class extends Component
                 Solicitudes
             </div>
         </a>
-        @endif
-
-
-
 
 
 

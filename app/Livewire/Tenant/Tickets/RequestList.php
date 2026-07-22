@@ -59,8 +59,14 @@ class RequestList extends Component
             ->groupBy('status_id')
             ->pluck('total', 'status_id');
 
+        $user = auth()->user();
+        $isSupplier = $user && $user->profile_id == 17;
+
         // Consulta de solicitudes con filtros
         $requests = TickRequest::with(['department', 'status', 'creator', 'product'])
+            ->when($isSupplier, function($q) use ($user) {
+                return $q->where('supplier_id', $user->id);
+            })
             ->when($this->search, function($q) {
                 $q->where('detail', 'like', '%' . $this->search . '%')
                   ->orWhere('id', 'like', '%' . $this->search . '%');
@@ -72,12 +78,35 @@ class RequestList extends Component
             ->orderBy('id', 'desc')
             ->paginate($this->perPage);
 
+        // Obtener los proveedores del tenant para el select de filtro del administrador
+        $suppliersList = collect();
+        if (!$isSupplier) {
+            $sessionTenant = session('tenant_id');
+            $suppliersList = \App\Models\Auth\User::select('users.id', 'users.name')
+                ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+                ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                    $query->where('tenants.id', $sessionTenant);
+                })
+                ->where('users.profile_id', 17)
+                ->where('vnt_contacts.status', 1)
+                ->whereNull('vnt_contacts.deleted_at')
+                ->distinct()
+                ->get();
+        }
+
+        $totalQuery = TickRequest::query();
+        if ($isSupplier) {
+            $totalQuery->where('supplier_id', $user->id);
+        }
+
         return view('livewire.tenant.tickets.request-list', [
             'requests' => $requests,
             'departments' => TickDepartment::where('status', 1)->get(),
             'statuses' => $statuses,
             'allStats' => $allStats,
-            'totalRequests' => TickRequest::count()
+            'suppliersList' => $suppliersList,
+            'totalRequests' => $totalQuery->count(),
+            'isSupplier' => $isSupplier
         ])->layout('layouts.app');
     }
 

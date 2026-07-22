@@ -107,6 +107,21 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         </div>
 
         <!-- Detalle o Formulario -->
+        <!-- Detalle o Formulario -->
+        @if(!$selectedRequest && $canCreateSupplierRequest)
+            <!-- Pestañas (Tabs) para tipo de solicitud -->
+            <div class="px-6 pt-3 border-b border-gray-150 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex gap-4 flex-shrink-0">
+                <button wire:click="$set('activeTab', 'internal')"
+                    class="pb-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all {{ $activeTab === 'internal' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600' }}">
+                    Solicitud Interna
+                </button>
+                <button wire:click="$set('activeTab', 'supplier')"
+                    class="pb-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all {{ $activeTab === 'supplier' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600' }}">
+                    Solicitud a Proveedor
+                </button>
+            </div>
+        @endif
+
         @if($selectedRequest)
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
@@ -184,19 +199,38 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <!-- Body -->
         <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
             @if($isModuleActive)
-                <!-- Selector de Departamento (Solo en modo Nuevo) -->
+                <!-- Formulario de Creación -->
                 @if(!$selectedRequest)
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Departamento <span class="text-red-500">*</span></label>
-                        <select wire:model="department_id"
-                            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white">
-                            <option value="">Selecciona una opción</option>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('department_id') <span class="text-red-500 text-[10px] mt-1 block font-medium">{{ $message }}</span> @enderror
-                    </div>
+                    @if($activeTab === 'supplier')
+                        <!-- Selector de Proveedor -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Proveedor <span class="text-red-500">*</span></label>
+                            <select wire:model="supplier_id" {{ $hasDefaultSupplier ? 'disabled' : '' }}
+                                class="w-full {{ $hasDefaultSupplier ? 'bg-gray-100 cursor-not-allowed dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900' }} border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white">
+                                <option value="">Selecciona un proveedor</option>
+                                @foreach($this->suppliers as $sup)
+                                    <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                                @endforeach
+                            </select>
+                            @if($hasDefaultSupplier)
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">El proveedor está asignado de forma fija según la configuración del producto.</span>
+                            @endif
+                            @error('supplier_id') <span class="text-red-500 text-[10px] mt-1 block font-medium">{{ $message }}</span> @enderror
+                        </div>
+                    @else
+                        <!-- Selector de Departamento -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Departamento <span class="text-red-500">*</span></label>
+                            <select wire:model="department_id"
+                                class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white">
+                                <option value="">Selecciona una opción</option>
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('department_id') <span class="text-red-500 text-[10px] mt-1 block font-medium">{{ $message }}</span> @enderror
+                        </div>
+                    @endif
                 @endif
 
                 <!-- Detalle/Comentario (Siempre visible) -->
@@ -265,7 +299,9 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                 <tr>
                                     <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-10">#</th>
                                     <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
-                                    <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Depto.</th>
+                                    <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Depto. / Prov.
+                                    </th>
                                     <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Detalle</th>
                                     <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Estado</th>
                                     <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Ver</th>
@@ -280,7 +316,11 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                     </td>
                                     <td class="px-3 py-3">
                                         <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                            {{ $req->department->name ?? 'N/A' }}
+                                            @if($req->supplier_id)
+                                                {{ $req->supplier->name ?? 'Proveedor N/A' }}
+                                            @else
+                                                {{ $req->department->name ?? 'Depto N/A' }}
+                                            @endif
                                         </span>
                                     </td>
                                     <td class="px-3 py-3 text-gray-700 dark:text-gray-200 max-w-[180px] truncate">
