@@ -139,7 +139,8 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         const observer = new MutationObserver(scroll);
                         observer.observe($el, { childList: true, subtree: true });
                      "
-                     class="flex flex-col gap-4 max-h-80 overflow-y-auto custom-scrollbar pr-2 py-1">
+                     class="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 py-1"
+                     style="max-height: 280px;">
                     @foreach($selectedRequest->history as $history)
                         @php
                             $isMe = $history->user_id === auth()->id();
