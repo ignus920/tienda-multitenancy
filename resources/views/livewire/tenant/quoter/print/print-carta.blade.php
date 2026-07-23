@@ -536,20 +536,60 @@
         </thead>
         <tbody>
             @php
-                $sortedDetalles = $quote->detalles->sortBy(function ($detalle) {
-                    $sku = strtolower($detalle->item->sku ?? '');
-                    $name = strtolower($detalle->item->name ?? $detalle->item->display_name ?? '');
-                    $type = strtolower($detalle->item->type ?? '');
+                $sortedDetalles = $quote->detalles->sortBy([
+                    // 1. Tipo de item (1 = Producto físico, 2 = Cortes/Servicios, 3 = Fletes)
+                    function ($detalle) {
+                        $sku = strtolower($detalle->item->sku ?? '');
+                        $name = strtolower($detalle->item->name ?? $detalle->item->display_name ?? '');
+                        $type = strtolower($detalle->item->type ?? '');
 
-                    // Prioridades: 1 = Productos, 2 = Cortes/Servicios, 3 = Fletes
-                    if (str_contains($sku, 'flete') || str_contains($name, 'flete')) {
-                        return 3;
+                        if (str_contains($sku, 'flete') || str_contains($name, 'flete')) {
+                            return 3;
+                        }
+                        if (str_contains($sku, 'corte') || str_contains($name, 'corte') || str_contains($type, 'servicio')) {
+                            return 2;
+                        }
+                        return 1;
+                    },
+                    // 2. Primera letra del picking (prioridad: P -> 1, A -> 2, M -> 3, otras -> 4_letra)
+                    function ($detalle) {
+                        $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                        if (empty($picking) || $picking === 'N/A') {
+                            return 'ZZZ';
+                        }
+                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                        if ($matches) {
+                            $char1 = $matches[1];
+                            if ($char1 === 'P') return '1';
+                            if ($char1 === 'A') return '2';
+                            if ($char1 === 'M') return '3';
+                            return '4_' . $char1;
+                        }
+                        return 'ZZZ';
+                    },
+                    // 3. Primeros dos dígitos numéricos del picking
+                    function ($detalle) {
+                        $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                        return $matches ? intval($matches[2]) : 999;
+                    },
+                    // 4. Letra del medio del picking
+                    function ($detalle) {
+                        $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                        return $matches ? $matches[3] : 'Z';
+                    },
+                    // 5. Últimos dos dígitos numéricos del picking
+                    function ($detalle) {
+                        $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                        return $matches ? intval($matches[4]) : 999;
+                    },
+                    // 6. Desempate por código interno
+                    function ($detalle) {
+                        return $detalle->item->internal_code ?? $detalle->item->sku ?? '';
                     }
-                    if (str_contains($sku, 'corte') || str_contains($name, 'corte') || str_contains($type, 'servicio')) {
-                        return 2;
-                    }
-                    return 1;
-                })->values();
+                ])->values();
             @endphp
             @foreach($sortedDetalles as $index => $detalle)
                 <tr class="{{ $index % 2 == 0 ? '' : 'row-even' }}">
