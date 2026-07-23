@@ -280,21 +280,47 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <!-- Botones -->
                 <div class="flex justify-end items-center gap-2 pt-1 flex-wrap">
                     @if($selectedRequest)
-                        <button wire:click="updateStatus('Reactivado')"
-                            class="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5">
-                            <x-heroicon-o-arrow-path class="w-3.5 h-3.5"/>
-                            Reactivar
-                        </button>
-                        <button wire:click="updateStatus('Solucionado')"
-                            class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5">
-                            <x-heroicon-o-check-circle class="w-3.5 h-3.5"/>
-                            Solucionado
-                        </button>
-                        <button wire:click="updateStatus('Imposibilidad')"
-                            class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5">
-                            <x-heroicon-o-x-circle class="w-3.5 h-3.5"/>
-                            Imposibilidad
-                        </button>
+                        @php
+                            $userIsSupplier = auth()->user()?->profile_id == 17;
+                        @endphp
+                        @if($userIsSupplier)
+                            <button @click="show = false" type="button"
+                                class="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                Cerrar
+                            </button>
+                            <button wire:click="saveComment" type="button"
+                                class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                </svg>
+                                Guardar nota
+                            </button>
+                        @else
+                            <button @click="show = false" type="button"
+                                class="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                Cerrar
+                            </button>
+                            <button wire:click="saveComment" type="button"
+                                class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                </svg>
+                                Guardar nota
+                            </button>
+                            @if(strtolower($selectedRequest->status->name ?? '') === 'solucionado')
+                                <button wire:click="updateStatus('Reactivado')" type="button"
+                                    class="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5">
+                                    <x-heroicon-o-arrow-path class="w-3.5 h-3.5"/>
+                                    Reactivar
+                                </button>
+                            @else
+                                <button wire:click="updateStatus('Solucionado')" type="button"
+                                    class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5">
+                                    <x-heroicon-o-check-circle class="w-3.5 h-3.5"/>
+                                    Solucionado
+                                </button>
+                            @endif
+                        @endif
                     @else
                         <button @click="show = false"
                             class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">

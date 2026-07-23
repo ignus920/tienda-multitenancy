@@ -249,6 +249,49 @@ class TicketRequestModal extends Component
         }
     }
 
+    public function saveComment()
+    {
+        if (!$this->isModuleActive) return;
+
+        $this->ensureTenantConnection();
+        if (!$this->selectedRequestId) return;
+
+        if (empty(trim(strip_tags($this->detail)))) {
+            $this->addError('detail', 'El detalle no puede estar vacío.');
+            return;
+        }
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $request = TickRequest::find($this->selectedRequestId);
+            
+            TickRequestHistory::create([
+                'request_id' => $request->id,
+                'from_status_id' => $request->status_id,
+                'to_status_id' => $request->status_id,
+                'user_id' => auth()->id(),
+                'message' => $this->detail,
+            ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->reset(['detail']);
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Comentario guardado correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function save()
     {
         if (!$this->isModuleActive) return;

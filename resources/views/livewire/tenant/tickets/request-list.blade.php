@@ -250,7 +250,7 @@
                                     @endif
                                     
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white leading-tight uppercase flex items-center gap-1.5 flex-wrap">
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white leading-tight uppercase flex items-center gap-1.5 flex-wrap">
                                             @if($req->is_reactivated)
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider animate-pulse gap-1">
                                                     <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
@@ -259,19 +259,18 @@
                                                     {{ $isSupplier ? 'New Request' : 'Nueva Solicitud' }}
                                                 </span>
                                             @endif
-                                            {{ strip_tags($req->detail) }}
-                                        </div>
-                                        @if($req->product)
-                                            <div class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1 uppercase font-bold flex items-center gap-1">
-                                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                                </svg>
-                                                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                                            @if($req->product)
+                                                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded mr-1">
                                                     {{ $req->product->internal_code ?: ($isSupplier ? 'NO CODE' : 'SIN COD') }}
                                                 </span>
                                                 — {{ $req->product->name }}
-                                            </div>
-                                        @endif
+                                            @else
+                                                SOLICITUD SIN PRODUCTO
+                                            @endif
+                                        </div>
+                                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed font-medium">
+                                            {{ strip_tags($req->detail) }}
+                                        </div>
                                         <div class="text-xs text-indigo-500 dark:text-indigo-400 font-medium mt-1 uppercase">
                                             {{ $isSupplier ? 'FROM' : 'DE' }}: {{ $req->creator->name ?? ($isSupplier ? 'SYSTEM USER' : 'USUARIO SISTEMA') }}
                                         </div>
