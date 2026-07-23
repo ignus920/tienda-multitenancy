@@ -98,7 +98,7 @@
         @endphp
 
         <!-- KPIs -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <button wire:click="filterByStatus(null)"
                 class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group {{ is_null($selectedStatus) ? 'ring-2 ring-indigo-500 border-transparent' : '' }}">
                 <div class="h-12 w-12 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
