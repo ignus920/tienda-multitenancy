@@ -193,4 +193,43 @@ class CampaignService
 
         return null;
     }
+
+    /**
+     * Busca y asigna múltiples regalos disponibles para una remisión específica.
+     */
+    public function checkAndAssignGifts(InvRemissions $remission)
+    {
+        if (!$remission->quote || !$remission->quote->customer) {
+            return collect();
+        }
+
+        $customer = $remission->quote->customer;
+        
+        // 1. Obtener campañas ya asignadas a esta remisión en la base de datos
+        $assignedCampaignIds = DB::connection('tenant')
+            ->table('cmp_campaign_customers')
+            ->where('remission_id', $remission->id)
+            ->pluck('campaign_id')
+            ->toArray();
+
+        $campaigns = Campaign::whereIn('id', $assignedCampaignIds)->get();
+
+        // 2. Revisar si hay otras campañas activas elegibles y asignarlas
+        $activeCampaigns = $this->getActiveCampaigns();
+
+        foreach ($activeCampaigns as $campaign) {
+            // Si ya está asignada a esta remisión, no duplicarla
+            if (in_array($campaign->id, $assignedCampaignIds)) {
+                continue;
+            }
+
+            if ($this->isEligible($customer, $campaign, $remission->id)) {
+                if ($this->registerGiftDelivery($customer, $campaign, $remission->id)) {
+                    $campaigns->push($campaign);
+                }
+            }
+        }
+
+        return $campaigns;
+    }
 }

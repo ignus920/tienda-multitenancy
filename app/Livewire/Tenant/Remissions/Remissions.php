@@ -996,9 +996,9 @@ class Remissions extends Component
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS, 1 = Carta
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
 
-            // Validar y asignar regalo de campaña
+            // Validar y asignar regalos de campaña
             $campaignService = app(CampaignService::class);
-            $assignedCampaign = $campaignService->checkAndAssignGift($remission);
+            $assignedCampaigns = $campaignService->checkAndAssignGifts($remission);
 
             $data = [
                 'quote' => $remission,
@@ -1007,7 +1007,8 @@ class Remissions extends Component
                 'documentTitle' => 'REMISIÓN',
                 'showQR' => true,
                 'defaultObservations' => 'Sin observaciones.',
-                'assignedCampaign' => $assignedCampaign,
+                'assignedCampaigns' => $assignedCampaigns,
+                'assignedCampaign' => $assignedCampaigns->first(),
                 'totalWeight' => $totalWeight,
                 'observations_delivery' => $observations->observations_delivery ?? null,
                 'obs' => $observations->obs ?? null,
