@@ -98,10 +98,12 @@ class DepartmentManager extends Component
     public function loadUsers()
     {
         $sessionTenant = session('tenant_id');
-        // Cargamos solo los usuarios vinculados al tenant actual
+        // Cargamos solo los usuarios vinculados al tenant actual y que NO sean proveedores (perfil 17)
         $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
             $query->where('tenants.id', $sessionTenant);
-        })->get(['users.id', 'users.name']);
+        })
+        ->where('profile_id', '!=', 17)
+        ->get(['users.id', 'users.name']);
 
         if ($this->departmentId) {
             $department = TickDepartment::find($this->departmentId);
@@ -135,7 +137,9 @@ class DepartmentManager extends Component
         $sessionTenant = session('tenant_id');
         $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
             $query->where('tenants.id', $sessionTenant);
-        })->get(['users.id', 'users.name']);
+        })
+        ->where('profile_id', '!=', 17)
+        ->get(['users.id', 'users.name']);
         
         $this->availableUsers = $allUsers->whereNotIn('id', $this->assignedUsers)->toArray();
         $this->assignedUsersList = $allUsers->whereIn('id', $this->assignedUsers)->toArray();
