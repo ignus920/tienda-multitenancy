@@ -1648,6 +1648,14 @@ class Orders extends Component
             $query->whereHas('packings.imports', function ($q) {
                 $q->where('status', 8);
             });
+        } else {
+            // Mostrar solo envíos vacíos o que tengan al menos un producto pendiente de recibir (status < 8)
+            $query->where(function ($q) {
+                $q->whereDoesntHave('packings.imports')
+                  ->orWhereHas('packings.imports', function ($sub) {
+                      $sub->where('status', '<', 8);
+                  });
+            });
         }
 
         return $query->get()
