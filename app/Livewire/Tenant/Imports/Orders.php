@@ -204,6 +204,21 @@ class Orders extends Component
     }
 
     #[Computed]
+    public function productsToReceiveCount()
+    {
+        $this->ensureTenantConnection();
+        if ($this->selectedShipp > 0) {
+            return \App\Models\Tenant\Imports\ImpImports::where('status', 7)
+                ->whereNull('deleted_at')
+                ->whereHas('packing', function ($q) {
+                    $q->where('shipping_id', $this->selectedShipp);
+                })
+                ->count();
+        }
+        return 0;
+    }
+
+    #[Computed]
     public function orders()
     {
         $centralDbName = config('database.connections.central.database');
@@ -1698,17 +1713,33 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
 
-        if (empty($this->selectedOrders)) {
-            $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'Please select the products you wish to receive.'
-            ]);
-            return;
-        }
-
         try {
-            // Detectar qué tipo de prioridades tienen los productos seleccionados
-            $selectedImports = ImpImports::whereIn('id', $this->selectedOrders)->get();
+            $query = ImpImports::where('status', 7)->whereNull('deleted_at');
+            
+            if ($this->selectedShipp > 0) {
+                $query->whereHas('packing', function ($q) {
+                    $q->where('shipping_id', $this->selectedShipp);
+                });
+            } else {
+                if (empty($this->selectedOrders)) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => 'Please select a shipment or the products you wish to receive.'
+                    ]);
+                    return;
+                }
+                $query->whereIn('id', $this->selectedOrders);
+            }
+
+            $selectedImports = $query->get();
+
+            if ($selectedImports->isEmpty()) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No products found in transit for this shipment.'
+                ]);
+                return;
+            }
             $hasMaritime = false;
             $hasAir = false;
 

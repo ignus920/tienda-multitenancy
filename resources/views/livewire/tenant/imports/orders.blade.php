@@ -293,25 +293,19 @@
                                     --}}
                                 </div>
                             @endif
-                            @if ($filterStatus == 7)
-                                 <div class="flex items-center gap-3">
-                                     @if ($profileUser != '17' && count($selectedOrders) > 0)
-                                         <button wire:click="rotatePriorities" 
-                                                 class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                                 title="Al recibir los productos seleccionados, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
-                                             <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
-                                             </svg>
-                                             Confirmar Recepción y Rotar
-                                         </button>
-                                     @endif
-                                 </div>
-                             @endif
                         </div>
                     </div>
 
                     <!-- Controles -->
                     <div class="flex items-center gap-3">
+                        @if ($filterStatus == 7 && $selectedShipp > 0 && $profileUser != '17')
+                            <button wire:click="rotatePriorities" 
+                                    class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                    title="Al recibir los productos seleccionados, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
+                                <span class="bg-green-800 text-white text-xs font-bold px-2 py-0.5 rounded-full mr-2">{{ $this->productsToReceiveCount }}</span>
+                                Confirmar Recepción y Rotar
+                            </button>
+                        @endif
                         <!-- Visibilidad de Columnas -->
                         <div x-data="{ open: false }" class="relative inline-block text-left" @click.away="open = false">
                             <button @click="open = !open" 
