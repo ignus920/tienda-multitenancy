@@ -189,7 +189,8 @@ class TicketRequestModal extends Component
         
         $request = TickRequest::with('product')->find($id);
         if ($request) {
-            $this->title = 'Detalle de Solicitud #' . $id;
+            $isSupplier = auth()->user()?->profile_id == 17;
+            $this->title = ($isSupplier ? 'Request Detail #' : 'Detalle de Solicitud #') . $id;
             $this->productName = $request->product->name ?? null;
             $this->productCode = $request->product->internal_code ?? null;
         }
@@ -205,6 +206,12 @@ class TicketRequestModal extends Component
         $this->ensureTenantConnection();
         if (!$this->selectedRequestId) return;
 
+        if (empty(trim(strip_tags($this->detail)))) {
+            $isSupplier = auth()->user()?->profile_id == 17;
+            $this->addError('detail', $isSupplier ? 'The comment is required to change the request status.' : 'El comentario es obligatorio para cambiar el estado de la solicitud.');
+            return;
+        }
+
         try {
             DB::connection('tenant')->beginTransaction();
 
@@ -219,9 +226,13 @@ class TicketRequestModal extends Component
             $request->update(['status_id' => $status->id]);
 
             // Usar el detalle del editor como mensaje, o un mensaje por defecto si está vacío
+            $defaultMsg = ($statusName === 'Registrado' && strtolower($request->status->name ?? '') === 'solucionado')
+                ? 'Solicitud reactivada'
+                : 'Estado cambiado a: ' . $status->name;
+
             $historyMessage = !empty(strip_tags($this->detail)) 
                 ? $this->detail 
-                : 'Estado cambiado a: ' . $status->name;
+                : $defaultMsg;
 
             TickRequestHistory::create([
                 'request_id' => $request->id,
@@ -235,9 +246,10 @@ class TicketRequestModal extends Component
 
             $this->reset(['detail']); // Limpiar editor para el siguiente comentario
             
+            $isSupplier = auth()->user()?->profile_id == 17;
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Estado actualizado a ' . $status->name
+                'message' => $isSupplier ? 'Status updated to ' . ($status->name === 'Solucionado' ? 'Solved' : ($status->name === 'Registrado' ? 'Registered' : $status->name)) : 'Estado actualizado a ' . $status->name
             ]);
 
         } catch (\Exception $e) {
@@ -245,6 +257,52 @@ class TicketRequestModal extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function deleteRequest()
+    {
+        if (!$this->isModuleActive) return;
+
+        $this->ensureTenantConnection();
+        if (!$this->selectedRequestId) return;
+
+        // Validar que solo Fervicom (no proveedor) pueda eliminar
+        if (auth()->user()?->profile_id == 17) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No tienes permisos para realizar esta acción.'
+            ]);
+            return;
+        }
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $request = TickRequest::find($this->selectedRequestId);
+            if ($request) {
+                // Eliminar el historial primero
+                $request->history()->delete();
+                // Eliminar la solicitud
+                $request->delete();
+            }
+
+            DB::connection('tenant')->commit();
+
+            $this->isOpen = false;
+            $this->selectedRequestId = null;
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Solicitud eliminada correctamente.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al eliminar: ' . $e->getMessage()
             ]);
         }
     }
@@ -257,7 +315,8 @@ class TicketRequestModal extends Component
         if (!$this->selectedRequestId) return;
 
         if (empty(trim(strip_tags($this->detail)))) {
-            $this->addError('detail', 'El detalle no puede estar vacío.');
+            $isSupplier = auth()->user()?->profile_id == 17;
+            $this->addError('detail', $isSupplier ? 'The detail cannot be empty.' : 'El detalle no puede estar vacío.');
             return;
         }
 

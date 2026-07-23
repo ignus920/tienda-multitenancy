@@ -59,7 +59,7 @@ class RequestList extends Component
         $isSupplier = $user && $user->profile_id == 17;
 
         // Consultas para los estados (Dashboard)
-        $statuses = TickStatus::orderBy('order')->get();
+        $statuses = TickStatus::whereNotIn('name', ['Reactivado', 'Reactivated'])->orderBy('order')->get();
         $allStats = TickRequest::selectRaw('status_id, count(*) as total')
             ->when($isSupplier, function($q) use ($user) {
                 return $q->where('supplier_id', $user->id);
