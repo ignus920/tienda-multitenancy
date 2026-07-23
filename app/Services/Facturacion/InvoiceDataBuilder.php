@@ -233,6 +233,10 @@ class InvoiceDataBuilder
                 'quantity' => $detalle->quantity
             ]);
 
+            // Mapear la unidad de medida local a los estándares de la API de Alegra ('unit' o 'service')
+            $localUnit = $product->consumptionUnit?->description ? strtolower(trim($product->consumptionUnit->description)) : 'unidad';
+            $alegraUnit = (str_contains($localUnit, 'servicio') || str_contains($localUnit, 'service')) ? 'service' : 'unit';
+
             $itemsAlegra[] = [
                 'id' => (string)$idAlegra,
                 'name' => (string)($product->name ?: 'Producto sin nombre'),
@@ -240,7 +244,8 @@ class InvoiceDataBuilder
                 'price' => $finalPrice,
                 'quantity' => intval($detalle->quantity ?: 1),
                 'tax' => [['id' => (string)$taxIdAlegra]],
-                'reference' => (string)($product->sku ?: $product->internal_code ?: $product->id)
+                'reference' => (string)($product->sku ?: $product->internal_code ?: $product->id),
+                'unit' => $alegraUnit
             ];
         }
 
