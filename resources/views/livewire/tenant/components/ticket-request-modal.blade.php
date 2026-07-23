@@ -139,7 +139,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         const observer = new MutationObserver(scroll);
                         observer.observe($el, { childList: true, subtree: true });
                      "
-                     class="flex flex-col gap-4 max-h-60 overflow-y-auto custom-scrollbar pr-2 py-1">
+                     class="flex flex-col gap-4 max-h-80 overflow-y-auto custom-scrollbar pr-2 py-1">
                     @foreach($selectedRequest->history as $history)
                         @php
                             $isMe = $history->user_id === auth()->id();
@@ -153,41 +153,67 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                 'maroon' => '#800000',
                             ];
                             $finalColor = $colorMap[strtolower($statusColor)] ?? $statusColor;
+
+                            $commentText = $history->message;
+                            if (trim(strip_tags($commentText)) == 'Solicitud creada.') {
+                                $commentText = $selectedRequest->detail;
+                            }
+                            
+                            $original = $commentText;
+                            $translation = null;
+
+                            if (strpos($commentText, '[TRANSLATED]') !== false) {
+                                $parts = explode('[TRANSLATED]', $commentText);
+                                $original = $parts[0];
+                                $translation = $parts[1];
+                            } elseif (strpos($commentText, '--- Translated to English ---') !== false) {
+                                $parts = explode('--- Translated to English ---', $commentText);
+                                $original = $parts[0];
+                                $translation = $parts[1];
+                            } elseif (strpos($commentText, '--- Traducido al Español ---') !== false) {
+                                $parts = explode('--- Traducido al Español ---', $commentText);
+                                $original = $parts[0];
+                                $translation = $parts[1];
+                            }
                         @endphp
                         
-                        <div class="flex w-full {{ $isMe ? 'justify-end' : 'justify-start' }}">
-                            <div class="max-w-[75%] flex flex-col gap-1">
-                                <!-- Info / Header -->
-                                <div class="flex items-center gap-2 px-1 {{ $isMe ? 'justify-end flex-row-reverse' : 'justify-start' }}">
-                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                                        {{ $history->user->name ?? 'Usuario Sistema' }}
-                                        @if(is_null($history->from_status_id))
-                                            <span class="text-gray-400 font-normal">(Solicitante)</span>
-                                        @else
-                                            <span class="text-indigo-500 dark:text-indigo-400 font-normal">(Respuesta)</span>
-                                        @endif
-                                    </span>
-                                    <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white tracking-wider" 
-                                          style="background-color: {{ $finalColor }}">
-                                        {{ $statusName }}
+                        <div class="flex gap-3">
+                            <div class="flex flex-col items-center">
+                                <div class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-100 dark:border-blue-900/50">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                    </svg>
+                                </div>
+                                <div class="w-0.5 h-full bg-gray-200 dark:bg-gray-700 my-1"></div>
+                            </div>
+                            
+                            <div class="flex-1 bg-white dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 rounded-xl p-3 shadow-sm">
+                                <div class="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-bold text-gray-900 dark:text-white text-xs">
+                                            {{ $history->user->name ?? 'Usuario Sistema' }}
+                                        </span>
+                                        <span class="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800 uppercase">
+                                            COMENTARIO
+                                        </span>
+                                        <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white tracking-wider" 
+                                              style="background-color: {{ $finalColor }}">
+                                            {{ $statusName }}
+                                        </span>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">
+                                        {{ $history->created_at ? $history->created_at->format('d/m/Y H:i') : 'N/A' }}
                                     </span>
                                 </div>
-
-                                <!-- Mensaje (Burbuja de Chat) -->
-                                <div class="text-[12px] leading-relaxed text-left rounded-2xl px-4 py-2.5
-                                            {{ $isMe 
-                                               ? 'bg-indigo-100 text-indigo-950 dark:bg-indigo-950/40 dark:text-indigo-100 rounded-tr-none' 
-                                               : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 rounded-tl-none' }}">
-                                    @if(trim(strip_tags($history->message)) == 'Solicitud creada.')
-                                        {!! $selectedRequest->detail !!}
-                                    @else
-                                        {!! $history->message ?? 'Sin mensaje' !!}
+                                <div class="w-full text-left" style="text-align: left !important;">
+                                    <div class="text-xs text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
+                                        {!! trim($original) !!}
+                                    </div>
+                                    @if($translation)
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 leading-normal italic text-left mt-1 border-t border-gray-100 dark:border-gray-600/50 pt-1" style="text-align: left !important; margin-top: 0.25rem !important; margin-bottom: 0; padding-top: 0.25rem !important;">
+                                            {!! trim($translation) !!}
+                                        </div>
                                     @endif
-                                </div>
-
-                                <!-- Hora -->
-                                <div class="text-[9px] text-gray-400 dark:text-gray-500 px-1 flex items-center gap-1 {{ $isMe ? 'justify-end' : 'justify-start' }}">
-                                    <span>{{ $history->created_at ? $history->created_at->format('d/m H:i') : 'N/A' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -234,11 +260,8 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 @endif
 
                 <!-- Detalle/Comentario (Siempre visible) -->
-                <div wire:ignore>
-                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                        {{ $selectedRequest ? 'Añadir Comentario al Historial' : 'Detalle de la Solicitud' }} <span class="text-red-500">*</span>
-                    </label>
-                    <div x-ref="editor" class="h-36 dark:text-white rounded-lg bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600"></div>
+                <div wire:ignore class="mt-2">
+                    <div x-ref="editor" class="min-h-[120px] dark:text-white rounded-lg bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600" style="resize: vertical; overflow: auto;"></div>
                 </div>
                 @error('detail') <span class="text-red-500 text-[10px] block font-medium">{{ $message }}</span> @enderror
 
@@ -376,7 +399,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
     [x-cloak] { display: none !important; }
     .ql-toolbar.ql-snow { border-color: #e5e7eb !important; background: #f9fafb; border-radius: 8px 8px 0 0; }
     .dark .ql-toolbar.ql-snow { background: #1e293b; border-color: #374151 !important; }
-    .ql-container.ql-snow { border-color: #e5e7eb !important; border-radius: 0 0 8px 8px; font-size: 13px; }
+    .ql-container.ql-snow { border-color: #e5e7eb !important; border-radius: 0 0 8px 8px; font-size: 13px; resize: vertical; overflow-y: auto; }
     .dark .ql-container.ql-snow { background: #111827; border-color: #374151 !important; }
     .custom-scrollbar::-webkit-scrollbar { width: 5px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

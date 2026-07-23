@@ -20,6 +20,7 @@ class RequestList extends Component
     
     // Filtros
     public $departmentId = '';
+    public $supplierIdFilter = '';
     public $dateFrom;
     public $dateTo;
     public $selectedStatus = null;
@@ -27,6 +28,7 @@ class RequestList extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'departmentId' => ['except' => ''],
+        'supplierIdFilter' => ['except' => ''],
         'selectedStatus' => ['except' => null],
     ];
 
@@ -53,19 +55,28 @@ class RequestList extends Component
     {
         $this->ensureTenantConnection();
 
+        $user = auth()->user();
+        $isSupplier = $user && $user->profile_id == 17;
+
         // Consultas para los estados (Dashboard)
         $statuses = TickStatus::orderBy('order')->get();
         $allStats = TickRequest::selectRaw('status_id, count(*) as total')
+            ->when($isSupplier, function($q) use ($user) {
+                return $q->where('supplier_id', $user->id);
+            })
+            ->when(!$isSupplier && $this->supplierIdFilter, function($q) {
+                return $q->where('supplier_id', $this->supplierIdFilter);
+            })
             ->groupBy('status_id')
             ->pluck('total', 'status_id');
-
-        $user = auth()->user();
-        $isSupplier = $user && $user->profile_id == 17;
 
         // Consulta de solicitudes con filtros
         $requests = TickRequest::with(['department', 'status', 'creator', 'product'])
             ->when($isSupplier, function($q) use ($user) {
                 return $q->where('supplier_id', $user->id);
+            })
+            ->when(!$isSupplier && $this->supplierIdFilter, function($q) {
+                return $q->where('supplier_id', $this->supplierIdFilter);
             })
             ->when($this->search, function($q) {
                 $q->where('detail', 'like', '%' . $this->search . '%')
@@ -97,6 +108,8 @@ class RequestList extends Component
         $totalQuery = TickRequest::query();
         if ($isSupplier) {
             $totalQuery->where('supplier_id', $user->id);
+        } else {
+            $totalQuery->when($this->supplierIdFilter, fn($q) => $q->where('supplier_id', $this->supplierIdFilter));
         }
 
         return view('livewire.tenant.tickets.request-list', [
@@ -118,7 +131,7 @@ class RequestList extends Component
 
     public function resetFilters()
     {
-        $this->reset(['search', 'departmentId', 'selectedStatus']);
+        $this->reset(['search', 'departmentId', 'supplierIdFilter', 'selectedStatus']);
         $this->mount();
         $this->resetPage();
     }

@@ -97,8 +97,11 @@ class DepartmentManager extends Component
 
     public function loadUsers()
     {
-        // Cargamos todos los usuarios de la base de datos central
-        $allUsers = User::all(['id', 'name']);
+        $sessionTenant = session('tenant_id');
+        // Cargamos solo los usuarios vinculados al tenant actual
+        $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
+            $query->where('tenants.id', $sessionTenant);
+        })->get(['users.id', 'users.name']);
 
         if ($this->departmentId) {
             $department = TickDepartment::find($this->departmentId);
@@ -129,7 +132,11 @@ class DepartmentManager extends Component
 
     private function updateUserLists()
     {
-        $allUsers = User::all(['id', 'name']);
+        $sessionTenant = session('tenant_id');
+        $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
+            $query->where('tenants.id', $sessionTenant);
+        })->get(['users.id', 'users.name']);
+        
         $this->availableUsers = $allUsers->whereNotIn('id', $this->assignedUsers)->toArray();
         $this->assignedUsersList = $allUsers->whereIn('id', $this->assignedUsers)->toArray();
     }

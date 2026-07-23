@@ -63,8 +63,12 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Panel de Solicitudes</h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">Gestión y seguimiento de requerimientos</p>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                        {{ $isSupplier ? 'Requests Panel' : 'Panel de Solicitudes' }}
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">
+                        {{ $isSupplier ? 'Management and tracking of requests' : 'Gestión y seguimiento de requerimientos' }}
+                    </p>
                 </div>
                 @if(!$isSupplier)
                 <div class="flex items-center gap-3">
@@ -79,6 +83,19 @@
                 @endif
             </div>
         </div>
+
+        @php
+            $statusTranslations = [
+                'global' => 'Global',
+                'registrado' => 'Registered',
+                'reactivado' => 'Reactivated',
+                'solucionado' => 'Solved',
+                'imposibilidad' => 'Impossibility',
+                'abierto' => 'Open',
+                'cerrado' => 'Closed',
+                'en proceso' => 'In Progress',
+            ];
+        @endphp
 
         <!-- KPIs -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -102,7 +119,9 @@
                     <x-dynamic-component :component="$status->icon" class="w-6 h-6"/>
                 </div>
                 <div class="ml-4 text-left">
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ $status->name }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        {{ $isSupplier ? ($statusTranslations[strtolower($status->name)] ?? $status->name) : $status->name }}
+                    </p>
                     <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $allStats[$status->id] ?? 0 }}</p>
                 </div>
             </button>
@@ -136,15 +155,18 @@
                             @endforeach
                         </select>
                     </div>
-                    @endif
-                    <div class="{{ $isSupplier ? 'lg:col-span-3' : 'lg:col-span-1' }} grid grid-cols-2 gap-4">
+                    @endif                     <div class="{{ $isSupplier ? 'lg:col-span-3' : 'lg:col-span-1' }} grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Desde</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                {{ $isSupplier ? 'From' : 'Desde' }}
+                            </label>
                             <input type="date" wire:model.live="dateFrom"
                                 class="w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Hasta</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                {{ $isSupplier ? 'To' : 'Hasta' }}
+                            </label>
                             <input type="date" wire:model.live="dateTo"
                                 class="w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
@@ -155,14 +177,16 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
-                        <input type="text" wire:model.live="search" placeholder="Buscar registros..."
+                        <input type="text" wire:model.live="search" placeholder="{{ $isSupplier ? 'Search records...' : 'Buscar registros...' }}"
                             class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                     </div>
                 </div>
                 <!-- Fila 2: Registros + Exportación -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
+                        <label class="text-sm text-gray-700 dark:text-gray-300">
+                            {{ $isSupplier ? 'Show:' : 'Mostrar:' }}
+                        </label>
                         <select wire:model.live="perPage"
                             class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="10">10</option>
@@ -180,13 +204,21 @@
                     <thead class="bg-gray-50 dark:bg-gray-900">
                         <tr>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-36">Fecha/Hora</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Solicitud / Producto</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-36">
+                                {{ $isSupplier ? 'Date/Time' : 'Fecha/Hora' }}
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {{ $isSupplier ? 'Request / Product' : 'Solicitud / Producto' }}
+                            </th>
                             @if(!$isSupplier)
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Depto. / Prov.</th>
                             @endif
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {{ $isSupplier ? 'Status' : 'Estado' }}
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {{ $isSupplier ? 'Actions' : 'Acciones' }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 text-sm">
@@ -220,12 +252,11 @@
                                     <div class="flex-1 min-w-0">
                                         <div class="text-sm font-medium text-gray-900 dark:text-white leading-tight uppercase flex items-center gap-1.5 flex-wrap">
                                             @if($req->is_reactivated)
-                                                <!-- Icono/Signo de nueva solicitud o reactivación en Naranja -->
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider animate-pulse gap-1">
                                                     <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                                     </svg>
-                                                    Nueva Solicitud
+                                                    {{ $isSupplier ? 'New Request' : 'Nueva Solicitud' }}
                                                 </span>
                                             @endif
                                             {{ strip_tags($req->detail) }}
@@ -236,13 +267,13 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                                 </svg>
                                                 <span class="font-mono text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                                                    {{ $req->product->internal_code ?: 'SIN COD' }}
+                                                    {{ $req->product->internal_code ?: ($isSupplier ? 'NO CODE' : 'SIN COD') }}
                                                 </span>
                                                 — {{ $req->product->name }}
                                             </div>
                                         @endif
                                         <div class="text-xs text-indigo-500 dark:text-indigo-400 font-medium mt-1 uppercase">
-                                            DE: {{ $req->creator->name ?? 'USUARIO SISTEMA' }}
+                                            {{ $isSupplier ? 'FROM' : 'DE' }}: {{ $req->creator->name ?? ($isSupplier ? 'SYSTEM USER' : 'USUARIO SISTEMA') }}
                                         </div>
                                     </div>
                                 </div>
@@ -261,7 +292,7 @@
                             <td class="px-6 py-4 text-center">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white uppercase"
                                     style="background-color: var(--tw-color-{{ $req->status->color }}-500, #{{ $req->status->color == 'indigo' ? '6366f1' : ($req->status->color == 'green' ? '22c55e' : ($req->status->color == 'blue' ? '3b82f6' : 'ef4444')) }})">
-                                    {{ $req->status->name }}
+                                    {{ $isSupplier ? ($statusTranslations[strtolower($req->status->name)] ?? $req->status->name) : $req->status->name }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center">
@@ -282,7 +313,9 @@
                                     <svg class="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                     </svg>
-                                    <p class="text-gray-400 dark:text-gray-500 italic font-medium">No se encontraron solicitudes.</p>
+                                    <p class="text-gray-400 dark:text-gray-500 italic font-medium">
+                                        {{ $isSupplier ? 'No requests found.' : 'No se encontraron solicitudes.' }}
+                                    </p>
                                 </div>
                             </td>
                         </tr>
