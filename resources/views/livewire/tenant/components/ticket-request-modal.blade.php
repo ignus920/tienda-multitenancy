@@ -62,7 +62,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="show = false"></div>
 
     <!-- Modal Panel -->
-    <div class="relative z-10 bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]"
+    <div class="relative z-10 bg-white dark:bg-gray-800 rounded-xl w-full max-w-5xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]"
          @click.stop>
 
         <!-- Header -->
@@ -194,9 +194,6 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                                         <span class="font-bold text-gray-900 dark:text-white text-xs">
                                             {{ $history->user->name ?? 'Usuario Sistema' }}
                                         </span>
-                                        <span class="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800 uppercase">
-                                            COMENTARIO
-                                        </span>
                                         <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white tracking-wider" 
                                               style="background-color: {{ $finalColor }}">
                                             {{ $statusName }}
@@ -303,7 +300,7 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Historial de Solicitudes</p>
 
-                    <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 items-end">
                         <div>
                             <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">Desde</label>
                             <input type="date" wire:model.live="dateFrom" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-xs py-2 px-3 dark:text-white">
@@ -312,7 +309,8 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                             <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">Hasta</label>
                             <input type="date" wire:model.live="dateTo" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-xs py-2 px-3 dark:text-white">
                         </div>
-                        <div class="col-span-2">
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">&nbsp;</label>
                             <input type="text" wire:model.live="search" placeholder="Buscar..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-xs py-2 px-3 dark:text-white">
                         </div>
                     </div>
