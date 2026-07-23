@@ -390,8 +390,16 @@ class TicketRequestModal extends Component
                 $departments = TickDepartment::where('status', 1)->orderBy('name')->get();
 
                 if ($this->selectedRequestId) {
-                    $selectedRequest = TickRequest::with(['status', 'department', 'creator', 'history.status', 'history.user', 'supplier'])
-                        ->find($this->selectedRequestId);
+                    $selectedRequest = TickRequest::with([
+                        'status', 
+                        'department', 
+                        'creator', 
+                        'history.status', 
+                        'history.user', 
+                        'supplier', 
+                        'product.principalImage', 
+                        'product.principalBodegaImage'
+                    ])->find($this->selectedRequestId);
                 }
 
                 $requests = TickRequest::with(['status', 'department', 'creator', 'supplier'])
