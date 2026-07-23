@@ -31,6 +31,23 @@ class VntQuote extends Model
         'deleted_at' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($quote) {
+            if ($quote->branchId && $quote->customerId) {
+                $branch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+                $contact = \App\Models\Tenant\Customer\VntContacts::where('warehouseId', $quote->customerId)->first();
+
+                if ($branch && $contact) {
+                    $contactWarehouse = \App\Models\Tenant\Customer\VntWarehouse::find($contact->warehouseId);
+                    if ($contactWarehouse && $branch->companyId !== $contactWarehouse->companyId) {
+                        throw new \Exception("La sucursal seleccionada no pertenece al cliente de la cotización.");
+                    }
+                }
+            }
+        });
+    }
+
     // Relaciones
     public function detalles(): HasMany
     {

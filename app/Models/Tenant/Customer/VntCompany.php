@@ -83,6 +83,21 @@ class VntCompany extends Model
         'deleted_at',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($company) {
+            if ($company->identification) {
+                $exists = self::where('identification', $company->identification)
+                    ->where('id', '!=', $company->id)
+                    ->first();
+                if ($exists) {
+                    $name = $exists->businessName ?: trim(implode(' ', array_filter([$exists->firstName, $exists->secondName, $exists->lastName, $exists->secondLastName])));
+                    throw new \Exception("La identificación {$company->identification} ya se encuentra registrada para el cliente '{$name}' (ID: {$exists->id}).");
+                }
+            }
+        });
+    }
+
 
     // --- Relaciones ---
 
