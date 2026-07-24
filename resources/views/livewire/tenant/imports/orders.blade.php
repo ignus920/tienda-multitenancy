@@ -299,7 +299,23 @@
                     <!-- Controles -->
                     <div class="flex items-center gap-3">
                         @if ($filterStatus == 7 && $selectedShipp > 0 && $profileUser != '17')
-                            <button wire:click="rotatePriorities" 
+                            <button type="button"
+                                    @click="
+                                        Swal.fire({
+                                            title: '¿Confirmar recibido de mercancía?',
+                                            text: 'Antes de confirmar el recibido de la mercancía, ¿has revisado cantidades y códigos de la mercancía recibida?\n\nSi todo está revisado, presiona continuar para cargar los productos recibidos al inventario.',
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonColor: '#16a34a',
+                                            cancelButtonColor: '#dc2626',
+                                            confirmButtonText: 'CONTINUAR',
+                                            cancelButtonText: 'CANCELAR'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                $wire.rotatePriorities();
+                                            }
+                                        })
+                                    "
                                     class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                     title="Al recibir los productos seleccionados, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
                                 <span class="bg-green-800 text-white text-xs font-bold px-2 py-0.5 rounded-full mr-2">{{ $this->productsToReceiveCount }}</span>
@@ -708,8 +724,34 @@
                                                 <x-heroicon-o-check class="w-4 h-4" /> Production
                                             </button>
                                         @elseif($order->status == 7)
-                                            <button wire:click="removeFromShipment({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 whitespace-nowrap" title="Regresar a Producción">
-                                                <x-heroicon-o-arrow-path class="w-4 h-4" /> Sacar del envío
+                                            <button type="button"
+                                                    @click="
+                                                        Swal.fire({
+                                                            title: 'Cambiar cantidades',
+                                                            text: 'Ingresa la cantidad total a enviar para este ítem:',
+                                                            input: 'number',
+                                                            inputAttributes: {
+                                                                min: 1,
+                                                                step: 1
+                                                            },
+                                                            inputValue: {{ $order->qty_requested }},
+                                                            showCancelButton: true,
+                                                            confirmButtonText: 'Aceptar',
+                                                            cancelButtonText: 'Cancelar',
+                                                            inputValidator: (value) => {
+                                                                if (!value || value <= 0) {
+                                                                    return 'Debes ingresar una cantidad válida mayor a 0';
+                                                                }
+                                                            }
+                                                        }).then((result) => {
+                                                            if (result.isConfirmed) {
+                                                                $wire.changeShipmentQuantity({{ $order->id }}, result.value);
+                                                            }
+                                                        })
+                                                    "
+                                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 whitespace-nowrap" 
+                                                    title="Cambiar cantidades del envío">
+                                                <x-heroicon-o-arrow-path class="w-4 h-4" /> Cambiar cantidades
                                             </button>
                                         @else
                                             <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>

@@ -696,6 +696,32 @@ class Orders extends Component
                                 'user_id' => Auth::id()
                             ]);
                             $import->update(['status' => 8]);
+
+                            // Afectar el stock en inv_items_store para la bodega principal
+                            $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
+                                ->orderBy('id', 'asc')
+                                ->first();
+
+                            if ($principalStore) {
+                                $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $import->item_id)
+                                    ->where('storeId', $principalStore->id)
+                                    ->first();
+
+                                $qtyToAdd = $import->qty_requested;
+
+                                if ($itemStore) {
+                                    $itemStore->stock_items_store += $qtyToAdd;
+                                    $itemStore->save();
+                                } else {
+                                    \App\Models\Tenant\Items\InvItemsStore::create([
+                                        'itemId' => $import->item_id,
+                                        'storeId' => $principalStore->id,
+                                        'stock_items_store' => $qtyToAdd,
+                                        'initial_stock' => 0.00,
+                                        'wp_stock_percentage' => 100,
+                                    ]);
+                                }
+                            }
                         }
                     }
                 }
@@ -830,6 +856,105 @@ class Orders extends Component
 
         unset($this->orders);
         $this->dispatch('$refresh');
+    }
+
+    public function changeShipmentQuantity($importId, $newQty)
+    {
+        $newQty = (int)$newQty;
+        if ($newQty <= 0) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'La cantidad debe ser mayor a 0'
+            ]);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $import = ImpImports::findOrFail($importId);
+            $qtyRequested = (int)$import->qty_requested;
+            $oldStatus = $import->status;
+
+            if ($newQty < $qtyRequested) {
+                // Caso 1: Cantidad inferior - actualiza el actual y crea otro en Producción
+                $remainingQty = $qtyRequested - $newQty;
+
+                $import->update([
+                    'qty_requested' => $newQty
+                ]);
+
+                $newImport = ImpImports::create([
+                    'item_id' => $import->item_id,
+                    'user_id' => $import->user_id,
+                    'label_id' => $import->label_id,
+                    'qty_requested' => $remainingQty,
+                    'price' => $import->price,
+                    'status' => 5, // Producción
+                    'packing_id' => null,
+                    'priority' => $import->priority,
+                    'priority_assigned_at' => $import->priority_assigned_at,
+                    'news' => $import->news
+                ]);
+
+                ImpStatusHistory::create([
+                    'import_id' => $newImport->id,
+                    'previous_state' => null,
+                    'new_state' => 5,
+                    'user_id' => Auth::id()
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "Cantidad reducida a {$newQty} en tránsito. Se creó una nueva solicitud de {$remainingQty} en Producción."
+                ]);
+
+            } elseif ($newQty > $qtyRequested) {
+                // Caso 2: Cantidad superior - solo actualiza cantidad
+                $import->update([
+                    'qty_requested' => $newQty
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "Cantidad de envío actualizada a {$newQty} con éxito."
+                ]);
+
+            } else {
+                // Caso 3: Cantidad igual - saca el item completo del envío y lo regresa a Producción (status 5)
+                $import->update([
+                    'packing_id' => null,
+                    'status' => 5
+                ]);
+
+                ImpStatusHistory::create([
+                    'import_id' => $import->id,
+                    'previous_state' => $oldStatus,
+                    'new_state' => 5,
+                    'user_id' => Auth::id()
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Producto sacado del envío y regresado a Producción.'
+                ]);
+            }
+
+            DB::connection('tenant')->commit();
+
+            unset($this->orders);
+            $this->dispatch('$refresh');
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error("Error al cambiar cantidades de envío: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo actualizar la cantidad.'
+            ]);
+        }
     }
 
     public function removeFromShipment($importId)
@@ -1772,6 +1897,32 @@ class Orders extends Component
                         'new_state' => 8,
                         'user_id' => Auth::id()
                     ]);
+
+                    // Afectar el stock en inv_items_store para la bodega principal
+                    $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
+                        ->orderBy('id', 'asc')
+                        ->first();
+
+                    if ($principalStore) {
+                        $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $import->item_id)
+                            ->where('storeId', $principalStore->id)
+                            ->first();
+
+                        $qtyToAdd = $import->qty_requested;
+
+                        if ($itemStore) {
+                            $itemStore->stock_items_store += $qtyToAdd;
+                            $itemStore->save();
+                        } else {
+                            \App\Models\Tenant\Items\InvItemsStore::create([
+                                'itemId' => $import->item_id,
+                                'storeId' => $principalStore->id,
+                                'stock_items_store' => $qtyToAdd,
+                                'initial_stock' => 0.00,
+                                'wp_stock_percentage' => 100,
+                            ]);
+                        }
+                    }
                 }
 
                 // 2. Rotar prioridades de los productos restantes (status < 8) de forma independiente
