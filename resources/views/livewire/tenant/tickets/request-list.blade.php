@@ -62,13 +62,24 @@
         <!-- Header -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-                        {{ $isSupplier ? 'Requests Panel' : 'Panel de Solicitudes' }}
-                    </h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">
-                        {{ $isSupplier ? 'Management and tracking of requests' : 'Gestión y seguimiento de requerimientos' }}
-                    </p>
+                <div class="flex items-center gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                            {{ $isSupplier ? 'Requests Panel' : 'Panel de Solicitudes' }}
+                        </h1>
+                        <p class="text-gray-600 dark:text-gray-400 mt-1">
+                            {{ $isSupplier ? 'Management and tracking of requests' : 'Gestión y seguimiento de requerimientos' }}
+                        </p>
+                    </div>
+                    @if($isSupplier)
+                        <a href="{{ route('imports.imports-orders') }}" 
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg shadow-sm transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Orders
+                        </a>
+                    @endif
                 </div>
                 @if(!$isSupplier)
                 <div class="flex items-center gap-3">

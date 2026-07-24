@@ -341,6 +341,99 @@ class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     @endif
                 </div>
 
+                @if(auth()->user()?->profile_id != 17)
+                    <!-- Historial -->
+                    <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Historial de Solicitudes</p>
+
+                        <!-- Filtros -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 items-end">
+                            <div>
+                                <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">Desde</label>
+                                <input type="date" wire:model.live="dateFrom" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-xs py-2 px-3 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">Hasta</label>
+                                <input type="date" wire:model.live="dateTo" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-xs py-2 px-3 dark:text-white">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-medium text-gray-400 uppercase mb-1">&nbsp;</label>
+                                <input type="text" wire:model.live="search" placeholder="Buscar..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-xs py-2 px-3 dark:text-white">
+                            </div>
+                        </div>
+
+                        <!-- Tabla -->
+                        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                                    <tr>
+                                        <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-10">#</th>
+                                        <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                                        <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Depto. / Prov.</th>
+                                        <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Detalle</th>
+                                        <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Estado</th>
+                                        <th class="px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Ver</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    @forelse($requests as $req)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-3 py-3 font-medium text-gray-400 text-center">{{ $req->id }}</td>
+                                        <td class="px-3 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            {{ $req->created_at->format('d/m/Y H:i') }}
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                                @if($req->supplier_id)
+                                                    {{ $req->supplier->name ?? 'Proveedor N/A' }}
+                                                @else
+                                                    {{ $req->department->name ?? 'Depto N/A' }}
+                                                @endif
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-3 text-gray-700 dark:text-gray-200 max-w-[180px] truncate">
+                                            {!! Str::words(strip_tags($req->detail), 8) !!}
+                                        </td>
+                                        <td class="px-3 py-3 text-center">
+                                            @php
+                                                $statusColor = $req->status->color ?? 'gray';
+                                                $colorMap = [
+                                                    'indigo' => '#4f46e5',
+                                                    'green' => '#16a34a',
+                                                    'blue' => '#2563eb',
+                                                    'red' => '#dc2626',
+                                                    'maroon' => '#800000',
+                                                ];
+                                                $badgeColor = $colorMap[strtolower($statusColor)] ?? $statusColor;
+                                            @endphp
+                                            <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white shadow-sm"
+                                                style="background-color: {{ $badgeColor }}">
+                                                {{ $req->status->name }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-3 text-center">
+                                            <button wire:click="view({{ $req->id }})" class="p-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                                                <x-heroicon-o-eye class="w-3.5 h-3.5"/>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="px-3 py-8 text-center text-gray-400 italic text-xs uppercase tracking-wider">No se encontraron entradas</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if($requests instanceof \Illuminate\Pagination\LengthAwarePaginator && $requests->hasPages())
+                        <div class="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 rounded-b-xl flex-shrink-0">
+                            {{ $requests->links() }}
+                        </div>
+                    @endif
+                @endif
+
             @endif
         </div>
     </div>
