@@ -278,27 +278,30 @@
             $ivaGlobal = 0;
             $totalGeneral = 0;
 
-            $sortedDetalles = $quote->detalles->sortBy([
+            $sortedDetalles = $quote->detalles->sort(function ($a, $b) {
                 // 1. Tipo de item (1 = Producto físico, 2 = Cortes/Servicios, 3 = Fletes)
-                function ($detalle) {
+                $getType = function ($detalle) {
                     $sku = strtolower($detalle->item->sku ?? '');
                     $name = strtolower($detalle->item->name ?? $detalle->item->display_name ?? '');
                     $type = strtolower($detalle->item->type ?? '');
 
-                    if (str_contains($sku, 'flete') || str_contains($name, 'flete')) {
-                        return 3;
-                    }
-                    if (str_contains($sku, 'corte') || str_contains($name, 'corte') || str_contains($type, 'servicio')) {
-                        return 2;
-                    }
+                    if (str_contains($sku, 'flete') || str_contains($name, 'flete')) return 3;
+                    if (str_contains($sku, 'corte') || str_contains($name, 'corte') || str_contains($type, 'servicio')) return 2;
                     return 1;
-                },
+                };
+
+                $typeA = $getType($a);
+                $typeB = $getType($b);
+
+                if ($typeA !== $typeB) {
+                    return $typeA <=> $typeB;
+                }
+
                 // 2. Primera letra del picking (prioridad: P -> 1, A -> 2, M -> 3, otras -> 4_letra)
-                function ($detalle) {
+                $getPickingPriority = function ($detalle) {
                     $picking = strtoupper(trim($detalle->item->picking ?? ''));
-                    if (empty($picking) || $picking === 'N/A') {
-                        return 'ZZZ';
-                    }
+                    if (empty($picking) || $picking === 'N/A') return 'ZZZ';
+                    
                     preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
                     if ($matches) {
                         $char1 = $matches[1];
@@ -308,30 +311,63 @@
                         return '4_' . $char1;
                     }
                     return 'ZZZ';
-                },
+                };
+
+                $prioA = $getPickingPriority($a);
+                $prioB = $getPickingPriority($b);
+
+                if ($prioA !== $prioB) {
+                    return $prioA <=> $prioB;
+                }
+
                 // 3. Primeros dos dígitos numéricos del picking
-                function ($detalle) {
+                $getDigits2 = function ($detalle) {
                     $picking = strtoupper(trim($detalle->item->picking ?? ''));
                     preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
                     return $matches ? intval($matches[2]) : 999;
-                },
+                };
+
+                $digits2A = $getDigits2($a);
+                $digits2B = $getDigits2($b);
+
+                if ($digits2A !== $digits2B) {
+                    return $digits2A <=> $digits2B;
+                }
+
                 // 4. Letra del medio del picking
-                function ($detalle) {
+                $getCharMiddle = function ($detalle) {
                     $picking = strtoupper(trim($detalle->item->picking ?? ''));
                     preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
                     return $matches ? $matches[3] : 'Z';
-                },
+                };
+
+                $charMiddleA = $getCharMiddle($a);
+                $charMiddleB = $getCharMiddle($b);
+
+                if ($charMiddleA !== $charMiddleB) {
+                    return $charMiddleA <=> $charMiddleB;
+                }
+
                 // 5. Últimos dos dígitos numéricos del picking
-                function ($detalle) {
+                $getDigits4 = function ($detalle) {
                     $picking = strtoupper(trim($detalle->item->picking ?? ''));
                     preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
                     return $matches ? intval($matches[4]) : 999;
-                },
-                // 6. Desempate por código interno
-                function ($detalle) {
-                    return $detalle->item->internal_code ?? $detalle->item->sku ?? '';
+                };
+
+                $digits4A = $getDigits4($a);
+                $digits4B = $getDigits4($b);
+
+                if ($digits4A !== $digits4B) {
+                    return $digits4A <=> $digits4B;
                 }
-            ])->values();
+
+                // 6. Desempate por código interno
+                $codeA = $a->item->internal_code ?? $a->item->sku ?? '';
+                $codeB = $b->item->internal_code ?? $b->item->sku ?? '';
+
+                return $codeA <=> $codeB;
+            })->values();
         @endphp
 
         @foreach($sortedDetalles as $index => $detalle)
