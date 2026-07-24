@@ -697,31 +697,32 @@ class Orders extends Component
                             ]);
                             $import->update(['status' => 8]);
 
-                            // Afectar el stock en inv_items_store para la bodega principal
-                            $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
-                                ->orderBy('id', 'asc')
-                                ->first();
+                            /* Se comenta temporalmente la afectación automática del stock a solicitud del cliente
+                             $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
+                                 ->orderBy('id', 'asc')
+                                 ->first();
 
-                            if ($principalStore) {
-                                $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $import->item_id)
-                                    ->where('storeId', $principalStore->id)
-                                    ->first();
+                             if ($principalStore) {
+                                 $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $import->item_id)
+                                     ->where('storeId', $principalStore->id)
+                                     ->first();
 
-                                $qtyToAdd = $import->qty_requested;
+                                 $qtyToAdd = $import->qty_requested;
 
-                                if ($itemStore) {
-                                    $itemStore->stock_items_store += $qtyToAdd;
-                                    $itemStore->save();
-                                } else {
-                                    \App\Models\Tenant\Items\InvItemsStore::create([
-                                        'itemId' => $import->item_id,
-                                        'storeId' => $principalStore->id,
-                                        'stock_items_store' => $qtyToAdd,
-                                        'initial_stock' => 0.00,
-                                        'wp_stock_percentage' => 100,
-                                    ]);
-                                }
-                            }
+                                 if ($itemStore) {
+                                     $itemStore->stock_items_store += $qtyToAdd;
+                                     $itemStore->save();
+                                 } else {
+                                     \App\Models\Tenant\Items\InvItemsStore::create([
+                                         'itemId' => $import->item_id,
+                                         'storeId' => $principalStore->id,
+                                         'stock_items_store' => $qtyToAdd,
+                                         'initial_stock' => 0.00,
+                                         'wp_stock_percentage' => 100,
+                                     ]);
+                                 }
+                             }
+                             */
                         }
                     }
                 }
@@ -1898,7 +1899,7 @@ class Orders extends Component
                         'user_id' => Auth::id()
                     ]);
 
-                    // Afectar el stock en inv_items_store para la bodega principal
+                    /* Se comenta temporalmente la afectación automática del stock a solicitud del cliente
                     $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
                         ->orderBy('id', 'asc')
                         ->first();
@@ -1923,6 +1924,7 @@ class Orders extends Component
                             ]);
                         }
                     }
+                    */
                 }
 
                 // 2. Rotar prioridades de los productos restantes (status < 8) de forma independiente

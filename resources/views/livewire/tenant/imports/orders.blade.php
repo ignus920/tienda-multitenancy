@@ -303,12 +303,12 @@
                                     @click="
                                         Swal.fire({
                                             title: '¿Confirmar recibido de mercancía?',
-                                            text: 'Antes de confirmar el recibido de la mercancía, ¿has revisado cantidades y códigos de la mercancía recibida?\n\nSi todo está revisado, presiona continuar para cargar los productos recibidos al inventario.',
+                                            text: 'Antes de confirmar el recibido de la mercancía, ¿has revisado cantidades y códigos de la mercancía recibida?\n\nSi todo está revisado, presiona confirmar para cargar los productos recibidos al inventario.',
                                             icon: 'warning',
                                             showCancelButton: true,
                                             confirmButtonColor: '#16a34a',
                                             cancelButtonColor: '#dc2626',
-                                            confirmButtonText: 'CONTINUAR',
+                                            confirmButtonText: 'CONFIRMAR',
                                             cancelButtonText: 'CANCELAR'
                                         }).then((result) => {
                                             if (result.isConfirmed) {
