@@ -201,15 +201,15 @@ $header = 'Seleccionar productos';
 
                     {{-- Info del producto --}}
                     @php
-                        $sales = $product->sales_last_30_days ?? 0;
+                        $mobileStock = $product->stock_bodega ?? 0;
                         $hasNvpMobile = strpos(strtoupper($product->display_name), 'NVP') !== false;
                         if ($hasNvpMobile) {
                             $mobileTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
                             $mobileSkuClass = 'text-blue-500/80 dark:text-blue-400/80';
-                        } elseif ($sales == 0) {
+                        } elseif ($mobileStock > 60) {
                             $mobileTextClass = 'text-red-600 dark:text-red-400 font-bold';
                             $mobileSkuClass = 'text-red-500/80 dark:text-red-400/80';
-                        } elseif ($sales <= 5) {
+                        } elseif ($mobileStock >= 50 && $mobileStock <= 60) {
                             $mobileTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                             $mobileSkuClass = 'text-gray-700 dark:text-gray-400 font-bold';
                         } else {
@@ -293,15 +293,15 @@ $header = 'Seleccionar productos';
                                 <div class="w-full h-full flex items-center justify-center"><span class="text-lg font-bold text-gray-400">{{ strtoupper(substr($product->name, 0, 1)) }}</span></div>
                             @endif
                                      @php
-                                         $sales = $product->sales_last_30_days ?? 0;
+                                         $mobileListStock = $product->stock_bodega ?? 0;
                                          $hasNvpMobileList = strpos(strtoupper($product->display_name), 'NVP') !== false;
                                          if ($hasNvpMobileList) {
                                              $mobileListTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
                                              $mobileListSkuClass = 'text-blue-500/80 dark:text-blue-400/80';
-                                         } elseif ($sales == 0) {
+                                         } elseif ($mobileListStock > 60) {
                                              $mobileListTextClass = 'text-red-600 dark:text-red-400 font-bold';
                                              $mobileListSkuClass = 'text-red-500/80 dark:text-red-400/80';
-                                         } elseif ($sales <= 5) {
+                                         } elseif ($mobileListStock >= 50 && $mobileListStock <= 60) {
                                              $mobileListTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                                              $mobileListSkuClass = 'text-gray-700 dark:text-gray-400 font-bold';
                                          } else {

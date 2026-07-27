@@ -296,15 +296,15 @@ $header = 'Seleccionar productos';
                                 <!-- Información del producto -->
                                 <div class="p-3 flex flex-col h-full">
                                     @php
-                                         $sales = $product->sales_last_30_days ?? 0;
+                                         $stockQuantity = $product->stock_bodega ?? 0;
                                          $hasNvp = strpos(strtoupper($product->display_name), 'NVP') !== false;
                                          if ($hasNvp) {
                                              $textClass = 'text-blue-600 dark:text-blue-400 font-bold';
                                              $skuClass = 'text-blue-500/80 dark:text-blue-400/80';
-                                         } elseif ($sales == 0) {
+                                         } elseif ($stockQuantity > 60) {
                                              $textClass = 'text-red-600 dark:text-red-400 font-bold';
                                              $skuClass = 'text-red-500/80 dark:text-red-400/80';
-                                         } elseif ($sales <= 5) {
+                                         } elseif ($stockQuantity >= 50 && $stockQuantity <= 60) {
                                              $textClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                                              $skuClass = 'text-gray-700 dark:text-gray-400 font-bold';
                                          } else {
@@ -648,13 +648,13 @@ $header = 'Seleccionar productos';
 
                                         <!-- Nombre -->
                                         @php
-                                            $tableSales = $product->sales_last_30_days ?? 0;
+                                            $tableStock = $product->stock_bodega ?? 0;
                                             $hasNvpTable = strpos(strtoupper($product->display_name), 'NVP') !== false;
                                             if ($hasNvpTable) {
                                                 $tableTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
-                                            } elseif ($tableSales == 0) {
+                                            } elseif ($tableStock > 60) {
                                                 $tableTextClass = 'text-red-600 dark:text-red-400 font-bold';
-                                            } elseif ($tableSales <= 5) {
+                                            } elseif ($tableStock >= 50 && $tableStock <= 60) {
                                                 $tableTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                                             } else {
                                                 $tableTextClass = 'text-gray-900 dark:text-white font-medium';
