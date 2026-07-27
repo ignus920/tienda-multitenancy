@@ -120,7 +120,9 @@ class RequestList extends Component
             'suppliersList' => $suppliersList,
             'totalRequests' => $totalQuery->count(),
             'isSupplier' => $isSupplier
-        ])->layout('layouts.app');
+        ])->layout('layouts.app', [
+            'header' => $isSupplier ? 'Requests Panel' : 'Panel de Solicitudes'
+        ]);
     }
 
     public function filterByStatus($statusId = null)

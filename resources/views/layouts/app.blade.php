@@ -98,6 +98,15 @@
                                 Requests
                             </a>
                         @endif
+                        @if (Auth::user()?->profile_id == 17 && request()->routeIs('tenant.tickets'))
+                            <a href="{{ route('imports.imports-orders') }}" 
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg shadow-sm transition-colors ml-2">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Orders
+                            </a>
+                        @endif
                     </div>
 
                     <!-- Dark mode toggle -->
