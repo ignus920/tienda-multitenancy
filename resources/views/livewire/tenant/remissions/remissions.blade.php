@@ -110,12 +110,14 @@
 
         <!-- Anulados -->
         <div wire:click="setStatusFilter('anulados')" 
-             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'anulados' ? 'bg-slate-500 border-slate-600 shadow-slate-200 dark:shadow-slate-900/20 text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'anulados' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
+             style="{{ $statusFilter === 'anulados' ? 'background-color: #64748b !important; border-color: #475569 !important; shadow-color: rgba(100, 116, 139, 0.2);' : '' }}">
             <div class="flex items-center space-x-4">
-                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold transition-colors duration-300 {{ $statusFilter === 'anulados' ? 'bg-white/20 text-white' : 'bg-slate-500 text-white shadow-lg shadow-slate-500/20' }}">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'anulados' ? 'bg-white/20 text-white' : 'text-white shadow-lg' }}"
+                     style="{{ $statusFilter === 'anulados' ? '' : 'background-color: #64748b !important;' }}">
                     {{ $summaryCounts['anulados'] }}
                 </div>
-                <div>
+                <div class="min-w-0">
                     <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'anulados' ? 'text-white' : 'text-gray-500 dark:text-slate-400' }}">Anulados</p>
                 </div>
             </div>
