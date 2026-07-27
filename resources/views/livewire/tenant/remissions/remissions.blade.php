@@ -24,7 +24,7 @@
     </div>
     
     <!-- Tarjetas de Resumen -->
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
         <!-- Registradas -->
         <div wire:click="setStatusFilter('registradas')" 
              class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'registradas' ? 'bg-red-500 border-red-600 shadow-red-200 dark:shadow-red-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
@@ -104,6 +104,19 @@
                 <div class="min-w-0">
                     <p class="text-xs font-bold transition-colors duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'text-white/80' : 'text-gray-400' }} uppercase mb-0.5">Cartera</p>
                     <p class="text-[13px] font-semibold transition-colors duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'text-white' : 'text-gray-700 dark:text-slate-300' }} leading-tight">Sin autorización</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anulados -->
+        <div wire:click="setStatusFilter('anulados')" 
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'anulados' ? 'bg-slate-500 border-slate-600 shadow-slate-200 dark:shadow-slate-900/20 text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold transition-colors duration-300 {{ $statusFilter === 'anulados' ? 'bg-white/20 text-white' : 'bg-slate-500 text-white shadow-lg shadow-slate-500/20' }}">
+                    {{ $summaryCounts['anulados'] }}
+                </div>
+                <div>
+                    <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'anulados' ? 'text-white' : 'text-gray-500 dark:text-slate-400' }}">Anulados</p>
                 </div>
             </div>
         </div>

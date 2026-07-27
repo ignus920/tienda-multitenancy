@@ -76,7 +76,8 @@ class Remissions extends Component
         'sin_entregar' => 0,
         'sin_facturar' => 0,
         'consultas_nuevas' => 0,
-        'sin_autorizacion' => 0
+        'sin_autorizacion' => 0,
+        'anulados' => 0
     ];
 
     public $showConfirmationsModal = false;
@@ -1286,7 +1287,7 @@ class Remissions extends Component
         $this->summaryCounts = [
             'registradas' => (clone $baseQuery)->where('status', 'REGISTRADO')->count(),
             'alistamiento' => (clone $baseQuery)->where('status', 'ALISTAMIENTO')->count(),
-            'sin_entregar' => (clone $baseQuery)->where('status', '!=', 'ENTREGADO')->count(),
+            'sin_entregar' => (clone $baseQuery)->where('status', '!=', 'ENTREGADO')->where('status', '!=', 'ANULADO')->count(),
             'sin_facturar' => (clone $baseQuery)->where('status', '!=', 'ANULADO')->whereDoesntHave('invoiceSale')->count(),
             'consultas_nuevas' => InventoryConfirmation::where('status', 1)->count(),
             'sin_autorizacion' => InvRemissions::where('status', '!=', 'ANULADO')
@@ -1297,6 +1298,7 @@ class Remissions extends Component
                 ->whereDoesntHave('authorizations', function ($q) {
                     $q->where('auth_type', 'despacho')->where('status', 1);
                 })->count(),
+            'anulados' => (clone $baseQuery)->where('status', 'ANULADO')->count(),
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda utilizando el helper
@@ -2287,9 +2289,12 @@ class Remissions extends Component
                 } elseif ($this->statusFilter === 'alistamiento') {
                     $query->where('status', 'ALISTAMIENTO');
                 } elseif ($this->statusFilter === 'sin_entregar') {
-                    $query->where('status', '!=', 'ENTREGADO');
+                    $query->where('status', '!=', 'ENTREGADO')
+                          ->where('status', '!=', 'ANULADO');
                 } elseif ($this->statusFilter === 'sin_facturar') {
                     $query->where('status', '!=', 'ANULADO')->whereDoesntHave('invoiceSale');
+                } elseif ($this->statusFilter === 'anulados') {
+                    $query->where('status', 'ANULADO');
                 } elseif ($this->statusFilter === 'sin_autorizacion') {
                     $query->where('status', '!=', 'ANULADO')
                         ->where('status', '!=', 'ENTREGADO')
