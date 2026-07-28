@@ -1821,6 +1821,7 @@ class Orders extends Component
         return $query->get()
             ->map(function ($sh) {
                 $dateStr = $sh->etd ? \Carbon\Carbon::parse($sh->etd)->format('d/m/Y') : '';
+                $opStr = $sh->operation_number ? $sh->operation_number . " " : '';
                 $conveyorStr = $sh->conveyor ? " " . $sh->conveyor : '';
                 $etdStr = $dateStr ? " ETD: " . $dateStr : '';
                 
@@ -1835,7 +1836,7 @@ class Orders extends Component
 
                 return [
                     'id' => $sh->id,
-                    'way' => "{$wayStr}{$conveyorStr}{$etdStr}{$etaStr}{$fervicomStr}"
+                    'way' => "{$opStr}{$wayStr}{$conveyorStr}{$etdStr}{$etaStr}{$fervicomStr}"
                 ];
             })
             ->toArray();
