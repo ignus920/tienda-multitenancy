@@ -201,7 +201,8 @@
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse($items as $item)
-                        <tr x-data="{ 
+                        <tr wire:key="import-item-row-{{ $item->id }}"
+                            x-data="{ 
                                 showTooltip: false,
                                 tooltipPosition: 'top'
                             }"
@@ -347,7 +348,8 @@
     <!-- Vista Mobile (cards) - visible solo en móvil -->
     <div class="lg:hidden space-y-4">
         @forelse($items as $item)
-        <div wire:click="selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
+        <div wire:key="import-item-mobile-{{ $item->id }}"
+            wire:click="selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})"
             class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' }} rounded-lg shadow-sm border p-4 hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors relative">
 
             <div class="flex items-start justify-between mb-3">
