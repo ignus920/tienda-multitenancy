@@ -273,19 +273,19 @@ class Orders extends Component
             ->when(Auth::user()->profile_id == 17, function ($query) {
                 return $query->where('iis.supplier_id', Auth::id());
             })
-            ->when($this->filterStatus, function ($query) {
+            ->when($this->filterStatus && !$this->search, function ($query) {
                 return $query->where('i.status', $this->filterStatus);
             })
-            ->when($this->filterNews, function ($query) {
+            ->when($this->filterNews && !$this->search, function ($query) {
                 return $query->where('i.news', $this->filterNews);
             })
-            ->when($this->selectedLabelId, function ($query) {
+            ->when($this->selectedLabelId && !$this->search, function ($query) {
                 return $query->where('i.label_id', $this->selectedLabelId);
             })
-            ->when($this->filterPacking, function ($query) {
+            ->when($this->filterPacking && !$this->search, function ($query) {
                 return $query->where('i.packing_id', $this->filterPacking);
             })
-            ->when($this->selectedShipp > 0, function ($query) {
+            ->when($this->selectedShipp > 0 && !$this->search, function ($query) {
                 return $query->where('pk.shipping_id', $this->selectedShipp);
             })
             ->when($this->search, function ($query) {
@@ -293,7 +293,10 @@ class Orders extends Component
                     $q->where('iv.name', 'like', '%' . $this->search . '%')
                       ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
                       ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%');
+                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%')
+                      ->orWhere('pk.number_packing', 'like', '%' . $this->search . '%')
+                      ->orWhere('s.operation_number', 'like', '%' . $this->search . '%')
+                      ->orWhere('il.name', 'like', '%' . $this->search . '%');
                 });
             })
             ->paginate($this->perPage);

@@ -70,6 +70,9 @@ Route::get('dashboard', function () {
         if (auth()->user() && auth()->user()->profile_id == 17) {
             return redirect()->route('imports.imports-orders');
         }
+        if (auth()->user() && auth()->user()->profile_id == 18) {
+            return redirect()->route('tenant.client.portal');
+        }
         return redirect()->route('tenant.dashboard');
     }
     return redirect()->route('tenant.select');
@@ -208,6 +211,9 @@ require __DIR__ . '/tenants/wordpress.php';
 
 // Incluir rutas de Catálogos
 require __DIR__ . '/tenants/catalogs.php';
+
+// Incluir rutas del portal de autogestión de clientes
+require __DIR__ . '/tenants/portal.php';
 
 
 

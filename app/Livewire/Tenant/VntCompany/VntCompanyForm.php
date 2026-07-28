@@ -1597,6 +1597,20 @@ class VntCompanyForm extends Component
     {
         $newUser = null;
         try {
+            // Determinar perfil, rol y posición según tipo de contacto
+            $isCliente = ($this->type === 'CLIENTE');
+            $profileId = $isCliente ? 18 : 17;
+            $roleId = $isCliente ? 18 : 17;
+            
+            // Buscar si existe la posición 'Cliente' en la base de datos central, si no usar 5 por defecto
+            $positionId = 5;
+            if ($isCliente) {
+                $pos = \App\Models\Central\CnfPosition::where('name', 'Cliente')->first();
+                if ($pos) {
+                    $positionId = $pos->id;
+                }
+            }
+
             // Crear el contacto antes del usuario
             $newContact = VntContact::create([
                 'firstName' => $this->firstName ?: $this->businessName,
@@ -1604,7 +1618,7 @@ class VntCompanyForm extends Component
                 'email' => $this->billingEmail,
                 'status' => 1,
                 'warehouseId' => auth()->user()->contact->warehouseId,
-                'positionId' => 5,
+                'positionId' => $positionId,
             ]);
 
             // Preparar datos del usuario
@@ -1616,7 +1630,7 @@ class VntCompanyForm extends Component
                 'name' => $userName,
                 'email' => $this->billingEmail,
                 'password' => Hash::make('12345678'), // Contraseña por defecto
-                'profile_id' => 17, // Perfil "Tienda"
+                'profile_id' => $profileId,
                 'contact_id' => $newContact->id,
                 'phone' => $this->business_phone ?: $this->personal_phone,
             ];
@@ -1634,7 +1648,7 @@ class VntCompanyForm extends Component
             UserTenant::create([
                 'user_id' => $newUser->id,
                 'tenant_id' => session('tenant_id'),
-                'role_id' => 17, // Rol "Proveedor"
+                'role_id' => $roleId,
                 'is_active' => 1,
             ]);
 
