@@ -296,6 +296,7 @@ class Orders extends Component
                       ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%')
                       ->orWhere('pk.number_packing', 'like', '%' . $this->search . '%')
                       ->orWhere('s.operation_number', 'like', '%' . $this->search . '%')
+                      ->orWhere('i.priority', 'like', '%' . $this->search . '%')
                       ->orWhere('il.name', 'like', '%' . $this->search . '%');
                 });
             })
