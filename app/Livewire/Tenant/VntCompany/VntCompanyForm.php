@@ -482,11 +482,24 @@ class VntCompanyForm extends Component
 
             if ($duplicateWarehouse) {
                 $dupCompany = \App\Models\Tenant\Customer\VntCompany::find($duplicateWarehouse->companyId);
-                $dupCompanyName = $dupCompany ? ($dupCompany->businessName ?: trim($dupCompany->firstName . ' ' . $dupCompany->lastName)) : "ID {$duplicateWarehouse->companyId}";
                 
-                $this->addError('business_phone', "¡Advertencia! El teléfono o dirección coincide con la sucursal '{$duplicateWarehouse->name}' del cliente '{$dupCompanyName}'. Verifique para evitar sobreescritura.");
-                Log::info('❌ Guardado detenido: Coincidencia de datos de contacto con otra empresa');
-                return;
+                if ($dupCompany) {
+                    $currentName = trim(strtolower($this->businessName ?: ($this->firstName . ' ' . $this->lastName)));
+                    $dupName = trim(strtolower($dupCompany->businessName ?: ($dupCompany->firstName . ' ' . $dupCompany->lastName)));
+                    
+                    // Si tienen el mismo NIT o el mismo nombre, es el mismo cliente, no bloqueamos
+                    if (
+                        (!empty($this->identification) && $dupCompany->identification === $this->identification) ||
+                        (!empty($currentName) && $currentName === $dupName)
+                    ) {
+                        Log::info('ℹ️ Coincidencia ignorada por ser el mismo cliente (mismo NIT o nombre)');
+                    } else {
+                        $dupCompanyName = $dupCompany->businessName ?: trim($dupCompany->firstName . ' ' . $dupCompany->lastName);
+                        $this->addError('business_phone', "¡Advertencia! El teléfono o dirección coincide con la sucursal '{$duplicateWarehouse->name}' del cliente '{$dupCompanyName}'. Verifique para evitar sobreescritura.");
+                        Log::info('❌ Guardado detenido: Coincidencia de datos de contacto con otra empresa');
+                        return;
+                    }
+                }
             }
         }
 
