@@ -588,7 +588,7 @@ class Orders extends Component
             });
 
         // 3. Unificar y ordenar cronológicamente
-        return $comments->concat($statuses)->sortByDesc('created_at');
+        return $comments->concat($statuses)->sortBy('created_at');
     }
 
     #[Computed]
