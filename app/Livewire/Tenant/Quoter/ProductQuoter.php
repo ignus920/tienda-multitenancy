@@ -443,7 +443,8 @@ class ProductQuoter extends Component
                     DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
                     DB::raw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as sales_last_30_days'),
                     DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL) as reserved_stock'),
-                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 2 AND deleted_at IS NULL) as reserved_transit')
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 2 AND deleted_at IS NULL) as reserved_transit'),
+                    DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses')
                 )
                 ->where('inv_items.status', 1)
                 ->where('inv_items.type', '!=', 'INSUMO')
@@ -455,6 +456,27 @@ class ProductQuoter extends Component
                 ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->leftJoin("{$centralDbName}.vnt_warehouses as central_warehouses", 'inv_store.warehouseId', '=', 'central_warehouses.id')
+                ->leftJoin(DB::raw('
+                    (
+                        SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                        FROM (
+                            SELECT idr.itemId, idr.quantity as qty
+                            FROM inv_detail_remissions idr
+                            INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                            WHERE ir.status != \'ANULADO\'
+                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+
+                            UNION ALL
+
+                            SELECT item_sub.id as itemId, lsh.quantity as qty
+                            FROM legacy_sales_history lsh
+                            INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        ) sub
+                        GROUP BY sub.itemId
+                    ) s7m
+                '), 's7m.itemId', '=', 'inv_items.id')
                 ->where(function ($q) {
                     $q->whereNull('inv_items_store.itemId') // Items no inventariables (sin registros en bodega)
                         ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
@@ -494,7 +516,8 @@ class ProductQuoter extends Component
                     'inv_items.generic',
                     'inv_items.created_at',
                     'inv_items.updated_at',
-                    'inv_items.deleted_at'
+                    'inv_items.deleted_at',
+                    's7m.salidas_7_meses'
                 )
                 ->orderBy('inv_items.' . $this->sortField, $this->sortDirection);
 

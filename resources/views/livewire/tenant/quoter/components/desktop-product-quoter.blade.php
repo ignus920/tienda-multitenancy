@@ -297,14 +297,18 @@ $header = 'Seleccionar productos';
                                 <div class="p-3 flex flex-col h-full">
                                     @php
                                          $stockQuantity = $product->stock_bodega ?? 0;
+                                         $salidas = $product->salidas_7_meses ?? 0;
+                                         $total = $stockQuantity + $salidas;
+                                         $percentage = $total > 0 ? round(($stockQuantity * 100) / $total) : 0;
+                                         
                                          $hasNvp = strpos(strtoupper($product->display_name), 'NVP') !== false;
                                          if ($hasNvp) {
                                              $textClass = 'text-blue-600 dark:text-blue-400 font-bold';
                                              $skuClass = 'text-blue-500/80 dark:text-blue-400/80';
-                                         } elseif ($stockQuantity > 60) {
+                                         } elseif ($percentage > 60) {
                                              $textClass = 'text-red-600 dark:text-red-400 font-bold';
                                              $skuClass = 'text-red-500/80 dark:text-red-400/80';
-                                         } elseif ($stockQuantity >= 50 && $stockQuantity <= 60) {
+                                         } elseif ($percentage >= 50 && $percentage <= 60) {
                                              $textClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                                              $skuClass = 'text-gray-700 dark:text-gray-400 font-bold';
                                          } else {
@@ -648,18 +652,22 @@ $header = 'Seleccionar productos';
 
                                         <!-- Nombre -->
                                         @php
-                                            $tableStock = $product->stock_bodega ?? 0;
-                                            $hasNvpTable = strpos(strtoupper($product->display_name), 'NVP') !== false;
-                                            if ($hasNvpTable) {
-                                                $tableTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
-                                            } elseif ($tableStock > 60) {
-                                                $tableTextClass = 'text-red-600 dark:text-red-400 font-bold';
-                                            } elseif ($tableStock >= 50 && $tableStock <= 60) {
-                                                $tableTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
-                                            } else {
-                                                $tableTextClass = 'text-gray-900 dark:text-white font-medium';
-                                            }
-                                        @endphp
+                                             $tableStock = $product->stock_bodega ?? 0;
+                                             $tableSalidas = $product->salidas_7_meses ?? 0;
+                                             $tableTotal = $tableStock + $tableSalidas;
+                                             $tablePercentage = $tableTotal > 0 ? round(($tableStock * 100) / $tableTotal) : 0;
+                                             
+                                             $hasNvpTable = strpos(strtoupper($product->display_name), 'NVP') !== false;
+                                             if ($hasNvpTable) {
+                                                 $tableTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
+                                             } elseif ($tablePercentage > 60) {
+                                                 $tableTextClass = 'text-red-600 dark:text-red-400 font-bold';
+                                             } elseif ($tablePercentage >= 50 && $tablePercentage <= 60) {
+                                                 $tableTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
+                                             } else {
+                                                 $tableTextClass = 'text-gray-900 dark:text-white font-medium';
+                                             }
+                                         @endphp
 
                                         <td class="px-4 py-4 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 {{ $isSelected ? '!bg-indigo-50 dark:!bg-indigo-900/20' : '' }}" style="position: sticky; left: 120px; z-index: 10;">
                                             <div class="text-sm {{ $tableTextClass }} whitespace-normal break-words max-w-md" title="{{ $product->display_name }}">

@@ -202,14 +202,18 @@ $header = 'Seleccionar productos';
                     {{-- Info del producto --}}
                     @php
                         $mobileStock = $product->stock_bodega ?? 0;
+                        $mobileSalidas = $product->salidas_7_meses ?? 0;
+                        $mobileTotal = $mobileStock + $mobileSalidas;
+                        $mobilePercentage = $mobileTotal > 0 ? round(($mobileStock * 100) / $mobileTotal) : 0;
+                        
                         $hasNvpMobile = strpos(strtoupper($product->display_name), 'NVP') !== false;
                         if ($hasNvpMobile) {
                             $mobileTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
                             $mobileSkuClass = 'text-blue-500/80 dark:text-blue-400/80';
-                        } elseif ($mobileStock > 60) {
+                        } elseif ($mobilePercentage > 60) {
                             $mobileTextClass = 'text-red-600 dark:text-red-400 font-bold';
                             $mobileSkuClass = 'text-red-500/80 dark:text-red-400/80';
-                        } elseif ($mobileStock >= 50 && $mobileStock <= 60) {
+                        } elseif ($mobilePercentage >= 50 && $mobilePercentage <= 60) {
                             $mobileTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                             $mobileSkuClass = 'text-gray-700 dark:text-gray-400 font-bold';
                         } else {
@@ -292,16 +296,21 @@ $header = 'Seleccionar productos';
                             @else
                                 <div class="w-full h-full flex items-center justify-center"><span class="text-lg font-bold text-gray-400">{{ strtoupper(substr($product->name, 0, 1)) }}</span></div>
                             @endif
+                        </div>
                                      @php
                                          $mobileListStock = $product->stock_bodega ?? 0;
+                                         $mobileListSalidas = $product->salidas_7_meses ?? 0;
+                                         $mobileListTotal = $mobileListStock + $mobileListSalidas;
+                                         $mobileListPercentage = $mobileListTotal > 0 ? round(($mobileListStock * 100) / $mobileListTotal) : 0;
+                                         
                                          $hasNvpMobileList = strpos(strtoupper($product->display_name), 'NVP') !== false;
                                          if ($hasNvpMobileList) {
                                              $mobileListTextClass = 'text-blue-600 dark:text-blue-400 font-bold';
                                              $mobileListSkuClass = 'text-blue-500/80 dark:text-blue-400/80';
-                                         } elseif ($mobileListStock > 60) {
+                                         } elseif ($mobileListPercentage > 60) {
                                              $mobileListTextClass = 'text-red-600 dark:text-red-400 font-bold';
                                              $mobileListSkuClass = 'text-red-500/80 dark:text-red-400/80';
-                                         } elseif ($mobileListStock >= 50 && $mobileListStock <= 60) {
+                                         } elseif ($mobileListPercentage >= 50 && $mobileListPercentage <= 60) {
                                              $mobileListTextClass = 'text-gray-950 dark:text-white font-black'; // Mucha negrilla
                                              $mobileListSkuClass = 'text-gray-700 dark:text-gray-400 font-bold';
                                          } else {
