@@ -138,7 +138,7 @@ class Orders extends Component
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->select(
                 DB::raw("'Novedades' as nombre_estado"),
-                DB::raw("'Novedades' as translated_name"),
+                DB::raw(Auth::user()->profile_id == 17 ? "'Issues' as translated_name" : "'Novedades' as translated_name"),
                 DB::raw('COUNT(i.id) as cantidad'),
                 DB::raw("10 as id")
             )
@@ -226,6 +226,7 @@ class Orders extends Component
             ->table('imp_imports as i')
             ->select([
                 'i.id',
+                'i.item_id',
                 DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
                 'iis.factory_ref',
                 'iis.exw',
@@ -862,10 +863,10 @@ class Orders extends Component
     public function changeShipmentQuantity($importId, $newQty)
     {
         $newQty = (int)$newQty;
-        if ($newQty <= 0) {
+        if ($newQty < 0) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'La cantidad debe ser mayor a 0'
+                'message' => 'La cantidad no puede ser menor a 0'
             ]);
             return;
         }
@@ -879,52 +880,8 @@ class Orders extends Component
             $qtyRequested = (int)$import->qty_requested;
             $oldStatus = $import->status;
 
-            if ($newQty < $qtyRequested) {
-                // Caso 1: Cantidad inferior - actualiza el actual y crea otro en Producción
-                $remainingQty = $qtyRequested - $newQty;
-
-                $import->update([
-                    'qty_requested' => $newQty
-                ]);
-
-                $newImport = ImpImports::create([
-                    'item_id' => $import->item_id,
-                    'user_id' => $import->user_id,
-                    'label_id' => $import->label_id,
-                    'qty_requested' => $remainingQty,
-                    'price' => $import->price,
-                    'status' => 5, // Producción
-                    'packing_id' => null,
-                    'priority' => $import->priority,
-                    'priority_assigned_at' => $import->priority_assigned_at,
-                    'news' => $import->news
-                ]);
-
-                ImpStatusHistory::create([
-                    'import_id' => $newImport->id,
-                    'previous_state' => null,
-                    'new_state' => 5,
-                    'user_id' => Auth::id()
-                ]);
-
-                $this->dispatch('show-toast', [
-                    'type' => 'success',
-                    'message' => "Cantidad reducida a {$newQty} en tránsito. Se creó una nueva solicitud de {$remainingQty} en Producción."
-                ]);
-
-            } elseif ($newQty > $qtyRequested) {
-                // Caso 2: Cantidad superior - solo actualiza cantidad
-                $import->update([
-                    'qty_requested' => $newQty
-                ]);
-
-                $this->dispatch('show-toast', [
-                    'type' => 'success',
-                    'message' => "Cantidad de envío actualizada a {$newQty} con éxito."
-                ]);
-
-            } else {
-                // Caso 3: Cantidad igual - saca el item completo del envío y lo regresa a Producción (status 5)
+            if ($newQty === 0) {
+                // Caso A: Cantidad ingresada es cero - regresa el ítem completo a Producción (status 5)
                 $import->update([
                     'packing_id' => null,
                     'status' => 5
@@ -940,6 +897,79 @@ class Orders extends Component
                 $this->dispatch('show-toast', [
                     'type' => 'success',
                     'message' => 'Producto sacado del envío y regresado a Producción.'
+                ]);
+
+            } elseif ($newQty < $qtyRequested) {
+                // Caso B: Cantidad inferior - actualiza el actual y devuelve el excedente a Producción
+                $remainingQty = $qtyRequested - $newQty;
+
+                $import->update([
+                    'qty_requested' => $newQty
+                ]);
+
+                // Buscar si el producto ya tiene un registro en Producción (status 5 sin packing asignado)
+                $existingImport = ImpImports::where('item_id', $import->item_id)
+                    ->where('status', 5)
+                    ->whereNull('packing_id')
+                    ->whereNull('deleted_at')
+                    ->first();
+
+                if ($existingImport) {
+                    $existingImport->increment('qty_requested', $remainingQty);
+
+                    ImpStatusHistory::create([
+                        'import_id' => $existingImport->id,
+                        'previous_state' => null,
+                        'new_state' => 5,
+                        'user_id' => Auth::id()
+                    ]);
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => "Cantidad reducida a {$newQty} en tránsito. Se sumaron {$remainingQty} unidades a la solicitud existente en Producción."
+                    ]);
+                } else {
+                    $newImport = ImpImports::create([
+                        'item_id' => $import->item_id,
+                        'user_id' => $import->user_id,
+                        'label_id' => $import->label_id,
+                        'qty_requested' => $remainingQty,
+                        'price' => $import->price,
+                        'status' => 5, // Producción
+                        'packing_id' => null,
+                        'priority' => $import->priority,
+                        'priority_assigned_at' => $import->priority_assigned_at,
+                        'news' => $import->news
+                    ]);
+
+                    ImpStatusHistory::create([
+                        'import_id' => $newImport->id,
+                        'previous_state' => null,
+                        'new_state' => 5,
+                        'user_id' => Auth::id()
+                    ]);
+
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => "Cantidad reducida a {$newQty} en tránsito. Se creó una nueva solicitud de {$remainingQty} en Producción."
+                    ]);
+                }
+
+            } elseif ($newQty > $qtyRequested) {
+                // Caso C: Cantidad superior - solo actualiza cantidad
+                $import->update([
+                    'qty_requested' => $newQty
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "Cantidad de envío actualizada a {$newQty} con éxito."
+                ]);
+            } else {
+                // Caso D: Cantidad igual - no se realizan cambios
+                $this->dispatch('show-toast', [
+                    'type' => 'info',
+                    'message' => 'La cantidad ingresada es igual a la actual, no se realizaron cambios.'
                 ]);
             }
 
@@ -1817,7 +1847,7 @@ class Orders extends Component
                 'profileUser' => $this->getProfileUserProperty()
             ]
         )
-            ->layout('layouts.app', ['header' => 'Gestión de Ordenes']);
+            ->layout('layouts.app', ['header' => Auth::user()?->profile_id == 17 ? 'Order Management' : 'Gestión de Ordenes']);
     }
 
     private function ensureTenantConnection()

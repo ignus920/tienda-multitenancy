@@ -211,7 +211,7 @@
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                             </div>
-                            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por item o código..."
+                            <input wire:model.live.debounce.300ms="search" type="text" placeholder="{{ Auth::user()?->profile_id == 17 ? 'Search by item or code...' : 'Buscar por item o código...' }}"
                                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                     </div>
@@ -330,7 +330,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
-                                Columnas
+                                {{ Auth::user()?->profile_id == 17 ? 'Columns' : 'Columnas' }}
                                 <svg class="w-4 h-4 ml-1.5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -346,7 +346,7 @@
                                  x-cloak>
                                 <div class="py-2 px-3 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
                                     <div class="font-semibold text-gray-400 dark:text-gray-500 pb-1 border-b border-gray-150 dark:border-gray-600 mb-1">
-                                        Visibilidad de columnas
+                                        {{ Auth::user()?->profile_id == 17 ? 'Columns visibility' : 'Visibilidad de columnas' }}
                                     </div>
                                     <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer">
                                         <input type="checkbox" x-model="showCols.factoryRef" class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500">
@@ -390,7 +390,7 @@
 
                         <!-- Registros por página -->
                         <div class="flex items-center gap-2">
-                            <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
+                            <label class="text-sm text-gray-700 dark:text-gray-300">{{ Auth::user()?->profile_id == 17 ? 'Show:' : 'Mostrar:' }}</label>
                             <select wire:model.live="perPage"
                                 class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 px-3 py-1">
                                 <option value="5">5</option>
@@ -592,8 +592,20 @@
                                 </td>
                                 @endif
                                 <td class="px-4 py-4 max-w-[300px]">
-                                    <div class="text-xs font-medium text-gray-900 dark:text-white break-words">
-                                        {{ $order->item}}
+                                    <div class="flex items-center gap-3">
+                                        @php
+                                            $itemModel = \App\Models\Tenant\Items\Items::find($order->item_id);
+                                            $thumbnail = $itemModel ? $itemModel->getPrincipalThumbnailUrl('COMERCIAL') : asset('images/placeholder-item.png');
+                                        @endphp
+                                        <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+                                             @click.stop="$dispatch('openImageModal', { productId: {{ $order->item_id }}, context: 'COMERCIAL' })">
+                                            <img src="{{ $thumbnail }}" 
+                                                 alt="Product" 
+                                                 class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white break-words">
+                                            {{ $order->item }}
+                                        </div>
                                     </div>
                                 </td>
                                 <td x-show="showCols.factoryRef" class="px-4 py-4">
@@ -674,11 +686,11 @@
                                                 @change="$wire.saveComment({{ $order->id }}, comment); comment = ''"
                                                 @keydown.enter="$wire.saveComment({{ $order->id }}, comment); comment = ''"
                                                 class="flex-1 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                placeholder="Añadir comentario...">
+                                                placeholder="{{ Auth::user()?->profile_id == 17 ? 'Add comment...' : 'Añadir comentario...' }}">
                                             <button 
                                                 @click="$wire.openModalHistory({{ $order->id }})"
                                                 class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ isset($order->news) && $order->news == 1 ? 'animate-pulse' : '' }}"
-                                                title="Ver historial">
+                                                title="{{ Auth::user()?->profile_id == 17 ? 'View history' : 'Ver historial' }}">
                                                 <x-heroicon-o-eye class="w-4 h-4" />
                                             </button>
                                         </div>
@@ -689,7 +701,7 @@
 
                                         @if(is_array($data) && isset($data['type']))
                                             <div class="text-xs bg-gray-50 dark:bg-gray-700/30 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ $data['type'] === 'qty_change' ? 'Cambio de Cantidad' : 'Cambio de Precio' }}</span>
+                                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ $data['type'] === 'qty_change' ? (Auth::user()?->profile_id == 17 ? 'Quantity Change' : 'Cambio de Cantidad') : (Auth::user()?->profile_id == 17 ? 'Price Change' : 'Cambio de Precio') }}</span>
                                                 <div class="flex items-center gap-1 mt-1 font-mono">
                                                     @if ($data['type'] === 'qty_change')
                                                         <span class="text-gray-500 line-through">{{ $data['old'] }}</span>
@@ -727,20 +739,20 @@
                                             <button type="button"
                                                     @click="
                                                         Swal.fire({
-                                                            title: 'Cambiar cantidades',
-                                                            text: 'Ingresa la cantidad total a enviar para este ítem:',
+                                                            title: '{{ $profileUser == 17 ? "Change quantities" : "Cambiar cantidades" }}',
+                                                            text: '{{ $profileUser == 17 ? "Enter the total quantity to send for this item:" : "Ingresa la cantidad total a enviar para este ítem:" }}',
                                                             input: 'number',
                                                             inputAttributes: {
-                                                                min: 1,
+                                                                min: 0,
                                                                 step: 1
                                                             },
                                                             inputValue: {{ $order->qty_requested }},
                                                             showCancelButton: true,
-                                                            confirmButtonText: 'Aceptar',
-                                                            cancelButtonText: 'Cancelar',
+                                                            confirmButtonText: '{{ $profileUser == 17 ? "Accept" : "Aceptar" }}',
+                                                            cancelButtonText: '{{ $profileUser == 17 ? "Cancel" : "Cancelar" }}',
                                                             inputValidator: (value) => {
-                                                                if (!value || value <= 0) {
-                                                                    return 'Debes ingresar una cantidad válida mayor a 0';
+                                                                if (value === '' || value === null || value === undefined || value < 0) {
+                                                                    return '{{ $profileUser == 17 ? "You must enter a valid quantity" : "Debes ingresar una cantidad válida" }}';
                                                                 }
                                                             }
                                                         }).then((result) => {
@@ -751,7 +763,7 @@
                                                     "
                                                     class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 whitespace-nowrap" 
                                                     title="Cambiar cantidades del envío">
-                                                <x-heroicon-o-arrow-path class="w-4 h-4" /> Cambiar cantidades
+                                                <x-heroicon-o-arrow-path class="w-4 h-4" /> {{ Auth::user()?->profile_id == 17 ? 'Change quantities' : 'Cambiar cantidades' }}
                                             </button>
                                         @else
                                             <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
