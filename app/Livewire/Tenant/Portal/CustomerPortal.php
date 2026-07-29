@@ -18,6 +18,7 @@ class CustomerPortal extends Component
     public $search = '';
     public $selectedCategory = '';
     public $perPage = 10;
+    public $stockFilter = 'all';
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -30,6 +31,11 @@ class CustomerPortal extends Component
     }
 
     public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingStockFilter()
     {
         $this->resetPage();
     }
@@ -120,6 +126,10 @@ class CustomerPortal extends Component
 
         if ($this->selectedCategory) {
             $query->where('inv_items.categoryId', $this->selectedCategory);
+        }
+
+        if ($this->stockFilter === 'in_stock') {
+            $query->having('total_stock', '>', 0);
         }
 
         $products = $query->paginate($this->perPage);

@@ -58,12 +58,24 @@
                     <input wire:model.live.debounce.300ms="search"
                         type="text"
                         placeholder="Buscar productos..."
-                        class="block w-full pl-5 pr-4 py-2.5 border-2 border-indigo-300 dark:border-indigo-500 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm transition-colors">
+                        class="block w-full pl-5 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm transition-colors">
+                </div>
+                
+                <!-- Filtro de stock -->
+                <div class="flex items-center gap-4 px-2 py-2.5 flex-shrink-0">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" wire:model.live="stockFilter" value="all" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Todos</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" wire:model.live="stockFilter" value="in_stock" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">En stock</span>
+                    </label>
                 </div>
                 <!-- Botón de cambio de vista -->
                 <button @click="toggleViewMode()" 
                         type="button" 
-                        class="p-2.5 bg-white dark:bg-gray-800 border-2 border-indigo-300 dark:border-indigo-500 rounded-full text-indigo-500 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-colors flex-shrink-0"
+                        class="p-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-colors flex-shrink-0"
                         :title="viewMode === 'list' ? 'Cambiar a cuadrícula' : 'Cambiar a lista'">
                     <svg x-show="viewMode === 'list'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
@@ -76,14 +88,14 @@
                 <!-- Selector de cantidad por página -->
                 <div class="relative flex-shrink-0">
                     <select wire:model.live="perPage" @change="savePerPage($event.target.value)"
-                            class="appearance-none block w-full pl-4 pr-10 py-2.5 border-2 border-indigo-300 dark:border-indigo-500 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm font-semibold transition-colors cursor-pointer shadow-sm text-center">
+                            class="appearance-none block w-full pl-4 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm font-semibold transition-colors cursor-pointer shadow-sm text-center">
                         <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="30">30</option>
                         <option value="40">40</option>
                         <option value="50">50</option>
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-indigo-500">
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>

@@ -298,6 +298,8 @@
                     <div class="flex items-center gap-3">
                         @if ($filterStatus == 7 && $selectedShipp > 0 && $profileUser != '17')
                             <button type="button"
+                                    wire:loading.attr="disabled"
+                                    wire:loading.class="opacity-75 cursor-not-allowed"
                                     @click="
                                         Swal.fire({
                                             title: '¿Confirmar recibido de mercancía?',
@@ -316,8 +318,13 @@
                                     "
                                     class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                     title="Al recibir los productos seleccionados, confirma la recepción y rota todos los productos de Segunda a Primera y de Tercera a Segunda de forma global.">
-                                <span class="bg-green-800 text-white text-xs font-bold px-2 py-0.5 rounded-full mr-2">{{ $this->productsToReceiveCount }}</span>
-                                Confirmar Recepción y Rotar
+                                <svg wire:loading wire:target="rotatePriorities" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span wire:loading.remove wire:target="rotatePriorities" class="bg-green-800 text-white text-xs font-bold px-2 py-0.5 rounded-full mr-2">{{ $this->productsToReceiveCount }}</span>
+                                <span wire:loading wire:target="rotatePriorities">Procesando...</span>
+                                <span wire:loading.remove wire:target="rotatePriorities">Confirmar Recepción y Rotar</span>
                             </button>
                         @endif
                         <!-- Visibilidad de Columnas -->
@@ -2075,8 +2082,15 @@
                                 Cancelar
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg font-medium text-sm text-white transition-all hover:shadow">
-                                Confirmar Recepción
+                                wire:loading.attr="disabled"
+                                wire:loading.class="opacity-75 cursor-not-allowed"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg font-medium text-sm text-white transition-all hover:shadow">
+                                <svg wire:loading wire:target="markShipmentAsReceived" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span wire:loading wire:target="markShipmentAsReceived">Sincronizando...</span>
+                                <span wire:loading.remove wire:target="markShipmentAsReceived">Confirmar Recepción</span>
                             </button>
                         </div>
                     </form>
@@ -2084,4 +2098,17 @@
             </div>
         </div>
     @endif
+
+    <!-- Overlay de carga global bloqueante para Alegra y base de datos -->
+    <div wire:loading.flex wire:target="rotatePriorities, markShipmentAsReceived" class="bg-gray-900/50 backdrop-blur-sm" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; align-items: center; justify-content: center; z-index: 99999;">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-gray-100 dark:border-gray-700">
+            <div class="flex justify-center mb-4" style="display: flex; justify-content: center;">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Procesando Recepción</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Guardando información localmente y sincronizando el ajuste de inventario con Alegra. Por favor, no cierres esta ventana.
+            </p>
+        </div>
+    </div>
 </div>

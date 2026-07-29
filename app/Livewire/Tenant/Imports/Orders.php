@@ -673,7 +673,8 @@ class Orders extends Component
         ]);
 
         try {
-            DB::connection('tenant')->transaction(function () {
+            $importsToSync = [];
+            DB::connection('tenant')->transaction(function () use (&$importsToSync) {
                 $shipmentId = $this->selectedShipp;
                 $sh = \App\Models\Tenant\Imports\ImpShippments::findOrFail($shipmentId);
                 $sh->update([
@@ -701,6 +702,7 @@ class Orders extends Component
                                 'user_id' => Auth::id()
                             ]);
                             $import->update(['status' => 8]);
+                            $importsToSync[] = $import;
 
                             // Afectación automática del stock
                             $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
@@ -731,6 +733,9 @@ class Orders extends Component
                     }
                 }
             });
+
+            // Sincronizar con Alegra fuera de la transacción
+            $this->syncReceivedItemsToAlegra($importsToSync);
 
             $this->filterStatus = 8;
             $this->shipmentEta = $this->receivedEta;
@@ -1920,7 +1925,8 @@ class Orders extends Component
                 }
             }
 
-            DB::connection('tenant')->transaction(function () use ($selectedImports, $hasMaritime, $hasAir) {
+            $importsToSync = [];
+            DB::connection('tenant')->transaction(function () use ($selectedImports, $hasMaritime, $hasAir, &$importsToSync) {
                 // 1. Mover los productos seleccionados a Recibido (status 8)
                 foreach ($selectedImports as $import) {
                     $oldStatus = $import->status;
@@ -1932,6 +1938,8 @@ class Orders extends Component
                         'new_state' => 8,
                         'user_id' => Auth::id()
                     ]);
+
+                    $importsToSync[] = $import;
 
                     // Afectación automática del stock
                     $principalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)
@@ -2019,6 +2027,9 @@ class Orders extends Component
                         ]);
                 }
             });
+
+            // Sincronizar con Alegra fuera de la transacción
+            $this->syncReceivedItemsToAlegra($importsToSync);
 
             $this->selectedOrders = [];
 
@@ -2321,5 +2332,79 @@ class Orders extends Component
         };
 
         return response()->streamDownload($callback, $fileName, $headers);
+    }
+
+    private function syncReceivedItemsToAlegra($imports)
+    {
+        try {
+            $itemsAlegra = [];
+            foreach ($imports as $import) {
+                $item = \App\Models\Tenant\Items\Items::find($import->item_id);
+                if ($item && $item->api_data_id) {
+                    $invValue = \App\Models\Tenant\Items\InvValues::where('itemId', $import->item_id)->first();
+                    $unitCost = $invValue ? floatval($invValue->values) : 0;
+
+                    $itemsAlegra[] = [
+                        'type'     => 'in',
+                        'id'       => (string) $item->api_data_id,
+                        'unitCost' => $unitCost,
+                        'quantity' => floatval($import->qty_shipped),
+                    ];
+                }
+            }
+
+            if (!empty($itemsAlegra)) {
+                $shipmentName = '';
+                $shipmentId = $this->selectedShipp;
+                if (!$shipmentId && !empty($imports)) {
+                    $firstImport = $imports[0] ?? null;
+                    if ($firstImport && $firstImport->packing_id) {
+                        $packing = \App\Models\Tenant\Imports\ImpPacking::find($firstImport->packing_id);
+                        if ($packing) {
+                            $shipmentId = $packing->shipping_id;
+                        }
+                    }
+                }
+
+                if ($shipmentId) {
+                    $shipment = \App\Models\Tenant\Imports\ImpShippments::find($shipmentId);
+                    if ($shipment) {
+                        $etdDate = $shipment->etd ? \Carbon\Carbon::parse($shipment->etd)->format('d/m/Y') : '—';
+                        $shipmentName = trim(
+                            ($shipment->operation_number ?? '') . ' ' .
+                            ($shipment->way ?? '') . ' ' .
+                            ($shipment->conveyor ?? '') . ' ETD: ' . $etdDate
+                        );
+                    }
+                }
+
+                if (empty($shipmentName)) {
+                    $shipmentName = 'Ingreso por ajuste';
+                }
+
+                $alegraData = [
+                    'date'         => date('Y-m-d'),
+                    'observations' => $shipmentName,
+                    'warehouse'    => ['id' => '1'],
+                    'items'        => $itemsAlegra,
+                ];
+
+                Log::info('📦 [Orders] Payload de ajuste para Alegra preparado:', $alegraData);
+                $movementsService = new \App\Services\Tenant\Movements\MovementsService();
+                $alegraResult = $movementsService->syncAdjustmentToApi($alegraData);
+
+                if ($alegraResult['success']) {
+                    Log::info('✅ [Orders] Ajuste de inventario sincronizado con Alegra exitosamente.');
+                } else {
+                    Log::error('❌ [Orders] Error al sincronizar ajuste con Alegra: ' . ($alegraResult['message'] ?? 'Error desconocido'));
+                    $this->dispatch('show-toast', [
+                        'type' => 'warning',
+                        'message' => 'Advertencia: No se pudo sincronizar el ajuste con Alegra. Verifique los logs.'
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ [Orders] Excepción al sincronizar ajuste con Alegra: ' . $e->getMessage());
+        }
     }
 }
