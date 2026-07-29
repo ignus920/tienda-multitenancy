@@ -2,6 +2,15 @@
      x-data="{ 
         cart: [],
         viewMode: localStorage.getItem('portal_view_mode') || 'list',
+        init() {
+            let savedPerPage = localStorage.getItem('portal_per_page');
+            if (savedPerPage) {
+                $wire.set('perPage', parseInt(savedPerPage));
+            }
+        },
+        savePerPage(val) {
+            localStorage.setItem('portal_per_page', val);
+        },
         toggleViewMode() {
             this.viewMode = this.viewMode === 'list' ? 'grid' : 'list';
             localStorage.setItem('portal_view_mode', this.viewMode);
@@ -63,6 +72,23 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
+                
+                <!-- Selector de cantidad por página -->
+                <div class="relative flex-shrink-0">
+                    <select wire:model.live="perPage" @change="savePerPage($event.target.value)"
+                            class="appearance-none block w-full pl-4 pr-10 py-2.5 border-2 border-indigo-300 dark:border-indigo-500 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm font-semibold transition-colors cursor-pointer shadow-sm text-center">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-indigo-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
             </div>
 
             <!-- TABLA DE PRODUCTOS (estilo cotizador) -->
@@ -70,12 +96,12 @@
                 <!-- Encabezado de la tabla -->
                 <div class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        <div class="w-10 flex-shrink-0"></div>
-                        <div class="flex-1 min-w-0 pl-3">NOMBRE</div>
+                        <div class="w-12 flex-shrink-0"></div>
+                        <div class="w-14 flex-shrink-0"></div>
+                        <div class="flex-1 min-w-0 pl-4">NOMBRE</div>
                         <div class="w-20 text-center flex-shrink-0">DISP.</div>
                         <div class="w-28 text-center flex-shrink-0">CONTADO</div>
                         <div class="w-28 text-center flex-shrink-0">CRÉDITO</div>
-                        <div class="w-10 text-center flex-shrink-0"></div>
                     </div>
                 </div>
 
@@ -97,8 +123,31 @@
                         <div class="flex items-center px-4 py-3 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group"
                              x-data="{ showDetail: false }">
                             
+                            <!-- Menú de acciones (columna izquierda) -->
+                            <div class="w-12 flex-shrink-0 relative flex items-center justify-start pr-2" x-data="{ open: false }">
+                                <button @click.stop="open = !open" @click.away="open = false" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                    </svg>
+                                </button>
+                                <div x-show="open" x-transition class="absolute left-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1" style="display: none;">
+                                    <button @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Imagen
+                                    </button>
+                                    <button @click="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Observaciones
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <!-- Miniatura -->
-                            <div class="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
+                            <div class="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
                                  @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' })">
                                 <img src="{{ $imageUrl }}" 
                                      alt="{{ $product->name }}" 
@@ -107,7 +156,7 @@
                             </div>
 
                             <!-- Nombre y código -->
-                            <div class="flex-1 min-w-0 pl-3">
+                            <div class="flex-1 min-w-0 pl-4 flex flex-col justify-center">
                                 <div class="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase truncate">{{ $product->name }}</div>
                                 <div class="flex items-center gap-2 mt-0.5">
                                     @if($product->sku)
@@ -156,50 +205,6 @@
                                     <span class="text-[10px] text-gray-400">N/A</span>
                                 @endif
                             </div>
-
-                            <!-- Botón detalle -->
-                            <div class="w-10 text-center flex-shrink-0">
-                                <button @click="showDetail = !showDetail" 
-                                        class="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                                    <svg class="w-4 h-4 transition-transform duration-200" :class="showDetail ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Panel de detalle expandible -->
-                        <div x-show="showDetail" x-collapse 
-                             class="px-4 py-3 bg-gray-50/80 dark:bg-gray-900/30 border-t border-gray-100 dark:border-gray-700/50">
-                            <div class="flex gap-4 ml-[52px]">
-                                <!-- Imagen grande -->
-                                <div class="w-32 h-32 rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex-shrink-0 shadow-sm">
-                                    <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="w-full h-full object-contain">
-                                </div>
-                                <!-- Info expandida -->
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ $product->name }}</h4>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {{ $product->description ?: 'Sin observaciones técnicas registradas para este producto.' }}
-                                    </p>
-                                    <div class="flex items-center gap-4 mt-3">
-                                        <div class="text-[10px]">
-                                            <span class="text-gray-400">Código:</span>
-                                            <span class="font-bold text-gray-700 dark:text-gray-300">{{ $product->internal_code }}</span>
-                                        </div>
-                                        @if($product->sku)
-                                        <div class="text-[10px]">
-                                            <span class="text-gray-400">SKU:</span>
-                                            <span class="font-bold text-gray-700 dark:text-gray-300">{{ $product->sku }}</span>
-                                        </div>
-                                        @endif
-                                        <div class="text-[10px]">
-                                            <span class="text-gray-400">Disponibilidad:</span>
-                                            <span class="font-bold {{ $visibleStock > 0 ? 'text-green-600' : 'text-red-600' }}">{{ $visibleStock }} unidades (cupo autogestión)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     @empty
                         <div class="p-12 text-center">
@@ -228,7 +233,31 @@
                         
                         $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
                     @endphp
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-indigo-300 dark:hover:border-indigo-500 flex flex-col">
+                    <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-indigo-300 dark:hover:border-indigo-500 flex flex-col">
+                        
+                        <!-- Menú de opciones (Tres puntos) -->
+                        <div class="absolute top-1 left-1 z-10" x-data="{ open: false }">
+                            <button @click.stop="open = !open" @click.away="open = false" class="bg-white/95 dark:bg-gray-800/95 rounded-lg shadow-md p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-lg transition-all flex items-center justify-center">
+                                <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition class="absolute left-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20 py-1" style="display: none;">
+                                <button @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Imagen
+                                </button>
+                                <button @click="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Observaciones
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Imagen -->
                         <div class="aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                              @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' })">
@@ -394,4 +423,7 @@
 
     <!-- Modal de Imágenes del Producto -->
     <livewire:tenant.components.product-image-modal />
+
+    <!-- Modal de Observaciones -->
+    <livewire:tenant.items.item-observation />
 </div>

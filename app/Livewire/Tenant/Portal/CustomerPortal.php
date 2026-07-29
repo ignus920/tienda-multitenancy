@@ -8,6 +8,8 @@ use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\Category;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Auth\Tenant;
+use App\Services\Tenant\TenantManager;
 
 class CustomerPortal extends Component
 {
@@ -15,7 +17,7 @@ class CustomerPortal extends Component
 
     public $search = '';
     public $selectedCategory = '';
-    public $perPage = 12;
+    public $perPage = 10;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -27,13 +29,48 @@ class CustomerPortal extends Component
         $this->resetPage();
     }
 
+    public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
     public function updatingSelectedCategory()
     {
         $this->resetPage();
     }
 
+    public function mount()
+    {
+        $this->ensureTenantConnection();
+    }
+
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+
+        if (!$tenantId) {
+            return redirect()->route('tenant.select');
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            session()->forget('tenant_id');
+            return redirect()->route('tenant.select');
+        }
+
+        // Establecer conexión tenant
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        // Inicializar tenancy
+        tenancy()->initialize($tenant);
+    }
+
     public function render()
     {
+        $this->ensureTenantConnection();
+        
         $categories = Category::orderBy('name')->get();
 
         $query = Items::query()
