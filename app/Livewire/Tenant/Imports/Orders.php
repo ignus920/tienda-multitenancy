@@ -28,6 +28,7 @@ class Orders extends Component
     public $filterStatus = '';
     public $filterNews = '';
     public $filterPacking = '';
+    public $filterPriority = '';
     public $search = '';
     public $perPage = 10;
     public $selectedOrders = [];
@@ -158,6 +159,7 @@ class Orders extends Component
 
     public function putFilter($statusId)
     {
+        $this->filterPriority = ''; // Limpiar filtro de prioridad al cambiar de pestaña superior
         // No resetear el envío seleccionado si se navega entre "En tránsito" (7) y "Recibido" (8)
         if (!in_array($statusId, [7, 8]) || !in_array($this->filterStatus, [7, 8])) {
             $this->selectedShipp = 0;
@@ -273,19 +275,22 @@ class Orders extends Component
             ->when(Auth::user()->profile_id == 17, function ($query) {
                 return $query->where('iis.supplier_id', Auth::id());
             })
-            ->when($this->filterStatus && !$this->search, function ($query) {
+            ->when($this->filterStatus, function ($query) {
                 return $query->where('i.status', $this->filterStatus);
             })
-            ->when($this->filterNews && !$this->search, function ($query) {
+            ->when($this->filterNews, function ($query) {
                 return $query->where('i.news', $this->filterNews);
             })
-            ->when($this->selectedLabelId && !$this->search, function ($query) {
+            ->when($this->selectedLabelId, function ($query) {
                 return $query->where('i.label_id', $this->selectedLabelId);
             })
-            ->when($this->filterPacking && !$this->search, function ($query) {
+            ->when($this->filterPriority, function ($query) {
+                return $query->where('i.priority', $this->filterPriority);
+            })
+            ->when($this->filterPacking, function ($query) {
                 return $query->where('i.packing_id', $this->filterPacking);
             })
-            ->when($this->selectedShipp > 0 && !$this->search, function ($query) {
+            ->when($this->selectedShipp > 0, function ($query) {
                 return $query->where('pk.shipping_id', $this->selectedShipp);
             })
             ->when($this->search, function ($query) {
@@ -855,6 +860,7 @@ class Orders extends Component
         $this->filterStatus = '';
         $this->filterNews = '';
         $this->filterPacking = '';
+        $this->filterPriority = '';
         $this->search = '';
         $this->selectedShipp = 0;
         $this->resetPage();
