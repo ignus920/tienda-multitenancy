@@ -58,6 +58,8 @@ class Orders extends Component
     public $deleteJustification = '';
     public $selectedOrderIdForDelete = null;
     public $showModalDelete = false;
+    public $tempEtd = '';
+    public $tempConveyor = '';
 
     // Propiedades para recibir envío y editar fechas
     public $showModalMarkReceived = false;
@@ -636,10 +638,14 @@ class Orders extends Component
             if ($sh) {
                 $this->shipmentEta = $sh->eta;
                 $this->shipmentFervicomArrival = $sh->fervicom_arrival_date;
+                $this->tempEtd = $sh->etd;
+                $this->tempConveyor = $sh->conveyor;
             }
         } else {
             $this->shipmentEta = '';
             $this->shipmentFervicomArrival = '';
+            $this->tempEtd = '';
+            $this->tempConveyor = '';
         }
 
         $this->resetPage();
@@ -663,10 +669,14 @@ class Orders extends Component
             if ($sh) {
                 $this->shipmentEta = $sh->eta;
                 $this->shipmentFervicomArrival = $sh->fervicom_arrival_date;
+                $this->tempEtd = $sh->etd;
+                $this->tempConveyor = $sh->conveyor;
             }
         } else {
             $this->shipmentEta = '';
             $this->shipmentFervicomArrival = '';
+            $this->tempEtd = '';
+            $this->tempConveyor = '';
         }
     }
 
@@ -800,6 +810,91 @@ class Orders extends Component
                     'type' => 'error',
                     'message' => 'No se pudieron actualizar las fechas.'
                 ]);
+            }
+        }
+    }
+
+    public function confirmEditField($field)
+    {
+        $this->ensureTenantConnection();
+        $newValue = $field === 'etd' ? $this->tempEtd : $this->tempConveyor;
+        
+        $isSupplier = $this->profileUser == '17';
+        
+        if ($field === 'etd') {
+            $title = $isSupplier ? 'Change ETD (Departure)' : 'Cambiar ETD (Salida)';
+            $text = $isSupplier ? 'A justification is required to save this change:' : 'Se requiere una justificación para guardar este cambio:';
+            $placeholder = $isSupplier ? 'Enter justification to change departure date...' : 'Ingrese la justificación para cambiar la fecha de salida...';
+        } else {
+            $title = $isSupplier ? 'Change Conveyor / Transport' : 'Cambiar Transportador';
+            $text = $isSupplier ? 'A justification is required to save this change:' : 'Se requiere una justificación para guardar este cambio:';
+            $placeholder = $isSupplier ? 'Enter justification to change conveyor...' : 'Ingrese la justificación para cambiar el transportador...';
+        }
+        
+        $this->dispatch('confirm-shipment-edit', [
+            'field' => $field,
+            'newValue' => $newValue,
+            'title' => $title,
+            'text' => $text,
+            'placeholder' => $placeholder,
+            'isSupplier' => $isSupplier
+        ]);
+    }
+
+    public function updateShipmentField($field, $newValue, $justification)
+    {
+        if ($this->selectedShipp > 0) {
+            $this->ensureTenantConnection();
+            try {
+                $sh = \App\Models\Tenant\Imports\ImpShippments::findOrFail($this->selectedShipp);
+                
+                $oldValue = $field === 'etd' ? $sh->etd : $sh->conveyor;
+                
+                if ($field === 'etd') {
+                    $sh->update(['etd' => $newValue ?: null]);
+                    $this->tempEtd = $newValue;
+                    $fieldName = 'ETD (Salida)';
+                    $formattedOld = $oldValue ? \Carbon\Carbon::parse($oldValue)->format('d/m/Y') : 'N/A';
+                    $formattedNew = $newValue ? \Carbon\Carbon::parse($newValue)->format('d/m/Y') : 'N/A';
+                } else {
+                    $sh->update(['conveyor' => $newValue ?: null]);
+                    $this->tempConveyor = $newValue;
+                    $fieldName = 'Transportador';
+                    $formattedOld = $oldValue ?: 'N/A';
+                    $formattedNew = $newValue ?: 'N/A';
+                }
+
+                // Guardar la justificación en imp_shipment_comments
+                $commentText = "Se modificó el campo [{$fieldName}] de '{$formattedOld}' a '{$formattedNew}'. Justificación: {$justification}";
+                
+                ImpShipmentComments::create([
+                    'shipment_id' => $this->selectedShipp,
+                    'comment' => $commentText,
+                    'user_id' => Auth::id()
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Campo actualizado y justificación registrada con éxito.'
+                ]);
+                $this->dispatch('$refresh');
+            } catch (\Exception $e) {
+                Log::error("Error al actualizar campo del envío: " . $e->getMessage());
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'No se pudo actualizar el campo.'
+                ]);
+            }
+        }
+    }
+
+    public function cancelShipmentEdit()
+    {
+        if ($this->selectedShipp > 0) {
+            $sh = \App\Models\Tenant\Imports\ImpShippments::find($this->selectedShipp);
+            if ($sh) {
+                $this->tempEtd = $sh->etd;
+                $this->tempConveyor = $sh->conveyor;
             }
         }
     }

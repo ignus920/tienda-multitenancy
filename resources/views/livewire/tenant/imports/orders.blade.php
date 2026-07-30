@@ -277,7 +277,7 @@
                                     title="{{ Auth::user()?->profile_id == 17 ? 'Clear all filters and reset the board' : 'Limpiar todos los filtros y restablecer el tablero' }}">
                                 <span>{{ Auth::user()?->profile_id == 17 ? 'Clear Filters' : 'Borrar Filtros' }}</span>
                             </button>
-                            @if (count($selectedOrders) > 0 && ($filterStatus == 5 || $filterStatus == 12) && $profileUser == '17')
+                            @if (count($selectedOrders) > 0 && ($filterStatus == 5 || $filterStatus == 12))
                                 <button wire:click="openModalShipping" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
                             @endif
                             @if ($profileUser != '17' && count($selectedOrders) > 0)
@@ -461,8 +461,6 @@
                         </button>
                     </div>
                 @endif
-            </div>
-
             @if($this->selectedShippmentData)
                 <div class="m-6 bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-600 p-5 rounded-r-lg shadow-sm">
                     <div class="flex flex-wrap lg:flex-nowrap items-end justify-between gap-4 w-full">
@@ -472,25 +470,27 @@
                                  {{ $this->selectedShippmentData->operation_number ?? 'N/A' }}
                              </p>
                          </div>
-                         <div class="flex-1 min-w-[100px]">
-                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETD (Salida)</p>
-                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                 {{ $this->selectedShippmentData->etd ? \Carbon\Carbon::parse($this->selectedShippmentData->etd)->format('d/m/Y') : 'N/A' }}
-                             </p>
-                         </div>
-                         <div class="flex-1 min-w-[80px]">
-                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Vía</p>
-                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                 #{{ $this->selectedShippmentData->consecutive }} 
-                                 {{ $this->selectedShippmentData->way == 'Aerea' ? 'Aérea' : ($this->selectedShippmentData->way == 'Maritima' ? 'Marítima' : $this->selectedShippmentData->way) }}
-                             </p>
-                         </div>
-                         <div class="flex-1 min-w-[100px]">
-                             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Transportador</p>
-                             <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
-                                 {{ $this->selectedShippmentData->conveyor ?? 'N/A' }}
-                             </p>
-                         </div>
+                          <div class="flex-1 min-w-[125px] max-w-[145px]">
+                              <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETD (Salida)</p>
+                              <input type="date" 
+                                  wire:model="tempEtd" 
+                                  wire:change="confirmEditField('etd')"
+                                  class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mt-0.5 focus:ring-1 focus:ring-indigo-500">
+                          </div>
+                          <div class="flex-1 min-w-[80px]">
+                              <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Vía</p>
+                              <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                  #{{ $this->selectedShippmentData->consecutive }} 
+                                  {{ $this->selectedShippmentData->way == 'Aerea' ? 'Aérea' : ($this->selectedShippmentData->way == 'Maritima' ? 'Marítima' : $this->selectedShippmentData->way) }}
+                              </p>
+                          </div>
+                          <div class="flex-1 min-w-[125px]">
+                              <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Transportador</p>
+                              <input type="text" 
+                                  wire:model="tempConveyor" 
+                                  wire:change="confirmEditField('conveyor')"
+                                  class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mt-0.5 focus:ring-1 focus:ring-indigo-500">
+                          </div>
                          <div class="flex-1 min-w-[125px] max-w-[145px]">
                              <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">ETA (Puerto)</p>
                              @if($profileUser == '17')
@@ -2127,6 +2127,33 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 Guardando información localmente y sincronizando el ajuste de inventario con Alegra. Por favor, no cierres esta ventana.
             </p>
-        </div>
     </div>
 </div>
+
+@script
+<script>
+    $wire.on('confirm-shipment-edit', (data) => {
+        const payload = data[0];
+        Swal.fire({
+            title: payload.title,
+            text: payload.text,
+            input: 'text',
+            inputPlaceholder: payload.placeholder,
+            showCancelButton: true,
+            confirmButtonText: payload.isSupplier ? 'Save' : 'Guardar',
+            cancelButtonText: payload.isSupplier ? 'Cancel' : 'Cancelar',
+            inputValidator: (value) => {
+                if (!value || value.trim() === '') {
+                    return payload.isSupplier ? 'You must enter a justification' : 'Debes ingresar una justificación';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $wire.updateShipmentField(payload.field, payload.newValue, result.value);
+            } else {
+                $wire.cancelShipmentEdit();
+            }
+        });
+    });
+</script>
+@endscript
