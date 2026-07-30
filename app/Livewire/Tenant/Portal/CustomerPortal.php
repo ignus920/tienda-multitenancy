@@ -83,19 +83,24 @@ class CustomerPortal extends Component
         $user = auth()->user();
         $cashPricelist = null;
         $creditPricelist = null;
+        $settingsConfigured = false;
+        $companyName = '';
 
         if ($user && $user->contact_id) {
-            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
-            if ($contact && $contact->warehouse) {
-                $companyId = $contact->warehouse->companyId;
-                $company = \App\Models\Tenant\Customer\VntCompany::find($companyId);
-                if ($company && $company->portalSettings) {
+            $contact = \App\Models\Tenant\Customer\VntContacts::find($user->contact_id);
+            if ($contact) {
+                $company = $contact->company;
+                if ($company) {
+                    $companyName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
                     $settings = $company->portalSettings;
-                    if ($settings->cash_pricelist_id) {
-                        $cashPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->cash_pricelist_id);
-                    }
-                    if ($settings->credit_pricelist_id) {
-                        $creditPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->credit_pricelist_id);
+                    if ($settings && ($settings->cash_pricelist_id || $settings->credit_pricelist_id)) {
+                        $settingsConfigured = true;
+                        if ($settings->cash_pricelist_id) {
+                            $cashPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->cash_pricelist_id);
+                        }
+                        if ($settings->credit_pricelist_id) {
+                            $creditPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->credit_pricelist_id);
+                        }
                     }
                 }
             }
@@ -161,6 +166,8 @@ class CustomerPortal extends Component
             'categories' => $categories,
             'cashPricelist' => $cashPricelist,
             'creditPricelist' => $creditPricelist,
+            'settingsConfigured' => $settingsConfigured,
+            'companyName' => $companyName,
         ])->layout('layouts.app', ['header' => 'Portal de Clientes']);
     }
 }

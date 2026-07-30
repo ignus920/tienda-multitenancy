@@ -52,6 +52,18 @@
                 </p>
             </div>
 
+            @if(!$settingsConfigured)
+                <div class="mb-4 p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800/50 flex items-center gap-3 text-red-800 dark:text-red-300">
+                    <svg class="w-6 h-6 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div>
+                        <span class="font-bold text-sm">Estimado cliente:</span>
+                        <span class="text-sm">Su usuario aún no cuenta con una lista de precios asignada en nuestro portal. Por favor, póngase en contacto con el administrador del sistema para que le habilite sus precios de Contado y Crédito.</span>
+                    </div>
+                </div>
+            @endif
+
             <!-- Barra de búsqueda -->
             <div class="flex items-center gap-2 mb-4">
                 <div class="relative flex-1">
@@ -135,18 +147,18 @@
                                 ->first();
                             $basePrice = $basePriceRecord ? (float)$basePriceRecord->values : 0.0;
 
-                            if ($cashPricelist && $basePrice > 0) {
+                            if ($settingsConfigured && $cashPricelist && $basePrice > 0) {
                                 $priceWithoutIva = $basePrice * $cashPricelist->value;
                                 $priceCash = round($priceWithoutIva * (1 + $taxPercentage), 2);
                             } else {
-                                $priceCash = $prices['Precio Mínimo'] ?? ($prices['Precio Regular'] ?? 0);
+                                $priceCash = 0;
                             }
 
-                            if ($creditPricelist && $basePrice > 0) {
+                            if ($settingsConfigured && $creditPricelist && $basePrice > 0) {
                                 $priceWithoutIva = $basePrice * $creditPricelist->value;
                                 $priceCredit = round($priceWithoutIva * (1 + $taxPercentage), 2);
                             } else {
-                                $priceCredit = $prices['Precio Crédito'] ?? null;
+                                $priceCredit = null;
                             }
                             
                             $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
@@ -272,18 +284,18 @@
                             ->first();
                         $basePrice = $basePriceRecord ? (float)$basePriceRecord->values : 0.0;
 
-                        if ($cashPricelist && $basePrice > 0) {
+                        if ($settingsConfigured && $cashPricelist && $basePrice > 0) {
                             $priceWithoutIva = $basePrice * $cashPricelist->value;
                             $priceCash = round($priceWithoutIva * (1 + $taxPercentage), 2);
                         } else {
-                            $priceCash = $prices['Precio Mínimo'] ?? ($prices['Precio Regular'] ?? 0);
+                            $priceCash = 0;
                         }
 
-                        if ($creditPricelist && $basePrice > 0) {
+                        if ($settingsConfigured && $creditPricelist && $basePrice > 0) {
                             $priceWithoutIva = $basePrice * $creditPricelist->value;
                             $priceCredit = round($priceWithoutIva * (1 + $taxPercentage), 2);
                         } else {
-                            $priceCredit = $prices['Precio Crédito'] ?? null;
+                            $priceCredit = null;
                         }
                         
                         $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
