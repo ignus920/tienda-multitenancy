@@ -1976,15 +1976,6 @@ class Orders extends Component
 
                 // 2. Rotar prioridades de los productos restantes (status < 8) de forma independiente
                 if ($hasMaritime) {
-                    // - ASAP pasa a null (por si queda alguno)
-                    ImpImports::where('priority', 'ASAP')
-                        ->where('status', '<', 8)
-                        ->whereNull('deleted_at')
-                        ->update([
-                            'priority' => null,
-                            'priority_assigned_at' => null
-                        ]);
-
                     // - Second pasa a ASAP
                     ImpImports::where('priority', 'Second')
                         ->where('status', '<', 8)
@@ -2005,15 +1996,6 @@ class Orders extends Component
                 }
 
                 if ($hasAir) {
-                    // - Express pasa a null (por si queda alguno)
-                    ImpImports::where('priority', 'Express')
-                        ->where('status', '<', 8)
-                        ->whereNull('deleted_at')
-                        ->update([
-                            'priority' => null,
-                            'priority_assigned_at' => null
-                        ]);
-
                     // - Express 2 pasa a Express
                     ImpImports::where('priority', 'Express 2')
                         ->where('status', '<', 8)

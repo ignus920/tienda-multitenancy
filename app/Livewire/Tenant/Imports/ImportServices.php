@@ -928,16 +928,7 @@ class ImportServices extends Component
             $this->ensureTenantConnection();
 
             DB::connection('tenant')->transaction(function () {
-                // 1. ASAP pasa a null (ya recibidos)
-                ImpImports::where('priority', 'ASAP')
-                    ->where('status', '<', 8)
-                    ->whereNull('deleted_at')
-                    ->update([
-                        'priority' => null,
-                        'priority_assigned_at' => null
-                    ]);
-
-                // 2. Second pasa a ASAP
+                // 1. Second pasa a ASAP
                 ImpImports::where('priority', 'Second')
                     ->where('status', '<', 8)
                     ->whereNull('deleted_at')
@@ -946,7 +937,7 @@ class ImportServices extends Component
                         'priority_assigned_at' => now()
                     ]);
 
-                // 3. Third pasa a Second
+                // 2. Third pasa a Second
                 ImpImports::where('priority', 'Third')
                     ->where('status', '<', 8)
                     ->whereNull('deleted_at')
@@ -955,7 +946,7 @@ class ImportServices extends Component
                         'priority_assigned_at' => now()
                     ]);
 
-                // 4. Express 2 pasa a Express
+                // 3. Express 2 pasa a Express
                 ImpImports::where('priority', 'Express 2')
                     ->where('status', '<', 8)
                     ->whereNull('deleted_at')
@@ -964,7 +955,7 @@ class ImportServices extends Component
                         'priority_assigned_at' => now()
                     ]);
 
-                // 5. Express 3 pasa a Express 2
+                // 4. Express 3 pasa a Express 2
                 ImpImports::where('priority', 'Express 3')
                     ->where('status', '<', 8)
                     ->whereNull('deleted_at')

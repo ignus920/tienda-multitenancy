@@ -364,7 +364,7 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-[11px] font-bold text-gray-900 dark:text-white line-clamp-2" x-text="item.name"></p>
                                     <p class="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
-                                        <span x-text="'COD: ' + item.code"></span> · 
+                                        <span x-text="'SKU: ' + item.code"></span> · 
                                         <span class="font-bold px-1 py-0.5 rounded text-[8px]" 
                                               :class="item.label === 'Contado' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'"
                                               x-text="item.label"></span>
