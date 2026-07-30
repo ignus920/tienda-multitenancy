@@ -71,6 +71,19 @@
                 </div>
             </button>
 		@endforeach
+        @if($selectedShipp > 0 && $this->selectedShippmentWeight > 0)
+            <div class="col-span-1 lg:col-start-6 w-full text-center transition-transform transform hover:scale-105">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex items-center justify-center py-2 px-3 border border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/50">
+                    <div class="flex items-center justify-center gap-1.5 min-w-0 w-full text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                        </svg>
+                        <span>{{ Auth::user()?->profile_id == 17 ? 'Weight:' : 'Peso:' }}</span>
+                        <span class="text-xl font-black text-indigo-600 dark:text-indigo-400 ml-1.5">{{ number_format($this->selectedShippmentWeight, 2) }} Kg</span>
+                    </div>
+                </div>
+            </div>
+        @endif
 	</div>
 
     {{-- 

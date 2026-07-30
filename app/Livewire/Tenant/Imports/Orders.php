@@ -661,6 +661,34 @@ class Orders extends Component
         return null;
     }
 
+    #[Computed]
+    public function selectedShippmentWeight()
+    {
+        if ($this->selectedShipp > 0) {
+            $this->ensureTenantConnection();
+            
+            $packingIds = \App\Models\Tenant\Imports\ImpPacking::where('shipping_id', $this->selectedShipp)->pluck('id');
+            
+            if ($packingIds->isNotEmpty()) {
+                $imports = \App\Models\Tenant\Imports\ImpImports::whereIn('packing_id', $packingIds)
+                    ->whereNull('deleted_at')
+                    ->get();
+                
+                $totalWeight = 0;
+                foreach ($imports as $import) {
+                    $qty = (int)$import->qty_requested;
+                    $item = \App\Models\Tenant\Items\Items::with('dimensions')->find($import->item_id);
+                    if ($item && $item->dimensions) {
+                        $unitWeight = (float)$item->dimensions->weight;
+                        $totalWeight += ($unitWeight * $qty);
+                    }
+                }
+                return $totalWeight;
+            }
+        }
+        return 0;
+    }
+
     public function updatedSelectedShipp($value)
     {
         if ($value > 0) {
@@ -1884,6 +1912,33 @@ class Orders extends Component
                     'obs' => $this->observations
                 ];
                 $newShipping = ImpShippments::create($shippingData);
+
+                if (!empty(trim($this->observations))) {
+                    $originalComment = trim($this->observations);
+                    $finalComment = $originalComment;
+                    $profileId = Auth::user()?->profile_id;
+                    try {
+                        if ($profileId == 17) {
+                            $translated = $this->translateText($originalComment, 'en', 'es');
+                            if ($translated) {
+                                $finalComment = $originalComment . "[TRANSLATED]" . $translated;
+                            }
+                        } else {
+                            $translated = $this->translateText($originalComment, 'es', 'en');
+                            if ($translated) {
+                                $finalComment = $originalComment . "[TRANSLATED]" . $translated;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("Error al traducir la observación inicial del envío: " . $e->getMessage());
+                    }
+
+                    ImpShipmentComments::create([
+                        'shipment_id' => $newShipping->id,
+                        'comment' => $finalComment,
+                        'user_id' => Auth::id()
+                    ]);
+                }
 
                 // 2. Crear un PACK en segundo plano automáticamente para asociarle estos productos
                 $lastPacking = ImpPacking::orderBy('id', 'desc')->first();
