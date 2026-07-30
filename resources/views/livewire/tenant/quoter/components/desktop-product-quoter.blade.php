@@ -1751,14 +1751,14 @@ $header = 'Seleccionar productos';
                  x-transition:leave="ease-in duration-200"
                  x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                 class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-md mx-4 sm:mx-0 border border-gray-100 dark:border-gray-700"
+                 class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 w-full sm:max-w-lg mx-4 sm:mx-0 border border-gray-100 dark:border-gray-700"
                  style="position: relative; z-index: 999999 !important;">
                 
                 <!-- Encabezado -->
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
                         <h3 class="text-base font-bold text-gray-900 dark:text-white">
-                            Cantidades en Tránsito
+                            Información de Importación
                         </h3>
                     </div>
                     <button type="button" @click="open = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -1786,79 +1786,118 @@ $header = 'Seleccionar productos';
                     <!-- Listado de Importaciones/Pedidos en Tránsito -->
                     <div class="space-y-4">
                         @forelse($transitDetails as $detail)
-                            @php
-                                $isSea = strpos(strtolower($detail['way'] ?? ''), 'marit') !== false;
-                            @endphp
-                            <div class="bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 rounded-2xl p-4 shadow-sm space-y-3.5">
-                                
-                                <!-- Header de la Importación -->
-                                <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
+                            @if(($detail['status'] ?? 7) === 1)
+                                {{-- Solicitado a Fábrica (Estado 1) --}}
+                                <div class="bg-white dark:bg-gray-800 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-4 shadow-sm space-y-3">
                                     <div class="flex items-center gap-2">
-                                        @if($isSea)
-                                            <!-- Icono Barco en HSL/Celeste pastel -->
-                                            <div class="p-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 rounded-lg">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                                </svg>
-                                            </div>
-                                        @else
-                                            <!-- Icono Avión en Morado pastel -->
-                                            <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                                </svg>
-                                            </div>
-                                        @endif
+                                        <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
                                         <div class="flex flex-col">
-                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Importación</span>
-                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                                {{ $detail['way'] }} {{ $detail['operation_number'] }}
-                                            </span>
+                                            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Estado</span>
+                                            <span class="text-xs font-bold text-purple-700 dark:text-purple-300">Solicitado a Fábrica</span>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cantidad</div>
-                                        <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
-                                            {{ number_format($detail['qty'], 0) }} uds
-                                        </span>
+                                    <div class="pt-2.5 border-t border-dashed border-purple-100 dark:border-purple-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
+                                        Solicitado a Fabrica: <span class="font-bold text-purple-700 dark:text-purple-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
                                     </div>
                                 </div>
-                                
-                                <!-- Fechas en formato de Línea de Tiempo Minimalista -->
-                                <div class="space-y-3.5 pl-1">
-                                    <!-- ETD (Salida) -->
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div>
-                                        <div class="flex-1 flex justify-between items-baseline gap-2">
-                                            <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Despachado por proveedor</span>
-                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                                {{ $detail['etd'] !== 'No especificada' ? $detail['etd'] : '—' }}
-                                            </span>
+                            @elseif(($detail['status'] ?? 7) === 5)
+                                {{-- En Producción (Estado 5) --}}
+                                <div class="bg-white dark:bg-gray-800 border border-amber-150 dark:border-amber-900/30 rounded-2xl p-4 shadow-sm space-y-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="p-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Estado</span>
+                                            <span class="text-xs font-bold text-amber-700 dark:text-amber-300">En Producción</span>
                                         </div>
                                     </div>
-                                    <!-- ETA (Puerto) -->
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
-                                        <div class="flex-1 flex justify-between items-baseline gap-2">
-                                            <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Llega a Colombia</span>
-                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                                {{ $detail['eta'] !== 'No especificada' ? $detail['eta'] : '—' }}
-                                            </span>
-                                        </div>
+                                    <div class="pt-2.5 border-t border-dashed border-amber-100 dark:border-amber-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
+                                        En producción: <span class="font-bold text-amber-700 dark:text-amber-300">{{ number_format($detail['qty'], 0) }} unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
                                     </div>
-                                    <!-- LLEGA A FERVICOM -->
-                                    <div class="flex items-start gap-3 pt-2.5 border-t border-dashed border-gray-100 dark:border-gray-700">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 flex-shrink-0"></div>
-                                        <div class="flex-1 flex justify-between items-baseline gap-2">
-                                            <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Llega a Fervicom</span>
+                                </div>
+                            @else
+                                {{-- En Tránsito (Estado 7) --}}
+                                @php
+                                    $isSea = strpos(strtolower($detail['way'] ?? ''), 'marit') !== false;
+                                @endphp
+                                <div class="bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 rounded-2xl p-4 shadow-sm space-y-3.5">
+                                    
+                                    <!-- Header de la Importación -->
+                                    <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
+                                        <div class="flex items-center gap-2">
+                                            @if($isSea)
+                                                <!-- Icono Barco en HSL/Celeste pastel -->
+                                                <div class="p-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 rounded-lg">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                                    </svg>
+                                                </div>
+                                            @else
+                                                <!-- Icono Avión en Morado pastel -->
+                                                <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Importación</span>
+                                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                    {{ $detail['way'] }} {{ $detail['operation_number'] }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cantidad</div>
                                             <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
-                                                {{ $detail['fervicom_arrival_date'] !== 'No especificada' ? $detail['fervicom_arrival_date'] : '—' }}
+                                                {{ number_format($detail['qty'], 0) }} uds
                                             </span>
                                         </div>
                                     </div>
-                                </div>
+                                    
+                                    <!-- Fechas en formato de Línea de Tiempo Minimalista -->
+                                    <div class="space-y-3.5 pl-1">
+                                        <!-- ETD (Salida) -->
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div>
+                                            <div class="flex-1 flex justify-between items-baseline gap-2">
+                                                <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Despachado por proveedor</span>
+                                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                    {{ $detail['etd'] !== 'No especificada' ? $detail['etd'] : '—' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <!-- ETA (Puerto) -->
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                                            <div class="flex-1 flex justify-between items-baseline gap-2">
+                                                <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Llega a Colombia</span>
+                                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                    {{ $detail['eta'] !== 'No especificada' ? $detail['eta'] : '—' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <!-- LLEGA A FERVICOM -->
+                                        <div class="flex items-start gap-3 pt-2.5 border-t border-dashed border-gray-100 dark:border-gray-700">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 flex-shrink-0"></div>
+                                            <div class="flex-1 flex justify-between items-baseline gap-2">
+                                                <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Llega a Fervicom</span>
+                                                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                                    {{ $detail['fervicom_arrival_date'] !== 'No especificada' ? $detail['fervicom_arrival_date'] : '—' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            </div>
+                                </div>
+                            @endif
                         @empty
                             <div class="py-10 text-center space-y-2">
                                 <svg class="w-8 h-8 text-gray-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

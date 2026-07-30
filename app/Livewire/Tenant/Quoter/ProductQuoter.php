@@ -575,42 +575,74 @@ class ProductQuoter extends Component
             $this->transitProductCode = $product->internal_code ?? $product->sku;
             $this->transitProductName = $product->name;
 
-            // Obtener importaciones en tránsito (status = 7)
+            // Obtener importaciones en estado Solicitado (1), Producción (5) y En tránsito (7)
             $imports = \App\Models\Tenant\Imports\ImpImports::where('item_id', $productId)
-                ->where('status', 7)
+                ->whereIn('status', [1, 5, 7])
                 ->whereNull('deleted_at')
-                ->whereHas('packing.shipping')
                 ->with(['packing.shipping'])
                 ->get();
 
+            // Ordenar de forma descendente por estado para mostrar en tránsito primero, luego producción, luego solicitado
+            $imports = $imports->sortByDesc('status');
+
             $this->transitDetails = $imports->map(function ($import) {
-                $shipping = $import->packing->shipping;
+                $statusId = (int)$import->status;
                 
-                // Formatear fechas a: Julio 21 2026
-                $etdFormatted = $shipping->etd 
-                    ? Carbon::parse($shipping->etd)->translatedFormat('F d Y') 
-                    : 'No especificada';
-                $etaFormatted = $shipping->eta 
-                    ? Carbon::parse($shipping->eta)->translatedFormat('F d Y') 
-                    : 'No especificada';
-                $fervicomFormatted = $shipping->fervicom_arrival_date 
-                    ? Carbon::parse($shipping->fervicom_arrival_date)->translatedFormat('F d Y') 
-                    : 'No especificada';
+                if ($statusId === 7) {
+                    $shipping = $import->packing?->shipping;
+                    
+                    // Formatear fechas a: Julio 21 2026
+                    $etdFormatted = ($shipping && $shipping->etd) 
+                        ? Carbon::parse($shipping->etd)->translatedFormat('F d Y') 
+                        : 'No especificada';
+                    $etaFormatted = ($shipping && $shipping->eta) 
+                        ? Carbon::parse($shipping->eta)->translatedFormat('F d Y') 
+                        : 'No especificada';
+                    $fervicomFormatted = ($shipping && $shipping->fervicom_arrival_date) 
+                        ? Carbon::parse($shipping->fervicom_arrival_date)->translatedFormat('F d Y') 
+                        : 'No especificada';
 
-                // Capitalizar el nombre del mes
-                $etdFormatted = ucfirst($etdFormatted);
-                $etaFormatted = ucfirst($etaFormatted);
-                $fervicomFormatted = ucfirst($fervicomFormatted);
+                    // Capitalizar el nombre del mes
+                    $etdFormatted = ucfirst($etdFormatted);
+                    $etaFormatted = ucfirst($etaFormatted);
+                    $fervicomFormatted = ucfirst($fervicomFormatted);
 
-                return [
-                    'qty' => $import->qty_requested,
-                    'operation_number' => $shipping->operation_number,
-                    'way' => $shipping->way,
-                    'etd' => $etdFormatted,
-                    'eta' => $etaFormatted,
-                    'fervicom_arrival_date' => $fervicomFormatted
-                ];
-            })->toArray();
+                    return [
+                        'status' => $statusId,
+                        'qty' => $import->qty_requested,
+                        'operation_number' => $shipping?->operation_number ?? '—',
+                        'way' => $shipping?->way ?? 'Desconocida',
+                        'etd' => $etdFormatted,
+                        'eta' => $etaFormatted,
+                        'fervicom_arrival_date' => $fervicomFormatted
+                    ];
+                } else {
+                    // Estados 1 (Solicitado) y 5 (Producción)
+                    $date = null;
+                    if ($statusId === 5) {
+                        // Buscar en el historial de estados la fecha en que pasó a producción
+                        $history = \App\Models\Tenant\Imports\ImpStatusHistory::where('import_id', $import->id)
+                            ->where('new_state', 5)
+                            ->latest()
+                            ->first();
+                        $date = $history ? $history->created_at : ($import->updated_at ?? $import->created_at);
+                    } else {
+                        // Solicitado (1) usa la fecha de creación
+                        $date = $import->created_at;
+                    }
+
+                    $dateFormatted = $date 
+                        ? Carbon::parse($date)->translatedFormat('F d Y') 
+                        : 'No especificada';
+                    $dateFormatted = ucfirst($dateFormatted);
+
+                    return [
+                        'status' => $statusId,
+                        'qty' => $import->qty_requested,
+                        'formatted_date' => $dateFormatted
+                    ];
+                }
+            })->values()->toArray();
 
             $this->showTransitModal = true;
         } catch (\Exception $e) {
