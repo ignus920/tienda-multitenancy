@@ -1607,6 +1607,7 @@ class VntCompanyForm extends Component
                 'profile_id' => $profileId,
                 'contact_id' => $newContact->id,
                 'phone' => $this->business_phone ?: $this->personal_phone,
+                'tenant_company_id' => $company->id, // ID de la compañía cliente en el tenant
             ];
 
             // Verificar que el email no exista en usuarios

@@ -86,21 +86,18 @@ class CustomerPortal extends Component
         $settingsConfigured = false;
         $companyName = '';
 
-        if ($user && $user->contact_id) {
-            $contact = \App\Models\Tenant\Customer\VntContacts::find($user->contact_id);
-            if ($contact) {
-                $company = $contact->company;
-                if ($company) {
-                    $companyName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
-                    $settings = $company->portalSettings;
-                    if ($settings && ($settings->cash_pricelist_id || $settings->credit_pricelist_id)) {
-                        $settingsConfigured = true;
-                        if ($settings->cash_pricelist_id) {
-                            $cashPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->cash_pricelist_id);
-                        }
-                        if ($settings->credit_pricelist_id) {
-                            $creditPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->credit_pricelist_id);
-                        }
+        if ($user && $user->tenant_company_id) {
+            $company = \App\Models\Tenant\Customer\VntCompany::find($user->tenant_company_id);
+            if ($company) {
+                $companyName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
+                $settings = $company->portalSettings;
+                if ($settings && ($settings->cash_pricelist_id || $settings->credit_pricelist_id)) {
+                    $settingsConfigured = true;
+                    if ($settings->cash_pricelist_id) {
+                        $cashPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->cash_pricelist_id);
+                    }
+                    if ($settings->credit_pricelist_id) {
+                        $creditPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->credit_pricelist_id);
                     }
                 }
             }
@@ -156,7 +153,12 @@ class CustomerPortal extends Component
         }
 
         if ($this->stockFilter === 'in_stock') {
-            $query->having('total_stock', '>', 0);
+            $query->havingRaw("
+                CASE 
+                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL)) > 100 THEN 30
+                    ELSE ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL)) * 0.30)
+                END > 0
+            ");
         }
 
         $products = $query->paginate($this->perPage);

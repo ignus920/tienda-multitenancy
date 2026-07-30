@@ -46,6 +46,7 @@ class User extends Authenticatable
         'whatsapp_token',
         'whatsapp_token_expires_at',
         'contact_id',
+        'tenant_company_id',
         'api_data_id',
     ];
 
