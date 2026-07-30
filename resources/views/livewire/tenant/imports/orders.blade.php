@@ -756,7 +756,7 @@
                                             </button>
                                         @elseif($order->status == 5 && $profileUser == '17')
                                             <button wire:click="saveSendFinished({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 whitespace-nowrap">
-                                                <x-heroicon-o-check class="w-4 h-4" /> {{ Auth::user()?->profile_id == 17 ? 'Finish' : 'Terminar' }}
+                                                <x-heroicon-o-check class="w-4 h-4" /> {{ Auth::user()?->profile_id == 17 ? 'Finished' : 'Terminar' }}
                                             </button>
                                         @elseif($order->status == 7)
                                             <button type="button"
