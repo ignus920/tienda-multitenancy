@@ -371,10 +371,15 @@ class ManageItems extends Component
                 });
             })
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('sku', 'like', '%' . $this->search . '%')
-                    ->orWhere('internal_code', 'like', '%' . $this->search . '%')
-                    ->orWhere('type', 'like', '%' . $this->search . '%');
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('name', 'like', '%' . $word . '%')
+                            ->orWhere('sku', 'like', '%' . $word . '%')
+                            ->orWhere('internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('type', 'like', '%' . $word . '%');
+                    });
+                }
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
@@ -784,9 +789,14 @@ class ManageItems extends Component
         return Items::query()
             ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store'])
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('sku', 'like', '%' . $this->search . '%')
-                    ->orWhere('internal_code', 'like', '%' . $this->search . '%');
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('name', 'like', '%' . $word . '%')
+                            ->orWhere('sku', 'like', '%' . $word . '%')
+                            ->orWhere('internal_code', 'like', '%' . $word . '%');
+                    });
+                }
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->get();
