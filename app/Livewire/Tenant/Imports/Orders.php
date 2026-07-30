@@ -149,12 +149,27 @@ class Orders extends Component
             })
             ->groupBy('i.news');
 
-        // Unir las consultas y ordenar
-        return $estados
+        // Unir las consultas, ejecutar y ordenar de forma personalizada en PHP
+        $statuses = $estados
             ->unionAll($novedades)
-            ->orderBy('id', 'asc')
-            ->orderBy('nombre_estado', 'asc')
             ->get();
+
+        $customOrder = [
+            1 => 1,   // Solicitado
+            2 => 2,   // Cotizado
+            4 => 3,   // Aprobado
+            5 => 4,   // Produccion
+            12 => 5,  // Terminados
+            7 => 6,   // En transito
+            8 => 7,   // Recibido
+            9 => 8,   // Retrasado
+            10 => 9,  // Novedades
+            11 => 10  // Eliminado
+        ];
+
+        return $statuses->sortBy(function ($item) use ($customOrder) {
+            return $customOrder[$item->id] ?? 999;
+        })->values();
     }
 
     public function putFilter($statusId)
@@ -1489,6 +1504,41 @@ class Orders extends Component
             $this->dispatch('show-toast', [
                 'type' => 'error',
                 'message' => 'No se pudo enviar a producción'
+            ]);
+        }
+    }
+
+    public function saveSendFinished($importId)
+    {
+        $this->ensureTenantConnection();
+        try {
+            DB::connection('tenant')->transaction(function () use ($importId) {
+                $import = ImpImports::findOrFail($importId);
+
+                $oldStatus = $import->status;
+                $newStatus = 12; // Terminados
+
+                $dataStatus = [
+                    'import_id' => $importId,
+                    'previous_state' => $oldStatus,
+                    'new_state' => $newStatus,
+                    'user_id' => Auth::id()
+                ];
+
+                ImpStatusHistory::create($dataStatus);
+
+                $import->update(['status' => $newStatus]);
+            });
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => Auth::user()?->profile_id == 17 ? 'Update finished successfully' : 'Actualizado a terminado con éxito'
+            ]);
+            $this->resetForm();
+        } catch (\Exception $e) {
+            Log::error("Error al enviar a terminados: " . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se pudo actualizar el estado'
             ]);
         }
     }

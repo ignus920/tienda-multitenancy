@@ -277,7 +277,7 @@
                                     title="{{ Auth::user()?->profile_id == 17 ? 'Clear all filters and reset the board' : 'Limpiar todos los filtros y restablecer el tablero' }}">
                                 <span>{{ Auth::user()?->profile_id == 17 ? 'Clear Filters' : 'Borrar Filtros' }}</span>
                             </button>
-                            @if (count($selectedOrders) > 0 && $filterStatus == 5)
+                            @if (count($selectedOrders) > 0 && ($filterStatus == 5 || $filterStatus == 12) && $profileUser == '17')
                                 <button wire:click="openModalShipping" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
                             @endif
                             @if ($profileUser != '17' && count($selectedOrders) > 0)
@@ -753,6 +753,10 @@
                                         @elseif($order->status == 4 && $profileUser == '17')
                                             <button wire:click="saveSendProduction({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                                 <x-heroicon-o-check class="w-4 h-4" /> Production
+                                            </button>
+                                        @elseif($order->status == 5 && $profileUser == '17')
+                                            <button wire:click="saveSendFinished({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 whitespace-nowrap">
+                                                <x-heroicon-o-check class="w-4 h-4" /> {{ Auth::user()?->profile_id == 17 ? 'Finish' : 'Terminar' }}
                                             </button>
                                         @elseif($order->status == 7)
                                             <button type="button"

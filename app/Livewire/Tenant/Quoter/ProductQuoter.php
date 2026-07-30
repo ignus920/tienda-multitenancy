@@ -575,15 +575,23 @@ class ProductQuoter extends Component
             $this->transitProductCode = $product->internal_code ?? $product->sku;
             $this->transitProductName = $product->name;
 
-            // Obtener importaciones en estado Solicitado (1), Producción (5) y En tránsito (7)
+            // Obtener importaciones en estado Solicitado (1), Producción (5), Terminados (12) y En tránsito (7)
             $imports = \App\Models\Tenant\Imports\ImpImports::where('item_id', $productId)
-                ->whereIn('status', [1, 5, 7])
+                ->whereIn('status', [1, 5, 12, 7])
                 ->whereNull('deleted_at')
                 ->with(['packing.shipping'])
                 ->get();
 
-            // Ordenar de forma descendente por estado para mostrar en tránsito primero, luego producción, luego solicitado
-            $imports = $imports->sortByDesc('status');
+            // Ordenar de forma personalizada: Tránsito (7) -> Terminados (12) -> Producción (5) -> Solicitado (1)
+            $customOrder = [
+                7 => 1,
+                12 => 2,
+                5 => 3,
+                1 => 4
+            ];
+            $imports = $imports->sortBy(function ($import) use ($customOrder) {
+                return $customOrder[(int)$import->status] ?? 999;
+            });
 
             $this->transitDetails = $imports->map(function ($import) {
                 $statusId = (int)$import->status;
@@ -617,12 +625,19 @@ class ProductQuoter extends Component
                         'fervicom_arrival_date' => $fervicomFormatted
                     ];
                 } else {
-                    // Estados 1 (Solicitado) y 5 (Producción)
+                    // Estados 1 (Solicitado), 5 (Producción) y 12 (Terminados)
                     $date = null;
                     if ($statusId === 5) {
                         // Buscar en el historial de estados la fecha en que pasó a producción
                         $history = \App\Models\Tenant\Imports\ImpStatusHistory::where('import_id', $import->id)
                             ->where('new_state', 5)
+                            ->latest()
+                            ->first();
+                        $date = $history ? $history->created_at : ($import->updated_at ?? $import->created_at);
+                    } elseif ($statusId === 12) {
+                        // Buscar en el historial de estados la fecha en que pasó a terminados
+                        $history = \App\Models\Tenant\Imports\ImpStatusHistory::where('import_id', $import->id)
+                            ->where('new_state', 12)
                             ->latest()
                             ->first();
                         $date = $history ? $history->created_at : ($import->updated_at ?? $import->created_at);

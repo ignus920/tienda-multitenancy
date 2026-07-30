@@ -1822,6 +1822,24 @@ $header = 'Seleccionar productos';
                                         En producción: <span class="font-bold text-amber-700 dark:text-amber-300">{{ number_format($detail['qty'], 0) }} unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
                                     </div>
                                 </div>
+                            @elseif(($detail['status'] ?? 7) === 12)
+                                {{-- Terminado en Fábrica (Estado 12) --}}
+                                <div class="bg-white dark:bg-gray-800 border border-green-150 dark:border-green-900/30 rounded-2xl p-4 shadow-sm space-y-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="p-1.5 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 rounded-lg">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-green-400 uppercase tracking-wider">Estado</span>
+                                            <span class="text-xs font-bold text-green-700 dark:text-green-300">Terminado en Fábrica</span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2.5 border-t border-dashed border-green-100 dark:border-green-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
+                                        Terminado en Fabrica: <span class="font-bold text-green-700 dark:text-green-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
+                                    </div>
+                                </div>
                             @else
                                 {{-- En Tránsito (Estado 7) --}}
                                 @php
