@@ -79,6 +79,28 @@ class CustomerPortal extends Component
         
         $categories = Category::orderBy('name')->get();
 
+        // Obtener listas de precios configuradas para el cliente
+        $user = auth()->user();
+        $cashPricelist = null;
+        $creditPricelist = null;
+
+        if ($user && $user->contact_id) {
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            if ($contact && $contact->warehouse) {
+                $companyId = $contact->warehouse->companyId;
+                $company = \App\Models\Tenant\Customer\VntCompany::find($companyId);
+                if ($company && $company->portalSettings) {
+                    $settings = $company->portalSettings;
+                    if ($settings->cash_pricelist_id) {
+                        $cashPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->cash_pricelist_id);
+                    }
+                    if ($settings->credit_pricelist_id) {
+                        $creditPricelist = \App\Models\Tenant\Parameters\PriceList::find($settings->credit_pricelist_id);
+                    }
+                }
+            }
+        }
+
         $query = Items::query()
             ->select(
                 'inv_items.*',
@@ -137,6 +159,8 @@ class CustomerPortal extends Component
         return view('livewire.tenant.portal.customer-portal', [
             'products' => $products,
             'categories' => $categories,
+            'cashPricelist' => $cashPricelist,
+            'creditPricelist' => $creditPricelist,
         ])->layout('layouts.app', ['header' => 'Portal de Clientes']);
     }
 }

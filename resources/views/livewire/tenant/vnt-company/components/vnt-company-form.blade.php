@@ -649,9 +649,11 @@
                                     'placeholder' => 'Seleccione una ruta (opcional)',
                                     'routeId' => $routeId ?? ''
                                     ])
+
                                 @endif
                             @endif
                         @endif
+
 
                         <!-- Teléfono Empresarial -->
                         <div>
@@ -746,6 +748,36 @@
                                 placeholder="Ej: 110111">
                             @error('warehousePostcode') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
+
+                        @if ($type && $type == 'CLIENTE')
+                            <!-- Listas de Precios B2B -->
+                            <div class="md:col-span-2 p-4 bg-gray-100 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80">
+                                <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">Configuración de Listas de Precios</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Lista de Precios Contado -->
+                                    <div>
+                                        <label for="cash_pricelist_id" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Lista de Precios Contado</label>
+                                        <select wire:model="cash_pricelist_id" id="cash_pricelist_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                            <option value="">Seleccione una lista (opcional)</option>
+                                            @foreach($pricelists as $list)
+                                                <option value="{{ $list->id }}">{{ $list->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <!-- Lista de Precios Crédito -->
+                                    <div>
+                                        <label for="credit_pricelist_id" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Lista de Precios Crédito</label>
+                                        <select wire:model="credit_pricelist_id" id="credit_pricelist_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                            <option value="">Seleccione una lista (opcional)</option>
+                                            @foreach($pricelists as $list)
+                                                <option value="{{ $list->id }}">{{ $list->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Dirección de la Sucursal -->
                         <div class="md:col-span-2">

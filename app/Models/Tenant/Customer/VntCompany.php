@@ -102,6 +102,14 @@ class VntCompany extends Model
     // --- Relaciones ---
 
     /**
+     * Relación con las configuraciones del portal de clientes
+     */
+    public function portalSettings()
+    {
+        return $this->hasOne(VntCompanyPortalSettings::class, 'company_id');
+    }
+
+    /**
      * Relación con las sucursales (warehouses)
      */
     public function warehouses()

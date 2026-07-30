@@ -89,6 +89,8 @@ class VntCompanyForm extends Component
     // Propiedades del formulario
     public $businessName = '';
     public $billingEmail = '';
+    public $cash_pricelist_id = '';
+    public $credit_pricelist_id = '';
     public $firstName = '';
     public $lastName = '';
     public $secondName = '';
@@ -253,10 +255,14 @@ class VntCompanyForm extends Component
 
     public function render()
     {
+        $this->ensureTenantConnection();
+        $pricelists = \App\Models\Tenant\Parameters\PriceList::active()->get();
+
         return view('livewire.tenant.vnt-company.components.vnt-company-form', [
             'items' => $this->items, // Se cachea automáticamente entre renders
             'sortField' => $this->sortField,
-            'sortDirection' => $this->sortDirection
+            'sortDirection' => $this->sortDirection,
+            'pricelists' => $pricelists
         ]);
     }
 
@@ -301,6 +307,11 @@ class VntCompanyForm extends Component
         // Cargar ruta asignada si existe
         $route = VntCompanyRoute::where('company_id', $id)->first();
         $this->routeId = $route ? $route->route_id : '';
+
+        // Cargar configuraciones del portal si existen
+        $settings = $company->portalSettings;
+        $this->cash_pricelist_id = $settings ? $settings->cash_pricelist_id : '';
+        $this->credit_pricelist_id = $settings ? $settings->credit_pricelist_id : '';
 
         // Log detallado de la carga de datos para verificación
         Log::info('Company data loaded in edit()', [
@@ -1667,6 +1678,8 @@ class VntCompanyForm extends Component
             'positionId' => $this->positionId,
             'routeId' => $this->routeId === '' ? null : $this->routeId,
             'type' => $this->type ?: 'CLIENTE',
+            'cash_pricelist_id' => $this->cash_pricelist_id === '' ? null : $this->cash_pricelist_id,
+            'credit_pricelist_id' => $this->credit_pricelist_id === '' ? null : $this->credit_pricelist_id,
         ];
 
         Log::info('🔍 DATOS ENVIADOS AL CompanyService', [

@@ -122,8 +122,32 @@
                     @forelse($products as $product)
                         @php
                             $prices = $product->all_prices;
-                            $priceCash = $prices['Precio Mínimo'] ?? ($prices['Precio Regular'] ?? 0);
-                            $priceCredit = $prices['Precio Crédito'] ?? null;
+                            $taxPercentage = 0;
+                            if ($product->tax) {
+                                $taxPercentage = $product->tax->percentage / 100;
+                            }
+                            
+                            $basePriceRecord = $product->invValues
+                                ->where('type', 'precio')
+                                ->where('label', 'Precio Base')
+                                ->sortByDesc('date')
+                                ->sortByDesc('created_at')
+                                ->first();
+                            $basePrice = $basePriceRecord ? (float)$basePriceRecord->values : 0.0;
+
+                            if ($cashPricelist && $basePrice > 0) {
+                                $priceWithoutIva = $basePrice * $cashPricelist->value;
+                                $priceCash = round($priceWithoutIva * (1 + $taxPercentage), 2);
+                            } else {
+                                $priceCash = $prices['Precio Mínimo'] ?? ($prices['Precio Regular'] ?? 0);
+                            }
+
+                            if ($creditPricelist && $basePrice > 0) {
+                                $priceWithoutIva = $basePrice * $creditPricelist->value;
+                                $priceCredit = round($priceWithoutIva * (1 + $taxPercentage), 2);
+                            } else {
+                                $priceCredit = $prices['Precio Crédito'] ?? null;
+                            }
                             
                             $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
                             $visibleStock = round($realStock * 0.30);
@@ -235,8 +259,32 @@
                 @forelse($products as $product)
                     @php
                         $prices = $product->all_prices;
-                        $priceCash = $prices['Precio Mínimo'] ?? ($prices['Precio Regular'] ?? 0);
-                        $priceCredit = $prices['Precio Crédito'] ?? null;
+                        $taxPercentage = 0;
+                        if ($product->tax) {
+                            $taxPercentage = $product->tax->percentage / 100;
+                        }
+                        
+                        $basePriceRecord = $product->invValues
+                            ->where('type', 'precio')
+                            ->where('label', 'Precio Base')
+                            ->sortByDesc('date')
+                            ->sortByDesc('created_at')
+                            ->first();
+                        $basePrice = $basePriceRecord ? (float)$basePriceRecord->values : 0.0;
+
+                        if ($cashPricelist && $basePrice > 0) {
+                            $priceWithoutIva = $basePrice * $cashPricelist->value;
+                            $priceCash = round($priceWithoutIva * (1 + $taxPercentage), 2);
+                        } else {
+                            $priceCash = $prices['Precio Mínimo'] ?? ($prices['Precio Regular'] ?? 0);
+                        }
+
+                        if ($creditPricelist && $basePrice > 0) {
+                            $priceWithoutIva = $basePrice * $creditPricelist->value;
+                            $priceCredit = round($priceWithoutIva * (1 + $taxPercentage), 2);
+                        } else {
+                            $priceCredit = $prices['Precio Crédito'] ?? null;
+                        }
                         
                         $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
                         $visibleStock = round($realStock * 0.30);

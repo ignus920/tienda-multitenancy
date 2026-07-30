@@ -29,6 +29,12 @@ class CompanyService
         $companyData = $this->prepareCompanyData($data);
         $company = VntCompany::create($companyData);
 
+        // Guardar configuraciones del portal
+        $company->portalSettings()->create([
+            'cash_pricelist_id' => $data['cash_pricelist_id'] ?? null,
+            'credit_pricelist_id' => $data['credit_pricelist_id'] ?? null,
+        ]);
+
         // Crear almacenes
         $this->warehouseService->createWarehouses($company, $warehouses);
 
@@ -62,6 +68,15 @@ class CompanyService
         $companyData = $this->prepareCompanyData($data);
 
         $company->update($companyData);
+
+        // Actualizar o crear configuraciones del portal
+        $company->portalSettings()->updateOrCreate(
+            ['company_id' => $company->id],
+            [
+                'cash_pricelist_id' => $data['cash_pricelist_id'] ?? null,
+                'credit_pricelist_id' => $data['credit_pricelist_id'] ?? null,
+            ]
+        );
 
         // Actualizar almacenes
         if (!empty($warehouses)) {
@@ -193,6 +208,8 @@ class CompanyService
             'type' => $data['type'] ?? null,
             // 'vntUserId' => $data['vntUserId'] ?? null, // Campo no existe en la tabla
             'routeId' => $data['routeId'] ?? null,
+            'cash_pricelist_id' => $data['cash_pricelist_id'] ?? null,
+            'credit_pricelist_id' => $data['credit_pricelist_id'] ?? null,
         ];
 
         $typeIdentificationId = (int) $data['typeIdentificationId'];
