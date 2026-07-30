@@ -172,7 +172,7 @@
                     $pago = $remission->authorizations->where('auth_type', 'pago')->last();
                     $totalConFlete = $remission->sub_total_rem + ($remission->flete ?? 0);
                 @endphp
-                <tr class="hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                <tr wire:key="remission-row-{{ $remission->id }}" class="hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors">
                     <td class="px-6 py-4">
                         <div class="flex flex-col">
                             <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">#{{ $remission->consecutive }}</span>
