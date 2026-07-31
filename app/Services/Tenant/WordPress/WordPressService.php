@@ -66,10 +66,11 @@ class WordPressService
         Log::info('🔍 [WP] Buscando producto por SKU', ['sku' => $sku, 'endpoint' => $this->baseUrl . 'products']);
 
         try {
+            // 1. Intentar buscar como producto simple/padre
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
                 ->get($this->baseUrl . 'products', ['sku' => $sku]);
 
-            Log::info('📡 [WP] Respuesta findProductBySku', [
+            Log::info('📡 [WP] Respuesta findProductBySku (paso 1)', [
                 'sku'         => $sku,
                 'http_status' => $response->status(),
                 'exitoso'     => $response->successful(),
@@ -80,7 +81,7 @@ class WordPressService
 
                 if (count($products) > 0) {
                     $product = $products[0];
-                    Log::info('✅ [WP] Producto encontrado', [
+                    Log::info('✅ [WP] Producto encontrado en paso 1', [
                         'sku'        => $sku,
                         'wp_id'      => $product['id'],
                         'wp_name'    => $product['name'],
@@ -89,6 +90,7 @@ class WordPressService
                     ]);
                     return [
                         'id'           => $product['id'],
+                        'parent_id'    => null,
                         'type'         => $product['type'],
                         'sku'          => $product['sku'],
                         'name'         => $product['name'],
@@ -96,15 +98,55 @@ class WordPressService
                         'is_variation' => ($product['type'] === 'variation'),
                     ];
                 }
-
-                Log::warning('⚠️ [WP] SKU no encontrado en WordPress', ['sku' => $sku]);
-            } else {
-                Log::error('❌ [WP] Error HTTP en findProductBySku', [
-                    'sku'         => $sku,
-                    'http_status' => $response->status(),
-                    'body'        => $response->body(),
-                ]);
             }
+
+            // 2. Si no se encontró en el paso 1, intentar buscar por variaciones usando la búsqueda
+            Log::info('🔍 [WP] SKU no encontrado en productos principales. Buscando como variante en WooCommerce...', ['sku' => $sku]);
+            
+            $searchResponse = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->get($this->baseUrl . 'products', ['search' => $sku]);
+
+            if ($searchResponse->successful()) {
+                $foundProducts = $searchResponse->json();
+
+                foreach ($foundProducts as $parentProduct) {
+                    // Si el producto encontrado es variable, consultamos sus variaciones
+                    if ($parentProduct['type'] === 'variable') {
+                        Log::info("🔍 [WP] Buscando variaciones para el producto padre variable ID #{$parentProduct['id']}", ['parent_sku' => $parentProduct['sku']]);
+                        
+                        $variationsResponse = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                            ->get($this->baseUrl . "products/{$parentProduct['id']}/variations");
+
+                        if ($variationsResponse->successful()) {
+                            $variations = $variationsResponse->json();
+
+                            foreach ($variations as $variation) {
+                                if (strcasecmp(trim($variation['sku']), trim($sku)) === 0) {
+                                    Log::info("✅ [WP] Variación encontrada!", [
+                                        'sku'          => $sku,
+                                        'wp_id'        => $variation['id'],
+                                        'parent_id'    => $parentProduct['id'],
+                                        'variation_sku' => $variation['sku']
+                                    ]);
+
+                                    return [
+                                        'id'           => $variation['id'],
+                                        'parent_id'    => $parentProduct['id'],
+                                        'type'         => 'variation',
+                                        'sku'          => $variation['sku'],
+                                        'name'         => $parentProduct['name'] . ' - ' . implode(', ', array_column($variation['attributes'] ?? [], 'option')),
+                                        'images'       => !empty($variation['image']) ? [$variation['image']] : $parentProduct['images'],
+                                        'is_variation' => true,
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Log::warning('⚠️ [WP] SKU no encontrado en WordPress ni como variante', ['sku' => $sku]);
+
         } catch (Exception $e) {
             Log::error('❌ [WP] Excepción en findProductBySku', [
                 'sku'   => $sku,
@@ -571,7 +613,6 @@ class WordPressService
             'precio_base'   => $precioRecord?->values ?? 0,
             'precio_con_iva' => $precioWP,
         ]);
-
         // 6. Buscar producto en WooCommerce por SKU
         $wpProduct = $this->findProductBySku($item->sku);
         if (!$wpProduct) {
@@ -579,8 +620,8 @@ class WordPressService
             return $result;
         }
 
-        // 7. Actualizar stock y precio en WooCommerce
-        $synced = $this->updateProductStockAndPrice($wpProduct['id'], $stockWP, $precioWP);
+        // 7. Actualizar stock y precio en WooCommerce (incluyendo parent_id si es variación)
+        $synced = $this->updateProductStockAndPrice($wpProduct['id'], $stockWP, $precioWP, $wpProduct['parent_id'] ?? null);
 
         $result['success'] = $synced;
         $result['wp_product_id'] = $wpProduct['id'];
@@ -596,21 +637,21 @@ class WordPressService
 
         return $result;
     }
-
     /**
      * Actualiza stock y precio de un producto en WooCommerce vía REST API.
      */
-    public function updateProductStockAndPrice($wpProductId, $stock, $price): bool
+    public function updateProductStockAndPrice($wpProductId, $stock, $price, $parentProductId = null): bool
     {
         if (!$this->isConfigured()) return false;
 
         $stockStatus = $stock > 0 ? 'instock' : 'outofstock';
 
         Log::info('🔄 [WP-Stock] updateProductStockAndPrice', [
-            'wp_product_id' => $wpProductId,
-            'stock'         => $stock,
-            'stock_status'  => $stockStatus,
-            'price'         => $price,
+            'wp_product_id'     => $wpProductId,
+            'parent_product_id' => $parentProductId,
+            'stock'             => $stock,
+            'stock_status'      => $stockStatus,
+            'price'             => $price,
         ]);
 
         try {
@@ -624,11 +665,17 @@ class WordPressService
                 $data['regular_price'] = (string) $price;
             }
 
+            // Si tiene parent_id, el endpoint es para variaciones
+            $endpoint = $parentProductId 
+                ? "products/{$parentProductId}/variations/{$wpProductId}"
+                : "products/{$wpProductId}";
+
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/{$wpProductId}", $data);
+                ->put($this->baseUrl . $endpoint, $data);
 
             Log::info('📡 [WP-Stock] Respuesta WC', [
                 'wp_product_id' => $wpProductId,
+                'endpoint'      => $endpoint,
                 'http_status'   => $response->status(),
                 'exitoso'       => $response->successful(),
             ]);
@@ -636,6 +683,7 @@ class WordPressService
             if (!$response->successful()) {
                 Log::error('❌ [WP-Stock] Error en WC', [
                     'wp_product_id' => $wpProductId,
+                    'endpoint'      => $endpoint,
                     'body'          => $response->body(),
                 ]);
             }
