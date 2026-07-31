@@ -577,7 +577,7 @@ class ProductQuoter extends Component
 
             // Obtener importaciones en estado Solicitado (1), Producción (5), Terminados (12) y En tránsito (7)
             $imports = \App\Models\Tenant\Imports\ImpImports::where('item_id', $productId)
-                ->whereIn('status', [1, 5, 12, 7])
+                ->whereIn('status', [1, 2, 4, 5, 12, 7])
                 ->whereNull('deleted_at')
                 ->with(['packing.shipping'])
                 ->get();
@@ -587,7 +587,9 @@ class ProductQuoter extends Component
                 7 => 1,
                 12 => 2,
                 5 => 3,
-                1 => 4
+                1 => 4,
+                2 => 4,
+                4 => 4
             ];
             $imports = $imports->sortBy(function ($import) use ($customOrder) {
                 return $customOrder[(int)$import->status] ?? 999;

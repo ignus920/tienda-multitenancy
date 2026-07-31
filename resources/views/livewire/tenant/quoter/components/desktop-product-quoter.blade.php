@@ -1786,8 +1786,8 @@ $header = 'Seleccionar productos';
                     <!-- Listado de Importaciones/Pedidos en Tránsito -->
                     <div class="space-y-4">
                         @forelse($transitDetails as $detail)
-                            @if(($detail['status'] ?? 7) === 1)
-                                {{-- Solicitado a Fábrica (Estado 1) --}}
+                            @if(in_array($detail['status'] ?? 7, [1, 2, 4]))
+                                {{-- Solicitado a Fábrica (Estado 1, 2, 4) --}}
                                 <div class="bg-white dark:bg-gray-800 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-4 shadow-sm space-y-3">
                                     <div class="flex items-center gap-2">
                                         <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
@@ -1801,7 +1801,7 @@ $header = 'Seleccionar productos';
                                         </div>
                                     </div>
                                     <div class="pt-2.5 border-t border-dashed border-purple-100 dark:border-purple-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
-                                        Solicitado a Fabrica: <span class="font-bold text-purple-700 dark:text-purple-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
+                                        <span class="font-bold text-purple-700 dark:text-purple-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
                                     </div>
                                 </div>
                             @elseif(($detail['status'] ?? 7) === 5)
@@ -1819,7 +1819,7 @@ $header = 'Seleccionar productos';
                                         </div>
                                     </div>
                                     <div class="pt-2.5 border-t border-dashed border-amber-100 dark:border-amber-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
-                                        En producción: <span class="font-bold text-amber-700 dark:text-amber-300">{{ number_format($detail['qty'], 0) }} unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
+                                        <span class="font-bold text-amber-700 dark:text-amber-300">{{ number_format($detail['qty'], 0) }} unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
                                     </div>
                                 </div>
                             @elseif(($detail['status'] ?? 7) === 12)
@@ -1837,7 +1837,7 @@ $header = 'Seleccionar productos';
                                         </div>
                                     </div>
                                     <div class="pt-2.5 border-t border-dashed border-green-100 dark:border-green-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
-                                        Terminado en Fabrica: <span class="font-bold text-green-700 dark:text-green-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
+                                        <span class="font-bold text-green-700 dark:text-green-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
                                     </div>
                                 </div>
                             @else

@@ -610,7 +610,7 @@ class Items extends Model
             ? $this->imports
             : $this->imports()->get();
 
-        return $collection->whereIn('status', [1, 5, 12, 7])->sum('qty_requested');
+        return $collection->whereIn('status', [1, 2, 4, 5, 12, 7])->sum('qty_requested');
     }
 
     public function getReservedAttribute()
