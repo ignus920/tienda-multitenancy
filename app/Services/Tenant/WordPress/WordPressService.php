@@ -90,7 +90,7 @@ class WordPressService
                     ]);
                     return [
                         'id'           => $product['id'],
-                        'parent_id'    => null,
+                        'parent_id'    => (!empty($product['parent_id']) && $product['parent_id'] > 0) ? $product['parent_id'] : null,
                         'type'         => $product['type'],
                         'sku'          => $product['sku'],
                         'name'         => $product['name'],
