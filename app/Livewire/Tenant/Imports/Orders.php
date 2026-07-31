@@ -117,11 +117,6 @@ class Orders extends Component
         $this->ensureTenantConnection();
     }
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
     #[Computed]
     public function status()
     {
