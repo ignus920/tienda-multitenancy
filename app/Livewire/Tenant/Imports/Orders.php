@@ -2184,45 +2184,53 @@ class Orders extends Component
                     }
                 }
 
-                // 2. Rotar prioridades de los productos restantes (status < 8) de forma independiente
-                if ($hasMaritime) {
-                    // - Second pasa a ASAP
-                    ImpImports::where('priority', 'Second')
-                        ->where('status', '<', 8)
-                        ->whereNull('deleted_at')
-                        ->update([
-                            'priority' => 'ASAP',
-                            'priority_assigned_at' => now()
-                        ]);
+                // 2. Rotar prioridades de los productos restantes (status < 8) de forma independiente por item_id
+                $itemIds = $selectedImports->pluck('item_id')->unique()->toArray();
 
-                    // - Third pasa a Second
-                    ImpImports::where('priority', 'Third')
-                        ->where('status', '<', 8)
-                        ->whereNull('deleted_at')
-                        ->update([
-                            'priority' => 'Second',
-                            'priority_assigned_at' => now()
-                        ]);
-                }
+                if (!empty($itemIds)) {
+                    if ($hasMaritime) {
+                        // - Second pasa a ASAP
+                        ImpImports::whereIn('item_id', $itemIds)
+                            ->where('priority', 'Second')
+                            ->where('status', '<', 8)
+                            ->whereNull('deleted_at')
+                            ->update([
+                                'priority' => 'ASAP',
+                                'priority_assigned_at' => now()
+                            ]);
 
-                if ($hasAir) {
-                    // - Express 2 pasa a Express
-                    ImpImports::where('priority', 'Express 2')
-                        ->where('status', '<', 8)
-                        ->whereNull('deleted_at')
-                        ->update([
-                            'priority' => 'Express',
-                            'priority_assigned_at' => now()
-                        ]);
+                        // - Third pasa a Second
+                        ImpImports::whereIn('item_id', $itemIds)
+                            ->where('priority', 'Third')
+                            ->where('status', '<', 8)
+                            ->whereNull('deleted_at')
+                            ->update([
+                                'priority' => 'Second',
+                                'priority_assigned_at' => now()
+                            ]);
+                    }
 
-                    // - Express 3 pasa a Express 2
-                    ImpImports::where('priority', 'Express 3')
-                        ->where('status', '<', 8)
-                        ->whereNull('deleted_at')
-                        ->update([
-                            'priority' => 'Express 2',
-                            'priority_assigned_at' => now()
-                        ]);
+                    if ($hasAir) {
+                        // - Express 2 pasa a Express
+                        ImpImports::whereIn('item_id', $itemIds)
+                            ->where('priority', 'Express 2')
+                            ->where('status', '<', 8)
+                            ->whereNull('deleted_at')
+                            ->update([
+                                'priority' => 'Express',
+                                'priority_assigned_at' => now()
+                            ]);
+
+                        // - Express 3 pasa a Express 2
+                        ImpImports::whereIn('item_id', $itemIds)
+                            ->where('priority', 'Express 3')
+                            ->where('status', '<', 8)
+                            ->whereNull('deleted_at')
+                            ->update([
+                                'priority' => 'Express 2',
+                                'priority_assigned_at' => now()
+                            ]);
+                    }
                 }
             });
 
