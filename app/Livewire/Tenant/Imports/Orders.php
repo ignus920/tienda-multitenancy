@@ -311,16 +311,20 @@ class Orders extends Component
                 return $query->where('pk.shipping_id', $this->selectedShipp);
             })
             ->when($this->search, function ($query) {
-                return $query->where(function ($q) {
-                    $q->where('iv.name', 'like', '%' . $this->search . '%')
-                      ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
-                      ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%')
-                      ->orWhere('pk.number_packing', 'like', '%' . $this->search . '%')
-                      ->orWhere('s.operation_number', 'like', '%' . $this->search . '%')
-                      ->orWhere('i.priority', 'like', '%' . $this->search . '%')
-                      ->orWhere('il.name', 'like', '%' . $this->search . '%');
-                });
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('iv.name', 'like', '%' . $word . '%')
+                          ->orWhere('iv.sku', 'like', '%' . $word . '%')
+                          ->orWhere('iv.internal_code', 'like', '%' . $word . '%')
+                          ->orWhere('iis.factory_ref', 'like', '%' . $word . '%')
+                          ->orWhere('pk.number_packing', 'like', '%' . $word . '%')
+                          ->orWhere('s.operation_number', 'like', '%' . $word . '%')
+                          ->orWhere('i.priority', 'like', '%' . $word . '%')
+                          ->orWhere('il.name', 'like', '%' . $word . '%');
+                    });
+                }
+                return $query;
             })
             ->paginate($this->perPage);
     }
@@ -486,8 +490,14 @@ class Orders extends Component
             
             if ($response->successful()) {
                 $result = $response->json();
-                if (isset($result[0][0][0])) {
-                    return $result[0][0][0];
+                if (isset($result[0]) && is_array($result[0])) {
+                    $translatedText = '';
+                    foreach ($result[0] as $segment) {
+                        if (isset($segment[0]) && is_string($segment[0])) {
+                            $translatedText .= $segment[0];
+                        }
+                    }
+                    return $translatedText;
                 }
             }
         } catch (\Exception $e) {
@@ -2362,12 +2372,16 @@ class Orders extends Component
                 return $query->where('pk.shipping_id', $this->selectedShipp);
             })
             ->when($this->search, function ($query) {
-                return $query->where(function ($q) {
-                    $q->where('iv.name', 'like', '%' . $this->search . '%')
-                      ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
-                      ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%');
-                });
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('iv.name', 'like', '%' . $word . '%')
+                          ->orWhere('iv.sku', 'like', '%' . $word . '%')
+                          ->orWhere('iv.internal_code', 'like', '%' . $word . '%')
+                          ->orWhere('iis.factory_ref', 'like', '%' . $word . '%');
+                    });
+                }
+                return $query;
             })
             ->get();
 
@@ -2452,12 +2466,16 @@ class Orders extends Component
                 return $query->where('pk.shipping_id', $this->selectedShipp);
             })
             ->when($this->search, function ($query) {
-                return $query->where(function ($q) {
-                    $q->where('iv.name', 'like', '%' . $this->search . '%')
-                      ->orWhere('iv.sku', 'like', '%' . $this->search . '%')
-                      ->orWhere('iv.internal_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('iis.factory_ref', 'like', '%' . $this->search . '%');
-                });
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('iv.name', 'like', '%' . $word . '%')
+                          ->orWhere('iv.sku', 'like', '%' . $word . '%')
+                          ->orWhere('iv.internal_code', 'like', '%' . $word . '%')
+                          ->orWhere('iis.factory_ref', 'like', '%' . $word . '%');
+                    });
+                }
+                return $query;
             })
             ->get();
 

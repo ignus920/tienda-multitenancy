@@ -2032,11 +2032,11 @@
                                                 $translation = $parts[1];
                                             }
                                         @endphp
-                                        <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left" style="text-align: left !important; margin: 0; padding: 0;">
+                                        <p class="text-sm text-gray-700 dark:text-gray-300 leading-normal text-left whitespace-pre-line" style="text-align: left !important; margin: 0; padding: 0;">
                                             {{ trim($original) }}
                                         </p>
                                         @if($translation)
-                                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-normal italic text-left mt-1.5" style="text-align: left !important; margin-top: 0.375rem !important; margin-bottom: 0; padding: 0;">
+                                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-normal italic text-left mt-1.5 whitespace-pre-line" style="text-align: left !important; margin-top: 0.375rem !important; margin-bottom: 0; padding: 0;">
                                                 {{ trim($translation) }}
                                             </p>
                                         @endif
