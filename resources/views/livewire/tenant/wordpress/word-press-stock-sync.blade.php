@@ -8,7 +8,7 @@
                 Sincronización de Stock con WordPress
             </h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Bodega: PRINCIPAL · Precio: Precio Regular + IVA · Descuenta reservas REGISTRADO
+                Bodega: PRINCIPAL · Precio: Precio Mínimo + IVA · Descuenta reservas REGISTRADO
             </p>
         </div>
     </div>

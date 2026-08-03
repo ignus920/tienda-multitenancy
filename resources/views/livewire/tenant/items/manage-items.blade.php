@@ -259,9 +259,17 @@
                                 @if($it->invValues->isNotEmpty())
                                     <div class="space-y-1.5">
                                         @foreach($it->invValues->where('type', 'precio') as $value)
+                                            @php
+                                                $displayLabel = str_replace('Precio ', '', $value->label);
+                                                if ($displayLabel === 'Base') {
+                                                    $displayLabel = 'Lista';
+                                                } elseif ($displayLabel === 'Regular') {
+                                                    $displayLabel = 'Mínimo';
+                                                }
+                                            @endphp
                                             <div class="flex items-center gap-2">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-                                                    {{ str_replace('Precio ', '', $value->label) }}:
+                                                    {{ $displayLabel }}:
                                                     <span class="text-xs text-gray-500 dark:text-gray-400">${{ number_format($value->values, 0, ',', '.') }}</span>
                                                 </span>
                                             </div>
@@ -845,7 +853,7 @@
                                         @foreach ($staticValues as $index => $staticValue)
                                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                                                 <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                                                    {{ $staticValue['label'] }}
+                                                    {{ $staticValue['label'] === 'Precio Base' ? 'Precio Lista' : ($staticValue['label'] === 'Precio Regular' ? 'Precio Mínimo' : $staticValue['label']) }}
                                                 </td>
                                                 <td class="px-4 py-3 text-sm">
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $staticValue['type'] === 'Costo' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' }}">
