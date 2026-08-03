@@ -2914,6 +2914,11 @@ class ProductQuoter extends Component
                     continue;
                 }
 
+                // Omitir validación de stock para productos ensamblados al crear remisión (OP)
+                if (($item['type'] ?? '') === 'ENSAMBLADO') {
+                    continue;
+                }
+
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();

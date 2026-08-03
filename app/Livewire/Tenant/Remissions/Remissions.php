@@ -528,6 +528,43 @@ class Remissions extends Component
                 return;
             }
 
+            // Validar stock para productos Ensamblados antes de facturar
+            $productosSinStock = [];
+            foreach ($remisiones as $remission) {
+                foreach ($remission->details as $detail) {
+                    $item = $detail->item;
+                    if ($item && $item->type === 'ENSAMBLADO' && $item->inventoriable == 1) {
+                        $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $item->id)
+                            ->where('storeId', $remission->quote->warehouseId)
+                            ->first();
+
+                        $stockDisponible = $itemStore ? (float) $itemStore->stock_items_store : 0;
+                        if ($stockDisponible < $detail->quantity) {
+                            $sku = $item->sku ?: 'Sin SKU';
+                            $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Disponible: {$stockDisponible}, Requerido: {$detail->quantity})</span></li>";
+                        }
+                    }
+                }
+            }
+
+            if (!empty($productosSinStock)) {
+                $this->closeInvoiceModal();
+                
+                $htmlContent = "<p style='margin-bottom: 12px; text-align: left;'>No se puede facturar porque los siguientes productos <strong>Ensamblados</strong> no tienen existencias suficientes en bodega:</p>";
+                $htmlContent .= "<ul style='text-align: left; padding-left: 20px; list-style-type: disc; margin-bottom: 12px;'>";
+                $htmlContent .= implode('', $productosSinStock);
+                $htmlContent .= "</ul>";
+                $htmlContent .= "<p style='margin-top: 15px; text-align: left;'>Por favor, complete la producción de estos artículos antes de proceder.</p>";
+
+                $this->dispatch('swal', [
+                    'icon' => 'error',
+                    'title' => 'Stock Insuficiente',
+                    'html' => $htmlContent,
+                    'timer' => 90000
+                ]);
+                return;
+            }
+
             // Verificar configuración de facturación del tenant
             $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
             if (!$tenant) {
@@ -541,6 +578,7 @@ class Remissions extends Component
 
             $facturadas = 0;
             $errores = 0;
+            $ultimoError = null;
 
             Log::info('🚀 Iniciando Facturación Confirmada desde Modal', [
                 'remisiones_count' => $remisiones->count(),
@@ -560,6 +598,7 @@ class Remissions extends Component
                     $facturadas = $remisiones->count();
                 } catch (\Exception $e) {
                     $errores = $remisiones->count();
+                    $ultimoError = $e->getMessage();
                     Log::error('❌ Error facturando remisiones agrupadas', [
                         'remisiones_ids' => $remisiones->pluck('id')->toArray(),
                         'error' => $e->getMessage()
@@ -573,6 +612,7 @@ class Remissions extends Component
                         $facturadas++;
                     } catch (\Exception $e) {
                         $errores++;
+                        $ultimoError = $e->getMessage();
                         Log::error('❌ Error facturando remisión individual', [
                             'remission_id' => $remission->id,
                             'error' => $e->getMessage()
@@ -600,9 +640,12 @@ class Remissions extends Component
                     'message' => "⚠️ {$facturadas} facturadas exitosamente, {$errores} con errores. Revise los detalles en los logs."
                 ]);
             } else {
-                $this->dispatch('show-toast', [
-                    'type' => 'error',
-                    'message' => "❌ No se pudo facturar ninguna remisión. Revise la configuración de facturación y los datos de los productos."
+                $this->dispatch('swal', [
+                    'icon' => 'error',
+                    'title' => 'Error de Facturación',
+                    'text' => $ultimoError 
+                        ? "No se pudo facturar la remisión. Detalle del error: " . $ultimoError
+                        : "No se pudo facturar ninguna remisión. Revise la configuración de facturación y los datos de los productos."
                 ]);
             }
         } catch (\Exception $e) {
@@ -610,9 +653,10 @@ class Remissions extends Component
             Log::error('❌ Error en confirmarFacturacion: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'Error al procesar facturación: ' . $e->getMessage()
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'Error al procesar facturación',
+                'text' => $e->getMessage()
             ]);
         }
     }

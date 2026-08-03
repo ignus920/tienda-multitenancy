@@ -222,13 +222,18 @@
                     Swal.fire({
                         icon: data.icon || 'info',
                         title: data.title || '',
-                        text: data.text || '',
+                        text: data.html ? undefined : (data.text || ''),
+                        html: data.html || undefined,
+                        timer: data.timer || null,
+                        timerProgressBar: data.timer ? true : false,
                         confirmButtonColor: '#4f46e5',
                         background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                         color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827',
                         customClass: {
                             container: 'swal-z-index-fix'
-                        }
+                        },
+                        allowOutsideClick: data.icon !== 'error' && (data.allowOutsideClick !== undefined ? data.allowOutsideClick : true),
+                        allowEscapeKey: data.icon !== 'error' && (data.allowEscapeKey !== undefined ? data.allowEscapeKey : true)
                     });
                 });
             });
