@@ -82,6 +82,11 @@ class Remissions extends Component
 
     public $showConfirmationsModal = false;
 
+    // Propiedades para reporte de fletes
+    public $showFreightReportModal = false;
+    public $freightStartDate = '';
+    public $freightEndDate = '';
+
     // Permisos
     public $canEditRemission = false;
 
@@ -2527,5 +2532,86 @@ class Remissions extends Component
     protected function getExportFilename(): string
     {
         return 'pedidos_' . now()->format('Y-m-d_His');
+    }
+
+    public function openFreightReportModal()
+    {
+        $this->ensureTenantConnection();
+        $this->freightStartDate = now()->startOfMonth()->format('Y-m-d');
+        $this->freightEndDate = now()->endOfMonth()->format('Y-m-d');
+        $this->showFreightReportModal = true;
+    }
+
+    public function closeFreightReportModal()
+    {
+        $this->showFreightReportModal = false;
+        $this->freightStartDate = '';
+        $this->freightEndDate = '';
+    }
+
+    public function downloadFreightReport()
+    {
+        $this->ensureTenantConnection();
+
+        if (empty($this->freightStartDate) || empty($this->freightEndDate)) {
+            $this->dispatch('swal', [
+                'icon' => 'warning',
+                'title' => 'Fechas Requeridas',
+                'text' => 'Por favor, seleccione un rango de fechas válido.'
+            ]);
+            return;
+        }
+
+        $data = \App\Models\Tenant\Remissions\InvRemissions::query()
+            ->whereBetween('created_at', [
+                $this->freightStartDate . ' 00:00:00',
+                $this->freightEndDate . ' 23:59:59'
+            ])
+            ->where('status', '!=', 'ANULADO')
+            ->where('flete', '>', 0)
+            ->select('consecutive', 'flete')
+            ->get();
+
+        if ($data->isEmpty()) {
+            $this->dispatch('swal', [
+                'icon' => 'info',
+                'title' => 'Sin Datos',
+                'text' => 'No se encontraron remisiones con cobro de flete en el rango de fechas seleccionado.'
+            ]);
+            return;
+        }
+
+        $totalFlete = (float) $data->sum('flete');
+
+        $exportData = $data->map(function ($row) {
+            return [
+                'op' => '#' . $row->consecutive,
+                'flete' => (float) $row->flete
+            ];
+        })->toArray();
+
+        // Añadir la fila del total al final
+        $exportData[] = [
+            'op' => 'Total',
+            'flete' => $totalFlete
+        ];
+
+        $headings = ['#OP', 'Flete cobrado'];
+
+        $this->showFreightReportModal = false;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\GenericExport(
+                collect($exportData),
+                $headings,
+                function ($row) {
+                    return [
+                        $row['op'],
+                        $row['flete']
+                    ];
+                }
+            ),
+            'reporte_fletes_' . $this->freightStartDate . '_a_' . $this->freightEndDate . '.xlsx'
+        );
     }
 }
