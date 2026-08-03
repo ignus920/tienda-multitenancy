@@ -1789,56 +1789,74 @@ $header = 'Seleccionar productos';
                             @if(in_array($detail['status'] ?? 7, [1, 2, 4]))
                                 {{-- Solicitado a Fábrica (Estado 1, 2, 4) --}}
                                 <div class="bg-white dark:bg-gray-800 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-4 shadow-sm space-y-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <div class="p-1.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">{{ $detail['formatted_date'] }}</span>
+                                                <span class="text-xs font-bold text-purple-700 dark:text-purple-300">Solicitado a Fábrica</span>
+                                            </div>
                                         </div>
-                                        <div class="flex flex-col">
-                                            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Estado</span>
-                                            <span class="text-xs font-bold text-purple-700 dark:text-purple-300">Solicitado a Fábrica</span>
+                                        <div class="text-right">
+                                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">CANTIDAD</div>
+                                            <span class="text-xs font-bold text-purple-700 dark:text-purple-300">
+                                                {{ number_format($detail['qty'], 0) }} Unid
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="pt-2.5 border-t border-dashed border-purple-100 dark:border-purple-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
-                                        <span class="font-bold text-purple-700 dark:text-purple-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
-                                    </div>
+                                    <div class="border-t border-dashed border-purple-100 dark:border-purple-900/20"></div>
                                 </div>
                             @elseif(($detail['status'] ?? 7) === 5)
                                 {{-- En Producción (Estado 5) --}}
                                 <div class="bg-white dark:bg-gray-800 border border-amber-150 dark:border-amber-900/30 rounded-2xl p-4 shadow-sm space-y-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="p-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                            </svg>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <div class="p-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">{{ $detail['formatted_date'] }}</span>
+                                                <span class="text-xs font-bold text-amber-700 dark:text-amber-300">En Producción</span>
+                                            </div>
                                         </div>
-                                        <div class="flex flex-col">
-                                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Estado</span>
-                                            <span class="text-xs font-bold text-amber-700 dark:text-amber-300">En Producción</span>
+                                        <div class="text-right">
+                                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">CANTIDAD</div>
+                                            <span class="text-xs font-bold text-amber-700 dark:text-amber-300">
+                                                {{ number_format($detail['qty'], 0) }} unid
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="pt-2.5 border-t border-dashed border-amber-100 dark:border-amber-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
-                                        <span class="font-bold text-amber-700 dark:text-amber-300">{{ number_format($detail['qty'], 0) }} unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
-                                    </div>
+                                    <div class="border-t border-dashed border-amber-100 dark:border-amber-900/20"></div>
                                 </div>
                             @elseif(($detail['status'] ?? 7) === 12)
                                 {{-- Terminado en Fábrica (Estado 12) --}}
                                 <div class="bg-white dark:bg-gray-800 border border-green-150 dark:border-green-900/30 rounded-2xl p-4 shadow-sm space-y-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="p-1.5 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 rounded-lg">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 13l4 4L19 7" />
-                                            </svg>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <div class="p-1.5 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-bold text-green-400 uppercase tracking-wider">{{ $detail['formatted_date'] }}</span>
+                                                <span class="text-xs font-bold text-green-700 dark:text-green-300">Terminado en Fábrica</span>
+                                            </div>
                                         </div>
-                                        <div class="flex flex-col">
-                                            <span class="text-[10px] font-bold text-green-400 uppercase tracking-wider">Estado</span>
-                                            <span class="text-xs font-bold text-green-700 dark:text-green-300">Terminado en Fábrica</span>
+                                        <div class="text-right">
+                                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">CANTIDAD</div>
+                                            <span class="text-xs font-bold text-green-700 dark:text-green-300">
+                                                {{ number_format($detail['qty'], 0) }} Unid
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="pt-2.5 border-t border-dashed border-green-100 dark:border-green-900/20 text-xs text-gray-750 dark:text-gray-250 font-medium">
-                                        <span class="font-bold text-green-700 dark:text-green-300">{{ number_format($detail['qty'], 0) }} Unid</span> &nbsp;&nbsp;&nbsp; <span class="text-gray-500 font-normal">{{ $detail['formatted_date'] }}</span>
-                                    </div>
+                                    <div class="border-t border-dashed border-green-100 dark:border-green-900/20"></div>
                                 </div>
                             @else
                                 {{-- En Tránsito (Estado 7) --}}
