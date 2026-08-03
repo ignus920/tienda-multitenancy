@@ -78,6 +78,8 @@ class ManageItems extends Component
     public $inventoriable;
     public $wpStockPercentage = 100;
     public $wpMinStock = 0;
+    public $maxLocationsCount = 0;
+    protected $exportSuppliers = [];
     public $tempValues = [];
 
     // Propiedades para modal de ubicaciones
@@ -789,8 +791,8 @@ class ManageItems extends Component
     public function getExportData()
     {
         $this->ensureTenantConnection();
-        return Items::query()
-            ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store'])
+        $items = Items::query()
+            ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store', 'invValues', 'importSetup', 'dimensions'])
             ->when($this->search, function ($query) {
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
@@ -803,11 +805,26 @@ class ManageItems extends Component
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->get();
+
+        // Calcular el número máximo de ubicaciones asignadas a cualquier ítem
+        $this->maxLocationsCount = $items->map(fn($item) => $item->locations->count())->max() ?? 0;
+
+        // Cargar nombres de proveedores en memoria
+        $supplierIds = $items->pluck('importSetup.supplier_id')->filter()->unique()->toArray();
+        if (!empty($supplierIds)) {
+            $this->exportSuppliers = \App\Models\Auth\User::whereIn('id', $supplierIds)
+                ->pluck('name', 'id')
+                ->toArray();
+        } else {
+            $this->exportSuppliers = [];
+        }
+
+        return $items;
     }
 
     public function getExportHeadings(): array
     {
-        return [
+        $headings = [
             'SKU',
             'Código Interno',
             'Nombre',
@@ -818,33 +835,57 @@ class ManageItems extends Component
             'Unidad Consumo',
             'Impuesto',
             'Estado',
-            'Ubicaciones'
+            'Maneja Inventario',
+            '% Stock WordPress',
+            'Precio Base',
+            'Precio Regular',
+            'Precio Crédito',
+            'Precio x caja',
+            'Proveedor',
+            'Ref fábrica',
+            'EXW',
+            'Peso',
+            'Cantidad por caja'
         ];
+
+        for ($i = 1; $i <= $this->maxLocationsCount; $i++) {
+            $headings[] = "Ubicación " . $i;
+        }
+
+        return $headings;
     }
 
     public function getExportMapping($item): array
     {
+        // Determinar stock
         $stock = 'No maneja';
         if ($item->inventoriable == 1) {
-            if ($item->invItemsStore->isNotEmpty()) {
-                // Sumar el stock total de todas las bodegas
-                $stock = $item->invItemsStore->sum('stock_items_store');
-            } else {
-                $stock = '0';
+            $stock = $item->invItemsStore->isNotEmpty() 
+                ? $item->invItemsStore->sum('stock_items_store') 
+                : '0';
+        }
+
+        // Obtener valores de precios mapeados
+        $precios = [
+            'Precio Base' => '0',
+            'Precio Regular' => '0',
+            'Precio Crédito' => '0',
+            'Precio unitario x caja' => '0',
+        ];
+        foreach ($item->invValues as $val) {
+            if (array_key_exists($val->label, $precios)) {
+                $precios[$val->label] = $val->values;
             }
         }
 
-        $locations = '';
-        if ($item->locations->isNotEmpty()) {
-            $locations = $item->locations->map(function ($loc) {
-                $store = $loc->store->name ?? 'Sin bodega';
-                $location = $loc->locationId ?? 'Sin ubicación';
-                $stock = number_format($loc->stock_item_location, 2);
-                return "{$store} / {$location} (Stock: {$stock})";
-            })->implode(' | ');
+        // Obtener nombre del proveedor asignado
+        $supplierName = 'N/A';
+        if ($item->importSetup && $item->importSetup->supplier_id) {
+            $supplierName = $this->exportSuppliers[$item->importSetup->supplier_id] ?? 'N/A';
         }
 
-        return [
+        // Fila base con todos los parámetros
+        $row = [
             $item->sku,
             $item->internal_code ?? $item->internalCode ?? '',
             $item->name,
@@ -855,8 +896,34 @@ class ManageItems extends Component
             $item->consumptionUnit->description ?? 'N/A',
             $item->tax->name ?? 'Sin impuesto',
             $item->status ? 'Activo' : 'Inactivo',
-            $locations
+            $item->inventoriable == 1 ? 'Sí' : 'No',
+            $item->inventoriable == 1 ? ($item->invItemsStore->firstWhere('storeId', 2)->wp_stock_percentage ?? 100) . '%' : 'N/A',
+            $precios['Precio Base'],
+            $precios['Precio Regular'],
+            $precios['Precio Crédito'],
+            $precios['Precio unitario x caja'],
+            $supplierName,
+            $item->importSetup->factory_ref ?? 'N/A',
+            $item->importSetup->exw ?? '0',
+            $item->dimensions->weight ?? '0',
+            $item->dimensions->quntityxbox ?? '0',
         ];
+
+        // Agregar ubicaciones en columnas separadas
+        $itemLocations = $item->locations ?? collect([]);
+        for ($i = 0; $i < $this->maxLocationsCount; $i++) {
+            $loc = $itemLocations->get($i);
+            if ($loc) {
+                $storeName = $loc->store->name ?? 'Sin bodega';
+                $locId = $loc->locationId ?? 'Sin ubicación';
+                $locStock = number_format($loc->stock_item_location, 2);
+                $row[] = "{$storeName} / {$locId} (Stock: {$locStock})";
+            } else {
+                $row[] = '';
+            }
+        }
+
+        return $row;
     }
 
     public function getExportFilename(): string
