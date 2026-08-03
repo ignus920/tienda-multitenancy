@@ -77,6 +77,7 @@ class ManageItems extends Component
     public $handles_serial;
     public $inventoriable;
     public $wpStockPercentage = 100;
+    public $wpMinStock = 0;
     public $tempValues = [];
 
     // Propiedades para modal de ubicaciones
@@ -348,6 +349,7 @@ class ManageItems extends Component
         if ($item->inventoriable == 1) {
             $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
             $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
+            $this->wpMinStock = $storeRecord?->wp_min_stock ?? 0;
         }
 
         $this->disabled = true;
@@ -500,9 +502,10 @@ class ManageItems extends Component
                             ]);
                             $this->createItemStore($item);
                         } else {
-                            // Actualizar wp_stock_percentage
+                            // Actualizar wp_stock_percentage y wp_min_stock
                             $existingRecord->update([
                                 'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+                                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
                             ]);
                         }
                     }
@@ -1842,7 +1845,8 @@ class ManageItems extends Component
                 'stock_items_store'   => 0,
                 'stock_min'           => 0,
                 'stock_max'           => 0,
-                'wp_stock_percentage' => 100,
+                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
             ]);
 
             Log::info('✅ Registro creado en inv_items_store para item inventoriable', [

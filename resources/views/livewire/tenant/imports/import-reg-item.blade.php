@@ -36,11 +36,24 @@
                 @error('percentage') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cantidad Minima
-                    <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                    Cantidad Mínima Proveedor
+                    <span class="text-red-500 ml-0.5">*</span>
+                    <!-- Tooltip -->
+                    <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                        <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                            Cantidad mínima de unidades requerida por el proveedor para realizar pedidos de importación (MOQ).
+                        </div>
+                    </div>
+                </label>
                 <input wire:model="cantidad_min" type="number" id="cantidad_min"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Cantidad minima">
+                    placeholder="Cantidad mínima proveedor">
                 @error('cantidad_min') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
         </div>

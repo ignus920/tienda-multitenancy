@@ -564,7 +564,7 @@ class WordPressService
         }
 
         $stockBruto = (float) $storeStock->stock_items_store;
-        $stockMin   = (float) $storeStock->stock_min;
+        $stockMin   = (float) ($storeStock->wp_min_stock ?? 0);
 
         // 2. Reservas activas (Omitido: se usa 0 para no restar remisiones registradas globales)
         $reservas = 0;

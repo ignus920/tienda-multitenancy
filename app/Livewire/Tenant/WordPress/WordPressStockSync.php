@@ -57,7 +57,7 @@ class WordPressStockSync extends Component
             ->map(function ($item) {
                 $store      = $item->invItemsStore->firstWhere('storeId', 2);
                 $stockBruto = (float) ($store?->stock_items_store ?? 0);
-                $stockMin   = (float) ($store?->stock_min ?? 0);
+                $stockMin   = (float) ($store?->wp_min_stock ?? 0);
                 $porcentaje = (float) ($store?->wp_stock_percentage ?? 100);
 
                 // Reservas activas (remisiones REGISTRADO)
