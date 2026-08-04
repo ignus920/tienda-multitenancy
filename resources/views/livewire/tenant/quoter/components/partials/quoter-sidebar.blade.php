@@ -228,26 +228,26 @@
     </div>
     @else
     <div class="px-3 py-2 space-y-1">
-        {{-- Bar de Flete Slim Interactivo
+        <!-- Bar de Flete Slim Interactivo -->
         @if($totalWeight > 0 || $estimatedFreight > 0)
         <div 
-            wire:click="applyFreightToQuoter"
-            class="mb-2 flex items-center justify-between px-4 py-2 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/60' }} border rounded-lg cursor-pointer transition-all group shadow-sm">
+            class="mb-2 flex items-center justify-between px-4 py-2 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800' }} border rounded-lg transition-all group shadow-sm">
             <div class="flex items-center gap-2">
                 <span class="text-[11px] font-medium {{ $isFreightApplied ? 'text-indigo-700 dark:text-indigo-300' : 'text-red-700 dark:text-red-300' }}">Valor Flete Estimado:</span>
                 <span class="text-xs font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
             </div>
             <div class="flex items-center gap-3">
                 <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight / 1000, 2, ',', '.') }} Kg</span>
+                {{-- Botón comentado para que no se pueda clickear
                 <div class="{{ $isFreightApplied ? 'bg-indigo-600 group-hover:bg-indigo-700' : 'bg-red-600 group-hover:bg-red-700' }} text-white p-1 rounded-md transition-colors">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                     </svg>
                 </div>
+                --}}
             </div>
         </div>
         @endif
-        --}}
         @foreach($quoterItems as $index => $item)
         @php
             $itemTotalStock  = $item['total_stock'] ?? null;

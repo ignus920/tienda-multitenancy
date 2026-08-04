@@ -210,8 +210,10 @@ class InvRemissions extends Model
 
     public function getTotalRemAttribute()
     {
-        return $this->details->sum(function ($detail) {
+        $total = $this->details->sum(function ($detail) {
             return ($detail->value + ($detail->value * $detail->tax / 100)) * $detail->quantity;
         });
+
+        return $total + ($this->flete ?? 0);
     }
 }
