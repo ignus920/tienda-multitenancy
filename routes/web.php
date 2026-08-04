@@ -215,6 +215,9 @@ require __DIR__ . '/tenants/catalogs.php';
 // Incluir rutas del portal de autogestión de clientes
 require __DIR__ . '/tenants/portal.php';
 
+// Incluir rutas del módulo de marketing (sliders de promociones)
+require __DIR__ . '/tenants/marketing.php';
+
 
 
 

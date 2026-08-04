@@ -42,15 +42,80 @@
     <div class="flex gap-0">
         <div class="flex-1 min-w-0 px-4 sm:px-6">
 
-            <!-- Encabezado compacto -->
-            <div class="mb-4">
-                <h1 class="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                    Portal de Autogestión Comercial
-                </h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Visualiza nuestro inventario limitado en tiempo real, consulta especificaciones y monta tus pedidos de forma directa.
-                </p>
-            </div>
+
+
+            <!-- Slider Promocional (carrusel con Alpine.js) -->
+            @if(isset($sliders) && $sliders->count() > 0)
+                <div x-data="{
+                        activeSlide: 0,
+                        slidesCount: {{ $sliders->count() }},
+                        autoPlayInterval: null,
+                        startAutoPlay() {
+                            this.autoPlayInterval = setInterval(() => {
+                                this.next();
+                            }, 5000);
+                        },
+                        stopAutoPlay() {
+                            clearInterval(this.autoPlayInterval);
+                        },
+                        next() {
+                            this.activeSlide = (this.activeSlide + 1) % this.slidesCount;
+                        },
+                        prev() {
+                            this.activeSlide = (this.activeSlide - 1 + this.slidesCount) % this.slidesCount;
+                        }
+                     }"
+                     x-init="startAutoPlay()"
+                     @mouseenter="stopAutoPlay()"
+                     @mouseleave="startAutoPlay()"
+                     style="height: 280px; background-color: #0f172a;"
+                     class="relative w-full max-w-4xl mx-auto overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 group"
+                >
+                    <!-- Slides -->
+                    <div class="relative w-full h-full">
+                        @foreach($sliders as $index => $slider)
+                            <div x-show="activeSlide === {{ $index }}"
+                                 x-transition:enter="transition ease-out duration-500"
+                                 x-transition:enter-start="opacity-0 scale-95"
+                                 x-transition:enter-end="opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-300"
+                                 x-transition:leave-start="opacity-100 scale-100"
+                                 x-transition:leave-end="opacity-0 scale-95"
+                                 class="absolute inset-0 w-full h-full flex items-center"
+                            >
+                                <img src="{{ $slider->image_path }}" alt="{{ $slider->title }}" class="absolute inset-0 w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
+                                <div class="relative z-10 px-8 sm:px-16 max-w-xl text-white">
+                                    <h3 class="text-xl sm:text-3xl md:text-4xl font-extrabold leading-tight text-white mb-2 sm:mb-4 drop-shadow">
+                                        {{ $slider->title }}
+                                    </h3>
+                                    @if($slider->action_button_text && $slider->action_url)
+                                        <a href="{{ $slider->action_url }}" 
+                                           style="background-color: #4f46e5 !important; color: #ffffff !important;"
+                                           class="inline-flex items-center px-4 py-2 sm:px-6 sm:py-3 border border-transparent text-sm font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-150 transform hover:scale-105 active:scale-95">
+                                            {{ $slider->action_button_text }}
+                                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <button @click="prev()" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <button @click="next()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+                        @foreach($sliders as $index => $slider)
+                            <button @click="activeSlide = {{ $index }}" 
+                                    class="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                                    :class="activeSlide === {{ $index }} ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/80'"></button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             @if(!$settingsConfigured)
                 <div class="mb-4 p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800/50 flex items-center gap-3 text-red-800 dark:text-red-300">

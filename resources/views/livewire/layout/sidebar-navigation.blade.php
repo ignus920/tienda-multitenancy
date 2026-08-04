@@ -610,6 +610,10 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.catalogs') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Catálogos
                 </a>
+                <a href="{{ route('tenant.sliders.index') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.sliders.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Sliders de Promoción
+                </a>
             </div>
 
             <!-- Tooltip colapsado -->
@@ -623,6 +627,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">WordPress Stock</a>
                 <a href="{{ route('tenant.catalogs') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Catálogos</a>
+                <a href="{{ route('tenant.sliders.index') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Sliders de Promoción</a>
             </div>
         </div>
         @endif

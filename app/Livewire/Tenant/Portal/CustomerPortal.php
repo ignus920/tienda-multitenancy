@@ -163,6 +163,12 @@ class CustomerPortal extends Component
 
         $products = $query->paginate($this->perPage);
 
+        $sliders = \App\Models\Tenant\Marketing\PromotionalSlider::where('status', 1)
+            ->orderBy('order', 'asc')
+            ->get();
+
+
+
         return view('livewire.tenant.portal.customer-portal', [
             'products' => $products,
             'categories' => $categories,
@@ -170,6 +176,7 @@ class CustomerPortal extends Component
             'creditPricelist' => $creditPricelist,
             'settingsConfigured' => $settingsConfigured,
             'companyName' => $companyName,
+            'sliders' => $sliders,
         ])->layout('layouts.app', ['header' => 'Portal de Clientes']);
     }
 }
