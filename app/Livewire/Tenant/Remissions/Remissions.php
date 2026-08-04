@@ -2611,7 +2611,7 @@ class Remissions extends Component
             if ($fleteTotal > 0) {
                 $exportData[] = [
                     'op' => '#' . $row->consecutive,
-                    'fecha' => $row->created_at ? $row->created_at->format('Y-m-d H:i') : '',
+                    'fecha' => $row->created_at ? $row->created_at->format('Y-m-d') : '',
                     'flete' => $fleteTotal
                 ];
                 $totalFlete += $fleteTotal;
