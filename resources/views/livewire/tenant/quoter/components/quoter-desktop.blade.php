@@ -490,6 +490,9 @@
                                         @endphp
                                         <tr>
                                             <td class="px-6 py-4 whitespace-normal text-sm text-gray-900 dark:text-white font-medium">
+                                                @if(isset($detalle->item->sku) && $detalle->item->sku)
+                                                    <strong>[{{ $detalle->item->sku }}]</strong> - 
+                                                @endif
                                                 {{ $detalle->item->name ?? $detalle->description }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
