@@ -2562,14 +2562,21 @@ class Remissions extends Component
             return;
         }
 
+        // Consultamos remisiones en el rango de fechas
+        // Eliminamos el filtro de estado para incluir todos los estados como lo solicita el cliente
         $data = \App\Models\Tenant\Remissions\InvRemissions::query()
+            ->with(['details.item'])
             ->whereBetween('created_at', [
                 $this->freightStartDate . ' 00:00:00',
                 $this->freightEndDate . ' 23:59:59'
             ])
-            ->where('status', '!=', 'ANULADO')
-            ->where('flete', '>', 0)
-            ->select('consecutive', 'flete')
+            ->where(function($query) {
+                $query->where('flete', '>', 0)
+                      ->orWhereHas('details.item', function($q) {
+                          $q->where('internal_code', 'like', 'flete%')
+                            ->orWhere('name', 'like', '%flete%');
+                      });
+            })
             ->get();
 
         if ($data->isEmpty()) {
@@ -2581,22 +2588,53 @@ class Remissions extends Component
             return;
         }
 
-        $totalFlete = (float) $data->sum('flete');
+        $exportData = [];
+        $totalFlete = 0.0;
 
-        $exportData = $data->map(function ($row) {
-            return [
-                'op' => '#' . $row->consecutive,
-                'flete' => (float) $row->flete
-            ];
-        })->toArray();
+        foreach ($data as $row) {
+            $fleteTotal = (float) $row->flete;
+
+            // Buscar en el detalle ítems cuyo código empiece por "flete" o nombre contenga "flete"
+            if ($row->details) {
+                foreach ($row->details as $detail) {
+                    if ($detail->item) {
+                        $code = strtolower($detail->item->internal_code ?? '');
+                        $name = strtolower($detail->item->name ?? '');
+
+                        if (str_starts_with($code, 'flete') || str_contains($name, 'flete')) {
+                            $fleteTotal += (float) ($detail->quantity * $detail->value);
+                        }
+                    }
+                }
+            }
+
+            if ($fleteTotal > 0) {
+                $exportData[] = [
+                    'op' => '#' . $row->consecutive,
+                    'fecha' => $row->created_at ? $row->created_at->format('Y-m-d H:i') : '',
+                    'flete' => $fleteTotal
+                ];
+                $totalFlete += $fleteTotal;
+            }
+        }
+
+        if (empty($exportData)) {
+            $this->dispatch('swal', [
+                'icon' => 'info',
+                'title' => 'Sin Datos',
+                'text' => 'No se encontraron remisiones con cobro de flete en el rango de fechas seleccionado.'
+            ]);
+            return;
+        }
 
         // Añadir la fila del total al final
         $exportData[] = [
             'op' => 'Total',
+            'fecha' => '',
             'flete' => $totalFlete
         ];
 
-        $headings = ['#OP', 'Flete cobrado'];
+        $headings = ['#OP', 'Fecha OP', 'Flete cobrado'];
 
         $this->showFreightReportModal = false;
 
@@ -2607,6 +2645,7 @@ class Remissions extends Component
                 function ($row) {
                     return [
                         $row['op'],
+                        $row['fecha'],
                         $row['flete']
                     ];
                 }
