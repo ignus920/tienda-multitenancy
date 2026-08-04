@@ -2567,10 +2567,9 @@ class Remissions extends Component
             return;
         }
 
-        // Consultamos remisiones en el rango de fechas
-        // Eliminamos el filtro de estado para incluir todos los estados como lo solicita el cliente
+        // Consultamos remisiones en el rango de fechas con relaciones de cliente y vendedor
         $data = \App\Models\Tenant\Remissions\InvRemissions::query()
-            ->with(['details.item'])
+            ->with(['details.item', 'quote.branch.company', 'quote.customer', 'user'])
             ->whereBetween('created_at', [
                 $this->freightStartDate . ' 00:00:00',
                 $this->freightEndDate . ' 23:59:59'
@@ -2615,9 +2614,11 @@ class Remissions extends Component
 
             if ($fleteTotal > 0) {
                 $exportData[] = [
+                    'fecha' => $row->created_at ? $row->created_at->format('d/m/Y') : '',
                     'op' => '#' . $row->consecutive,
-                    'fecha' => $row->created_at ? $row->created_at->format('Y-m-d') : '',
-                    'flete' => $fleteTotal
+                    'flete' => $fleteTotal,
+                    'cliente' => $row->quote?->customer_name ?? 'N/A',
+                    'asesor' => $row->quote?->seller_name ?? ($row->getUser()?->name ?? 'N/A'),
                 ];
                 $totalFlete += $fleteTotal;
             }
@@ -2634,28 +2635,31 @@ class Remissions extends Component
 
         // Añadir la fila del total al final
         $exportData[] = [
-            'op' => 'Total',
             'fecha' => '',
-            'flete' => $totalFlete
+            'op' => 'Total',
+            'flete' => $totalFlete,
+            'cliente' => '',
+            'asesor' => '',
         ];
 
-        $headings = ['#OP', 'Fecha OP', 'Flete cobrado'];
+        $headings = ['FECHA OP', '# OP', 'FLETE COBRADO', 'NOMBRE CLIENTE', 'ASESOR COMERCIAL'];
 
         $this->showFreightReportModal = false;
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\GenericExport(
+            new \App\Exports\FreightReportExport(
                 collect($exportData),
                 $headings,
                 function ($row) {
                     return [
-                        $row['op'],
                         $row['fecha'],
-                        $row['flete']
+                        $row['op'],
+                        $row['flete'],
+                        $row['cliente'],
+                        $row['asesor']
                     ];
                 }
             ),
             'reporte_fletes_' . $this->freightStartDate . '_a_' . $this->freightEndDate . '.xlsx'
-        );
-    }
+        );    }
 }
