@@ -19,13 +19,20 @@ class CustomerPortal extends Component
     public $selectedCategory = '';
     public $perPage = 10;
     public $stockFilter = 'all';
+    public $paymentFilter = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
         'selectedCategory' => ['except' => ''],
+        'paymentFilter' => ['except' => ''],
     ];
 
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPaymentFilter()
     {
         $this->resetPage();
     }
@@ -107,7 +114,7 @@ class CustomerPortal extends Component
             ->select(
                 'inv_items.*',
                 DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
-                DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL) as reserved_stock')
+                DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock')
             )
             ->where('inv_items.status', 1)
             ->where('inv_items.type', '!=', 'INSUMO')
@@ -155,8 +162,8 @@ class CustomerPortal extends Component
         if ($this->stockFilter === 'in_stock') {
             $query->havingRaw("
                 CASE 
-                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL)) > 100 THEN 30
-                    ELSE ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL)) * 0.30)
+                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) > 100 THEN 30
+                    ELSE ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) * 0.30)
                 END > 0
             ");
         }

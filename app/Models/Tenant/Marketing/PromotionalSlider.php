@@ -14,6 +14,13 @@ class PromotionalSlider extends Model
 
     protected $fillable = [
         'title',
+        'subtitle',
+        'badge_text',
+        'overlay_color',
+        'text_position',
+        'button_color',
+        'button_text_color',
+        'text_color',
         'image_path',
         'action_button_text',
         'action_url',

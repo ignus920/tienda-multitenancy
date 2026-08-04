@@ -44,74 +44,163 @@
 
 
 
-            <!-- Slider Promocional (carrusel con Alpine.js) -->
+            <!-- Slider Promocional Premium -->
             @if(isset($sliders) && $sliders->count() > 0)
                 <div x-data="{
                         activeSlide: 0,
                         slidesCount: {{ $sliders->count() }},
                         autoPlayInterval: null,
+                        progress: 0,
+                        progressInterval: null,
                         startAutoPlay() {
+                            this.resetProgress();
                             this.autoPlayInterval = setInterval(() => {
                                 this.next();
-                            }, 5000);
+                            }, 6000);
+                            this.progressInterval = setInterval(() => {
+                                this.progress += (100 / 60);
+                                if (this.progress >= 100) this.progress = 100;
+                            }, 100);
                         },
                         stopAutoPlay() {
                             clearInterval(this.autoPlayInterval);
+                            clearInterval(this.progressInterval);
+                        },
+                        resetProgress() {
+                            this.progress = 0;
+                            clearInterval(this.progressInterval);
+                            this.progressInterval = setInterval(() => {
+                                this.progress += (100 / 60);
+                                if (this.progress >= 100) this.progress = 100;
+                            }, 100);
                         },
                         next() {
                             this.activeSlide = (this.activeSlide + 1) % this.slidesCount;
+                            this.resetProgress();
                         },
                         prev() {
                             this.activeSlide = (this.activeSlide - 1 + this.slidesCount) % this.slidesCount;
+                            this.resetProgress();
                         }
                      }"
                      x-init="startAutoPlay()"
                      @mouseenter="stopAutoPlay()"
                      @mouseleave="startAutoPlay()"
-                     style="height: 280px; background-color: #0f172a;"
-                     class="relative w-full max-w-4xl mx-auto overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 group"
+                     style="height: 340px;"
+                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-2xl shadow-indigo-500/10"
                 >
                     <!-- Slides -->
                     <div class="relative w-full h-full">
                         @foreach($sliders as $index => $slider)
                             <div x-show="activeSlide === {{ $index }}"
-                                 x-transition:enter="transition ease-out duration-500"
-                                 x-transition:enter-start="opacity-0 scale-95"
-                                 x-transition:enter-end="opacity-100 scale-100"
-                                 x-transition:leave="transition ease-in duration-300"
-                                 x-transition:leave-start="opacity-100 scale-100"
-                                 x-transition:leave-end="opacity-0 scale-95"
+                                 x-transition:enter="transition ease-out duration-700"
+                                 x-transition:enter-start="opacity-0 translate-x-8"
+                                 x-transition:enter-end="opacity-100 translate-x-0"
+                                 x-transition:leave="transition ease-in duration-400"
+                                 x-transition:leave-start="opacity-100 translate-x-0"
+                                 x-transition:leave-end="opacity-0 -translate-x-8"
                                  class="absolute inset-0 w-full h-full flex items-center"
                             >
-                                <img src="{{ $slider->image_path }}" alt="{{ $slider->title }}" class="absolute inset-0 w-full h-full object-cover">
-                                <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
-                                <div class="relative z-10 px-8 sm:px-16 max-w-xl text-white">
-                                    <h3 class="text-xl sm:text-3xl md:text-4xl font-extrabold leading-tight text-white mb-2 sm:mb-4 drop-shadow">
+                                <!-- Imagen con efecto parallax en hover -->
+                                <img src="{{ $slider->image_path }}" alt="{{ $slider->title }}" 
+                                     class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105">
+                                
+                                <!-- Gradiente premium con tinte de marca dinámico -->
+                                @php
+                                    $hex = $slider->overlay_color ?: '#1e1b4b';
+                                    $showOverlay = ($hex !== 'transparent');
+                                    if ($showOverlay) {
+                                        $r = hexdec(substr($hex, 1, 2) ?: '1e');
+                                        $g = hexdec(substr($hex, 3, 2) ?: '1b');
+                                        $b = hexdec(substr($hex, 5, 2) ?: '4b');
+                                    }
+                                @endphp
+                                @if($showOverlay)
+                                    <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba({{ $r }},{{ $g }},{{ $b }},0.90) 0%, rgba({{ $r }},{{ $g }},{{ $b }},0.55) 40%, rgba(0,0,0,0.15) 100%);"></div>
+                                @endif
+
+                                <!-- Contenido del slide -->
+                                <div class="relative z-10 px-10 sm:px-16 max-w-2xl text-white flex flex-col h-full justify-center 
+                                    {{ $slider->text_position === 'center' ? 'items-center text-center mx-auto' : ($slider->text_position === 'right' ? 'items-end text-right ml-auto' : 'items-start text-left') }}">
+                                    
+                                    <!-- Badge decorativo -->
+                                    @if($slider->badge_text)
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4"
+                                             style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.20);">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            {{ $slider->badge_text }}
+                                        </div>
+                                    @endif
+                                    
+                                    <!-- Título -->
+                                    <h3 class="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight mb-2"
+                                        style="text-shadow: 0 2px 20px rgba(0,0,0,0.3); {{ $slider->text_color ? 'color: ' . $slider->text_color . ' !important;' : 'color: #ffffff;' }}">
                                         {{ $slider->title }}
                                     </h3>
+
+                                    <!-- Subtítulo -->
+                                    @if($slider->subtitle)
+                                        <p class="text-sm sm:text-base mb-5 max-w-md" 
+                                           style="text-shadow: 0 1px 8px rgba(0,0,0,0.2); {{ $slider->text_color ? 'color: ' . $slider->text_color . ' !important; opacity: 0.85;' : 'color: rgba(255,255,255,0.8);' }}">
+                                            {{ $slider->subtitle }}
+                                        </p>
+                                    @endif
+                                    
+                                    <!-- Botón CTA Premium -->
                                     @if($slider->action_button_text && $slider->action_url)
+                                        @php
+                                            $portalBtnStyle = "";
+                                            if ($slider->button_color) {
+                                                $portalBtnStyle .= "background-color: " . $slider->button_color . " !important; ";
+                                            } else {
+                                                $portalBtnStyle .= "background: rgba(255,255,255,0.18); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); ";
+                                            }
+                                            if ($slider->button_text_color) {
+                                                $portalBtnStyle .= "color: " . $slider->button_text_color . " !important; ";
+                                            } else {
+                                                $portalBtnStyle .= "color: #ffffff !important; ";
+                                            }
+                                        @endphp
                                         <a href="{{ $slider->action_url }}" 
-                                           style="background-color: #4f46e5 !important; color: #ffffff !important;"
-                                           class="inline-flex items-center px-4 py-2 sm:px-6 sm:py-3 border border-transparent text-sm font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-150 transform hover:scale-105 active:scale-95">
+                                           class="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl active:scale-95 group/btn"
+                                           style="{{ $portalBtnStyle }}">
                                             {{ $slider->action_button_text }}
-                                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                            <svg class="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                            </svg>
                                         </a>
                                     @endif
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                    <button @click="prev()" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+
+                    <!-- Navegación Previous con glassmorphism -->
+                    <button @click="prev()" 
+                            class="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 hover:scale-110 active:scale-95"
+                            style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.20);">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <button @click="next()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <!-- Navegación Next con glassmorphism -->
+                    <button @click="next()" 
+                            class="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 hover:scale-110 active:scale-95"
+                            style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.20);">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                     </button>
-                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+
+                    <!-- Indicadores con barra de progreso -->
+                    <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 px-4 py-2 rounded-full"
+                         style="background: rgba(0,0,0,0.25); backdrop-filter: blur(10px);">
                         @foreach($sliders as $index => $slider)
-                            <button @click="activeSlide = {{ $index }}" 
-                                    class="w-2.5 h-2.5 rounded-full transition-all duration-300"
-                                    :class="activeSlide === {{ $index }} ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/80'"></button>
+                            <button @click="activeSlide = {{ $index }}; resetProgress()" 
+                                    class="relative h-1.5 rounded-full transition-all duration-500 overflow-hidden"
+                                    :class="activeSlide === {{ $index }} ? 'w-8 bg-white/30' : 'w-2 bg-white/40 hover:bg-white/60'"
+                            >
+                                <div x-show="activeSlide === {{ $index }}"
+                                     class="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-100"
+                                     :style="'width: ' + progress + '%'"
+                                ></div>
+                            </button>
                         @endforeach
                     </div>
                 </div>
@@ -149,6 +238,20 @@
                         <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">En stock</span>
                     </label>
                 </div>
+
+                <!-- Filtro de Forma de Pago (Crédito / Contado) -->
+                <div class="flex items-center gap-4 px-4 py-2.5 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 pl-4">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">Pago:</span>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" wire:model.live="paymentFilter" value="contado" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Contado</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" wire:model.live="paymentFilter" value="credito" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Crédito</span>
+                    </label>
+                </div>
+
                 <!-- Botón de cambio de vista -->
                 <button @click="toggleViewMode()" 
                         type="button" 
@@ -179,6 +282,35 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Banner CTA condicional para seleccionar Pago -->
+            @if(empty($paymentFilter))
+                <div class="mb-6 p-6 rounded-2xl border border-yellow-250 bg-yellow-50/65 dark:bg-yellow-950/20 dark:border-yellow-800/50 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left transition-all duration-300">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-650 dark:text-yellow-400 rounded-full flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-gray-900 dark:text-white text-base">⚠️ Seleccione su forma de pago</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Para ver los precios correctos y habilitar la compra, seleccione si pagará a Crédito o de Contado.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 flex-shrink-0">
+                        <button wire:click="$set('paymentFilter', 'contado')" 
+                                style="background-color: #10b981 !important; color: #ffffff !important;"
+                                class="px-5 py-2.5 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 text-sm">
+                            Pagar de Contado
+                        </button>
+                        <button wire:click="$set('paymentFilter', 'credito')" 
+                                style="background-color: #d97706 !important; color: #ffffff !important;"
+                                class="px-5 py-2.5 hover:bg-yellow-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 text-sm">
+                            Pagar a Crédito
+                        </button>
+                    </div>
+                </div>
+            @endif
 
             <!-- TABLA DE PRODUCTOS (estilo cotizador) -->
             <div x-show="viewMode === 'list'" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -291,29 +423,41 @@
                                 @endif
                             </div>
 
-                            <!-- Precio Contado (botón clickeable) -->
+                            <!-- Precio Contado -->
                             <div class="w-28 text-center flex-shrink-0 px-1">
                                 @if($priceCash > 0)
-                                    <button 
-                                        @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
-                                        class="w-full py-1.5 px-2 rounded-lg border border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95 transition-all"
-                                    >
-                                        <div class="text-[11px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($priceCash, 0, ',', '.') }}</div>
-                                    </button>
+                                    @if($paymentFilter === 'contado')
+                                        <button 
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
+                                            class="w-full py-1.5 px-2 rounded-lg border border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95 transition-all"
+                                        >
+                                            <div class="text-[11px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($priceCash, 0, ',', '.') }}</div>
+                                        </button>
+                                    @else
+                                        <div class="w-full py-1.5 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-40 cursor-not-allowed">
+                                            <div class="text-[11px] font-black text-gray-400 dark:text-gray-500">${{ number_format($priceCash, 0, ',', '.') }}</div>
+                                        </div>
+                                    @endif
                                 @else
                                     <span class="text-[10px] text-gray-400">N/A</span>
                                 @endif
                             </div>
 
-                            <!-- Precio Crédito (botón clickeable) -->
+                            <!-- Precio Crédito -->
                             <div class="w-28 text-center flex-shrink-0 px-1">
                                 @if($priceCredit && $priceCredit > 0)
-                                    <button 
-                                        @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
-                                        class="w-full py-1.5 px-2 rounded-lg border border-yellow-400/40 bg-yellow-50 dark:bg-yellow-900/15 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 transition-all"
-                                    >
-                                        <div class="text-[11px] font-black text-yellow-700 dark:text-yellow-300">${{ number_format($priceCredit, 0, ',', '.') }}</div>
-                                    </button>
+                                    @if($paymentFilter === 'credito')
+                                        <button 
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
+                                            class="w-full py-1.5 px-2 rounded-lg border border-yellow-400/40 bg-yellow-50 dark:bg-yellow-900/15 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 transition-all"
+                                        >
+                                            <div class="text-[11px] font-black text-yellow-700 dark:text-yellow-300">${{ number_format($priceCredit, 0, ',', '.') }}</div>
+                                        </button>
+                                    @else
+                                        <div class="w-full py-1.5 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-40 cursor-not-allowed">
+                                            <div class="text-[11px] font-black text-gray-400 dark:text-gray-500">${{ number_format($priceCredit, 0, ',', '.') }}</div>
+                                        </div>
+                                    @endif
                                 @else
                                     <span class="text-[10px] text-gray-400">N/A</span>
                                 @endif
@@ -421,22 +565,36 @@
                             <div class="grid grid-cols-2 gap-1 mt-auto">
                                 <div>
                                     @if($priceCash > 0)
-                                        <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
-                                                class="w-full py-1 px-1 rounded-md border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
-                                            <span class="block text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Contado</span>
-                                            <span class="block text-[11px] font-black text-emerald-700 dark:text-emerald-300">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
-                                        </button>
+                                        @if($paymentFilter === 'contado')
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
+                                                    class="w-full py-1 px-1 rounded-md border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
+                                                <span class="block text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Contado</span>
+                                                <span class="block text-[11px] font-black text-emerald-700 dark:text-emerald-300">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
+                                            </button>
+                                        @else
+                                            <div class="w-full py-1 px-1 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-40 cursor-not-allowed text-center">
+                                                <span class="block text-[7px] font-bold text-gray-400 uppercase">Contado</span>
+                                                <span class="block text-[11px] font-black text-gray-400 dark:text-gray-500">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
+                                            </div>
+                                        @endif
                                     @else
                                         <div class="text-center text-[10px] text-gray-400 py-1">N/A</div>
                                     @endif
                                 </div>
                                 <div>
                                     @if($priceCredit && $priceCredit > 0)
-                                        <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
-                                                class="w-full py-1 px-1 rounded-md border border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
-                                            <span class="block text-[7px] font-bold text-yellow-600 dark:text-yellow-400 uppercase">Crédito</span>
-                                            <span class="block text-[11px] font-black text-yellow-700 dark:text-yellow-300">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
-                                        </button>
+                                        @if($paymentFilter === 'credito')
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
+                                                    class="w-full py-1 px-1 rounded-md border border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
+                                                <span class="block text-[7px] font-bold text-yellow-600 dark:text-yellow-400 uppercase">Crédito</span>
+                                                <span class="block text-[11px] font-black text-yellow-700 dark:text-yellow-300">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
+                                            </button>
+                                        @else
+                                            <div class="w-full py-1 px-1 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-40 cursor-not-allowed text-center">
+                                                <span class="block text-[7px] font-bold text-gray-400 uppercase">Crédito</span>
+                                                <span class="block text-[11px] font-black text-gray-400 dark:text-gray-500">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
+                                            </div>
+                                        @endif
                                     @else
                                         <div class="text-center text-[10px] text-gray-400 py-1">N/A</div>
                                     @endif

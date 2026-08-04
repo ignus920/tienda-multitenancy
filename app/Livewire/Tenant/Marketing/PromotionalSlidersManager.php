@@ -16,6 +16,13 @@ class PromotionalSlidersManager extends Component
 
     public $sliderId = null;
     public $title = '';
+    public $subtitle = '';
+    public $badge_text = '';
+    public $overlay_color = '#1e1b4b';
+    public $text_position = 'left';
+    public $button_color = null;
+    public $button_text_color = null;
+    public $text_color = null;
     public $image = null;
     public $existingImage = '';
     public $action_button_text = '';
@@ -32,6 +39,13 @@ class PromotionalSlidersManager extends Component
     {
         return [
             'title' => 'required|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
+            'badge_text' => 'nullable|string|max:50',
+            'overlay_color' => 'nullable|string|max:20',
+            'text_position' => 'required|in:left,center,right',
+            'button_color' => 'nullable|string|max:20',
+            'button_text_color' => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
             'image' => $this->sliderId ? 'nullable|mimes:jpg,jpeg,png,webp,gif|max:2048' : 'required|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'action_button_text' => 'nullable|string|max:100',
             'action_url' => 'nullable|url|max:255',
@@ -88,6 +102,13 @@ class PromotionalSlidersManager extends Component
             $this->sliderId = $id;
             $slider = PromotionalSlider::findOrFail($id);
             $this->title = $slider->title;
+            $this->subtitle = $slider->subtitle ?? '';
+            $this->badge_text = $slider->badge_text ?? '';
+            $this->overlay_color = $slider->overlay_color ?? '#1e1b4b';
+            $this->text_position = $slider->text_position ?? 'left';
+            $this->button_color = $slider->button_color;
+            $this->button_text_color = $slider->button_text_color;
+            $this->text_color = $slider->text_color;
             $this->existingImage = $slider->image_path;
             $this->action_button_text = $slider->action_button_text;
             $this->action_url = $slider->action_url;
@@ -108,6 +129,13 @@ class PromotionalSlidersManager extends Component
     {
         $this->sliderId = null;
         $this->title = '';
+        $this->subtitle = '';
+        $this->badge_text = '';
+        $this->overlay_color = '#1e1b4b';
+        $this->text_position = 'left';
+        $this->button_color = null;
+        $this->button_text_color = null;
+        $this->text_color = null;
         $this->image = null;
         $this->existingImage = '';
         $this->action_button_text = '';
@@ -131,6 +159,13 @@ class PromotionalSlidersManager extends Component
 
         $data = [
             'title' => $this->title,
+            'subtitle' => $this->subtitle ?: null,
+            'badge_text' => $this->badge_text ?: null,
+            'overlay_color' => $this->overlay_color ?: '#1e1b4b',
+            'text_position' => $this->text_position ?: 'left',
+            'button_color' => $this->button_color ?: null,
+            'button_text_color' => $this->button_text_color ?: null,
+            'text_color' => $this->text_color ?: null,
             'action_button_text' => $this->action_button_text,
             'action_url' => $this->action_url,
             'status' => $this->status,
