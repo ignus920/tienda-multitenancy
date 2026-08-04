@@ -228,7 +228,7 @@
     </div>
     @else
     <div class="px-3 py-2 space-y-1">
-        <!-- Bar de Flete Slim Interactivo -->
+        {{-- Bar de Flete Slim Interactivo
         @if($totalWeight > 0 || $estimatedFreight > 0)
         <div 
             wire:click="applyFreightToQuoter"
@@ -247,6 +247,7 @@
             </div>
         </div>
         @endif
+        --}}
         @foreach($quoterItems as $index => $item)
         @php
             $itemTotalStock  = $item['total_stock'] ?? null;
