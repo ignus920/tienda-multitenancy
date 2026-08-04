@@ -732,11 +732,19 @@
                     $paymentName = strtolower($quote->methodPayment->name ?? $quote->method_payment_name ?? '');
                 @endphp
                 @if(str_contains($paymentName, 'contra entrega'))
-                <div style="margin-top: 14px; text-align: center; border: 3px solid #e74c3c; border-radius: 6px; padding: 10px 16px; background-color: #fff5f5;">
-                    <span style="font-size: 18pt; font-weight: bold; color: #e74c3c; letter-spacing: 1px; text-transform: uppercase;">
-                        &#9888; PAGAN CONTRA ENTREGA
-                    </span>
-                </div>
+                    @php
+                        $totalConIvaContraEntrega = $quote->detalles->sum(fn($d) => $d->value * $d->quantity);
+                        $fleteContraEntrega       = $quote->flete ?? 0;
+                        $totalFinalContraEntrega  = $totalConIvaContraEntrega + $fleteContraEntrega;
+                    @endphp
+                    <div style="margin-top: 14px; text-align: center; border: 3px solid #e74c3c; border-radius: 6px; padding: 10px 16px; background-color: #fff5f5;">
+                        <div style="font-size: 18pt; font-weight: bold; color: #e74c3c; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px;">
+                            &#9888; PAGAN CONTRA ENTREGA
+                        </div>
+                        <div style="font-size: 16pt; font-weight: bold; color: #2c3e50;">
+                            TOTAL A PAGAR: ${{ number_format($totalFinalContraEntrega, 0, ',', '.') }}
+                        </div>
+                    </div>
                 @endif
             @endif
 
