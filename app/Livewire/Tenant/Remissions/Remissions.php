@@ -536,17 +536,21 @@ class Remissions extends Component
             // Validar stock para productos Ensamblados antes de facturar
             $productosSinStock = [];
             foreach ($remisiones as $remission) {
-                foreach ($remission->details as $detail) {
-                    $item = $detail->item;
-                    if ($item && $item->type === 'ENSAMBLADO' && $item->inventoriable == 1) {
-                        $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $item->id)
-                            ->where('storeId', $remission->quote->warehouseId)
-                            ->first();
+                // Solo validar stock para remisiones creadas a partir del 4 de agosto de 2026 (inclusive)
+                // Esto exime las remisiones creadas ayer 3 de agosto o antes que ya descontaron en el ERP
+                if ($remission->created_at && $remission->created_at->format('Y-m-d H:i:s') >= '2026-08-04 00:00:00') {
+                    foreach ($remission->details as $detail) {
+                        $item = $detail->item;
+                        if ($item && $item->type === 'ENSAMBLADO' && $item->inventoriable == 1) {
+                            $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $item->id)
+                                ->where('storeId', $remission->quote->warehouseId)
+                                ->first();
 
-                        $stockDisponible = $itemStore ? (float) $itemStore->stock_items_store : 0;
-                        if ($stockDisponible < $detail->quantity) {
-                            $sku = $item->sku ?: 'Sin SKU';
-                            $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Disponible: {$stockDisponible}, Requerido: {$detail->quantity})</span></li>";
+                            $stockDisponible = $itemStore ? (float) $itemStore->stock_items_store : 0;
+                            if ($stockDisponible < $detail->quantity) {
+                                $sku = $item->sku ?: 'Sin SKU';
+                                $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Disponible: {$stockDisponible}, Requerido: {$detail->quantity})</span></li>";
+                            }
                         }
                     }
                 }
