@@ -43,9 +43,15 @@ class ProductQuoter extends Component
     public $additionalPayments = [];
     public $additionalPaymentFiles = [];
     public $search = '';
+    public $productFilter = 'todo';
     public $perPage = 12;
     public $sortField = 'id';
     public $sortDirection = 'desc';
+
+    public function updatingProductFilter()
+    {
+        $this->resetPage();
+    }
     public $selectedProducts = [];
     public $quoterItems = [];
     public $totalAmount = 0;
@@ -494,6 +500,47 @@ class ProductQuoter extends Component
                 })
                 ->when($this->selectedCategory, function ($query) {
                     $query->where('inv_items.categoryId', $this->selectedCategory);
+                })
+                ->when($this->productFilter === 'en_stock', function ($query) {
+                    $query->havingRaw('(SUM(inv_items_store.stock_items_store) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) > 0');
+                })
+                ->when($this->productFilter === 'bajo_stock', function ($query) {
+                    $query->havingRaw('SUM(inv_items_store.stock_items_store) <= COALESCE(SUM(inv_items_store.stock_min), 0)');
+                })
+                ->when($this->productFilter === 'agotados', function ($query) {
+                    $query->havingRaw('SUM(inv_items_store.stock_items_store) <= 0');
+                })
+                ->when($this->productFilter === 'nuevos', function ($query) {
+                    $query->where('inv_items.created_at', '>=', DB::raw('DATE_SUB(NOW(), INTERVAL 30 DAY)'));
+                })
+                ->when($this->productFilter === 'sin_venta', function ($query) {
+                    $query->havingRaw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) = 0');
+                })
+                ->when($this->productFilter === 'poca_venta', function ($query) {
+                    $query->havingRaw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) BETWEEN 1 AND 5');
+                })
+                ->when($this->productFilter === 'reservas', function ($query) {
+                    $query->havingRaw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) > 0');
+                })
+                ->when($this->productFilter === 'notas_asesores', function ($query) {
+                    $query->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('inv_item_observations')
+                            ->whereColumn('inv_item_observations.item_id', 'inv_items.id')
+                            ->whereNotNull('inv_item_observations.commercial_observations')
+                            ->where('inv_item_observations.commercial_observations', '!=', '');
+                    });
+                })
+                ->when($this->productFilter === 'notas_tecnicas', function ($query) {
+                    $query->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('inv_item_observations')
+                            ->whereColumn('inv_item_observations.item_id', 'inv_items.id')
+                            ->where(function($q) {
+                                $q->whereNotNull('inv_item_observations.observations')
+                                  ->where('inv_item_observations.observations', '!=', '');
+                            });
+                    });
                 })
                 ->groupBy(
                     'inv_items.id',
