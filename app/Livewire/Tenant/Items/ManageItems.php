@@ -850,6 +850,7 @@ class ManageItems extends Component
 
         for ($i = 1; $i <= $this->maxLocationsCount; $i++) {
             $headings[] = "Ubicación " . $i;
+            $headings[] = "Stock " . $i;
         }
 
         return $headings;
@@ -861,8 +862,8 @@ class ManageItems extends Component
         $stock = 'No maneja';
         if ($item->inventoriable == 1) {
             $stock = $item->invItemsStore->isNotEmpty() 
-                ? $item->invItemsStore->sum('stock_items_store') 
-                : '0';
+                ? (int) $item->invItemsStore->sum('stock_items_store') 
+                : 0;
         }
 
         // Obtener valores de precios mapeados
@@ -906,19 +907,21 @@ class ManageItems extends Component
             $item->importSetup->factory_ref ?? 'N/A',
             $item->importSetup->exw ?? '0',
             $item->dimensions->weight ?? '0',
-            $item->dimensions->quntityxbox ?? '0',
+            (int) ($item->dimensions->quntityxbox ?? 0),
         ];
 
-        // Agregar ubicaciones en columnas separadas
+        // Agregar ubicaciones en columnas separadas (Ubicación y Stock por separado)
         $itemLocations = $item->locations ?? collect([]);
         for ($i = 0; $i < $this->maxLocationsCount; $i++) {
             $loc = $itemLocations->get($i);
             if ($loc) {
                 $storeName = $loc->store->name ?? 'Sin bodega';
                 $locId = $loc->locationId ?? 'Sin ubicación';
-                $locStock = number_format($loc->stock_item_location, 2);
-                $row[] = "{$storeName} / {$locId} (Stock: {$locStock})";
+                $locStock = (int) $loc->stock_item_location;
+                $row[] = "{$storeName} / {$locId}"; // Nombre de la ubicación
+                $row[] = $locStock;                // Stock de la ubicación como entero
             } else {
+                $row[] = '';
                 $row[] = '';
             }
         }
