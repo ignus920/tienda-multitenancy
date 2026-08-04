@@ -824,7 +824,7 @@ class ManageItems extends Component
 
     public function getExportHeadings(): array
     {
-        $headings = [
+        return [
             'SKU',
             'Código Interno',
             'Nombre',
@@ -845,15 +845,14 @@ class ManageItems extends Component
             'Ref fábrica',
             'EXW',
             'Peso',
-            'Cantidad por caja'
+            'Cantidad por caja',
+            'Ubicación 1 PICKING',
+            'Stock PICKING',
+            'Ubicación 2 MINIMOS',
+            'Stock MINIMOS',
+            'Ubicación 3 RESERVAS',
+            'Stock RESERVAS'
         ];
-
-        for ($i = 1; $i <= $this->maxLocationsCount; $i++) {
-            $headings[] = "Ubicación " . $i;
-            $headings[] = "Stock " . $i;
-        }
-
-        return $headings;
     }
 
     public function getExportMapping($item): array
@@ -910,20 +909,37 @@ class ManageItems extends Component
             (int) ($item->dimensions->quntityxbox ?? 0),
         ];
 
-        // Agregar ubicaciones en columnas separadas (Ubicación y Stock por separado)
+        // Agregar ubicaciones específicas por bodega: PICKING, MINIMOS, RESERVAS (Ubicación y Stock por separado)
         $itemLocations = $item->locations ?? collect([]);
-        for ($i = 0; $i < $this->maxLocationsCount; $i++) {
-            $loc = $itemLocations->get($i);
-            if ($loc) {
-                $storeName = $loc->store->name ?? 'Sin bodega';
-                $locId = $loc->locationId ?? 'Sin ubicación';
-                $locStock = (int) $loc->stock_item_location;
-                $row[] = "{$storeName} / {$locId}"; // Nombre de la ubicación
-                $row[] = $locStock;                // Stock de la ubicación como entero
-            } else {
-                $row[] = '';
-                $row[] = '';
-            }
+
+        // 1. PICKING
+        $locPicking = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'PICKING'));
+        if ($locPicking) {
+            $row[] = $locPicking->locationId ?? '';
+            $row[] = (int) $locPicking->stock_item_location;
+        } else {
+            $row[] = '';
+            $row[] = '';
+        }
+
+        // 2. MINIMOS
+        $locMinimos = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'MINIMOS'));
+        if ($locMinimos) {
+            $row[] = $locMinimos->locationId ?? '';
+            $row[] = (int) $locMinimos->stock_item_location;
+        } else {
+            $row[] = '';
+            $row[] = '';
+        }
+
+        // 3. RESERVAS
+        $locReservas = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'RESERVAS'));
+        if ($locReservas) {
+            $row[] = $locReservas->locationId ?? '';
+            $row[] = (int) $locReservas->stock_item_location;
+        } else {
+            $row[] = '';
+            $row[] = '';
         }
 
         return $row;
