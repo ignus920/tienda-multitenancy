@@ -2577,7 +2577,8 @@ class Remissions extends Component
             ->where(function($query) {
                 $query->where('flete', '>', 0)
                       ->orWhereHas('details.item', function($q) {
-                          $q->where('internal_code', 'like', 'flete%')
+                          $q->where('internal_code', 'like', '%flete%')
+                            ->orWhere('sku', 'like', '%flete%')
                             ->orWhere('name', 'like', '%flete%');
                       });
             })
@@ -2598,14 +2599,15 @@ class Remissions extends Component
         foreach ($data as $row) {
             $fleteTotal = (float) $row->flete;
 
-            // Buscar en el detalle ítems cuyo código empiece por "flete" o nombre contenga "flete"
+            // Buscar en el detalle ítems cuyo código empiece/contenga "flete", sku contenga "flete" o nombre contenga "flete"
             if ($row->details) {
                 foreach ($row->details as $detail) {
                     if ($detail->item) {
                         $code = strtolower($detail->item->internal_code ?? '');
+                        $sku = strtolower($detail->item->sku ?? '');
                         $name = strtolower($detail->item->name ?? '');
 
-                        if (str_starts_with($code, 'flete') || str_contains($name, 'flete')) {
+                        if (str_contains($code, 'flete') || str_contains($sku, 'flete') || str_contains($name, 'flete')) {
                             $fleteTotal += (float) ($detail->quantity * $detail->value);
                         }
                     }
