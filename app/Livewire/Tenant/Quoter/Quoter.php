@@ -888,11 +888,13 @@ class Quoter extends Component
             ->when($this->filterConsecutive, function ($query) {
                 $query->where('consecutive', 'like', '%' . $this->filterConsecutive . '%');
             })
-            ->when($this->filterDateFrom, function ($query) {
-                $query->whereDate('created_at', '>=', $this->filterDateFrom);
-            })
-            ->when($this->filterDateTo, function ($query) {
-                $query->whereDate('created_at', '<=', $this->filterDateTo);
+            ->when(empty($this->search) && empty($this->filterNit) && empty($this->filterName) && empty($this->filterConsecutive), function ($query) {
+                $query->when($this->filterDateFrom, function ($q) {
+                    $q->whereDate('created_at', '>=', $this->filterDateFrom);
+                })
+                ->when($this->filterDateTo, function ($q) {
+                    $q->whereDate('created_at', '<=', $this->filterDateTo);
+                });
             })
             ->orderBy('consecutive', 'desc');
     }

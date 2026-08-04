@@ -753,8 +753,9 @@ class Remissions extends Component
             });
         }
 
-        // Si hay un filtro de tarjeta (statusFilter) activo, no se filtrará por rango de fechas en el listado
-        if (empty($this->statusFilter)) {
+        // Si hay un filtro de tarjeta (statusFilter) activo o se está realizando una búsqueda específica,
+        // no se filtrará por rango de fechas en el listado para permitir búsquedas históricas globales.
+        if (empty($this->statusFilter) && empty($this->search) && empty($this->searchNit) && empty($this->searchName) && empty($this->searchQuote)) {
             if ($this->searchStartDate) {
                 $query->whereDate('created_at', '>=', $this->searchStartDate);
             }
