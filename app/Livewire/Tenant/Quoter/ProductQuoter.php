@@ -514,7 +514,7 @@ class ProductQuoter extends Component
                     $query->where('inv_items.created_at', '>=', DB::raw('DATE_SUB(NOW(), INTERVAL 30 DAY)'));
                 })
                 ->when($this->productFilter === 'sin_venta', function ($query) {
-                    $query->havingRaw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) = 0');
+                    $query->havingRaw('SUM(inv_items_store.stock_items_store) > 0 AND (SUM(inv_items_store.stock_items_store) * 100) / (COALESCE(s7m.salidas_7_meses, 0) + SUM(inv_items_store.stock_items_store)) >= 70');
                 })
                 ->when($this->productFilter === 'poca_venta', function ($query) {
                     $query->havingRaw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) BETWEEN 1 AND 5');
