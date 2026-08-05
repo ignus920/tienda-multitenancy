@@ -858,10 +858,10 @@ class ManageItems extends Component
     public function getExportColumnFormats(): array
     {
         return [
-            'M' => '"$"#,##0.00',
-            'N' => '"$"#,##0.00',
-            'O' => '"$"#,##0.00',
-            'P' => '"$"#,##0.00',
+            'M' => '"$"#,##0',
+            'N' => '"$"#,##0',
+            'O' => '"$"#,##0',
+            'P' => '"$"#,##0',
         ];
     }
 
