@@ -867,11 +867,11 @@ class ManageItems extends Component
 
     public function getExportMapping($item): array
     {
-        // Determinar stock (Unificado a número entero, siempre 0 o mayor)
+        // Determinar stock (Forzado a cadena '0' para evitar que Excel lo oculte)
         $stockSum = $item->invItemsStore->isNotEmpty() 
             ? $item->invItemsStore->sum('stock_items_store') 
             : 0;
-        $stock = $stockSum !== null ? (int) $stockSum : 0;
+        $stock = $stockSum !== null ? (string) (int) $stockSum : '0';
 
         // Obtener valores de precios mapeados
         $precios = [
