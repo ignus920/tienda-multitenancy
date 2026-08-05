@@ -71,7 +71,7 @@ class ProductImageModal extends Component
     public $hasWpProduct = false;
 
     #[On('openImageModal')]
-    public function open($productId, \App\Services\Tenant\WordPress\WordPressService $wpService, $context = null)
+    public function open($productId, $context = null)
     {
         $this->ensureTenantConnection();
         $this->productId = $productId;
@@ -81,6 +81,7 @@ class ProductImageModal extends Component
             $this->productName = $product->name;
             $this->productCode = $product->internal_code;
             $this->isOpen = true;
+            $this->hasWpProduct = false; // Se cargará de forma asíncrona mediante wire:init
             
             // Perfil del usuario
             $this->userProfileId = auth()->user()->profile_id;
@@ -98,9 +99,17 @@ class ProductImageModal extends Component
                     $this->activeTab = 'COMERCIAL';
                 }
             }
+        }
+    }
 
-            // Validar si existe en WordPress
-            $this->hasWpProduct = !empty($product->sku) && $wpService->findProductBySku($product->sku) !== null;
+    public function loadWpProductStatus(\App\Services\Tenant\WordPress\WordPressService $wpService)
+    {
+        $this->ensureTenantConnection();
+        if ($this->productId) {
+            $product = Items::find($this->productId);
+            if ($product) {
+                $this->hasWpProduct = !empty($product->sku) && $wpService->findProductBySku($product->sku) !== null;
+            }
         }
     }
 
