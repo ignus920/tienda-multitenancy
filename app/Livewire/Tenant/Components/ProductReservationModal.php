@@ -171,6 +171,7 @@ class ProductReservationModal extends Component
             $alreadyReserved = Reservation::where('item_id', $this->productId)
                 ->where('stock_type', '1')
                 ->where('status_id', 1) // Solo reservas activas/registradas
+                ->where('due_date', '>=', DB::raw('DATE_SUB(CURDATE(), INTERVAL 15 DAY)'))
                 ->sum('quantity');
 
             $stockDisponible = (int) DB::connection('tenant')
@@ -187,6 +188,7 @@ class ProductReservationModal extends Component
             $alreadyReserved = Reservation::where('item_id', $this->productId)
                 ->where('stock_type', '2')
                 ->where('status_id', 1) // Solo reservas activas/registradas
+                ->where('due_date', '>=', DB::raw('DATE_SUB(CURDATE(), INTERVAL 15 DAY)'))
                 ->sum('quantity');
 
             $transitoDisponible = (int) DB::connection('tenant')
