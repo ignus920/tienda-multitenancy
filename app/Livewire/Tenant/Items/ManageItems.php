@@ -855,26 +855,40 @@ class ManageItems extends Component
         ];
     }
 
+    public function getExportColumnFormats(): array
+    {
+        return [
+            'M' => '"$"#,##0.00',
+            'N' => '"$"#,##0.00',
+            'O' => '"$"#,##0.00',
+            'P' => '"$"#,##0.00',
+        ];
+    }
+
     public function getExportMapping($item): array
     {
         // Determinar stock
         $stock = 'No maneja';
         if ($item->inventoriable == 1) {
-            $stock = $item->invItemsStore->isNotEmpty() 
-                ? (int) $item->invItemsStore->sum('stock_items_store') 
+            $stockSum = $item->invItemsStore->isNotEmpty() 
+                ? $item->invItemsStore->sum('stock_items_store') 
                 : 0;
+            $stock = $stockSum !== null ? (int) $stockSum : 0;
         }
 
         // Obtener valores de precios mapeados
         $precios = [
-            'Precio Base' => '0',
-            'Precio Regular' => '0',
-            'Precio Crédito' => '0',
-            'Precio unitario x caja' => '0',
+            'Precio Base' => 0.0,
+            'Precio Regular' => 0.0,
+            'Precio Crédito' => 0.0,
+            'Precio unitario x caja' => 0.0,
         ];
         foreach ($item->invValues as $val) {
             if (array_key_exists($val->label, $precios)) {
-                $precios[$val->label] = $val->values;
+                // Limpiar puntos de miles y reemplazar coma decimal por punto para tener un float puro
+                $cleanVal = str_replace('.', '', $val->values);
+                $cleanVal = str_replace(',', '.', $cleanVal);
+                $precios[$val->label] = is_numeric($cleanVal) ? (float) $cleanVal : 0.0;
             }
         }
 

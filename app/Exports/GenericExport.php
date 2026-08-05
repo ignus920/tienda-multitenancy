@@ -6,18 +6,21 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 
-class GenericExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class GenericExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithColumnFormatting
 {
     protected $collection;
     protected $headings;
     protected $mapping;
+    protected $columnFormats;
 
-    public function __construct($collection, array $headings, $mapping = null)
+    public function __construct($collection, array $headings, $mapping = null, array $columnFormats = [])
     {
         $this->collection = $collection;
         $this->headings = $headings;
         $this->mapping = $mapping;
+        $this->columnFormats = $columnFormats;
     }
 
     public function collection()
@@ -28,6 +31,11 @@ class GenericExport implements FromCollection, WithHeadings, WithMapping, Should
     public function headings(): array
     {
         return $this->headings;
+    }
+
+    public function columnFormats(): array
+    {
+        return $this->columnFormats;
     }
 
     public function map($row): array

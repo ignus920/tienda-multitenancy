@@ -13,11 +13,13 @@ trait WithExport
      */
     public function exportExcel()
     {
+        $columnFormats = method_exists($this, 'getExportColumnFormats') ? $this->getExportColumnFormats() : [];
         return Excel::download(
             new GenericExport(
                 $this->getExportData(),
                 $this->getExportHeadings(),
-                $this->resolveExportMapping()
+                $this->resolveExportMapping(),
+                $columnFormats
             ),
             $this->getExportFilename() . '.xlsx'
         );
@@ -28,11 +30,13 @@ trait WithExport
      */
     public function exportCsv()
     {
+        $columnFormats = method_exists($this, 'getExportColumnFormats') ? $this->getExportColumnFormats() : [];
         return Excel::download(
             new GenericExport(
                 $this->getExportData(),
                 $this->getExportHeadings(),
-                $this->resolveExportMapping()
+                $this->resolveExportMapping(),
+                $columnFormats
             ),
             $this->getExportFilename() . '.csv',
             \Maatwebsite\Excel\Excel::CSV
@@ -44,11 +48,13 @@ trait WithExport
      */
     public function exportPdf()
     {
+        $columnFormats = method_exists($this, 'getExportColumnFormats') ? $this->getExportColumnFormats() : [];
         return Excel::download(
             new GenericExport(
                 $this->getExportData(),
                 $this->getExportHeadings(),
-                $this->resolveExportMapping()
+                $this->resolveExportMapping(),
+                $columnFormats
             ),
             $this->getExportFilename() . '.pdf',
             \Maatwebsite\Excel\Excel::DOMPDF
