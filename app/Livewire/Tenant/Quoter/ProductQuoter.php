@@ -2962,7 +2962,8 @@ class ProductQuoter extends Component
                 }
 
                 // Omitir validación de stock para productos ensamblados al crear remisión (OP)
-                if (($item['type'] ?? '') === 'ENSAMBLADO') {
+                $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
+                if ($productModel && $productModel->type === 'ENSAMBLADO') {
                     continue;
                 }
 

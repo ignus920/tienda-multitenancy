@@ -34,15 +34,16 @@ class InvRemissions extends Model
         'obs',
         'observations_delivery',
         'flete',
-        'print_count',
         'proof_payment',
         'payment_details',
+        'from_portal',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'payment_details' => 'array',
+        'from_portal' => 'boolean',
     ];
 
     public function quote()

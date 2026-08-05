@@ -87,7 +87,7 @@
                      @mouseenter="stopAutoPlay()"
                      @mouseleave="startAutoPlay()"
                      style="height: 340px;"
-                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-2xl shadow-indigo-500/10"
+                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-sm"
                 >
                     <!-- Slides -->
                     <div class="relative w-full h-full">
@@ -228,25 +228,25 @@
                 </div>
                 
                 <!-- Filtro de stock -->
-                <div class="flex items-center gap-4 px-2 py-2.5 flex-shrink-0">
-                    <label class="flex items-center cursor-pointer">
+                <div class="flex items-center gap-4 px-2 py-2.5 flex-shrink-0" title="Mostrar todos los productos o solo los que tienen stock disponible">
+                    <label class="flex items-center cursor-pointer" title="Ver todo el catálogo de productos">
                         <input type="radio" wire:model.live="stockFilter" value="all" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                         <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Todos</span>
                     </label>
-                    <label class="flex items-center cursor-pointer">
+                    <label class="flex items-center cursor-pointer" title="Ver solo productos con inventario disponible para entrega inmediata">
                         <input type="radio" wire:model.live="stockFilter" value="in_stock" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                         <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">En stock</span>
                     </label>
                 </div>
 
                 <!-- Filtro de Forma de Pago (Crédito / Contado) -->
-                <div class="flex items-center gap-4 px-4 py-2.5 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 pl-4">
+                <div class="flex items-center gap-4 px-4 py-2.5 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 pl-4"   ||="Alternar entre listas de precios de Contado o de Crédito">
                     <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">Pago:</span>
-                    <label class="flex items-center cursor-pointer">
+                    <label class="flex items-center cursor-pointer" title="Ver precios y tarifas para pago de Contado">
                         <input type="radio" wire:model.live="paymentFilter" value="contado" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                         <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Contado</span>
                     </label>
-                    <label class="flex items-center cursor-pointer">
+                    <label class="flex items-center cursor-pointer" title="Ver precios y tarifas para compras a Crédito">
                         <input type="radio" wire:model.live="paymentFilter" value="credito" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                         <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Crédito</span>
                     </label>
@@ -266,8 +266,9 @@
                 </button>
                 
                 <!-- Selector de cantidad por página -->
-                <div class="relative flex-shrink-0">
+                <div class="relative flex-shrink-0" title="Selecciona cuántos productos mostrar por página">
                     <select wire:model.live="perPage" @change="savePerPage($event.target.value)"
+                            title="Productos por página"
                             class="appearance-none block w-full pl-4 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm font-semibold transition-colors cursor-pointer shadow-sm text-center">
                         <option value="10">10</option>
                         <option value="20">20</option>
@@ -370,19 +371,19 @@
                             
                             <!-- Menú de acciones (columna izquierda) -->
                             <div class="w-12 flex-shrink-0 relative flex items-center justify-start pr-2" x-data="{ open: false }">
-                                <button @click.stop="open = !open" @click.away="open = false" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all flex items-center justify-center">
+                                <button @click.stop="open = !open" @click.away="open = false" title="Ver opciones disponibles para este producto" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all flex items-center justify-center">
                                     <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
                                     </svg>
                                 </button>
                                 <div x-show="open" x-transition class="absolute left-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1" style="display: none;">
-                                    <button @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                    <button @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' }); open = false" title="Abrir galería de imágenes y fichas gráficas" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                                         <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                         Imagen
                                     </button>
-                                    <button @click="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                    <button @click="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false" title="Ver comentarios, notas técnicas y observaciones de este producto" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                                         <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
@@ -518,19 +519,19 @@
                         
                         <!-- Menú de opciones (Tres puntos) -->
                         <div class="absolute top-1 left-1 z-10" x-data="{ open: false }">
-                            <button @click.stop="open = !open" @click.away="open = false" class="bg-white/95 dark:bg-gray-800/95 rounded-lg shadow-md p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-lg transition-all flex items-center justify-center">
+                            <button @click.stop="open = !open" @click.away="open = false" title="Ver opciones disponibles para este producto" class="bg-white/95 dark:bg-gray-800/95 rounded-lg shadow-md p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-lg transition-all flex items-center justify-center">
                                 <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
                                 </svg>
                             </button>
                             <div x-show="open" x-transition class="absolute left-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20 py-1" style="display: none;">
-                                <button @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                <button @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' }); open = false" title="Abrir galería de imágenes y fichas gráficas" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     Imagen
                                 </button>
-                                <button @click="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                <button @click="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); open = false" title="Ver comentarios, notas técnicas y observaciones de este producto" class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
@@ -617,7 +618,7 @@
         </div>
 
         <!-- SIDEBAR (estilo cotizador) -->
-        <div class="hidden lg:block w-96 flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto self-start">
+        <div class="hidden lg:block w-[28rem] flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto self-start">
             <div class="p-5">
                 <!-- Header -->
                 <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3 mb-4">
@@ -625,7 +626,7 @@
                         <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
-                        <span x-text="totalItems + ' Productos seleccionados'">0 Productos seleccionados</span>
+                        <span x-text="cart.length + (cart.length === 1 ? ' producto' : ' productos') + ' (' + totalItems + (totalItems === 1 ? ' unidad' : ' unidades') + ') seleccionados'">0 Productos seleccionados</span>
                     </h2>
                 </div>
 
@@ -678,24 +679,54 @@
                         <span class="text-xl font-extrabold text-indigo-600 dark:text-indigo-400" x-text="'$' + total.toLocaleString('es-CO')"></span>
                     </div>
 
-                    <!-- Dirección -->
+                    <!-- Dirección / Sucursales -->
                     <div>
-                        <label class="text-[10px] font-bold text-gray-700 dark:text-gray-300 block mb-1">Confirmación de Dirección de Envío</label>
-                        <input type="text" placeholder="Ej. Calle 45 Sur #78 B 16 - Bogotá" 
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Dirección de Envío / Sucursal</label>
+                            @if(auth()->user() && auth()->user()->tenant_company_id)
+                                <button type="button" wire:click="$set('showWarehouseModal', true)" title="Administrar, editar o crear nuevas sucursales y direcciones de despacho de tu empresa" class="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 underline">
+                                    Gestionar Sucursales
+                                </button>
+                            @endif
+                        </div>
+                        
+                        @if(auth()->user() && auth()->user()->tenant_company_id && count($branches) > 0)
+                            <select wire:model.live="selectedBranchId" wire:change="changeBranch"
+                                title="Selecciona una sucursal registrada para cargar su dirección de despacho automáticamente"
+                                class="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white mb-2 cursor-pointer font-medium">
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch['id'] }}">
+                                        {{ $branch['name'] }} · {{ $branch['address'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @endif
+                        
+                        <input type="text" wire:model="shippingAddress" placeholder="Ej. Calle 45 Sur #78 B 16 - Bogotá" 
+                            title="Dirección final de envío donde se despachará este pedido"
                             class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white">
                     </div>
 
                     <!-- Comprobante -->
-                    <div>
+                    <div title="Adjunta el comprobante de pago de tu transferencia para proceder con la verificación de tu pedido">
                         <label class="text-[10px] font-bold text-gray-700 dark:text-gray-300 block mb-1">Comprobante de Pago (Obligatorio)</label>
-                        <div class="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-3 text-center cursor-pointer hover:border-indigo-400 transition-colors bg-gray-50 dark:bg-gray-900/50">
-                            <input type="file" class="hidden" id="receipt-upload">
+                        <div class="border-2 border-dashed {{ $errors->has('proofPaymentFile') || !$proofPaymentFile ? 'border-red-400 bg-red-50/5' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50' }} rounded-lg p-3 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+                             title="Haz clic o arrastra tu archivo aquí (formatos PDF, JPG, PNG de hasta 5MB)">
+                            <input type="file" wire:model="proofPaymentFile" class="hidden" id="receipt-upload">
                             <label for="receipt-upload" class="cursor-pointer block">
-                                <svg class="w-6 h-6 text-gray-400 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">Arrastrar o seleccionar comprobante</span>
-                                <span class="text-[8px] text-gray-400 block">Formatos: PDF, JPG, PNG (Max 5MB)</span>
+                                @if ($proofPaymentFile)
+                                    <svg class="w-6 h-6 text-green-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-green-600 dark:text-green-400">Comprobante cargado:</span>
+                                    <span class="text-[8px] text-gray-500 block truncate">{{ $proofPaymentFile->getClientOriginalName() }}</span>
+                                @else
+                                    <svg class="w-6 h-6 text-red-400 mx-auto mb-1 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">Arrastrar o seleccionar comprobante</span>
+                                    <span class="text-[8px] text-red-500 block font-semibold">¡Archivo Obligatorio! (Max 5MB)</span>
+                                @endif
                             </label>
                         </div>
                     </div>
@@ -703,10 +734,22 @@
                     <!-- Botón enviar -->
                     <button 
                         :disabled="cart.length === 0"
+                        title="Enviar el pedido actual y su respectivo comprobante de pago para la verificación de un auxiliar comercial"
                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
-                        @click="alert('¡Tu pedido B2B y comprobante de pago han sido enviados para verificación!')"
+                        wire:loading.attr="disabled"
+                        wire:target="submitOrder"
+                        @click="$wire.submitOrder(cart).then(res => { if (res) { cart = []; } })"
                     >
-                        🚀 Enviar Pedido para Verificación
+                        <!-- Icono dinámico -->
+                        <span wire:loading.remove wire:target="submitOrder">🚀</span>
+                        <svg wire:loading wire:target="submitOrder" class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+
+                        <!-- Texto dinámico -->
+                        <span wire:loading.remove wire:target="submitOrder">Enviar Pedido para Verificación</span>
+                        <span wire:loading wire:target="submitOrder">Guardando Pedido...</span>
                     </button>
                     <p class="text-[9px] text-gray-400 text-center leading-relaxed">
                         Al enviar el pedido, queda en estado <strong>Por verificar</strong> hasta que un auxiliar comercial apruebe y genere la OP correspondiente.
@@ -721,4 +764,25 @@
 
     <!-- Modal de Observaciones -->
     <livewire:tenant.items.item-observation />
+
+    <!-- Modal de Gestión de Sucursales Exclusivo del Portal -->
+    @if($showWarehouseModal && auth()->user() && auth()->user()->tenant_company_id)
+        @livewire('tenant.portal.portal-warehouse-modal', [
+            'companyId' => auth()->user()->tenant_company_id
+        ], key('portal-warehouse-modal-' . auth()->user()->tenant_company_id))
+    @endif
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('swal', (event) => {
+                const data = Array.isArray(event) ? event[0] : event;
+                Swal.fire({
+                    title: data.title || '',
+                    text: data.text || '',
+                    icon: data.icon || 'info',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        });
+    </script>
 </div>
