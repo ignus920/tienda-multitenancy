@@ -471,14 +471,33 @@ class ManageProductionOrders extends Component
                 ->where('storeId', $storeId)
                 ->first();
 
-            $available = $itemStore ? floatval($itemStore->stock_items_store) : 0;
+            $quarantineQty = (float) DB::table('inv_quarantine_movements')
+                ->where('item_id', $row['material_itemId'])
+                ->where('store_id', $storeId)
+                ->whereNull('deleted_at')
+                ->sum('quantity');
 
-            if ($available < $requested) {
+            $showroomQty = (float) DB::table('inv_showroom_movements')
+                ->where('item_id', $row['material_itemId'])
+                ->where('store_id', $storeId)
+                ->whereNull('deleted_at')
+                ->sum('quantity');
+
+            $available = $itemStore ? floatval($itemStore->stock_items_store) : 0;
+            $realAvailable = max(0, $available - $quarantineQty - $showroomQty);
+
+            if ($realAvailable < $requested) {
                 $item     = Items::find($row['material_itemId']);
                 $itemName = $item?->name ?? "Item #{$row['material_itemId']}";
                 $unitLabel = $unit ? $unit['description'] : 'unidades base';
-                $this->processModalError = "Stock insuficiente para \"{$itemName}\". "
-                    . "Disponible: {$available} unidades base, Requerido: {$requested} ({$row['qty']} {$unitLabel}).";
+                
+                $details = [];
+                if ($quarantineQty > 0) $details[] = "en cuarentena: {$quarantineQty}";
+                if ($showroomQty > 0) $details[] = "en vitrina: {$showroomQty}";
+                $detailsStr = !empty($details) ? " (" . implode(', ', $details) . ")" : "";
+                
+                $this->processModalError = "Stock insuficiente para \"{$itemName}\"{$detailsStr}. "
+                    . "Disponible libre: {$realAvailable} unidades base, Requerido: {$requested} ({$row['qty']} {$unitLabel}).";
                 return false;
             }
         }

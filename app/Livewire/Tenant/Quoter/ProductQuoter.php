@@ -418,6 +418,43 @@ class ProductQuoter extends Component
         tenancy()->initialize($tenant);
     }
 
+    /**
+     * Verifica si el usuario autenticado tiene permisos para gestionar la cuarentena de productos.
+     * Solo disponible para Super Administradores, perfil 2 (Administrador) y personal de Gerencia.
+     */
+    public function canManageQuarantine(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        // Super administrador
+        if (\App\Helpers\PermissionHelper::isSuperAdmin()) {
+            return true;
+        }
+
+        // Perfil 2: Administrador (Camilo y Juanita)
+        if ((int)$user->profile_id === 2) {
+            return true;
+        }
+
+        // Comprobación fallback por correo o nombre
+        $email = strtolower($user->email ?? '');
+        $name = strtolower($user->name ?? '');
+        if (str_contains($email, 'juanita') || str_contains($name, 'juanita')) {
+            return true;
+        }
+        if (str_contains($email, 'camilo') || str_contains($name, 'camilo')) {
+            return true;
+        }
+
+        // Perfil Gerencia o Director
+        $profileName = strtolower($user->profile?->name ?? '');
+        if (str_contains($profileName, 'gerencia') || str_contains($profileName, 'director')) {
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Renderizar los productos en la vista
@@ -450,6 +487,8 @@ class ProductQuoter extends Component
                     DB::raw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as sales_last_30_days'),
                     DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock'),
                     DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 2 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_transit'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_quarantine_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as reserved_quarantine'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_showroom_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as showroom_stock'),
                     DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses')
                 )
                 ->where('inv_items.status', 1)
@@ -2980,13 +3019,35 @@ class ProductQuoter extends Component
                     return;
                 }
 
-                $newStock = $itemStore->stock_items_store - $item['quantity'];
+                $quarantineStock = (float) DB::connection('tenant')
+                    ->table('inv_quarantine_movements')
+                    ->where('item_id', $item['id'])
+                    ->where('store_id', $quote->warehouseId)
+                    ->whereNull('deleted_at')
+                    ->sum('quantity');
 
-                if ($newStock < 0) {
+                $showroomStock = (float) DB::connection('tenant')
+                    ->table('inv_showroom_movements')
+                    ->where('item_id', $item['id'])
+                    ->where('store_id', $quote->warehouseId)
+                    ->whereNull('deleted_at')
+                    ->sum('quantity');
+
+                $availableStock = max(0, $itemStore->stock_items_store - $quarantineStock - $showroomStock);
+
+                if ($item['quantity'] > $availableStock) {
                     DB::connection('tenant')->rollBack();
-                    $this->dispatch('show-toast', [
-                        'type' => 'error',
-                        'message' => "Stock insuficiente para '{$item['name']}'. Solicitado: {$item['quantity']}, Disponible: {$itemStore->stock_items_store}"
+                    $this->dispatch('swal', [
+                        'icon' => 'error',
+                        'title' => 'Stock Insuficiente (Especial)',
+                        'html' => "El producto <strong>{$item['name']}</strong> tiene unidades no disponibles para venta.<br><br>"
+                               . "<div class='text-left space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-sm'>"
+                               . "• <strong>Cantidad Solicitada:</strong> " . number_format($item['quantity'], 0) . " und.<br>"
+                               . "• <strong>En Cuarentena:</strong> " . number_format($quarantineStock, 0) . " und.<br>"
+                               . "• <strong>En Vitrina:</strong> " . number_format($showroomStock, 0) . " und.<br>"
+                               . "• <strong>Disponible Real para Venta:</strong> <span class='text-emerald-600 dark:text-emerald-400 font-bold'>" . number_format($availableStock, 0) . " und.</span>"
+                               . "</div><br>"
+                               . "<em>Por favor, reduce la cantidad en el carrito o solicita la liberación del stock a un administrador.</em>"
                     ]);
                     return;
                 }

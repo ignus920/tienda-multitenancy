@@ -189,6 +189,9 @@ $header = 'Seleccionar productos';
                                 </button>
                                 <div x-show="openMenu" @click.away="openMenu = false" x-cloak class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
                                     <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Reservas</button>
+                                    @if($this->canManageQuarantine())
+                                        <button @click.stop="$dispatch('openQuarantineModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors font-semibold">Cuarentena</button>
+                                    @endif
                                     <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Solicitud Soporte</button>
                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Imagen</button>
                                     <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors">Observaciones</button>
@@ -243,7 +246,9 @@ $header = 'Seleccionar productos';
                                 <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Exist.</span><span class="text-[10px] font-bold text-gray-900 dark:text-white">{{ number_format($product->stock_bodega, 0) }}</span></div>
                                 <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Trán.</span><span class="text-[10px] font-bold text-blue-600 dark:text-blue-400">{{ number_format($product->in_transit, 0) }}</span></div>
                                 <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Res.</span><span class="text-[10px] font-bold text-orange-600 dark:text-orange-400">{{ number_format($product->reserved, 0) }}</span></div>
-                                <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Pick.</span><span class="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">{{ $product->picking }}</span></div>
+                                <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Cuar.</span><span class="text-[10px] font-bold text-blue-500 dark:text-blue-400">{{ number_format($product->quarantine_stock, 0) }}</span></div>
+                                <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Vitr.</span><span class="text-[10px] font-bold text-indigo-500 dark:text-indigo-400">{{ number_format($product->showroom_stock, 0) }}</span></div>
+                                <div class="flex flex-col"><span class="text-[8px] text-gray-500 uppercase leading-none">Pick.</span><span class="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 truncate">{{ $product->picking }}</span></div>
                             </div>
                         @endif
 
@@ -342,6 +347,9 @@ $header = 'Seleccionar productos';
                                 <button @click.stop="openMenu = !openMenu" class="p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-full shadow-sm"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
                                 <div x-show="openMenu" @click.away="openMenu = false" x-cloak class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border z-50 py-1">
                                     <button @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Reservas</button>
+                                    @if($this->canManageQuarantine())
+                                        <button @click.stop="$dispatch('openQuarantineModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-50 font-semibold">Cuarentena</button>
+                                    @endif
                                     <button @click.stop="$dispatch('openTicketModal', { productId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Solicitud Soporte</button>
                                     <button @click.stop="$dispatch('openImageModal', { productId: {{ $product->id }}, context: '{{ $imgContext }}' }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Imagen</button>
                                     <button @click.stop="$dispatch('openObservationsModal', { itemId: {{ $product->id }} }); openMenu = false" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50">Observaciones</button>
@@ -585,6 +593,7 @@ $header = 'Seleccionar productos';
     </div>
     @endif
     @livewire('tenant.components.product-reservation-modal')
+    @livewire('tenant.components.product-quarantine-modal')
 </div>
 <script>
     document.addEventListener('livewire:init', () => {

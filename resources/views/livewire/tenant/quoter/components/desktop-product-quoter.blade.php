@@ -383,6 +383,10 @@ $header = 'Seleccionar productos';
                                                 <span class="text-[9px] uppercase font-bold text-orange-500 dark:text-orange-400">Reserva</span>
                                                 <span class="text-xs font-black text-orange-700 dark:text-orange-300">{{ number_format($product->reserved, 0) }}</span>
                                             </div>
+                                            <div class="bg-blue-50 dark:bg-blue-900/10 p-2 rounded-lg border border-blue-100 dark:border-blue-800 flex flex-col items-center">
+                                                <span class="text-[9px] uppercase font-bold text-blue-500 dark:text-blue-400 font-bold">Cuarentena</span>
+                                                <span class="text-xs font-black text-blue-700 dark:text-blue-300">{{ number_format($product->quarantine_stock, 0) }}</span>
+                                            </div>
                                             <div class="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 flex flex-col items-center">
                                                 <span class="text-[9px] uppercase font-bold text-indigo-500 dark:text-indigo-400">Picking</span>
                                                 <span class="text-[10px] font-black text-indigo-700 dark:text-indigo-300 truncate w-full text-center">{{ $product->picking }}</span>
@@ -540,6 +544,8 @@ $header = 'Seleccionar productos';
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Existencias</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tránsito</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reservas</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cuarentena</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vitrina</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant. x caja</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Picking</th>
                                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Maximo</th>
@@ -735,6 +741,16 @@ $header = 'Seleccionar productos';
                                                     {{ number_format($product->reserved, 0) }}
                                                 </span>
                                             </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <span class="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                                    {{ number_format($product->quarantine_stock, 0) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                                                    {{ number_format($product->showroom_stock, 0) }}
+                                                </span>
+                                            </td>
                                             <td class="px-4 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
                                                 {{ $product->qty_per_box }}
                                             </td>
@@ -755,21 +771,36 @@ $header = 'Seleccionar productos';
                                                 <div class="inline-flex justify-center items-center">
                                                     <div class="inline-block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden text-sm transition-all">
                                                         <table class="border-collapse text-center">
-                                                            <tbody>
-                                                                <!-- Fila Stock Físico (S) -->
-                                                                <tr class="border-b border-gray-200 dark:border-gray-750">
-                                                                    <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">S</td>
-                                                                    <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
-                                                                        title="Haga clic para generar reserva física de: {{ $product->display_name }}"
-                                                                        class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                                                                        {{ number_format($product->stock_bodega ?? 0, 0) }}
-                                                                    </td>
-                                                                    <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
-                                                                        title="Haga clic para generar reserva física de: {{ $product->display_name }}"
-                                                                        class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                                                                        {{ ($product->reserved_stock ?? 0) > 0 ? number_format($product->reserved_stock, 0) : '' }}
-                                                                    </td>
-                                                                </tr>
+                                                                @php
+                                                                     $quarantineStock = (int) ($product->reserved_quarantine ?? 0);
+                                                                     $showroomStock = (int) ($product->showroom_stock ?? 0);
+                                                                     $physStock = (int) ($product->stock_bodega ?? 0);
+                                                                     $resStock = (int) ($product->reserved_stock ?? 0);
+                                                                     
+                                                                     // Disponibles = Stock - Cuarentena - Vitrina
+                                                                     $dispStock = max(0, $physStock - $quarantineStock - $showroomStock);
+                                                                     
+                                                                     // Reservas visuales = Reservas físicas + Cuarentena + Vitrina
+                                                                     $visualReservations = $resStock + $quarantineStock + $showroomStock;
+                                                                     
+                                                                     $hasSpecialStock = ($quarantineStock > 0 || $showroomStock > 0);
+                                                                 @endphp
+                                                                 <tr class="border-b border-gray-200 dark:border-gray-750">
+                                                                     <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">S</td>
+                                                                     <!-- Celda Stock Disponible (Columna central, clic abre cuarentena) -->
+                                                                     <td @click.stop="$dispatch('openQuarantineModal', { productId: {{ $product->id }} })"
+                                                                         title="Disponible para Venta: {{ $dispStock }} (Físico: {{ $physStock }}{{ $quarantineStock > 0 ? ', Cuarentena: ' . $quarantineStock : '' }}{{ $showroomStock > 0 ? ', Vitrina: ' . $showroomStock : '' }}). Haga clic para ver detalles y gestionar."
+                                                                         class="px-3 py-1 border-r border-gray-200 dark:border-gray-750 text-center w-12 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20
+                                                                             {{ $hasSpecialStock ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700' }}">
+                                                                         {{ number_format($dispStock, 0) }}
+                                                                     </td>
+                                                                     <!-- Celda Reservas (Columna derecha, clic abre reservas) -->
+                                                                     <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
+                                                                         title="Reservas Físicas: {{ $resStock }}{{ $quarantineStock > 0 ? ' | En Cuarentena: ' . $quarantineStock : '' }}{{ $showroomStock > 0 ? ' | En Vitrina: ' . $showroomStock : '' }}. Haga clic para gestionar reservas."
+                                                                         class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+                                                                         {{ $visualReservations > 0 ? number_format($visualReservations, 0) : '' }}
+                                                                     </td>
+                                                                 </tr>
                                                                 <!-- Fila Tránsito (T) -->
                                                                 <tr>
                                                                     <td class="px-3 py-1 font-bold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-750 bg-white dark:bg-gray-800">T</td>
@@ -1739,6 +1770,7 @@ $header = 'Seleccionar productos';
     @endif
 
     @livewire('tenant.components.product-reservation-modal')
+    @livewire('tenant.components.product-quarantine-modal')
 
     <!-- Modal de Detalles de Tránsito -->
     @teleport('body')

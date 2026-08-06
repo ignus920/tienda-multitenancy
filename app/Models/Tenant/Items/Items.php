@@ -671,4 +671,70 @@ class Items extends Model
 
         return $storeRecord ? $storeRecord->stock_max : 0;
     }
+
+    public function quarantineMovements()
+    {
+        return $this->hasMany(QuarantineMovement::class, 'item_id', 'id');
+    }
+
+    public function showroomMovements()
+    {
+        return $this->hasMany(ShowroomMovement::class, 'item_id', 'id');
+    }
+
+    public function getQuarantineStockAttribute()
+    {
+        if (isset($this->attributes['reserved_quarantine'])) {
+            return (int) $this->attributes['reserved_quarantine'];
+        }
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('quarantineMovements')
+            ? $this->quarantineMovements
+            : $this->quarantineMovements()->get();
+
+        if ($userStoreId) {
+            return (int) $collection->where('store_id', $userStoreId)->sum('quantity');
+        }
+
+        return (int) $collection->sum('quantity');
+    }
+
+    public function getShowroomStockAttribute()
+    {
+        if (isset($this->attributes['showroom_stock'])) {
+            return (int) $this->attributes['showroom_stock'];
+        }
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('showroomMovements')
+            ? $this->showroomMovements
+            : $this->showroomMovements()->get();
+
+        if ($userStoreId) {
+            return (int) $collection->where('store_id', $userStoreId)->sum('quantity');
+        }
+
+        return (int) $collection->sum('quantity');
+    }
+
+    public function getReservedStockAttribute()
+    {
+        if (isset($this->attributes['reserved_stock'])) {
+            return (int) $this->attributes['reserved_stock'];
+        }
+        return (int) \App\Models\Tenant\Items\Reservation::where('item_id', $this->id)
+            ->where('stock_type', '1')
+            ->where('status_id', 1)
+            ->where('due_date', '>=', \Illuminate\Support\Facades\DB::raw('DATE_SUB(CURDATE(), INTERVAL 15 DAY)'))
+            ->sum('quantity');
+    }
+
+    public function getStockDisponibleVentaAttribute()
+    {
+        $stock = (int) $this->stock_bodega;
+        $reservas = (int) $this->reserved_stock;
+        $cuarentena = (int) $this->quarantine_stock;
+        $vitrina = (int) $this->showroom_stock;
+
+        return max(0, $stock - $reservas - $cuarentena - $vitrina);
+    }
 }
