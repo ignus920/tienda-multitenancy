@@ -858,20 +858,25 @@ class ManageItems extends Component
     public function getExportColumnFormats(): array
     {
         return [
-            'M' => '"$"#,##0',
-            'N' => '"$"#,##0',
-            'O' => '"$"#,##0',
-            'P' => '"$"#,##0',
+            'F' => '#,##0',       // Stock General (Fuerza a mostrar el 0)
+            'M' => '"$"#,##0.00',
+            'N' => '"$"#,##0.00',
+            'O' => '"$"#,##0.00',
+            'P' => '"$"#,##0.00',
+            'S' => '"$"#,##0.00', // EXW
+            'W' => '#,##0',       // Stock PICKING (Fuerza a mostrar el 0)
+            'Y' => '#,##0',       // Stock MINIMOS (Fuerza a mostrar el 0)
+            'AA' => '#,##0',      // Stock RESERVAS (Fuerza a mostrar el 0)
         ];
     }
 
     public function getExportMapping($item): array
     {
-        // Determinar stock (Forzado a cadena '0' para evitar que Excel lo oculte)
+        // Determinar stock (Forzado a cadena '0' si es 0 para obligar a Excel a mostrarlo)
         $stockSum = $item->invItemsStore->isNotEmpty() 
             ? $item->invItemsStore->sum('stock_items_store') 
             : 0;
-        $stock = $stockSum !== null ? (string) (int) $stockSum : '0';
+        $stock = ($stockSum !== null && (int) $stockSum !== 0) ? (int) $stockSum : '0';
 
         // Obtener valores de precios mapeados
         $precios = [
@@ -882,10 +887,7 @@ class ManageItems extends Component
         ];
         foreach ($item->invValues as $val) {
             if (array_key_exists($val->label, $precios)) {
-                // Limpiar puntos de miles y reemplazar coma decimal por punto para tener un float puro
-                $cleanVal = str_replace('.', '', $val->values);
-                $cleanVal = str_replace(',', '.', $cleanVal);
-                $precios[$val->label] = is_numeric($cleanVal) ? (float) $cleanVal : 0.0;
+                $precios[$val->label] = is_numeric($val->values) ? (float) $val->values : 0.0;
             }
         }
 
@@ -915,8 +917,8 @@ class ManageItems extends Component
             $precios['Precio unitario x caja'],
             $supplierName,
             $item->importSetup->factory_ref ?? 'N/A',
-            $item->importSetup->exw ?? '0',
-            $item->dimensions->weight ?? '0',
+            is_numeric($item->importSetup->exw ?? null) ? (float) $item->importSetup->exw : 0.0,
+            is_numeric($item->dimensions->weight ?? null) ? (float) $item->dimensions->weight : 0.0,
             (int) ($item->dimensions->quntityxbox ?? 0),
         ];
 
@@ -927,30 +929,30 @@ class ManageItems extends Component
         $locPicking = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'PICKING'));
         if ($locPicking) {
             $row[] = $locPicking->locationId ?? '';
-            $row[] = (int) $locPicking->stock_item_location;
+            $row[] = ((int) $locPicking->stock_item_location !== 0) ? (int) $locPicking->stock_item_location : '0';
         } else {
             $row[] = '';
-            $row[] = '';
+            $row[] = '0';
         }
 
         // 2. MINIMOS
         $locMinimos = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'MINIMOS'));
         if ($locMinimos) {
             $row[] = $locMinimos->locationId ?? '';
-            $row[] = (int) $locMinimos->stock_item_location;
+            $row[] = ((int) $locMinimos->stock_item_location !== 0) ? (int) $locMinimos->stock_item_location : '0';
         } else {
             $row[] = '';
-            $row[] = '';
+            $row[] = '0';
         }
 
         // 3. RESERVAS
         $locReservas = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'RESERVAS'));
         if ($locReservas) {
             $row[] = $locReservas->locationId ?? '';
-            $row[] = (int) $locReservas->stock_item_location;
+            $row[] = ((int) $locReservas->stock_item_location !== 0) ? (int) $locReservas->stock_item_location : '0';
         } else {
             $row[] = '';
-            $row[] = '';
+            $row[] = '0';
         }
 
         return $row;

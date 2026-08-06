@@ -217,4 +217,41 @@ class InvRemissions extends Model
 
         return $total + ($this->flete ?? 0);
     }
+
+    /**
+     * Calcula el peso total de la remisión en gramos sumando el peso de cada item por su cantidad.
+     */
+    public function getWeightGramos(): float
+    {
+        return $this->details->sum(function ($detail) {
+            return (float) ($detail->item?->dimensions?->weight ?? 0) * $detail->quantity;
+        });
+    }
+
+    /**
+     * Calcula el Valor Declarado según el peso y el valor base.
+     */
+    public function getDeclaredValue(float $baseValue): float
+    {
+        $pesoGramos = $this->getWeightGramos();
+
+        if ($pesoGramos < 5500) {
+            // Peso inferior a 5500 gramos (5.50 kg)
+            if ($baseValue < 114000) {
+                return $baseValue;
+            } else {
+                return $baseValue * 0.5;
+            }
+        } else {
+            // Peso mayor o igual a 5500 gramos (5.50 kg)
+            if ($baseValue < 896000) {
+                return $baseValue;
+            } elseif ($baseValue >= 896000 && $baseValue <= 1791999) {
+                return ($baseValue * 0.05) + 896000;
+            } else {
+                return $baseValue * 0.5;
+            }
+        }
+    }
 }
+
