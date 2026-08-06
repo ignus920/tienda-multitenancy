@@ -228,24 +228,42 @@
     </div>
     @else
     <div class="px-3 py-2 space-y-1">
-        <!-- Bar de Flete Slim Interactivo -->
+        <!-- Bar de Flete Slim Interactivo y Empaques -->
         @if($totalWeight > 0 || $estimatedFreight > 0)
-        <div 
-            class="mb-2 flex items-center justify-between px-4 py-2 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800' }} border rounded-lg transition-all group shadow-sm">
-            <div class="flex items-center gap-2">
-                <span class="text-[11px] font-medium {{ $isFreightApplied ? 'text-indigo-700 dark:text-indigo-300' : 'text-red-700 dark:text-red-300' }}">Valor Flete Estimado:</span>
-                <span class="text-xs font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight / 1000, 2, ',', '.') }} Kg</span>
-                {{-- Botón comentado para que no se pueda clickear
-                <div class="{{ $isFreightApplied ? 'bg-indigo-600 group-hover:bg-indigo-700' : 'bg-red-600 group-hover:bg-red-700' }} text-white p-1 rounded-md transition-colors">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
-                    </svg>
+        <div class="space-y-1.5 mb-3">
+            <!-- Flete Estimado (Rojo) -->
+            <div 
+                class="flex items-center justify-between px-4 py-2 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800' }} border rounded-lg transition-all group shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-medium {{ $isFreightApplied ? 'text-indigo-700 dark:text-indigo-300' : 'text-red-700 dark:text-red-300' }}">Valor Flete Estimado:</span>
+                    <span class="text-xs font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
                 </div>
-                --}}
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight / 1000, 2, ',', '.') }} Kg</span>
+                </div>
             </div>
+
+            <!-- Empaques especiales (Azul) -->
+            @if($appliedPacking > 0)
+            <div 
+                class="flex items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800 border rounded-lg transition-all group shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-medium text-blue-700 dark:text-blue-300">Empaques especiales:</span>
+                    <span class="text-xs font-black text-blue-800 dark:text-white">${{ number_format($appliedPacking, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            @endif
+
+            <!-- Total Flete+Empaque (Verde) -->
+            @if($appliedPacking > 0)
+            <div 
+                class="flex items-center justify-between px-4 py-2 bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 border rounded-lg transition-all group shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-medium text-green-700 dark:text-green-300">Total Flete+Empaque:</span>
+                    <span class="text-xs font-black text-green-800 dark:text-white">${{ number_format($estimatedFreight + $appliedPacking, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            @endif
         </div>
         @endif
         @foreach($quoterItems as $index => $item)

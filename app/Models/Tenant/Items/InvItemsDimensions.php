@@ -44,7 +44,10 @@ class InvItemsDimensions extends Model
         'voltage',
         'power',
         'weight',
-        'quntityxbox'
+        'quntityxbox',
+        'min_packing_qty',
+        'min_packing_val',
+        'add_packing_val'
     ];
 
     /**

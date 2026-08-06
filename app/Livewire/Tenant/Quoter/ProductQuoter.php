@@ -58,6 +58,7 @@ class ProductQuoter extends Component
     public $totalWeight = 0;
     public $estimatedFreight = 0;
     public $appliedFreight = 0; // Valor del flete aplicado manualmente
+    public $appliedPacking = 0; // Valor del empaque especial aplicado
     public $isFreightApplied = false; // Flag para saber si el flete está activo
     public $isFreightManuallyEdited = false;
     public $freightJustification = '';
@@ -911,6 +912,9 @@ class ProductQuoter extends Component
                 'inventoriable'  => (int) $product->inventoriable,
                 'quntityxbox'    => (int)$quntityxbox,
                 'justification'  => null,
+                'min_packing_qty' => (int) ($product->dimensions->min_packing_qty ?? 0),
+                'min_packing_val' => (float) ($product->dimensions->min_packing_val ?? 0.0),
+                'add_packing_val' => (float) ($product->dimensions->add_packing_val ?? 0.0),
             ]);
         }
 
@@ -1150,7 +1154,8 @@ class ProductQuoter extends Component
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
                 'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
-                'flete' => $this->appliedFreight // Guardar el flete aplicado
+                'flete' => $this->appliedFreight, // Guardar el flete aplicado
+                'empaque' => $this->appliedPacking // Guardar el empaque especial aplicado
             ]);
 
             // Guardar justificación de flete si fue editado
@@ -1955,6 +1960,7 @@ class ProductQuoter extends Component
             'subtotal_iva_19' => 0,
         ];
         $this->totalTaxes = 0;
+        $this->appliedPacking = 0; // Resetear cobro de empaque especial
 
         $pesoRealTotal = 0;
         $pesoCalculoFlete = 0;
@@ -1975,6 +1981,18 @@ class ProductQuoter extends Component
 
             $pesoRealTotal += ($pesoProducto * $quantity);
             $pesoCalculoFlete += ($pesoProducto * $quantity * $factorPeso);
+
+            // Cálculo de empaque especial
+            $minQty = isset($item['min_packing_qty']) ? (int)$item['min_packing_qty'] : 0;
+            $minVal = isset($item['min_packing_val']) ? (float)$item['min_packing_val'] : 0.0;
+            $addVal = isset($item['add_packing_val']) ? (float)$item['add_packing_val'] : 0.0;
+            if ($minVal > 0) {
+                if ($quantity <= $minQty) {
+                    $this->appliedPacking += $minVal;
+                } else {
+                    $this->appliedPacking += $minVal + (($quantity - $minQty) * $addVal);
+                }
+            }
 
             if ($taxPercentage > 0) {
                 $priceBase = round($priceWithTax / (1 + ($taxPercentage / 100)), 2);
@@ -2033,7 +2051,7 @@ class ProductQuoter extends Component
         // 6. CALCULAR TOTAL FINAL INCLUYENDO FLETE DINÁMICO
         $this->subTotal = round($this->subTotal, 2);
         $this->totalTaxes = round($this->totalTaxes, 2);
-        $this->totalAmount = round($this->subTotal + $this->totalTaxes + $this->appliedFreight);
+        $this->totalAmount = round($this->subTotal + $this->totalTaxes + $this->appliedFreight + $this->appliedPacking);
 
         // 7. Descuentos y Retenciones
         $this->appliedDiscounts = collect($this->quoterItems)
@@ -2229,6 +2247,7 @@ class ProductQuoter extends Component
             // Cargar observaciones de la cotización
             $this->observaciones = $quote->observations;
             $this->appliedFreight = $quote->flete ?? 0; // Cargar flete de la base de datos
+            $this->appliedPacking = $quote->empaque ?? 0; // Cargar empaque de la base de datos
 
             // Si tiene flete, activar el flag para que se mantenga visible y dinámico al editar
             if ($this->appliedFreight > 0) {
@@ -2372,6 +2391,9 @@ class ProductQuoter extends Component
                         'inventoriable'  => (int) $product->inventoriable,
                         'quntityxbox'    => (int) ($product->dimensions->quntityxbox ?? 0),
                         'justification'  => $detalle->justification,
+                        'min_packing_qty' => (int) ($product->dimensions->min_packing_qty ?? 0),
+                        'min_packing_val' => (float) ($product->dimensions->min_packing_val ?? 0.0),
+                        'add_packing_val' => (float) ($product->dimensions->add_packing_val ?? 0.0),
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -2509,7 +2531,8 @@ class ProductQuoter extends Component
                 'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
                 'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
-                'flete' => $this->appliedFreight // Guardar el flete aplicado
+                'flete' => $this->appliedFreight, // Guardar el flete aplicado
+                'empaque' => $this->appliedPacking // Guardar el empaque especial aplicado
             ];
 
             Log::info('💾 Datos que se van a actualizar en vnt_quotes', [
@@ -3995,6 +4018,9 @@ class ProductQuoter extends Component
                         'category_id'   => $detalle->item->categoryId,
                         'consumption_unit'=> $detalle->item->consumption_unit,
                         'inventoriable' => (int) $detalle->item->inventoriable,
+                        'min_packing_qty' => (int) ($detalle->item->dimensions->min_packing_qty ?? 0),
+                        'min_packing_val' => (float) ($detalle->item->dimensions->min_packing_val ?? 0.0),
+                        'add_packing_val' => (float) ($detalle->item->dimensions->add_packing_val ?? 0.0),
                     ];
                 }
             }

@@ -19,6 +19,9 @@ class ManageDimensions extends Component
     public $power;
     public $weight;
     public $quntityxbox;
+    public $min_packing_qty;
+    public $min_packing_val;
+    public $add_packing_val;
 
     public function mount($itemId)
     {
@@ -38,7 +41,10 @@ class ManageDimensions extends Component
             'voltage' => $this->voltage,
             'power' => $this->power,
             'weight' => $this->weight,
-            'quntityxbox' => $this->quntityxbox
+            'quntityxbox' => $this->quntityxbox,
+            'min_packing_qty' => $this->min_packing_qty ?: 0,
+            'min_packing_val' => $this->min_packing_val ?: 0.00,
+            'add_packing_val' => $this->add_packing_val ?: 0.00
         ];
         //dd($infoItem);
         try {
@@ -82,6 +88,9 @@ class ManageDimensions extends Component
             $this->power = $itemDimension->power;
             $this->weight = $itemDimension->weight;
             $this->quntityxbox = $itemDimension->quntityxbox;
+            $this->min_packing_qty = $itemDimension->min_packing_qty;
+            $this->min_packing_val = $itemDimension->min_packing_val;
+            $this->add_packing_val = $itemDimension->add_packing_val;
         }
     }
 
@@ -120,6 +129,9 @@ class ManageDimensions extends Component
         $this->power = '';
         $this->weight = '';
         $this->quntityxbox = '';
+        $this->min_packing_qty = '';
+        $this->min_packing_val = '';
+        $this->add_packing_val = '';
         $this->itemId = '';
         $this->dimensions_id = '';
     }
