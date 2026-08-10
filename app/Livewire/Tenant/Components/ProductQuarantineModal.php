@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Components;
 use Livewire\Component;
 use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\QuarantineMovement;
+use App\Models\Tenant\Items\ShowroomMovement;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\DB;
