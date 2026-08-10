@@ -45,7 +45,7 @@
                             </div>
                         @endif
 
-                        <!-- Contador de productos e interactivo Limpiar -->
+                        <!-- Contador de productos e interactivo Limpiar (reubicado desde el sidebar) -->
                         @if($this->quoterCount > 0)
                         <div class="flex items-center gap-2 border-l border-green-200 dark:border-green-800/60 pl-3">
                             <span class="text-[11px] font-bold text-green-800 dark:text-green-300">
