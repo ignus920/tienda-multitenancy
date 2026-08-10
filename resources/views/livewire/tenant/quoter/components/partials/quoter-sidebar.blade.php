@@ -1,45 +1,4 @@
-<!-- Header del cotizador -->
-<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-    {{-- Badge de cotización en edición --}}
-    @if($isEditing && $editingQuoteConsecutive)
-    <div class="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700">
-        <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-        </svg>
-        <span class="text-xs font-bold text-amber-700 dark:text-amber-300">
-            Editando cotización <span class="text-amber-900 dark:text-amber-100">#{{ $editingQuoteConsecutive }}</span>
-        </span>
-    </div>
-    @endif
-    <div class="flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $this->quoterCount }} Productos seleccionados</h2>
-        @if(!empty($quoterItems))
-        <button
-            @click="
-                Swal.fire({
-                    title: '¿Limpiar cotizador?',
-                    text: 'Se eliminarán todos los productos seleccionados.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#4f46e5',
-                    cancelButtonColor: '#ef4444',
-                    confirmButtonText: 'Sí, limpiar',
-                    cancelButtonText: 'Cancelar',
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $wire.clearQuoter()
-                    }
-                })
-            "
-            class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium">
-            Limpiar
-        </button>
-        @endif
-    </div>
-</div>
+{{-- El header de productos seleccionados fue removido de aquí y trasladado al header del cliente en desktop-product-quoter --}}
 
 <!-- Lista de productos en el cotizador con scroll interno -->
 <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-700">
@@ -60,36 +19,34 @@
         <!-- Bar de Flete Slim Interactivo y Empaques -->
         @if($totalWeight > 0 || $estimatedFreight > 0)
         <div class="space-y-1.5 mb-3">
-            <!-- Flete Estimado (Rojo) -->
-            <div 
-                class="flex items-center justify-between px-4 py-2 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800' }} border rounded-lg transition-all group shadow-sm">
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-medium {{ $isFreightApplied ? 'text-indigo-700 dark:text-indigo-300' : 'text-red-700 dark:text-red-300' }}">Valor Flete Estimado:</span>
-                    <span class="text-xs font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
+            <!-- Contenedor Grid 50/50 para Flete (Rojo) y Empaques (Azul) -->
+            <div class="grid grid-cols-2 gap-1.5">
+                <!-- Flete Estimado (Rojo) -->
+                <div 
+                    class="flex flex-row items-center justify-between px-2 py-1.5 {{ $isFreightApplied ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800' : 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800' }} border rounded-lg transition-all group shadow-sm">
+                    <span class="text-[9px] font-bold uppercase {{ $isFreightApplied ? 'text-indigo-600 dark:text-indigo-400' : 'text-red-600 dark:text-red-400' }} shrink-0">Flete:</span>
+                    <span class="text-[11px] font-black {{ $isFreightApplied ? 'text-indigo-800 dark:text-white' : 'text-red-800 dark:text-white' }}">${{ number_format($estimatedFreight, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] font-bold {{ $isFreightApplied ? 'text-indigo-500/60 dark:text-indigo-400/60' : 'text-red-500/60 dark:text-red-400/60' }}">{{ number_format($totalWeight / 1000, 2, ',', '.') }} Kg</span>
+
+                <!-- Empaques especiales (Azul) -->
+                <div 
+                    class="flex flex-row items-center justify-between px-2 py-1.5 {{ $appliedPacking > 0 ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/60' }} border rounded-lg transition-all group shadow-sm">
+                    <span class="text-[9px] font-bold uppercase text-blue-600 dark:text-blue-400 shrink-0">Empaques:</span>
+                    <span class="text-[11px] font-black text-blue-800 dark:text-white">${{ number_format($appliedPacking, 0, ',', '.') }}</span>
                 </div>
             </div>
 
-            <!-- Empaques especiales (Azul) -->
-            @if($appliedPacking > 0)
+            <!-- Total Flete+Empaque (Verde) con el Peso al lado derecho -->
+            @if($appliedPacking > 0 || $estimatedFreight > 0)
             <div 
-                class="flex items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800 border rounded-lg transition-all group shadow-sm">
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-medium text-blue-700 dark:text-blue-300">Empaques especiales:</span>
-                    <span class="text-xs font-black text-blue-800 dark:text-white">${{ number_format($appliedPacking, 0, ',', '.') }}</span>
-                </div>
-            </div>
-            @endif
-
-            <!-- Total Flete+Empaque (Verde) -->
-            @if($appliedPacking > 0)
-            <div 
-                class="flex items-center justify-between px-4 py-2 bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 border rounded-lg transition-all group shadow-sm">
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-medium text-green-700 dark:text-green-300">Total Flete+Empaque:</span>
+                class="flex items-center justify-between px-3 py-1.5 bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 border rounded-lg transition-all group shadow-sm">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-bold text-green-700 dark:text-green-300">Total Flete+Empaque:</span>
                     <span class="text-xs font-black text-green-800 dark:text-white">${{ number_format($estimatedFreight + $appliedPacking, 0, ',', '.') }}</span>
+                </div>
+                <!-- El peso se muestra en el verde al lado derecho -->
+                <div>
+                    <span class="text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/60 px-1.5 py-0.5 rounded">{{ number_format($totalWeight / 1000, 2, ',', '.') }} Kg</span>
                 </div>
             </div>
             @endif

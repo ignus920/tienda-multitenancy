@@ -25,7 +25,7 @@
                         </div>
                     </div>
 
-                    <!-- Sucursal y Acciones -->
+                    <!-- Sucursal, Contador de Productos y Acciones -->
                     <div class="flex items-center gap-3 shrink-0">
                         @if(!empty($branches) && count($branches) > 1 && !$isEditing)
                             <div class="flex items-center gap-1.5">
@@ -34,7 +34,7 @@
                                     wire:model.live="selectedBranchId"
                                     wire:change="selectBranch($event.target.value)"
                                     class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
-                                >
+                                  >
                                     <option value="">-- Seleccionar --</option>
                                     @foreach($branches as $branch)
                                         <option value="{{ $branch['id'] }}">
@@ -43,6 +43,37 @@
                                     @endforeach
                                 </select>
                             </div>
+                        @endif
+
+                        <!-- Contador de productos e interactivo Limpiar -->
+                        @if($this->quoterCount > 0)
+                        <div class="flex items-center gap-2 border-l border-green-200 dark:border-green-800/60 pl-3">
+                            <span class="text-[11px] font-bold text-green-800 dark:text-green-300">
+                                {{ $this->quoterCount }} {{ $this->quoterCount === 1 ? 'Producto' : 'Productos' }}
+                            </span>
+                            <button
+                                @click="
+                                    Swal.fire({
+                                        title: '¿Limpiar cotizador?',
+                                        text: 'Se eliminarán todos los productos seleccionados.',
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#4f46e5',
+                                        cancelButtonColor: '#ef4444',
+                                        confirmButtonText: 'Sí, limpiar',
+                                        cancelButtonText: 'Cancelar',
+                                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                        color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            $wire.clearQuoter()
+                                        }
+                                    })
+                                "
+                                class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-[10px] font-extrabold uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900 transition-colors">
+                                Limpiar
+                            </button>
+                        </div>
                         @endif
 
                         <!-- Botones Editar / Quitar con Tooltips Alpine.js -->
