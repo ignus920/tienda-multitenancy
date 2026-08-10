@@ -32,8 +32,8 @@ class Dashboard extends Component
             $tenant = Tenant::find($tenantId);
             if ($tenant) {
                 $tenantManager = app(\App\Services\Tenant\TenantManager::class);
-                $tenantManager->setConnection($tenant);
                 tenancy()->initialize($tenant);
+                $tenantManager->setConnection($tenant);
             }
         }
     }
