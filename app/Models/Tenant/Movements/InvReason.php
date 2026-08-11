@@ -18,6 +18,7 @@ class InvReason extends Model
         'name',
         'type',
         'status',
+        'alegra_category_id',
     ];
 
     protected function casts(): array

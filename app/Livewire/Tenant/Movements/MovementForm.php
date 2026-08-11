@@ -688,11 +688,20 @@ class MovementForm extends Component
                 }
             }
 
+            // Obtener el motivo seleccionado para verificar si tiene mapeada una categoría en Alegra
+            $reason = InvReason::find($this->movementForm['reasonId']);
+
             $alegraData = !empty($itemsAlegra) ? [
                 'date'      => $this->movementForm['date'],
                 'items'     => $itemsAlegra,
                 'warehouse' => ['id' => '1'],
             ] : [];
+
+            if ($reason && $reason->alegra_category_id) {
+                $alegraData['category'] = [
+                    'id' => $reason->alegra_category_id
+                ];
+            }
 
 
             Log::info('📦 [MovementForm] Payload Alegra construido', [
