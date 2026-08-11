@@ -878,7 +878,11 @@ class ManageItems extends Component
             : 0;
         $stock = ($stockSum !== null && (int) $stockSum !== 0) ? (int) $stockSum : '0';
 
-        // Obtener valores de precios mapeados
+        // Obtener porcentaje de impuesto (IVA) del item para aplicar a los precios
+        $taxPercentage = $item->tax ? (float) $item->tax->percentage : 0.0;
+        $taxMultiplier = 1.0 + ($taxPercentage / 100.0);
+
+        // Obtener valores de precios mapeados con IVA incluido
         $precios = [
             'Precio Base' => 0.0,
             'Precio Regular' => 0.0,
@@ -887,7 +891,8 @@ class ManageItems extends Component
         ];
         foreach ($item->invValues as $val) {
             if (array_key_exists($val->label, $precios)) {
-                $precios[$val->label] = is_numeric($val->values) ? (float) $val->values : 0.0;
+                $valWithoutTax = is_numeric($val->values) ? (float) $val->values : 0.0;
+                $precios[$val->label] = $valWithoutTax * $taxMultiplier;
             }
         }
 
