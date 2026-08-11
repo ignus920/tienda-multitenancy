@@ -117,6 +117,12 @@ class ManageCatalogs extends Component
             $vinculo = $this->archivoActual;
             $archivoOriginal = $this->archivoActual ? basename($this->archivoActual) : '';
 
+            if ($this->selectedCatalogId) {
+                // Usamos el título original de la BD para mantener la URL/slug idéntica al actualizar el archivo
+                $catalog = CatCatalogs::findOrFail($this->selectedCatalogId);
+                $slug = $this->generateSlug($catalog->title);
+            }
+
             if ($this->archivo) {
                 $extension = $this->archivo->getClientOriginalExtension();
                 $archivoOriginal = $this->archivo->getClientOriginalName();
@@ -133,9 +139,9 @@ class ManageCatalogs extends Component
                 // Actualizar registro existente
                 $catalog = CatCatalogs::findOrFail($this->selectedCatalogId);
                 
-                // En el sistema antiguo no se actualizan familia ni título si ya se guardó una vez (solo archivo si se sube uno nuevo)
-                // Opcionalmente podemos actualizarlos o dejarlos fijos. Aquí respetamos la edición:
                 $catalog->update([
+                    'family' => $this->family,
+                    'title' => $this->title,
                     'file_name' => $this->archivo ? $archivoOriginal : $catalog->file_name,
                     'link' => $vinculo,
                     'login' => $loginUser
