@@ -173,6 +173,52 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Configuración de Retenciones
+    |--------------------------------------------------------------------------
+    |
+    | Configuración para el cálculo automático de retenciones fiscales
+    |
+    */
+
+    'retentions' => [
+        // Bases mínimas para aplicar retenciones según tabla oficial Colombia 2026
+        // Fuente: https://blog.alegra.com/colombia/tabla-de-retencion-en-la-fuente-2026
+        'base_amounts' => [
+            'fuente' => env('RETENTION_BASE_FUENTE', 524000),    // $524,000 para retención en la fuente
+            'ica' => env('RETENTION_BASE_ICA', 1418800),         // $1,418,800 para retención ICA
+            'iva' => env('RETENTION_BASE_IVA', 300000),          // Base para retención IVA (grandes contribuyentes)
+        ],
+
+        // Porcentajes de retenciones
+        'percentages' => [
+            'fuente' => 0.025,  // 2.5% retención en la fuente
+            'ica' => 0.001104,  // 0.1104% (11.04‰ por mil) retención ICA
+            'iva' => 0.15,      // 15% retención IVA
+        ],
+
+        // Ciudades donde aplica retención ICA
+        'ica_cities' => ['Bogotá, D.C.'],
+
+        // Responsabilidades fiscales para retención IVA (solo grandes contribuyentes)
+        'iva_fiscal_responsibilities' => [5], // 5 = Gran Contribuyente
+
+        // IDs de retenciones en Alegra (configurables por tenant)
+        // Estos IDs deben coincidir exactamente con los configurados en Alegra
+        'alegra_ids' => [
+            'fuente' => env('ALEGRA_RETENTION_FUENTE_ID', '14'), // 14 = retención en la fuente
+            'ica' => env('ALEGRA_RETENTION_ICA_ID', '11'),       // 11 = retención ICA
+            'iva' => env('ALEGRA_RETENTION_IVA_ID', '12'),       // 12 = retención IVA
+        ],
+
+        // Activar cálculo automático de retenciones
+        'auto_calculate' => env('AUTO_CALCULATE_RETENTIONS', true),
+
+        // Log de cálculos de retenciones
+        'log_calculations' => env('LOG_RETENTION_CALCULATIONS', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Configuración de Desarrollo
     |--------------------------------------------------------------------------
     */

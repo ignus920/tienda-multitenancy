@@ -273,6 +273,49 @@ class FacturacionService
     }
 
     /**
+     * Obtener vista previa de una factura desde Alegra (API Preview)
+     */
+    public function getInvoicePreview(array $invoiceData): array
+    {
+        try {
+            Log::info('📄 Consultando vista previa de factura en Alegra', [
+                'client_id' => $invoiceData['client']['id'] ?? null,
+                'items_count' => count($invoiceData['items'] ?? [])
+            ]);
+
+            return $this->apiClient->post('invoices/preview', $invoiceData);
+        } catch (\Exception $e) {
+            Log::error('❌ Error obteniendo vista previa de factura', [
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'success' => false,
+                'message' => 'Error obteniendo vista previa: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Obtener PDF de una factura específica desde Alegra (vía endpoint intermedio)
+     */
+    public function getInvoicePdf(int $apiDataId): array
+    {
+        try {
+            Log::info('📄 Solicitando PDF de factura a Alegra', ['api_data_id' => $apiDataId]);
+            return $this->apiClient->get("invoices/{$apiDataId}/pdf");
+        } catch (\Exception $e) {
+            Log::error('❌ Error solicitando PDF de factura', [
+                'api_data_id' => $apiDataId,
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'success' => false,
+                'message' => 'Error solicitando PDF: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Registrar pago en Alegra
      */
     public function registerPayment(array $paymentData): array
@@ -341,6 +384,58 @@ class FacturacionService
             return [
                 'success' => false,
                 'error' => 'Error al conectar con API de pagos: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Crear una nota crédito en Alegra
+     * @param int|string $invoiceApiId  ID de la factura en Alegra (va en la ruta del endpoint)
+     * @param array      $creditNoteData  Datos de la nota crédito (client, items, date, dueDate)
+     */
+    public function createCreditNote(int|string $invoiceApiId, array $creditNoteData): array
+    {
+        try {
+            Log::info('📄 Creando nota crédito en API de Alegra', [
+                'invoice_api_id' => $invoiceApiId,
+                'client_id'      => $creditNoteData['client']['id'] ?? null,
+                'items_count'    => count($creditNoteData['items'] ?? [])
+            ]);
+
+            $response = $this->apiClient->createCreditNote($invoiceApiId, $creditNoteData);
+
+            if ($response['success'] ?? false) {
+                $creditNoteId = $response['data']['id'] ?? null;
+
+                Log::info('✅ Nota crédito creada exitosamente en Alegra', [
+                    'alegra_credit_note_id' => $creditNoteId,
+                ]);
+
+                return [
+                    'success' => true,
+                    'data'    => $response['data'] ?? [],
+                    'message' => 'Nota crédito creada exitosamente en Alegra',
+                ];
+            }
+
+            $errorMessage = $response['message'] ?? 'Error desconocido';
+            Log::error('❌ Error creando nota crédito en Alegra', ['response' => $response]);
+
+            return [
+                'success' => false,
+                'message' => $errorMessage,
+                'data'    => $response['data'] ?? null,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción creando nota crédito en Alegra', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Error al conectar con Alegra: ' . $e->getMessage()
             ];
         }
     }

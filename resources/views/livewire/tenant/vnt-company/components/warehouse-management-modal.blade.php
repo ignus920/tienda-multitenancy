@@ -123,6 +123,19 @@
                             @enderror
                         </div>
 
+                        <!-- Campo Teléfono -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Teléfono
+                            </label>
+                            <input wire:model="warehouseForm.phone" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ej: 3001234567">
+                            @error('warehouseForm.phone') 
+                                <span class="text-red-500 text-sm">{{ $message }}</span> 
+                            @enderror
+                        </div>
+
                         <!-- Campo Código Postal -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -253,6 +266,9 @@
                                     Dirección
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Teléfono
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Ciudad
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -280,6 +296,9 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                     {{ $warehouse->address }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ $warehouse->phone ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ $warehouse->city->name ?? 'N/A' }}
@@ -332,6 +351,15 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
+                                        @if($isSelectionMode)
+                                        <button wire:click="selectWarehouse({{ $warehouse->id }})"
+                                            class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-full transition-colors">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            Seleccionar
+                                        </button>
+                                        @endif
                                         @if(!$warehouse->main)
                                         <button wire:click="editWarehouse({{ $warehouse->id }})"
                                             class="inline-flex items-center px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs font-medium rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors">

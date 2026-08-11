@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
+use App\Auth\Livewire\Logout;
 
 class SelectTenant extends Component
 {
@@ -55,12 +56,26 @@ class SelectTenant extends Component
             $userTenant->pivot->update(['last_accessed_at' => now()]);
         }
 
+        // Si el usuario es de perfil 18 (Cliente), omitir selección de bodega y redirigir directamente
+        if (Auth::user()->profile_id == 18) {
+            session()->forget('needs_warehouse_selection');
+            session()->put('warehouse_redirect_route', 'tenant.client.portal');
+            return redirect()->route('tenant.client.portal');
+        }
+
         // Establecer bandera para abrir el modal de selección de bodega
         session()->put('needs_warehouse_selection', true);
-        session()->put('warehouse_redirect_route', 'tenant.dashboard');
+        $redirectRoute = Auth::user()->profile_id == 17 ? 'imports.imports-orders' : 'tenant.dashboard';
+        session()->put('warehouse_redirect_route', $redirectRoute);
 
-        // NO redirigir, solo recargar el componente para que el modal se abra
-        $this->dispatch('$refresh');
+        // Redirigir al destino para que el selector de bodega se abra sobre el dashboard/pantalla correspondiente y no sobre "Selecciona tu empresa"
+        return redirect()->route($redirectRoute);
+    }
+
+    public function logout(Logout $logout)
+    {
+        $logout();
+        return redirect()->route('login');
     }
 
     #[Layout('layouts.app')]

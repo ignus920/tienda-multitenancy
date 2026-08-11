@@ -13,15 +13,14 @@ use Illuminate\Support\Facades\Log;
 class LoginWarehouseSelector extends Component
 {
     public $showModal = false;
-    public $stores = [];
+    public $warehouses = []; // Array of warehouses with their stores
     public $selectedStoreId = null;
+    public $selectedWarehouseId = null;
     public $loading = false;
     public $redirectRoute = null;
-    public $warehouseName = '';
-    public $warehouseAddress = '';
     
     public $contactId = null;
-    public $warehouseId = null;
+    public $companyId = null;
 
     protected $listeners = ['openLoginWarehouseSelector' => 'open'];
 
@@ -61,8 +60,9 @@ class LoginWarehouseSelector extends Component
 
         Log::info('🔵 LoginWarehouseSelector::mount() - FIN', [
             'showModal' => $this->showModal,
-            'stores_count' => count($this->stores),
-            'selectedStoreId' => $this->selectedStoreId
+            'warehouses_count' => count($this->warehouses),
+            'selectedStoreId' => $this->selectedStoreId,
+            'selectedWarehouseId' => $this->selectedWarehouseId
         ]);
     }
 
@@ -85,7 +85,7 @@ class LoginWarehouseSelector extends Component
         
         Log::info('Modal de sucursales abierto', [
             'user_id' => Auth::id(),
-            'stores_count' => count($this->stores),
+            'warehouses_count' => count($this->warehouses),
             'show_modal' => $this->showModal
         ]);
     }
@@ -97,7 +97,7 @@ class LoginWarehouseSelector extends Component
         // Verify authentication
         if (!Auth::check()) {
             Log::warning('⚠️ loadWarehouseAndStores() - Usuario no autenticado');
-            $this->stores = [];
+            $this->warehouses = [];
             return;
         }
 
@@ -112,7 +112,7 @@ class LoginWarehouseSelector extends Component
             // Check if user has contact_id
             if (!$user || !$user->contact_id) {
                 Log::warning('⚠️ loadWarehouseAndStores() - Usuario sin contacto asociado', ['user_id' => $user?->id]);
-                $this->stores = [];
+                $this->warehouses = [];
                 return;
             }
 
@@ -127,7 +127,7 @@ class LoginWarehouseSelector extends Component
 
             if (!$tenantId) {
                 Log::warning('⚠️ loadWarehouseAndStores() - No tenant_id in session', ['user_id' => $user->id]);
-                $this->stores = [];
+                $this->warehouses = [];
                 $this->dispatch('warehouse-error', [
                     'title' => 'Empresa No Seleccionada',
                     'message' => 'No se ha seleccionado una empresa. Por favor, selecciona una empresa primero.',
@@ -140,12 +140,13 @@ class LoginWarehouseSelector extends Component
             Log::info('🟢 loadWarehouseAndStores() - Tenant encontrado', [
                 'tenant_id' => $tenant?->id,
                 'tenant_active' => $tenant?->is_active,
-                'tenant_database' => $tenant?->db_name ?? 'N/A'
+                'tenant_database' => $tenant?->db_name ?? 'N/A',
+                'tenant_company_id' => $tenant?->company_id
             ]);
 
             if (!$tenant || !$tenant->is_active) {
                 Log::warning('⚠️ loadWarehouseAndStores() - Tenant not found or inactive', ['tenant_id' => $tenantId]);
-                $this->stores = [];
+                $this->warehouses = [];
                 $this->dispatch('warehouse-error', [
                     'title' => 'Empresa No Disponible',
                     'message' => 'La empresa seleccionada no está disponible.',
@@ -154,81 +155,130 @@ class LoginWarehouseSelector extends Component
                 return;
             }
 
+            // Get company_id from tenant
+            $this->companyId = $tenant->company_id;
+            
+            if (!$this->companyId) {
+                Log::warning('⚠️ loadWarehouseAndStores() - Tenant sin company_id', ['tenant_id' => $tenantId]);
+                $this->warehouses = [];
+                $this->dispatch('warehouse-error', [
+                    'title' => 'Configuración Incompleta',
+                    'message' => 'La empresa no tiene una compañía asociada. Por favor, contacta al administrador.',
+                    'icon' => 'warning'
+                ]);
+                return;
+            }
+
+            Log::info('🟢 loadWarehouseAndStores() - Company ID obtenido', [
+                'company_id' => $this->companyId
+            ]);
+
             // Configure tenant connection
             Log::info('🟢 loadWarehouseAndStores() - Configurando conexión del tenant');
             $tenantManager = app(TenantManager::class);
             $tenantManager->setConnection($tenant);
             Log::info('🟢 loadWarehouseAndStores() - Conexión del tenant configurada');
 
-            // Query central DB for contact with warehouse relationship
+            // Get contact to pre-select current warehouse and store
             Log::info('🟢 loadWarehouseAndStores() - Consultando contacto en BD central');
-            $contact = VntContact::on('central')
-                ->with('warehouse')
-                ->find($this->contactId);
+            $contact = VntContact::on('central')->find($this->contactId);
 
             Log::info('🟢 loadWarehouseAndStores() - Contacto obtenido', [
                 'contact_found' => $contact !== null,
-                'has_warehouse' => $contact?->warehouse !== null,
-                'warehouse_id' => $contact?->warehouseId
+                'contact_warehouse_id' => $contact?->warehouseId,
+                'contact_store_id' => $contact?->store
             ]);
 
-            if (!$contact || !$contact->warehouse) {
-                Log::warning('⚠️ loadWarehouseAndStores() - Contacto sin sucursal asociada', ['contact_id' => $this->contactId]);
-                $this->stores = [];
+            // Query central DB for all warehouses of the company with status = 1
+            Log::info('🟢 loadWarehouseAndStores() - Consultando sucursales de la compañía en BD central', [
+                'company_id' => $this->companyId
+            ]);
+
+            $warehousesQuery = \App\Models\Central\VntWarehouse::on('central')
+                ->where('companyId', $this->companyId)
+                ->where('status', 1)
+                ->orderBy('name')
+                ->get();
+
+            Log::info('🟢 loadWarehouseAndStores() - Sucursales obtenidas', [
+                'warehouses_count' => $warehousesQuery->count()
+            ]);
+
+            if ($warehousesQuery->isEmpty()) {
+                Log::warning('⚠️ loadWarehouseAndStores() - No active warehouses found for company', [
+                    'company_id' => $this->companyId
+                ]);
+                $this->warehouses = [];
                 $this->dispatch('warehouse-error', [
-                    'title' => 'Sucursal No Asignada',
-                    'message' => 'No tienes una sucursal asignada. Por favor, contacta al administrador para que te asigne una sucursal.',
+                    'title' => 'Sin Sucursales Disponibles',
+                    'message' => 'Tu compañía no tiene sucursales activas disponibles. Por favor, contacta al administrador.',
                     'icon' => 'warning'
                 ]);
                 return;
             }
 
-            // Extract and store warehouse information for display
-            $this->warehouseId = $contact->warehouseId;
-            $this->warehouseName = $contact->warehouse->name;
-            $this->warehouseAddress = $contact->warehouse->address ?? '';
+            // For each warehouse, get its stores from tenant DB
+            $this->warehouses = [];
+            $totalStores = 0;
 
-            Log::info('🟢 loadWarehouseAndStores() - Información de warehouse extraída', [
-                'warehouse_id' => $this->warehouseId,
-                'warehouse_name' => $this->warehouseName,
-                'warehouse_address' => $this->warehouseAddress
+            foreach ($warehousesQuery as $warehouse) {
+                Log::info('🟢 loadWarehouseAndStores() - Consultando bodegas para sucursal', [
+                    'warehouse_id' => $warehouse->id,
+                    'warehouse_name' => $warehouse->name
+                ]);
+
+                $stores = InvStore::on('tenant')
+                    ->where('warehouseId', $warehouse->id)
+                    ->where('status', 1)
+                    ->where('store_manager', 1)
+                    ->orderBy('name')
+                    ->get()
+                    ->toArray();
+
+                Log::info('🟢 loadWarehouseAndStores() - Bodegas obtenidas para sucursal', [
+                    'warehouse_id' => $warehouse->id,
+                    'stores_count' => count($stores)
+                ]);
+
+                // Only include warehouses that have active stores
+                if (!empty($stores)) {
+                    $this->warehouses[] = [
+                        'id' => $warehouse->id,
+                        'name' => $warehouse->name,
+                        'address' => $warehouse->address ?? '',
+                        'stores' => $stores
+                    ];
+                    $totalStores += count($stores);
+                }
+            }
+
+            Log::info('🟢 loadWarehouseAndStores() - Estructura de sucursales y bodegas creada', [
+                'warehouses_with_stores' => count($this->warehouses),
+                'total_stores' => $totalStores
             ]);
 
-            // Query tenant DB for stores matching warehouseId with status = 1
-            Log::info('🟢 loadWarehouseAndStores() - Consultando bodegas en BD tenant', [
-                'warehouse_id' => $this->warehouseId,
-                'connection' => 'tenant'
-            ]);
-
-            $this->stores = InvStore::on('tenant')
-                ->where('warehouseId', $this->warehouseId)
-                ->where('status', 1)
-                ->orderBy('name')
-                ->get()
-                ->toArray();
-
-            Log::info('🟢 loadWarehouseAndStores() - Bodegas obtenidas', [
-                'stores_count' => count($this->stores),
-                'stores' => $this->stores
-            ]);
-
-            // Check if no active stores are found
-            if (empty($this->stores)) {
-                Log::warning('⚠️ loadWarehouseAndStores() - No active stores found for warehouse', [
-                    'contact_id' => $this->contactId,
-                    'warehouse_id' => $this->warehouseId,
-                    'warehouse_name' => $this->warehouseName
+            // Check if no warehouses with stores were found
+            if (empty($this->warehouses)) {
+                Log::warning('⚠️ loadWarehouseAndStores() - No warehouses with active stores found', [
+                    'company_id' => $this->companyId
                 ]);
                 $this->dispatch('warehouse-error', [
                     'title' => 'Sin Bodegas Disponibles',
-                    'message' => 'Tu sucursal no tiene bodegas activas disponibles. Por favor, contacta al administrador.',
+                    'message' => 'Las sucursales de tu compañía no tienen bodegas activas disponibles. Por favor, contacta al administrador.',
                     'icon' => 'warning'
                 ]);
                 return;
             }
 
-            // Pre-select current store if contact.store is set
-            if ($contact->store) {
+            // Pre-select current warehouse and store if contact has them set
+            if ($contact && $contact->warehouseId) {
+                $this->selectedWarehouseId = $contact->warehouseId;
+                Log::info('🟢 loadWarehouseAndStores() - Sucursal pre-seleccionada', [
+                    'selected_warehouse_id' => $this->selectedWarehouseId
+                ]);
+            }
+
+            if ($contact && $contact->store) {
                 $this->selectedStoreId = $contact->store;
                 Log::info('🟢 loadWarehouseAndStores() - Bodega pre-seleccionada', [
                     'selected_store_id' => $this->selectedStoreId
@@ -238,9 +288,10 @@ class LoginWarehouseSelector extends Component
             Log::info('🟢 loadWarehouseAndStores() - FIN EXITOSO', [
                 'user_id' => $user->id,
                 'contact_id' => $this->contactId,
-                'warehouse_id' => $this->warehouseId,
-                'warehouse_name' => $this->warehouseName,
-                'stores_count' => count($this->stores),
+                'company_id' => $this->companyId,
+                'warehouses_count' => count($this->warehouses),
+                'total_stores' => $totalStores,
+                'pre_selected_warehouse' => $this->selectedWarehouseId,
                 'pre_selected_store' => $this->selectedStoreId
             ]);
 
@@ -250,28 +301,32 @@ class LoginWarehouseSelector extends Component
                 'trace' => $e->getTraceAsString(),
                 'user_id' => Auth::id(),
                 'contact_id' => $this->contactId ?? null,
-                'warehouse_id' => $this->warehouseId ?? null
+                'company_id' => $this->companyId ?? null
             ]);
-            $this->stores = [];
+            $this->warehouses = [];
             $this->dispatch('warehouse-error', [
                 'title' => 'Error de Carga',
-                'message' => 'No se pudieron cargar las bodegas. Por favor, intenta nuevamente.',
+                'message' => 'No se pudieron cargar las sucursales y bodegas. Por favor, intenta nuevamente.',
                 'icon' => 'error'
             ]);
         }
     }
 
-    public function selectStore($storeId)
+    public function selectStore($storeId, $warehouseId)
     {
         Log::info('🟡 selectStore() - Bodega seleccionada', [
             'store_id' => $storeId,
-            'previous_selection' => $this->selectedStoreId
+            'warehouse_id' => $warehouseId,
+            'previous_store_selection' => $this->selectedStoreId,
+            'previous_warehouse_selection' => $this->selectedWarehouseId
         ]);
 
         $this->selectedStoreId = $storeId;
+        $this->selectedWarehouseId = $warehouseId;
 
         Log::info('🟡 selectStore() - Selección actualizada', [
-            'new_selected_store_id' => $this->selectedStoreId
+            'new_selected_store_id' => $this->selectedStoreId,
+            'new_selected_warehouse_id' => $this->selectedWarehouseId
         ]);
     }
 
@@ -283,7 +338,8 @@ class LoginWarehouseSelector extends Component
     private function validateStoreSelection(): array
     {
         Log::info('🟣 validateStoreSelection() - INICIO', [
-            'selected_store_id' => $this->selectedStoreId
+            'selected_store_id' => $this->selectedStoreId,
+            'selected_warehouse_id' => $this->selectedWarehouseId
         ]);
 
         // Check if selectedStoreId is set
@@ -292,6 +348,15 @@ class LoginWarehouseSelector extends Component
             return [
                 'valid' => false,
                 'error' => 'Por favor, selecciona una bodega para continuar.'
+            ];
+        }
+
+        // Check if selectedWarehouseId is set
+        if (!$this->selectedWarehouseId) {
+            Log::warning('⚠️ validateStoreSelection() - No hay sucursal seleccionada');
+            return [
+                'valid' => false,
+                'error' => 'Por favor, selecciona una sucursal para continuar.'
             ];
         }
 
@@ -325,18 +390,42 @@ class LoginWarehouseSelector extends Component
                 ];
             }
 
-            // Verify store's warehouseId matches contact's warehouse
-            if ($store->warehouseId !== $this->warehouseId) {
+            // Verify store's warehouseId matches selected warehouse
+            if ($store->warehouseId !== $this->selectedWarehouseId) {
                 Log::warning('⚠️ validateStoreSelection() - Store warehouse mismatch during validation', [
                     'user_id' => Auth::id(),
                     'contact_id' => $this->contactId,
                     'store_id' => $this->selectedStoreId,
                     'store_warehouse_id' => $store->warehouseId,
-                    'contact_warehouse_id' => $this->warehouseId
+                    'selected_warehouse_id' => $this->selectedWarehouseId
                 ]);
                 return [
                     'valid' => false,
-                    'error' => 'La bodega seleccionada no pertenece a tu sucursal.'
+                    'error' => 'La bodega seleccionada no pertenece a la sucursal indicada.'
+                ];
+            }
+
+            // Verify warehouse belongs to company
+            Log::info('🟣 validateStoreSelection() - Verificando sucursal en BD central', [
+                'warehouse_id' => $this->selectedWarehouseId,
+                'company_id' => $this->companyId
+            ]);
+
+            $warehouse = \App\Models\Central\VntWarehouse::on('central')
+                ->where('id', $this->selectedWarehouseId)
+                ->where('companyId', $this->companyId)
+                ->where('status', 1)
+                ->first();
+
+            if (!$warehouse) {
+                Log::warning('⚠️ validateStoreSelection() - Warehouse not found or not from company', [
+                    'user_id' => Auth::id(),
+                    'warehouse_id' => $this->selectedWarehouseId,
+                    'company_id' => $this->companyId
+                ]);
+                return [
+                    'valid' => false,
+                    'error' => 'La sucursal seleccionada no pertenece a tu compañía o no está activa.'
                 ];
             }
 
@@ -357,7 +446,9 @@ class LoginWarehouseSelector extends Component
             // All validations passed
             Log::info('✅ validateStoreSelection() - Validación exitosa', [
                 'store_id' => $store->id,
-                'store_name' => $store->name
+                'store_name' => $store->name,
+                'warehouse_id' => $warehouse->id,
+                'warehouse_name' => $warehouse->name
             ]);
 
             return [
@@ -371,7 +462,8 @@ class LoginWarehouseSelector extends Component
                 'trace' => $e->getTraceAsString(),
                 'user_id' => Auth::id(),
                 'contact_id' => $this->contactId,
-                'store_id' => $this->selectedStoreId
+                'store_id' => $this->selectedStoreId,
+                'warehouse_id' => $this->selectedWarehouseId
             ]);
             return [
                 'valid' => false,
@@ -384,7 +476,7 @@ class LoginWarehouseSelector extends Component
     {
         Log::info('🔴 confirm() - INICIO', [
             'selected_store_id' => $this->selectedStoreId,
-            'warehouse_id' => $this->warehouseId,
+            'selected_warehouse_id' => $this->selectedWarehouseId,
             'contact_id' => $this->contactId
         ]);
 
@@ -501,22 +593,25 @@ class LoginWarehouseSelector extends Component
                 'store_name' => $store?->name
             ]);
 
-            // Update vnt_contacts.store field (NOT warehouseId)
-            Log::info('🔴 confirm() - Actualizando campo store en contacto', [
-                'old_value' => $contact->store,
-                'new_value' => $this->selectedStoreId
+            // Update vnt_contacts.warehouseId and vnt_contacts.store fields
+            Log::info('🔴 confirm() - Actualizando campos warehouseId y store en contacto', [
+                'old_warehouse_id' => $contact->warehouseId,
+                'new_warehouse_id' => $this->selectedWarehouseId,
+                'old_store' => $contact->store,
+                'new_store' => $this->selectedStoreId
             ]);
 
+            $contact->warehouseId = $this->selectedWarehouseId;
             $contact->store = $this->selectedStoreId;
             $contact->save();
 
-            Log::info('✅ confirm() - Campo store actualizado exitosamente');
+            Log::info('✅ confirm() - Campos warehouseId y store actualizados exitosamente');
 
             // Log store selection with appropriate context
-            Log::info('✅ Bodega seleccionada en login', [
+            Log::info('✅ Bodega y sucursal seleccionadas en login', [
                 'user_id' => $user->id,
                 'contact_id' => $contact->id,
-                'warehouse_id' => $this->warehouseId,
+                'warehouse_id' => $this->selectedWarehouseId,
                 'store_id' => $this->selectedStoreId,
                 'store_name' => $store->name ?? 'Unknown'
             ]);
@@ -543,7 +638,7 @@ class LoginWarehouseSelector extends Component
                 'trace' => $e->getTraceAsString(),
                 'user_id' => Auth::id(),
                 'contact_id' => $this->contactId,
-                'warehouse_id' => $this->warehouseId,
+                'warehouse_id' => $this->selectedWarehouseId,
                 'store_id' => $this->selectedStoreId
             ]);
 

@@ -47,7 +47,7 @@ class CompanyValidationService
             'typeIdentificationId.exists' => 'El tipo de identificación seleccionado no es válido.',
             'billingEmail.email' => 'El email de facturación debe tener un formato válido.',
             'billingEmail.unique' => 'Este email de facturación ya está registrado.',
-            'verification_digit.required' => 'El dígito de verificación es obligatorio para NIT.',
+            'verification_digit.required' => 'El dígito de verificación es obligatorio.',
             'verification_digit.max' => 'El dígito de verificación debe ser de 1 carácter.',
             'type.required' => 'El tipo de contacto es obligatorio.',
 
@@ -58,7 +58,7 @@ class CompanyValidationService
 
             // Persona natural
             'firstName.required' => 'El primer nombre es obligatorio para personas naturales.',
-            'lastName.required' => 'El segundo nombre es obligatorio para personas naturales.',
+            'lastName.required' => 'El primer apellido es obligatorio para personas naturales.',
 
             // Warehouse (campos individuales)
             // 'warehouseName.required' => 'El nombre de la sucursal es obligatorio.',
@@ -131,11 +131,10 @@ class CompanyValidationService
             $typePersonRule = 'nullable|string|in:Natural,Juridica';
         }
 
-        // Determinar si verification_digit es requerido (solo para NIT)
-        $verificationDigitRule = 'nullable|string|max:1';
-        if ($typeIdentificationId && (int) $typeIdentificationId === 2) {
-            $verificationDigitRule = 'required|string|max:1';
-        }
+        // El dígito de verificación (DV) solo es requerido para NIT (typeIdentificationId === 2)
+        $verificationDigitRule = ($typeIdentificationId && (int) $typeIdentificationId === 2)
+            ? 'required|string|max:1'
+            : 'nullable|string|max:1';
 
         // Regla de email único
         $emailRule = 'nullable|email|max:255|unique:vnt_companies,billingEmail';
@@ -283,10 +282,13 @@ class CompanyValidationService
         $baseRules = [
             'typeIdentificationId' => 'required|integer',
             'identification' => $identificationRule,
-            'regimeId' => 'required|integer',
-            'fiscalResponsabilityId' => 'required|integer',
+            'regimeId' => 'nullable|integer',
+            'fiscalResponsabilityId' => 'nullable|integer',
             'billingEmail' => $emailRule,
             'typePerson' => 'required|string|in:Natural,Juridica',
+            'verification_digit' => ($typeIdentificationId && (int) $typeIdentificationId === 2)
+                ? 'required|string|max:1'
+                : 'nullable|string|max:1',
         ];
 
         // Aplicar reglas según tipo de persona (solo campos esenciales)

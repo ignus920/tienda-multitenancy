@@ -55,6 +55,15 @@ class VntMerchantTypesSeeder extends Seeder
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
+            [
+                'id' => 5,
+                'name' => 'Empresa de Producción',
+                'description' => 'Empresa orientada a procesos de manufactura y producción',
+                'version' => '1.0.0',
+                'status' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
         ];
 
         // Insertar en la base de datos central (rap)

@@ -17,6 +17,7 @@
                         </svg>
                         Crear Nuevo Contacto
                     </button>
+                    @if($this->canUploadsEnable())
                     <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
                         <button wire:click="openRoutes"
                             class="inline-flex items-center px-4 py-2 rounded-lg font-semibold text-xs uppercase transition-all duration-200 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -37,6 +38,7 @@
                             Mover Barrios
                         </button>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -636,18 +638,22 @@
                             @endif
                         </div>
 
-                        @if ($type)
-                            @if ($type == 'CLIENTE')
-                            <!--  vendedor -->
-                            @livewire('selects.route-sales-day', [
-                            'name' => 'routeId',
-                            'label' => 'Ruta',
-                            'required' => false,
-                            'placeholder' => 'Seleccione una ruta (opcional)',
-                            'routeId' => $routeId ?? ''
-                            ])
+                        @if($this->canUploadsEnable())
+                            @if ($type)
+                                @if ($type == 'CLIENTE')
+                                    <!--  vendedor -->
+                                    @livewire('selects.route-sales-day', [
+                                    'name' => 'routeId',
+                                    'label' => 'Ruta',
+                                    'required' => false,
+                                    'placeholder' => 'Seleccione una ruta (opcional)',
+                                    'routeId' => $routeId ?? ''
+                                    ])
+
+                                @endif
                             @endif
                         @endif
+
 
                         <!-- Teléfono Empresarial -->
                         <div>
@@ -688,6 +694,7 @@
                         @endif
                         <!-- Ciudad de la Sucursal -->
                         <div>
+
                             @livewire('selects.city-select', [
                             'cityId' => $warehouseCityId ?? '',
                             'countryId' => 48,
@@ -702,23 +709,34 @@
 
                             @error('warehouseCityId')
                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                               @enderror
+                            @enderror
                         </div>
 
-                        @if ($type)
-                            @if ($type == 'CLIENTE')
-                            @livewire('selects.district-select', [
-                                'districtId' => $districtId,
-                                'name' => 'districtId',
-                                'label' => 'Barrio',
-                                'placeholder' => 'Seleccionar barrio',
-                                'label' => 'Barrio',
-                                'showLabel' => true,
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
-                                'index' => 0,
-                                'city_id' => $warehouseCityId,
-                                key('district-city-'.$districtId)
-                                ])
+                        <!-- Dirección de la Sucursal -->
+                        <div class="md:col-span-2">
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ej: Calle 123 #45-67">
+                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        @if($this->canUploadsEnable())
+                            @if ($type)
+                                @if ($type == 'CLIENTE')
+                                @livewire('selects.district-select', [
+                                    'districtId' => $districtId,
+                                    'name' => 'districtId',
+                                    'label' => 'Barrio',
+                                    'placeholder' => 'Seleccionar barrio',
+                                    'label' => 'Barrio',
+                                    'showLabel' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                                    'index' => 0,
+                                    'city_id' => $warehouseCityId,
+                                    key('district-city-'.$districtId)
+                                    ])
+                                @endif
                             @endif
                         @endif
 
@@ -731,13 +749,66 @@
                             @error('warehousePostcode') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
+                        @if ($type && $type == 'CLIENTE')
+                            <!-- Listas de Precios B2B -->
+                            <div class="md:col-span-2 p-4 bg-gray-100 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80">
+                                <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">Configuración de Listas de Precios</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Lista de Precios Contado -->
+                                    <div>
+                                        <label for="cash_pricelist_id" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Lista de Precios Contado</label>
+                                        <select wire:model="cash_pricelist_id" id="cash_pricelist_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                            <option value="">Seleccione una lista (opcional)</option>
+                                            @foreach($pricelists as $list)
+                                                <option value="{{ $list->id }}">{{ $list->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <!-- Lista de Precios Crédito -->
+                                    <div>
+                                        <label for="credit_pricelist_id" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Lista de Precios Crédito</label>
+                                        <select wire:model="credit_pricelist_id" id="credit_pricelist_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                            <option value="">Seleccione una lista (opcional)</option>
+                                            @foreach($pricelists as $list)
+                                                <option value="{{ $list->id }}">{{ $list->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- Dirección de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal *</label>
-                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ej: Calle 123 #45-67">
-                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <!-- ...existing code... -->
+
+                        <!-- Crear Usuario Checkbox -->
+                        <div class="md:col-span-2">
+                            <div class="flex items-center gap-3 p-4 rounded-lg
+                                {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' }}">
+                                <input
+                                    wire:model="createUser"
+                                    type="checkbox"
+                                    id="createUser"
+                                    {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'disabled' : '' }}
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                <label for="createUser" class="text-sm font-medium flex-1 {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300' }}">
+                                    <span class="font-semibold">{{ $editingId ? 'Crear Usuario para este ' . ucfirst(strtolower($type ?: 'Cliente')) : 'Convertir en Usuario' }}</span>
+                                    <p class="text-xs mt-1 {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'text-gray-400 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400' }}">
+                                        @if(empty($billingEmail))
+                                        Ingrese un email de facturación válido para habilitar esta opción
+                                        @elseif($emailExists)
+                                        No disponible: el email ya está registrado
+                                        @else
+                                        Crear automáticamente un usuario para acceder al sistema con perfil de {{ ucfirst(strtolower($type ?: 'Cliente')) }}
+                                        @endif
+                                    </p>
+                                </label>
+                                <div class="text-xs px-2 py-1 rounded {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300' }}">
+                                    Perfil: {{ ucfirst(strtolower($type ?: 'Cliente')) }}
+                                </div>    
+                            </div>
                         </div>
 
                         <!-- Actions -->
@@ -814,7 +885,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $editingId ? 'Editar' : 'Crear' }} Cliente
+                        {{ $editingId ? 'Editar' : 'Crear' }} Clientes
                     </h3>
                 </div>
                 <!-- Alert de Errores de Validación -->
@@ -973,22 +1044,22 @@
                                 @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
-                                <input wire:model="lastName" type="text" id="lastName"
+                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre</label>
+                                <input wire:model="secondName" type="text" id="secondName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su primer apellido">
-                                @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                    placeholder="Ingrese su segundo nombre">
+                                @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
                         <!-- Segundo nombre y segundo apellido - disponibles en todos los modos -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre</label>
-                                <input wire:model="secondName" type="text" id="secondName"
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
+                                <input wire:model="lastName" type="text" id="lastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su segundo nombre">
-                                @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                    placeholder="Ingrese su primer apellido">
+                                @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
                                 <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido</label>
@@ -999,44 +1070,45 @@
                             </div>
                         </div>
 
-                        <!-- Régimen y Responsabilidad Fiscal para Persona Natural (en modo simplificado) -->
+                        <!-- Campos adicionales solo en modo simplificado -->
                         @if($simplified)
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Régimen -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Régimen <span class="text-red-500">*</span>
-                                </label>
-                                @livewire('selects.regime-select', [
-                                'regimeId' => $regimeId,
-                                'name' => 'regimeId',
-                                'label' => '',
-                                'showLabel' => false,
-                                'placeholder' => 'Seleccionar régimen',
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                ])
-                                @error('regimeId')
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
 
-                            <!-- Responsabilidad Fiscal -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Responsabilidad Fiscal <span class="text-red-500">*</span>
-                                </label>
-                                @livewire('selects.fiscal-responsibility-select', [
-                                'fiscalResponsibilityId' => $fiscalResponsabilityId,
-                                'name' => 'fiscalResponsabilityId',
-                                'label' => '',
-                                'showLabel' => false,
-                                'placeholder' => 'Seleccionar responsabilidad fiscal',
-                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                ])
-                                @error('fiscalResponsabilityId')
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
+                        <!-- Ciudad para sucursal principal -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ciudad <span class="text-red-500">*</span>
+                            </label>
+                            @livewire('selects.city-select', [
+                            'cityId' => $warehouseCityId,
+                            'name' => 'warehouseCityId',
+                            'label' => '',
+                            'showLabel' => false,
+                            'placeholder' => 'Seleccionar ciudad',
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('warehouseCityId')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Dirección de la Sucursal -->
+                        <div class="md:col-span-2">
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ej: Calle 123 #45-67">
+                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+                        @endif
+
+                        @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
+                        <!-- Persona Jurídica: Razón Social -->
+                        <div>
+                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>
+                            <input wire:model="businessName" type="text" id="businessName"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ingrese la razón social de la empresa">
+                            @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Ciudad para sucursal principal -->
@@ -1056,58 +1128,14 @@
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                         </div>
-                        @endif
 
-                        @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
-                        <!-- Persona Jurídica: Razón Social -->
-                        <div>
-                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>
-                            <input wire:model="businessName" type="text" id="businessName"
+                        <!-- Dirección de la Sucursal -->
+                        <div class="md:col-span-2">
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ingrese la razón social de la empresa">
-                            @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <!-- Selects para configuraciones fiscales -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Régimen -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Régimen <span class="text-red-500">*</span>
-                                    </label>
-                                    @livewire('selects.regime-select', [
-                                    'regimeId' => $regimeId,
-                                    'name' => 'regimeId',
-                                    'label' => '',
-                                    'showLabel' => false,
-                                    'placeholder' => 'Seleccionar régimen',
-                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                    ])
-                                    @error('regimeId')
-                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <!-- Responsabilidad Fiscal -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Responsabilidad Fiscal <span class="text-red-500">*</span>
-                                    </label>
-                                    @livewire('selects.fiscal-responsibility-select', [
-                                    'fiscalResponsibilityId' => $fiscalResponsabilityId,
-                                    'name' => 'fiscalResponsibilityId',
-                                    'label' => '',
-                                    'showLabel' => false,
-                                    'placeholder' => 'Seleccionar responsabilidad fiscal',
-                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                    ])
-                                    @error('fiscalResponsabilityId')
-                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-
+                                placeholder="Ej: Calle 123 #45-67">
+                            @error('warehouseAddress') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
                         @endif
                         @else()
@@ -1120,27 +1148,27 @@
                                 @error('firstName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre </label>
-                                <input wire:model="lastName" type="text" id="lastName"
+                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Nombre</label>
+                                <input wire:model="secondName" type="text" id="secondName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
-                                @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                    placeholder="Ingrese su segundo nombre">
+                                @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="secondName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
-                                <input wire:model="secondName" type="text" id="secondName"
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primer Apellido *</label>
+                                <input wire:model="lastName" type="text" id="lastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su nombre">
-                                @error('secondName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                    placeholder="Ingrese su primer apellido">
+                                @error('lastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido </label>
+                                <label for="secondLastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Segundo Apellido</label>
                                 <input wire:model="secondLastName" type="text" id="secondLastName"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Ingrese su apellido">
+                                    placeholder="Ingrese su segundo apellido">
                                 @error('secondLastName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
@@ -1163,13 +1191,12 @@
                             @endif
                         </div>
 
-                        @if(!$simplified)
                         <!-- Teléfono Empresarial -->
                         <div>
                             <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Empresarial</label>
                             <input wire:model="business_phone" type="text" id="business_phone"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="ej: +57 300 123 4567" required>
+                                placeholder="ej: +57 300 123 4567">
                             @error('business_phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
@@ -1182,6 +1209,7 @@
                             @error('personal_phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
+                        @if(!$simplified)
                         <!-- Código CIIU -->
                         <div>
                             <label for="code_ciiu" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código CIIU</label>
@@ -1232,7 +1260,7 @@
 
                         <!-- Dirección de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal *</label>
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
                             <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: Calle 123 #45-67">

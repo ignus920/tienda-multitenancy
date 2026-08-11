@@ -6,6 +6,9 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
+use App\Models\Auth\User;
+use App\Models\Auth\UserTenant;
+use App\Models\Central\VntContact;
 use App\Models\Tenant\Customer\VntCompanyRoute;
 use App\Livewire\Tenant\VntCompany\Services\CompanyService;
 use App\Livewire\Tenant\VntCompany\Services\WarehouseService;
@@ -14,6 +17,7 @@ use App\Livewire\Tenant\VntCompany\Services\CompanyValidationService;
 use App\Livewire\Tenant\VntCompany\Services\ExportService;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
+use Illuminate\Support\Facades\Hash;
 
 // Imports para sincronización API
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +58,8 @@ class VntCompanyForm extends Component
         if ($this->simplified && $this->reusable && empty($this->type)) {
             $this->type = 'CLIENTE';
         }
+        // $this->initializeCompanyConfiguration();
+        // $this->clearConfigurationCache();
     }
 
     public $search = '';
@@ -83,6 +89,8 @@ class VntCompanyForm extends Component
     // Propiedades del formulario
     public $businessName = '';
     public $billingEmail = '';
+    public $cash_pricelist_id = '';
+    public $credit_pricelist_id = '';
     public $firstName = '';
     public $lastName = '';
     public $secondName = '';
@@ -131,9 +139,20 @@ class VntCompanyForm extends Component
     // Propiedad para rastrear errores de validación
     public $formHasErrors = false;
 
+    // Propiedad para verificar si el contacto ya tiene usuario
+    public $hasExistingUser = false;
+    // Email del usuario existente (si existe)
+    public $existingUserEmail = '';
+
     public $routeId = '';
     public $createUser = false;
-    public $districtId = '';
+    public $districtId = null;
+
+    // Propiedades para mostrar credenciales del usuario creado
+    public $showUserCredentials = false;
+    public $userCredentialsEmail = '';
+    public $userCredentialsPassword = '12345678';
+    public $isConfigurationInitialized = false;
 
     public function boot(
         CompanyService $companyService,
@@ -236,10 +255,14 @@ class VntCompanyForm extends Component
 
     public function render()
     {
+        $this->ensureTenantConnection();
+        $pricelists = \App\Models\Tenant\Parameters\PriceList::active()->get();
+
         return view('livewire.tenant.vnt-company.components.vnt-company-form', [
             'items' => $this->items, // Se cachea automáticamente entre renders
             'sortField' => $this->sortField,
-            'sortDirection' => $this->sortDirection
+            'sortDirection' => $this->sortDirection,
+            'pricelists' => $pricelists
         ]);
     }
 
@@ -284,6 +307,11 @@ class VntCompanyForm extends Component
         // Cargar ruta asignada si existe
         $route = VntCompanyRoute::where('company_id', $id)->first();
         $this->routeId = $route ? $route->route_id : '';
+
+        // Cargar configuraciones del portal si existen
+        $settings = $company->portalSettings;
+        $this->cash_pricelist_id = $settings ? $settings->cash_pricelist_id : '';
+        $this->credit_pricelist_id = $settings ? $settings->credit_pricelist_id : '';
 
         // Log detallado de la carga de datos para verificación
         Log::info('Company data loaded in edit()', [
@@ -352,13 +380,18 @@ class VntCompanyForm extends Component
             $this->evaluateWarehousePermissions();
         }
 
+        // Verificar si el cliente ya tiene un usuario asignado
+        $this->checkExistingUser();
+
         // Log final antes de mostrar el modal para verificar el estado
         Log::info('Final state before showing modal', [
             'company_id' => $id,
             'typePerson' => $this->typePerson,
             'typeIdentificationId' => $this->typeIdentificationId,
             'showNaturalPersonFields' => $this->showNaturalPersonFields,
-            'verification_digit' => $this->verification_digit
+            'verification_digit' => $this->verification_digit,
+            'hasExistingUser' => $this->hasExistingUser,
+            'existingUserEmail' => $this->existingUserEmail
         ]);
 
         $this->showModal = true;
@@ -546,7 +579,8 @@ class VntCompanyForm extends Component
             'postcode' => $this->warehousePostcode,
             'cityId' => $this->warehouseCityId,
             'main' => true, // Siempre es la sucursal principal
-            'district' => $this->districtId,
+            'district' => $this->districtId ?: null,
+            'phone' => $this->business_phone ?: $this->personal_phone,
         ]];
         // dd($warehouses);
         try {
@@ -568,28 +602,27 @@ class VntCompanyForm extends Component
                 ]);
 
                 // Verificar si el cliente tiene api_data_id para sincronizar con API
+                $tempApiData = $this->prepareApiData();
                 if ($company && $company->api_data_id) {
                     Log::info('🔄 Cliente tiene api_data_id - actualizando también en API', [
                         'company_id' => $company->id,
                         'api_data_id' => $company->api_data_id
                     ]);
 
-                    // Preparar datos para actualizar en API
-                    $tempApiData = $this->prepareApiData();
                     $this->updateCompanyInApi($company, $tempApiData);
                 } else {
-                    Log::info('✏️ Cliente actualizado solo localmente - sin api_data_id para sincronizar', [
+                    Log::info('✏️ Cliente sin api_data_id - intentando crear en API para sincronizar', [
                         'company_id' => $company ? $company->id : 'NULL',
-                        'has_api_data_id' => $company && $company->api_data_id ? true : false
                     ]);
+
+                    $this->createCompanyInApi($company, $tempApiData);
                 }
 
-                // Mensaje de éxito diferente según si se sincronizó con API o no
-                if ($company && $company->api_data_id) {
-                    session()->flash('message', '✅ Cliente Actualizado: Los cambios se guardaron localmente y se sincronizaron con el sistema de facturación.');
-                } else {
-                    session()->flash('message', '✅ Cliente Actualizado: Los cambios se guardaron exitosamente en el sistema local.');
-                }
+                // Mensaje de éxito inicial
+                $message = ($company && $company->api_data_id)
+                    ? '✅ Cliente Actualizado: Los cambios se guardaron localmente y se sincronizaron con el sistema de facturación.'
+                    : '✅ Cliente Actualizado: Los cambios se guardaron exitosamente en el sistema local.';
+
                 // Disparar evento para componentes que escuchan
                 $this->dispatch('customer-updated', customerId: $this->editingId);
 
@@ -611,22 +644,64 @@ class VntCompanyForm extends Component
                     VntCompanyRoute::where('company_id', $this->editingId)->delete();
                     Log::info('Route removed for company', ['companyId' => $this->editingId]);
                 }
+
+                // Crear usuario si está marcado el checkbox y no existe usuario
+                if ($this->createUser && $company && !$this->hasExistingUser) {
+                    try {
+                        Log::info('Creating user for existing company during edit', [
+                            'companyId' => $this->editingId,
+                            'createUser' => $this->createUser
+                        ]);
+
+                        $this->createUserFromCompany($company);
+
+                        // Verificar si hubo advertencia de productos
+                        if (session()->has('warning')) {
+                            $message = session()->pull('warning');
+                        } else {
+                            $message = 'Registro actualizado y usuario creado exitosamente.';
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error creating user during edit', ['error' => $e->getMessage()]);
+                        $message = 'Registro actualizado exitosamente, pero hubo un error al crear el usuario: ' . $e->getMessage();
+                    }
+                } else {
+                    Log::info('Skipping user creation during edit', [
+                        'createUser' => $this->createUser,
+                        'hasExistingUser' => $this->hasExistingUser,
+                        'hasCompany' => $company !== null
+                    ]);
+                }
+
+                session()->flash('message', $message);
             } else {
                 Log::info('📝 Creando nuevo company');
 
                 $company = $this->companyService->create($data, $warehouses);
+                $message = 'Registro creado exitosamente.';
 
                 // Sincronizar con API después de crear (solo si está habilitado y es nuevo cliente)
-                if ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId) {
-                    $this->syncCompanyWithApi($company, $tempApiId);
+                if ($shouldSyncWithApi['should_sync'] && !$this->editingId) {
+                    if ($tempApiId) {
+                        // Tenemos el ID de Alegra desde la validación/creación directa
+                        $this->syncCompanyWithApi($company, $tempApiId);
+                    } else {
+                        // No se obtuvo el ID en la respuesta de validación.
+                        // createCompanyInApi maneja el código 2006 ("ya existe") y extrae el contactId.
+                        Log::info('🔄 temp_api_id no disponible - intentando obtener ID via createCompanyInApi', [
+                            'company_id' => $company->id,
+                        ]);
+                        $this->createCompanyInApi($company, $tempApiData ?? []);
+                    }
                 }
 
-                // Mensaje de éxito diferente según el tipo de sincronización
-                if ($shouldSyncWithApi['should_sync'] && $tempApiId && !$this->editingId) {
-                    session()->flash('message', '✅ Cliente Creado: El cliente se registró exitosamente y se sincronizó con el sistema de facturación.');
-                } else {
-                    session()->flash('message', '✅ Cliente Creado: El cliente se registró exitosamente en el sistema local.');
-                }
+                // Refrescar company para obtener api_data_id actualizado tras el sync
+                $company->refresh();
+
+                // Mensaje de éxito inicial
+                $message = ($company->api_data_id)
+                    ? '✅ Cliente Creado: El cliente se registró exitosamente y se sincronizó con el sistema de facturación.'
+                    : '✅ Cliente Creado: El cliente se registró exitosamente en el sistema local.';
 
                 // Crear ruta si se ha seleccionado una ruta
                 Log::info('Checking route creation', [
@@ -648,14 +723,14 @@ class VntCompanyForm extends Component
                             'company_id' => $route->company_id ?? 'unknown',
                             'sales_order' => $route->sales_order ?? 'unknown'
                         ]);
-                        session()->flash('message', 'Registro y ruta creados exitosamente.');
+                        $message = 'Registro y ruta creados exitosamente.';
                     } catch (\Exception $e) {
                         // Log error but don't fail operation
                         Log::error('Error creando ruta', [
                             'error' => $e->getMessage(),
                             'trace' => $e->getTraceAsString()
                         ]);
-                        session()->flash('message', 'Registro creado exitosamente, pero hubo un error al crear la ruta.');
+                        $message = 'Registro creado exitosamente, pero hubo un error al crear la ruta.';
                     }
                 } else {
                     Log::info('Skipping route creation', [
@@ -663,6 +738,31 @@ class VntCompanyForm extends Component
                         'hasCompany' => $company !== null
                     ]);
                 }
+
+                // Crear usuario si está marcado el checkbox
+                if ($this->createUser && $company) {
+                    try {
+                        Log::info('Creating user for company', ['createUser' => $this->createUser]);
+                        $this->createUserFromCompany($company);
+
+                        // Verificar si hubo advertencia de productos
+                        if (session()->has('warning')) {
+                            $message = session()->pull('warning');
+                        } else {
+                            $message = 'Registro y usuario creados exitosamente.';
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error creating user', ['error' => $e->getMessage()]);
+                        $message = 'Registro creado exitosamente, pero hubo un error al crear el usuario: ' . $e->getMessage();
+                    }
+                } else {
+                    Log::info('Skipping user creation', [
+                        'createUser' => $this->createUser,
+                        'hasCompany' => $company !== null
+                    ]);
+                }
+
+                session()->flash('message', $message);
 
                 // Disparar evento para componentes que escuchan
                 if ($company && isset($company->id)) {
@@ -712,7 +812,6 @@ class VntCompanyForm extends Component
 
             Log::info('✅ Cliente eliminado exitosamente', ['company_id' => $id]);
             session()->flash('message', '🗑️ Cliente Eliminado: El registro se ha eliminado exitosamente del sistema.');
-
         } catch (\Illuminate\Database\QueryException $e) {
             Log::error('❌ Error de BD al eliminar cliente', [
                 'company_id' => $id,
@@ -720,15 +819,16 @@ class VntCompanyForm extends Component
             ]);
 
             // Verificar si es error de referencia (cliente está siendo usado)
-            if (strpos($e->getMessage(), 'foreign key constraint') !== false ||
-                strpos($e->getMessage(), 'Cannot delete') !== false) {
+            if (
+                strpos($e->getMessage(), 'foreign key constraint') !== false ||
+                strpos($e->getMessage(), 'Cannot delete') !== false
+            ) {
                 $constraintErrorMessage = $this->buildConstraintErrorMessage();
                 session()->flash('error', $constraintErrorMessage);
             } else {
                 $databaseErrorMessage = $this->buildDatabaseDeleteErrorMessage();
                 session()->flash('error', $databaseErrorMessage);
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Error general eliminando cliente', [
                 'company_id' => $id,
@@ -859,6 +959,13 @@ class VntCompanyForm extends Component
         // Reset form validation state
         $this->formHasErrors = false;
 
+        // Reset create user checkbox
+        $this->createUser = false;
+
+        // Reset existing user check
+        $this->hasExistingUser = false;
+        $this->existingUserEmail = '';
+
         $this->resetErrorBag();
         $this->resetValidation();
     }
@@ -873,6 +980,61 @@ class VntCompanyForm extends Component
 
         // Emitir evento para notificar al componente padre que se canceló
         $this->dispatch('customer-form-cancelled');
+    }
+
+    /**
+     * Limpiar las credenciales del usuario después de 20 segundos
+     */
+    public function clearUserCredentials()
+    {
+        $this->showUserCredentials = false;
+        $this->userCredentialsEmail = '';
+        $this->userCredentialsPassword = '12345678';
+    }
+
+    /**
+     * Verificar si el cliente ya tiene un usuario asignado
+     * Se llama al cargar un cliente para edición y cuando cambia el email
+     */
+    public function checkExistingUser(): void
+    {
+        // Si no hay email, no puede haber usuario
+        if (empty($this->billingEmail)) {
+            $this->hasExistingUser = false;
+            $this->existingUserEmail = '';
+            // NO deshabilitamos el checkbox aquí, solo limpiamos las banderas
+            return;
+        }
+
+        try {
+            // Buscar si existe un usuario con este email
+            $existingUser = User::where('email', $this->billingEmail)->first();
+
+            if ($existingUser) {
+                $this->hasExistingUser = true;
+                $this->existingUserEmail = $existingUser->email;
+                $this->createUser = false; // Deshabilitar el checkbox solo si existe usuario
+
+                Log::info('Usuario existente encontrado para cliente', [
+                    'company_id' => $this->editingId,
+                    'email' => $this->billingEmail,
+                    'user_id' => $existingUser->id
+                ]);
+            } else {
+                $this->hasExistingUser = false;
+                $this->existingUserEmail = '';
+                // No modificamos createUser, dejamos que el usuario decida
+            }
+        } catch (\Exception $e) {
+            Log::error('Error verificando usuario existente', [
+                'error' => $e->getMessage(),
+                'email' => $this->billingEmail
+            ]);
+
+            // En caso de error, asumir que no hay usuario
+            $this->hasExistingUser = false;
+            $this->existingUserEmail = '';
+        }
     }
 
     public function updateTypeIdentification($typeIdentificationId)
@@ -962,7 +1124,7 @@ class VntCompanyForm extends Component
 
     public function updateDistrict($districtId)
     {
-        $this->districtId = $districtId;
+        $this->districtId = $districtId ?: null;
     }
 
     public function toggleStatus()
@@ -1014,6 +1176,12 @@ class VntCompanyForm extends Component
         if ($propertyName === 'billingEmail' && !empty($this->billingEmail)) {
             $this->validateEmailUniqueness();
         }
+
+        // Validar checkbox createUser si se cambia cuando ya hay email duplicado
+        if ($propertyName === 'createUser' && $this->createUser && ($this->emailExists || $this->hasExistingUser)) {
+            $this->createUser = false;
+            session()->flash('error', 'No se puede crear un usuario con un email que ya existe.');
+        }
     }
 
     /**
@@ -1034,6 +1202,11 @@ class VntCompanyForm extends Component
         $this->validateOnly('billingEmail');
         $this->validateEmailUniqueness();
 
+        // Desmarcar checkbox de crear usuario si el email existe
+        if ($this->emailExists && $this->createUser) {
+            $this->createUser = false;
+        }
+
         // Re-validar identificación después de cambiar email
         if (!empty($this->identification) && !empty($this->typeIdentificationId)) {
             $this->validateIdentificationUniqueness();
@@ -1047,19 +1220,18 @@ class VntCompanyForm extends Component
             'value' => $value,
             'type' => $this->type,
         ]);
-
         // Si es PROVEEDOR, inhabilitar el checkbox de crear usuario
         if ($this->type === 'PROVEEDOR') {
             $this->validatingType = true;  // TRUE para inhabilitar el checkbox
             $this->createUser = false;  // Desmarcar el checkbox
-            $this->districtId = '000'; // Asignar '000' al campo district
+            $this->districtId = null; // PROVEEDOR no requiere district
             Log::info('Contact type changed to PROVEEDOR, createUser disabled and district set to 000', ['validatingContactType' => $this->validatingType, 'district' => $this->districtId]);
         } else {
             // Para otros tipos
             $this->validatingType = false;  // FALSE para habilitar el checkbox
             // Si el distrito fue establecido a '000' por la lógica de PROVEEDOR, lo reseteamos
-            if ($this->districtId === '000') {
-                $this->districtId = ''; // Permitir que el usuario ingrese un valor o quede vacío
+            if ($this->districtId === null) {
+                $this->districtId = null; // Permitir que el usuario ingrese un valor o quede vacío
                 Log::info('Contact type changed from PROVEEDOR, district reset to empty', ['district' => $this->districtId]);
             }
             Log::info('Contact type changed to ' . $this->type . ', createUser available', ['validatingType' => $this->validatingType]);
@@ -1392,12 +1564,100 @@ class VntCompanyForm extends Component
         return $route;
     }
 
+    /**
+     * Crear usuario a partir de los datos del cliente
+     */
+    private function createUserFromCompany($company)
+    {
+        $newUser = null;
+        try {
+            // Determinar perfil, rol y posición según tipo de contacto
+            $isCliente = ($this->type === 'CLIENTE');
+            $profileId = $isCliente ? 18 : 17;
+            $roleId = $isCliente ? 18 : 17;
+            
+            // Buscar si existe la posición 'Cliente' en la base de datos central, si no usar 5 por defecto
+            $positionId = 5;
+            if ($isCliente) {
+                $pos = \App\Models\Central\CnfPosition::where('name', 'Cliente')->first();
+                if ($pos) {
+                    $positionId = $pos->id;
+                }
+            }
+
+            // Crear el contacto antes del usuario
+            $newContact = VntContact::create([
+                'firstName' => $this->firstName ?: $this->businessName,
+                'lastName' => $this->lastName ?: '',
+                'email' => $this->billingEmail,
+                'status' => 1,
+                'warehouseId' => auth()->user()->contact->warehouseId,
+                'positionId' => $positionId,
+            ]);
+
+            // Preparar datos del usuario
+            $userName = $this->firstName && $this->lastName
+                ? trim($this->firstName . ' ' . $this->lastName)
+                : $this->businessName;
+
+            $userData = [
+                'name' => $userName,
+                'email' => $this->billingEmail,
+                'password' => Hash::make('12345678'), // Contraseña por defecto
+                'profile_id' => $profileId,
+                'contact_id' => $newContact->id,
+                'phone' => $this->business_phone ?: $this->personal_phone,
+                'tenant_company_id' => $company->id, // ID de la compañía cliente en el tenant
+            ];
+
+            // Verificar que el email no exista en usuarios
+            $existingUser = User::where('email', $this->billingEmail)->first();
+
+            if ($existingUser) {
+                throw new \Exception('Ya existe un usuario con este email.');
+            }
+
+            // Crear el usuario
+            $newUser = User::create($userData);
+
+            UserTenant::create([
+                'user_id' => $newUser->id,
+                'tenant_id' => session('tenant_id'),
+                'role_id' => $roleId,
+                'is_active' => 1,
+            ]);
+
+            // Guardar las credenciales para mostrar en el modal
+            $this->userCredentialsEmail = $this->billingEmail;
+            $this->userCredentialsPassword = '12345678';
+            $this->showUserCredentials = true;
+
+            Log::info('Usuario creado exitosamente', [
+                'user_id' => $newUser->id,
+                'company_id' => $company->id,
+                'email' => $this->billingEmail
+            ]);
+
+            Log::info('✅ Usuario creado exitosamente');
+
+            // Mensaje informativo para el usuario
+            session()->flash('info', 'Usuario creado exitosamente.');
+        } catch (\Exception $e) {
+            // Log del error pero no lanzar excepción
+            Log::error('❌ Error al crear el usuario', [
+                'error' => $e->getMessage()
+            ]);
+
+            // Agregar mensaje informativo sin fallar
+            session()->flash('warning', 'Error al crear el usuario: ' . $e->getMessage());
+        }
+        return $newUser;
+    }
+
     private function getFormData(): array
     {
-        // Si es NIT, usar verification_digit como checkDigit
-        $checkDigit = ((int) $this->typeIdentificationId === 2)
-            ? $this->verification_digit
-            : $this->checkDigit;
+        // Usar siempre verification_digit como checkDigit (ahora es obligatorio)
+        $checkDigit = $this->verification_digit;
 
         $formData = [
             'typeIdentificationId' => $this->typeIdentificationId,
@@ -1409,16 +1669,18 @@ class VntCompanyForm extends Component
             'businessName' => $this->businessName,
             'billingEmail' => $this->billingEmail,
             'typePerson' => $this->typePerson,
-            'checkDigit' => (string)$checkDigit,
+            'checkDigit' => ($checkDigit !== '' && $checkDigit !== null) ? (string)$checkDigit : null,
             'code_ciiu' => $this->code_ciiu,
-            'regimeId' => $this->regimeId,
-            'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
+            'regimeId' => $this->regimeId === '' ? 0 : $this->regimeId,
+            'fiscalResponsabilityId' => $this->fiscalResponsabilityId === '' ? 0 : $this->fiscalResponsabilityId,
             'status' => $this->status,
             'business_phone' => $this->business_phone,
             'personal_phone' => $this->personal_phone,
             'positionId' => $this->positionId,
             'routeId' => $this->routeId === '' ? null : $this->routeId,
-            'type' => $this->type ?: ($this->simplified && $this->reusable ? 'CLIENTE' : $this->type),
+            'type' => $this->type ?: 'CLIENTE',
+            'cash_pricelist_id' => $this->cash_pricelist_id === '' ? null : $this->cash_pricelist_id,
+            'credit_pricelist_id' => $this->credit_pricelist_id === '' ? null : $this->credit_pricelist_id,
         ];
 
         Log::info('🔍 DATOS ENVIADOS AL CompanyService', [
@@ -1677,25 +1939,46 @@ class VntCompanyForm extends Component
      */
     private function shouldSyncWithApi(): array
     {
+        // En modo simplificado (cotizador), nunca sincronizar con API
+        if ($this->simplified) {
+            return [
+                'should_sync' => false,
+                'reason' => 'Modo simplificado: el cliente se creará únicamente en el sistema local. Complete los datos del cliente antes de facturar.'
+            ];
+        }
+
         try {
+            Log::info('🔄 Verificando si se debe sincronizar con API...');
+
+            // Asegurar que la configuración esté inicializada y con datos frescos
+            $this->clearConfigurationCache();
+            $this->initializeCompanyConfiguration();
+
             // Verificar que tenemos company_id válido
             if (!$this->currentCompanyId) {
-                $this->initializeCompanyConfiguration();
-                if (!$this->currentCompanyId) {
-                    return [
-                        'should_sync' => false,
-                        'reason' => 'No se pudo obtener la configuración de la empresa.'
-                    ];
-                }
+                Log::warning('⚠️ Sincronización API saltada: No se pudo obtener currentCompanyId', [
+                    'config_initialized' => $this->isConfigurationInitialized,
+                    'config_service_exists' => $this->configService ? 'YES' : 'NO'
+                ]);
+                return [
+                    'should_sync' => false,
+                    'reason' => 'No se pudo obtener la configuración de la empresa.'
+                ];
             }
 
-            // Verificar si facturación electrónica está habilitada usando el servicio global
-            $isElectronicEnabled = $this->companyOptionsService->isElectronicInvoicingEnabled($this->currentCompanyId);
+            // Verificar si facturación electrónica está habilitada usando el trait (option_id=8)
+            $isElectronicEnabled = $this->isOptionEnabled(8);
+
+            Log::info('📊 Estado de configuración para sincronización', [
+                'company_id' => $this->currentCompanyId,
+                'option_8_enabled' => $isElectronicEnabled ? 'SI' : 'NO',
+                'configService_exists' => $this->configService ? 'YES' : 'NO'
+            ]);
 
             if (!$isElectronicEnabled) {
                 return [
                     'should_sync' => false,
-                    'reason' => 'La facturación electrónica no está habilitada para esta empresa.'
+                    'reason' => 'La facturación electrónica no está habilitada (opción 8) para esta empresa.'
                 ];
             }
 
@@ -1703,10 +1986,10 @@ class VntCompanyForm extends Component
                 'should_sync' => true,
                 'reason' => 'Configuración válida para sincronización.'
             ];
-
         } catch (\Exception $e) {
-            Log::error('Error determinando si sincronizar con API', [
-                'error' => $e->getMessage()
+            Log::error('❌ Error determinando si sincronizar con API', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return [
                 'should_sync' => false,
@@ -1742,10 +2025,10 @@ class VntCompanyForm extends Component
                 return [
                     'success' => false,
                     'message' => '📊 Límite del Plan Alcanzado: Ha alcanzado el máximo número de clientes permitidos en su plan actual.\n\n' .
-                                '🔧 Soluciones:\n' .
-                                '• Actualice su plan para obtener más capacidad\n' .
-                                '• Contacte al administrador para revisar los límites\n' .
-                                '• Elimine clientes no utilizados para liberar espacio'
+                        '🔧 Soluciones:\n' .
+                        '• Actualice su plan para obtener más capacidad\n' .
+                        '• Contacte al administrador para revisar los límites\n' .
+                        '• Elimine clientes no utilizados para liberar espacio'
                 ];
             }
 
@@ -1773,7 +2056,6 @@ class VntCompanyForm extends Component
                 'success' => true,
                 'message' => 'Validación previa exitosa'
             ];
-
         } catch (\Exception $e) {
             Log::error('Error en preValidateApiSync', [
                 'error' => $e->getMessage()
@@ -1791,7 +2073,7 @@ class VntCompanyForm extends Component
     private function prepareApiData(): array
     {
         // Mapear tipos de persona a valores correctos de Alegra
-        $kindOfPersonValue = match($this->typePerson) {
+        $kindOfPersonValue = match ($this->typePerson) {
             'Juridica' => 'LEGAL_ENTITY',
             'Natural' => 'PERSON_ENTITY',
             'Otra' => 'OTHER_ENTITY',
@@ -1820,9 +2102,9 @@ class VntCompanyForm extends Component
             ],
             'name' => $this->businessName ?: ($this->firstName . ' ' . $this->lastName),
             'kindOfPerson' => $kindOfPersonValue,
-            'regime' => $this->getRegimeName($this->regimeId),
-            'fiscalResponsabilities' => ($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
-                ? (function() {
+            'regime' => $this->simplified ? null : $this->getRegimeName($this->regimeId),
+            'fiscalResponsabilities' => $this->simplified ? null : (($this->fiscalResponsabilityId && $this->fiscalResponsabilityId !== '0')
+                ? (function () {
                     Log::info('🔍 Debug fiscalResponsabilityId CONDITION TRUE', [
                         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
                         'type' => gettype($this->fiscalResponsabilityId),
@@ -1840,7 +2122,7 @@ class VntCompanyForm extends Component
                     ]);
                     return $integrationId ? [$integrationId] : null;
                 })()
-                : (function() {
+                : (function () {
                     Log::info('🔍 Debug fiscalResponsabilityId CONDITION FALSE', [
                         'fiscalResponsabilityId' => $this->fiscalResponsabilityId,
                         'type' => gettype($this->fiscalResponsabilityId),
@@ -1848,7 +2130,7 @@ class VntCompanyForm extends Component
                         'equals_zero_string' => $this->fiscalResponsabilityId === '0'
                     ]);
                     return null;
-                })(),
+                })()),
             'type' => $this->getContactTypeForApi(),
             'phonePrimary' => $this->business_phone ?: $this->personal_phone,
             'email' => $this->billingEmail,
@@ -1859,8 +2141,8 @@ class VntCompanyForm extends Component
                 'zipCode' => $this->warehousePostcode
             ],
             'accounting' => [
-                'debtToPay' => 5033,
-                'accountReceivable' => 5007,
+                'debtToPay'         => 6641,
+                'accountReceivable' => 6344,
             ]
         ];
     }
@@ -1935,13 +2217,13 @@ class VntCompanyForm extends Component
     private function getFiscalResponsabilityIntegrationId($fiscalResponsabilityId): ?string
     {
 
-    
+
         try {
             // Asegurar conexión tenant
             $this->ensureTenantConnection();
 
             // Debug: Verificar que la tabla existe
-            Log::info('🔍 VERSIÓN ACTUALIZADA - Buscando en RAP/central fiscal responsibilities id: '.$fiscalResponsabilityId );
+            Log::info('🔍 VERSIÓN ACTUALIZADA - Buscando en RAP/central fiscal responsibilities id: ' . $fiscalResponsabilityId);
 
             // Primero verificar si la tabla existe (en RAP/central)
             $tableExists = DB::connection('central')
@@ -2024,13 +2306,8 @@ class VntCompanyForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta automáticamente si es proxy)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🔍 Validando datos con API', ['api_data' => $apiData]);
 
@@ -2040,25 +2317,39 @@ class VntCompanyForm extends Component
                 $validationResult = $apiClient->createContact($apiData);
                 set_time_limit(60); // Restaurar timeout
 
+                // LOG completo para depuración del proxy
+                Log::info('📥 validateApiData - RAW RESPONSE COMPLETO', [
+                    'success'       => $validationResult['success'] ?? null,
+                    'response_data' => $validationResult['data'] ?? null,
+                ]);
+
                 if (!$validationResult['success']) {
                     $errorMessage = $validationResult['message'] ?? 'Error desconocido en la API';
 
-                    Log::warning('❌ API rechazó la creación del cliente durante validación', [
-                        'api_data' => $apiData,
-                        'error' => $errorMessage,
-                        'preventing_local_save' => true
-                    ]);
+                    // Verificar si Alegra devolvió código 2006 (contacto ya existe)
+                    $alegraError = $validationResult['data']['alegra_error'] ?? null;
 
-                    // Detectar diferentes tipos de error
-                    if (strpos(strtolower($errorMessage), 'ya se encuentra') !== false ||
-                        strpos(strtolower($errorMessage), 'duplicad') !== false ||
-                        strpos(strtolower($errorMessage), 'existe') !== false) {
+                    if ($alegraError && ($alegraError['code'] ?? null) == 2006 && isset($alegraError['contactId'])) {
+                        // El contacto ya existe en Alegra → vincular su ID y permitir guardar localmente
+                        $existingApiId = $alegraError['contactId'];
+
+                        Log::info('🔗 Contacto ya existe en Alegra (2006) - vinculando ID y permitiendo guardado local', [
+                            'existing_api_id' => $existingApiId,
+                            'alegra_name'     => $alegraError['contactName'] ?? null,
+                        ]);
 
                         return [
-                            'success' => false,
-                            'message' => '🔄 Cliente Duplicado: ' . $errorMessage . ' Por favor use un email o identificación diferente.'
+                            'success'      => true,
+                            'message'      => 'Contacto vinculado al registro existente en Alegra',
+                            'temp_api_id'  => $existingApiId,
                         ];
                     }
+
+                    Log::warning('❌ API rechazó la creación del cliente durante validación', [
+                        'api_data'             => $apiData,
+                        'error'                => $errorMessage,
+                        'preventing_local_save'=> true
+                    ]);
 
                     return [
                         'success' => false,
@@ -2066,26 +2357,32 @@ class VntCompanyForm extends Component
                     ];
                 }
 
-                // Si la API aceptó la creación, guardar ID temporal
-                if (isset($validationResult['data']['id'])) {
-                    $tempApiId = $validationResult['data']['id'];
-                    Log::info('✅ Validación exitosa, usando registro temporal de API', [
-                        'temp_api_id' => $tempApiId,
-                        'api_data' => $apiData
-                    ]);
+                // Si la API aceptó la creación, extraer el ID real de Alegra
+                // El proxy devuelve { "id": 0 } en el wrapper; el ID real está anidado
+                $proxyId  = $validationResult['data']['id'] ?? null;
+                $nestedId = $validationResult['data']['debug_info']['alegra_response']['data']['id'] ?? null;
+                $altId    = $validationResult['data']['data']['id'] ?? null;
 
-                    return [
-                        'success' => true,
-                        'message' => 'Datos válidos para sincronización',
-                        'temp_api_id' => $tempApiId
-                    ];
-                } else {
-                    return [
-                        'success' => true,
-                        'message' => 'Datos válidos para sincronización'
-                    ];
+                $tempApiId = null;
+                foreach ([$proxyId, $nestedId, $altId] as $candidate) {
+                    if (!empty($candidate) && (int) $candidate > 0) {
+                        $tempApiId = (string) $candidate;
+                        break;
+                    }
                 }
 
+                Log::info('✅ Validación exitosa - ID Alegra extraído', [
+                    'temp_api_id' => $tempApiId,
+                    'proxy_id'    => $proxyId,
+                    'nested_id'   => $nestedId,
+                    'alt_id'      => $altId,
+                ]);
+
+                return [
+                    'success'      => true,
+                    'message'      => 'Datos válidos para sincronización',
+                    'temp_api_id'  => $tempApiId, // puede ser null si no se pudo extraer
+                ];
             } catch (\Exception $e) {
                 set_time_limit(60); // Restaurar timeout
                 Log::error('❌ Error en validación con API', [
@@ -2098,7 +2395,6 @@ class VntCompanyForm extends Component
                     'message' => '❌ Error de Conexión API: No se pudo validar los datos con la API de facturación. Error: ' . $e->getMessage()
                 ];
             }
-
         } catch (\Exception $e) {
             Log::error('Error general en validateApiData', [
                 'api_data' => $apiData,
@@ -2167,7 +2463,6 @@ class VntCompanyForm extends Component
             ]);
 
             return $canSync;
-
         } catch (\Exception $e) {
             Log::error('Error verificando límites de clientes', [
                 'company_id' => $this->currentCompanyId,
@@ -2194,7 +2489,28 @@ class VntCompanyForm extends Component
                     'temp_api_id' => $tempApiId
                 ]);
 
-                $company->update(['api_data_id' => $tempApiId]);
+                // Restaurar conexión tenant antes de guardar
+                $this->ensureTenantConnection();
+
+                Log::info('💾 syncCompanyWithApi - intentando guardar api_data_id', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $tempApiId,
+                ]);
+
+                $rowsAffected = \Illuminate\Support\Facades\DB::connection('tenant')
+                    ->table('vnt_companies')
+                    ->where('id', $company->id)
+                    ->whereNull('deleted_at')
+                    ->update(['api_data_id' => $tempApiId]);
+
+                $company->refresh();
+
+                Log::info('✅ api_data_id guardado en vnt_companies (syncCompanyWithApi)', [
+                    'company_id'    => $company->id,
+                    'api_data_id'   => $tempApiId,
+                    'rows_affected' => $rowsAffected,
+                    'verificado'    => $company->api_data_id,
+                ]);
                 session()->flash('sync_message', '✅ Cliente Sincronizado: El cliente ha sido creado exitosamente y sincronizado con la API de facturación electrónica.');
                 return;
             }
@@ -2204,7 +2520,6 @@ class VntCompanyForm extends Component
             // Aquí puedes implementar la sincronización completa si es necesario
             // Por ahora, solo log de éxito
             session()->flash('sync_message', '✅ Cliente Sincronizado: El cliente ha sido procesado correctamente.');
-
         } catch (\Exception $e) {
             Log::error('❌ Error en syncCompanyWithApi', [
                 'company_id' => $company->id,
@@ -2247,18 +2562,13 @@ class VntCompanyForm extends Component
                 return;
             }
 
-            // Crear cliente API con parámetros individuales
-            $apiClient = new ApiClient(
-                $config['base_url'] ?? null,
-                $config['token'] ?? null,
-                $config['username'] ?? null,
-                $config['timeout'] ?? 15
-            );
+            // Crear cliente API (forConfig detecta automáticamente si es proxy)
+            $apiClient = ApiClient::forConfig($config);
 
             Log::info('🔧 ApiClient creado para actualización', [
-                'base_url' => $config['base_url'] ?? 'NOT_SET',
+                'base_url'  => $config['base_url'] ?? 'NOT_SET',
                 'has_token' => !empty($config['token']),
-                'username' => $config['username'] ?? 'NOT_SET'
+                'is_proxy'  => !empty($config['facturador']),
             ]);
 
             // Actualizar en API usando el api_data_id
@@ -2280,7 +2590,6 @@ class VntCompanyForm extends Component
                 $userMessage = $this->formatApiErrorMessage($response['message'] ?? 'Error desconocido en actualización');
                 session()->flash('sync_error', '❌ Error de Sincronización: ' . $userMessage);
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Excepción actualizando cliente en API', [
                 'company_id' => $company->id,
@@ -2289,6 +2598,146 @@ class VntCompanyForm extends Component
             ]);
 
             session()->flash('sync_warning', '⚠️ Cliente actualizado localmente, pero hubo un problema sincronizando con la API: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crear cliente en la API cuando el registro local no tiene api_data_id.
+     * Guarda el ID devuelto por Alegra en vnt_companies.api_data_id.
+     */
+    private function createCompanyInApi($company, array $apiData): void
+    {
+        if (!$company) {
+            return;
+        }
+
+        try {
+            $authUser = Auth::user();
+            $config = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
+
+            if (!$config) {
+                Log::warning('⚠️ No se encontró configuración API para crear contacto', [
+                    'company_id' => $company->id,
+                    'user_id'    => $authUser->id,
+                ]);
+                session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con el sistema de facturación (sin configuración API).');
+                return;
+            }
+
+            $apiClient = ApiClient::forConfig($config);
+
+            Log::info('📡 Creando contacto en API para cliente sin api_data_id', [
+                'company_id' => $company->id,
+                'base_url'   => $config['base_url'] ?? 'NOT_SET',
+                'is_proxy'   => !empty($config['facturador']),
+            ]);
+
+            $response = $apiClient->createContact($apiData);
+
+            // LOG completo del response para depuración del proxy
+            Log::info('📥 createCompanyInApi - RAW RESPONSE COMPLETO', [
+                'company_id'    => $company->id,
+                'success'       => $response['success'] ?? null,
+                'response_data' => $response['data'] ?? null,
+            ]);
+
+            // Determinar el api_data_id a guardar (sea creación nueva o contacto duplicado)
+            $apiIdToSave = null;
+
+            if ($response['success']) {
+                // El proxy devuelve { "id": 0, ... } como wrapper.
+                // El ID real de Alegra puede estar en varios lugares según la versión del proxy:
+                $proxyId   = $response['data']['id'] ?? null;
+                $nestedId  = $response['data']['debug_info']['alegra_response']['data']['id'] ?? null;
+                $altId     = $response['data']['data']['id'] ?? null;
+
+                // Usar el primero que sea un entero > 0
+                $resolvedId = null;
+                foreach ([$proxyId, $nestedId, $altId] as $candidate) {
+                    if (!empty($candidate) && (int) $candidate > 0) {
+                        $resolvedId = (string) $candidate;
+                        break;
+                    }
+                }
+
+                if ($resolvedId) {
+                    $apiIdToSave = $resolvedId;
+                    $successMsg  = '✅ Cliente sincronizado: Se registró correctamente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+                    Log::info('🆔 ID Alegra extraído del response', [
+                        'proxy_id'   => $proxyId,
+                        'nested_id'  => $nestedId,
+                        'alt_id'     => $altId,
+                        'resolved'   => $resolvedId,
+                    ]);
+                }
+
+            } else {
+                // Verificar si el error es "ya existe" (código 2006 de Alegra)
+                $alegraError = $response['data']['alegra_error'] ?? null;
+
+                if ($alegraError && ($alegraError['code'] ?? null) == 2006 && isset($alegraError['contactId'])) {
+                    // Contacto duplicado → reutilizar el ID existente en Alegra
+                    $apiIdToSave = $alegraError['contactId'];
+                    $successMsg  = '✅ Cliente vinculado al contacto existente en el sistema de facturación (ID: ' . $apiIdToSave . ').';
+
+                    Log::info('🔗 Contacto duplicado en Alegra - vinculando ID existente', [
+                        'company_id'      => $company->id,
+                        'existing_api_id' => $apiIdToSave,
+                        'alegra_name'     => $alegraError['contactName'] ?? null,
+                    ]);
+                }
+            }
+
+            if ($apiIdToSave !== null) {
+                // Restaurar conexión tenant antes de guardar
+                $this->ensureTenantConnection();
+
+                Log::info('💾 Intentando guardar api_data_id', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $apiIdToSave,
+                    'company_id_null' => is_null($company->id),
+                ]);
+
+                // Usar DB::connection('tenant') directamente para máxima certeza
+                $rowsAffected = \Illuminate\Support\Facades\DB::connection('tenant')
+                    ->table('vnt_companies')
+                    ->where('id', $company->id)
+                    ->whereNull('deleted_at')
+                    ->update(['api_data_id' => $apiIdToSave]);
+
+                Log::info('💾 Resultado del update api_data_id', [
+                    'company_id'    => $company->id,
+                    'api_data_id'   => $apiIdToSave,
+                    'rows_affected' => $rowsAffected,
+                ]);
+
+                // Refrescar la instancia del modelo para que refleje el cambio
+                $company->refresh();
+
+                Log::info('✅ api_data_id guardado en vnt_companies', [
+                    'company_id'  => $company->id,
+                    'api_data_id' => $apiIdToSave,
+                    'api_data_id_verificado' => $company->api_data_id,
+                ]);
+                session()->flash('sync_message', $successMsg ?? '✅ Cliente sincronizado correctamente.');
+
+            } else {
+                $errorMsg = $response['message'] ?? 'Error desconocido';
+                Log::error('❌ Error creando contacto en API', [
+                    'company_id'   => $company->id,
+                    'error'        => $errorMsg,
+                    'alegra_error' => $response['data']['alegra_error'] ?? null,
+                ]);
+                $userMessage = $this->formatApiErrorMessage($errorMsg);
+                session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero no se pudo sincronizar con Alegra: ' . $userMessage);
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción creando contacto en API', [
+                'company_id' => $company->id,
+                'error'      => $e->getMessage(),
+            ]);
+            session()->flash('sync_warning', '⚠️ Cliente guardado localmente, pero hubo un problema al sincronizar: ' . $e->getMessage());
         }
     }
 
@@ -2405,10 +2854,12 @@ class VntCompanyForm extends Component
         ]);
 
         // Errores de conexión HTTP/API
-        if ($errorClass === 'GuzzleHttp\\Exception\\ConnectException' ||
+        if (
+            $errorClass === 'GuzzleHttp\\Exception\\ConnectException' ||
             strpos($errorClass, 'ConnectException') !== false ||
             strpos($errorMessage, 'Connection refused') !== false ||
-            strpos($errorMessage, 'timeout') !== false) {
+            strpos($errorMessage, 'timeout') !== false
+        ) {
 
             Log::warning('📡 Error de conexión HTTP detectado', [
                 'error_id' => $errorId,
@@ -2433,9 +2884,11 @@ class VntCompanyForm extends Component
         }
 
         // Errores de permisos
-        if (strpos($errorMessage, 'permission') !== false ||
+        if (
+            strpos($errorMessage, 'permission') !== false ||
             strpos($errorMessage, 'Access denied') !== false ||
-            strpos($errorMessage, 'Forbidden') !== false) {
+            strpos($errorMessage, 'Forbidden') !== false
+        ) {
 
             Log::warning('🔐 Error de permisos detectado', [
                 'error_id' => $errorId,
@@ -2449,9 +2902,11 @@ class VntCompanyForm extends Component
         }
 
         // Errores de archivos y sistema de archivos
-        if (strpos($errorMessage, 'file') !== false ||
+        if (
+            strpos($errorMessage, 'file') !== false ||
             strpos($errorMessage, 'directory') !== false ||
-            strpos($errorMessage, 'fopen') !== false) {
+            strpos($errorMessage, 'fopen') !== false
+        ) {
 
             Log::error('📁 Error del sistema de archivos', [
                 'error_id' => $errorId,
@@ -2475,8 +2930,10 @@ class VntCompanyForm extends Component
         }
 
         // Errores de base de datos que llegaron hasta acá
-        if (strpos($errorClass, 'QueryException') !== false ||
-            strpos($errorClass, 'PDOException') !== false) {
+        if (
+            strpos($errorClass, 'QueryException') !== false ||
+            strpos($errorClass, 'PDOException') !== false
+        ) {
 
             Log::error('💾 Error de BD no manejado por handleDatabaseError', [
                 'error_id' => $errorId,
@@ -2804,9 +3261,9 @@ class VntCompanyForm extends Component
         $customerName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
 
         return "✅ Cliente y Ruta Creados: El cliente '{$customerName}' se registró exitosamente y se asignó a la ruta de ventas.\n\n" .
-               "📍 Detalles de la ruta:\n" .
-               "• Número de orden: {$route->sales_order}\n" .
-               "• ID de ruta: {$route->route_id}";
+            "📍 Detalles de la ruta:\n" .
+            "• Número de orden: {$route->sales_order}\n" .
+            "• ID de ruta: {$route->route_id}";
     }
 
     /**
@@ -2817,7 +3274,7 @@ class VntCompanyForm extends Component
         $customerName = $company->businessName ?: ($company->firstName . ' ' . $company->lastName);
 
         return "✅ Cliente Creado con Advertencia: El cliente '{$customerName}' se registró exitosamente en el sistema.\n\n" .
-               "⚠️ Problema con Ruta: Hubo un inconveniente al asignar la ruta de ventas. La ruta se puede asignar posteriormente desde la gestión de rutas.";
+            "⚠️ Problema con Ruta: Hubo un inconveniente al asignar la ruta de ventas. La ruta se puede asignar posteriormente desde la gestión de rutas.";
     }
 
     /**
@@ -2826,10 +3283,10 @@ class VntCompanyForm extends Component
     private function buildDeleteSuccessMessage(): string
     {
         return "🗑️ Cliente Eliminado: El registro se ha eliminado exitosamente del sistema.\n\n" .
-               "💡 Información:\n" .
-               "• Los datos se eliminaron permanentemente\n" .
-               "• Los registros asociados se mantuvieron intactos\n" .
-               "• Esta acción no se puede deshacer";
+            "💡 Información:\n" .
+            "• Los datos se eliminaron permanentemente\n" .
+            "• Los registros asociados se mantuvieron intactos\n" .
+            "• Esta acción no se puede deshacer";
     }
 
     /**
@@ -2838,15 +3295,15 @@ class VntCompanyForm extends Component
     private function buildConstraintErrorMessage(): string
     {
         return "🚫 No se puede Eliminar: Este cliente está asociado a registros importantes del sistema.\n\n" .
-               "🔗 Registros que pueden estar asociados:\n" .
-               "• Facturas electrónicas emitidas\n" .
-               "• Pedidos de venta realizados\n" .
-               "• Transacciones financieras\n" .
-               "• Historial de compras\n\n" .
-               "💡 Soluciones:\n" .
-               "• Desactive el cliente en lugar de eliminarlo\n" .
-               "• Transfiera los registros a otro cliente\n" .
-               "• Contacte al administrador para realizar una eliminación segura";
+            "🔗 Registros que pueden estar asociados:\n" .
+            "• Facturas electrónicas emitidas\n" .
+            "• Pedidos de venta realizados\n" .
+            "• Transacciones financieras\n" .
+            "• Historial de compras\n\n" .
+            "💡 Soluciones:\n" .
+            "• Desactive el cliente en lugar de eliminarlo\n" .
+            "• Transfiera los registros a otro cliente\n" .
+            "• Contacte al administrador para realizar una eliminación segura";
     }
 
     /**
@@ -2855,11 +3312,11 @@ class VntCompanyForm extends Component
     private function buildDatabaseDeleteErrorMessage(): string
     {
         return "💾 Error de Base de Datos: Hubo un problema técnico al eliminar el cliente.\n\n" .
-               "🔧 Acciones recomendadas:\n" .
-               "• Intente nuevamente en unos momentos\n" .
-               "• Verifique que tiene los permisos necesarios\n" .
-               "• Contacte al administrador si el problema persiste\n\n" .
-               "💡 Alternativa: Puede desactivar el cliente temporalmente en lugar de eliminarlo.";
+            "🔧 Acciones recomendadas:\n" .
+            "• Intente nuevamente en unos momentos\n" .
+            "• Verifique que tiene los permisos necesarios\n" .
+            "• Contacte al administrador si el problema persiste\n\n" .
+            "💡 Alternativa: Puede desactivar el cliente temporalmente en lugar de eliminarlo.";
     }
 
     /**
@@ -2870,12 +3327,12 @@ class VntCompanyForm extends Component
         $errorId = substr(md5(time() . Auth::id()), 0, 8);
 
         return "⚠️ Error Inesperado: Ocurrió un problema inesperado al eliminar el cliente.\n\n" .
-               "🆔 Código de error: {$errorId}\n\n" .
-               "🔧 Qué hacer:\n" .
-               "• Intente nuevamente en unos minutos\n" .
-               "• Si persiste, contacte al soporte técnico\n" .
-               "• Proporcione el código de error al soporte\n\n" .
-               "💡 Como alternativa temporal, puede desactivar el cliente en lugar de eliminarlo.";
+            "🆔 Código de error: {$errorId}\n\n" .
+            "🔧 Qué hacer:\n" .
+            "• Intente nuevamente en unos minutos\n" .
+            "• Si persiste, contacte al soporte técnico\n" .
+            "• Proporcione el código de error al soporte\n\n" .
+            "💡 Como alternativa temporal, puede desactivar el cliente en lugar de eliminarlo.";
     }
 
     /**
@@ -2922,7 +3379,7 @@ class VntCompanyForm extends Component
         $results['validation_errors'] = !empty($validationMessages);
 
         // Calcular score de completeness
-        $completedChecks = array_sum(array_filter($results, function($key) {
+        $completedChecks = array_sum(array_filter($results, function ($key) {
             return $key !== 'completeness_score';
         }, ARRAY_FILTER_USE_KEY));
 
@@ -2949,5 +3406,116 @@ class VntCompanyForm extends Component
             $this->firstName = '';
             $this->lastName = '';
         }
+    }
+
+    public function canUploadsEnable(): bool
+    {
+        $this->initializeCompanyConfiguration();
+        $result = $this->isOptionEnabled(75);
+        $value = $this->getOptionValue(75);
+
+        Log::info('🎮 canUploadsEnable() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 75,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(75) y getOptionValue(75)'
+        ]);
+        return $result;
+    }
+    /**
+     * Sobreescribir initializeCompanyConfiguration para asegurar conexión tenant
+     */
+    protected function initializeCompanyConfiguration(): void
+    {
+        // Solo saltar si YA ESTÁ inicializado Y tenemos el servicio y el ID (para evitar fallos por pérdida de estado en Livewire)
+        if ($this->isConfigurationInitialized && $this->configService && $this->currentCompanyId) {
+            Log::info('🔧 initializeCompanyConfiguration() - YA INICIALIZADO con datos, saltando...');
+            return;
+        }
+
+        Log::info('🔧 initializeCompanyConfiguration() - INICIO');
+
+        // PRIMERO: Asegurar conexión tenant antes de cualquier otra operación
+        try {
+            $this->ensureTenantConnection();
+            Log::info('🔧 Conexión tenant asegurada antes de inicialización');
+        } catch (\Exception $e) {
+            Log::error('🔧 Error asegurando conexión tenant', ['error' => $e->getMessage()]);
+        }
+
+        $this->configService = app(\App\Services\Configuration\CompanyConfigurationService::class);
+        Log::info('🔧 ConfigService creado', ['service_exists' => $this->configService ? 'YES' : 'NO']);
+
+        // Obtener datos de la empresa actual usando el mismo validador que UpdateCompany
+        $user = Auth::user();
+        Log::info('🔧 Usuario obtenido', [
+            'user_exists' => $user ? 'YES' : 'NO',
+            'user_id' => $user->id ?? 'NULL',
+            'user_email' => $user->email ?? 'NULL'
+        ]);
+
+        if ($user) {
+            $validator = app(\App\Services\Company\CompanyDataValidator::class);
+            Log::info('🔧 Validator creado');
+
+            $company = $validator->getUserCompany($user);
+            Log::info('🔧 Empresa obtenida', [
+                'company_exists' => $company ? 'YES' : 'NO',
+                'company_id' => $company->id ?? 'NULL',
+                'company_name' => $company->businessName ?? 'NULL'
+            ]);
+
+            if ($company) {
+                $this->currentCompanyId = $company->id;
+                $this->currentPlainId = $this->getUserPlainId($user); // Por defecto plan 2 (Avanzado)
+
+                // Sincronizar con el estado estático del Trait para que funcionen los métodos auxiliares
+                self::$sharedCompanyId = $this->currentCompanyId;
+                self::$sharedPlainId = $this->currentPlainId;
+                self::$staticConfigService = $this->configService;
+                self::$isStaticInitialized = true;
+
+                Log::info('🔧 IDs asignados y sincronizados con Trait', [
+                    'currentCompanyId' => $this->currentCompanyId,
+                    'currentPlainId' => $this->currentPlainId,
+                    'sharedCompanyId' => self::$sharedCompanyId
+                ]);
+            } else {
+                Log::warning('🔧 No se encontró empresa para el usuario');
+            }
+        } else {
+            Log::warning('🔧 No hay usuario autenticado');
+        }
+
+        // Precargar configuraciones comunes DESPUÉS de asegurar conexión tenant
+        if ($this->currentCompanyId && $this->currentPlainId) {
+            Log::info('🔧 Precargando configuraciones');
+            try {
+                // IMPORTANTE: Volver a asegurar conexión antes de precargar
+                $this->ensureTenantConnection();
+                $this->configService->preloadCommonConfigurations(
+                    $this->currentCompanyId,
+                    $this->currentPlainId
+                );
+                Log::info('🔧 Configuraciones precargadas exitosamente');
+            } catch (\Exception $e) {
+                Log::error('🔧 Error precargando configuraciones', ['error' => $e->getMessage()]);
+            }
+        } else {
+            Log::warning('🔧 No se pueden precargar configuraciones - faltan IDs', [
+                'currentCompanyId' => $this->currentCompanyId,
+                'currentPlainId' => $this->currentPlainId
+            ]);
+        }
+
+        $this->isConfigurationInitialized = true;
+
+        Log::info('🔧 initializeCompanyConfiguration() - FIN', [
+            'final_companyId' => $this->currentCompanyId,
+            'final_plainId' => $this->currentPlainId,
+            'final_configService' => $this->configService ? 'YES' : 'NO'
+        ]);
     }
 }

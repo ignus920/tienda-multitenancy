@@ -96,6 +96,7 @@
                                     ['label' => 'Precio Base', 'type' => 'Precio'],
                                     ['label' => 'Precio Regular', 'type' => 'Precio'],
                                     ['label' => 'Precio Crédito', 'type' => 'Precio'],
+                                    ['label' => 'Precio unitario x caja', 'type' => 'Precio'],
                                 ];
                                 
                                 // Obtener valores existentes indexados por label
@@ -118,8 +119,8 @@
 
                                     <!-- Etiqueta -->
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ $staticValue['label'] }}<br>
-                                        <span class="text-gray-500 dark:text-gray-600">(Precio sin IVA)</span>
+                                        {{ $staticValue['label'] === 'Precio Base' ? 'Precio Lista' : ($staticValue['label'] === 'Precio Regular' ? 'Precio Mínimo' : $staticValue['label']) }}<br>
+                                        <span class="text-gray-500 dark:text-gray-400">(Precio sin IVA)</span>
                                     </td>
 
                                     <!-- Tipo -->

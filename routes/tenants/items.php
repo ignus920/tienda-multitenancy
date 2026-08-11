@@ -11,36 +11,37 @@ use App\Http\Controllers\Inventory\UnitsMeasurementsController;
 use App\Http\Controllers\Inventory\WarehousesController;
 
 //Items
-Route::prefix('/items')->group(function(){
+Route::prefix('/items')->group(function () {
     Route::get('/items', [ItemsController::class, 'homeItems'])->name('items');
 });
 
 //Categories
-Route::prefix('/inventory')->group(function(){
+Route::prefix('/inventory')->group(function () {
     Route::get('/categories', [CategoriesController::class, 'homeCategories'])->name('categories');
 });
 
 //Brands
-Route::prefix('/inventory')->group(function(){
+Route::prefix('/inventory')->group(function () {
     Route::get('/brands', [BrandsController::class, 'homeBrands'])->name('brands');
 });
 
 //Commands
-Route::prefix('/inventory')->group(function(){
+Route::prefix('/inventory')->group(function () {
     Route::get('/commands', [CommandsController::class, 'homeCommands'])->name('commands');
 });
 
 //Houses
-Route::prefix('/inventory')->group(function(){
+Route::prefix('/inventory')->group(function () {
     Route::get('/houses', [HousesController::class, 'homeHouses'])->name('houses');
 });
 
 //Unit Measurements
-Route::prefix('/inventory')->group(function(){
+Route::prefix('/inventory')->group(function () {
     Route::get('/units', [UnitsMeasurementsController::class, 'homeUnits'])->name('units');
 });
 
 //Warehouses
-Route::prefix('/inventory')->group(function(){
+Route::prefix('/inventory')->group(function () {
     Route::get('/warehouses', [WarehousesController::class, 'homeWarehouses'])->name('warehouses');
 });
+

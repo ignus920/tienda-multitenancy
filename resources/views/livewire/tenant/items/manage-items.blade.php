@@ -66,18 +66,21 @@
         <!-- Header -->
         <div
             class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros Items</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
-                <button wire:click="create"
-                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Crear Nuevo
-                </button>
+                <div class="flex flex-wrap items-center gap-3">
+                    @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
+                    <button wire:click="create"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Crear Nuevo
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -87,9 +90,9 @@
             <!-- Toolbar -->
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <!-- Búsqueda -->
-                    <div class="flex-1 max-w-md">
-                        <div class="relative">
+                    <!-- Búsqueda y Filtro de Proveedor -->
+                    <div class="flex-1 max-w-2xl flex flex-col sm:flex-row items-center gap-3">
+                        <div class="relative flex-1 w-full">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
@@ -100,6 +103,17 @@
                             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar registros..."
                                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
+                        @if(auth()->user()?->profile_id != 17)
+                            <div class="w-full sm:w-64">
+                                <select wire:model.live="selectedSupplierId"
+                                    class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Filtrar por Proveedor</option>
+                                    @foreach($this->suppliers as $sup)
+                                        <option value="{{ $sup['id'] }}">{{ $sup['firstName'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Controles -->
@@ -192,8 +206,11 @@
                         @forelse($items as $it)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             <td class="px-6 py-4 text-center">
-                                <img class="h-12 w-12 rounded-md object-cover border border-gray-300 dark:border-gray-600 mx-auto"
-                                    src="{{ $it->getPrincipalThumbnailUrl() }}" alt="{{ $it->name }}">
+                                <img class="h-12 w-12 rounded-md object-cover border border-gray-300 dark:border-gray-600 mx-auto cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
+                                    src="{{ $it->getPrincipalThumbnailUrl() }}" 
+                                    alt="{{ $it->name }}"
+                                    title="Gestionar Galería"
+                                    @click.stop="$dispatch('openImageModalCargar', { productId: {{ $it->id }} })">
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $it->sku }}
@@ -203,6 +220,11 @@
                             </td>
                             <td class="text-xs text-gray-500 dark:text-gray-400">
                                 {{ $it->name }}
+                                @if($it->generic)
+                                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 uppercase tracking-wide">
+                                        Genérico
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
                                 {{ $it->type }}
@@ -237,9 +259,17 @@
                                 @if($it->invValues->isNotEmpty())
                                     <div class="space-y-1.5">
                                         @foreach($it->invValues->where('type', 'precio') as $value)
+                                            @php
+                                                $displayLabel = str_replace('Precio ', '', $value->label);
+                                                if ($displayLabel === 'Base') {
+                                                    $displayLabel = 'Lista';
+                                                } elseif ($displayLabel === 'Regular') {
+                                                    $displayLabel = 'Mínimo';
+                                                }
+                                            @endphp
                                             <div class="flex items-center gap-2">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-                                                    {{ str_replace('Precio ', '', $value->label) }}:
+                                                    {{ $displayLabel }}:
                                                     <span class="text-xs text-gray-500 dark:text-gray-400">${{ number_format($value->values, 0, ',', '.') }}</span>
                                                 </span>
                                             </div>
@@ -250,10 +280,10 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                {{ $it->purchasingUnit->description }}
+                                {{ $it->purchasingUnit->description ?? '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                {{ $it->consumptionUnit->description }}
+                                {{ $it->consumptionUnit->description ?? '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $it->tax->name ?? 'Sin impuesto' }}
@@ -276,9 +306,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" @click.outside="open = false"
-                                    class="relative inline-block text-left static">
-                                    <button @click="open = !open" x-ref="button"
+                                <div x-data="{ open: false }" class="inline-block text-left">
+                                    <button @click.stop="open = !open" x-ref="button"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                             <path
@@ -286,36 +315,55 @@
                                         </svg>
                                     </button>
 
-                                    <!-- Menú desplegable -->
-                                    <div x-show="open" x-transition:enter="transition ease-out duration-100"
-                                        x-transition:enter-start="transform opacity-0 scale-95"
-                                        x-transition:enter-end="transform opacity-100 scale-100"
-                                        x-transition:leave="transition ease-in duration-75"
-                                        x-transition:leave-start="transform opacity-100 scale-100"
-                                        x-transition:leave-end="transform opacity-0 scale-95" @click="open = false"
-                                        class="origin-top-left fixed left-auto right-auto mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[60]"
-                                        x-anchor="$refs.button"
-                                        style="display: none;">
+                                    <!-- Menú desplegable: teleport al body para escapar de overflow-x-auto -->
+                                    <template x-teleport="body">
+                                        <div x-show="open"
+                                            x-anchor.bottom-end.offset.4="$refs.button"
+                                            x-transition:enter="transition ease-out duration-100"
+                                            x-transition:enter-start="transform opacity-0 scale-95"
+                                            x-transition:enter-end="transform opacity-100 scale-100"
+                                            x-transition:leave="transition ease-in duration-75"
+                                            x-transition:leave-start="transform opacity-100 scale-100"
+                                            x-transition:leave-end="transform opacity-0 scale-95"
+                                            @click.outside="open = false"
+                                            @click="open = false"
+                                            class="w-48 rounded-lg shadow-xl bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[9999]"
+                                            style="display: none;">
 
-                                        <div class="py-1" role="menu" aria-orientation="vertical">
-                                            <button wire:click="edit({{ $it->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
-                                                <x-heroicon-o-pencil-square class="w-6 h-6" />
-                                                Editar
-                                            </button>
-                                            <button wire:click="openLocationsModal({{ $it->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                                                    </path>
-                                                </svg>
-                                                Ubicaciones
-                                            </button>
+                                            <div class="py-1" role="menu" aria-orientation="vertical">
+                                                <button wire:click="edit({{ $it->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
+                                                    <x-heroicon-o-pencil-square class="w-6 h-6" />
+                                                    Editar
+                                                </button>
+                                                <button @click.stop="$dispatch('openTicketModal', { productId: {{ $it->id }} }); open = false"
+                                                    class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                                    </svg>
+                                                    Solicitud Soporte
+                                                </button>
+                                                <button wire:click="openLocationsModal({{ $it->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                                        </path>
+                                                    </svg>
+                                                    Ubicaciones
+                                                </button>
+                                                <button @click.stop="$dispatch('openImageModalCargar', { productId: {{ $it->id }} }); open = false"
+                                                    class="w-full text-left px-4 py-2 text-sm text-purple-800 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Galería
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </template>
                                 </div>
                             </td>
                         </tr>
@@ -385,27 +433,111 @@
                         <x-heroicon-o-x-mark class="w-6 h-6" />
                     </button>
                 </div>
-
                 
+                <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
+                @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1 || $item_id))
+                    <div class="px-6 pt-4">
+                        <div class="border-b border-gray-200 dark:border-gray-700">
+                            <nav class="flex -mb-px space-x-8" aria-label="Tabs">
+                                <!-- Pestaña Información General -->
+                                <button type="button" wire:click="showGeneralInfo"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection),
+                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-information-circle class="w-5 h-5" />
+                                        <span>Información General</span>
+                                    </div>
+                                </button>
 
+                                <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
+                                @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
+                                <button type="button" wire:click="showImportSection({{$item_id}})"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-truck class="w-5 h-5" />
+                                        <span>Importado</span>
+                                    </div>
+                                </button>
+                                @endif
+
+                                <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
+                                @if($type == 'PRODUCIDO')
+                                <button type="button" wire:click="$set('showProductionSection', true)"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-cog-6-tooth class="w-5 h-5" />
+                                        <span>Proceso de Producción</span>
+                                    </div>
+                                </button>
+                                @endif
+
+                                <!-- Pestaña Accesorios - No visible para items tipo INSUMO -->
+                                @if($type !== 'INSUMO')
+                                <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-puzzle-piece class="w-5 h-5" />
+                                        <span>Accesorios</span>
+                                    </div>
+                                </button>
+                                @endif
+
+                                <!-- Pestaña de dimensiones para los productos inventoriables -->
+                                @if ($inventoriable === 1)
+                                <button type="button" wire:click="activateDimensionSection({{$item_id}})"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-cube class="w-5 h-5" />
+                                        <span>Medidas</span>
+                                    </div>
+                                </button>
+                                @endif
+                            </nav>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Contenido según la pestaña activa -->
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
                         @livewire('tenant.items.categories', [
-                        'categoryId' => $category_id,
-                        'name' => 'category_id',
-                        'label' => 'Categoría',
-                        'placeholder' => 'Seleccione una categoria',
-                        'required' => true,
-                        'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
-                        dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
-                        focus:ring-indigo-500 focus:border-indigo-500'
+                            'categoryId' => $category_id,
+                            'name' => 'category_id',
+                            'label' => 'Categoría',
+                            'placeholder' => 'Seleccione una categoria',
+                            'required' => true,
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
+                            dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
+                            focus:ring-indigo-500 focus:border-indigo-500'
                         ])
                         @error('category_id') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre
-                                <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Nombre
+                                <span class="text-red-500 ml-0.5">*</span>
+                                <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Nombre comercial o descripción corta del producto.
+                                    </div>
+                                </div>
+                            </label>
                             <input wire:model="name" type="text" id="name"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ingrese nombre del producto">
@@ -414,8 +546,20 @@
 
                         <div class="mb-3 grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código
-                                    interno<span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Código interno
+                                    <span class="text-red-500 ml-0.5">*</span>
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Código de identificación interno del producto.
+                                    </div>
+                                </div>
+                                </label>
                                 <input wire:model.live.debounce.400ms="internal_code" type="text" id="internal_code"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="Ingrese el código interno">
@@ -429,8 +573,20 @@
                                 @endif
                             </div>
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SKU</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    SKU
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Código SKU (Stock Keeping Unit) para el control de inventario.
+                                    </div>
+                                </div>
+                                </label>
                                 <input wire:model.live.debounce.400ms="sku" type="text" id="sku"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="Ingrese el sku">
@@ -446,9 +602,22 @@
 
                         <div class="mb-3 grid grid-cols-2 gap-2">
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo <span class="text-red-500">*</span></label>
-                                <select wire:model="type" {{ $disabled ? 'disabled' : '' }}
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Tipo
+                                    <span class="text-red-500 ml-0.5">*</span>
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Define el tipo de artículo (Importado, Ensamblado, Producido, Insumo, etc.).
+                                    </div>
+                                </div>
+                                </label>
+                                <select wire:model.live="type" {{ $disabled ? 'disabled' : '' }}
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
                                     @foreach($types as $k => $v)
@@ -458,8 +627,21 @@
                                 @error('type') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impuesto <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Impuesto
+                                    <span class="text-red-500 ml-0.5">*</span>
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Porcentaje de IVA o impuesto aplicable a este producto.
+                                    </div>
+                                </div>
+                                </label>
                                 <select wire:model="tax"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
@@ -472,38 +654,40 @@
                         </div>
 
                         @if($showCommand)
-                        @livewire('tenant.items.command', [
-                        'commandId' => $commandId,
-                        'name' => 'commandId',
-                        'label' => 'Comanda',
-                        'placeholder' => 'Seleccione una comanda',
-                        'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
-                        dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
-                        focus:ring-indigo-500 focus:border-indigo-500'
-                        ])
+                            @if ($type == 'PRODUCIDO')  
+                                @livewire('tenant.items.command', [
+                                'commandId' => $commandId,
+                                'name' => 'commandId',
+                                'label' => 'Comanda',
+                                'placeholder' => 'Seleccione una comanda',
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
+                                dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
+                                focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                            @endif
                         @endif
 
                         @livewire('tenant.items.brand',[
-                        'brandId' => $brandId,
-                        'name' => 'brandId',
-                        'label' => 'Marca',
-                        'placeholder' => 'Seleccione una marca',
-                        'required' => true,
-                        'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
-                        dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
-                        focus:ring-indigo-500 focus:border-indigo-500'
+                            'brandId' => $brandId,
+                            'name' => 'brandId',
+                            'label' => 'Marca',
+                            'placeholder' => 'Seleccione una marca',
+                            'required' => true,
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
+                            dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
+                            focus:ring-indigo-500 focus:border-indigo-500'
                         ])
                         @error('brandId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
                         @livewire('tenant.items.house',[
-                        'houseId' => $houseId,
-                        'name' => 'houseId',
-                        'label' => 'Casa',
-                        'placeholder' => 'Seleccione una casa',
-                        'required' => true,
-                        'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
-                        dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
-                        focus:ring-indigo-500 focus:border-indigo-500'
+                            'houseId' => $houseId,
+                            'name' => 'houseId',
+                            'label' => 'Casa',
+                            'placeholder' => 'Seleccione una casa',
+                            'required' => true,
+                            'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white
+                            dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2
+                            focus:ring-indigo-500 focus:border-indigo-500'
                         ])
                         @error('houseId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
 
@@ -536,32 +720,114 @@
                         <div class="mb-3 grid grid-cols-2 gap-2">
                             @if($this->manageSerials())
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maneja
-                                    Serial</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Maneja Serial
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Indica si el producto requiere seguimiento mediante número de serie único.
+                                    </div>
+                                </div>
+                                </label>
                                 <select wire:model="handles_serial"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
                                     <option value="1">SI</option>
                                     <option value="0">NO</option>
                                 </select>
-                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                @error('handles_serial') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
                             @endif
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maneja
-                                    Inventario</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Maneja Inventario
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Indica si se controlan las existencias físicas del producto en el inventario.
+                                    </div>
+                                </div>
+                                </label>
                                 <select wire:model="inventoriable"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="">-- Seleccione --</option>
                                     <option value="1">SI</option>
                                     <option value="0">NO</option>
                                 </select>
-                                @error('type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                                @error('inventoriable') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
+
+                            @if($inventoriable == 1)
+                            <div class="col-span-2 grid grid-cols-2 gap-4 border p-4 rounded-xl border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 mt-2">
+                                <div class="col-span-2">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                        </svg>
+                                        Parámetros de Página Web (WooCommerce)
+                                    </h4>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                        % Stock WordPress
+                                        <!-- Tooltip -->
+                                        <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                            <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                Porcentaje del stock neto disponible que se publicará en la página web. Ej: 50% de 10 unidades publicará 5.
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" wire:model="wpStockPercentage"
+                                            min="0" max="100" step="1"
+                                            class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="100">
+                                        <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                                    </div>
+                                    @error('wpStockPercentage') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                        Can Mínima WordPress
+                                        <!-- Tooltip -->
+                                        <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                            <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0).
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <input type="number" wire:model="wpMinStock"
+                                        min="0" step="any"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="0">
+                                    @error('wpMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            @endif
                         </div>
 
                         <div class="mb-3">
-                            <label class="block text-sm">Descripción</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
                             <textarea wire:model="description"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 rows="3">
@@ -569,104 +835,81 @@
                         </div>
 
                         <!-- Mensajes dentro del modal -->
-                <div class="px-6 pt-4">
-                    <!-- Mensaje de éxito general -->
-                    @if (session()->has('message'))
-                    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-4">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            {{ session('message') }}
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Mensaje de error general -->
-                    @if (session()->has('error'))
-                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            {{ session('error') }}
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Mensaje de sincronización exitosa -->
-                    @if (session()->has('sync_message'))
-                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg mb-4">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            {{ session('sync_message') }}
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Mensaje de advertencia de sincronización -->
-                    @if (session()->has('sync_warning'))
-                    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-4">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"></path>
-                                </svg>
-                                <span>{{ session('sync_warning') }}</span>
+                        <div class="px-6 pt-4">
+                            <!-- Mensaje de éxito general -->
+                            @if (session()->has('message'))
+                            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    {{ session('message') }}
+                                </div>
                             </div>
-                            <button wire:click="cancel" class="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    @endif
+                            @endif
 
-                    <!-- Mensaje de error de sincronización -->
-                    @if (session()->has('sync_error'))
-                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>{{ session('sync_error') }}</span>
+                            <!-- Mensaje de error general -->
+                            @if (session()->has('error'))
+                            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    {{ session('error') }}
+                                </div>
                             </div>
-                            <button wire:click="cancel" class="ml-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    @endif
-                </div>
+                            @endif
 
-                        <!--div class="flex items-center justify-between">
-                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Generico
-                            </label>
-                            <div class="flex items-center space-x-3">
-                                <span class="text-sm transition-colors duration-200 {{ $generic ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium' }}">
-                                    NO
-                                </span-->
-                        <!-- Toggle Switch -->
-                        <!--button type="button" 
-                                    wire:click="toggleGeneric" 
-                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $generic ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
-                                    role="switch" 
-                                    aria-checked="{{ $generic ? 'true' : 'false' }}"
-                                    aria-label="Toggle company status">
-                                    <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out {{ $generic ? 'translate-x-6' : 'translate-x-1' }}"></span>
-                                </button>
-                                <span class="text-sm transition-colors duration-200 {{ $generic ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400' }}">
-                                    SI
-                                </span>
+                            <!-- Mensaje de sincronización exitosa -->
+                            @if (session()->has('sync_message'))
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    {{ session('sync_message') }}
+                                </div>
                             </div>
-                        </div -->
+                            @endif
+
+                            <!-- Mensaje de advertencia de sincronización -->
+                            @if (session()->has('sync_warning'))
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"></path>
+                                        </svg>
+                                        <span>{{ session('sync_warning') }}</span>
+                                    </div>
+                                    <button wire:click="cancel" class="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Mensaje de error de sincronización -->
+                            @if (session()->has('sync_error'))
+                            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span>{{ session('sync_error') }}</span>
+                                    </div>
+                                    <button wire:click="cancel" class="ml-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
 
                         <div class="border-t border-gray-300 my-6"></div>
                         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Valores</h3>
@@ -690,12 +933,13 @@
                                                 ['label' => 'Precio Base', 'type' => 'Precio'],
                                                 ['label' => 'Precio Regular', 'type' => 'Precio'],
                                                 ['label' => 'Precio Crédito', 'type' => 'Precio'],
+                                                ['label' => 'Precio unitario x caja', 'type' => 'Precio'],
                                             ];
                                         @endphp
                                         @foreach ($staticValues as $index => $staticValue)
                                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                                                 <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                                                    {{ $staticValue['label'] }}
+                                                    {{ $staticValue['label'] === 'Precio Base' ? 'Precio Lista' : ($staticValue['label'] === 'Precio Regular' ? 'Precio Mínimo' : $staticValue['label']) }}
                                                 </td>
                                                 <td class="px-4 py-3 text-sm">
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $staticValue['type'] === 'Costo' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' }}">
@@ -734,16 +978,20 @@
                         <!-- Sección de Galería de Imágenes -->
                         @if ($item_id)
                         <div class="border-t border-gray-300 dark:border-gray-600 my-6"></div>
-                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                </path>
-                            </svg>
-                            Imágenes del Producto
-                        </h3>
-                        @livewire('tenant.items.item-image-upload', ['itemId' => $item_id],
-                        key('image-upload-'.$item_id))
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Imágenes del Producto
+                            </h3>
+                            <button type="button" @click="$dispatch('openImageModalCargar', { productId: {{ $item_id }} })"
+                                class="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg hover:bg-indigo-200 transition-colors">
+                                Gestionar Galería
+                            </button>
+                        </div>
                         @endif
 
                         <!-- Mensajes -->
@@ -783,25 +1031,25 @@
                         </div>
                     </div>
                 </form>
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
+                    <!-- PESTAÑA 2: Contenido según el tipo del item -->
+                    @if($showProductionSection)
+                        @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
+                            @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
+                        @elseif($type == 'PRODUCIDO')
+                            @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
+                        @endif
+                    @elseif($showDimensionSection)
+                        @livewire('tenant.items.manage-dimensions', ['itemId' => $item_id], key('dim-'.$item_id))
+                    @elseif($showAccesoriosSection)
+                        @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
+                    @endif
+                @endif
+
             </div>
         </div>
     </div>
     @endif
-
-    <!-- Delete confirmation (simple) -->
-    <div x-data="{ open: @entangle('confirmingItemDeletion') }" x-show="open" style="display:none;"
-        class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="fixed inset-0 bg-black opacity-50"></div>
-        <div class="bg-white rounded shadow p-6 z-50 w-full max-w-md">
-            <h4 class="text-lg font-medium mb-4">Confirmar eliminación</h4>
-            <p class="mb-4">¿Deseas eliminar este item?</p>
-            <div class="flex justify-end space-x-2">
-                <button type="button" wire:click="cancel" class="px-3 py-1 border rounded">Cancelar</button>
-                <button type="button" wire:click="deleteItem"
-                    class="px-3 py-1 bg-red-600 text-white rounded">Eliminar</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal Values -->
     @if($showValuesModal)
@@ -1012,4 +1260,6 @@
         </div>
     </div>
     @endif
+
+    @livewire('tenant.components.product-image-modal-cargar')
 </div>

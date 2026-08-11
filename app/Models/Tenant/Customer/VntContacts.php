@@ -92,6 +92,20 @@ class VntContacts extends Model
         'positionId' => 1,
     ];
 
+    /**
+     * Los atributos que se agregan al serializar el modelo.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'full_name',
+        'short_name',
+        'primary_phone',
+        'identification',
+        'billingEmail',
+        'display_name',
+    ];
+
     // --- Relaciones ---
 
     /**
@@ -196,7 +210,27 @@ class VntContacts extends Model
     }
 
     /**
-     * Obtiene el nombre completo del contacto.
+     * Obtiene el nombre para mostrar según el tipo de identificación de la empresa.
+     * - Si la empresa tiene typeIdentificationId = 2 (NIT/Jurídica) → businessName
+     * - Si la empresa tiene typeIdentificationId = 1 (CC/Natural) → firstName + secondName + lastName + secondLastName
+     * - Si no hay empresa asociada → concatena los campos del contacto directamente
+     *
+     * @return string
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        // Si el contacto tiene empresa, delegar la lógica al modelo VntCompany
+        if ($this->company) {
+            return $this->company->display_name;
+        }
+
+        // Si no hay empresa, usar el nombre completo del contacto como fallback
+        return $this->getFullNameAttribute();
+    }
+
+    /**
+     * Obtiene el nombre completo del contacto (firstName + secondName + lastName + secondLastName).
+     * Nota: use `display_name` cuando necesites respetar el tipo de identificación.
      *
      * @return string
      */
@@ -235,5 +269,25 @@ class VntContacts extends Model
     public function getPrimaryPhoneAttribute()
     {
         return $this->business_phone ?: $this->personal_phone;
+    }
+
+    /**
+     * Obtiene la identificación de la empresa asociada al contacto.
+     *
+     * @return string|null
+     */
+    public function getIdentificationAttribute()
+    {
+        return $this->company?->identification;
+    }
+
+    /**
+     * Obtiene el email de facturación de la empresa asociada al contacto.
+     *
+     * @return string|null
+     */
+    public function getBillingEmailAttribute()
+    {
+        return $this->company?->billingEmail;
     }
 }

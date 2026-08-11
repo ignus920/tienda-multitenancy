@@ -49,11 +49,11 @@ class SetTenantConnection
             return redirect()->route('tenant.select')->withErrors(['tenant' => 'No tiene acceso a este tenant']);
         }
 
+        // Inicializar tenancy usando Stancl primero para que no purgue nuestra conexión después
+        tenancy()->initialize($tenant);
+
         // Establecer la conexión al tenant
         $this->tenantManager->setConnection($tenant);
-
-        // Inicializar tenancy usando Stancl
-        tenancy()->initialize($tenant);
 
         // Actualizar último acceso
         if ($user) {

@@ -83,8 +83,31 @@ class VntCompany extends Model
         'deleted_at',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($company) {
+            if ($company->identification) {
+                $exists = self::where('identification', $company->identification)
+                    ->where('id', '!=', $company->id)
+                    ->first();
+                if ($exists) {
+                    $name = $exists->businessName ?: trim(implode(' ', array_filter([$exists->firstName, $exists->secondName, $exists->lastName, $exists->secondLastName])));
+                    throw new \Exception("La identificación {$company->identification} ya se encuentra registrada para el cliente '{$name}' (ID: {$exists->id}).");
+                }
+            }
+        });
+    }
+
 
     // --- Relaciones ---
+
+    /**
+     * Relación con las configuraciones del portal de clientes
+     */
+    public function portalSettings()
+    {
+        return $this->hasOne(VntCompanyPortalSettings::class, 'company_id');
+    }
 
     /**
      * Relación con las sucursales (warehouses)
@@ -138,5 +161,37 @@ class VntCompany extends Model
     public function routes()
     {
         return $this->hasMany(VntCompanyRoute::class, 'company_id');
+    }
+
+    /**
+     * Obtiene el nombre del cliente (Razón Social o Nombre Completo)
+     * Mantiene compatibilidad con código existente.
+     */
+    public function getCustomerNameAttribute()
+    {
+        return $this->getDisplayNameAttribute();
+    }
+
+    /**
+     * Obtiene el nombre para mostrar según el tipo de identificación:
+     * - typeIdentificationId = 1 → Persona Natural → firstName + secondName + lastName + secondLastName
+     * - typeIdentificationId = 2 → Persona Jurídica → businessName
+     *
+     * @return string
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        // Tipo 2 = Persona Jurídica (NIT) → Razón Social
+        if ((int) $this->typeIdentificationId === 2 && !empty(trim($this->businessName ?? ''))) {
+            return $this->businessName;
+        }
+
+        // Tipo 1 = Persona Natural (o fallback si businessName está vacío) → Nombre completo concatenado
+        return trim(implode(' ', array_filter([
+            $this->firstName,
+            $this->secondName,
+            $this->lastName,
+            $this->secondLastName,
+        ])));
     }
 }

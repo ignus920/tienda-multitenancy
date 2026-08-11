@@ -5,4 +5,5 @@ return [
     App\Providers\RouteInventoryServiceProvider::class,
     App\Providers\VoltServiceProvider::class,
     App\Providers\ConfigurationServiceProvider::class,
+    Barryvdh\DomPDF\ServiceProvider::class,
 ];

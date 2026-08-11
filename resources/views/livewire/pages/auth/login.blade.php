@@ -83,15 +83,32 @@ new #[Layout('layouts.guest')] class extends Component
                 
                 // Si solo tiene un tenant, establecerlo automáticamente
                 if ($userTenants->count() === 1) {
-                    Session::put('tenant_id', $userTenants->first()->id);
+                    $tenant = $userTenants->first();
+                    Session::put('tenant_id', $tenant->id);
+
+                    // --- VALIDACIÓN DE CONTROL DE ACCESO ---
+                    if (!auth()->user()->isSuperAdmin()) {
+                        $accessResult = $tenant->run(function () use ($user, $tenant) {
+                            app(\App\Services\Tenant\TenantManager::class)->setConnection($tenant);
+                            $accessService = new \App\Services\Tenant\Auth\AccessControlService();
+                            return $accessService->checkAccess($user);
+                        });
+                        
+                        if (!$accessResult['status']) {
+                            auth()->logout();
+                            Session::invalidate();
+                            $this->dispatch('login-error', [
+                                'title' => 'Acceso restringido',
+                                'message' => $accessResult['message'],
+                                'icon' => 'error'
+                            ]);
+                            return;
+                        }
+                    }
                 }
                 
-                // Marcar que necesita seleccionar sucursal
-                Session::put('needs_warehouse_selection', true);
-                Session::put('warehouse_redirect_route', 'petty-cash.petty-cash');
-                
-                // Redirigir a tenant.select (el modal se abrirá automáticamente)
-                $this->redirect(route('tenant.select'), navigate: true);
+                // Redirigir a la ruta de importaciones
+                $this->redirect(route('imports.imports-orders'), navigate: true);
                 return;
             }
 
@@ -100,14 +117,35 @@ new #[Layout('layouts.guest')] class extends Component
             
             // Si solo tiene un tenant, establecerlo automáticamente
             if ($userTenants->count() === 1) {
-                Session::put('tenant_id', $userTenants->first()->id);
+                $tenant = $userTenants->first();
+                Session::put('tenant_id', $tenant->id);
+
+                // --- VALIDACIÓN DE CONTROL DE ACCESO ---
+                if (!auth()->user()->isSuperAdmin()) {
+                    $accessResult = $tenant->run(function () use ($user, $tenant) {
+                        app(\App\Services\Tenant\TenantManager::class)->setConnection($tenant);
+                        $accessService = new \App\Services\Tenant\Auth\AccessControlService();
+                        return $accessService->checkAccess($user);
+                    });
+                    
+                    if (!$accessResult['status']) {
+                        auth()->logout();
+                        Session::invalidate();
+                        $this->dispatch('login-error', [
+                            'title' => 'Acceso restringido',
+                            'message' => $accessResult['message'],
+                            'icon' => 'error'
+                        ]);
+                        return;
+                    }
+                }
             }
             
             // Marcar que necesita seleccionar sucursal
             Session::put('needs_warehouse_selection', true);
             Session::put('warehouse_redirect_route', 'tenant.select');
             
-            // Redirigir a tenant.select (el modal se abrirá automáticamente)
+            // Redirigir a tenant.select
             $this->redirect(route('tenant.select'), navigate: true);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Si hay 2FA habilitado, redirigir a verificación
@@ -193,13 +231,9 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }">
     <!-- Header -->
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-        <div class="mx-auto h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-lg">
-            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-1.25 0V3.75a.75.75 0 00-.75-.75H14.25a.75.75 0 00-.75.75V4.5" />
-            </svg>
-        </div>
-        <h2 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm flex flex-col items-center">
+        <img class="mx-auto h-16 w-auto object-contain" src="{{ asset('images/logofervi.png') }}" alt="Logo Fervi">
+        <h2 class="mt-6 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">
             Iniciar sesión en tu cuenta
         </h2>
     </div>
@@ -298,14 +332,15 @@ new #[Layout('layouts.guest')] class extends Component
                     type="submit"
                     class="flex w-full justify-center items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 min-h-[40px]"
                     wire:loading.attr="disabled"
+                    wire:target="login"
                 >
                     <div class="flex items-center justify-center">
-                        <svg wire:loading class="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg wire:loading wire:target="login" class="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span wire:loading.remove>Iniciar sesión</span>
-                        <span wire:loading>Iniciando sesión...</span>
+                        <span wire:loading.remove wire:target="login">Iniciar sesión</span>
+                        <span wire:loading wire:target="login">Iniciando sesión...</span>
                     </div>
                 </button>
             </div>

@@ -62,6 +62,7 @@ class VntWarehouse extends Model
         'api_data_id',
         'main',
         'branch_type',
+        'phone',
         // 'created_at' y 'updated_at' se manejan automáticamente
     ];
 
@@ -132,6 +133,14 @@ class VntWarehouse extends Model
     public function districtRelation()
     {
         return $this->belongsTo(\App\Models\Central\CnfDistrict::class, 'district', 'id');
+    }
+
+    /**
+     * Relación con los stores del warehouse
+     */
+    public function stores()
+    {
+        return $this->hasMany(\App\Models\Tenant\Items\InvStore::class, 'warehouseId', 'id');
     }
 
     public function scopeDespacho($query)

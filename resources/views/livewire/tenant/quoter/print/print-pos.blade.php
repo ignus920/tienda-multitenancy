@@ -112,12 +112,12 @@
         }
 
         .product-code {
-            font-size: 7pt;
+            font-size: 14pt;
             color: #666;
         }
 
         .product-name {
-            font-size: 8pt;
+            font-size: 11pt;
             font-weight: bold;
             margin: 1mm 0;
             word-wrap: break-word;
@@ -254,13 +254,18 @@
 
     <!-- Customer Info -->
     <div class="customer-section">
-        <div class="customer-line bold">Cliente: {{ Str::limit($customer->businessName ?: $customer->firstName . ' ' . $customer->lastName, 35) }}</div>
-        <div class="customer-line">{{ $customer->identification }}</div>
-        @if($customer->phone)
-            <div class="customer-line">Tel: {{ $customer->phone }}</div>
-        @endif
-        @if($customer->billingEmail)
-            <div class="customer-line">{{ Str::limit($customer->billingEmail, 30) }}</div>
+        @if($customer)
+            <div class="customer-line bold">Cliente: {{ Str::limit($customer->businessName ?: $customer->firstName . ' ' . $customer->lastName, 35) }}</div>
+            <div class="customer-line">{{ $customer->identification }}</div>
+            @php $phoneVal = trim($customer->warehouse->phone ?? $customer->phone ?? $customer->personal_phone ?? $customer->business_phone ?? ''); @endphp
+            @if($phoneVal && $phoneVal !== 'N/A' && $phoneVal !== 'na' && $phoneVal !== 'n/a')
+                <div class="customer-line">Tel: {{ $phoneVal }}</div>
+            @endif
+            @if($customer->billingEmail)
+                <div class="customer-line">{{ Str::limit($customer->billingEmail, 30) }}</div>
+            @endif
+        @else
+            <div class="customer-line bold">Cliente: —</div>
         @endif
     </div>
 
@@ -269,27 +274,153 @@
     <!-- Products -->
     <div class="products-section">
         @php
+            $subtotalGlobal = 0;
+            $ivaGlobal = 0;
             $totalGeneral = 0;
+
+            $sortedDetalles = $quote->detalles->sort(function ($a, $b) {
+                // 1. Tipo de item (1 = Producto físico, 2 = Cortes/Servicios, 3 = Fletes)
+                $getType = function ($detalle) {
+                    $sku = strtolower($detalle->item->sku ?? '');
+                    $name = strtolower($detalle->item->name ?? $detalle->item->display_name ?? '');
+                    $type = strtolower($detalle->item->type ?? '');
+
+                    if (str_contains($sku, 'flete') || str_contains($name, 'flete')) return 3;
+                    if (str_contains($sku, 'corte') || str_contains($name, 'corte') || str_contains($type, 'servicio')) return 2;
+                    return 1;
+                };
+
+                $typeA = $getType($a);
+                $typeB = $getType($b);
+
+                if ($typeA !== $typeB) {
+                    return $typeA <=> $typeB;
+                }
+
+                // 2. Primera letra del picking (prioridad: P -> 1, A -> 2, M -> 3, otras -> 4_letra)
+                $getPickingPriority = function ($detalle) {
+                    $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                    if (empty($picking) || $picking === 'N/A') return 'ZZZ';
+                    
+                    preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                    if ($matches) {
+                        $char1 = $matches[1];
+                        if ($char1 === 'P') return '1';
+                        if ($char1 === 'A') return '2';
+                        if ($char1 === 'M') return '3';
+                        return '4_' . $char1;
+                    }
+                    return 'ZZZ';
+                };
+
+                $prioA = $getPickingPriority($a);
+                $prioB = $getPickingPriority($b);
+
+                if ($prioA !== $prioB) {
+                    return $prioA <=> $prioB;
+                }
+
+                // 3. Primeros dos dígitos numéricos del picking
+                $getDigits2 = function ($detalle) {
+                    $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                    preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                    return $matches ? intval($matches[2]) : 999;
+                };
+
+                $digits2A = $getDigits2($a);
+                $digits2B = $getDigits2($b);
+
+                if ($digits2A !== $digits2B) {
+                    return $digits2A <=> $digits2B;
+                }
+
+                // 4. Letra del medio del picking
+                $getCharMiddle = function ($detalle) {
+                    $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                    preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                    return $matches ? $matches[3] : 'Z';
+                };
+
+                $charMiddleA = $getCharMiddle($a);
+                $charMiddleB = $getCharMiddle($b);
+
+                if ($charMiddleA !== $charMiddleB) {
+                    return $charMiddleA <=> $charMiddleB;
+                }
+
+                // 5. Últimos dos dígitos numéricos del picking
+                $getDigits4 = function ($detalle) {
+                    $picking = strtoupper(trim($detalle->item->picking ?? ''));
+                    preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                    return $matches ? intval($matches[4]) : 999;
+                };
+
+                $digits4A = $getDigits4($a);
+                $digits4B = $getDigits4($b);
+
+                if ($digits4A !== $digits4B) {
+                    return $digits4A <=> $digits4B;
+                }
+
+                // 6. Desempate por código interno
+                $codeA = $a->item->internal_code ?? $a->item->sku ?? '';
+                $codeB = $b->item->internal_code ?? $b->item->sku ?? '';
+
+                return $codeA <=> $codeB;
+            })->values();
         @endphp
 
-        @foreach($quote->detalles as $index => $detalle)
+        @foreach($sortedDetalles as $index => $detalle)
             @php
-                $subtotalItem = $detalle->value * $detalle->quantity;
-                $totalGeneral += $subtotalItem;
+                $valueWithoutTax = $detalle->tax > 0 
+                    ? $detalle->value / (1 + $detalle->tax / 100) 
+                    : $detalle->value;
+                $subtotalItem = $valueWithoutTax * $detalle->quantity;
+                $subtotalGlobal += $subtotalItem;
+                
+                $itemIva = ($detalle->value * $detalle->quantity) - $subtotalItem;
+                $ivaGlobal += $itemIva;
+                
+                $totalGeneral += ($detalle->value * $detalle->quantity);
             @endphp
 
             <div class="product-item">
-                @if($detalle->item->sku)
-                    <div class="product-code">{{ $detalle->item->sku }}</div>
+                @if($detalle->item?->sku || $detalle->item?->internal_code)
+                    <div class="product-code">
+                        {{ $detalle->item->internal_code ?? $detalle->item->sku }}
+                        @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
+                            <span style="color: #e74c3c; margin-left: 2px;">({{ $detalle->item->picking }})</span>
+                        @endif
+                    </div>
+                @else
+                    @if($detalle->item && $detalle->item->picking && $detalle->item->picking !== 'N/A')
+                        <div class="product-code" style="color: #e74c3c;">{{ $detalle->item->picking }}</div>
+                    @endif
                 @endif
 
                 <div class="product-name">
-                    {{ Str::limit($detalle->item->name ?? $detalle->item->display_name, 35) }}
+                    {{ Str::limit($detalle->description ?? $detalle->item?->name ?? $detalle->item?->display_name ?? 'Producto no encontrado', 35) }}
                 </div>
+                @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
+                    <div style="color: red; font-size: 7pt; margin-top: 1mm;">
+                        @foreach($detalle->item->accessories as $accessory)
+                            @php
+                                $insumoName = $accessory->relationLoaded('insumo') 
+                                    ? ($accessory->getRelation('insumo')->name ?? $accessory->getRelation('insumo')->display_name ?? 'Insumo #'.$accessory->insumo)
+                                    : ($accessory->insumo()->first()->name ?? $accessory->insumo()->first()->display_name ?? 'Insumo #'.$accessory->insumo);
+                            @endphp
+                            <div>{{ $accessory->observacion ? $accessory->observacion . ' - ' : '' }}{{ Str::limit($insumoName, 20) }} - {{ $accessory->quantity * $detalle->quantity }}</div>
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="quantity-price">
-                    <span>{{ $detalle->quantity }} x ${{ number_format($detalle->value, 0) }}</span>
-                    <span class="bold">${{ number_format($subtotalItem, 0) }}</span>
+                    @if(!isset($showValues) || $showValues)
+                        <span>{{ $detalle->quantity }} x ${{ number_format($valueWithoutTax, 0) }}</span>
+                        <span class="bold">${{ number_format($subtotalItem, 0) }}</span>
+                    @else
+                        <span>Cantidad: {{ $detalle->quantity }}</span>
+                    @endif
                 </div>
             </div>
         @endforeach
@@ -298,27 +429,47 @@
     <div class="separator"></div>
 
     <!-- Totals -->
+    @if(!isset($showValues) || $showValues)
     <div class="totals-section">
         <div class="total-line">
             <span>Subtotal:</span>
-            <span>${{ number_format($totalGeneral, 0) }}</span>
+            <span>${{ number_format($subtotalGlobal, 0) }}</span>
         </div>
         <div class="total-line">
-            <span>IVA (0%):</span>
-            <span>$0</span>
+            <span>IVA:</span>
+            <span>${{ number_format($ivaGlobal, 0) }}</span>
         </div>
+        @php
+            $flete = $quote->flete ?? 0;
+            $totalFinal = $totalGeneral + $flete;
+        @endphp
+        @if($flete > 0)
+        <div class="total-line">
+            <span>Flete:</span>
+            <span>${{ number_format($flete, 0) }}</span>
+        </div>
+        @endif
         <div class="total-line final-total">
             <span>TOTAL:</span>
-            <span>${{ number_format($totalGeneral, 0) }}</span>
+            <span>${{ number_format($totalFinal, 0) }}</span>
         </div>
     </div>
+    @endif
 
     <!-- Observations -->
-    @if($quote->observations)
+    @if($quote->observations || isset($giftObservation))
         <div class="separator"></div>
         <div class="observations-section">
             <div class="observations-title">Observaciones:</div>
-            <div class="observations-text">{{ $quote->observations }}</div>
+            <div class="observations-text">
+                @if($quote->observations)
+                    {!! nl2br(e($quote->observations)) !!}
+                @endif
+                @if(isset($giftObservation))
+                    @if($quote->observations) <br> @endif
+                    <div style="font-weight: bold; margin-top: 1mm;">{!! nl2br(e($giftObservation)) !!}</div>
+                @endif
+            </div>
         </div>
     @endif
 
@@ -327,7 +478,7 @@
         <div class="separator"></div>
         <div class="qr-section">
             <div class="small">Escanea para catálogo:</div>
-            <div class="qr-placeholder">QR</div>
+            <img src="{{ asset('images/QR-fervicom.png') }}" style="width: 30mm;" alt="QR Fervicom">
         </div>
     @endif
 
@@ -351,9 +502,11 @@
             ¡Gracias por su preferencia!
         </div>
 
+        @if(!isset($showValues) || $showValues)
         <div class="mt-2 small">
             Cotización válida por 15 días
         </div>
+        @endif
     </div>
 
     <div style="margin-top: 10mm;"></div> <!-- Espacio final para corte -->

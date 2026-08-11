@@ -11,3 +11,8 @@ CHANGELOG.md export-ignore
 .editorconfig export-ignore
 .gitattributes export-ignore
 .gitignore export-ignore
+
+# Archivos que siempre mantienen la versión de la rama destino en merges
+app/Services/Tenant/TenantManager.php merge=ours
+config/database.php merge=ours
+vite.config.js merge=ours

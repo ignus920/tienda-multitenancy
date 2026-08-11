@@ -22,6 +22,7 @@ class WarehouseService
                 'cityId' => !empty($warehouseData['cityId']) ? $warehouseData['cityId'] : null,
                 'main' => $warehouseData['main'] ? 1 : 0,
                 'status' => 1,
+                'phone' => $warehouseData['phone'] ?? null,
             ]);
             // }
         }
@@ -32,9 +33,9 @@ class WarehouseService
      */
     public function updateWarehouses(VntCompany $company, array $warehouses): void
     {
-        // Eliminar sucursales que ya no están en el array
+        // Eliminar sucursales que ya no están en el array (solo afectando a las principales)
         $existingIds = collect($warehouses)->pluck('id')->filter();
-        $company->warehouses()->whereNotIn('id', $existingIds)->delete();
+        $company->warehouses()->where('main', 1)->whereNotIn('id', $existingIds)->delete();
 
         foreach ($warehouses as $warehouseData) {
             // if ($this->isValidWarehouseData($warehouseData)) {
@@ -62,6 +63,7 @@ class WarehouseService
                 'postcode' => $warehouse->postcode,
                 'cityId' => $warehouse->cityId,
                 'main' => (bool) $warehouse->main,
+                'phone' => $warehouse->phone,
             ];
         })->toArray();
     }
@@ -126,6 +128,7 @@ class WarehouseService
             'cityId' => !empty($warehouseData['cityId']) ? $warehouseData['cityId'] : null,
             'main' => $warehouseData['main'] ? 1 : 0,
             'district' => $warehouseData['district'] ?? null,
+            'phone' => $warehouseData['phone'] ?? null,
         ]);
     }
 
@@ -231,6 +234,7 @@ class WarehouseService
             'main' => $warehouseData['main'] ? 1 : 0,
             'status' => 1,
             'district' => $warehouseData['district'] ?? null,
+            'phone' => $warehouseData['phone'] ?? null,
         ]);
     }
 

@@ -123,16 +123,10 @@ class CompanyConfigurationService
      */
     public function isOptionEnabled(int $companyId, int $optionId): bool
     {
-        $cacheKey = $this->getCacheKey('option', $companyId, 0, $optionId);
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($companyId, $optionId) {
-            return DB::connection('tenant')->table('cnf_company_options')
-                ->where('company_id', $companyId)
-                ->where('option_id', $optionId)
-                ->where('value', '!=', 0)  // Cambio: cualquier valor diferente de 0
-                ->whereNull('deleted_at')
-                ->exists();
-        });
+        // Usar getOptionValue para aprovechar la precarga de caché (mismo cacheKey)
+        $value = $this->getOptionValue($companyId, $optionId);
+        
+        return $value !== null && (int) $value !== 0;
     }
 
     /**

@@ -21,10 +21,30 @@ class Dashboard extends Component
     public $tenant;
     public $user;
     public $stats = [];
+    public $startDate;
+    public $endDate;
+    public $activePeriodLabel;
+
+    public function boot()
+    {
+        $tenantId = Session::get('tenant_id');
+        if ($tenantId) {
+            $tenant = Tenant::find($tenantId);
+            if ($tenant) {
+                $tenantManager = app(\App\Services\Tenant\TenantManager::class);
+                tenancy()->initialize($tenant);
+                $tenantManager->setConnection($tenant);
+            }
+        }
+    }
 
     public function mount()
     {
         $this->user = Auth::user();
+
+        if ($this->user && $this->user->profile_id == 17) {
+            return redirect()->route('imports.imports-orders');
+        }
 
         // Obtener tenant actual de la sesión
         $tenantId = Session::get('tenant_id');
@@ -43,8 +63,25 @@ class Dashboard extends Component
         // IMPORTANTE: Inicializar configuración de empresa para multitenancy
         $this->initializeCompanyConfiguration();
 
+        // Inicializar fechas por defecto del corte de comisión
+        $this->setDefaultDates();
+
         // Cargar estadísticas reales
         $this->loadStats();
+    }
+
+    protected function setDefaultDates()
+    {
+        $today = now();
+        if ($today->day >= 26) {
+            $start = $today->copy()->day(26);
+            $end = $today->copy()->addMonth()->day(25);
+        } else {
+            $start = $today->copy()->subMonth()->day(26);
+            $end = $today->copy()->day(25);
+        }
+        $this->startDate = $start->format('Y-m-d');
+        $this->endDate = $end->format('Y-m-d');
     }
 
     /**
@@ -53,12 +90,20 @@ class Dashboard extends Component
     protected function loadStats()
     {
         try {
-            // 1. Ventas Hoy: Suma de (cantidad * valor) de detalles de cotizaciones de hoy
+            $start = \Illuminate\Support\Carbon::parse($this->startDate)->startOfDay();
+            $end = \Illuminate\Support\Carbon::parse($this->endDate)->endOfDay();
+            
+            $this->activePeriodLabel = $start->format('d/m/Y') . ' al ' . $end->format('d/m/Y');
+
+            // 1. Ventas Hoy: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN hoy
             $ventasHoy = VntDetailQuote::whereHas('cotizacion', function($query) {
-                $query->whereDate('created_at', now()->today());
+                $query->whereDate('created_at', \Illuminate\Support\Carbon::today('America/Bogota'))
+                      ->whereIn('status', ['REMISIÓN', 'FACTURADO']);
             })->get()->sum(function($detalle) {
-                return $detalle->quantity * $detalle->value;
+                $valorBase = floatval($detalle->value) / (1 + (floatval($detalle->tax) ?? 0) / 100);
+                return round(floatval($detalle->quantity) * $valorBase);
             });
+            $ventasHoy = round($ventasHoy);
 
             // 2. Total Clientes: Conteo de empresas registradas (excluyendo eliminados por SoftDeletes)
             $totalClientes = VntCompany::count();
@@ -66,19 +111,21 @@ class Dashboard extends Component
             // 3. Total Productos: Conteo de items activos
             $totalProductos = Items::active()->count();
 
-            // 4. Ventas del Mes: Suma de (cantidad * valor) de cotizaciones del mes actual
-            $ventasMes = VntDetailQuote::whereHas('cotizacion', function($query) {
-                $query->whereMonth('created_at', now()->month)
-                      ->whereYear('created_at', now()->year);
+            // 4. Ventas del Periodo: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN en el rango de fechas
+            $ventasPeriodo = VntDetailQuote::whereHas('cotizacion', function($query) use ($start, $end) {
+                $query->whereBetween('created_at', [$start, $end])
+                      ->whereIn('status', ['REMISIÓN', 'FACTURADO']);
             })->get()->sum(function($detalle) {
-                return $detalle->quantity * $detalle->value;
+                $valorBase = floatval($detalle->value) / (1 + (floatval($detalle->tax) ?? 0) / 100);
+                return round(floatval($detalle->quantity) * $valorBase);
             });
+            $ventasPeriodo = round($ventasPeriodo);
 
             $this->stats = [
                 'total_ventas_hoy' => $ventasHoy,
                 'total_clientes' => $totalClientes,
                 'total_productos' => $totalProductos,
-                'ventas_mes' => $ventasMes,
+                'ventas_mes' => $ventasPeriodo,
             ];
 
         } catch (\Exception $e) {
@@ -92,6 +139,22 @@ class Dashboard extends Component
             
             \Illuminate\Support\Facades\Log::error('Error cargando estadísticas del Dashboard: ' . $e->getMessage());
         }
+    }
+
+    public function updatedStartDate()
+    {
+        $this->loadStats();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->loadStats();
+    }
+
+    public function clearFilters()
+    {
+        $this->setDefaultDates();
+        $this->loadStats();
     }
 
     public function switchTenant()

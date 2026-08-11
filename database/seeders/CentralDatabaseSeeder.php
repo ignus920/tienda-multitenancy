@@ -33,6 +33,7 @@ class CentralDatabaseSeeder extends Seeder
             UsrProfilesSeeder::class,
             VntModulsSeeder::class,
             VntMerchantTypesSeeder::class,
+            VntMerchantModulsSeeder::class,
             VntPlainsSeeder::class,
         ]);
 

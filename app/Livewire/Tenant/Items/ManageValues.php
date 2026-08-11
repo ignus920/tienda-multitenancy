@@ -93,6 +93,17 @@ class ManageValues extends Component
             $value->update(['values' => $newValue]);
 
             $this->successMessage = "Valor actualizado exitosamente de $" . number_format($oldValue, 2) . " a $" . number_format($newValue, 2);
+
+            // Sincronizar precio con WordPress
+            if ($value->label === 'Precio Crédito' || $value->label === 'Precio Base' || $value->label === 'Precio Regular') {
+                $item = Items::find($this->ItemId);
+                if ($item) {
+                    $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                    if ($wpService->isConfigured()) {
+                        $wpService->syncItemPrice($item);
+                    }
+                }
+            }
         } else {
             $this->addError('value', 'No se pudo actualizar el valor. Verifique que el registro sea válido.');
         }
@@ -116,6 +127,7 @@ class ManageValues extends Component
             'Precio Base' => 'precio',
             'Precio Regular' => 'precio',
             'Precio Crédito' => 'precio',
+            'Precio unitario x caja' => 'precio',
         ];
 
         $type = $typeMap[$label] ?? 'costo';
@@ -138,6 +150,18 @@ class ManageValues extends Component
                 ]);
 
                 $this->successMessage = "Valor '{$label}' registrado correctamente.";
+
+                // Sincronizar precio con WordPress
+                if ($label === 'Precio Crédito' || $label === 'Precio Base' || $label === 'Precio Regular') {
+                    $item = Items::find($this->ItemId);
+                    if ($item) {
+                        $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                        if ($wpService->isConfigured()) {
+                            $wpService->syncItemPrice($item);
+                        }
+                    }
+                }
+
                 // Refrescar la vista para mostrar el nuevo valor
                 $this->dispatch('refreshValues');
             } else {

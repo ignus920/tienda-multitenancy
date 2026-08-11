@@ -4,40 +4,77 @@ namespace App\Livewire\Tenant\Quoter;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use App\Models\Tenant\Items\Items;
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Customer\VntCompany;
 use App\Models\Tenant\Customer\VntContacts;
+use App\Models\Tenant\Customer\VntWarehouse;
 use App\Models\Tenant\Quoter\VntQuote;
 use App\Models\Tenant\Quoter\VntDetailQuote;
 use App\Models\Tenant\Remissions\InvRemissions;
 use App\Models\Tenant\Remissions\InvDetailRemissions;
+use App\Models\Tenant\Remissions\InvDeliveryType;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Models\Tenant\Invoices\VntInvoicePayments;
 use App\Models\Tenant\Items\Category;
 use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Items\InvValues;
+use App\Models\Tenant\CnfTaxes;
 use App\Models\Central\VntContact;
 use App\Services\Facturacion\FacturacionService;
 use App\Services\Facturacion\TenantConfigManager;
 use App\Services\Facturacion\InvoiceDataBuilder;
+use App\Services\Tenant\RetentionCalculatorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\Livewire\HasDynamicButtons;
+use Livewire\WithFileUploads;
+use Carbon\Carbon;
 
 class ProductQuoter extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicButtons, WithFileUploads;
 
+    public $proofPaymentFile;
+    public $additionalPayments = [];
+    public $additionalPaymentFiles = [];
     public $search = '';
+    public $productFilter = 'todo';
     public $perPage = 12;
     public $sortField = 'id';
     public $sortDirection = 'desc';
+
+    public function updatingProductFilter()
+    {
+        $this->resetPage();
+    }
     public $selectedProducts = [];
     public $quoterItems = [];
     public $totalAmount = 0;
+    public $totalWeight = 0;
+    public $estimatedFreight = 0;
+    public $appliedFreight = 0; // Valor del flete aplicado manualmente
+    public $appliedPacking = 0; // Valor del empaque especial aplicado
+    public $isFreightApplied = false; // Flag para saber si el flete está activo
+    public $isFreightManuallyEdited = false;
+    public $freightJustification = '';
     public $showCartModal = false;
+    public $moduleKey = 'products';
+    public $showWarehouseModal = false; // Flag para mostrar el modal de gestión de sucursales
+    public $hideQuoter = false; // Flag para ocultar el carrito/cotizador (modo Bodega)
+
+    // Propiedades para desglose de impuestos
+    public $subTotal = 0; // Valor sin impuestos
+    public $taxBreakdown = [
+        'iva_5' => 0,    // IVA 5%
+        'iva_19' => 0,   // IVA 19%
+        'exento' => 0,   // Sin impuestos
+    ];
+    public $totalTaxes = 0; // Total de todos los impuestos
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $customerSearch = '';
     public $selectedCustomer = null;
@@ -47,10 +84,15 @@ class ProductQuoter extends Component
     public $showCreateCustomerButton = false;
     public $editingCustomerId = null;
     public $editingQuoteId = null;
+    public $editingQuoteConsecutive = null;   // consecutivo de la cotización en edición
     public $editingRemissionId = null;
     public $isEditing = false;
     public $isEditingRemission = false;
     public $hasChanges = false;
+
+    // Modal para completar datos del cliente antes de facturar
+    public $showCompleteCustomerModal = false;
+    public $pendingInvoiceAfterCustomerCompletion = false; // Reanudar facturación tras completar cliente
 
     // Propiedades para modal de pagos
     public $showPaymentModal = false;
@@ -70,12 +112,75 @@ class ProductQuoter extends Component
     // Nueva propiedad para la categoría seleccionada
     public $selectedCategory = '';
     public $customerResults = []; // Resultados de búsqueda de clientes
+    public $branches = []; // Sucursales de la empresa seleccionada
+    public $selectedBranchId = null; // ID de la sucursal seleccionada
+    public $selectedContactId = null; // ID del contacto seleccionado
+
+    // Propiedades para modal de tránsito (ETD, ETA, Fervicom)
+    public $showTransitModal = false;
+    public $transitProductCode = '';
+    public $transitProductName = '';
+    public $transitDetails = [];
+
+    // Propiedades para retenciones
+    public $retentions = [
+        'retention_fuente' => 0,
+        'retention_ica' => 0,
+        'retention_iva' => 0,
+    ];
+    public $showRetentions = false; // Mostrar sección de retenciones solo si hay valores > 0
+    public $totalWithRetentions = 0; // Total después de aplicar retenciones
+
+    // Array reactivo para acumular en tiempo real las etiquetas de descuento de la sesión
+    public $appliedDiscounts = [];
+
+    // Propiedades para selección de tipo de entrega
+    public $deliveryTypes = [];
+    public $selectedDeliveryType = null;
+    public $deliveryDetails = '';
+    public $orderDetails = '';
+    public $paymentDetails = '';
+    public $showDeliveryModal = false;
+    public $requiresDeliveryDetails = false;
+
+    // Propiedades para métodos de pago en remisión
+    public $methodPayments = [];
+    public $selectedMethodPayment = null;
+    public $showOtherDeliveryInput = false;
+    public $otherDeliveryDetails = '';
+
+    // Propiedad para controlar el modo de vista de productos
+    public $viewMode = 'grid'; // 'grid' (actual) o 'table' (nuevo)
+
+    // Propiedades para el modal de producto genérico
+    public $showGenericProductModal = false;
+    public $genericProductName = '';
+    public $genericProductPrice = 0;
+    public $genericProductTaxId = null;
+
+    // Propiedad para el modo de copia
+    public $isCopyMode = false;
+
+    public function toggleCopyMode()
+    {
+        $this->isCopyMode = !$this->isCopyMode;
+
+        $this->dispatch('show-toast', [
+            'type' => $this->isCopyMode ? 'success' : 'info',
+            'message' => $this->isCopyMode ? 'Modo Copia Activado' : 'Modo Cotización Activado'
+        ]);
+
+        Log::info('🔄 Cambio de modo', ['isCopyMode' => $this->isCopyMode]);
+    }
 
     protected $listeners = [
         'customer-created' => 'onCustomerCreated',
         'vnt-company-saved' => 'onCustomerCreated',
         'customer-updated' => 'onCustomerUpdated',
-        'customer-form-cancelled' => 'cancelCreateCustomer'
+        'customer-form-cancelled' => 'cancelCreateCustomer',
+        'refreshProductList' => '$refresh',
+        'warehouse-selected' => 'selectBranch',
+        'openTransitDetailsModal' => 'loadTransitDetails'
     ];
 
     public function updatedObservaciones()
@@ -169,8 +274,10 @@ class ProductQuoter extends Component
 
     public function boot()
     {
-        // Establecer conexión tenant lo más pronto posible (antes de la hidratación de modelos)
-        $this->ensureTenantConnection();
+        // Establecer conexión tenant solo si no está inicializada
+        if (!tenancy()->initialized) {
+            $this->ensureTenantConnection();
+        }
     }
 
     public function updatingSearch()
@@ -205,9 +312,26 @@ class ProductQuoter extends Component
 
     public function mount($quoteId = null, $remissionId = null)
     {
-        // Obtener viewType de la ruta o usar desktop por defecto
-        $this->viewType = request()->route('viewType', 'desktop');
-        $this->ensureTenantConnection();
+        // Obtener viewType de los defaults de la ruta
+        $route = request()->route();
+        $this->viewType = $route ? $route->getAction('viewType') : null;
+
+        // Si no viene en la ruta, detectar por dispositivo (Seguridad extra)
+        if (!$this->viewType) {
+            $agent = new \Jenssegers\Agent\Agent();
+            $this->viewType = ($agent->isMobile() || $agent->isTablet()) ? 'mobile' : 'desktop';
+        }
+
+        // Detección por nombre de ruta para visibilidad de elementos de bodega
+        $routeName = $route ? $route->getName() : '';
+        $this->hideQuoter = str_contains($routeName, '.bodega');
+
+        Log::info('🚀 ProductQuoter montado', [
+            'viewType' => $this->viewType,
+            'routeName' => $routeName,
+            'quoteId' => $quoteId,
+            'remissionId' => $remissionId
+        ]);
 
         // Resetear página si viene de otra vista
         $this->resetPage();
@@ -224,10 +348,16 @@ class ProductQuoter extends Component
             // Si se pasa un remissionId, estamos editando una remisión
             $this->loadRemissionForEditing($remissionId);
         } else {
-            $this->quoterItems = session('quoter_items', []);
+            // Modo creación limpia: siempre iniciar con carrito vacío
+            // para evitar que productos de ediciones previas queden cargados
+            $this->quoterItems = [];
+            session()->forget('quoter_items');
         }
 
         $this->calculateTotal();
+        $this->loadDeliveryTypes();
+        $this->loadMethodPayments();
+        $this->getCanShowInvoiceButtonProperty(); // Evaluar visibilidad del botón de facturar al montar
 
         Log::info('🚀 ProductQuoter montado', [
             'viewType' => $this->viewType,
@@ -261,7 +391,9 @@ class ProductQuoter extends Component
      */
     public function hydrate()
     {
-        $this->ensureTenantConnection();
+        if (!tenancy()->initialized) {
+            $this->ensureTenantConnection();
+        }
     }
 
     private function ensureTenantConnection()
@@ -287,6 +419,43 @@ class ProductQuoter extends Component
         tenancy()->initialize($tenant);
     }
 
+    /**
+     * Verifica si el usuario autenticado tiene permisos para gestionar la cuarentena de productos.
+     * Solo disponible para Super Administradores, perfil 2 (Administrador) y personal de Gerencia.
+     */
+    public function canManageQuarantine(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        // Super administrador
+        if (\App\Helpers\PermissionHelper::isSuperAdmin()) {
+            return true;
+        }
+
+        // Perfil 2: Administrador (Camilo y Juanita)
+        if ((int)$user->profile_id === 2) {
+            return true;
+        }
+
+        // Comprobación fallback por correo o nombre
+        $email = strtolower($user->email ?? '');
+        $name = strtolower($user->name ?? '');
+        if (str_contains($email, 'juanita') || str_contains($name, 'juanita')) {
+            return true;
+        }
+        if (str_contains($email, 'camilo') || str_contains($name, 'camilo')) {
+            return true;
+        }
+
+        // Perfil Gerencia o Director
+        $profileName = strtolower($user->profile?->name ?? '');
+        if (str_contains($profileName, 'gerencia') || str_contains($profileName, 'director')) {
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Renderizar los productos en la vista
@@ -304,30 +473,114 @@ class ProductQuoter extends Component
     public function render()
     {
         try {
-            $this->ensureTenantConnection();
+            if (!tenancy()->initialized) {
+                $this->ensureTenantConnection();
+            }
             $userStoreId = $this->getUserStoreId();
+            session(['warehouse_id' => $userStoreId]);
+            $centralDbName = config('database.connections.central.database');
 
             $query = Items::query()
                 ->select(
                     'inv_items.*',
-                    DB::raw('GROUP_CONCAT(DISTINCT CONCAT(inv_store.name, ":", inv_items_store.stock_items_store) SEPARATOR ", ") as store_stock_details'),
-                    DB::raw('SUM(inv_items_store.stock_items_store) as total_stock')
+                    DB::raw('GROUP_CONCAT(DISTINCT CONCAT(central_warehouses.name, " - ", inv_store.name, ":", inv_items_store.stock_items_store) SEPARATOR ", ") as store_stock_details'),
+                    DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
+                    DB::raw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as sales_last_30_days'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 2 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_transit'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_quarantine_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as reserved_quarantine'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_showroom_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as showroom_stock'),
+                    DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses')
                 )
                 ->where('inv_items.status', 1)
-                ->with(['principalImage', 'invValues', 'tax'])
-                ->join('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
-                ->join('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
-                ->where('inv_items_store.stock_items_store', '>=', 0) // Mostrar todas las bodegas, incluyendo stock 0
+                ->where('inv_items.type', '!=', 'INSUMO')
+                ->with(['principalImage', 'invValues', 'tax', 'locations'])
+                ->withCount('accessories')
+                ->when($this->hideQuoter, function ($q) {
+                    $q->with(['imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
+                })
+                ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+                ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+                ->leftJoin("{$centralDbName}.vnt_warehouses as central_warehouses", 'inv_store.warehouseId', '=', 'central_warehouses.id')
+                ->leftJoin(DB::raw('
+                    (
+                        SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                        FROM (
+                            SELECT idr.itemId, idr.quantity as qty
+                            FROM inv_detail_remissions idr
+                            INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                            WHERE ir.status != \'ANULADO\'
+                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+
+                            UNION ALL
+
+                            SELECT item_sub.id as itemId, lsh.quantity as qty
+                            FROM legacy_sales_history lsh
+                            INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        ) sub
+                        GROUP BY sub.itemId
+                    ) s7m
+                '), 's7m.itemId', '=', 'inv_items.id')
+                ->where(function ($q) {
+                    $q->whereNull('inv_items_store.itemId') // Items no inventariables (sin registros en bodega)
+                        ->orWhere('inv_items_store.stock_items_store', '>=', 0); // Items inventariables con stock >= 0
+                })
                 ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('inv_items.name', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.internal_code', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.sku', 'like', '%' . $this->search . '%')
-                            ->orWhere('inv_items.description', 'like', '%' . $this->search . '%');
-                    });
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inv_items.name', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                                //->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                                ->orWhere('inv_items.description', 'like', '%' . $word . '%');
+                        });
+                    }
                 })
                 ->when($this->selectedCategory, function ($query) {
                     $query->where('inv_items.categoryId', $this->selectedCategory);
+                })
+                ->when($this->productFilter === 'en_stock', function ($query) {
+                    $query->havingRaw('(SUM(inv_items_store.stock_items_store) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) > 0');
+                })
+                ->when($this->productFilter === 'bajo_stock', function ($query) {
+                    $query->havingRaw('SUM(inv_items_store.stock_items_store) <= COALESCE(SUM(inv_items_store.stock_min), 0)');
+                })
+                ->when($this->productFilter === 'agotados', function ($query) {
+                    $query->havingRaw('SUM(inv_items_store.stock_items_store) <= 0');
+                })
+                ->when($this->productFilter === 'nuevos', function ($query) {
+                    $query->where('inv_items.created_at', '>=', DB::raw('DATE_SUB(NOW(), INTERVAL 30 DAY)'));
+                })
+                ->when($this->productFilter === 'sin_venta', function ($query) {
+                    $query->havingRaw('SUM(inv_items_store.stock_items_store) > 0 AND (SUM(inv_items_store.stock_items_store) * 100) / (COALESCE(s7m.salidas_7_meses, 0) + SUM(inv_items_store.stock_items_store)) >= 70');
+                })
+                ->when($this->productFilter === 'poca_venta', function ($query) {
+                    $query->havingRaw('(SELECT COALESCE(SUM(vdq.quantity), 0) FROM vnt_detail_quotes vdq INNER JOIN vnt_quotes vq ON vdq.quoteId = vq.id WHERE vdq.itemId = inv_items.id AND vq.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) BETWEEN 1 AND 5');
+                })
+                ->when($this->productFilter === 'reservas', function ($query) {
+                    $query->havingRaw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) > 0');
+                })
+                ->when($this->productFilter === 'notas_asesores', function ($query) {
+                    $query->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('inv_item_observations')
+                            ->whereColumn('inv_item_observations.item_id', 'inv_items.id')
+                            ->whereNotNull('inv_item_observations.commercial_observations')
+                            ->where('inv_item_observations.commercial_observations', '!=', '');
+                    });
+                })
+                ->when($this->productFilter === 'notas_tecnicas', function ($query) {
+                    $query->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('inv_item_observations')
+                            ->whereColumn('inv_item_observations.item_id', 'inv_items.id')
+                            ->where(function($q) {
+                                $q->whereNotNull('inv_item_observations.observations')
+                                  ->where('inv_item_observations.observations', '!=', '');
+                            });
+                    });
                 })
                 ->groupBy(
                     'inv_items.id',
@@ -350,67 +603,12 @@ class ProductQuoter extends Component
                     'inv_items.generic',
                     'inv_items.created_at',
                     'inv_items.updated_at',
-                    'inv_items.deleted_at'
+                    'inv_items.deleted_at',
+                    's7m.salidas_7_meses'
                 )
                 ->orderBy('inv_items.' . $this->sortField, $this->sortDirection);
 
             $products = $query->paginate($this->perPage);
-
-            Log::info('✅ Productos cargados', [
-                'total' => $products->total(),
-                'current_page' => $products->currentPage(),
-                'per_page' => $products->perPage(),
-                'last_page' => $products->lastPage(),
-                'productos_en_pagina' => $products->count(),
-                'productos_ids' => $products->pluck('id')->toArray(),
-                'productos_nombres' => $products->pluck('name')->toArray(),
-                'productos_stock_detalles' => $products->pluck('store_stock_details')->toArray(),
-                'productos_stock_total' => $products->pluck('total_stock')->toArray()
-            ]);
-
-            // LOG DETALLADO DE PRECIOS POR PRODUCTO
-            foreach ($products as $product) {
-                // Obtener todos los precios del producto
-                $allPrices = $product->all_prices;
-                
-                // Obtener específicamente Precio Regular y Precio Crédito desde inv_values
-                $precioRegular = $product->invValues()
-                    ->where('type', 'precio')
-                    ->where('label', 'Precio Regular')
-                    ->orderBy('date', 'desc')
-                    ->first();
-                
-                $precioCredito = $product->invValues()
-                    ->where('type', 'precio')
-                    ->where('label', 'Precio Crédito')
-                    ->orderBy('date', 'desc')
-                    ->first();
-
-                Log::info('💰 Precios del producto', [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'all_prices_count' => count($allPrices),
-                    'all_prices' => $allPrices,
-                    'precio_regular_exists' => $precioRegular ? 'SÍ' : 'NO',
-                    'precio_regular_value' => $precioRegular ? $precioRegular->values : null,
-                    'precio_regular_label' => $precioRegular ? $precioRegular->label : null,
-                    'precio_credito_exists' => $precioCredito ? 'SÍ' : 'NO',
-                    'precio_credito_value' => $precioCredito ? $precioCredito->values : null,
-                    'precio_credito_label' => $precioCredito ? $precioCredito->label : null,
-                    'inv_values_total' => $product->invValues->count(),
-                    'inv_values_precios' => $product->invValues()
-                        ->where('type', 'precio')
-                        ->get()
-                        ->map(function($value) {
-                            return [
-                                'label' => $value->label,
-                                'value' => $value->values,
-                                'date' => $value->date
-                            ];
-                        })
-                        ->toArray()
-                ]);
-            }
 
             // Si estamos en una página que no existe, resetear a la página 1
             if ($products->currentPage() > $products->lastPage() && $products->total() > 0) {
@@ -446,6 +644,120 @@ class ProductQuoter extends Component
         ])->layout('layouts.app');
     }
 
+    public function loadTransitDetails($data = null)
+    {
+        try {
+            $productId = $data['productId'] ?? null;
+            if (!$productId) {
+                return;
+            }
+
+            $this->ensureTenantConnection();
+            $product = Items::find($productId);
+
+            if (!$product) {
+                return;
+            }
+
+            $this->transitProductCode = $product->internal_code ?? $product->sku;
+            $this->transitProductName = $product->name;
+
+            // Obtener importaciones en estado Solicitado (1), Producción (5), Terminados (12) y En tránsito (7)
+            $imports = \App\Models\Tenant\Imports\ImpImports::where('item_id', $productId)
+                ->whereIn('status', [1, 2, 4, 5, 12, 7])
+                ->whereNull('deleted_at')
+                ->with(['packing.shipping'])
+                ->get();
+
+            // Ordenar de forma personalizada: Tránsito (7) -> Terminados (12) -> Producción (5) -> Solicitado (1)
+            $customOrder = [
+                7 => 1,
+                12 => 2,
+                5 => 3,
+                1 => 4,
+                2 => 4,
+                4 => 4
+            ];
+            $imports = $imports->sortBy(function ($import) use ($customOrder) {
+                return $customOrder[(int)$import->status] ?? 999;
+            });
+
+            $this->transitDetails = $imports->map(function ($import) {
+                $statusId = (int)$import->status;
+                
+                if ($statusId === 7) {
+                    $shipping = $import->packing?->shipping;
+                    
+                    // Formatear fechas a: Julio 21 2026
+                    $etdFormatted = ($shipping && $shipping->etd) 
+                        ? Carbon::parse($shipping->etd)->translatedFormat('F d Y') 
+                        : 'No especificada';
+                    $etaFormatted = ($shipping && $shipping->eta) 
+                        ? Carbon::parse($shipping->eta)->translatedFormat('F d Y') 
+                        : 'No especificada';
+                    $fervicomFormatted = ($shipping && $shipping->fervicom_arrival_date) 
+                        ? Carbon::parse($shipping->fervicom_arrival_date)->translatedFormat('F d Y') 
+                        : 'No especificada';
+
+                    // Capitalizar el nombre del mes
+                    $etdFormatted = ucfirst($etdFormatted);
+                    $etaFormatted = ucfirst($etaFormatted);
+                    $fervicomFormatted = ucfirst($fervicomFormatted);
+
+                    return [
+                        'status' => $statusId,
+                        'qty' => $import->qty_requested,
+                        'operation_number' => $shipping?->operation_number ?? '—',
+                        'way' => $shipping?->way ?? 'Desconocida',
+                        'etd' => $etdFormatted,
+                        'eta' => $etaFormatted,
+                        'fervicom_arrival_date' => $fervicomFormatted
+                    ];
+                } else {
+                    // Estados 1 (Solicitado), 5 (Producción) y 12 (Terminados)
+                    $date = null;
+                    if ($statusId === 5) {
+                        // Buscar en el historial de estados la fecha en que pasó a producción
+                        $history = \App\Models\Tenant\Imports\ImpStatusHistory::where('import_id', $import->id)
+                            ->where('new_state', 5)
+                            ->latest()
+                            ->first();
+                        $date = $history ? $history->created_at : ($import->updated_at ?? $import->created_at);
+                    } elseif ($statusId === 12) {
+                        // Buscar en el historial de estados la fecha en que pasó a terminados
+                        $history = \App\Models\Tenant\Imports\ImpStatusHistory::where('import_id', $import->id)
+                            ->where('new_state', 12)
+                            ->latest()
+                            ->first();
+                        $date = $history ? $history->created_at : ($import->updated_at ?? $import->created_at);
+                    } else {
+                        // Solicitado (1) usa la fecha de creación
+                        $date = $import->created_at;
+                    }
+
+                    $dateFormatted = $date 
+                        ? Carbon::parse($date)->translatedFormat('F d Y') 
+                        : 'No especificada';
+                    $dateFormatted = ucfirst($dateFormatted);
+
+                    return [
+                        'status' => $statusId,
+                        'qty' => $import->qty_requested,
+                        'formatted_date' => $dateFormatted
+                    ];
+                }
+            })->values()->toArray();
+
+            $this->showTransitModal = true;
+        } catch (\Exception $e) {
+            Log::error('Error al cargar detalles de tránsito: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al obtener detalles de tránsito: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // Método para obtener las categorías
     public function getCategories()
     {
@@ -459,12 +771,80 @@ class ProductQuoter extends Component
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si ya existe, incrementar la cantidad
-            $this->quoterItems[$existingIndex]['quantity']++;
+            // Obtener el producto para verificar dimensiones y precios reales
+            $this->ensureTenantConnection();
+            $product = Items::with(['tax', 'dimensions', 'invValues'])->find($productId);
+            
+            $quntityxbox = 0;
+            if ($product) {
+                $quntityxbox = (int) ($product->dimensions->quntityxbox ?? 0);
+                if ($quntityxbox <= 0) {
+                    $quntityxbox = (int) DB::connection('tenant')
+                        ->table('inv_items_dimensions')
+                        ->where('item_id', $product->id)
+                        ->whereNull('deleted_at')
+                        ->value('quntityxbox');
+                }
+            }
+
+            // Determinar de forma robusta si es precio de caja
+            $isBoxPrice = false;
+            if (str_contains(strtolower($priceLabel), 'caja')) {
+                $isBoxPrice = true;
+            } elseif ($product) {
+                $allPrices = $product->all_prices;
+                $boxPriceValue = $allPrices['Precio unitario x caja'] ?? null;
+                if ($boxPriceValue !== null && abs((float)$selectedPrice - (float)$boxPriceValue) < 0.01) {
+                    $isBoxPrice = true;
+                }
+            }
+
+            $currentQty = (int) $this->quoterItems[$existingIndex]['quantity'];
+            $previousPriceLabel = $this->quoterItems[$existingIndex]['price_label'] ?? '';
+            $wasBoxPrice = str_contains(strtolower($previousPriceLabel), 'caja');
+
+            // Actualizar información y cantidad
+            if ($isBoxPrice) {
+                $this->quoterItems[$existingIndex]['price_label'] = 'Precio unitario x caja';
+                $this->quoterItems[$existingIndex]['quntityxbox'] = $quntityxbox;
+                $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+                
+                if ($quntityxbox > 0) {
+                    // Si antes NO era precio de caja (ej: precio lista), reescribimos la cantidad a 1 caja (quntityxbox)
+                    // Si ya era precio de caja, le sumamos otra caja entera (quntityxbox)
+                    if (!$wasBoxPrice) {
+                        $this->quoterItems[$existingIndex]['quantity'] = $quntityxbox;
+                    } else {
+                        // Si ya era de caja pero por alguna razón no era múltiplo (tiene justificación), validamos si al sumar quntityxbox sigue sin ser múltiplo
+                        $newQty = $currentQty + $quntityxbox;
+                        if ($newQty % $quntityxbox !== 0) {
+                            // Lanzar evento para justificación ya que no es múltiplo
+                            $this->dispatch('open-box-justification-modal', [
+                                'index' => $existingIndex,
+                                'requestedQuantity' => $newQty,
+                                'quntityxbox' => $quntityxbox
+                            ]);
+                            return;
+                        }
+                        $this->quoterItems[$existingIndex]['quantity'] = $newQty;
+                    }
+                } else {
+                    $this->quoterItems[$existingIndex]['quantity']++;
+                }
+            } else {
+                $this->quoterItems[$existingIndex]['price_label'] = $priceLabel;
+                $this->quoterItems[$existingIndex]['price'] = $selectedPrice;
+                // Si antes era precio de caja y ahora cambia a unitario, reajustamos la cantidad a 1 unidad para comenzar el flujo unitario
+                if ($wasBoxPrice) {
+                    $this->quoterItems[$existingIndex]['quantity'] = 1;
+                } else {
+                    $this->quoterItems[$existingIndex]['quantity']++;
+                }
+            }
         } else {
             // Obtener el producto solo cuando es necesario
             $this->ensureTenantConnection();
-            $product = Items::with('tax')->find($productId);
+            $product = Items::with(['tax', 'dimensions', 'invValues'])->find($productId);
 
             if (!$product) {
                 $this->dispatch('show-toast', [
@@ -474,18 +854,68 @@ class ProductQuoter extends Component
                 return;
             }
 
-            // Si no existe, agregarlo con el precio seleccionado
-            $this->quoterItems[] = [
-                'id' => $product->id,
-                'name' => $product->display_name,
-                'sku' => $product->sku,
-                'price' => $selectedPrice,
-                'tax' => $product->tax->percentage,
-                'tax_label' => $product->tax->name,
-                'price_label' => $priceLabel,
-                'quantity' => 1,
-                'description' => $product->description,
-            ];
+            // Stock total del producto (suma de todas las bodegas)
+            $totalStock = $product->invItemsStore()->sum('stock_items_store');
+
+            // Precio mínimo = "Precio Regular" con IVA (mostrado como "Mínimo" en la tabla)
+            $precioRegularRecord = $product->invValues
+                ->where('type', 'precio')
+                ->where('label', 'Precio Regular')
+                ->sortByDesc('date')
+                ->sortByDesc('created_at')
+                ->first();
+            $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
+            $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
+
+            // Obtener quntityxbox de forma ultra-segura
+            $quntityxbox = (int) ($product->dimensions->quntityxbox ?? 0);
+            if ($quntityxbox <= 0) {
+                $quntityxbox = (int) DB::connection('tenant')
+                    ->table('inv_items_dimensions')
+                    ->where('item_id', $product->id)
+                    ->whereNull('deleted_at')
+                    ->value('quntityxbox');
+            }
+
+            // Determinar de forma robusta si es precio de caja
+            $isBoxPrice = false;
+            if (str_contains(strtolower($priceLabel), 'caja')) {
+                $isBoxPrice = true;
+            } else {
+                $allPrices = $product->all_prices;
+                $boxPriceValue = $allPrices['Precio unitario x caja'] ?? null;
+                if ($boxPriceValue !== null && abs((float)$selectedPrice - (float)$boxPriceValue) < 0.01) {
+                    $isBoxPrice = true;
+                }
+            }
+
+            $actualPriceLabel = $isBoxPrice ? 'Precio unitario x caja' : $priceLabel;
+            $initialQuantity = ($isBoxPrice && $quntityxbox > 0) ? (int)$quntityxbox : 1;
+
+            // Agregar el nuevo item
+            array_unshift($this->quoterItems, [
+                'id'             => $product->id,
+                'name'           => $product->display_name,
+                'sku'            => $product->sku,
+                'price'          => $selectedPrice,
+                'original_price' => $selectedPrice,
+                'min_price'      => $minPrice,
+                'tax'            => $product->tax->percentage ?? 0,
+                'tax_label'      => $product->tax->name ?? 'Iva 0%',
+                'price_label'    => $actualPriceLabel,
+                'quantity'       => $initialQuantity,
+                'description'    => $product->description,
+                'weight'         => $product->dimensions->weight ?? 0,
+                'category_id'    => $product->categoryId,
+                'consumption_unit'=> $product->consumption_unit,
+                'total_stock'    => $totalStock,
+                'inventoriable'  => (int) $product->inventoriable,
+                'quntityxbox'    => (int)$quntityxbox,
+                'justification'  => null,
+                'min_packing_qty' => (int) ($product->dimensions->min_packing_qty ?? 0),
+                'min_packing_val' => (float) ($product->dimensions->min_packing_val ?? 0.0),
+                'add_packing_val' => (float) ($product->dimensions->add_packing_val ?? 0.0),
+            ]);
         }
 
         // Marcar que hay cambios si estamos editando
@@ -500,9 +930,94 @@ class ProductQuoter extends Component
         $this->calculateTotal();
 
         // Toast más rápido con el nombre del producto
+        // $this->dispatch('show-toast', [
+        //     'type' => 'success',
+        //     'message' => 'Producto agregado: ' . ($product->display_name ?? 'Producto')
+        // ]);
+    }
+
+    public function openGenericProductModal()
+    {
+        $this->ensureTenantConnection();
+        // Buscar el impuesto del 19%
+        $tax19 = \App\Models\Tenant\CnfTaxes::where('percentage', 19)->where('status', 1)->first();
+        if ($tax19) {
+            $this->genericProductTaxId = $tax19->id;
+        } else {
+            $this->genericProductTaxId = \App\Models\Tenant\CnfTaxes::where('status', 1)->first()?->id;
+        }
+        $this->showGenericProductModal = true;
+    }
+
+    public function saveGenericProduct()
+    {
+        $this->validate([
+            'genericProductName'  => 'required|string|min:2',
+            'genericProductPrice' => 'required|numeric|min:0',
+            'genericProductTaxId' => 'required',
+        ], [
+            'genericProductName.required'  => 'El nombre es obligatorio.',
+            'genericProductName.min'       => 'El nombre debe tener al menos 2 caracteres.',
+            'genericProductPrice.required' => 'El precio es obligatorio.',
+            'genericProductPrice.numeric'  => 'El precio debe ser un número.',
+            'genericProductPrice.min'      => 'El precio no puede ser negativo.',
+            'genericProductTaxId.required' => 'Selecciona un impuesto.',
+        ]);
+
+        $this->ensureTenantConnection();
+
+        $sku = '9999999';
+        $product = Items::where('sku', $sku)->first();
+
+        if (!$product) {
+            $product = Items::create([
+                'name'             => 'PRODUCTO GENERICO',
+                'sku'              => $sku,
+                'internal_code'    => $sku,
+                'type'             => 'COMPRA NACIONAL',
+                'taxId'            => $this->genericProductTaxId,
+                'categoryId'       => 1,
+                'purchasing_unit'  => 35,
+                'consumption_unit' => 35,
+                'inventoriable'    => 0,
+                'status'           => 1,
+                'generic'          => 1,
+            ]);
+        }
+
+        InvValues::create([
+            'date'        => now(),
+            'values'      => $this->genericProductPrice,
+            'type'        => 'precio',
+            'itemId'      => $product->id,
+            'label'       => 'Precio Base',
+        ]);
+
+        $tax = CnfTaxes::find($this->genericProductTaxId);
+
+        array_unshift($this->quoterItems, [
+            'id'          => $product->id,
+            'name'        => $this->genericProductName,
+            'sku'         => $sku,
+            'price'       => (float) $this->genericProductPrice,
+            'tax'         => $tax->percentage,
+            'tax_label'   => $tax->name,
+            'price_label' => 'Precio Base',
+            'quantity'    => 1,
+            'description' => '',
+        ]);
+
+        session(['quoter_items' => $this->quoterItems]);
+        $this->calculateTotal();
+
+        $this->genericProductName  = '';
+        $this->genericProductPrice = 0;
+        $this->genericProductTaxId = null;
+        $this->showGenericProductModal = false;
+
         $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Producto agregado: ' . ($product->display_name ?? 'Producto')
+            'type'    => 'success',
+            'message' => 'Producto genérico creado y agregado: ' . $product->name,
         ]);
     }
 
@@ -555,6 +1070,8 @@ class ProductQuoter extends Component
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
         $this->quoterItems = [];
+        $this->appliedFreight = 0; // Resetear flete aplicado
+        $this->isFreightApplied = false; // Resetear flag de flete
         session()->forget('quoter_items');
         $this->calculateTotal();
         $this->showCartModal = false;
@@ -565,14 +1082,17 @@ class ProductQuoter extends Component
         ]);
     }
 
-
-
-
-
-
     // funcion para guardar una cotizacion 
     public function saveQuote()
     {
+        if ($this->isFreightManuallyEdited && empty(trim($this->freightJustification))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para el flete editado'
+            ]);
+            return;
+        }
+
         if (empty($this->quoterItems)) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -620,8 +1140,8 @@ class ProductQuoter extends Component
                 ]);
             }
 
-            // Obtener el siguiente consecutivo
-            $lastQuote = VntQuote::orderBy('consecutive', 'desc')->first();
+            // Obtener el siguiente consecutivo con bloqueo de fila
+            $lastQuote = VntQuote::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
 
             // Crear la cotización
@@ -629,22 +1149,34 @@ class ProductQuoter extends Component
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
-                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO AQUÍ (Referencia a vnt_contacts)
-                'warehouseId' => session('warehouse_id', $userStoreId), // Usar userStoreId como fallback
+                'customerId' => $contact->warehouseId, // warehouseId del contacto de la empresa (no cambia con la sucursal)
+                'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
-                'branchId' => session('branch_id', $userStoreId) // Usar userStoreId como fallback
+                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
+                'flete' => $this->appliedFreight, // Guardar el flete aplicado
+                'empaque' => $this->appliedPacking // Guardar el empaque especial aplicado
             ]);
+
+            // Guardar justificación de flete si fue editado
+            if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
+                \App\Models\Tenant\Sales\VntObservation::create([
+                    'reference_id' => $quote->id,
+                    'reference_type' => 'quote',
+                    'observation_type' => 'flete_justification',
+                    'observation' => $this->freightJustification,
+                    'userId' => auth()->id()
+                ]);
+            }
 
             // Crear los detalles de la cotización
             foreach ($this->quoterItems as $item) {
-                Log::info('💾 Guardando detalle de cotización', [
-                    'item_id' => $item['id'],
-                    'item_name' => $item['name'],
-                    'price' => $item['price'],
-                    'price_label' => $item['price_label'] ?? 'Precio',
+                Log::info('💾 GUARDANDO DETALLE en cotización', [
+                    'product_name' => $item['name'],
+                    'item_price_from_quoter' => $item['price'],
                     'quantity' => $item['quantity'],
-                    'tax' => $item['tax'] ?? 0
+                    'tax_percentage' => $item['tax'] ?? 0,
+                    'price_label' => $item['price_label'] ?? 'Precio'
                 ]);
 
                 VntDetailQuote::create([
@@ -655,12 +1187,15 @@ class ProductQuoter extends Component
                     'itemId' => $item['id'],
                     'description' => $item['name'],
                     'priceList' => $item['price'],
-                    'price_label' => $item['price_label'] ?? 'Precio' // Guardar el label de la lista de precios
+                    'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
+                    'justification' => $item['justification'] ?? null,
                 ]);
             }
 
             // Confirmar transacción
             DB::connection('tenant')->commit();
+
+            $this->editingQuoteId = $quote->id; // Establecer el ID para permitir facturación inmediata
 
             Log::info('✅ Cotización guardada exitosamente', [
                 'quote_id' => $quote->id,
@@ -669,6 +1204,7 @@ class ProductQuoter extends Component
 
             // Limpiar el cotizador y campos del formulario
             $this->quoterItems = [];
+            $this->appliedFreight = 0;
             $this->selectedCustomer = null;              // Limpiar cliente seleccionado
             $this->customerSearch = '';                  // Limpiar campo de búsqueda de cliente
             $this->showCreateCustomerForm = false;      // Ocultar formulario de creación
@@ -713,19 +1249,31 @@ class ProductQuoter extends Component
         // Livewire ya actualiza el valor antes de llamar a este método.
 
         if ($index === null) {
+            $hasPendingJustification = false;
             // En caso de que se llame sin índice, validamos todos los items
             foreach ($this->quoterItems as $idx => $item) {
-                $this->sanitizeItemQuantity($idx);
+                if (!$this->sanitizeItemQuantity($idx)) {
+                    $hasPendingJustification = true;
+                }
+            }
+            if ($hasPendingJustification) {
+                return;
             }
         } else {
             if (!isset($this->quoterItems[$index])) {
                 return;
             }
-            $this->sanitizeItemQuantity($index);
+            if (!$this->sanitizeItemQuantity($index)) {
+                return; // Retornar inmediatamente para evitar mandar el Toast que cierra el modal
+            }
         }
 
         // Actualizar sesión
         session(['quoter_items' => $this->quoterItems]);
+
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
 
         // Recalcular total
         $this->calculateTotal();
@@ -737,15 +1285,128 @@ class ProductQuoter extends Component
         ]);
     }
 
-    private function sanitizeItemQuantity($index)
+    /**
+     * Actualiza el precio de un ítem con validación de rango.
+     * Mínimo: min_price (Precio Regular con IVA = columna "Mínimo" en la tabla)
+     * Máximo: original_price * 2
+     */
+    public function updateItemPrice(int $index, $newPrice): void
+    {
+        if (!isset($this->quoterItems[$index])) {
+            return;
+        }
+
+        $newPrice      = (float) $newPrice;
+        $originalPrice = (float) ($this->quoterItems[$index]['original_price'] ?? $this->quoterItems[$index]['price']);
+        $minPrice      = (float) ($this->quoterItems[$index]['min_price'] ?? 0);
+        $maxPrice      = $originalPrice * 2;
+
+        if ($minPrice > 0 && $newPrice < $minPrice) {
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'El precio no puede ser menor al precio unitario x caja ($' . number_format($minPrice, 0, ',', '.') . ')'
+            ]);
+            // Restaurar al valor anterior
+            $this->quoterItems[$index]['price'] = $this->quoterItems[$index]['price'];
+            return;
+        }
+
+        if ($newPrice > $maxPrice) {
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'El precio no puede superar el doble del precio de lista ($' . number_format($maxPrice, 0, ',', '.') . ')'
+            ]);
+            $this->quoterItems[$index]['price'] = $this->quoterItems[$index]['price'];
+            return;
+        }
+
+        $this->quoterItems[$index]['price'] = $newPrice;
+
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
+        session(['quoter_items' => $this->quoterItems]);
+        $this->calculateTotal();
+
+        $this->dispatch('show-toast', [
+            'type'    => 'success',
+            'message' => 'Precio actualizado'
+        ]);
+    }
+
+    private function sanitizeItemQuantity($index): bool
     {
         $quantity = $this->quoterItems[$index]['quantity'];
 
         if ($quantity === '' || !is_numeric($quantity) || intval($quantity) < 1) {
             $this->quoterItems[$index]['quantity'] = 1;
-        } else {
-            $this->quoterItems[$index]['quantity'] = intval($quantity);
+            return true;
         }
+
+        $newQty = intval($quantity);
+        $item = $this->quoterItems[$index];
+        $quntityxbox = (int) ($item['quntityxbox'] ?? 0);
+        $isBoxPrice = str_contains(strtolower($item['price_label'] ?? ''), 'caja');
+
+        if ($isBoxPrice && $quntityxbox > 0) {
+            if ($newQty % $quntityxbox !== 0) {
+                // Obtener el valor anterior de la sesión para revertir
+                $sessionItems = session('quoter_items', []);
+                $oldQty = isset($sessionItems[$index]['quantity']) ? (int) $sessionItems[$index]['quantity'] : $quntityxbox;
+
+                $this->quoterItems[$index]['quantity'] = $oldQty;
+                session(['quoter_items' => $this->quoterItems]); // Guardar estado revertido en sesión
+
+                // Lanzar evento para abrir modal de justificación
+                $this->dispatch('open-box-justification-modal', [
+                    'index' => $index,
+                    'requestedQuantity' => $newQty,
+                    'quntityxbox' => $quntityxbox
+                ]);
+                return false;
+            }
+        }
+
+        $this->quoterItems[$index]['quantity'] = $newQty;
+        return true;
+    }
+
+    public function applyJustifiedQuantity($index, $requestedQuantity, $justification)
+    {
+        if (!isset($this->quoterItems[$index])) {
+            return;
+        }
+
+        $requestedQuantity = intval($requestedQuantity);
+        if ($requestedQuantity < 1) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cantidad inválida.']);
+            return;
+        }
+
+        if (empty(trim($justification))) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La justificación es obligatoria.']);
+            return;
+        }
+
+        // Forzar cantidad y almacenar la justificación
+        $this->quoterItems[$index]['quantity'] = $requestedQuantity;
+        $this->quoterItems[$index]['justification'] = trim($justification);
+
+        // Guardar en sesión
+        session(['quoter_items' => $this->quoterItems]);
+
+        // Recalcular
+        $this->calculateTotal();
+
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Cantidad justificada aplicada correctamente.'
+        ]);
     }
 
 
@@ -770,39 +1431,278 @@ class ProductQuoter extends Component
 
         $this->ensureTenantConnection();
 
-        $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'lastName', 'identification', 'billingEmail')
-            ->where(function ($query) use ($value) {
+        $cleanValue = preg_replace('/[^0-9a-zA-Z]/', '', $value);
+        $words = array_filter(explode(' ', trim($value)));
+
+        $this->customerResults = VntCompany::select('id', 'businessName', 'firstName', 'secondName', 'lastName', 'secondLastName', 'identification', 'billingEmail')
+            ->whereNot('type', 'PROVEEDOR') // Excluir proveedores
+            ->where(function ($query) use ($value, $cleanValue, $words) {
+                // Búsqueda por coincidencia exacta o parcial en identificación/correo
                 $query->where('identification', 'like', '%' . $value . '%')
-                    ->orWhere('businessName', 'like', '%' . $value . '%')
-                    ->orWhere('firstName', 'like', '%' . $value . '%')
-                    ->orWhere('lastName', 'like', '%' . $value . '%');
+                    ->orWhere('identification', 'like', '%' . $cleanValue . '%')
+                    ->orWhere('billingEmail', 'like', '%' . $value . '%');
+
+                // Si hay palabras, buscar cada una en nombre, apellido o concatenado (los 4 campos)
+                if (!empty($words)) {
+                    $query->orWhere(function ($q) use ($words) {
+                        foreach ($words as $word) {
+                            $q->where(function ($sub) use ($word) {
+                                $sub->where('businessName', 'like', '%' . $word . '%')
+                                    ->orWhere('firstName', 'like', '%' . $word . '%')
+                                    ->orWhere('secondName', 'like', '%' . $word . '%')
+                                    ->orWhere('lastName', 'like', '%' . $word . '%')
+                                    ->orWhere('secondLastName', 'like', '%' . $word . '%')
+                                    ->orWhere(DB::raw("CONCAT(COALESCE(firstName, ''), ' ', COALESCE(secondName, ''), ' ', COALESCE(lastName, ''), ' ', COALESCE(secondLastName, ''))"), 'like', '%' . $word . '%');
+                            });
+                        }
+                    });
+                }
             })
-            ->limit(5)
+            ->limit(10)
             ->get()
             ->toArray();
+    }
+
+    #[On('warehouse-modal-closed')]
+    public function handleWarehouseModalClosed()
+    {
+        $this->showWarehouseModal = false;
+
+        // Si hay un cliente seleccionado, refrescar sus sucursales
+        if ($this->selectedCustomer && isset($this->selectedCustomer['id'])) {
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            // Si hay una sucursal seleccionada, refrescar los datos en el cliente seleccionado
+            if ($this->selectedBranchId) {
+                $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
+                if ($branch) {
+                    $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+                    $this->selectedCustomer['address'] = $branch['address'] ?? '';
+                    $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
+                }
+            }
+        }
+    }
+
+    private function loadBranches($companyId)
+    {
+        $company = VntCompany::with(['warehouses' => function ($q) {
+            $q->where('status', 1)->with('city');
+        }])->find($companyId);
+
+        if ($company) {
+            $this->branches = $company->warehouses->toArray();
+        }
     }
 
     public function selectCustomer($customerId)
     {
         $this->ensureTenantConnection();
-        $customer = VntCompany::find($customerId);
+        $customer = VntCompany::with(['warehouses' => function ($q) {
+            $q->where('status', 1)->with('city');
+        }])->find($customerId);
 
         if ($customer) {
             $this->selectedCustomer = $customer->toArray();
+            $this->branches = $customer->warehouses->toArray();
             $this->customerResults = [];
-            $this->customerSearch = ''; // Opcional: limpiar búsqueda al seleccionar
+            $this->customerSearch = '';
             $this->showCreateCustomerButton = false;
+
+            if (count($this->branches) > 1) {
+                // Buscar la sucursal principal
+                $mainBranch = collect($this->branches)->firstWhere('main', 1);
+
+                if ($mainBranch) {
+                    $this->selectBranch($mainBranch['id']);
+                } else {
+                    // Si no hay principal, seleccionar la primera por defecto
+                    $this->selectBranch($this->branches[0]['id']);
+                }
+            } elseif (count($this->branches) === 1) {
+                // Si tiene solo una, seleccionarla automáticamente
+                $this->selectBranch($this->branches[0]['id']);
+            } else {
+                // Si no tiene sucursales, intentar buscar un contacto directo
+                $contact = VntContacts::where('warehouseId', 0) // Contactos sin sucursal
+                    ->whereHas('company', fn($q) => $q->where('vnt_companies.id', $customerId))
+                    ->first();
+                $this->selectedContactId = $contact ? $contact->id : null;
+                $this->finalizeCustomerSelection();
+            }
 
             // Marcar que hay cambios si estamos editando
             if ($this->isEditing) {
                 $this->hasChanges = true;
             }
+        }
+    }
 
-            $name = $customer->businessName ?: ($customer->firstName . ' ' . $customer->lastName);
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Cliente seleccionado: ' . $name
-            ]);
+    #[On('warehouse-selected')]
+    public function selectBranch($branchId)
+    {
+        $this->selectedBranchId = $branchId;
+        $branch = collect($this->branches)->firstWhere('id', $branchId);
+
+        if ($branch) {
+            $this->finalizeCustomerSelection($branch);
+
+            $this->ensureTenantConnection();
+
+            // Buscar el contacto asociado a esta sucursal específica
+            $contact = VntContacts::where('warehouseId', $branchId)->first();
+
+            // Si no hay contacto en la sucursal, buscar el primero de la empresa
+            if (!$contact && $this->selectedCustomer) {
+                $contact = VntContacts::whereHas('company', function ($q) {
+                    $q->where('vnt_companies.id', $this->selectedCustomer['id']);
+                })->first();
+            }
+
+            $this->selectedContactId = $contact ? $contact->id : null;
+
+            // IMPORTANTE: Si estamos editando una cotización o en el modal de pagos con una cotización guardada,
+            // debemos actualizar el registro en la BD para que la factura use los datos correctos.
+            if ($this->editingQuoteId) {
+                $quote = VntQuote::find($this->editingQuoteId);
+                if ($quote) {
+                    $quote->update(['branchId' => $branchId]);
+
+                    Log::info('✅ Cotización actualizada con nueva sucursal', [
+                        'quote_id' => $quote->id,
+                        'new_branch_id' => $branchId,
+                        'customerId_unchanged' => $quote->customerId
+                    ]);
+                }
+            }
+        }
+    }
+
+    private function finalizeCustomerSelection($branch = null)
+    {
+        $businessName = trim($this->selectedCustomer['businessName'] ?? '');
+        $name = !empty($businessName) ? $businessName : ($this->selectedCustomer['firstName'] . ' ' . $this->selectedCustomer['lastName']);
+        $branchName = $branch ? " ({$branch['name']})" : "";
+
+        if ($branch) {
+            $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+            $this->selectedCustomer['address'] = $branch['address'] ?? '';
+            $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
+        }
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Cliente seleccionado: ' . $name . $branchName
+        ]);
+
+        // Si la sucursal tiene una lista de precios específica, podríamos aplicarla aquí
+        // Por ahora mantenemos la lógica base de precios del componente
+
+        // Calcular retenciones en caso de que ya hayan productos en el carrito
+        $this->calculateRetentionsForModal();
+    }
+
+    public function updateCustomerNameInline($newValue)
+    {
+        if (!$this->selectedCustomer) return;
+        
+        $newValue = trim($newValue);
+        if (empty($newValue)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El nombre no puede estar vacío']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $customer = VntCompany::find($this->selectedCustomer['id']);
+        if ($customer) {
+            if ((int)$customer->typeIdentificationId === 2) {
+                // Persona Jurídica
+                $customer->update(['businessName' => $newValue]);
+            } else {
+                // Persona Natural
+                $parts = explode(' ', $newValue, 2);
+                $customer->update([
+                    'firstName' => $parts[0],
+                    'lastName' => $parts[1] ?? ''
+                ]);
+            }
+
+            // Actualizar estado local
+            $this->selectedCustomer['businessName'] = $customer->businessName;
+            $this->selectedCustomer['firstName'] = $customer->firstName;
+            $this->selectedCustomer['lastName'] = $customer->lastName;
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Nombre del cliente actualizado']);
+        }
+    }
+
+    public function updateCustomerAddressInline($newValue)
+    {
+        if (!$this->selectedCustomer || !$this->selectedBranchId) return;
+
+        $newValue = trim($newValue);
+        if (empty($newValue)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La dirección no puede estar vacía']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $warehouse = VntWarehouse::find($this->selectedBranchId);
+        if ($warehouse) {
+            $warehouse->update(['address' => $newValue]);
+            $this->selectedCustomer['address'] = $newValue;
+
+            // Recargar sucursales
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Dirección de sucursal actualizada']);
+        }
+    }
+
+    public function updateCustomerPhoneInline($newValue)
+    {
+        if (!$this->selectedCustomer || !$this->selectedBranchId) return;
+
+        $newValue = trim($newValue);
+        $this->ensureTenantConnection();
+        $warehouse = VntWarehouse::find($this->selectedBranchId);
+        if ($warehouse) {
+            $warehouse->update(['phone' => $newValue]);
+            $this->selectedCustomer['phone'] = $newValue;
+
+            // Recargar sucursales
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Teléfono de sucursal actualizado']);
+        }
+    }
+
+    public function updateCustomerCityInline($newValue)
+    {
+        if (!$this->selectedCustomer || !$this->selectedBranchId) return;
+
+        $newValue = trim($newValue);
+        if (empty($newValue)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La ciudad no puede estar vacía']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $city = \App\Models\Central\CnfCity::where('name', 'like', '%' . $newValue . '%')->first();
+        if (!$city) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => "Ciudad '{$newValue}' no encontrada"]);
+            return;
+        }
+
+        $warehouse = VntWarehouse::find($this->selectedBranchId);
+        if ($warehouse) {
+            $warehouse->update(['cityId' => $city->id]);
+            $this->selectedCustomer['cityName'] = $city->name;
+
+            // Recargar sucursales
+            $this->loadBranches($this->selectedCustomer['id']);
+
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Ciudad de sucursal actualizada']);
         }
     }
 
@@ -812,7 +1712,7 @@ class ProductQuoter extends Component
         if (empty($this->customerSearch)) return;
 
         $this->ensureTenantConnection();
-        $customer = VntCompany::where('identification', $this->customerSearch)->first();
+        $customer = VntCompany::where('identification', $this->customerSearch)->whereNot('type', 'PROVEEDOR')->first();
 
         if ($customer) {
             $this->selectCustomer($customer->id);
@@ -834,10 +1734,15 @@ class ProductQuoter extends Component
     public function clearCustomer()
     {
         $this->selectedCustomer = null;
+        $this->branches = [];
+        $this->selectedBranchId = null;
         $this->customerSearch = '';
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
         $this->editingCustomerId = null;
+
+        // Al eliminar el cliente, recalcular/eliminar retenciones
+        $this->calculateRetentionsForModal();
     }
 
     /**
@@ -879,46 +1784,30 @@ class ProductQuoter extends Component
         $this->editingCustomerId = null;
     }
 
+    public function closeCompleteCustomerModal()
+    {
+        $this->showCompleteCustomerModal = false;
+        $this->pendingInvoiceAfterCustomerCompletion = false;
+        $this->editingCustomerId = null;
+    }
+
     public function cancelCreateCustomer()
     {
         $this->showCreateCustomerButton = false;
         $this->showCreateCustomerForm = false;
+        $this->showCompleteCustomerModal = false;
+        $this->pendingInvoiceAfterCustomerCompletion = false;
         $this->customerSearch = '';
         $this->editingCustomerId = null;
     }
 
     public function onCustomerCreated($customerId)
     {
-        $this->ensureTenantConnection();
+        $this->selectCustomer($customerId);
 
-        // Buscar el cliente recién creado
-        $customer = VntCompany::find($customerId);
-
-        if ($customer) {
-            // Seleccionar el cliente recién creado
-            $this->selectedCustomer = [
-                'id' => $customer->id,
-                'businessName' => $customer->businessName,
-                'firstName' => $customer->firstName,
-                'lastName' => $customer->lastName,
-                'identification' => $customer->identification,
-                'billingEmail' => $customer->billingEmail,
-            ];
-
-            // Limpiar estados del formulario de creación/edición
-            $this->showCreateCustomerForm = false;
-            $this->showCreateCustomerButton = false;
-            $this->customerSearch = '';
-            $this->editingCustomerId = null;
-
-            // Determinar el nombre a mostrar
-            $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
-
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Cliente creado y seleccionado: ' . $customerName
-            ]);
-        }
+        // Limpiar estados adicionales del formulario de creación
+        $this->showCreateCustomerForm = false;
+        $this->editingCustomerId = null;
     }
 
     public function onCustomerUpdated($customerId)
@@ -928,18 +1817,37 @@ class ProductQuoter extends Component
         // Verificar si es el cliente que está actualmente seleccionado
         if ($this->selectedCustomer && $this->selectedCustomer['id'] == $customerId) {
             // Buscar el cliente actualizado
-            $customer = VntCompany::find($customerId);
+            $customer = VntCompany::with(['warehouses' => function ($q) {
+                $q->where('status', 1)->with('city');
+            }])->find($customerId);
 
             if ($customer) {
-                // Actualizar los datos del cliente seleccionado
-                $this->selectedCustomer = [
-                    'id' => $customer->id,
-                    'businessName' => $customer->businessName,
-                    'firstName' => $customer->firstName,
-                    'lastName' => $customer->lastName,
-                    'identification' => $customer->identification,
-                    'billingEmail' => $customer->billingEmail,
-                ];
+                // Actualizar los datos del cliente seleccionado (incluir api_data_id)
+                $this->selectedCustomer = array_merge(
+                    $this->selectedCustomer,
+                    [
+                        'id' => $customer->id,
+                        'businessName' => $customer->businessName,
+                        'firstName' => $customer->firstName,
+                        'lastName' => $customer->lastName,
+                        'identification' => $customer->identification,
+                        'billingEmail' => $customer->billingEmail,
+                        'api_data_id' => $customer->api_data_id,
+                    ]
+                );
+
+                // Recargar las sucursales
+                $this->branches = $customer->warehouses->toArray();
+
+                // Si hay una sucursal seleccionada, refrescar los datos en el cliente seleccionado
+                if ($this->selectedBranchId) {
+                    $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
+                    if ($branch) {
+                        $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+                        $this->selectedCustomer['address'] = $branch['address'] ?? '';
+                        $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
+                    }
+                }
 
                 // Limpiar estados del formulario de edición
                 $this->showCreateCustomerForm = false;
@@ -948,10 +1856,31 @@ class ProductQuoter extends Component
                 // Determinar el nombre a mostrar
                 $customerName = $customer->businessName ?: $customer->firstName . ' ' . $customer->lastName;
 
-                $this->dispatch('show-toast', [
-                    'type' => 'success',
-                    'message' => 'Cliente actualizado: ' . $customerName
-                ]);
+                // Si estábamos esperando para facturar, cerrar modal y reanudar
+                if ($this->pendingInvoiceAfterCustomerCompletion) {
+                    $this->showCompleteCustomerModal = false;
+                    $this->pendingInvoiceAfterCustomerCompletion = false;
+
+                    if ($customer->api_data_id) {
+                        // Cliente ya sincronizado — continuar con facturación
+                        $this->dispatch('show-toast', [
+                            'type' => 'success',
+                            'message' => 'Cliente completado. Continuando con la facturación...'
+                        ]);
+                        $this->initPaymentModal();
+                        $this->showPaymentModal = true;
+                    } else {
+                        $this->dispatch('show-toast', [
+                            'type' => 'warning',
+                            'message' => 'El cliente se actualizó pero aún no está sincronizado con el sistema de facturación. Intenta facturar de nuevo.'
+                        ]);
+                    }
+                } else {
+                    $this->dispatch('show-toast', [
+                        'type' => 'success',
+                        'message' => 'Cliente actualizado: ' . $customerName
+                    ]);
+                }
             }
         }
     }
@@ -966,26 +1895,181 @@ class ProductQuoter extends Component
         return false;
     }
 
+    public function updatedAppliedFreight($value)
+    {
+        $this->isFreightManuallyEdited = true;
+        if ($value === '' || !is_numeric($value)) {
+            $this->appliedFreight = 0;
+        }
+        $this->calculateTotal();
+
+        if ($this->isEditing || $this->isEditingRemission) {
+            $this->hasChanges = true;
+        }
+    }
+
+    public function removeFreight()
+    {
+        $this->isFreightApplied = false;
+        $this->isFreightManuallyEdited = false;
+        $this->appliedFreight = 0;
+        $this->freightJustification = '';
+        $this->calculateTotal();
+
+        if ($this->isEditing || $this->isEditingRemission) {
+            $this->hasChanges = true;
+        }
+    }
+
+    public function applyFreightToQuoter()
+    {
+        if ($this->estimatedFreight <= 0) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'No hay flete estimado para aplicar'
+            ]);
+            return;
+        }
+
+        // Activar el flag de flete dinámico
+        $this->isFreightApplied = true;
+
+        // Recalcular totales para aplicar el valor dinámicamente
+        $this->calculateTotal();
+
+        // Marcar cambios si estamos editando
+        if ($this->isEditing) {
+            $this->hasChanges = true;
+        }
+
+        // $this->dispatch('show-toast', [
+        //     'type' => 'success',
+        //     'message' => 'Flete dinámico activado: $' . number_format($this->appliedFreight, 0, ',', '.')
+        // ]);
+    }
+
     private function calculateTotal()
     {
-        // Calcular total imitando la lógica de Alegra:
-        // 1. Calcular subtotal (precio base sin IVA)
-        // 2. Aplicar 19% IVA
-        // Esto debe coincidir exactamente con lo que muestra Alegra
+        // 1. Resetear valores base
+        $this->subTotal = 0;
+        $this->taxBreakdown = [
+            'iva_5' => 0,
+            'iva_19' => 0,
+            'exento' => 0,
+            'subtotal_iva_5' => 0,
+            'subtotal_iva_19' => 0,
+        ];
+        $this->totalTaxes = 0;
+        $this->appliedPacking = 0; // Resetear cobro de empaque especial
 
-        $totalAmount = collect($this->quoterItems)->sum(function ($item) {
-            $priceWithIva = $item['price'];
+        $pesoRealTotal = 0;
+        $pesoCalculoFlete = 0;
+        $hayFactor3 = false;
 
-            // Calcular precio base (subtotal) como lo hace Alegra
-            $priceBase = round($priceWithIva / 1.19, 0); // Alegra parece redondear subtotal a entero
+        // 2. Procesar ítems para calcular subtotal, impuestos y PESO
+        foreach ($this->quoterItems as $item) {
+            $priceWithTax = $item['price'];
+            $taxPercentage = (float)($item['tax'] ?? 0);
+            $quantity = $item['quantity'];
 
-            // Calcular total con IVA como Alegra: base * 1.19
-            $alegraStyleTotal = $priceBase * 1.19;
+            // Cálculo de peso para flete
+            $pesoProducto = isset($item['weight']) ? (float)$item['weight'] : 0.0;
+            $consumptionUnit = $item['consumption_unit'] ?? 0;
+            $isPerfil = ($consumptionUnit == 37);
+            $factorPeso = $isPerfil ? 2 : 1;
+            if ($isPerfil) $hayFactor3 = true;
 
-            return $alegraStyleTotal * $item['quantity'];
-        });
+            $pesoRealTotal += ($pesoProducto * $quantity);
+            $pesoCalculoFlete += ($pesoProducto * $quantity * $factorPeso);
 
-        $this->totalAmount = $totalAmount;
+            // Cálculo de empaque especial
+            $minQty = isset($item['min_packing_qty']) ? (int)$item['min_packing_qty'] : 0;
+            $minVal = isset($item['min_packing_val']) ? (float)$item['min_packing_val'] : 0.0;
+            $addVal = isset($item['add_packing_val']) ? (float)$item['add_packing_val'] : 0.0;
+            if ($minVal > 0) {
+                if ($quantity <= $minQty) {
+                    $this->appliedPacking += $minVal;
+                } else {
+                    $this->appliedPacking += $minVal + (($quantity - $minQty) * $addVal);
+                }
+            }
+
+            if ($taxPercentage > 0) {
+                $priceBase = round($priceWithTax / (1 + ($taxPercentage / 100)), 2);
+                $subtotalThisItem = $priceBase * $quantity;
+
+                if ($taxPercentage == 5) {
+                    $this->taxBreakdown['subtotal_iva_5'] += $subtotalThisItem;
+                } elseif ($taxPercentage == 19) {
+                    $this->taxBreakdown['subtotal_iva_19'] += $subtotalThisItem;
+                }
+            } else {
+                $priceBase = $priceWithTax;
+                $this->taxBreakdown['exento'] += $priceBase * $quantity;
+            }
+
+            $this->subTotal += $priceBase * $quantity;
+        }
+
+        // 3. Calcular impuestos (estilo Alegra)
+        $this->taxBreakdown['iva_5'] = round($this->taxBreakdown['subtotal_iva_5'] * 0.05, 2);
+        $this->taxBreakdown['iva_19'] = round($this->taxBreakdown['subtotal_iva_19'] * 0.19, 2);
+        $this->totalTaxes = $this->taxBreakdown['iva_5'] + $this->taxBreakdown['iva_19'];
+
+        // 4. CALCULAR FLETE DINÁMICO
+        $fleteBase = 10000.0;
+        $recargo = $hayFactor3 ? 10000 : 0;
+
+        if ($this->subTotal < 1000000) {
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 1.7);
+        } elseif ($this->subTotal < 5000000) {
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 1.4);
+        } elseif ($this->subTotal < 15000000) {
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 1.2);
+        } else {
+            $fleteBase = max($fleteBase, $pesoCalculoFlete * 0.96);
+        }
+
+        $seguro = $this->subTotal * 0.007;
+        $fleteCalculado = $fleteBase + $recargo + $seguro;
+
+        $this->totalWeight = round($pesoRealTotal, 2);
+        $this->estimatedFreight = round($fleteCalculado, 2);
+
+        // 5. ASIGNAR FLETE APLICADO SI EL FLAG ESTÁ ACTIVO
+        if ($this->isFreightApplied) {
+            // Si no fue editado manualmente, calculamos el estimado
+            if (!$this->isFreightManuallyEdited) {
+                $this->appliedFreight = round($this->estimatedFreight / 1000) * 1000;
+            }
+        } else {
+            $this->appliedFreight = 0;
+            $this->isFreightManuallyEdited = false;
+            $this->freightJustification = '';
+        }
+
+        // 6. CALCULAR TOTAL FINAL INCLUYENDO FLETE DINÁMICO
+        $this->subTotal = round($this->subTotal, 2);
+        $this->totalTaxes = round($this->totalTaxes, 2);
+        $this->totalAmount = round($this->subTotal + $this->totalTaxes + $this->appliedFreight + $this->appliedPacking);
+
+        // 7. Descuentos y Retenciones
+        $this->appliedDiscounts = collect($this->quoterItems)
+            ->pluck('price_label')
+            ->filter(function ($label) {
+                if (empty($label)) return false;
+                $l = trim(mb_strtolower($label, 'UTF-8'));
+                return !in_array($l, ['precio regular', 'regular', 'precio base', 'precio', 'lista', 'crédito', 'precio crédito', 'precio remisión', 'precio seleccionado']);
+            })
+            ->unique()->values()->toArray();
+
+        $this->calculateRetentionsForModal();
+
+        Log::debug('🧮 Totales recalculados (Flete Dinámico)', [
+            'isFreightApplied' => $this->isFreightApplied,
+            'flete_aplicado' => $this->appliedFreight,
+            'total_amount' => $this->totalAmount
+        ]);
     }
 
     public function getQuoterCountProperty()
@@ -1023,6 +2107,27 @@ class ProductQuoter extends Component
 
     public function getCanShowInvoiceButtonProperty()
     {
+        // log::info('🔍 Evaluando visibilidad del botón de facturar', [
+        //     'user_id' => auth()->id(),
+        //     'user_profile_id' => auth()->user()->profile ? auth()->user()->profile->id : null,
+        //     'isInvoiceModuleActive' => $this->isInvoiceModuleActive,
+        //     'isEditing' => $this->isEditing,
+        //     'hasChanges' => $this->hasChanges
+        // ]);
+        // Validar primero si el usuario tiene el perfil autorizado (11)
+        // Accedemos al ID del perfil ya que 'profile' devuelve el objeto de la relación
+        if (!auth()->user()->profile || auth()->user()->profile->id != 11) {
+            log::info('⚠️ Usuario no autorizado para facturar', [
+                'user_id' => auth()->id(),
+                'user_profile_id' => auth()->user()->profile ? auth()->user()->profile->id : null
+            ]);
+            return false;
+        }
+
+        log::info('✅ Usuario autorizado para facturar', [
+            'user_id' => auth()->id(),
+            'user_profile_id' => auth()->user()->profile ? auth()->user()->profile->id : null
+        ]);
         // Solo mostrar botón de facturar cuando:
         // 1. El módulo de facturación está activo
         // 2. Estamos editando una cotización existente
@@ -1075,8 +2180,16 @@ class ProductQuoter extends Component
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si ya existe, incrementar la cantidad
-            $this->quoterItems[$existingIndex]['quantity']++;
+            $item = $this->quoterItems[$existingIndex];
+            $quntityxbox = (int) ($item['quntityxbox'] ?? 0);
+            $isBoxPrice = str_contains(strtolower($item['price_label'] ?? ''), 'caja');
+
+            if ($isBoxPrice && $quntityxbox > 0) {
+                // Incrementar por caja completa para mantener múltiplos
+                $this->quoterItems[$existingIndex]['quantity'] += $quntityxbox;
+            } else {
+                $this->quoterItems[$existingIndex]['quantity']++;
+            }
 
             // Guardar en sesión
             session(['quoter_items' => $this->quoterItems]);
@@ -1098,9 +2211,14 @@ class ProductQuoter extends Component
         $existingIndex = $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
-            // Si la cantidad es mayor a 1, disminuir
-            if ($this->quoterItems[$existingIndex]['quantity'] > 1) {
-                $this->quoterItems[$existingIndex]['quantity']--;
+            $item = $this->quoterItems[$existingIndex];
+            $quntityxbox = (int) ($item['quntityxbox'] ?? 0);
+            $isBoxPrice = str_contains(strtolower($item['price_label'] ?? ''), 'caja');
+
+            $decrement = ($isBoxPrice && $quntityxbox > 0) ? $quntityxbox : 1;
+
+            if ($this->quoterItems[$existingIndex]['quantity'] > $decrement) {
+                $this->quoterItems[$existingIndex]['quantity'] -= $decrement;
                 $this->calculateTotal();
                 session(['quoter_items' => $this->quoterItems]);
 
@@ -1110,7 +2228,6 @@ class ProductQuoter extends Component
                     'message' => 'Cantidad disminuida: ' . $productName
                 ]);
             } else {
-                // Si la cantidad es 1, preguntar o remover (según diseño suele ser remover)
                 $this->removeFromQuoter($existingIndex);
             }
         }
@@ -1120,14 +2237,32 @@ class ProductQuoter extends Component
     {
         $this->ensureTenantConnection();
         try {
-            $quote = VntQuote::with(['detalles', 'customer', 'customer.company'])->findOrFail($quoteId);
+            $quote = VntQuote::with(['detalles', 'customer', 'customer.company', 'branch', 'branch.city'])->findOrFail($quoteId);
 
             $this->editingQuoteId = $quoteId;
+            $this->editingQuoteConsecutive = $quote->consecutive;
             $this->isEditing = true;
             $this->hasChanges = false;
 
             // Cargar observaciones de la cotización
             $this->observaciones = $quote->observations;
+            $this->appliedFreight = $quote->flete ?? 0; // Cargar flete de la base de datos
+            $this->appliedPacking = $quote->empaque ?? 0; // Cargar empaque de la base de datos
+
+            // Si tiene flete, activar el flag para que se mantenga visible y dinámico al editar
+            if ($this->appliedFreight > 0) {
+                $this->isFreightApplied = true;
+
+                $obs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'quote')
+                    ->where('reference_id', $quote->id)
+                    ->where('observation_type', 'flete_justification')
+                    ->first();
+
+                if ($obs) {
+                    $this->isFreightManuallyEdited = true;
+                    $this->freightJustification = $obs->observation;
+                }
+            }
 
             // Inicializar estado del acordeón de observaciones
             $this->showObservations = !empty($quote->observations);
@@ -1161,10 +2296,25 @@ class ProductQuoter extends Component
                     ];
                 }
 
+                // Cargar ciudad, dirección y teléfono desde la sucursal (branch) de la cotización
+                if ($quote->branch) {
+                    $this->selectedCustomer['cityName'] = $quote->branch->city->name ?? '';
+                    $this->selectedCustomer['address'] = $quote->branch->address ?? '';
+                    $this->selectedCustomer['phone'] = $quote->branch->phone ?? '';
+                }
+
+                // Cargar sucursales de la empresa
+                if ($company) {
+                    $this->branches = $company->warehouses()->where('status', 1)->with('city')->get()->toArray();
+                    $this->selectedBranchId = $quote->branchId;
+                }
+
                 Log::info('🔄 Cliente cargado para edición', [
                     'contact_id' => $contact->id,
                     'company_id' => $company ? $company->id : null,
-                    'selectedCustomer' => $this->selectedCustomer
+                    'selectedCustomer' => $this->selectedCustomer,
+                    'selectedBranchId' => $this->selectedBranchId,
+                    'branches_count' => count($this->branches)
                 ]);
             } else {
                 Log::warning('⚠️ No se pudo cargar cliente para edición', [
@@ -1192,18 +2342,58 @@ class ProductQuoter extends Component
                     'detalle_completo' => $detalle->toArray()
                 ]);
 
-                $product = Items::with('tax')->find($detalle->itemId);
+                $product = Items::with(['tax', 'dimensions', 'invValues'])->find($detalle->itemId);
                 if ($product) {
+                    $priceLabel = $detalle->price_label;
+
+                    if (empty($priceLabel) || $priceLabel === 'NO EXISTE EN BD' || $priceLabel === 'Precio seleccionado') {
+                        $priceLabel = 'Precio seleccionado';
+                        $productPrices = $product->all_prices;
+                        if (!empty($productPrices)) {
+                            foreach ($productPrices as $label => $priceValue) {
+                                if (round((float)$priceValue, 2) === round((float)$detalle->value, 2)) {
+                                    $priceLabel = $label;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Stock total (suma de todas las bodegas)
+                    $totalStock = $product->invItemsStore()->sum('stock_items_store');
+
+                    // Precio mínimo = "Precio Regular" con IVA (mostrado como "Mínimo" en la tabla)
+                    $precioRegularRecord = $product->invValues
+                        ->where('type', 'precio')
+                        ->where('label', 'Precio Regular')
+                        ->sortByDesc('date')
+                        ->sortByDesc('created_at')
+                        ->first();
+                    $taxRate  = (float) ($product->tax->percentage ?? 0) / 100;
+                    $minPrice = $precioRegularRecord ? round((float) $precioRegularRecord->values * (1 + $taxRate)) : 0;
+
                     $itemData = [
-                        'id' => $product->id,
-                        'name' => $product->display_name,
-                        'sku' => $product->sku,
-                        'price' => $detalle->value,
-                        'price_label' => $detalle->price_label ?? 'Precio seleccionado', // Recuperar el label guardado
-                        'quantity' => $detalle->quantity,
-                        'description' => $product->description,
-                        'tax' => $product->tax->percentage ?? 0,
-                        'tax_label' => $product->tax->name ?? 'IVA',
+                        'id'             => $product->id,
+                        'name'           => $product->display_name,
+                        'sku'            => $product->sku,
+                        'price'          => $detalle->value,
+                        'original_price' => $detalle->value,
+                        'min_price'      => $minPrice,
+                        'price_label'    => $priceLabel,
+                        'quantity'       => $detalle->quantity,
+                        'description'    => $product->description,
+                        'tax'            => $product->tax->percentage ?? 0,
+                        'tax_label'      => $product->tax->name ?? 'IVA',
+                        'weight'         => $product->dimensions->weight ?? 0,
+                        'category_id'    => $product->categoryId,
+                        'consumption_unit'=> $product->consumption_unit,
+                        'total_stock'    => $totalStock,
+                        'inventoriable'  => (int) $product->inventoriable,
+                        'quntityxbox'    => (int) ($product->dimensions->quntityxbox ?? 0),
+                        'justification'  => $detalle->justification,
+                        'min_packing_qty' => (int) ($product->dimensions->min_packing_qty ?? 0),
+                        'min_packing_val' => (float) ($product->dimensions->min_packing_val ?? 0.0),
+                        'add_packing_val' => (float) ($product->dimensions->add_packing_val ?? 0.0),
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -1245,6 +2435,14 @@ class ProductQuoter extends Component
             'editingQuoteId' => $this->editingQuoteId,
             'timestamp' => now()->toDateTimeString()
         ]);
+
+        if ($this->isFreightManuallyEdited && empty(trim($this->freightJustification))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para el flete editado'
+            ]);
+            return;
+        }
 
         if (!$this->isEditing || !$this->editingQuoteId) {
             Log::warning('⚠️ No hay cotización en modo edición');
@@ -1328,11 +2526,13 @@ class ProductQuoter extends Component
 
             // Actualizar la cotización
             $updateData = [
-                'customerId' => $contact->id, // USAR EL ID DEL CONTACTO (Referencia a vnt_contacts)
+                'customerId' => $contact->warehouseId, // warehouseId del contacto de la empresa (no cambia con la sucursal)
                 'observations' => $this->observaciones,
-                'warehouseId' => session('warehouse_id', $userStoreId),
+                'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
-                'branchId' => session('branch_id', $userStoreId)
+                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
+                'flete' => $this->appliedFreight, // Guardar el flete aplicado
+                'empaque' => $this->appliedPacking // Guardar el empaque especial aplicado
             ];
 
             Log::info('💾 Datos que se van a actualizar en vnt_quotes', [
@@ -1340,6 +2540,18 @@ class ProductQuoter extends Component
             ]);
 
             $quote->update($updateData);
+
+            if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    ['reference_id' => $quote->id, 'reference_type' => 'quote', 'observation_type' => 'flete_justification'],
+                    ['observation' => $this->freightJustification, 'userId' => auth()->id()]
+                );
+            } else {
+                \App\Models\Tenant\Sales\VntObservation::where('reference_id', $quote->id)
+                    ->where('reference_type', 'quote')
+                    ->where('observation_type', 'flete_justification')
+                    ->delete();
+            }
 
             Log::info('✅ Cotización actualizada en BD', [
                 'quote_id' => $quote->id,
@@ -1372,7 +2584,8 @@ class ProductQuoter extends Component
                     'itemId' => $item['id'],
                     'description' => $item['name'],
                     'priceList' => $item['price'],
-                    'price_label' => $item['price_label'] ?? 'Precio' // Guardar el label de la lista de precios
+                    'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
+                    'justification' => $item['justification'] ?? null,
                 ];
 
                 Log::info("📦 Creando detalle #{$index}", [
@@ -1403,17 +2616,8 @@ class ProductQuoter extends Component
                 'message' => 'Cotización #' . $quote->consecutive . ' actualizada exitosamente'
             ]);
 
-            // Limpiar después de actualizar
-            $this->clearQuoter();
-            $this->isEditing = false;
-            $this->editingQuoteId = null;
-
-            // Redirigir al listado de cotizaciones según el tipo de vista
-            $routeName = $this->viewType === 'mobile'
-                ? 'tenant.quoter.mobile'
-                : 'tenant.quoter.desktop';
-
-            return redirect()->route($routeName);
+            // Se elimina la redirección y limpieza para permitir que el usuario permanezca en la pantalla de edición
+            // y pueda crear la OP o Facturar directamente tras la actualización.
 
         } catch (\Exception $e) {
             // Revertir transacción en caso de error
@@ -1442,6 +2646,15 @@ class ProductQuoter extends Component
             return;
         }
 
+        // ⚠️ Validación: si hay cambios sin guardar, forzar actualizar cotización primero
+        if ($this->hasChanges) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => '⚠️ Tienes cambios sin guardar. Actualiza la cotización antes de crear la OP.'
+            ]);
+            return;
+        }
+
         if (empty($this->quoterItems)) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -1458,6 +2671,344 @@ class ProductQuoter extends Component
             return;
         }
 
+        $totalConFlete = round(floatval($this->totalAmount));
+        $totalConFlete = round($totalConFlete);
+
+        $this->additionalPayments = [
+            [
+                'method_payment_id' => '',
+                'value' => number_format($totalConFlete, 0, '', '.'),
+                'observation' => ''
+            ]
+        ];
+        $this->additionalPaymentFiles = [];
+
+        // Mostrar modal de selección de tipo de entrega
+        $this->showDeliveryModal = true;
+    }
+
+    public function addAdditionalPayment()
+    {
+        $this->additionalPayments[] = [
+            'method_payment_id' => '',
+            'value' => 0,
+            'observation' => ''
+        ];
+    }
+
+    public function removeAdditionalPayment($index)
+    {
+        if (isset($this->additionalPayments[$index])) {
+            $payment = $this->additionalPayments[$index];
+            $methodId = $payment['method_payment_id'] ?? null;
+            if ($methodId) {
+                $method = collect($this->methodPayments)->firstWhere('id', $methodId);
+                if ($method) {
+                    $methodName = $method['name'] ?? 'Método';
+                    
+                    // Separar el texto por líneas y eliminar la que corresponde al método
+                    $lines = explode("\n", $this->paymentDetails);
+                    $newLines = [];
+                    foreach ($lines as $line) {
+                        if (str_starts_with(strtolower(trim($line)), strtolower($methodName) . ':') || strtolower(trim($line)) === strtolower($methodName)) {
+                            continue;
+                        }
+                        $newLines[] = $line;
+                    }
+                    $this->paymentDetails = implode("\n", $newLines);
+                }
+            }
+
+            unset($this->additionalPayments[$index]);
+            $this->additionalPayments = array_values($this->additionalPayments);
+        }
+        if (isset($this->additionalPaymentFiles[$index])) {
+            unset($this->additionalPaymentFiles[$index]);
+            $this->additionalPaymentFiles = array_values($this->additionalPaymentFiles);
+        }
+
+        // Recalcular la fila principal
+        $totalConFlete = round(floatval($this->totalAmount));
+        $totalConFlete = round($totalConFlete);
+        
+        $sumOthers = 0;
+        foreach ($this->additionalPayments as $k => $payment) {
+            if ($k > 0) {
+                $sumOthers += $this->getCleanPaymentValue($payment['value'] ?? 0);
+            }
+        }
+        if (isset($this->additionalPayments[0])) {
+            $this->additionalPayments[0]['value'] = number_format(max(0, $totalConFlete - $sumOthers), 0, '', '.');
+        }
+    }
+
+    public function updatedAdditionalPayments($value, $key)
+    {
+        if (str_contains($key, '.method_payment_id')) {
+            $parts = explode('.', $key);
+            $index = intval($parts[0]);
+            
+            $method = collect($this->methodPayments)->firstWhere('id', $value);
+            if ($method) {
+                $methodName = $method['name'] ?? 'Método';
+                
+                // Agregar el nombre del método a la caja única de observaciones de pago si no está ya escrito
+                if (!str_contains(strtolower($this->paymentDetails), strtolower($methodName))) {
+                    if (!empty(trim($this->paymentDetails))) {
+                        $this->paymentDetails .= "\n";
+                    }
+                    $this->paymentDetails .= $methodName . ": ";
+                }
+            }
+        }
+
+        if (str_contains($key, '.value')) {
+            $parts = explode('.', $key);
+            $index = intval($parts[0]);
+            
+            $totalConFlete = round(floatval($this->totalAmount));
+            $totalConFlete = round($totalConFlete);
+
+            // Limpiar y formatear el valor que acaba de ingresar el usuario
+            $cleanInputVal = $this->getCleanPaymentValue($value);
+            $this->additionalPayments[$index]['value'] = number_format($cleanInputVal, 0, '', '.');
+
+            if ($index > 0) {
+                // Sumar las demás filas secundarias
+                $sumOthers = 0;
+                foreach ($this->additionalPayments as $k => $payment) {
+                    if ($k > 0 && $k != $index) {
+                        $sumOthers += $this->getCleanPaymentValue($payment['value'] ?? 0);
+                    }
+                }
+                
+                // Si excede el total
+                if ($sumOthers + $cleanInputVal > $totalConFlete) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => 'La suma de las formas de pago no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
+                    ]);
+                    $this->additionalPayments[$index]['value'] = '0';
+                    $cleanInputVal = 0;
+                }
+                
+                // Ajustar la fila principal (índice 0)
+                $newSumOthers = $sumOthers + $cleanInputVal;
+                $this->additionalPayments[0]['value'] = number_format(max(0, $totalConFlete - $newSumOthers), 0, '', '.');
+            } else {
+                // Si edita la fila principal (índice 0)
+                $sumOthers = 0;
+                foreach ($this->additionalPayments as $k => $payment) {
+                    if ($k > 0) {
+                        $sumOthers += $this->getCleanPaymentValue($payment['value'] ?? 0);
+                    }
+                }
+                
+                if ($cleanInputVal + $sumOthers > $totalConFlete) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => 'La suma de las formas de pago no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
+                    ]);
+                    $this->additionalPayments[0]['value'] = number_format(max(0, $totalConFlete - $sumOthers), 0, '', '.');
+                }
+            }
+        }
+    }
+
+    private function getCleanPaymentValue($val)
+    {
+        if (is_string($val)) {
+            $val = str_replace('.', '', $val);
+        }
+        return round(floatval($val));
+    }
+
+    /**
+     * Cargar tipos de entrega activos
+     */
+    public function loadDeliveryTypes()
+    {
+        $this->ensureTenantConnection();
+        try {
+            $types = InvDeliveryType::on('tenant')->active()->get();
+            // Convertir a array para evitar problemas de serialización de Livewire
+            $this->deliveryTypes = $types->map(function ($type) {
+                return [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'ask_details' => $type->ask_details,
+                    'detail' => $type->detail
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error cargando tipos de entrega: ' . $e->getMessage());
+            $this->deliveryTypes = [];
+        }
+    }
+
+    /**
+     * Cargar métodos de pago activos
+     */
+    public function loadMethodPayments()
+    {
+        $this->ensureTenantConnection();
+        try {
+            $methods = \App\Models\Tenant\MethodPayments\VntMethodPayMents::on('tenant')
+                ->where('status', 1)
+                ->get();
+
+            // Convertir a array para evitar problemas de serialización de Livewire
+            $this->methodPayments = $methods->map(function ($method) {
+                return [
+                    'id' => $method->id,
+                    'name' => $method->name,
+                    'description' => $method->description,
+                    'type' => $method->type,
+                    'method' => $method->method,
+                    'bank' => $method->bank
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error cargando métodos de pago: ' . $e->getMessage());
+            $this->methodPayments = [];
+        }
+    }
+
+    /**
+     * Cuando se selecciona un tipo de entrega
+     */
+    public function updatedSelectedDeliveryType($value)
+    {
+        if ($value) {
+            // Buscar en el array de tipos
+            $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $value);
+            $this->requiresDeliveryDetails = $deliveryType ? $deliveryType['ask_details'] : false;
+
+            // Verificar si el tipo de entrega es "Otro" para mostrar campo adicional
+            $this->showOtherDeliveryInput = $deliveryType && strtolower($deliveryType['name']) === 'otro';
+
+            if (!$this->requiresDeliveryDetails) {
+                $this->deliveryDetails = '';
+            }
+            if (!$this->showOtherDeliveryInput) {
+                $this->otherDeliveryDetails = '';
+            }
+        } else {
+            $this->requiresDeliveryDetails = false;
+            $this->deliveryDetails = '';
+            $this->showOtherDeliveryInput = false;
+            $this->otherDeliveryDetails = '';
+        }
+    }
+
+    /**
+     * Proceder con la creación de la remisión después de seleccionar tipo de entrega
+     */
+    public function proceedWithRemissionCreation()
+    {
+        if (!$this->selectedCustomer || empty(trim($this->selectedCustomer['phone'] ?? ''))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'El número de teléfono del cliente es requerido para crear la OP. Por favor, añádalo antes de continuar.'
+            ]);
+            return;
+        }
+
+        if (!$this->selectedDeliveryType) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes seleccionar un tipo de entrega'
+            ]);
+            return;
+        }
+
+
+
+        // Buscar en el array de tipos
+        $deliveryType = collect($this->deliveryTypes)->firstWhere('id', $this->selectedDeliveryType);
+
+        if ($deliveryType && $deliveryType['ask_details'] && empty(trim($this->deliveryDetails))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Este tipo de entrega requiere detalles adicionales'
+            ]);
+            return;
+        }
+
+        // Validar campo "otro" tipo de entrega si está visible
+        if ($this->showOtherDeliveryInput && empty(trim($this->otherDeliveryDetails))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes especificar cuál es el otro tipo de entrega'
+            ]);
+            return;
+        }
+        // Validar formas de pago
+        $sumAdditional = 0;
+        foreach ($this->additionalPayments as $index => $payment) {
+            if (empty($payment['method_payment_id'])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Debes seleccionar el método de pago en todas las formas de pago ingresadas.'
+                ]);
+                return;
+            }
+            if ($this->getCleanPaymentValue($payment['value'] ?? 0) <= 0) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'El valor de todas las formas de pago ingresadas debe ser mayor a 0.'
+                ]);
+                return;
+            }
+            $sumAdditional += $this->getCleanPaymentValue($payment['value']);
+
+            // Validar archivo de soporte para este pago si fue cargado
+            if (isset($this->additionalPaymentFiles[$index])) {
+                try {
+                    $this->validate([
+                        "additionalPaymentFiles.{$index}" => 'file|max:10240|mimes:jpg,jpeg,png,webp,pdf,gif,doc,docx'
+                    ], [
+                        "additionalPaymentFiles.{$index}.mimes" => 'El soporte de pago debe ser una imagen, PDF o documento Word.',
+                        "additionalPaymentFiles.{$index}.max" => 'El soporte de pago no debe pesar más de 10 MB.'
+                    ]);
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $e->validator->errors()->first("additionalPaymentFiles.{$index}")
+                    ]);
+                    return;
+                }
+            }
+        }
+
+        // Validar que la suma no supere el total
+        $totalConFlete = round(floatval($this->totalAmount));
+        if ($this->editingQuoteId) {
+            $quote = VntQuote::find($this->editingQuoteId);
+            if ($quote) {
+                $totalConFlete += round(floatval($quote->flete ?? 0));
+            }
+        }
+        $totalConFlete = round($totalConFlete);
+
+        if ($sumAdditional > $totalConFlete) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'La suma de los pagos adicionales no puede superar el total del pedido ($' . number_format($totalConFlete, 0) . ').'
+            ]);
+            return;
+        }
+
+        // Cerrar modal y crear remisión
+        $this->showDeliveryModal = false;
+        $this->createRemissionWithDeliveryType();
+    }
+
+    /**
+     * Crear la remisión con el tipo de entrega seleccionado
+     */
+    private function createRemissionWithDeliveryType()
+    {
         $this->ensureTenantConnection();
 
         try {
@@ -1465,8 +3016,19 @@ class ProductQuoter extends Component
 
             $quote = VntQuote::findOrFail($this->editingQuoteId);
 
-            // Validar stock disponible antes de procesar
+            // Validar stock disponible antes de procesar (solo para items inventariables)
             foreach ($this->quoterItems as $item) {
+                // Items no inventariables no requieren control de stock
+                if (($item['inventoriable'] ?? 1) == 0) {
+                    continue;
+                }
+
+                // Omitir validación de stock para productos ensamblados al crear remisión (OP)
+                $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
+                if ($productModel && $productModel->type === 'ENSAMBLADO') {
+                    continue;
+                }
+
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();
@@ -1480,34 +3042,120 @@ class ProductQuoter extends Component
                     return;
                 }
 
-                $newStock = $itemStore->stock_items_store - $item['quantity'];
+                $quarantineStock = (float) DB::connection('tenant')
+                    ->table('inv_quarantine_movements')
+                    ->where('item_id', $item['id'])
+                    ->where('store_id', $quote->warehouseId)
+                    ->whereNull('deleted_at')
+                    ->sum('quantity');
 
-                if ($newStock < 0) {
+                $showroomStock = (float) DB::connection('tenant')
+                    ->table('inv_showroom_movements')
+                    ->where('item_id', $item['id'])
+                    ->where('store_id', $quote->warehouseId)
+                    ->whereNull('deleted_at')
+                    ->sum('quantity');
+
+                $availableStock = max(0, $itemStore->stock_items_store - $quarantineStock - $showroomStock);
+
+                if ($item['quantity'] > $availableStock) {
                     DB::connection('tenant')->rollBack();
-                    $this->dispatch('show-toast', [
-                        'type' => 'error',
-                        'message' => "Stock insuficiente para '{$item['name']}'. Solicitado: {$item['quantity']}, Disponible: {$itemStore->stock_items_store}"
+                    $this->dispatch('swal', [
+                        'icon' => 'error',
+                        'title' => 'Stock Insuficiente (Especial)',
+                        'html' => "El producto <strong>{$item['name']}</strong> tiene unidades no disponibles para venta.<br><br>"
+                               . "<div class='text-left space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-sm'>"
+                               . "• <strong>Cantidad Solicitada:</strong> " . number_format($item['quantity'], 0) . " und.<br>"
+                               . "• <strong>En Cuarentena:</strong> " . number_format($quarantineStock, 0) . " und.<br>"
+                               . "• <strong>En Vitrina:</strong> " . number_format($showroomStock, 0) . " und.<br>"
+                               . "• <strong>Disponible Real para Venta:</strong> <span class='text-emerald-600 dark:text-emerald-400 font-bold'>" . number_format($availableStock, 0) . " und.</span>"
+                               . "</div><br>"
+                               . "<em>Por favor, reduce la cantidad en el carrito o solicita la liberación del stock a un administrador.</em>"
                     ]);
                     return;
                 }
             }
 
-            // Obtener siguiente consecutivo de remisiones
-            $lastRemission = InvRemissions::orderBy('consecutive', 'desc')->first();
+            // Obtener siguiente consecutivo de remisiones con bloqueo de fila
+            $lastRemission = InvRemissions::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
 
-            // Crear Remisión
+            // Determinar las observaciones de retorno
+            $observationsReturn = $this->deliveryDetails;
+            if ($this->showOtherDeliveryInput && !empty($this->otherDeliveryDetails)) {
+                $observationsReturn = $this->otherDeliveryDetails;
+            }
+
+            // Construir el JSON de pagos detallados con archivos de soporte y observaciones
+            $paymentsArray = [];
+            $tenantId = session('tenant_id', 'default');
+            
+            foreach ($this->additionalPayments as $index => $payment) {
+                $proofPaymentPath = null;
+                if (isset($this->additionalPaymentFiles[$index])) {
+                    $proofPaymentPath = $this->additionalPaymentFiles[$index]->store("remissions/proofs/{$tenantId}", 'public');
+                }
+                
+                $paymentsArray[] = [
+                    'method_payment_id' => $payment['method_payment_id'],
+                    'value' => $this->getCleanPaymentValue($payment['value']),
+                    'proof_payment' => $proofPaymentPath,
+                    'observation' => $payment['observation'] ?? ''
+                ];
+            }
+
+            // Para mantener compatibilidad con registros históricos, usamos el primer pago para rellenar
+            // las columnas físicas clásicas de la remisión
+            $firstPayment = $paymentsArray[0] ?? null;
+            $fallbackMethodPaymentId = $firstPayment ? $firstPayment['method_payment_id'] : null;
+            $fallbackProofPaymentPath = $firstPayment ? $firstPayment['proof_payment'] : null;
+
+            // Crear Remisión con tipo de entrega y método de pago
             $remission = InvRemissions::create([
                 'consecutive' => $nextConsecutive,
                 'status' => 'REGISTRADO',
                 'quoteId' => $quote->id,
                 'warehouseId' => $quote->warehouseId,
-                'methodPaymentId' => 1, // Por defecto efectivo
+                'deliveryTypeId' => $this->selectedDeliveryType,
+                'methodPaymentId' => $fallbackMethodPaymentId,
                 'userId' => auth()->id(),
                 'deliveryDate' => now()->format('Y-m-d'),
                 'expiration' => 0,
-                'modify' => 0
+                'modify' => 0,
+                //'observations_return' => $observationsReturn,
+                'obs' => $this->orderDetails,
+                'observations_delivery' => $this->deliveryDetails,
+                'flete' => $quote->flete,
+                'proof_payment' => $fallbackProofPaymentPath,
+                'payment_details' => $paymentsArray
             ]);
+
+            // Guardar observaciones de forma de pago
+            if (!empty(trim($this->paymentDetails))) {
+                \App\Models\Tenant\Sales\VntObservation::create([
+                    'reference_id' => $remission->id,
+                    'reference_type' => 'remission',
+                    'observation_type' => 'payment_obs',
+                    'observation' => $this->paymentDetails,
+                    'userId' => auth()->id()
+                ]);
+            }
+
+            // Copiar justificación de flete si existe
+            $quoteObservation = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'quote')
+                ->where('reference_id', $quote->id)
+                ->where('observation_type', 'flete_justification')
+                ->first();
+
+            if ($quoteObservation) {
+                \App\Models\Tenant\Sales\VntObservation::create([
+                    'reference_id' => $remission->id,
+                    'reference_type' => 'remission',
+                    'observation_type' => 'flete_justification',
+                    'observation' => $quoteObservation->observation,
+                    'userId' => auth()->id()
+                ]);
+            }
 
             // Crear detalles de la remisión y actualizar stock
             foreach ($this->quoterItems as $item) {
@@ -1521,14 +3169,40 @@ class ProductQuoter extends Component
                     'invoiceId' => null,
                 ]);
 
+                // Solo actualizar stock para items inventariables
+                if (($item['inventoriable'] ?? 1) == 0) {
+                    continue;
+                }
+
                 // Actualizar el stock del producto en la bodega específica
                 $itemStore = InvItemsStore::where('itemId', $item['id'])
                     ->where('storeId', $quote->warehouseId)
                     ->first();
 
-                $itemStore->update([
-                    'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
-                ]);
+                if ($itemStore) {
+                    $itemStore->update([
+                        'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
+                    ]);
+
+                    // Sincronizar stock con WordPress si wp_stock_percentage está al 100%
+                    if ((int)$itemStore->wp_stock_percentage === 100) {
+                        try {
+                            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                            if ($wpService->isConfigured()) {
+                                $itemModel = Items::find($item['id']);
+                                if ($itemModel) {
+                                    $wpService->syncItemStock($itemModel);
+                                    Log::info('🔄 [WP-Stock-OP] Sincronización automática de stock ejecutada para ítem en OP', [
+                                        'item_id' => $item['id'],
+                                        'sku' => $item['sku']
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('❌ [WP-Stock-OP] Error al sincronizar stock en OP para ítem ' . $item['id'] . ': ' . $e->getMessage());
+                        }
+                    }
+                }
             }
 
             // Actualizar estado de la cotización
@@ -1551,6 +3225,31 @@ class ProductQuoter extends Component
                 'message' => 'Error al confirmar el pedido: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Cerrar modal de tipo de entrega
+     */
+    public function closeDeliveryModal()
+    {
+        $this->showDeliveryModal = false;
+        $this->selectedDeliveryType = null;
+        $this->deliveryDetails = '';
+        $this->orderDetails = '';
+        $this->paymentDetails = '';
+        $this->requiresDeliveryDetails = false;
+        $this->selectedMethodPayment = null;
+        $this->showOtherDeliveryInput = false;
+        $this->otherDeliveryDetails = '';
+        $this->proofPaymentFile = null;
+    }
+
+    /**
+     * Alternar entre modo grid y tabla
+     */
+    public function toggleViewMode()
+    {
+        $this->viewMode = $this->viewMode === 'grid' ? 'table' : 'grid';
     }
 
     public function invoiceOrder()
@@ -1592,6 +3291,18 @@ class ProductQuoter extends Component
             return;
         }
 
+        // Verificar que el cliente tiene api_data_id (sincronizado con Alegra)
+        $apiDataId = $this->selectedCustomer['api_data_id'] ?? null;
+        if (empty($apiDataId)) {
+            Log::info('⚠️ Cliente sin api_data_id - solicitando completar datos antes de facturar', [
+                'customer_id' => $this->selectedCustomer['id'] ?? null,
+            ]);
+            $this->editingCustomerId = $this->selectedCustomer['id'];
+            $this->pendingInvoiceAfterCustomerCompletion = true;
+            $this->showCompleteCustomerModal = true;
+            return;
+        }
+
         // NUEVO FLUJO: Abrir modal de pagos antes de facturar
         Log::info('💰 Abriendo modal de pagos antes de facturar', [
             'quote_id' => $this->editingQuoteId,
@@ -1617,13 +3328,112 @@ class ProductQuoter extends Component
             $this->paymentMethods[$key]['selected'] = false;
         }
 
+        // Calcular retenciones
+        $this->calculateRetentionsForModal();
+
         // Calcular balances iniciales
         $this->calculatePaymentBalances();
 
         Log::info('💳 Modal de pagos inicializado', [
             'quote_id' => $this->editingQuoteId,
             'total_amount' => $this->totalAmount,
+            'total_with_retentions' => $this->totalWithRetentions,
+            'retentions' => $this->retentions,
+            'show_retentions' => $this->showRetentions,
             'customer' => $this->selectedCustomer['businessName'] ?? $this->selectedCustomer['firstName'] ?? 'Sin nombre'
+        ]);
+    }
+
+    /**
+     * Calcular retenciones para mostrar en el modal
+     */
+    public function calculateRetentionsForModal()
+    {
+        // Resetear retenciones
+        $this->retentions = [
+            'retention_fuente' => 0,
+            'retention_ica' => 0,
+            'retention_iva' => 0,
+        ];
+        $this->showRetentions = false;
+        $this->totalWithRetentions = $this->totalAmount;
+
+        // Solo calcular si hay cliente seleccionado y configuración habilitada
+        if (!$this->selectedCustomer || !config('facturacion.retentions.auto_calculate', true)) {
+            return;
+        }
+
+        $retentionCalculator = new RetentionCalculatorService();
+
+        // Obtener datos del cliente para calcular retenciones con bases oficiales 2026
+        // Obtener régimen fiscal
+        $regimeDescription = 'COMMON_REGIME'; // Por defecto
+        if (isset($this->selectedCustomer['company']['regimen'])) {
+            $regimeDescription = $this->selectedCustomer['company']['regimen'] === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME';
+        }
+
+        // Obtener responsabilidad fiscal
+        $fiscalResponsability = 0;
+        if (isset($this->selectedCustomer['company']['fiscal_responsibility_id'])) {
+            $fiscalResponsability = (int)$this->selectedCustomer['company']['fiscal_responsibility_id'];
+        } elseif (isset($this->selectedCustomer['fiscal_responsibility_id'])) {
+            $fiscalResponsability = (int)$this->selectedCustomer['fiscal_responsibility_id'];
+        }
+
+        // Obtener ciudad
+        $city = '';
+        if (isset($this->selectedCustomer['company']['city'])) {
+            $city = $this->selectedCustomer['company']['city'];
+        } elseif (isset($this->selectedCustomer['city'])) {
+            $city = $this->selectedCustomer['city'];
+        }
+
+        // Calcular retenciones con bases oficiales 2026
+        Log::info('🔍 SUBTOTAL EXACTO para retenciones', [
+            'subTotal' => $this->subTotal,
+            'totalAmount' => $this->totalAmount,
+            'calculated_retention_2_5_percent' => $this->subTotal * 0.025,
+            'rounded_retention' => round($this->subTotal * 0.025, 2)
+        ]);
+
+        $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
+            'regime_description' => $regimeDescription,
+            'fiscal_responsability' => $fiscalResponsability,
+            'city' => $city,
+            'sub_total' => $this->subTotal
+        ]);
+
+        // Redondear retenciones para visualización, pero mantener precisión para cálculos internos
+        $this->retentions = [
+            'retention_fuente' => round($calculatedRetentions['retention_fuente'], 2),
+            'retention_ica' => round($calculatedRetentions['retention_ica'], 2),
+            'retention_iva' => round($calculatedRetentions['retention_iva'], 2),
+        ];
+
+        // Mostrar retenciones si hay alguna > 0
+        $this->showRetentions = ($calculatedRetentions['retention_fuente'] > 0 ||
+            $calculatedRetentions['retention_ica'] > 0 ||
+            $calculatedRetentions['retention_iva'] > 0);
+
+        // Calcular total con retenciones usando valores sin redondear para máxima precisión
+        $totalRetentions = $calculatedRetentions['retention_fuente'] +
+            $calculatedRetentions['retention_ica'] +
+            $calculatedRetentions['retention_iva'];
+
+        $this->totalWithRetentions = round($this->totalAmount - $totalRetentions, 2);
+
+        // Consultar saldo exacto de Alegra si hay una factura asociada
+        $this->updateWithAlegraBalance();
+
+        Log::info('💰 Retenciones calculadas para modal', [
+            'customer_id' => $this->selectedCustomer['id'] ?? null,
+            'regime' => $regimeDescription,
+            'fiscal_responsibility' => $fiscalResponsability,
+            'city' => $city,
+            'total_amount' => $this->totalAmount,
+            'retentions' => $calculatedRetentions,
+            'total_with_retentions' => $this->totalWithRetentions,
+            'show_retentions' => $this->showRetentions
         ]);
     }
 
@@ -1650,6 +3460,16 @@ class ProductQuoter extends Component
     }
 
     /**
+     * Actualizar valores con saldo exacto de Alegra para evitar residuales
+     */
+    private function updateWithAlegraBalance()
+    {
+        // Esta función solo aplica cuando hay una factura existente para procesar pago
+        // En el cotizador no hay factura aún, así que no hacer nada
+        return;
+    }
+
+    /**
      * Calcular balances de pagos
      */
     public function calculatePaymentBalances()
@@ -1657,23 +3477,37 @@ class ProductQuoter extends Component
         // Calcular total pagado sumando todos los métodos de pago
         $this->totalPaid = 0;
         foreach ($this->paymentMethods as $key => $method) {
-            $value = (float) ($method['value'] ?? 0);
+            $value = round((float) ($method['value'] ?? 0), 2);
             $this->totalPaid += $value;
         }
+        $this->totalPaid = round($this->totalPaid, 2);
+
+        // Usar el total con retenciones si hay retenciones aplicables
+        $totalToCompare = $this->showRetentions ? $this->totalWithRetentions : $this->totalAmount;
 
         // Calcular balance restante y cambio
-        if ($this->totalPaid > $this->totalAmount) {
+        if ($this->totalPaid > $totalToCompare) {
             // Si se pagó más del total, calcular el cambio
             $this->remainingBalance = 0;
-            $this->changeAmount = round($this->totalPaid - $this->totalAmount, 2);
+            $this->changeAmount = round($this->totalPaid - $totalToCompare, 2);
         } else {
             // Si falta dinero por pagar
-            $this->remainingBalance = round($this->totalAmount - $this->totalPaid, 2);
+            $this->remainingBalance = round($totalToCompare - $this->totalPaid, 2);
             $this->changeAmount = 0;
         }
 
         // Permitir proceder si hay algún pago (simplificar la lógica)
         $this->canProceedToPayment = $this->totalPaid > 0;
+
+        Log::debug('💳 Balances de pago calculados', [
+            'total_original' => $this->totalAmount,
+            'total_with_retentions' => $this->totalWithRetentions,
+            'total_used_for_calculation' => $totalToCompare,
+            'total_paid' => $this->totalPaid,
+            'remaining_balance' => $this->remainingBalance,
+            'change_amount' => $this->changeAmount,
+            'show_retentions' => $this->showRetentions
+        ]);
     }
 
     /**
@@ -1872,7 +3706,7 @@ class ProductQuoter extends Component
             DB::connection('tenant')->beginTransaction();
 
             // Cargar la cotización con todas sus relaciones
-            $quote = VntQuote::with(['detalles.item', 'customer', 'warehouse'])->findOrFail($this->editingQuoteId);
+            $quote = VntQuote::with(['detalles.item.tax', 'customer', 'warehouse'])->findOrFail($this->editingQuoteId);
 
             // Verificar si la facturación está habilitada para este tenant
             $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
@@ -1915,15 +3749,51 @@ class ProductQuoter extends Component
             // Construir datos de la factura usando el nuevo servicio
             // Usar los datos de pago recibidos si están disponibles
             $paymentMethods = $paymentData; // Datos de pago desde PaymentQuote
-            $retentions = [];     // TODO: Obtener del formulario de facturación
+            $retentions = [];     // Se calcularán automáticamente en buildFromQuote si están habilitadas
             $termDays = 0;        // TODO: Obtener del formulario de facturación
 
             $invoiceData = InvoiceDataBuilder::buildFromQuote(
                 $quote,
                 $paymentMethods,
                 $retentions,
-                $termDays
+                $termDays,
+                config('facturacion.retentions.auto_calculate', true) // Calcular retenciones automáticamente
             );
+
+            // Calcular retenciones locales para guardar en BD
+            $retentionCalculator = new RetentionCalculatorService();
+            $customer = $quote->customer;
+            $calculatedRetentions = ['retention_fuente' => 0, 'retention_ica' => 0, 'retention_iva' => 0];
+
+            if ($customer && config('facturacion.retentions.auto_calculate', true)) {
+                // Obtener datos del cliente para calcular retenciones con bases oficiales 2026
+                $regimeDescription = $customer->company && $customer->company->regimen ?
+                    ($customer->company->regimen === 'COMUN' ? 'COMMON_REGIME' : 'SPECIAL_REGIME') :
+                    'COMMON_REGIME';
+                $fiscalResponsability = $customer->company && $customer->company->fiscal_responsibility_id ?
+                    (int)$customer->company->fiscal_responsibility_id : ($customer->fiscal_responsibility_id ? (int)$customer->fiscal_responsibility_id : 0);
+                $city = $customer->company && $customer->company->city ?
+                    $customer->company->city : ($customer->city ?: '');
+
+                $calculatedRetentions = $retentionCalculator->calculateAllRetentions([
+                    'regime_description' => $regimeDescription,
+                    'fiscal_responsability' => $fiscalResponsability,
+                    'city' => $city,
+                    'sub_total' => $quote->sub_total
+                ]);
+
+                Log::info('💰 Retenciones calculadas para factura (bases 2026)', [
+                    'quote_id' => $quote->id,
+                    'customer_id' => $customer->id,
+                    'regime' => $regimeDescription,
+                    'fiscal_responsibility' => $fiscalResponsability,
+                    'city' => $city,
+                    'sub_total' => $quote->sub_total,
+                    'base_fuente' => config('facturacion.retentions.base_amounts.fuente', 524000),
+                    'base_ica' => config('facturacion.retentions.base_amounts.ica', 1418800),
+                    'calculated_retentions' => $calculatedRetentions
+                ]);
+            }
 
             // Enviar factura a la API de Alegra
             Log::info('📡 Enviando factura a API de Alegra', [
@@ -1950,9 +3820,9 @@ class ProductQuoter extends Component
                     'api_data_id' => $invoiceId,
                     'invoiceNumber' => $invoiceNumber,
                     'partialPayment' => 0.00,
-                    'retentionFuente' => 0.00,
-                    'retentionIca' => 0.00,
-                    'retentionIva' => 0.00,
+                    'retentionFuente' => $calculatedRetentions['retention_fuente'],
+                    'retentionIca' => $calculatedRetentions['retention_ica'],
+                    'retentionIva' => $calculatedRetentions['retention_iva'],
                     'creditNote' => null,
                     'orderNumber' => null,
                     'remission' => 0
@@ -1969,80 +3839,33 @@ class ProductQuoter extends Component
                     'invoiceId' => $invoice->id
                 ]);
 
-                Log::info('📄 Factura creada con estado SIN EMITIR, procediendo a emitir (stamp)', [
-                    'invoice_local_id' => $invoice->id,
-                    'api_data_id' => $invoiceId,
-                    'initial_status' => 'SIN EMITIR'
-                ]);
-
                 Log::info('🔗 Relación factura-cotización creada en vnt_invoicesXsales', [
                     'quote_id' => $quote->id,
                     'invoice_id' => $invoice->id,
                     'remission_id' => 0
                 ]);
 
-                // 2. INTENTAR EMITIR (STAMP) LA FACTURA
-                $stampResponse = $facturacionService->stampInvoice($invoiceId);
-
-                if ($stampResponse['success']) {
-                    // ✅ STAMP EXITOSO: Actualizar estado a FACTURADO
-                    $invoice->update(['status' => 'FACTURADO']);
-
-                    // 3. REGISTRAR PAGO SI HAY DATOS DE PAGO
-                    if (!empty($paymentData)) {
-                        $this->registerInvoicePayments($invoice, $paymentData, $invoiceId, $facturacionService);
-                    }
-
-                    DB::connection('tenant')->commit();
-
-                    Log::info('✅ Factura emitida exitosamente tras stamp', [
-                        'quote_id' => $quote->id,
-                        'invoice_id_alegra' => $invoiceId,
-                        'invoice_number' => $invoiceNumber,
-                        'final_status' => 'FACTURADO',
-                        'has_payment_data' => !empty($paymentData)
-                    ]);
-
-                    $this->dispatch('show-toast', [
-                        'type' => 'success',
-                        'message' => "¡Factura creada y emitida exitosamente! Número: {$invoiceNumber}"
-                    ]);
-
-                    // Redirigir al cotizador (listado de facturas pendiente de implementar)
-                    return redirect()->route('tenant.quoter');
-                } else {
-                    // ❌ STAMP FALLÓ: Factura queda como SIN EMITIR
-                    DB::connection('tenant')->commit(); // Confirmamos la creación, pero sin emitir
-
-                    Log::error('❌ Falló la emisión legal (stamp)', [
-                        'invoice_id' => $invoiceId,
-                        'invoice_status' => 'SIN EMITIR',
-                        'stamp_response' => $stampResponse
-                    ]);
-
-                    // Extraer mensaje de error más claro
-                    $errorMessage = 'Error desconocido en la emisión';
-
-                    if (isset($stampResponse['data']['message'])) {
-                        $errorMessage = $stampResponse['data']['message'];
-                    } elseif (isset($stampResponse['message'])) {
-                        $errorMessage = $stampResponse['message'];
-                    } elseif (isset($stampResponse['error_details']['original_message'])) {
-                        $errorMessage = $stampResponse['error_details']['original_message'];
-                    }
-
-                    // Limpiar mensaje para mostrar solo la razón específica
-                    if (str_contains($errorMessage, 'La factura electrónica de venta no se ha podido emitir porque')) {
-                        $errorMessage = str_replace('La factura electrónica de venta no se ha podido emitir porque ', '', $errorMessage);
-                    }
-
-                    $this->dispatch('show-toast', [
-                        'type' => 'warning',
-                        'message' => "Factura creada pero NO emitida. Razón: {$errorMessage}. Puede intentar emitirla desde el listado de facturas."
-                    ]);
-
-                    // NO redirigir, mantener en cotizador para mostrar el error
+                // REGISTRAR PAGO SI HAY DATOS DE PAGO
+                if (!empty($paymentData)) {
+                    $this->registerInvoicePayments($invoice, $paymentData, $invoiceId, $facturacionService);
                 }
+
+                DB::connection('tenant')->commit();
+
+                Log::info('✅ Factura creada exitosamente (pendiente de emitir)', [
+                    'quote_id' => $quote->id,
+                    'invoice_id_alegra' => $invoiceId,
+                    'invoice_number' => $invoiceNumber,
+                    'status' => 'SIN EMITIR',
+                    'has_payment_data' => !empty($paymentData)
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "¡Factura #{$invoiceNumber} creada exitosamente! Puede emitirla desde el módulo de facturas."
+                ]);
+
+                return redirect()->route('tenant.quoter');
             } else {
                 // Error en la API - NO cambiar estado, hacer rollback
                 DB::connection('tenant')->rollBack();
@@ -2131,14 +3954,38 @@ class ProductQuoter extends Component
     {
         $this->ensureTenantConnection();
         try {
-            $remission = InvRemissions::with(['details.item', 'quote.customer'])->findOrFail($remissionId);
+            $remission = InvRemissions::with(['details.item.dimensions', 'quote.customer'])->findOrFail($remissionId);
 
             $this->editingRemissionId = $remissionId;
             $this->isEditingRemission = true;
             $this->isEditing = false;
 
             // Cargar observaciones
-            $this->observaciones = $remission->observations_return;
+            $this->deliveryDetails = $remission->observations_delivery ?? $remission->observations_return;
+            $this->orderDetails = $remission->obs;
+            $this->observaciones = $remission->observations_return; // Mantener por compatibilidad si es necesario
+
+            // Cargar observación de forma de pago
+            $paymentObs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'remission')
+                ->where('reference_id', $remission->id)
+                ->where('observation_type', 'payment_obs')
+                ->first();
+            $this->paymentDetails = $paymentObs ? $paymentObs->observation : '';
+
+            $this->appliedFreight = $remission->flete ?? 0;
+            if ($this->appliedFreight > 0) {
+                $this->isFreightApplied = true;
+
+                $obs = \App\Models\Tenant\Sales\VntObservation::where('reference_type', 'remission')
+                    ->where('reference_id', $remission->id)
+                    ->where('observation_type', 'flete_justification')
+                    ->first();
+
+                if ($obs) {
+                    $this->isFreightManuallyEdited = true;
+                    $this->freightJustification = $obs->observation;
+                }
+            }
 
             // Cargar información del cliente
             if ($remission->quote && $remission->quote->customer) {
@@ -2158,15 +4005,22 @@ class ProductQuoter extends Component
             foreach ($remission->details as $detalle) {
                 if ($detalle->item) {
                     $this->quoterItems[] = [
-                        'id' => $detalle->item->id,
-                        'name' => $detalle->item->display_name,
-                        'sku' => $detalle->item->sku,
-                        'price' => $detalle->value,
-                        'price_label' => 'Precio remisión',
-                        'quantity' => $detalle->quantity,
-                        'description' => $detalle->item->description,
-                        'tax' => $detalle->tax ?? 0,
-                        'tax_label' => $detalle->tax_label ?? 'N/A',
+                        'id'            => $detalle->item->id,
+                        'name'          => $detalle->item->display_name,
+                        'sku'           => $detalle->item->sku,
+                        'price'         => $detalle->value,
+                        'price_label'   => 'Precio remisión',
+                        'quantity'      => $detalle->quantity,
+                        'description'   => $detalle->item->description,
+                        'tax'           => $detalle->tax ?? 0,
+                        'tax_label'     => $detalle->tax_label ?? 'N/A',
+                        'weight'        => $detalle->item->dimensions->weight ?? 0,
+                        'category_id'   => $detalle->item->categoryId,
+                        'consumption_unit'=> $detalle->item->consumption_unit,
+                        'inventoriable' => (int) $detalle->item->inventoriable,
+                        'min_packing_qty' => (int) ($detalle->item->dimensions->min_packing_qty ?? 0),
+                        'min_packing_val' => (float) ($detalle->item->dimensions->min_packing_val ?? 0.0),
+                        'add_packing_val' => (float) ($detalle->item->dimensions->add_packing_val ?? 0.0),
                     ];
                 }
             }
@@ -2188,6 +4042,14 @@ class ProductQuoter extends Component
 
     public function updateRemission()
     {
+        if ($this->isFreightManuallyEdited && empty(trim($this->freightJustification))) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debe ingresar una justificación para el flete editado'
+            ]);
+            return;
+        }
+
         if (!$this->isEditingRemission || !$this->editingRemissionId) {
             return;
         }
@@ -2209,8 +4071,36 @@ class ProductQuoter extends Component
 
             // Actualizar remisión
             $remission->update([
-                'observations_return' => $this->observaciones
+                //'observations_return' => $this->deliveryDetails,
+                'obs' => $this->orderDetails,
+                'observations_delivery' => $this->deliveryDetails,
+                'flete' => $this->appliedFreight
             ]);
+
+            if ($this->isFreightManuallyEdited && !empty(trim($this->freightJustification))) {
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    ['reference_id' => $remission->id, 'reference_type' => 'remission', 'observation_type' => 'flete_justification'],
+                    ['observation' => $this->freightJustification, 'userId' => auth()->id()]
+                );
+            } else {
+                \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remission->id)
+                    ->where('reference_type', 'remission')
+                    ->where('observation_type', 'flete_justification')
+                    ->delete();
+            }
+
+            // Actualizar o crear observación de forma de pago
+            if (!empty(trim($this->paymentDetails))) {
+                \App\Models\Tenant\Sales\VntObservation::updateOrCreate(
+                    ['reference_id' => $remission->id, 'reference_type' => 'remission', 'observation_type' => 'payment_obs'],
+                    ['observation' => $this->paymentDetails, 'userId' => auth()->id()]
+                );
+            } else {
+                \App\Models\Tenant\Sales\VntObservation::where('reference_id', $remission->id)
+                    ->where('reference_type', 'remission')
+                    ->where('observation_type', 'payment_obs')
+                    ->delete();
+            }
 
             // Eliminar detalles existentes
             InvDetailRemissions::where('remissionId', $remission->id)->delete();
@@ -2219,7 +4109,7 @@ class ProductQuoter extends Component
             foreach ($this->quoterItems as $item) {
                 InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
-                    'tax' => 0,
+                    'tax' => $item['tax'] ?? 0, // ✅ CORREGIDO: Usar tax del item en lugar de hardcodeado
                     'value' => $item['price'],
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],
@@ -2259,6 +4149,8 @@ class ProductQuoter extends Component
         $this->selectedCustomer = null;
         $this->customerSearch = '';
         $this->observaciones = null;
+        $this->orderDetails = '';
+        $this->paymentDetails = '';
         $this->showCreateCustomerForm = false;
         $this->showCreateCustomerButton = false;
 
@@ -2414,7 +4306,15 @@ class ProductQuoter extends Component
             // Preparar datos para envío a Alegra (similar a la función JS)
             if ($totalPayments > 0) {
                 // Obtener valor total de la factura local CON DECIMALES
-                $invoiceTotal = floatval($this->totalAmount);
+                // Si hay retenciones calculadas en el modal, el monto a pagar es menor
+                $modalRetentionsTotal = ($this->retentions['retention_fuente'] ?? 0) +
+                    ($this->retentions['retention_ica'] ?? 0) +
+                    ($this->retentions['retention_iva'] ?? 0);
+
+                // Redondear el total final para evitar discrepancias de centavos
+                $invoiceTotal = $modalRetentionsTotal > 0 ?
+                    round(floatval($this->totalAmount) - $modalRetentionsTotal, 2) :
+                    floatval($this->totalAmount);
                 $paymentAmount = floatval($totalPayments);
                 $changeAmount = 0;
 
@@ -2462,11 +4362,15 @@ class ProductQuoter extends Component
                         'local_final_amount' => $finalPaymentAmount
                     ]);
 
-                    // Si el saldo de Alegra es menor, usar ese
-                    if ($alegraBalance > 0 && $alegraBalance < $finalPaymentAmount) {
+                    // SIEMPRE usar el saldo exacto de Alegra para evitar centavos residuales
+                    if ($alegraBalance > 0) {
+                        $originalAmount = $finalPaymentAmount;
                         $finalPaymentAmount = $alegraBalance;
-                        Log::info('💰 Ajustando según saldo de Alegra', [
-                            'final_payment_amount' => $finalPaymentAmount
+                        Log::info('💰 Usando saldo EXACTO de Alegra para evitar residuales', [
+                            'local_calculation' => $originalAmount,
+                            'alegra_balance' => $alegraBalance,
+                            'final_payment_amount' => $finalPaymentAmount,
+                            'difference' => $originalAmount - $alegraBalance
                         ]);
                     }
                 } else {
@@ -2476,7 +4380,33 @@ class ProductQuoter extends Component
                     ]);
                 }
 
-                $alegraPaymentData = $this->buildAlegraPaymentData($paymentData, $alegraInvoiceId, $finalPaymentAmount, $paymentMethods);
+                // Asegurar que las retenciones del modal estén calculadas
+                if (!$this->showRetentions && $this->selectedCustomer) {
+                    $this->calculateRetentionsForModal();
+                }
+
+                // Usar las retenciones calculadas en el modal (valores correctos)
+                // en lugar de las guardadas en la factura (que pueden ser incorrectas)
+                // Usar valores redondeados para envío a API
+                $invoiceRetentions = [
+                    'retention_fuente' => $this->retentions['retention_fuente'] ?? 0,
+                    'retention_ica' => $this->retentions['retention_ica'] ?? 0,
+                    'retention_iva' => $this->retentions['retention_iva'] ?? 0,
+                ];
+
+                Log::info('🔍 DEBUG: Valores antes de construir JSON para Alegra', [
+                    'totalAmount' => $this->totalAmount,
+                    'subTotal' => $this->subTotal,
+                    'showRetentions' => $this->showRetentions,
+                    'totalWithRetentions' => $this->totalWithRetentions,
+                    'finalPaymentAmount_being_sent' => $finalPaymentAmount,
+                    'retentions_from_modal' => $this->retentions,
+                    'invoiceRetentions_being_sent' => $invoiceRetentions,
+                    'modalRetentionsTotal' => $modalRetentionsTotal,
+                    'calculated_total_minus_modal_retentions' => $this->totalAmount - $modalRetentionsTotal
+                ]);
+
+                $alegraPaymentData = $this->buildAlegraPaymentData($paymentData, $alegraInvoiceId, $finalPaymentAmount, $paymentMethods, $invoiceRetentions);
 
                 Log::info('📤 Enviando pago a Alegra', [
                     'payment_data' => $alegraPaymentData,
@@ -2488,9 +4418,17 @@ class ProductQuoter extends Component
                 $paymentResponse = $facturacionService->registerPayment($alegraPaymentData);
 
                 if ($paymentResponse['success'] ?? false) {
-                    Log::info('✅ Pago registrado exitosamente en Alegra', [
+                    // Actualizar el status_payment en la tabla vnt_invoices
+                    $invoice->update([
+                        'status_payment' => 'PAGADO',
+                        'api_data_id_pay' => $paymentResponse['data']['id'] ?? null
+                    ]);
+
+                    Log::info('✅ Pago registrado exitosamente en Alegra y status actualizado', [
+                        'invoice_id' => $invoice->id,
                         'alegra_payment_id' => $paymentResponse['data']['id'] ?? null,
-                        'total_amount' => $totalPayments
+                        'total_amount' => $totalPayments,
+                        'status_payment' => 'PAGADO'
                     ]);
                 } else {
                     Log::error('❌ Error registrando pago en Alegra', [
@@ -2517,12 +4455,13 @@ class ProductQuoter extends Component
     /**
      * Construir datos de pago para Alegra API
      */
-    private function buildAlegraPaymentData(array $paymentData, string $alegraInvoiceId, float $totalAmount, $paymentMethods = null): array
+    private function buildAlegraPaymentData(array $paymentData, string $alegraInvoiceId, float $totalAmount, $paymentMethods = null, array $retentions = []): array
     {
         Log::info('🔧 Construyendo datos de pago para Alegra', [
             'input_payment_data' => $paymentData,
             'alegra_invoice_id' => $alegraInvoiceId,
-            'total_amount' => $totalAmount
+            'total_amount' => $totalAmount,
+            'retentions' => $retentions
         ]);
 
         // Obtener primer método de pago para determinar bankAccount
@@ -2546,26 +4485,96 @@ class ProductQuoter extends Component
             'extracted_bank_account' => $bankAccount
         ]);
 
-        // Construir payload según formato de Alegra API
+        // Construir retenciones si existen
+        $formattedRetentions = [];
+        if (!empty($retentions)) {
+            // Retención en la fuente (ID: 14)
+            if (($retentions['retention_fuente'] ?? 0) > 0) {
+                $formattedRetentions[] = [
+                    'id' => config('facturacion.retentions.alegra_ids.fuente', '14'),
+                    'amount' => round($retentions['retention_fuente'], 2)
+                ];
+            }
+
+            // Retención ICA (ID: 11)
+            if (($retentions['retention_ica'] ?? 0) > 0) {
+                $formattedRetentions[] = [
+                    'id' => config('facturacion.retentions.alegra_ids.ica', '11'),
+                    'amount' => round($retentions['retention_ica'], 2)
+                ];
+            }
+
+            // Retención IVA (ID: 12)
+            if (($retentions['retention_iva'] ?? 0) > 0) {
+                $formattedRetentions[] = [
+                    'id' => config('facturacion.retentions.alegra_ids.iva', '12'),
+                    'amount' => round($retentions['retention_iva'], 2)
+                ];
+            }
+        }
+
+        // Construir invoice object con retenciones dentro si existen
+        $invoiceObject = [
+            'id' => $alegraInvoiceId,
+            'amount' => $totalAmount
+        ];
+
+        // Solo agregar retenciones si hay alguna con valor > 0
+        if (!empty($formattedRetentions)) {
+            $invoiceObject['retentions'] = $formattedRetentions;
+        }
+
+        // Construir payload según formato correcto de Alegra API
         $payloadData = [
             'bankAccount' => [
                 'id' => (string)$bankAccount
             ],
             'type' => 'in', // Pago entrante
             'date' => now()->format('Y-m-d'), // Fecha actual
-            'invoices' => [
-                [
-                    'id' => $alegraInvoiceId,
-                    'amount' => $totalAmount
-                ]
-            ]
+            'invoices' => [$invoiceObject] // Retenciones van dentro del invoice
         ];
 
         Log::info('📋 JSON FINAL PARA ALEGRA PAYMENTS API', [
             'payload' => $payloadData,
+            'total_retentions' => count($formattedRetentions),
             'json_string' => json_encode($payloadData, JSON_PRETTY_PRINT)
         ]);
 
         return $payloadData;
+    }
+
+    public function copyProduct($itemId, $price)
+    {
+        $item = Items::find($itemId);
+        if (!$item) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Producto no encontrado.']);
+            return;
+        }
+
+        // Verificar si el SKU realmente existe en WordPress usando caché para alta velocidad (7 días)
+        $hasLink = false;
+        if (!empty($item->sku)) {
+            $cacheKey = 'wp_product_exists_' . $item->sku;
+            $hasLink = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addDays(7), function () use ($item) {
+                $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                if ($wpService->isConfigured()) {
+                    try {
+                        return !empty($wpService->findProductBySku($item->sku));
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Error consultando SKU en WordPress para Modo Copia: ' . $e->getMessage());
+                        return false;
+                    }
+                }
+                return false;
+            });
+        }
+        
+        $this->dispatch('product-copied', [
+            'sku' => $item->sku,
+            'price' => $price,
+            'name' => $item->name,
+            'id' => $item->id,
+            'hasLink' => $hasLink
+        ]);
     }
 }

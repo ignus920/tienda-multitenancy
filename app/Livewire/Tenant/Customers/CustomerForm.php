@@ -122,6 +122,28 @@ class CustomerForm extends Component
      */
     public function getCustomersProperty()
     {
+
+        // Log para verificar qué conexión está usando Customer
+        $customerConnection = Customer::getConnectionName();
+
+        try {
+            $databaseName = DB::connection($customerConnection)->getDatabaseName();
+            Log::info('🔍 CONSULTA CUSTOMERS - Verificando BD', [
+               'model' => 'Customer',
+                'connection_name' => $customerConnection,
+                'database_name' => $databaseName,
+                'search_term' => $this->search,
+                'method' => 'CustomerForm::getCustomersProperty'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL OBTENER NOMBRE DE BD EN CUSTOMERS', [
+                'connection_name' => $customerConnection,
+                'error' => $e->getMessage(),
+                'method' => 'CustomerForm::getCustomersProperty'
+            ]);
+        }
+
+
         return Customer::query()
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -201,6 +223,10 @@ class CustomerForm extends Component
         Log::info('🚀 CustomerForm::save() INICIADO');
 
         try {
+            // ✅ PRIMER PASO: Asegurar conexión tenant ANTES de cualquier validación
+            Log::info('🔗 Asegurando conexión tenant al inicio de save()');
+            $this->ensureTenantConnection();
+
             // Clear previous messages
             $this->errorMessage = '';
             $this->successMessage = '';
@@ -218,6 +244,7 @@ class CustomerForm extends Component
             Log::info('✅ Validación de formulario exitosa');
 
             // PASO 1: Validar que es posible sincronizar con la API ANTES de guardar
+            Log::info('🔍 Iniciando preValidateApiSync (conexión tenant ya establecida)');
             $preValidationResult = $this->preValidateApiSync();
             if (!$preValidationResult['success']) {
                 // Cerrar modal y mostrar error con session flash para mayor visibilidad
@@ -357,6 +384,18 @@ class CustomerForm extends Component
     private function createCustomer(): Customer
     {
         try {
+            // Log de conexión de BD antes de crear customer
+            $currentConnection = Customer::getConnectionName();
+            $databaseName = DB::connection($currentConnection)->getDatabaseName();
+
+            Log::info('💾 CREAR CUSTOMER - Conexión BD', [
+                'connection_name' => $currentConnection,
+                'database_name' => $databaseName,
+                'customer_email' => $this->email,
+                'customer_name' => $this->name,
+                'method' => 'createCustomer'
+            ]);
+
             DB::beginTransaction();
 
             $customer = Customer::create([
@@ -413,6 +452,19 @@ class CustomerForm extends Component
     private function updateCustomer(Customer $customer): Customer
     {
         try {
+            // Log de conexión de BD antes de actualizar customer
+            $currentConnection = $customer->getConnectionName();
+            $databaseName = DB::connection($currentConnection)->getDatabaseName();
+
+            Log::info('✏️ ACTUALIZAR CUSTOMER - Conexión BD', [
+                'connection_name' => $currentConnection,
+                'database_name' => $databaseName,
+                'customer_id' => $customer->id,
+                'customer_email' => $this->email,
+                'customer_name' => $this->name,
+                'method' => 'updateCustomer'
+            ]);
+
             DB::beginTransaction();
 
             $customer->update([
@@ -509,8 +561,7 @@ class CustomerForm extends Component
                 ];
             }
 
-            // Verificar configuración de API
-            $this->ensureTenantConnection();
+            // Verificar configuración de API (conexión tenant ya establecida)
             $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
             if (!$optimizedConfig) {
                 return [
@@ -575,8 +626,8 @@ class CustomerForm extends Component
                 'zipCode' => $this->postcode
             ],
             'accounting' => [
-                'debtToPay' => 6787,
-                'accountReceivable' => 6551,
+                'debtToPay'         => 6641,
+                'accountReceivable' => 6344,
             ]
         ];
     }
@@ -609,13 +660,8 @@ class CustomerForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta proxy automáticamente)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             // Para UPDATE: validar si estamos editando un cliente que ya tiene api_data_id
             if ($this->editingId) {
@@ -740,7 +786,6 @@ class CustomerForm extends Component
     private function canSyncClients(): bool
     {
         try {
-            $this->ensureTenantConnection();
             $this->initializeCompanyConfiguration();
 
             $this->clearConfigurationCache();
@@ -821,7 +866,6 @@ class CustomerForm extends Component
             Log::info('🔄 syncCustomerWithApi INICIO', ['customer_id' => $customer->id]);
 
             $authUser = Auth::user();
-            $this->ensureTenantConnection();
 
             $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($authUser->id);
             if (!$optimizedConfig) {
@@ -831,13 +875,8 @@ class CustomerForm extends Component
                 ];
             }
 
-            // Crear ApiClient
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient (forConfig detecta proxy automáticamente)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             // Preparar datos para la API
             $apiData = $this->prepareApiDataFromCustomer($customer);
@@ -926,8 +965,8 @@ class CustomerForm extends Component
                 'zipCode' => $customer->postcode
             ],
             'accounting' => [
-                'debtToPay' => 6787,
-                'accountReceivable' => 6551,
+                'debtToPay'         => 6641,
+                'accountReceivable' => 6344,
             ]
         ];
     }
@@ -935,6 +974,11 @@ class CustomerForm extends Component
     private function ensureTenantConnection(): void
     {
         $tenantId = session('tenant_id');
+
+        Log::info('🔄 INICIANDO ensureTenantConnection', [
+            'session_tenant_id' => $tenantId,
+            'method' => 'CustomerForm::ensureTenantConnection'
+        ]);
 
         if (!$tenantId) {
             throw new \Exception('No tenant selected');
@@ -947,11 +991,40 @@ class CustomerForm extends Component
             throw new \Exception('Invalid tenant');
         }
 
+        // Log antes de establecer conexión
+        Log::info('🔗 CONFIGURANDO CONEXIÓN TENANT', [
+            'tenant_id' => $tenantId,
+            'tenant_name' => $tenant->name,
+            'tenant_db_name' => $tenant->db_name,
+            'method' => 'ensureTenantConnection'
+
+        ]);
+
         // Establecer conexión tenant
         $tenantManager = app(TenantManager::class);
         $tenantManager->setConnection($tenant);
+
+        // Log después de establecer conexión
+        try {
+            $connectionConfig = config('database.connections.tenant');
+            $actualDatabaseName = DB::connection('tenant')->getDatabaseName();
+
+            Log::info('🔗 CONEXIÓN TENANT ESTABLECIDA EN CUSTOMERFORM', [
+                'config_database' => $connectionConfig['database'] ?? 'NULL',
+                'actual_database_name' => $actualDatabaseName,
+                'tenant_id' => $tenant->id,
+                'method' => 'CustomerForm::ensureTenantConnection'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL VERIFICAR CONEXIÓN EN CUSTOMERFORM', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'method' => 'CustomerForm::ensureTenantConnection'
+            ]);
+        }
 
         // Inicializar tenancy
         tenancy()->initialize($tenant);
     }
 }
+

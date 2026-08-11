@@ -1,4 +1,68 @@
 <div class="space-y-4">
+    <!-- Success Message -->
+    @if($successMessage)
+    <div x-data="{ show: true }"
+        x-show="show"
+        x-init="setTimeout(() => { show = false; $wire.set('successMessage', '') }, 5000)"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform translate-y-2"
+        x-transition:enter-end="opacity-100 transform translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <p class="text-sm font-medium text-green-800 dark:text-green-200">{{ $successMessage }}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button @click="show = false" class="inline-flex text-green-400 hover:text-green-600 dark:hover:text-green-300 focus:outline-none">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Error Message -->
+    @if($errorMessage)
+    <div x-data="{ show: true }"
+        x-show="show"
+        x-init="setTimeout(() => { show = false; $wire.set('errorMessage', '') }, 5000)"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform translate-y-2"
+        x-transition:enter-end="opacity-100 transform translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <p class="text-sm font-medium text-red-800 dark:text-red-200">{{ $errorMessage }}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button @click="show = false" class="inline-flex text-red-400 hover:text-red-600 dark:hover:text-red-300 focus:outline-none">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Search and Controls -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <!-- Search -->
@@ -72,7 +136,7 @@
                         Usuario
                     </th>
                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Cant. Items
+                        Cantidad
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Estado
@@ -103,7 +167,7 @@
                                 {{ $transfer->warehouseFrom->name ?? 'N/A' }}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $transfer->warehouseFrom->company->name ?? '' }}
+                                {{ $transfer->storeFrom->name ?? 'N/A' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -111,7 +175,7 @@
                                 {{ $transfer->warehouseTo->name ?? 'N/A' }}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $transfer->warehouseTo->company->name ?? '' }}
+                                {{ $transfer->storeTo->name ?? 'N/A' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -124,16 +188,17 @@
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                 </svg>
-                                {{ $transfer->details_count ?? 0 }} items
+                                {{ number_format($transfer->total_quantity ?? 0, 0, ',', '.') }} unidades
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            <!-- DEBUG: Status = "{{ $transfer->status }}" | Type = {{ gettype($transfer->status) }} -->
                             @if($transfer->status === 'REGISTRADO')
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                     </svg>
-                                    Activa
+                                    REGISTRADA
                                 </span>
                             @elseif($transfer->status === 'ANULADO')
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
@@ -156,11 +221,15 @@
                                     </svg>
                                     En tránsito
                                 </span>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                    Desconocido: {{ $transfer->status }}
+                                </span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                            <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
+                                <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left static" style="position: static !important;">
                                     <button @click="open = !open"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -190,6 +259,18 @@
                                                 </svg>
                                                 Ver Detalles
                                             </button>
+                                            
+                                            <!-- Enviar (solo para estado REGISTRADO) -->
+                                            @if($transfer->status === 'REGISTRADO')
+                                                <button wire:click="openSendModal({{ $transfer->id }})"
+                                                    class="w-full text-left px-4 py-2 text-sm text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
+                                                    role="menuitem">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                                    </svg>
+                                                    Enviar
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -281,4 +362,111 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Envío de Transferencia -->
+    @if($showSendModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" wire:click="closeSendModal"></div>
+        
+        <!-- Modal -->
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                
+                <!-- Icon -->
+                <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </div>
+                
+                <!-- Content -->
+                <div class="text-center mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        Enviar Transferencia
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Transferencia <span class="font-semibold text-gray-900 dark:text-white">#{{ $selectedTransferConsecutive }}</span>
+                    </p>
+                </div>
+                
+                <!-- Packing Options -->
+                <div class="space-y-4 mb-6">
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Especifique las cantidades de empaque:
+                    </p>
+                    
+                    <!-- Bolsas -->
+                    <div>
+                        <label for="packingBags" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                </svg>
+                                Bolsas
+                            </div>
+                        </label>
+                        <input type="number" 
+                            id="packingBags"
+                            wire:model.live="packingBags" 
+                            min="0" 
+                            class="block w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <!-- Canastas -->
+                    <div>
+                        <label for="packingBaskets" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                Canastas
+                            </div>
+                        </label>
+                        <input type="number" 
+                            id="packingBaskets"
+                            wire:model.live="packingBaskets" 
+                            min="0" 
+                            class="block w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <!-- Cajas -->
+                    <div>
+                        <label for="packingBoxes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                Cajas
+                            </div>
+                        </label>
+                        <input type="number" 
+                            id="packingBoxes"
+                            wire:model.live="packingBoxes" 
+                            min="0" 
+                            class="block w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button wire:click="closeSendModal"
+                        class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                        Cancelar
+                    </button>
+                    <button wire:click="startTransfer"
+                        class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        {{ ($packingBags <= 0 && $packingBaskets <= 0 && $packingBoxes <= 0) ? 'disabled' : '' }}>
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                            </svg>
+                            Iniciar Traslado
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

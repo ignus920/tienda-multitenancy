@@ -2,103 +2,209 @@
     <!-- Encabezado -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Remisiones</h1>
-                <p class="text-gray-600 dark:text-slate-400 text-sm mt-1">Gestión de registros</p>
-            </div>
-            <!-- <div class="flex items-center space-x-3">
-                <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center transition-all duration-200">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    <span>Nueva Remisión</span>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Pedidos</h1>
+                <button @click="$dispatch('openPrinterConfig', { contexto: 'ordenp' })" 
+                        class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                        title="Configurar Impresora">
+                    <x-heroicon-o-printer class="w-6 h-6" />
                 </button>
-            </div> -->
+            </div>
+            <div class="flex items-center space-x-3">
+                <button wire:click="openFreightReportModal"
+                    style="background-color: #d97706 !important; color: #ffffff !important;"
+                    class="px-4 py-2 rounded-lg text-sm font-bold flex items-center shadow-lg transition-all transform hover:scale-105 active:scale-95">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span style="color: #ffffff !important;">Reporte de Fletes</span>
+                </button>
+                <a href="{{ route('tenant.packing.terminal') }}" wire:navigate
+                    class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105 active:scale-95">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    <span>Estación de Empaque</span>
+                </a>
+                @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjetas de Resumen -->
+    <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+        <!-- Registradas -->
+        <div wire:click="setStatusFilter('registradas')" 
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'registradas' ? 'bg-red-500 border-red-600 shadow-red-200 dark:shadow-red-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold transition-colors duration-300 {{ $statusFilter === 'registradas' ? 'bg-white/20 text-white' : 'bg-red-500 text-white shadow-lg shadow-red-500/20' }}">
+                    {{ $summaryCounts['registradas'] }}
+                </div>
+                <div>
+                    <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'registradas' ? 'text-white' : 'text-gray-500 dark:text-slate-400' }}">Registradas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alistamiento -->
+        <div wire:click="setStatusFilter('alistamiento')" 
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'alistamiento' ? 'bg-yellow-500 border-yellow-600 shadow-yellow-200 dark:shadow-yellow-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold transition-colors duration-300 {{ $statusFilter === 'alistamiento' ? 'bg-white/20 text-white' : 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/20' }}">
+                    {{ $summaryCounts['alistamiento'] }}
+                </div>
+                <div>
+                    <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'alistamiento' ? 'text-white' : 'text-gray-500 dark:text-slate-400' }}">Alistamiento</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin entregar -->
+        <div wire:click="setStatusFilter('sin_entregar')" 
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'sin_entregar' ? 'bg-blue-500 border-blue-600 shadow-blue-200 dark:shadow-blue-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold transition-colors duration-300 {{ $statusFilter === 'sin_entregar' ? 'bg-white/20 text-white' : 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' }}">
+                    {{ $summaryCounts['sin_entregar'] }}
+                </div>
+                <div>
+                    <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'sin_entregar' ? 'text-white' : 'text-gray-500 dark:text-slate-400' }}">Sin entregar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin facturar -->
+        <div wire:click="setStatusFilter('sin_facturar')" 
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'sin_facturar' ? 'bg-indigo-600 border-indigo-700 shadow-indigo-200 dark:shadow-indigo-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'sin_facturar' ? 'bg-white/20 text-white' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' }}">
+                    {{ $summaryCounts['sin_facturar'] }}
+                </div>
+                <div>
+                    <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'sin_facturar' ? 'text-white' : 'text-gray-900 dark:text-white' }}">Sin facturar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consultas nuevas -->
+        <div wire:click="openConfirmationsModal" 
+             class="p-4 rounded-lg border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm transition-all duration-300 cursor-pointer hover:shadow-lg hover:border-green-500 group">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform"
+                     style="background-color: #10b981 !important;">
+                    {{ $summaryCounts['consultas_nuevas'] }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-gray-400 uppercase mb-0.5">Inventario</p>
+                    <p class="text-[13px] font-semibold text-gray-700 dark:text-slate-300 leading-tight">Consultas nuevas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin autorización de entrega -->
+        <div wire:click="setStatusFilter('sin_autorizacion')"
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'sin_autorizacion' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
+             style="{{ $statusFilter === 'sin_autorizacion' ? 'background-color: #e91e63 !important; border-color: #d81b60 !important; shadow-color: rgba(233, 30, 99, 0.2);' : '' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'bg-white/20 text-white' : 'text-white shadow-lg shadow-pink-500/20' }}"
+                     style="{{ $statusFilter === 'sin_autorizacion' ? '' : 'background-color: #e91e63 !important;' }}">
+                    {{ $summaryCounts['sin_autorizacion'] }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold transition-colors duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'text-white/80' : 'text-gray-400' }} uppercase mb-0.5">Cartera</p>
+                    <p class="text-[13px] font-semibold transition-colors duration-300 {{ $statusFilter === 'sin_autorizacion' ? 'text-white' : 'text-gray-700 dark:text-slate-300' }} leading-tight">Sin autorización</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anulados -->
+        <div wire:click="setStatusFilter('anulados')" 
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'anulados' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
+             style="{{ $statusFilter === 'anulados' ? 'background-color: #64748b !important; border-color: #475569 !important; shadow-color: rgba(100, 116, 139, 0.2);' : '' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'anulados' ? 'bg-white/20 text-white' : 'text-white shadow-lg' }}"
+                     style="{{ $statusFilter === 'anulados' ? '' : 'background-color: #64748b !important;' }}">
+                    {{ $summaryCounts['anulados'] }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold transition-colors duration-300 {{ $statusFilter === 'anulados' ? 'text-white' : 'text-gray-500 dark:text-slate-400' }}">Anulados</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Barra de Herramientas -->
-    <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            <!-- Buscador y Filtros -->
-            <div class="flex-1 max-w-2xl flex items-center space-x-3">
-                <div class="relative flex-1">
+    <div class="bg-white dark:bg-slate-800 rounded-t-xl p-4 mb-0 border border-gray-100 dark:border-slate-700">
+        <div style="display: flex; align-items: flex-end; gap: 12px;">
+            <div style="flex: 1.5; min-width: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Búsqueda Rápida</label>
+                <div class="relative">
+                    <input type="text" wire:model.live="search" placeholder="Búsqueda rápida..."
+                        class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm pl-10">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </div>
-                    <input type="text" wire:model.live="search" placeholder="Búsqueda rápida..."
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-colors">
                 </div>
-                <button wire:click="$toggle('showAdvancedSearch')" 
-                    class="flex items-center px-4 py-2 text-sm font-medium border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                    Búsqueda Avanzada
-                </button>
-            </div>
-
-            <!-- Acciones y Paginación -->
-            <div class="flex items-center space-x-3">
-                @if(count($selectedRemissions) > 0)
-                    <button wire:click="facturarMasivo" 
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center transition-all animate-pulse">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Facturar ({{ count($selectedRemissions) }})
-                    </button>
-                @endif
-
-                <div class="flex items-center gap-2">
-                    <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
-                    <select wire:model.live="perPage"
-                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                    </select>
+                <div class="mt-2">
+                    <x-export-buttons />
                 </div>
             </div>
-        </div>
-
-        <!-- Panel de Búsqueda Avanzada -->
-        <div x-show="$wire.showAdvancedSearch" x-transition 
-            class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">NIT / Cédula</label>
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">NIT / Cédula</label>
                 <input type="text" wire:model.live="searchNit" placeholder="Ej: 900..."
-                    class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
+                    class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Nombre / Razón Social</label>
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nombre / Razón Social</label>
                 <input type="text" wire:model.live="searchName" placeholder="Buscar cliente..."
-                    class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
+                    class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Número Cotización</label>
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Número Cotización</label>
                 <input type="text" wire:model.live="searchQuote" placeholder="Ej: COT-123"
-                    class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
+                    class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Fecha Desde</label>
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">desde:</label>
                 <input type="date" wire:model.live="searchStartDate"
-                    class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
+                    class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
             </div>
-            <div class="flex items-end space-x-2">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Fecha Hasta</label>
+            <div style="flex: 1; min-width: 0;">
+                <label class="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">hasta:</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
                     <input type="date" wire:model.live="searchEndDate"
-                        class="block w-full px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded bg-gray-50 dark:bg-slate-800 text-sm focus:ring-indigo-500">
+                        class="w-full rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm">
+                    <button wire:click="clearFilters" class="p-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Limpiar filtros">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
                 </div>
-                <button wire:click="clearFilters" 
-                    class="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Limpiar filtros">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+            <div style="flex-shrink: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Mostrar</label>
+                <select wire:model.live="perPage" class="rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-900 text-sm py-2">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            @if(!in_array(auth()->user()?->profile_id, [4, 6, 9, 16]) && count($selectedRemissions) > 0)
+            <div style="flex-shrink: 0;">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">&nbsp;</label>
+                <button wire:click="facturarMasivo"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-all animate-pulse whitespace-nowrap">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Facturar ({{ count($selectedRemissions) }})
                 </button>
             </div>
+            @endif
         </div>
     </div>
 
     <!-- Data Table Card -->
-    <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 transition-colors">
+    <div class="mt-6 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="overflow-x-auto min-h-[450px]">
             <table class="w-full">
                 <thead>
@@ -109,7 +215,23 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
-                                <span>REMISIÓN #</span>
+                                <span>PEDIDO #</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                            <div class="flex items-center space-x-1">
+                                <span>FECHA</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
+                                <span>COTIZACIÓN</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
@@ -125,41 +247,37 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                             <div class="flex items-center space-x-1">
+                                <span>ENTREGA Y PAGO</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center justify-end space-x-1">
+                                @if(auth()->user()?->profile_id == 6 || auth()->user()?->id == 205)
+                                    <span>V. Declarado</span>
+                                @else
+                                    <span>TOTAL</span>
+                                @endif
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
+                                <span>ESTADO</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                </svg>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center space-x-1">
                                 <span>FACTURA</span>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>BODEGA</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>VENDEDOR</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>TELÉFONO</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
-                                </svg>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
-                            <div class="flex items-center space-x-1">
-                                <span>FECHA</span>
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
                                 </svg>
                             </div>
                         </th>
@@ -172,57 +290,169 @@
                     @forelse($remissions as $remission)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-4 py-4 text-center">
-                                @if($remission->status === 'REGISTRADO' && !$remission->invoice)
-                                    <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
-                                        class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-                                @elseif($remission->invoice)
-                                    <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">Ya facturada</span>
+                                @if(!in_array(auth()->user()?->profile_id, [4, 6, 9, 16]))
+                                    @if($remission->status !== 'ANULADO' && !$remission->invoice)
+                                        <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
+                                            class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                    @elseif($remission->invoice)
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">Ya facturada</span>
+                                    @endif
+                                @else
+                                    @if($remission->invoice)
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">Ya facturada</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                #{{ $remission->consecutive }}
+                                @if($remission->isEmpaqueAuthorizedButDespachoPending())
+                                    <span class="inline-block px-2.5 py-1 rounded-md font-bold shadow-sm" style="background-color: #f97316 !important; color: #ffffff !important;">
+                                        #{{ $remission->consecutive }}
+                                    </span>
+                                @else
+                                    #{{ $remission->consecutive }}
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
+                                {{ $remission->created_at->format('d/m/Y') }}
+                                <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->created_at->format('H:i') }}</small>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
+                                #{{ $remission->quote->consecutive ?? 'N/A' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
                                 {{ $remission->quote->customer_name ?? 'N/A' }}
-                                @if(isset($remission->quote->customer->billingEmail))
-                                    <br><small class="text-gray-500">{{ $remission->quote->customer->billingEmail }}</small>
+                                @if(isset($remission->quote->customer->company->identification))
+                                    <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->company->identification }}</small>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
+                                <div class="space-y-1">
+                                    {{-- Tipo de Entrega --}}
+                                    <div class="flex items-center">
+                                        <svg class="w-3 h-3 text-blue-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                                        </svg>
+                                        @if($remission->deliveryTypeModel)
+                                            <span class="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                                {{ $remission->deliveryTypeModel->name }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 dark:text-gray-500 text-xs">Sin tipo</span>
+                                        @endif
+                                    </div>
+
+                                    {{-- Método de Pago --}}
+                                    @php
+                                        $details = $remission->payment_details;
+                                        if (is_string($details)) {
+                                            $details = json_decode($details, true);
+                                        }
+                                    @endphp
+                                    @if(is_array($details) && count($details) > 0)
+                                        <div class="flex flex-col gap-0.5 mt-1">
+                                            @foreach($details as $pDetail)
+                                                @php
+                                                    $methodName = $allMethodPayments[$pDetail['method_payment_id'] ?? '']['name'] ?? ($remission->methodPayment->name ?? 'PAGO');
+                                                @endphp
+                                                <div class="flex items-center">
+                                                    <svg class="w-3 h-3 text-green-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    <span class="text-xs font-semibold text-green-700 dark:text-green-300">
+                                                        {{ $methodName }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="flex items-center">
+                                            <svg class="w-3 h-3 text-green-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                                            </svg>
+                                            @if($remission->methodPayment)
+                                                <span class="text-xs font-medium text-green-700 dark:text-green-300">
+                                                    {{ $remission->methodPayment->name }}
+                                                </span>
+                                            @else
+                                                <span class="text-gray-400 dark:text-gray-500 text-xs">Sin método</span>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    {{-- Observaciones si es tipo "Otro" --}}
+                                    @if($remission->deliveryTypeModel && strtolower($remission->deliveryTypeModel->name) === 'otro' && !empty($remission->observations_return))
+                                    <div class="flex items-start mt-1">
+                                        <svg class="w-3 h-3 text-amber-500 mr-1.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="text-xs text-amber-700 dark:text-amber-400 italic">
+                                            {{ $remission->observations_return }}
+                                        </span>
+                                    </div>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white font-medium">
+                                @php
+                                    $total = $remission->details->sum(function ($detail) {
+                                        return $detail->quantity * $detail->value;
+                                    }) + ($remission->flete ?? 0);
+
+                                    if (auth()->user()?->profile_id == 6 || auth()->user()?->id == 205) {
+                                        $total = $remission->getDeclaredValue((float) $total);
+                                    }
+                                @endphp
+                                ${{ number_format($total, 2, ',', '.') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                @if($remission->status === 'ENTREGADO')
+                                    {{-- Estado ENTREGADO no es clickeable --}}
+                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        {{ $remission->status }}
+                                        <svg class="inline w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                @else
+                                    {{-- Estados que pueden cambiar --}}
+                                    <button wire:click="changeStatus({{ $remission->id }})"
+                                            class="px-3 py-1 text-xs font-semibold rounded-full transition-colors cursor-pointer hover:opacity-80
+                                            @if($remission->status === 'REGISTRADO') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                            @elseif($remission->status === 'ALISTAMIENTO') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            @elseif($remission->status === 'EMPACADO') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                            @elseif($remission->status === 'EN RECORRIDO') bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                            @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
+                                        {{ $remission->status }}
+                                    </button>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 @if($remission->invoice)
-                                    <div class="flex items-center space-x-2">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                            @if($remission->invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                            @elseif($remission->invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                                            @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
-                                            {{ $remission->invoice->status }}
+                                    @if($remission->invoice->status === 'FACTURADO' && $remission->invoice->invoiceNumber)
+                                        <!-- ✅ MODIFICADO: Mostrar número de factura en verde cuando esté facturado -->
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            #{{ $remission->invoice->invoiceNumber }}
                                         </span>
-                                        @if($remission->invoice->invoiceNumber)
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                #{{ $remission->invoice->invoiceNumber }}
+                                    @else
+                                        <!-- Mostrar estado para otros casos -->
+                                        <div class="flex items-center space-x-2">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                                @if($remission->invoice->status === 'SIN EMITIR') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
+                                                {{ $remission->invoice->status }}
                                             </span>
-                                        @endif
-                                    </div>
+                                            @if($remission->invoice->invoiceNumber)
+                                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                    #{{ $remission->invoice->invoiceNumber }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 @else
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                         Sin facturar
                                     </span>
                                 @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->store?->name ?? 'N/A' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->seller_name }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                @php
-                                    $contact = $remission->quote->warehouse->contacts->first();
-                                @endphp
-                                {{ $contact ? ($contact->business_phone ?? $contact->personal_phone) : 'Sin contacto' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->created_at->format('d/m/Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left static" style="position: static !important;">
@@ -244,21 +474,65 @@
                                         class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
                                         style="display: none;">
                                         <div class="py-1">
+                                            <button wire:click="printShippingGuide({{ $remission->id }})"
+                                                class="w-full text-left px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center font-semibold border-b border-gray-100 dark:border-gray-700">
+                                                <svg class="text-green-600 dark:text-green-400 mr-2" style="width: 18px; height: 18px; min-width: 18px; min-height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1" />
+                                                </svg>
+                                                Imprimir Guía de Envío
+                                            </button>
                                             <button wire:click="viewDetails({{ $remission->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                 Ver Detalle
                                             </button>
-                                            @if(!$remission->invoice || $remission->invoice->status !=='FACTURADO')
+                                            <button wire:click="openObservationsModal({{ $remission->id }})"
+                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                                                Observaciones
+                                            </button>
+                                            @if($canEditRemission && $remission->status !== 'ANULADO' && (!$remission->invoice || $remission->invoice->status !=='FACTURADO'))
                                             <button wire:click="editarRemision({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                                 Editar
                                             </button>
                                             @endif
-                                            <button wire:click="printRemission({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                                Imprimir
+                                            @if($remission->status !== 'ANULADO')
+                                            <button wire:click="printRemission({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                                    Imprimir
+                                                </div>
+                                                @if($remission->print_count > 0)
+                                                    <span class="px-1.5 py-0.5 text-[10px] bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded-full font-bold">
+                                                        {{ $remission->print_count }}
+                                                    </span>
+                                                @endif
                                             </button>
+                                            @endif
+                                            @if($remission->status !== 'ANULADO' && !in_array(auth()->user()?->profile_id, [4, 6, 7]))
+                                            <button @click="window.confirmAnnulment({{ $remission->id }}, '{{ $remission->consecutive }}')"
+                                                class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                Anular Pedido
+                                            </button>
+                                            @endif
+                                            @if($remission->status !== 'ANULADO')
+                                            <button wire:click="openReturnRegistration({{ $remission->id }})" 
+                                                class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
+                                                </svg>
+                                                Devolución
+                                            </button>
+                                            @endif
+                                            @if($remission->invoice && !in_array(auth()->user()?->profile_id, [6, 7]))
+                                            <button wire:click="printInvoice({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                Imprimir Factura
+                                            </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -266,7 +540,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
                                 No se encontraron remisiones.
                             </td>
                         </tr>
@@ -299,7 +573,7 @@
             <!-- Overlay -->
             <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
 
-            <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-2xl border border-gray-200 dark:border-slate-700 max-h-[90vh] flex flex-col"
+            <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-4xl border border-gray-200 dark:border-slate-700 max-h-[90vh] flex flex-col"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                  x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
@@ -340,7 +614,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Identificación:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['identification'] ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['company']['identification'] ?? 'N/A' }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Tipo persona:</span>
@@ -348,7 +622,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Email:</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['billingEmail'] ?? 'N/A' }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['quote']['customer']['company']['billingEmail'] ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -373,6 +647,20 @@
                                         <span class="text-sm text-gray-500 dark:text-slate-400">Fecha Entrega:</span>
                                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['delivery_date_formatted'] }}</span>
                                     </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Tipo Entrega:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['delivery_type_model']['name'] ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Método Pago:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedRemission['method_payment']['name'] ?? 'N/A' }}</span>
+                                    </div>
+                                    @if(!empty($selectedRemission['observations_return']) && isset($selectedRemission['delivery_type_model']['name']) && strtolower($selectedRemission['delivery_type_model']['name']) === 'otro')
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-gray-500 dark:text-slate-400">Observaciones:</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white italic">{{ $selectedRemission['observations_return'] }}</span>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -384,45 +672,116 @@
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Producto</th>
                                         <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Cant.</th>
-                                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Precio Unit.</th>
-                                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
+                                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ubicación</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                                    @php $totalModal = 0; @endphp
                                     @foreach($selectedRemission['details'] as $detalle)
-                                        @php 
-                                            $subtotal = $detalle['quantity'] * $detalle['value'];
-                                            $totalModal += $subtotal;
-                                        @endphp
-                                        <tr>
+                                        <tr wire:click="viewItemWarehouseDetails({{ $detalle['itemId'] }})" 
+                                            class="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors {{ $selectedItemDetails && $selectedItemDetails['id'] == $detalle['itemId'] ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-inset ring-indigo-500' : '' }}">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                                                {{ $detalle['item']['name'] ?? $detalle['description'] }}
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0 h-8 w-8 bg-gray-100 dark:bg-slate-700 rounded flex items-center justify-center mr-3">
+                                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                    </div>
+                                                    @if(isset($detalle['item']['sku']) && $detalle['item']['sku'])
+                                                        <strong>[{{ $detalle['item']['sku'] }}]</strong> - 
+                                                    @endif
+                                                    {{ $detalle['item']['name'] ?? $detalle['description'] }}
+                                                </div>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
-                                                {{ number_format($detalle['quantity'], 2) }}
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                                {{ number_format($detalle['quantity'], 0) }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-slate-300">
-                                                ${{ number_format($detalle['value'], 2) }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900 dark:text-white">
-                                                ${{ number_format($subtotal, 2) }}
+                                            <td class="px-6 py-4 whitespace-nowrap text-left text-sm text-gray-500 dark:text-slate-300">
+                                                <span class="px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs font-bold uppercase">
+                                                    {{ $detalle['item']['picking'] ?? 'N/A' }}
+                                                </span>
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot class="bg-gray-50 dark:bg-slate-700/50">
-                                    <tr>
-                                        <td colspan="3" class="px-6 py-4 text-right text-sm font-bold text-gray-700 dark:text-white uppercase tracking-wider">
-                                            Total General:
-                                        </td>
-                                        <td class="px-6 py-4 text-right text-sm font-bold text-indigo-500">
-                                            ${{ number_format($totalModal, 2) }}
-                                        </td>
-                                    </tr>
-                                </tfoot>
                             </table>
                         </div>
+
+                        <!-- Panel de Detalle del Ítem (Imágenes y Accesorios) -->
+                        @if($selectedItemDetails)
+                            <div class="mt-8 border-t border-gray-200 dark:border-slate-700 pt-6 animate-fadeIn">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        Detalles de Bodega: {{ $selectedItemDetails['name'] }}
+                                    </h4>
+                                    <span class="text-xs font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 px-3 py-1 rounded-full uppercase">
+                                        Código: {{ $selectedItemDetails['internal_code'] }}
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <!-- Galería de Imágenes -->
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-400 uppercase mb-3">Galería de Imágenes (Bodega)</p>
+                                        @if(count($selectedItemDetails['images']) > 0)
+                                            <div class="grid grid-cols-2 gap-3">
+                                                @foreach($selectedItemDetails['images'] as $image)
+                                                    <div class="group relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900">
+                                                        <img src="{{ $image['url'] }}" alt="Imagen de bodega" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110">
+                                                        <a href="{{ $image['url'] }}" target="_blank" class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                                        </a>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+                                                <svg class="w-12 h-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                <p class="text-sm text-gray-500">No hay imágenes de bodega disponibles.</p>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <!-- Accesorios e Info Logística -->
+                                    <div class="space-y-6">
+                                        <!-- Info Logística -->
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+                                                <p class="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Ubicación</p>
+                                                <p class="text-lg font-black text-amber-900 dark:text-amber-200">{{ $selectedItemDetails['picking'] }}</p>
+                                            </div>
+                                            <div class="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
+                                                <p class="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase">Stock Bodega</p>
+                                                <p class="text-lg font-black text-green-900 dark:text-green-200">{{ number_format($selectedItemDetails['stock_bodega'], 0) }}</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Accesorios -->
+                                        <div>
+                                            <p class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0v-7.268a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"></path></svg>
+                                                Accesorios Requeridos
+                                            </p>
+                                            @if(count($selectedItemDetails['accessories']) > 0)
+                                                <div class="space-y-2">
+                                                    @foreach($selectedItemDetails['accessories'] as $accessory)
+                                                        <div class="p-3 rounded-lg border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/30">
+                                                            <div class="flex justify-between items-start">
+                                                                <div>
+                                                                    <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $accessory['name'] }}</p>
+                                                                    <p class="text-xs text-gray-500 dark:text-slate-400">{{ $accessory['internal_code'] }}</p>
+                                                                </div>
+                                                                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <p class="text-sm text-gray-500 italic">No se han definido accesorios para este producto.</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Footer -->
@@ -497,13 +856,16 @@
                             <div class="flex-1">
                                 <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">Nombre/Razón Social:</span>
                                 <p class="text-base font-bold text-gray-900 dark:text-white truncate">
-                                    {{ $selectedCustomer->businessName ?: ($selectedCustomer->firstName . ' ' . $selectedCustomer->lastName) }}
+                                    {{ $selectedCustomer['businessName'] ?: (($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
                                 </p>
                             </div>
                             <div class="sm:text-right">
-                                <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">Identificación:</span>
+                                <span class="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400">NIT / Identificación:</span>
                                 <p class="text-base font-bold text-gray-900 dark:text-white">
-                                    {{ $selectedCustomer->identification }}
+                                    {{ $selectedCustomer['identification'] ?? 'N/A' }}
+                                    @if(!empty($selectedCustomer['checkDigit']))
+                                        <span class="text-sm font-normal text-gray-500">-{{ $selectedCustomer['checkDigit'] }}</span>
+                                    @endif
                                 </p>
                             </div>
                         </div>
@@ -520,17 +882,17 @@
                             Remisiones Seleccionadas
                         </h4>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 sm:col-span-1">
                                 <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ count($selectedRemissionsData) }}</p>
                                 <p class="text-sm text-gray-500 dark:text-slate-400">Remisiones</p>
                             </div>
-                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 sm:col-span-1">
                                 <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $totalItems }}</p>
                                 <p class="text-sm text-gray-500 dark:text-slate-400">Items Totales</p>
                             </div>
-                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
-                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            <div class="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 sm:col-span-2 flex flex-col justify-center items-center overflow-hidden">
+                                <p class="text-xl sm:text-lg md:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400 truncate w-full" title="${{ number_format(array_sum(array_column($selectedRemissionsData, 'total_value')), 2, ',', '.') }}">
                                     ${{ number_format(array_sum(array_column($selectedRemissionsData, 'total_value')), 2, ',', '.') }}
                                 </p>
                                 <p class="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>
@@ -558,7 +920,39 @@
                         @endif
                     </div>
 
-                    <!-- Advertencia -->
+                    @php $clienteIncompleto = is_null($selectedCustomer) || empty($selectedCustomer['api_data_id']); @endphp
+
+                    {{-- BLOQUEO: cliente sin datos completos en Alegra --}}
+                    @if($clienteIncompleto)
+                    <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-600 rounded-xl p-5 mb-4">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-800/40 rounded-full flex items-center justify-center">
+                                <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h5 class="text-base font-bold text-red-700 dark:text-red-300">
+                                    ❌ No se puede facturar — Cliente incompleto
+                                </h5>
+                                <p class="text-sm text-red-600 dark:text-red-400 mt-1 leading-relaxed">
+                                    Este cliente fue creado de forma rápida y <strong>no está sincronizado con el sistema de facturación electrónica</strong>.
+                                    Para poder facturar debes completar primero sus datos fiscales (régimen y responsabilidad fiscal) en el módulo de Clientes.
+                                </p>
+                                <div class="mt-4">
+                                    <button wire:click="openCompleteCustomerModal"
+                                        class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        Completar datos del cliente ahora
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @else
+                    {{-- Advertencia normal cuando cliente está OK --}}
                     <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
                         <div class="flex">
                             <svg class="w-5 h-5 text-amber-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,14 +967,16 @@
                             </div>
                         </div>
                     </div>
+                    @endif
                 </div>
 
                 <!-- Footer -->
                 <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
                     <button wire:click="closeInvoiceModal"
                             class="px-6 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium">
-                        Cancelar
+                        {{ $clienteIncompleto ? 'Cerrar' : 'Cancelar' }}
                     </button>
+                    @if(!$clienteIncompleto)
                     <button wire:click="confirmarFacturacion"
                             wire:loading.attr="disabled"
                             wire:target="confirmarFacturacion"
@@ -595,8 +991,242 @@
                         <span wire:loading.remove wire:target="confirmarFacturacion">Confirmar Facturación</span>
                         <span wire:loading wire:target="confirmarFacturacion">Procesando...</span>
                     </button>
+                    @endif
                 </div>
             </div>
         </div>
     </template>
+    <!-- Componente de Observaciones Detalladas -->
+    <livewire:tenant.components.observations-modal />
+
+    <!-- Modal de Confirmaciones de Inventario -->
+    @if($showConfirmationsModal)
+    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" wire:click="closeConfirmationsModal"></div>
+
+        <!-- Modal Content -->
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in duration-300">
+            <!-- Header -->
+            <div class="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white leading-none">Confirmaciones de Inventario</h3>
+                        <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Solicitudes pendientes desde el Cotizador</p>
+                    </div>
+                </div>
+                <button wire:click="closeConfirmationsModal" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50 dark:bg-slate-900/50">
+                @livewire('tenant.inventory.inventory-confirmation-list')
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-white dark:bg-slate-800 px-6 py-4 flex justify-end items-center border-t border-gray-100 dark:border-slate-700 shrink-0">
+                <button wire:click="closeConfirmationsModal" 
+                        class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-white rounded-xl text-sm font-bold transition-all transform active:scale-95">
+                    Cerrar Ventana
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal de Justificación de Reimpresión -->
+    @if($showPrintJustificationModal)
+    <div class="fixed inset-0 z-[70] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-slate-700">
+                <div class="bg-white dark:bg-slate-900 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-bold text-gray-900 dark:text-white" id="modal-title">
+                                Justificación de Reimpresión
+                            </h3>
+                            <div class="mt-4">
+                                <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+                                    Este documento ya ha sido impreso anteriormente. Por favor, indique el motivo de la reimpresión para continuar.
+                                </p>
+                                <textarea wire:model="printJustificationText" 
+                                          class="w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none" 
+                                          rows="4" 
+                                          placeholder="Escriba aquí la razón (ej: Fallo en impresora, cambio de transportadora, etc)..."></textarea>
+                                @error('printJustificationText') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-slate-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                    <button type="button" wire:click="confirmPrintWithJustification" 
+                            class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-5 py-2.5 bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm transition-all">
+                        Confirmar e Imprimir
+                    </button>
+                    <button type="button" wire:click="$set('showPrintJustificationModal', false)" 
+                            class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 dark:border-slate-600 shadow-sm px-5 py-2.5 bg-white dark:bg-slate-700 text-base font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <script>
+        window.confirmAnnulment = function(id, consecutive) {
+            Swal.fire({
+                title: 'Indique el motivo de la anulación',
+                html: `<div class="mt-4 text-left">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Motivo</label>
+                        <textarea id="annulment-reason" 
+                                  class="w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" 
+                                  rows="3" 
+                                  placeholder="Escriba aquí el motivo por el cual se anula el pedido..."></textarea>
+                       <\/div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Confirmar Anulación',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#ef4444', // Rojo para anulación
+                cancelButtonColor: '#6b7280',
+                customClass: {
+                    container: 'my-swal-container',
+                    popup: 'rounded-xl dark:bg-slate-900',
+                    title: 'text-lg font-bold text-gray-900 dark:text-white',
+                },
+                preConfirm: () => {
+                    const reason = document.getElementById('annulment-reason').value;
+                    if (!reason || reason.trim().length < 5) {
+                        Swal.showValidationMessage(`Por favor ingrese un motivo válido (mínimo 5 caracteres)`);
+                    }
+                    return { reason: reason };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    @this.annulRemission(id, result.value.reason);
+                }
+            });
+        }
+    </script>
+    @livewire('tenant.configuration.printer-config-modal', ['contexto' => 'ordenp'])
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('printerConfigUpdated', (data) => {
+                const config = Array.isArray(data) ? data[0] : data;
+                localStorage.setItem('nombre_impresora', config.printer_name);
+                localStorage.setItem('proxy_impresion', config.proxy_url);
+            });
+        });
+    </script>
+    @livewire('tenant.returns.return-registration-modal')
+
+    <!-- Modal: Completar datos del cliente antes de facturar desde remisiones -->
+    @if($showCompleteCustomerModal && $completingCustomerId)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-start justify-center p-4 z-[70] overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl my-8">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        📋 Completar datos del cliente
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Completa el régimen y la responsabilidad fiscal para poder facturar electrónicamente.
+                    </p>
+                </div>
+                <button wire:click="closeCompleteCustomerModal"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Banner informativo -->
+            <div class="mx-6 mt-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+                <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-amber-800 dark:text-amber-200">
+                    Al guardar, el cliente se sincronizará automáticamente con Alegra y podrás continuar con la facturación.
+                </span>
+            </div>
+
+            <!-- Formulario completo (no simplificado) -->
+            <div class="px-6 pb-6 pt-4">
+                <livewire:tenant.vnt-company.vnt-company-form
+                    :reusable="true"
+                    :simplified="false"
+                    :companyId="$completingCustomerId"
+                    key="complete-customer-remissions-{{ $completingCustomerId }}" />
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal: Reporte de Fletes -->
+    @if($showFreightReportModal)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-[70]">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span>📊 Generar Reporte de Fletes</span>
+                </h3>
+                <button wire:click="closeFreightReportModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Desde</label>
+                    <input type="date" wire:model="freightStartDate" 
+                           class="w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Hasta</label>
+                    <input type="date" wire:model="freightEndDate" 
+                           class="w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3">
+                <button wire:click="closeFreightReportModal"
+                        class="px-5 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium">
+                    Cancelar
+                </button>
+                <button wire:click="downloadFreightReport"
+                        style="background-color: #d97706 !important; color: #ffffff !important;"
+                        class="px-5 py-2 rounded-lg font-medium flex items-center shadow-lg transition-all transform hover:scale-105 active:scale-95">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    <span style="color: #ffffff !important;">Descargar Excel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

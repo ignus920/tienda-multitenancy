@@ -83,21 +83,6 @@ return [
             ]) : [],
         ],
 
-        'pruebaMigraciones' => [
-            'driver' => 'mysql',
-            'host' => '192.168.1.205', // Cambia por la IP/host de tu BD
-            'port' => '3306', // Cambia si usas otro puerto
-            'database' => 'company_111_acc99af8_3851_421b_a5b9_83a1c751425a', // ← CAMBIA ESTO
-            'password' => 'marsella', // ← CAMBIA ESTO
-            'username' => 'root', // ← CAMBIA ESTO
-            'charset' => 'utf8mb4',
-            'unix_socket' => '',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-        ],
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
@@ -148,11 +133,12 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7' => [
+        // Migraciones fervicom
+        'company_131_45b2d9b5_17c9_4406_b1ed_263fbabd6434' => [
             'driver' => 'mysql',
-            'host' => '192.168.1.205', // IP/host BD
+            'host' => '100.91.238.113', // IP/host BD
             'port' => '3306',
-            'database' => 'company_15_b69f5375_b6b4_4b88_b265_c0b01e05bda7',
+            'database' => 'company_2_f8db771f_cd52_4d70_83fd_b7dbee3fd556',
             'username' => 'root',
             'password' => 'marsella',
             'unix_socket' => '',
@@ -168,7 +154,7 @@ return [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'desarrollo'),
+            'database' => null,  //env('DB_DATABASE', 'desarrollo'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),

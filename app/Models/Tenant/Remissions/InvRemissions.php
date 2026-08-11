@@ -23,19 +23,27 @@ class InvRemissions extends Model
         'updated_at',
         'quoteId',
         'warehouseId',
-        'deliveryTypeId',
+        'deliveryTypeId', // Campo correcto para tipo de entrega
         'methodPaymentId',
         'userId',
         'deliveryDate',
         'delivery_id',
         'expiration',
         'modify',
-        'observations_return'
+        'observations_return',
+        'obs',
+        'observations_delivery',
+        'flete',
+        'proof_payment',
+        'payment_details',
+        'from_portal',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'payment_details' => 'array',
+        'from_portal' => 'boolean',
     ];
 
     public function quote()
@@ -110,6 +118,51 @@ class InvRemissions extends Model
     }
 
     /**
+     * Relación con el tipo de entrega
+     */
+    public function deliveryTypeModel()
+    {
+        return $this->belongsTo(InvDeliveryType::class, 'deliveryTypeId', 'id');
+    }
+
+    /**
+     * Relación con el método de pago
+     */
+    public function methodPayment()
+    {
+        return $this->belongsTo(\App\Models\Tenant\MethodPayments\VntMethodPayMents::class, 'methodPaymentId', 'id');
+    }
+
+    public function observations()
+    {
+        return $this->hasMany(\App\Models\Tenant\Sales\VntObservation::class, 'reference_id')
+            ->where('reference_type', 'remission');
+    }
+
+    /**
+     * Relación con las autorizaciones de Cartera
+     */
+    public function authorizations()
+    {
+        return $this->hasMany(\App\Models\Tenant\Sales\VntOrderAuthorization::class, 'remission_id');
+    }
+
+    /**
+     * Determina si el pedido tiene empaque autorizado pero despacho de cartera pendiente/sin autorizar
+     */
+    public function isEmpaqueAuthorizedButDespachoPending(): bool
+    {
+        if (in_array($this->status, ['ANULADO', 'ENTREGADO'])) {
+            return false;
+        }
+
+        $hasEmpaque = $this->authorizations->where('auth_type', 'empaque')->where('status', 1)->isNotEmpty();
+        $hasDespacho = $this->authorizations->where('auth_type', 'despacho')->where('status', 1)->isNotEmpty();
+
+        return $hasEmpaque && !$hasDespacho;
+    }
+
+    /**
      * Getters para compatibilidad con las vistas de impresión del cotizador
      */
     public function getDetallesAttribute()
@@ -140,6 +193,15 @@ class InvRemissions extends Model
         return trim($user->name . ' ' . ($user->lastName ?? ''));
     }
 
+    /**
+     * Obtiene el teléfono del vendedor/usuario que creó la remisión
+     */
+    public function getSellerPhoneAttribute()
+    {
+        $user = $this->getUser();
+        return $user ? $user->phone : 'N/A';
+    }
+
     public function getSubTotalRemAttribute()
     {
         return $this->details->sum(function ($detail) {
@@ -149,8 +211,47 @@ class InvRemissions extends Model
 
     public function getTotalRemAttribute()
     {
-        return $this->details->sum(function ($detail) {
+        $total = $this->details->sum(function ($detail) {
             return ($detail->value + ($detail->value * $detail->tax / 100)) * $detail->quantity;
         });
+
+        return $total + ($this->flete ?? 0);
+    }
+
+    /**
+     * Calcula el peso total de la remisión en gramos sumando el peso de cada item por su cantidad.
+     */
+    public function getWeightGramos(): float
+    {
+        return $this->details->sum(function ($detail) {
+            return (float) ($detail->item?->dimensions?->weight ?? 0) * $detail->quantity;
+        });
+    }
+
+    /**
+     * Calcula el Valor Declarado según el peso y el valor base.
+     */
+    public function getDeclaredValue(float $baseValue): float
+    {
+        $pesoGramos = $this->getWeightGramos();
+
+        if ($pesoGramos < 5500) {
+            // Peso inferior a 5500 gramos (5.50 kg)
+            if ($baseValue < 114000) {
+                return $baseValue;
+            } else {
+                return $baseValue * 0.5;
+            }
+        } else {
+            // Peso mayor o igual a 5500 gramos (5.50 kg)
+            if ($baseValue < 896000) {
+                return $baseValue;
+            } elseif ($baseValue >= 896000 && $baseValue <= 1791999) {
+                return ($baseValue * 0.05) + 896000;
+            } else {
+                return $baseValue * 0.5;
+            }
+        }
     }
 }
+

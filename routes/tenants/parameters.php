@@ -5,6 +5,7 @@ use App\Livewire\Tenant\Parameters\PriceList;
 use App\Livewire\Tenant\Parameters\Zones;
 use App\Livewire\Tenant\Parameters\Routes;
 use App\Livewire\Tenant\Parameters\CompanyInformation;
+use App\Livewire\Tenant\Parameters\Buttons;
 
 /**
  * Rutas para el módulo de Parámetros del Tenant
@@ -12,7 +13,7 @@ use App\Livewire\Tenant\Parameters\CompanyInformation;
  */
 
 // Grupo de rutas para parámetros con prefijo '/parameters'
-Route::prefix('/parameters')->group(function () {
+Route::prefix('/parameters')->middleware('tenant')->group(function () {
 
     // Ruta para gestión de listas de precios
     Route::get('/pricelists', PriceList::class)
@@ -26,6 +27,11 @@ Route::prefix('/parameters')->group(function () {
 
     Route::get('/company-information', CompanyInformation::class)
         ->name('tenant.parameters.company-information');
+
+    Route::get('/buttons', Buttons::class)
+        ->name('tenant.parameters.buttons');
+    Route::get('/access-control', \App\Livewire\Tenant\Parameters\AccessControlManager::class)
+        ->name('tenant.parameters.access-control');
 
     // Aquí se pueden agregar más rutas de parámetros en el futuro
     // Ejemplo:

@@ -18,6 +18,7 @@ return new class extends Migration
                 $table->integer('itemId')->nullable();
                 $table->string('description', 255);
                 $table->integer('priceList');
+                $table->string('price_label', 180)->nullable()->default(null);
                 $table->index('quoteId');
                 $table->index('itemId');
                 $table->timestamps();        // created_at, updated_at

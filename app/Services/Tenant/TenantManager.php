@@ -69,12 +69,12 @@ class TenantManager
         try {
             $this->createDatabase($tenant);
             $this->runMigrations($tenant);
+            $this->runSeeders($tenant);
 
             // Marcar como configurado
             $tenant->update(['database_setup' => true]);
 
             Log::info('✅ Base de datos del tenant configurada exitosamente', ['tenant_id' => $tenant->id]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error configurando BD del tenant', [
                 'tenant_id' => $tenant->id,
@@ -131,13 +131,13 @@ class TenantManager
 
             $this->createDatabase($tenant);
             $this->runMigrations($tenant);
+            $this->runSeeders($tenant);
 
             if ($owner) {
                 $this->assignUser($tenant, $owner, 'admin');
             }
 
             return $tenant;
-
         } catch (\Exception $e) {
             if (isset($tenant) && isset($dbName)) {
                 try {
@@ -180,177 +180,169 @@ class TenantManager
      * Ejecuta las migraciones del tenant según sus módulos activos.
      */
     protected function runMigrations(Tenant $tenant): void
-{
-    Log::info('🚀 Iniciando migraciones para tenant', ['db_name' => $tenant->db_name]);
+    {
+        Log::info('🚀 Iniciando migraciones para tenant', ['db_name' => $tenant->db_name]);
 
-    $originalConnection = config('database.default');
+        $originalConnection = config('database.default');
 
-    // Configurar conexión dinámica para el tenant
-    config([
-        'database.connections.tenant_migrations' => [
-            'driver' => 'mysql',
-            'host' => $tenant->db_host,
-            'port' => $tenant->db_port,
-            'database' => $tenant->db_name,
-            'username' => $tenant->db_user,
-            'password' => $tenant->db_password,
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'strict' => true,
-        ],
-    ]);
-
-    config(['database.default' => 'tenant_migrations']);
-    DB::purge('tenant_migrations');
-    DB::reconnect('tenant_migrations');
-
-    try {
-        // Optimizaciones para acelerar las migraciones
-        DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 0');
-        DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 0');
-        DB::connection('tenant_migrations')->beginTransaction();
-        // Consultar módulos activos desde la base de datos principal
-        $modules = DB::connection('mysql')->table('vnt_merchant_moduls')
-            ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
-            ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
-            ->where('vnt_moduls.status', 1)
-            ->get(['vnt_moduls.name', 'vnt_moduls.migration']);
-
-        Log::info('📦 Módulos encontrados', [
-            'merchant_type_id' => $tenant->merchant_type_id,
-            'modules' => $modules->pluck('name')->toArray()
+        // Configurar conexión dinámica para el tenant
+        config([
+            'database.connections.tenant_migrations' => [
+                'driver' => 'mysql',
+                'host' => $tenant->db_host,
+                'port' => $tenant->db_port,
+                'database' => $tenant->db_name,
+                'username' => $tenant->db_user,
+                'password' => $tenant->db_password,
+                'charset' => 'utf8mb4',
+                'collation' => 'utf8mb4_unicode_ci',
+                'prefix' => '',
+                'strict' => true,
+            ],
         ]);
 
-        if ($modules->isEmpty()) {
-            Log::warning('⚠️ No hay módulos activos para este merchant type');
-            return;
-        }
+        config(['database.default' => 'tenant_migrations']);
+        DB::purge('tenant_migrations');
+        DB::reconnect('tenant_migrations');
 
-        // Ejecutar migraciones base comunes (si existen)
-        $baseMigrationPath = 'tenants/base';
-        $baseFullPath = base_path("database/migrations/{$baseMigrationPath}");
-        if (File::isDirectory($baseFullPath)) {
-            Log::info("📦 Ejecutando migraciones base: {$baseMigrationPath}");
-            Artisan::call('migrate', [
-                '--database' => 'tenant_migrations',
-                '--path' => $baseMigrationPath,
-                '--force' => true,
+        try {
+            // Optimizaciones para acelerar las migraciones
+            DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 0');
+            DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 0');
+            DB::connection('tenant_migrations')->beginTransaction();
+            // Consultar módulos activos desde la base de datos principal
+            $modules = DB::connection('mysql')->table('vnt_merchant_moduls')
+                ->join('vnt_moduls', 'vnt_merchant_moduls.modulId', '=', 'vnt_moduls.id')
+                ->where('vnt_merchant_moduls.merchantId', $tenant->merchant_type_id)
+                ->where('vnt_moduls.status', 1)
+                ->get(['vnt_moduls.name', 'vnt_moduls.migration']);
+
+            Log::info('📦 Módulos encontrados', [
+                'merchant_type_id' => $tenant->merchant_type_id,
+                'modules' => $modules->pluck('name')->toArray()
             ]);
-            Log::info('✅ Migraciones base ejecutadas', ['output' => Artisan::output()]);
-        }
 
-        // Ejecutar migraciones específicas por módulo
-        foreach ($modules as $module) {
-            if (empty($module->migration)) {
-                Log::warning("⚠️ El módulo {$module->name} no tiene ruta de migración definida");
-                continue;
+            // Verificar si 'parameters' ya está en el array de módulos
+            $hasParameters = $modules->contains(function ($module) {
+                return !empty($module->migration) && trim($module->migration, '/') === 'parameters';
+            });
+
+            // Si no tiene 'parameters', agregarlo al inicio
+            if (!$hasParameters) {
+                Log::info('📦 Agregando módulo parameters (obligatorio)');
+                $parametersModule = (object)[
+                    'name' => 'Parameters',
+                    'migration' => 'parameters'
+                ];
+                $modules = collect([$parametersModule])->merge($modules);
             }
 
-            $migrationPath = trim($module->migration, '/');
-            $fullPath = base_path("database/migrations/tenants/{$migrationPath}");
+            if ($modules->isEmpty()) {
+                Log::warning('⚠️ No hay módulos activos para este merchant type');
+                return;
+            }
 
-            Log::info("🔍 Verificando módulo", [
-                'module' => $module->name,
-                'migration_config' => $module->migration,
-                'full_path' => $fullPath
-            ]);
-
-            if (!File::isDirectory($fullPath)) {
-                Log::warning("⚠️ Carpeta de migraciones no encontrada", [
-                    'path' => $fullPath,
-                    'module' => $module->name
+            // Ejecutar migraciones base comunes (si existen)
+            $baseMigrationPath = 'tenants/base';
+            $baseFullPath = base_path("database/migrations/{$baseMigrationPath}");
+            if (File::isDirectory($baseFullPath)) {
+                Log::info("📦 Ejecutando migraciones base: {$baseMigrationPath}");
+                Artisan::call('migrate', [
+                    '--database' => 'tenant_migrations',
+                    '--path' => $baseMigrationPath,
+                    '--force' => true,
                 ]);
-                continue;
+                Log::info('✅ Migraciones base ejecutadas', ['output' => Artisan::output()]);
             }
 
-            // Verificar si hay archivos .php en la carpeta
-            $migrationFiles = File::glob($fullPath . '/*.php');
+            // Ejecutar migraciones específicas por módulo
+            foreach ($modules as $module) {
+                if (empty($module->migration)) {
+                    Log::warning("⚠️ El módulo {$module->name} no tiene ruta de migración definida");
+                    continue;
+                }
 
-            Log::info("📁 Archivos de migración encontrados", [
-                'module' => $module->name,
-                'path' => $fullPath,
-                'files_count' => count($migrationFiles),
-                'files' => array_map('basename', $migrationFiles)
-            ]);
+                $migrationPath = trim($module->migration, '/');
+                $fullPath = base_path("database/migrations/tenants/{$migrationPath}");
 
-            if (empty($migrationFiles)) {
-                Log::warning("⚠️ No hay archivos de migración en la carpeta", [
-                    'path' => $fullPath,
-                    'module' => $module->name
+                Log::info("🔍 Verificando módulo", [
+                    'module' => $module->name,
+                    'migration_config' => $module->migration,
+                    'full_path' => $fullPath
                 ]);
-                continue;
-            }
 
-            // Ruta relativa para Artisan (desde database/migrations)
-            $relativePath = "tenants/{$migrationPath}";
-
-            Log::info("🔄 Ejecutando migraciones", [
-                'module' => $module->name,
-                'relative_path' => $relativePath,
-                'files_to_migrate' => count($migrationFiles)
-            ]);
-
-            try {
-                // Crear tabla migrations si no existe
-                $this->ensureMigrationsTable('tenant_migrations');
-
-                // Ejecutar cada archivo de migración manualmente
-                $migrationsExecuted = 0;
-                foreach ($migrationFiles as $migrationFile) {
-                    $migrationName = basename($migrationFile, '.php');
-
-                    // Verificar si ya fue ejecutada
-                    $exists = DB::connection('tenant_migrations')
-                        ->table('migrations')
-                        ->where('migration', $migrationName)
-                        ->exists();
-
-                    if ($exists) {
-                        Log::info("⚠️ Migración ya ejecutada, saltando", [
-                            'module' => $module->name,
-                            'migration' => $migrationName
-                        ]);
-                        continue;
-                    }
-
-                    // Ejecutar la migración manualmente
-                    Log::info("🔄 Ejecutando migración individual", [
-                        'module' => $module->name,
-                        'migration' => $migrationName,
-                        'file' => $migrationFile
+                if (!File::isDirectory($fullPath)) {
+                    Log::warning("⚠️ Carpeta de migraciones no encontrada", [
+                        'path' => $fullPath,
+                        'module' => $module->name
                     ]);
+                    continue;
+                }
 
-                    try {
-                        // Ejecutar archivo de migración (maneja tanto clases anónimas como con nombre)
-                        $migration = require $migrationFile;
+                // Verificar si hay archivos .php en la carpeta
+                $migrationFiles = File::glob($fullPath . '/*.php');
 
-                        if ($migration instanceof \Illuminate\Database\Migrations\Migration) {
-                            // Es una clase anónima, ejecutar directamente
-                            $migration->up();
+                Log::info("📁 Archivos de migración encontrados", [
+                    'module' => $module->name,
+                    'path' => $fullPath,
+                    'files_count' => count($migrationFiles),
+                    'files' => array_map('basename', $migrationFiles)
+                ]);
 
-                            // Registrar en tabla migrations
-                            DB::connection('tenant_migrations')
-                                ->table('migrations')
-                                ->insert([
-                                    'migration' => $migrationName,
-                                    'batch' => 1
-                                ]);
+                if (empty($migrationFiles)) {
+                    Log::warning("⚠️ No hay archivos de migración en la carpeta", [
+                        'path' => $fullPath,
+                        'module' => $module->name
+                    ]);
+                    continue;
+                }
 
-                            $migrationsExecuted++;
-                            Log::info("✅ Migración ejecutada exitosamente", [
+                // Ruta relativa para Artisan (desde database/migrations)
+                $relativePath = "tenants/{$migrationPath}";
+
+                Log::info("🔄 Ejecutando migraciones", [
+                    'module' => $module->name,
+                    'relative_path' => $relativePath,
+                    'files_to_migrate' => count($migrationFiles)
+                ]);
+
+                try {
+                    // Crear tabla migrations si no existe
+                    $this->ensureMigrationsTable('tenant_migrations');
+
+                    // Ejecutar cada archivo de migración manualmente
+                    $migrationsExecuted = 0;
+                    foreach ($migrationFiles as $migrationFile) {
+                        $migrationName = basename($migrationFile, '.php');
+
+                        // Verificar si ya fue ejecutada
+                        $exists = DB::connection('tenant_migrations')
+                            ->table('migrations')
+                            ->where('migration', $migrationName)
+                            ->exists();
+
+                        if ($exists) {
+                            Log::info("⚠️ Migración ya ejecutada, saltando", [
                                 'module' => $module->name,
-                                'migration' => $migrationName,
-                                'type' => 'anonymous_class'
+                                'migration' => $migrationName
                             ]);
-                        } else {
-                            // Intentar con clase con nombre (método anterior)
-                            require_once $migrationFile;
-                            $className = $this->getMigrationClassName($migrationFile);
+                            continue;
+                        }
 
-                            if (class_exists($className)) {
-                                $namedMigration = new $className();
-                                $namedMigration->up();
+                        // Ejecutar la migración manualmente
+                        Log::info("🔄 Ejecutando migración individual", [
+                            'module' => $module->name,
+                            'migration' => $migrationName,
+                            'file' => $migrationFile
+                        ]);
+
+                        try {
+                            // Ejecutar archivo de migración (maneja tanto clases anónimas como con nombre)
+                            $migration = require $migrationFile;
+
+                            if ($migration instanceof \Illuminate\Database\Migrations\Migration) {
+                                // Es una clase anónima, ejecutar directamente
+                                $migration->up();
 
                                 // Registrar en tabla migrations
                                 DB::connection('tenant_migrations')
@@ -364,80 +356,184 @@ class TenantManager
                                 Log::info("✅ Migración ejecutada exitosamente", [
                                     'module' => $module->name,
                                     'migration' => $migrationName,
-                                    'type' => 'named_class',
-                                    'class' => $className
+                                    'type' => 'anonymous_class'
                                 ]);
                             } else {
-                                Log::warning("⚠️ No se pudo ejecutar migración", [
-                                    'module' => $module->name,
-                                    'migration' => $migrationName,
-                                    'reason' => 'Ni clase anónima ni clase con nombre válida'
+                                // Intentar con clase con nombre (método anterior)
+                                require_once $migrationFile;
+                                $className = $this->getMigrationClassName($migrationFile);
+
+                                if (class_exists($className)) {
+                                    $namedMigration = new $className();
+                                    $namedMigration->up();
+
+                                    // Registrar en tabla migrations
+                                    DB::connection('tenant_migrations')
+                                        ->table('migrations')
+                                        ->insert([
+                                            'migration' => $migrationName,
+                                            'batch' => 1
+                                        ]);
+
+                                    $migrationsExecuted++;
+                                    Log::info("✅ Migración ejecutada exitosamente", [
+                                        'module' => $module->name,
+                                        'migration' => $migrationName,
+                                        'type' => 'named_class',
+                                        'class' => $className
+                                    ]);
+                                } else {
+                                    Log::warning("⚠️ No se pudo ejecutar migración", [
+                                        'module' => $module->name,
+                                        'migration' => $migrationName,
+                                        'reason' => 'Ni clase anónima ni clase con nombre válida'
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $migrationError) {
+                            Log::error("❌ Error en migración individual", [
+                                'module' => $module->name,
+                                'migration' => $migrationName,
+                                'error' => $migrationError->getMessage(),
+                                'trace' => $migrationError->getTraceAsString()
+                            ]);
+                            // Continuar con la siguiente migración
+                        }
+                    }
+
+                    Log::info('✅ Módulo procesado', [
+                        'module' => $module->name,
+                        'migrations_executed' => $migrationsExecuted,
+                        'total_files' => count($migrationFiles)
+                    ]);
+
+                    // Verificar tablas creadas
+                    $tables = DB::connection('tenant_migrations')->select("SHOW TABLES");
+                    Log::info('📊 Tablas en BD tenant después del módulo', [
+                        'module' => $module->name,
+                        'tables_count' => count($tables)
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('❌ Error ejecutando migraciones del módulo', [
+                        'module' => $module->name,
+                        'path' => $relativePath,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+
+            // Ejecutar migraciones de relationships (foreign keys) al final
+            $relationshipsPath = 'tenants/relationships';
+            $relationshipsFullPath = base_path("database/migrations/{$relationshipsPath}");
+
+            if (File::isDirectory($relationshipsFullPath)) {
+                Log::info("🔗 Ejecutando migraciones de relationships (foreign keys)");
+
+                $relationshipFiles = File::glob($relationshipsFullPath . '/*.php');
+
+                if (!empty($relationshipFiles)) {
+                    Log::info("📁 Archivos de relationships encontrados", [
+                        'path' => $relationshipsFullPath,
+                        'files_count' => count($relationshipFiles),
+                        'files' => array_map('basename', $relationshipFiles)
+                    ]);
+
+                    $relationshipsExecuted = 0;
+                    foreach ($relationshipFiles as $relationshipFile) {
+                        $migrationName = basename($relationshipFile, '.php');
+
+                        // Verificar si ya fue ejecutada
+                        $exists = DB::connection('tenant_migrations')
+                            ->table('migrations')
+                            ->where('migration', $migrationName)
+                            ->exists();
+
+                        if ($exists) {
+                            Log::info("⚠️ Relationship ya ejecutada, saltando", [
+                                'migration' => $migrationName
+                            ]);
+                            continue;
+                        }
+
+                        // Ejecutar la migración de relationship
+                        Log::info("🔄 Ejecutando relationship", [
+                            'migration' => $migrationName,
+                            'file' => $relationshipFile
+                        ]);
+
+                        try {
+                            $migration = require $relationshipFile;
+
+                            if ($migration instanceof \Illuminate\Database\Migrations\Migration) {
+                                $migration->up();
+
+                                // Registrar en tabla migrations
+                                DB::connection('tenant_migrations')
+                                    ->table('migrations')
+                                    ->insert([
+                                        'migration' => $migrationName,
+                                        'batch' => 2 // Batch 2 para relationships
+                                    ]);
+
+                                $relationshipsExecuted++;
+                                Log::info("✅ Relationship ejecutada exitosamente", [
+                                    'migration' => $migrationName
                                 ]);
                             }
+                        } catch (\Exception $relationshipError) {
+                            Log::error("❌ Error en relationship", [
+                                'migration' => $migrationName,
+                                'error' => $relationshipError->getMessage(),
+                                'trace' => $relationshipError->getTraceAsString()
+                            ]);
+                            // Continuar con la siguiente relationship
                         }
-                    } catch (\Exception $migrationError) {
-                        Log::error("❌ Error en migración individual", [
-                            'module' => $module->name,
-                            'migration' => $migrationName,
-                            'error' => $migrationError->getMessage(),
-                            'trace' => $migrationError->getTraceAsString()
-                        ]);
-                        // Continuar con la siguiente migración
                     }
+
+                    Log::info('✅ Relationships procesadas', [
+                        'relationships_executed' => $relationshipsExecuted,
+                        'total_files' => count($relationshipFiles)
+                    ]);
+                } else {
+                    Log::warning("⚠️ No hay archivos de relationships en la carpeta", [
+                        'path' => $relationshipsFullPath
+                    ]);
                 }
-
-                Log::info('✅ Módulo procesado', [
-                    'module' => $module->name,
-                    'migrations_executed' => $migrationsExecuted,
-                    'total_files' => count($migrationFiles)
-                ]);
-
-                // Verificar tablas creadas
-                $tables = DB::connection('tenant_migrations')->select("SHOW TABLES");
-                Log::info('📊 Tablas en BD tenant después del módulo', [
-                    'module' => $module->name,
-                    'tables_count' => count($tables)
-                ]);
-
-            } catch (\Exception $e) {
-                Log::error('❌ Error ejecutando migraciones del módulo', [
-                    'module' => $module->name,
-                    'path' => $relativePath,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+            } else {
+                Log::warning("⚠️ Carpeta de relationships no encontrada", [
+                    'path' => $relationshipsFullPath
                 ]);
             }
-        }
 
-        // Commit de todas las migraciones y restaurar configuraciones
-        DB::connection('tenant_migrations')->commit();
-        DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
-        DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
-
-        Log::info('✅ Todas las migraciones completadas exitosamente');
-
-    } catch (\Exception $e) {
-        // Rollback en caso de error
-        try {
-            DB::connection('tenant_migrations')->rollback();
+            // Commit de todas las migraciones y restaurar configuraciones
+            DB::connection('tenant_migrations')->commit();
             DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
             DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
-        } catch (\Exception $rollbackError) {
-            Log::warning('⚠️ Error durante rollback', ['error' => $rollbackError->getMessage()]);
-        }
 
-        Log::error('❌ Error ejecutando migraciones', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-        throw $e;
-    } finally {
-        // Restaurar conexión original
-        config(['database.default' => $originalConnection]);
-        DB::purge('tenant_migrations');
-        DB::reconnect($originalConnection);
+            Log::info('✅ Todas las migraciones completadas exitosamente');
+        } catch (\Exception $e) {
+            // Rollback en caso de error
+            try {
+                DB::connection('tenant_migrations')->rollback();
+                DB::connection('tenant_migrations')->statement('SET FOREIGN_KEY_CHECKS = 1');
+                DB::connection('tenant_migrations')->statement('SET AUTOCOMMIT = 1');
+            } catch (\Exception $rollbackError) {
+                Log::warning('⚠️ Error durante rollback', ['error' => $rollbackError->getMessage()]);
+            }
+
+            Log::error('❌ Error ejecutando migraciones', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        } finally {
+            // Restaurar conexión original
+            config(['database.default' => $originalConnection]);
+            DB::purge('tenant_migrations');
+            DB::reconnect($originalConnection);
+        }
     }
-}
 
 
 
@@ -500,6 +596,57 @@ class TenantManager
     }
 
     /**
+     * Ejecuta los seeders del tenant según sus módulos activos.
+     */
+    protected function runSeeders(Tenant $tenant): void
+    {
+        Log::info('🌱 Iniciando seeders para tenant', ['db_name' => $tenant->db_name]);
+
+        $originalConnection = config('database.default');
+
+        try {
+            // Configurar conexión para seeders
+            $this->setConnection($tenant);
+
+            // Guardar información del tenant en config para que los seeders puedan acceder
+            config(['tenant.current_tenant_id' => $tenant->id]);
+            config(['tenant.current_company_id' => $tenant->company_id]);
+            config(['tenant.current_merchant_type_id' => $tenant->merchant_type_id]);
+
+            // Ejecutar el seeder principal del tenant
+            Artisan::call('db:seed', [
+                '--class' => 'Database\\Seeders\\Tenant\\TenantDatabaseSeeder',
+                '--force' => true,
+            ]);
+
+            $output = Artisan::output();
+            Log::info('✅ Seeders ejecutados exitosamente', [
+                'db_name' => $tenant->db_name,
+                'output' => $output
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ Error ejecutando seeders', [
+                'db_name' => $tenant->db_name,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // No lanzar excepción para que no falle toda la creación del tenant
+            // Los seeders son opcionales
+            Log::warning('⚠️ Continuando sin seeders');
+        } finally {
+            // Limpiar configuración temporal
+            config(['tenant.current_tenant_id' => null]);
+            config(['tenant.current_company_id' => null]);
+            config(['tenant.current_merchant_type_id' => null]);
+
+            // Restaurar conexión original
+            config(['database.default' => $originalConnection]);
+            DB::purge('tenant');
+            DB::reconnect($originalConnection);
+        }
+    }
+
+    /**
      * Asigna un usuario al tenant.
      */
     public function assignUser(Tenant $tenant, User $user, string $role = 'user'): void
@@ -518,11 +665,22 @@ class TenantManager
 
     public function setConnection(Tenant $tenant): void
     {
+        // Log ANTES de configurar
+        Log::info('🔗 ANTES DE CONFIGURAR CONEXIÓN TENANT', [
+            'tenant_id' => $tenant->id,
+            'tenant_name' => $tenant->name,
+            'tenant_db_name' => $tenant->db_name,
+            'tenant_db_host' => $tenant->db_host,
+            'tenant_db_port' => $tenant->db_port,
+            'tenant_db_user' => $tenant->db_user,
+            'method' => 'TenantManager::setConnection'
+        ]);
+
         Config::set('database.connections.tenant', [
             'driver' => 'mysql',
             'host' => $tenant->db_host,
-            'port' => $tenant->db_port,
-            'database' => 'desarrollo',//$tenant->db_name,
+            'port' => $tenant->db_port ?? 3306,
+            'database' => $tenant->db_name,
             'username' => $tenant->db_user,
             'password' => $tenant->db_password,
             'charset' => 'utf8mb4',
@@ -534,6 +692,26 @@ class TenantManager
 
         DB::purge('tenant');
         DB::reconnect('tenant');
+
+        // Log DESPUÉS de configurar
+        try {
+            $actualDatabaseName = DB::connection('tenant')->getDatabaseName();
+            $connectionConfig = config('database.connections.tenant');
+
+            Log::info('✅ CONEXIÓN TENANT CONFIGURADA', [
+                'connection_name' => 'tenant',
+                'config_database' => $connectionConfig['database'] ?? 'NULL',
+                'actual_database_name' => $actualDatabaseName,
+                'tenant_id' => $tenant->id,
+                'method' => 'TenantManager::setConnection'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR AL VERIFICAR CONEXIÓN TENANT', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'method' => 'TenantManager::setConnection'
+            ]);
+        }
     }
 
     public function delete(Tenant $tenant, bool $deleteDatabase = false): void

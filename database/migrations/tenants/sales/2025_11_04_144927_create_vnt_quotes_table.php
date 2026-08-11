@@ -12,13 +12,14 @@ return new class extends Migration
             Schema::create('vnt_quotes', function (Blueprint $table) {
                 $table->id('id');
                 $table->integer('consecutive');
-                $table->enum('status', ['REGISTRADO', 'ANULADO', 'FACTURADO', 'REMISIÓN'])->default('FIJA');
+                $table->enum('status', ['REGISTRADO', 'ANULADO', 'FACTURADO', 'REMISIÓN'])->default('REGISTRADO');
                 $table->string('typeQuote');
                 $table->integer('customerId')->nullable();
                 $table->integer('warehouseId')->nullable();
                 $table->integer('userId')->nullable();
                 $table->text('observations')->nullable();
                 $table->integer('branchId')->nullable();
+                $table->integer('flete')->nullable()->default(0);
                 $table->index('customerId');
                 $table->index('warehouseId');
                 $table->timestamps();        // created_at, updated_at

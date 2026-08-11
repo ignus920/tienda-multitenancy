@@ -13,10 +13,45 @@
             </div>
         </div>
 
+        <!-- Filtros de Fecha -->
+        @if(in_array(auth()->user()->profile_id, [1, 2]))
+        <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtrar Período de Ventas</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Por defecto calcula el rango de corte comercial (del 26 al 25 del siguiente mes)</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Desde:</span>
+                            <input type="date" wire:model.live="startDate" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Hasta:</span>
+                            <input type="date" wire:model.live="endDate" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <button type="button" wire:click="clearFilters" class="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-800 border border-indigo-200 dark:border-gray-700 rounded-lg transition-colors">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <!-- Ventas Hoy -->
-            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg">
+            @if(in_array(auth()->user()->profile_id, [1, 2]))
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
+                x-data="{ show: false }" 
+                @mousedown="show = true" 
+                @mouseup="show = false" 
+                @mouseleave="show = false"
+                @touchstart="show = true" 
+                @touchend="show = false"
+                title="Mantén presionado para ver">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-indigo-100 rounded-md p-3">
@@ -26,11 +61,13 @@
                         </div>
                         <div class="ml-5">
                             <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas Hoy</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white">${{ number_format($stats['total_ventas_hoy'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" x-show="show">${{ number_format($stats['total_ventas_hoy'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500 tracking-widest" x-show="!show">••••••</p>
                         </div>
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Total Clientes -->
             <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg">
@@ -67,7 +104,15 @@
             </div>
 
             <!-- Ventas del Mes -->
-            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg">
+            @if(in_array(auth()->user()->profile_id, [1, 2]))
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg cursor-pointer select-none" 
+                x-data="{ show: false }" 
+                @mousedown="show = true" 
+                @mouseup="show = false" 
+                @mouseleave="show = false"
+                @touchstart="show = true" 
+                @touchend="show = false"
+                title="Mantén presionado para ver">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-purple-100 rounded-md p-3">
@@ -76,12 +121,15 @@
                             </svg>
                         </div>
                         <div class="ml-5">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas del Mes</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white">${{ number_format($stats['ventas_mes'], 0) }}</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Ventas del Período</p>
+                            <p class="text-2xl font-semibold text-gray-900 dark:text-white mt-1" x-show="show">${{ number_format($stats['ventas_mes'], 0) }}</p>
+                            <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500 tracking-widest mt-1" x-show="!show">••••••</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 truncate">Periodo: {{ $activePeriodLabel }}</p>
                         </div>
                     </div>
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- Accesos Rápidos -->
@@ -99,6 +147,7 @@
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors duration-300">Nueva Venta</span>
                     </a>
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('customers.customers') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-green-300 dark:hover:border-green-500 hover:shadow-lg hover:shadow-green-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full group-hover:bg-green-200 dark:group-hover:bg-green-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +156,9 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-300">Clientes</span>
                     </a>
+                    @endif
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('items') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-yellow-50 hover:to-amber-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-yellow-300 dark:hover:border-yellow-500 hover:shadow-lg hover:shadow-yellow-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700 dark:group-hover:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +167,9 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-300">Productos</span>
                     </a>
+                    @endif
 
+                    @if(auth()->user()->profile_id != 4)
                     <a href="{{ route('petty-cash.petty-cash') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-purple-50 hover:to-violet-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-lg hover:shadow-purple-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,6 +178,18 @@
                         </div>
                         <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300">Cajas</span>
                     </a>
+                    @endif
+
+                    @if(auth()->user()->profile_id != 4)
+                    <a href="{{ route('tenant.reports.list') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-teal-50 hover:to-cyan-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-teal-300 dark:hover:border-teal-500 hover:shadow-lg hover:shadow-teal-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
+                        <div class="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-full group-hover:bg-teal-200 dark:group-hover:bg-teal-800/50 group-hover:scale-110 transition-all duration-300">
+                            <svg class="w-8 h-8 text-teal-600 dark:text-teal-400 group-hover:text-teal-700 dark:group-hover:text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <span class="mt-3 text-sm font-medium text-gray-900 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors duration-300">Informes</span>
+                    </a>
+                    @endif
                 </div>
             </div>
         </div>

@@ -14,7 +14,7 @@ return new class extends Migration
                 $table->integer('itemId');
                 $table->foreign('itemId')->references('id')->on('inv_items');
                 $table->text('img_path')->nullable();
-                $table->enum('type', ["PRINCIPAL", "GALERIA"])->default('PRINCIPAL');
+                $table->enum('type', ["PRINCIPAL", "GALERIA", "PDF"])->default('PRINCIPAL');
                 $table->timestamps();        // created_at, updated_at
                 $table->softDeletes();       // deleted_at
             });

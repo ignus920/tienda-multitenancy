@@ -52,5 +52,9 @@
     "A new verification link has been sent to the email address you provided during registration.": "Se ha enviado un nuevo enlace de verificación a la dirección de correo electrónico que proporcionaste durante el registro.",
     "Resend Verification Email": "Reenviar Correo de Verificación",
     "This is a secure area of the application. Please confirm your password before continuing.": "Esta es un área segura de la aplicación. Por favor confirma tu contraseña antes de continuar.",
-    "Confirm": "Confirmar"
+    "Confirm": "Confirmar",
+    "Showing": "Mostrando",
+    "to": "a",
+    "of": "de",
+    "results": "resultados"
 }

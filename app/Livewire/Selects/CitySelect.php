@@ -103,24 +103,29 @@ class CitySelect extends Component
     public function selectedCityName()
     {
         if (!$this->cityId) return null;
-        return CnfCity::find($this->cityId)?->name;
+        $city = CnfCity::join('states', 'cities.state_id', '=', 'states.id')
+                       ->select('cities.name', 'states.name as state_name')
+                       ->where('cities.id', $this->cityId)
+                       ->first();
+        return $city ? ($city->name . ' - ' . $city->state_name) : null;
     }
 
-#[Computed]
-public function cities()
-{
-    $query = CnfCity::where('country_id', $this->countryId)
-                    ->where('country_code', $this->countryCode);
+    #[Computed]
+    public function cities()
+    {
+        $query = CnfCity::where('cities.country_id', $this->countryId)
+                        ->where('cities.country_code', $this->countryCode);
 
-    if (!empty($this->search)) {
-        $query->where('name', 'like', '%' . $this->search . '%');
+        if (!empty($this->search)) {
+            $query->where('cities.name', 'like', '%' . $this->search . '%');
+        }
+
+        return $query->join('states', 'cities.state_id', '=', 'states.id')
+            ->select('cities.id', 'cities.name', 'cities.state_id', 'states.name as state_name')
+            ->orderBy('cities.name')
+            ->limit(50)
+            ->get();
     }
-
-    return $query->select('id', 'name', 'state_id')
-        ->orderBy('name')
-        ->limit(50)
-        ->get();
-}
 
     public function render()
     {

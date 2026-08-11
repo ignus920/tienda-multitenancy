@@ -414,6 +414,9 @@ class UserRapForm extends Component
             $this->errorMessage = '';
             $this->successMessage = '';
 
+            // CRITICAL: Ensure tenant connection is configured BEFORE any database queries
+            $this->ensureTenantConnection();
+
             // Validate all inputs
             $this->validateForm();
 
@@ -434,21 +437,35 @@ class UserRapForm extends Component
                 'status' => 'active'
             ];
 
-            // PASO 3: Validar datos con API (puede crear temporalmente para validar)
-            $apiValidationResult = $this->validateApiData($tempApiData);
-            if (!$apiValidationResult['success']) {
-                // Cerrar modal y mostrar error con session flash para mayor visibilidad
-                $this->closeModal();
-                session()->flash('sync_error', $apiValidationResult['message']);
-                return;
-            }
-
-            // Verificar si la validación ya creó un registro temporal en la API
-            $tempApiId = $apiValidationResult['temp_api_id'] ?? null;
+            // Variable para controlar si procedemos con la sincronización API
+            $shouldSync = $preValidationResult['sync_required'] ?? false;
 
             $user = null;
+            $tempApiId = null;
 
-            // PASO 4: Guardar en base de datos local solo si API validó correctamente
+            if ($shouldSync) {
+                // PASO 2: Preparar datos de API ANTES de crear usuario para validar duplicados
+                $tempApiData = [
+                    'name' => $this->concatenateFullName(),
+                    'identification' => $this->phone, // Usar teléfono como identificación
+                    'observations' => 'vendedor',
+                    'status' => 'active'
+                ];
+
+                // PASO 3: Validar datos con API (puede crear temporalmente para validar)
+                $apiValidationResult = $this->validateApiData($tempApiData);
+                if (!$apiValidationResult['success']) {
+                    // Si la validación de API falla y la sincronización es requerida, bloquear
+                    $this->closeModal();
+                    session()->flash('sync_error', $apiValidationResult['message']);
+                    return;
+                }
+
+                // Verificar si la validación ya creó un registro temporal en la API
+                $tempApiId = $apiValidationResult['temp_api_id'] ?? null;
+            }
+
+            // PASO 4: Guardar en base de datos local
             if ($this->editingId) {
                 // Update mode
                 $user = User::findOrFail($this->editingId);
@@ -458,8 +475,8 @@ class UserRapForm extends Component
                 $user = $this->createUserWithContact();
             }
 
-            // PASO 5: Finalizar sincronización con API
-            if ($user) {
+            // PASO 5: Finalizar sincronización con API (SI ES REQUERIDA)
+            if ($user && $shouldSync) {
                 try {
                     set_time_limit(45); // Aumentar a 45 segundos para sincronización API
 
@@ -485,7 +502,7 @@ class UserRapForm extends Component
                     if ($syncResult['success']) {
                         session()->flash('sync_message', '✅ Vendedor Sincronizado: El usuario ha sido creado/actualizado exitosamente y sincronizado con la API de facturación electrónica.');
                     } else {
-                        // Si falla sincronización después de validar, eliminar usuario creado
+                        // Si falla sincronización después de validar, eliminar usuario creado (solo en creación)
                         if (!$this->editingId) {
                             $user->delete();
                         }
@@ -508,6 +525,9 @@ class UserRapForm extends Component
                     session()->flash('sync_error', '❌ Error de Conexión API: Falló la comunicación con la API de facturación. Error: ' . $e->getMessage());
                     return;
                 }
+            } elseif ($user && !$shouldSync) {
+                // Si no se requería sincronización, solo mostrar mensaje de éxito local
+                session()->flash('sync_message', '✅ Usuario guardado exitosamente. La sincronización con la API de facturación electrónica está deshabilitada.');
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -694,8 +714,16 @@ class UserRapForm extends Component
             ->with(['profile', 'contact.warehouse.company'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('email', 'like', '%' . $this->search . '%');
+                    $q->where('users.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('users.email', 'like', '%' . $this->search . '%')
+                      ->orWhere('users.phone', 'like', '%' . $this->search . '%')
+                      ->orWhere('users.id', 'like', '%' . $this->search . '%')
+                      ->orWhereHas('profile', function ($pq) {
+                          $pq->where('name', 'like', '%' . $this->search . '%');
+                      })
+                      ->orWhereHas('contact.warehouse', function ($wq) {
+                          $wq->where('name', 'like', '%' . $this->search . '%');
+                      });
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection)
@@ -1216,9 +1244,12 @@ class UserRapForm extends Component
             // Verificar si facturación electrónica está habilitada
             $isElectronicEnabled = $this->isElectronicInvoicingEnabled($this->currentCompanyId);
             if (!$isElectronicEnabled) {
+                // SI ESTÁ DESHABILITADA, CONTINUAMOS PERO INDICAMOS QUE NO SE REQUIERE SYNC
+                Log::info('ℹ️ Sincronización API omitida: Facturación electrónica desactivada.');
                 return [
-                    'success' => false,
-                    'message' => '⚠️ Facturación Electrónica Deshabilitada: Para sincronizar vendedores con la API de facturación, debe activar el módulo de facturación electrónica en la configuración de la empresa.'
+                    'success' => true,
+                    'sync_required' => false,
+                    'message' => 'Sincronización omitida por configuración'
                 ];
             }
 
@@ -1251,6 +1282,7 @@ class UserRapForm extends Component
 
             return [
                 'success' => true,
+                'sync_required' => true,
                 'message' => 'Validación previa exitosa'
             ];
 
@@ -1282,13 +1314,8 @@ class UserRapForm extends Component
                 ];
             }
 
-            // Crear ApiClient para validación
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient para validación (forConfig detecta proxy automáticamente)
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             // Para UPDATE: validar si estamos editando un usuario que ya tiene api_data_id
             if ($this->editingId) {
@@ -1609,13 +1636,8 @@ class UserRapForm extends Component
                 'warehouse_id' => $optimizedConfig['warehouse_id'] ?? 'unknown'
             ]);
 
-            // Crear ApiClient con configuración optimizada
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient con detección automática de proxy
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🚀 Usando configuración para Vendedores', [
                 'auth_user_id' => $authUser->id,
@@ -1728,212 +1750,24 @@ class UserRapForm extends Component
                 $this->currentCompanyId = $companyId;
             }
 
-            // VALIDACIÓN COMPLETA Y COMPARACIÓN PARA OPTION_ID=8
-            Log::error('🔍 DEBUGGING OPTION_ID=8 DETALLADO', [
-                'company_id' => $companyId,
-                'checking_option' => 8,
-                'about_to_call' => 'getOptionValue(8)'
-            ]);
+            // Usar directamente el servicio de configuración que ya tiene la conexión correcta
+            $optionValue = $this->getOptionValue(8);
 
-            // 1. CONSULTA DIRECTA FORZANDO CONEXIÓN A DESARROLLO
-            // Verificar conexiones antes de la consulta
-            $this->logCurrentConnections('ANTES DE CONSULTA DIRECTA');
-
-            Log::error('🔍 CONSULTA DIRECTA A DESARROLLO', [
-                'company_id' => $companyId,
-                'target_database' => 'desarrollo',
-                'checking_option_id' => 8,
-                'current_mysql_config' => config('database.connections.mysql.database'),
-                'current_tenant_config' => config('database.connections.tenant.database'),
-            ]);
-
-            // Verificar conexión real antes de la consulta
-            try {
-                $actualMysqlDb = DB::connection('mysql')->getDatabaseName();
-                Log::error('🎯 CONEXIÓN MYSQL ANTES DE CONSULTA', [
-                    'actual_database_name' => $actualMysqlDb,
-                    'expected' => 'desarrollo',
-                    'matches_expected' => $actualMysqlDb === 'desarrollo'
-                ]);
-            } catch (\Exception $e) {
-                Log::error('❌ Error obteniendo nombre de BD mysql', ['error' => $e->getMessage()]);
-            }
-
-            // Consulta directa específicamente en desarrollo (usar mysql que apunta a desarrollo)
-            $directQuery = DB::connection('mysql')->table('cnf_company_options')
-                ->where('company_id', $companyId)
-                ->where('option_id', 8)
-                ->whereNull('deleted_at')
-                ->first();
-
-            // Verificar conexión después de la consulta
-            Log::error('📊 RESULTADO POST-CONSULTA', [
-                'query_executed' => true,
-                'result_found' => $directQuery !== null,
+            Log::info('🔍 VALIDACIÓN FACTURACIÓN ELECTRÓNICA', [
                 'company_id' => $companyId,
                 'option_id' => 8,
-                'final_database_check' => DB::connection('mysql')->getDatabaseName(),
-            ]);
-
-            Log::error('🔍 RESULTADO CONSULTA DIRECTA DESARROLLO', [
-                'company_id' => $companyId,
-                'direct_result' => $directQuery ? [
-                    'id' => $directQuery->id,
-                    'value' => $directQuery->value,
-                    'type' => gettype($directQuery->value)
-                ] : 'NULL'
-            ]);
-
-            // 2. DETECTAR AMBIENTE Y USAR BD CORRECTA para consultar cache
-            $originalConnection = config('database.connections.tenant.database');
-            $environment = app()->environment();
-
-            // Determinar BD correcta según ambiente
-            $targetDatabase = $environment === 'production' ? 'rap' : 'desarrollo';
-
-            // Solo cambiar conexión si es diferente a la actual
-            if ($originalConnection !== $targetDatabase) {
-                config(['database.connections.tenant.database' => $targetDatabase]);
-
-                Log::error('🔧 AJUSTANDO CONEXIÓN SEGÚN AMBIENTE', [
-                    'company_id' => $companyId,
-                    'environment' => $environment,
-                    'original_connection' => $originalConnection,
-                    'target_database' => $targetDatabase,
-                    'connection_changed' => true,
-                ]);
-            } else {
-                Log::error('🔧 CONEXIÓN YA CORRECTA PARA AMBIENTE', [
-                    'company_id' => $companyId,
-                    'environment' => $environment,
-                    'current_connection' => $originalConnection,
-                    'connection_changed' => false,
-                ]);
-            }
-
-            // Limpiar cache de DB para forzar nueva conexión
-            DB::purge('tenant');
-
-            // Verificar conexiones después del cambio forzado
-            $this->logCurrentConnections('DESPUÉS DE FORZAR CONEXIÓN');
-
-            // Consulta usando el servicio (cached)
-            $cachedValue = $this->getOptionValue(8);
-
-            Log::error('🔍 RESULTADOS OPTION_ID=8', [
-                'company_id' => $companyId,
-                'direct_query_result' => $directQuery ? [
-                    'id' => $directQuery->id,
-                    'option_id' => $directQuery->option_id,
-                    'value' => $directQuery->value,
-                    'type' => gettype($directQuery->value)
-                ] : 'NULL',
-                'cached_value' => $cachedValue,
-                'cached_type' => gettype($cachedValue),
-                'values_equal' => $directQuery ? ($directQuery->value == $cachedValue) : false
-            ]);
-
-            // LÓGICA DE DECISIÓN MEJORADA: Usar cached si está disponible, sino usar directo
-            if ($cachedValue !== null) {
-                $optionValue = $cachedValue;
-                $reason = 'Usando cached_value (conexión tenant correcta)';
-            } else if ($directQuery) {
-                $optionValue = $directQuery->value;
-                $reason = 'Usando direct_value como fallback (cached_value era null)';
-            } else {
-                $optionValue = null;
-                $reason = 'Ambos valores son null - configuración no encontrada';
-            }
-
-            Log::error('🎯 DECISIÓN FINAL DE VALOR', [
-                'company_id' => $companyId,
-                'direct_value' => $directQuery ? $directQuery->value : 'NULL',
-                'cached_value' => $cachedValue,
-                'final_value_used' => $optionValue,
-                'reason' => $reason,
-                'environment_check' => app()->environment(),
+                'option_value' => $optionValue,
+                'enabled' => $optionValue !== null && $optionValue > 0
             ]);
 
             // VALIDACIÓN: value > 0 significa HABILITADA
-            $enabled = $optionValue !== null && $optionValue > 0;
-
-            Log::info('🔍 VALIDACIÓN FACTURACIÓN ELECTRÓNICA DETALLADA', [
-                'company_id' => $companyId,
-                'option_value_raw' => $optionValue,
-                'option_value_type' => gettype($optionValue),
-                'is_null' => is_null($optionValue),
-                'is_greater_than_zero' => $optionValue > 0,
-                'enabled_result' => $enabled,
-                'expected_behavior' => 'Si value > 0 entonces HABILITADO, si value = 0 entonces DESHABILITADO'
-            ]);
-
-            return $enabled;
+            return $optionValue !== null && $optionValue > 0;
         } catch (\Exception $e) {
             Log::error('Error verificando facturación electrónica para vendedor', [
                 'company_id' => $companyId,
                 'error' => $e->getMessage()
             ]);
             return false;
-        }
-    }
-
-    /**
-     * Verificar y loggear estado actual de todas las conexiones de BD
-     */
-    private function logCurrentConnections(string $context = ''): void
-    {
-        try {
-            Log::error('📊 ESTADO ACTUAL DE CONEXIONES' . ($context ? " - {$context}" : ''), [
-                'mysql_config' => [
-                    'host' => config('database.connections.mysql.host'),
-                    'port' => config('database.connections.mysql.port'),
-                    'database' => config('database.connections.mysql.database'),
-                    'username' => config('database.connections.mysql.username'),
-                ],
-                'tenant_config' => [
-                    'host' => config('database.connections.tenant.host'),
-                    'port' => config('database.connections.tenant.port'),
-                    'database' => config('database.connections.tenant.database'),
-                    'username' => config('database.connections.tenant.username'),
-                ],
-                'default_connection' => config('database.default'),
-                'session_tenant_id' => session('tenant_id'),
-                'context' => $context,
-            ]);
-
-            // Verificar conexiones reales
-            $mysqlReal = null;
-            $tenantReal = null;
-            $mysqlError = null;
-            $tenantError = null;
-
-            try {
-                $mysqlReal = DB::connection('mysql')->getDatabaseName();
-            } catch (\Exception $e) {
-                $mysqlError = $e->getMessage();
-            }
-
-            try {
-                $tenantReal = DB::connection('tenant')->getDatabaseName();
-            } catch (\Exception $e) {
-                $tenantError = $e->getMessage();
-            }
-
-            Log::error('🔗 CONEXIONES REALES ACTIVAS' . ($context ? " - {$context}" : ''), [
-                'mysql_real_db' => $mysqlReal,
-                'mysql_error' => $mysqlError,
-                'tenant_real_db' => $tenantReal,
-                'tenant_error' => $tenantError,
-                'mysql_matches_config' => $mysqlReal === config('database.connections.mysql.database'),
-                'tenant_matches_config' => $tenantReal === config('database.connections.tenant.database'),
-                'context' => $context,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error en logCurrentConnections', [
-                'error' => $e->getMessage(),
-                'context' => $context
-            ]);
         }
     }
 

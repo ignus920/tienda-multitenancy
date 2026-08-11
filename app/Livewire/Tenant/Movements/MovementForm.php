@@ -9,9 +9,11 @@ use App\Models\Tenant\Movements\InvDetailInventoryAdjustment;
 use App\Models\Tenant\Movements\InvReason;
 use App\Models\Tenant\Movements\InvStore;
 use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\UnitMeasurements;
 use App\Models\Tenant\Items\InvItemsStore;
 use App\Services\Tenant\TenantManager;
+use App\Services\Tenant\Movements\MovementsService;
 use App\Models\Auth\Tenant;
 use App\Traits\HasCompanyConfiguration;
 use Illuminate\Support\Facades\DB;
@@ -185,29 +187,71 @@ class MovementForm extends Component
         try {
             $this->ensureTenantConnection();
 
-            DB::connection('tenant')->beginTransaction();
-
             $movement = InvInventoryAdjustment::with('details')->find($movementId);
 
             if (!$movement) {
                 $this->errorMessage = 'Movimiento no encontrado';
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => $this->errorMessage
+                ]);
                 return;
             }
 
             if ($movement->status === 0) {
                 $this->errorMessage = 'Este movimiento ya está anulado';
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => $this->errorMessage
+                ]);
                 return;
             }
 
+            // ── Paso 1: Intentar eliminar en Alegra si tiene api_data_id ──────────
+            if ($movement->api_data_id) {
+                $service    = new MovementsService();
+                $alegraResult = $service->deleteAdjustmentFromApi($movement->api_data_id);
+
+                if (!$alegraResult['success']) {
+                    $userMessage = $alegraResult['message'] ?? 'Error desconocido al comunicarse con Alegra';
+                    if (config('app.debug') && isset($alegraResult['technical_details'])) {
+                        $userMessage .= ' (Detalle: ' . $alegraResult['technical_details'] . ')';
+                    }
+                    $this->errorMessage = 'No se pudo anular el movimiento en Alegra: ' . $userMessage . '. El movimiento NO fue anulado localmente.';
+                    Log::error('❌ Anulación bloqueada: Alegra rechazó la eliminación', [
+                        'movement_id'  => $movementId,
+                        'api_data_id'  => $movement->api_data_id,
+                        'alegra_error' => $alegraResult,
+                    ]);
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $this->errorMessage
+                    ]);
+                    return;
+                }
+
+                Log::info('✅ Ajuste eliminado en Alegra, procediendo con anulación local', [
+                    'movement_id' => $movementId,
+                    'api_data_id' => $movement->api_data_id,
+                ]);
+            }
+
+            // ── Paso 2: Anular localmente ─────────────────────────────────────────
+            DB::connection('tenant')->beginTransaction();
+
             // Revertir el inventario según el tipo de movimiento
             foreach ($movement->details as $detail) {
-                $itemStore = InvItemsStore::where('itemId', $detail->itemId)
+                $itemStore = InvItemsStore::where('itemId', $detail['itemId'])
                     ->where('storeId', $movement->storeId)
                     ->first();
 
                 if (!$itemStore) {
                     DB::connection('tenant')->rollBack();
                     $this->errorMessage = 'No se encontró el registro de inventario para el item';
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'message' => $this->errorMessage
+                    ]);
                     return;
                 }
 
@@ -222,6 +266,10 @@ class MovementForm extends Component
                     if ($itemStore->stock_items_store < $quantityInConsumptionUnit) {
                         DB::connection('tenant')->rollBack();
                         $this->errorMessage = 'No hay suficiente stock para anular este movimiento de entrada';
+                        $this->dispatch('show-toast', [
+                            'type' => 'error',
+                            'message' => $this->errorMessage
+                        ]);
                         return;
                     }
 
@@ -244,6 +292,13 @@ class MovementForm extends Component
 
             // Close details modal and refresh list
             $this->closeDetailsModal();
+
+            // Despachar toast de confirmación al anular
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Movimiento anulado correctamente'
+            ]);
+
             $this->dispatch('refreshMovements', type: $movement->type);
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
@@ -252,6 +307,10 @@ class MovementForm extends Component
                 'trace' => $e->getTraceAsString()
             ]);
             $this->errorMessage = 'Error al anular el movimiento: ' . $e->getMessage();
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => $this->errorMessage
+            ]);
         }
     }
 
@@ -596,41 +655,106 @@ class MovementForm extends Component
     public function saveMovement()
     {
         try {
-            // Validate movement form
-            // $this->validate([
-            //     'warehouseForm.movementType' => 'required|in:ENTRADA,SALIDA',
-            //     'movementForm.date' => 'required|date',
-            //     'movementForm.reasonId' => 'required|exists:tenant.inv_reasons,id',
-            //     'movementForm.observations' => 'nullable|string|max:500',
-            // ], [
-            //     'warehouseForm.movementType.required' => 'Debe seleccionar el tipo de movimiento',
-            //     'warehouseForm.movementType.in' => 'El tipo de movimiento no es válido',
-            //     'movementForm.date.required' => 'La fecha es obligatoria',
-            //     'movementForm.date.date' => 'La fecha no es válida',
-            //     'movementForm.reasonId.required' => 'El motivo es obligatorio',
-            //     'movementForm.reasonId.exists' => 'El motivo seleccionado no es válido',
-            //     'movementForm.observations.max' => 'Las observaciones no pueden exceder 500 caracteres',
-            // ]);
-
             // Validate that there are details
             if (empty($this->details)) {
                 $this->errorMessage = 'Debe agregar al menos un item al movimiento';
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => $this->errorMessage
+                ]);
                 return;
             }
 
             $this->ensureTenantConnection();
 
+            $selectedType = strtolower($this->warehouseForm['movementType']);
+
+            // ── Paso 1: Construir payload para Alegra ────────────────────────────
+            // Solo incluir items que tengan api_data_id (alegraId)
+            $itemsAlegra = [];
+            foreach ($this->details as $detail) {
+                $item = Items::find($detail['itemId']);
+                if ($item && $item->api_data_id) {
+                    // Obtener unitCost desde inv_values filtrado por itemId (ID local)
+                    $invValue = InvValues::where('itemId', $detail['itemId'])->first();
+                    $unitCost = $invValue ? floatval($invValue->values) : floatval($detail['cost'] ?? 0);
+
+                    $itemsAlegra[] = [
+                        'type'     => $selectedType === 'entrada' ? 'in' : 'out',
+                        'id'       => (string) $item->api_data_id,
+                        'unitCost' => $unitCost,
+                        'quantity' => floatval($detail['quantity']),
+                    ];
+                }
+            }
+
+            $alegraData = !empty($itemsAlegra) ? [
+                'date'      => $this->movementForm['date'],
+                'items'     => $itemsAlegra,
+                'warehouse' => ['id' => '1'],
+            ] : [];
+
+
+            Log::info('📦 [MovementForm] Payload Alegra construido', [
+                'items_total'  => count($this->details),
+                'items_alegra' => count($itemsAlegra),
+                'alegra_data'  => $alegraData,
+            ]);
+
+            // ── Paso 2: Enviar a Alegra ANTES de crear localmente ────────────────
+            // Los movimientos de COMPRA (ENTRADA con reasonId == 1) no se sincronizan con Alegra
+            $isCompra = strtoupper($this->warehouseForm['movementType']) === 'ENTRADA'
+                && (string) $this->movementForm['reasonId'] === '1';
+
+            if ($isCompra) {
+                Log::info('🛒 [MovementForm] Movimiento de COMPRA - sync con Alegra omitido', [
+                    'movementType' => $this->warehouseForm['movementType'],
+                    'reasonId'     => $this->movementForm['reasonId'],
+                ]);
+                $alegraResult = [
+                    'success'      => true,
+                    'message'      => 'Movimiento de compra guardado localmente (sin sync Alegra)',
+                    'error_type'   => null,
+                    'retryable'    => false,
+                    'api_response' => null,
+                    'sync_skipped' => true,
+                    'sync_reason'  => 'Movimiento de compra no requiere sincronización con Alegra',
+                    'api_data_id'  => null,
+                ];
+            } else {
+                $service      = new MovementsService();
+                $alegraResult = $service->syncAdjustmentToApi($alegraData);
+            }
+
+            if (!$alegraResult['success']) {
+                // Alegra rechazó el ajuste → no crear localmente
+                $userMessage = $alegraResult['message'] ?? 'Error desconocido al comunicarse con Alegra';
+                if (config('app.debug') && isset($alegraResult['technical_details'])) {
+                    $userMessage .= ' (Detalle: ' . $alegraResult['technical_details'] . ')';
+                }
+                $this->errorMessage = 'No se pudo registrar el movimiento en Alegra: ' . $userMessage . '. El movimiento NO fue guardado.';
+                Log::error('❌ [MovementForm] Creación bloqueada: Alegra rechazó el ajuste', [
+                    'alegra_result' => $alegraResult,
+                ]);
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => $this->errorMessage
+                ]);
+                return;
+            }
+
+            // ID del ajuste en Alegra (null si sync fue omitido)
+            $apiDataId = $alegraResult['api_data_id'] ?? null;
+
+            // ── Paso 3: Crear localmente en transacción ──────────────────────────
             DB::connection('tenant')->beginTransaction();
 
             try {
-                // Get next consecutive by warehouse, store and type
-                $selectedType = strtolower($this->warehouseForm['movementType']);
-
                 // Get the store to access warehouseId
-                $store = InvStore::find($this->selectedStoreId);
+                $store       = InvStore::find($this->selectedStoreId);
                 $warehouseId = $store ? $store->warehouseId : null;
 
-                // Query for last consecutive filtering by warehouse (through store relationship), store, and type
+                // Query for last consecutive filtering by warehouse, store, and type
                 $lastMovement = InvInventoryAdjustment::byType($selectedType)
                     ->byStore($this->selectedStoreId)
                     ->whereHas('store', function ($query) use ($warehouseId) {
@@ -640,42 +764,28 @@ class MovementForm extends Component
                     ->first();
                 $consecutive = $lastMovement ? $lastMovement->consecutive + 1 : 1;
 
-
-                //    dd([
-                //         'date'        => $this->movementForm['date'],
-                //         'observations'=> $this->movementForm['observations'],
-                //         'type'        => $selectedType,
-                //         'status'      => 1,
-                //         'warehouseId' => $this->warehouseId,
-                //         'reasonId'    => $this->movementForm['reasonId'],
-                //         'consecutive' => $consecutive,
-                //         'storeId'    => $this->selectedStoreId,
-                //         'userId'      => Auth::id(),
-                //     ]);
                 // Create movement
-
                 $movement = InvInventoryAdjustment::create([
-                    'date' => $this->movementForm['date'],
+                    'date'         => $this->movementForm['date'],
                     'observations' => $this->movementForm['observations'],
-                    'type' => $selectedType,
-                    'status' => 1,
-                    'storeId' => $this->selectedStoreId,
-                    'reasonId' => $this->movementForm['reasonId'],
-                    'consecutive' => $consecutive,
-                    'userId' => Auth::id(),
-                    'supplier' => !empty($this->details[0]['supplierId']) ? (int)$this->details[0]['supplierId'] : 0,
+                    'type'         => $selectedType,
+                    'status'       => 1,
+                    'storeId'      => $this->selectedStoreId,
+                    'reasonId'     => $this->movementForm['reasonId'],
+                    'consecutive'  => $consecutive,
+                    'userId'       => Auth::id(),
+                    'supplier'     => !empty($this->details[0]['supplierId']) ? (int)$this->details[0]['supplierId'] : 0,
+                    'api_data_id'  => $apiDataId,
                 ]);
 
-                // Create details
-                // 
+                // Create details and update stock
                 foreach ($this->details as $detail) {
-                    // dd($this->details);
                     InvDetailInventoryAdjustment::create([
                         'inventoryAdjustmentId' => $movement->id,
-                        'itemId' => $detail['itemId'],
-                        'quantity' => $detail['quantity'],
-                        'unitMeasurementId' => $detail['unitMeasurementId'],
-                        'cost' => $detail['cost'] ?? 0,
+                        'itemId'                => $detail['itemId'],
+                        'quantity'              => $detail['quantity'],
+                        'unitMeasurementId'     => $detail['unitMeasurementId'],
+                        'cost'                  => $detail['cost'] ?? 0,
                     ]);
 
                     // Update or create stock
@@ -687,10 +797,9 @@ class MovementForm extends Component
                         $itemStore->stock_items_store = $detail['adjustedQuantity'];
                         $itemStore->save();
                     } else {
-                        // Create new item store record if it doesn't exist
                         InvItemsStore::create([
-                            'itemId' => $detail['itemId'],
-                            'storeId' => $this->selectedStoreId,
+                            'itemId'            => $detail['itemId'],
+                            'storeId'           => $this->selectedStoreId,
                             'stock_items_store' => $detail['adjustedQuantity'],
                         ]);
                     }
@@ -698,20 +807,34 @@ class MovementForm extends Component
 
                 DB::connection('tenant')->commit();
 
-                $this->successMessage = 'Movimiento creado exitosamente';
+                // Mensaje de éxito según si se sincronizó con Alegra
+                if ($apiDataId) {
+                    $this->successMessage = 'Movimiento creado y sincronizado exitosamente con Alegra';
+                } elseif (!empty($alegraResult['sync_skipped'])) {
+                    $this->successMessage = 'Movimiento creado exitosamente';
+                } else {
+                    $this->successMessage = 'Movimiento creado exitosamente';
+                }
 
-                Log::info('Movement created successfully', [
-                    'movementId' => $movement->id,
-                    'type' => $this->warehouseForm['movementType'],
-                    'detailsCount' => count($this->details)
+                Log::info('✅ [MovementForm] Movimiento creado exitosamente', [
+                    'movementId'   => $movement->id,
+                    'type'         => $selectedType,
+                    'api_data_id'  => $apiDataId,
+                    'detailsCount' => count($this->details),
                 ]);
-                $this->showModal = false;
-                // Reset form and close modal
-                $this->resetForm();
 
+                $this->showModal = false;
+                $this->resetForm();
                 $this->movementType = $selectedType;
-                // Refresh the movement list with the movement type
+                
+                // Despachar toast de confirmación al guardar
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => $this->successMessage
+                ]);
+
                 $this->dispatch('refreshMovements', type: $selectedType);
+
             } catch (\Exception $e) {
                 DB::connection('tenant')->rollBack();
                 throw $e;
@@ -720,10 +843,13 @@ class MovementForm extends Component
             throw $e;
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al guardar el movimiento: ' . $e->getMessage();
-
             Log::error('Error saving movement', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => $this->errorMessage
             ]);
         }
     }

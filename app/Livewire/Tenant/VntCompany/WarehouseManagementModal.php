@@ -13,6 +13,7 @@ class WarehouseManagementModal extends Component
 {
     public $companyId;
     public $companyName = '';
+    public $isSelectionMode = false;
 
     public $formMode = null; // null, 'create', 'edit'
     public $editingWarehouseId = null;
@@ -21,7 +22,8 @@ class WarehouseManagementModal extends Component
         'address' => '',
         'cityId' => '',
         'postcode' => '',
-        'branch_type' => 'FIJA'
+        'branch_type' => 'FIJA',
+        'phone' => ''
     ];
     public $districtId = null;
 
@@ -33,10 +35,17 @@ class WarehouseManagementModal extends Component
         'district-changed' => 'updateDistrict'
     ];
 
-    public function mount($companyId)
+    public function mount($companyId, $isSelectionMode = false)
     {
         $this->companyId = $companyId;
+        $this->isSelectionMode = $isSelectionMode;
         $this->loadCompanyData();
+    }
+
+    public function selectWarehouse($warehouseId)
+    {
+        $this->dispatch('warehouse-selected', branchId: $warehouseId);
+        $this->closeModal();
     }
 
     public function render()
@@ -73,7 +82,8 @@ class WarehouseManagementModal extends Component
             'address' => '',
             'cityId' => '',
             'postcode' => '',
-            'branch_type' => 'FIJA'
+            'branch_type' => 'FIJA',
+            'phone' => ''
         ];
         $this->resetErrorBag();
         $this->successMessage = '';
@@ -98,7 +108,8 @@ class WarehouseManagementModal extends Component
             'address' => $warehouse->address,
             'cityId' => $warehouse->cityId,
             'postcode' => $warehouse->postcode ?? '',
-            'branch_type' => $warehouse->branch_type ?? 'FIJA'
+            'branch_type' => $warehouse->branch_type ?? 'FIJA',
+            'phone' => $warehouse->phone ?? ''
         ];
         $this->resetErrorBag();
         $this->successMessage = '';
@@ -113,6 +124,7 @@ class WarehouseManagementModal extends Component
             'warehouseForm.cityId' => 'required|exists:cities,id',
             'warehouseForm.postcode' => 'nullable|string|max:20',
             'warehouseForm.branch_type' => 'required|in:FIJA,DESPACHO',
+            'warehouseForm.phone' => 'nullable|string|max:25',
         ], [
             'warehouseForm.name.required' => 'El nombre es obligatorio',
             'warehouseForm.name.max' => 'El nombre no puede exceder 255 caracteres',
@@ -123,24 +135,67 @@ class WarehouseManagementModal extends Component
             'warehouseForm.postcode.max' => 'El código postal no puede exceder 20 caracteres',
             'warehouseForm.branch_type.required' => 'El tipo de sucursal es obligatorio',
             'warehouseForm.branch_type.in' => 'El tipo de sucursal debe ser FIJA o DESPACHO',
+            'warehouseForm.phone.max' => 'El teléfono no puede exceder 25 caracteres',
         ]);
+
+        // Verificar coincidencia de teléfono o dirección en otras sucursales
+        $phone = trim($this->warehouseForm['phone'] ?? '');
+        $address = trim($this->warehouseForm['address'] ?? '');
+
+        if (!empty($phone) || !empty($address)) {
+            $this->ensureTenantConnection();
+            $duplicateQuery = VntWarehouse::query();
+            
+            if ($this->formMode === 'edit') {
+                $duplicateQuery->where('id', '!=', $this->editingWarehouseId);
+            }
+            
+            $duplicate = $duplicateQuery->where(function ($q) use ($phone, $address) {
+                $hasCond = false;
+                if (!empty($phone)) {
+                    $q->where('phone', $phone);
+                    $hasCond = true;
+                }
+                if (!empty($address)) {
+                    if ($hasCond) {
+                        $q->orWhere('address', $address);
+                    } else {
+                        $q->where('address', $address);
+                    }
+                }
+            })->first();
+
+            if ($duplicate && $duplicate->companyId != $this->companyId) {
+                $dupCompany = VntCompany::find($duplicate->companyId);
+                $dupCompanyName = $dupCompany ? ($dupCompany->businessName ?: trim($dupCompany->firstName . ' ' . $dupCompany->lastName)) : "ID {$duplicate->companyId}";
+                
+                $this->errorMessage = "¡Advertencia! El teléfono o dirección coincide con la sucursal '{$duplicate->name}' del cliente '{$dupCompanyName}'. Para evitar sobreescritura, por favor verifique los datos.";
+                return;
+            }
+        }
 
         try {
             if ($this->formMode === 'create') {
                 $this->ensureTenantConnection();
-                VntWarehouse::create([
+                $warehouse = VntWarehouse::create([
                     'companyId' => $this->companyId,
                     'name' => $this->warehouseForm['name'],
                     'address' => $this->warehouseForm['address'],
                     'cityId' => $this->warehouseForm['cityId'],
                     'postcode' => $this->warehouseForm['postcode'],
                     'branch_type' => $this->warehouseForm['branch_type'],
+                    'phone' => $this->warehouseForm['phone'] ?? '',
                     'main' => 0,
                     'status' => 1,
-                    'district' => $this->districtId
+                    'district' => $this->districtId ?: null
                 ]);
 
                 $this->successMessage = 'Sucursal agregada exitosamente';
+
+                if ($this->isSelectionMode) {
+                    $this->selectWarehouse($warehouse->id);
+                    return;
+                }
             } else {
                 $this->ensureTenantConnection();
                 $warehouse = VntWarehouse::findOrFail($this->editingWarehouseId);
@@ -157,8 +212,9 @@ class WarehouseManagementModal extends Component
                     'cityId' => $this->warehouseForm['cityId'],
                     'postcode' => $this->warehouseForm['postcode'],
                     'branch_type' => $this->warehouseForm['branch_type'],
+                    'phone' => $this->warehouseForm['phone'] ?? '',
                     'main' => 0,
-                    'district' => $this->districtId
+                    'district' => $this->districtId ?: null
                 ]);
 
                 $this->successMessage = 'Sucursal actualizada exitosamente';
@@ -210,7 +266,8 @@ class WarehouseManagementModal extends Component
             'address' => '',
             'cityId' => '',
             'postcode' => '',
-            'branch_type' => 'FIJA'
+            'branch_type' => 'FIJA',
+            'phone' => ''
         ];
         $this->resetErrorBag();
     }
@@ -222,7 +279,7 @@ class WarehouseManagementModal extends Component
 
     public function updateDistrict($districtId, $index = null)
     {
-        $this->districtId = $districtId;
+        $this->districtId = $districtId ?: null;
     }
 
     public function toggleWarehouseStatus($warehouseId)

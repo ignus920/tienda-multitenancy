@@ -17,7 +17,8 @@ return new class extends Migration
             $table->integer('id_warehouses');
             $table->integer('numeracion');
             $table->string('facturador', 50);
-            $table->timestamps();
+            $table->timestamps();        // created_at, updated_at
+            $table->softDeletes();       // deleted_at
         });
     }
 

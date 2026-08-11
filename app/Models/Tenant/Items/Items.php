@@ -4,6 +4,7 @@ namespace App\Models\Tenant\Items;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Tenant\Items\Brand;
 use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\ImageGallery;
@@ -14,7 +15,7 @@ use App\Traits\HasCompanyConfiguration;
 
 class Items extends Model
 {
-    use HasFactory, HasCompanyConfiguration;
+    use HasFactory, SoftDeletes, HasCompanyConfiguration;
 
     protected $connection = 'tenant';
     protected $table = 'inv_items';
@@ -90,6 +91,63 @@ class Items extends Model
     {
         return $this->hasMany(InvItemsStore::class, 'itemId', 'id');
     }
+
+    /**
+     * Relación con las dimensiones e información física
+     */
+    public function dimensions()
+    {
+        return $this->hasOne(\App\Models\Tenant\Items\InvItemsDimensions::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con la configuración de importación
+     */
+    public function importSetup()
+    {
+        return $this->hasOne(\App\Models\Tenant\Imports\ImpItemsSetup::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con los detalles de ajustes de inventario
+     */
+    public function inventoryAdjustmentDetails()
+    {
+        return $this->hasMany(\App\Models\Tenant\Movements\InvDetailInventoryAdjustment::class, 'itemId', 'id');
+    }
+
+    /**
+     * Relación con cantidades no confirmadas
+     */
+    public function unconfirmedQuantities()
+    {
+        return $this->hasMany(\App\Models\Tenant\Imports\InvUnconfirmedQty::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con las localizaciones físicas (Picking)
+     */
+    public function locations()
+    {
+        return $this->hasMany(InvItemsLocations::class, 'itemId', 'id');
+    }
+
+    /**
+     * Relación con importaciones (Tránsito)
+     */
+    public function imports()
+    {
+        return $this->hasMany(\App\Models\Tenant\Imports\ImpImports::class, 'item_id', 'id');
+    }
+
+    /**
+     * Relación con detalles de remisiones (Reservas)
+     */
+    public function remissionDetails()
+    {
+        return $this->hasMany(\App\Models\Tenant\Remissions\InvDetailRemissions::class, 'itemId', 'id');
+    }
+
     /**
      * Relación con la galería de imágenes
      * Un item puede tener múltiples imágenes
@@ -98,6 +156,15 @@ class Items extends Model
     {
         return $this->hasMany(ImageGallery::class, 'itemId', 'id');
     }
+
+    /**
+     * Relación con los accesorios del item
+     */
+    public function accessories()
+    {
+        return $this->hasMany(InvItemAccesorios::class, 'item', 'id')->with('insumo');
+    }
+
 
     /**
      * Obtener solo imágenes activas (no eliminadas)
@@ -109,23 +176,41 @@ class Items extends Model
     }
 
     /**
-     * Obtener la imagen principal del item
+     * Obtener la imagen principal del item (COMERCIAL)
      */
     public function principalImage()
     {
         return $this->hasOne(ImageGallery::class, 'itemId', 'id')
             ->where('type', 'PRINCIPAL')
+            ->where('type_show', 'COMERCIAL')
+            ->whereNull('deleted_at');
+    }
+
+    /**
+     * Obtener la imagen principal del item (BODEGA)
+     */
+    public function principalBodegaImage()
+    {
+        return $this->hasOne(ImageGallery::class, 'itemId', 'id')
+            ->where('type', 'PRINCIPAL')
+            ->where('type_show', 'BODEGA')
             ->whereNull('deleted_at');
     }
 
     /**
      * Obtener URL de la imagen principal
      * 
+     * @param string $context 'COMERCIAL' o 'BODEGA'
      * @return string URL de la imagen o placeholder
      */
-    public function getPrincipalImageUrl()
+    public function getPrincipalImageUrl($context = 'COMERCIAL')
     {
-        $principalImage = $this->principalImage;
+        $principalImage = $context === 'BODEGA' ? $this->principalBodegaImage : $this->principalImage;
+
+        // Si no hay imagen de bodega, intentar usar la comercial como fallback
+        if ($context === 'BODEGA' && !$principalImage) {
+            $principalImage = $this->principalImage;
+        }
 
         if ($principalImage) {
             return $principalImage->getImageUrl();
@@ -137,11 +222,17 @@ class Items extends Model
     /**
      * Obtener URL del thumbnail de la imagen principal
      * 
+     * @param string $context 'COMERCIAL' o 'BODEGA'
      * @return string URL del thumbnail o placeholder
      */
-    public function getPrincipalThumbnailUrl()
+    public function getPrincipalThumbnailUrl($context = 'COMERCIAL')
     {
-        $principalImage = $this->principalImage;
+        $principalImage = $context === 'BODEGA' ? $this->principalBodegaImage : $this->principalImage;
+
+        // Si no hay thumbnail de bodega, intentar usar la comercial como fallback
+        if ($context === 'BODEGA' && !$principalImage) {
+            $principalImage = $this->principalImage;
+        }
 
         if ($principalImage) {
             return $principalImage->getThumbnailUrl();
@@ -240,20 +331,24 @@ class Items extends Model
      */
     private function getPriceWithPriceList()
     {
-        // Buscar el Precio Base
-        $basePriceRecord = $this->invValues()
+        // Usar la relación cargada (colección) en lugar de disparar una nueva consulta
+        $basePriceRecord = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Base')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         if (!$basePriceRecord) {
             return 0;
         }
 
-        // Obtener la lista de precios activa (primera activa por simplicidad)
-        $priceList = CnfPricelist::active()->first();
+        // Obtener la lista de precios activa (Cacheada estáticamente por request)
+        static $cachedPriceList = null;
+        if ($cachedPriceList === null) {
+            $cachedPriceList = CnfPricelist::active()->first() ?: false;
+        }
+        $priceList = $cachedPriceList === false ? null : $cachedPriceList;
 
         if (!$priceList) {
             // Sin multiplicador, pero aún aplicar IVA si existe
@@ -282,11 +377,11 @@ class Items extends Model
      */
     private function getPriceFromInventory()
     {
-        // Buscar el precio más reciente (cualquier label de precio)
-        $priceRecord = $this->invValues()
+        // Buscar el precio más reciente usando la colección cargada
+        $priceRecord = $this->invValues
             ->where('type', 'precio')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         return $priceRecord ? $priceRecord->values : 0;
@@ -306,13 +401,22 @@ class Items extends Model
         // Verificar si usa lista de precios (opción 4)
         $usePriceList = $this->getOptionValue(4) == 1;
 
-        if ($usePriceList) {
-            // MODO LISTA DE PRECIOS: Precio Base × cada multiplicador
-            return $this->getAllPricesWithPriceList();
-        } else {
-            // MODO PRECIOS FIJOS: Todos los precios de inv_values
-            return $this->getAllPricesFromInventory();
+        $prices = $usePriceList
+            ? $this->getAllPricesWithPriceList()
+            : $this->getAllPricesFromInventory();
+
+        // Respaldo: si "Precio unitario x caja" no está en los precios resultantes,
+        // buscarlo directamente (sin importar el case del tipo)
+        if (!isset($prices['Precio unitario x caja'])) {
+            $precioUnitarioCaja = $this->invValues
+                ->first(fn($v) => $v->label === 'Precio unitario x caja' && (float) $v->values > 0);
+
+            if ($precioUnitarioCaja) {
+                $prices['Precio unitario x caja'] = $precioUnitarioCaja->values;
+            }
         }
+
+        return $prices;
     }
 
     /**
@@ -321,12 +425,12 @@ class Items extends Model
      */
     private function getAllPricesWithPriceList()
     {
-        // Buscar el Precio Base
-        $basePriceRecord = $this->invValues()
+        // Usar la relación cargada (colección)
+        $basePriceRecord = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Base')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         if (!$basePriceRecord) {
@@ -342,40 +446,83 @@ class Items extends Model
             $taxPercentage = $this->tax->percentage / 100; // Convertir a decimal (19% = 0.19)
         }
 
-        // Obtener TODAS las listas de precios activas
-        $priceLists = CnfPricelist::active()->get();
+        // Obtener TODAS las listas de precios activas (Cacheada estáticamente por request)
+        static $cachedActiveLists = null;
+        if ($cachedActiveLists === null) {
+            $cachedActiveLists = CnfPricelist::active()->get();
+        }
+        $priceLists = $cachedActiveLists;
 
         foreach ($priceLists as $priceList) {
             // Aplicar fórmula: precio_base * factor_lista * (1 + porcentaje_iva)
+            // Se redondea a 2 decimales para evitar errores de punto flotante en la comparación con el precio mínimo
             $priceWithoutIva = $basePrice * $priceList->value;
-            $priceWithIva = $priceWithoutIva * (1 + $taxPercentage);
-            $prices[$priceList->title] = $priceWithIva;
+            $prices[$priceList->title] = round($priceWithoutIva * (1 + $taxPercentage), 2);
         }
 
-        // AGREGAR: Incluir "Precio Regular" y "Precio Crédito" desde inv_values
-        $precioRegular = $this->invValues()
+        // Obtener Regular y Crédito desde la colección cargada
+        $precioRegular = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Regular')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
+        // Precio con IVA: se usa tanto para mostrar como para comparar en el filtro
+        $regularPriceValue = null;
+
         if ($precioRegular) {
-            $prices['Precio Regular'] = $precioRegular->values;
+            $regularPriceValue = round($precioRegular->values * (1 + $taxPercentage), 2);
+            // Mostrar como "Precio Mínimo" en la tarjeta (BD sigue usando "Precio Regular")
+            $prices['Precio Mínimo'] = $regularPriceValue;
         }
 
-        $precioCredito = $this->invValues()
+        $precioCredito = $this->invValues
             ->where('type', 'precio')
             ->where('label', 'Precio Crédito')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
             ->first();
 
         if ($precioCredito) {
-            $prices['Precio Crédito'] = $precioCredito->values;
+            $prices['Precio Crédito'] = round($precioCredito->values * (1 + $taxPercentage), 2);
         }
 
-        return $prices;
+        // Precio unitario x caja (siempre se incluye si existe, sin importar comparación con Regular)
+        $precioUnitarioCaja = $this->invValues
+            ->filter(fn($v) => strtolower(trim($v->type)) === 'precio' && $v->label === 'Precio unitario x caja')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at')
+            ->first();
+
+        if ($precioUnitarioCaja && $precioUnitarioCaja->values > 0) {
+            $prices['Precio unitario x caja'] = round($precioUnitarioCaja->values * (1 + $taxPercentage), 2);
+        }
+
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio mínimo.
+        // Todos los precios (incluidas listas de precios) se filtran si quedan por debajo del mínimo.
+        // La comparación usa $regularPriceValue (con IVA) para ser consistente con los demás precios.
+        // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (precio especial por volumen).
+        $filteredPrices = [];
+        foreach ($prices as $label => $value) {
+            // Excluir precios con valor 0
+            if ($value <= 0) {
+                continue;
+            }
+
+            // Si hay precio mínimo definido y el precio actual (con IVA) es menor a él,
+            // excluirlo del listado. Solo se exceptúa "Precio Mínimo" y "Precio unitario x caja".
+            if ($regularPriceValue !== null
+                && $label !== 'Precio Mínimo'
+                && $label !== 'Precio unitario x caja'
+                && $value < $regularPriceValue) {
+                continue;
+            }
+
+            $filteredPrices[$label] = $value;
+        }
+
+        return $filteredPrices;
     }
 
     /**
@@ -384,25 +531,210 @@ class Items extends Model
      */
     private function getAllPricesFromInventory()
     {
-        // Obtener TODOS los precios del producto ordenados por fecha
-        $priceRecords = $this->invValues()
-            ->where('type', 'precio')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Obtener TODOS los precios desde la colección cargada (sin importar el case del type)
+        $priceRecords = $this->invValues
+            ->filter(fn($v) => strtolower(trim($v->type)) === 'precio')
+            ->sortByDesc('date')
+            ->sortByDesc('created_at');
+
+        // Porcentaje de IVA del item (los valores en inv_values se almacenan sin IVA)
+        $taxPercentage = 0;
+        if ($this->tax) {
+            $taxPercentage = $this->tax->percentage / 100;
+        }
 
         $prices = [];
 
-        // Agrupar por label y tomar solo el primero (más reciente) de cada grupo
+        // Agrupar por label, tomar el más reciente y aplicar IVA
+        // "Precio Regular" se renombra a "Precio Mínimo" en la visualización (BD no cambia)
         foreach ($priceRecords->groupBy('label') as $label => $records) {
-            $prices[$label] = $records->first()->values;
+            $rawValue   = $records->first()->values;
+            $displayKey = ($label === 'Precio Regular') ? 'Precio Mínimo' : $label;
+            $prices[$displayKey] = round($rawValue * (1 + $taxPercentage), 2);
         }
 
-        return $prices;
+        // Encontrar el precio mínimo (antes Regular) para usar como referencia de filtro
+        $regularPriceValue = $prices['Precio Mínimo'] ?? null;
+
+        // Aplicar filtros: remover precios con valor 0 y precios menores al precio mínimo
+        $filteredPrices = [];
+        foreach ($prices as $label => $value) {
+            // Excluir precios con valor 0
+            if ($value <= 0) {
+                continue;
+            }
+
+            // Si hay precio mínimo definido y no es el precio mínimo mismo,
+            // excluir precios menores al precio mínimo.
+            // EXCEPCIÓN: "Precio unitario x caja" siempre se incluye (es un precio especial por volumen)
+            if ($regularPriceValue !== null
+                && $label !== 'Precio Mínimo'
+                && $label !== 'Precio unitario x caja'
+                && $value < $regularPriceValue) {
+                continue;
+            }
+
+            $filteredPrices[$label] = $value;
+        }
+
+        return $filteredPrices;
     }
 
     public function getDisplayNameAttribute()
     {
         return strtoupper($this->attributes['name']);
+    }
+
+    /**
+     * Accessors Logísticos para el modo Bodega
+     * Usan relaciones eager-loaded para evitar N+1 queries.
+     */
+
+    public function getStockBodegaAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('invItemsStore')
+            ? $this->invItemsStore
+            : $this->invItemsStore()->get();
+
+        $storeRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $storeRecord ? $storeRecord->stock_items_store : 0;
+    }
+
+    public function getInTransitAttribute()
+    {
+        $collection = $this->relationLoaded('imports')
+            ? $this->imports
+            : $this->imports()->get();
+
+        return $collection->whereIn('status', [1, 2, 4, 5, 12, 7])->sum('qty_requested');
+    }
+
+    public function getReservedAttribute()
+    {
+        $collection = $this->relationLoaded('remissionDetails')
+            ? $this->remissionDetails
+            : $this->remissionDetails()->with('remission')->get();
+
+        return $collection->filter(function ($detail) {
+            return $detail->remission && $detail->remission->status === 'REGISTRADO';
+        })->sum('quantity');
+    }
+
+    public function getPickingAttribute()
+    {
+        $collection = $this->relationLoaded('locations')
+            ? $this->locations
+            : $this->locations()->with('location')->get();
+
+        $locationRecord = $collection->firstWhere('storeId', 3);
+
+        if ($locationRecord) {
+            return $locationRecord->locationId ?? 'N/A';
+        }
+
+        return 'N/A';
+    }
+
+    public function getQtyPerBoxAttribute()
+    {
+        return $this->dimensions?->quntityxbox ?? 0;
+    }
+
+    public function getStockMinAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('invItemsStore')
+            ? $this->invItemsStore
+            : $this->invItemsStore()->get();
+
+        $storeRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $storeRecord ? $storeRecord->stock_min : 0;
+    }
+
+    public function getStockMaxAttribute()
+    {
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('invItemsStore')
+            ? $this->invItemsStore
+            : $this->invItemsStore()->get();
+
+        $storeRecord = $userStoreId
+            ? $collection->firstWhere('storeId', $userStoreId)
+            : $collection->first();
+
+        return $storeRecord ? $storeRecord->stock_max : 0;
+    }
+
+    public function quarantineMovements()
+    {
+        return $this->hasMany(QuarantineMovement::class, 'item_id', 'id');
+    }
+
+    public function showroomMovements()
+    {
+        return $this->hasMany(ShowroomMovement::class, 'item_id', 'id');
+    }
+
+    public function getQuarantineStockAttribute()
+    {
+        if (isset($this->attributes['reserved_quarantine'])) {
+            return (int) $this->attributes['reserved_quarantine'];
+        }
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('quarantineMovements')
+            ? $this->quarantineMovements
+            : $this->quarantineMovements()->get();
+
+        if ($userStoreId) {
+            return (int) $collection->where('store_id', $userStoreId)->sum('quantity');
+        }
+
+        return (int) $collection->sum('quantity');
+    }
+
+    public function getShowroomStockAttribute()
+    {
+        if (isset($this->attributes['showroom_stock'])) {
+            return (int) $this->attributes['showroom_stock'];
+        }
+        $userStoreId = session('warehouse_id');
+        $collection = $this->relationLoaded('showroomMovements')
+            ? $this->showroomMovements
+            : $this->showroomMovements()->get();
+
+        if ($userStoreId) {
+            return (int) $collection->where('store_id', $userStoreId)->sum('quantity');
+        }
+
+        return (int) $collection->sum('quantity');
+    }
+
+    public function getReservedStockAttribute()
+    {
+        if (isset($this->attributes['reserved_stock'])) {
+            return (int) $this->attributes['reserved_stock'];
+        }
+        return (int) \App\Models\Tenant\Items\Reservation::where('item_id', $this->id)
+            ->where('stock_type', '1')
+            ->where('status_id', 1)
+            ->where('due_date', '>=', \Illuminate\Support\Facades\DB::raw('DATE_SUB(CURDATE(), INTERVAL 15 DAY)'))
+            ->sum('quantity');
+    }
+
+    public function getStockDisponibleVentaAttribute()
+    {
+        $stock = (int) $this->stock_bodega;
+        $reservas = (int) $this->reserved_stock;
+        $cuarentena = (int) $this->quarantine_stock;
+        $vitrina = (int) $this->showroom_stock;
+
+        return max(0, $stock - $reservas - $cuarentena - $vitrina);
     }
 }

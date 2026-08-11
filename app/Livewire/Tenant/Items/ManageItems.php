@@ -27,11 +27,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\HasCompanyConfiguration;
+use Livewire\Attributes\On;
+use App\Traits\Livewire\HasDynamicButtons;
+use Livewire\Attributes\Computed;
 
 class ManageItems extends Component
 {
 
-    use WithPagination, HasCompanyConfiguration, WithExport;
+    use WithPagination, HasCompanyConfiguration, WithExport, HasDynamicButtons;
+
+    public $selectedSupplierId = null;
 
     protected $listeners = [
         'command-changed' => 'onCommandSelected',
@@ -45,6 +50,7 @@ class ManageItems extends Component
         'category-created' => 'refreshCategories',
         'closeValuesModal' => 'closeValuesModal',
         'closeLocationsModal' => 'closeLocationsModal',
+        'refreshProductList' => '$refresh',
         //'invValuesItem-created' => 'refreshValuesItems',
     ];
 
@@ -70,12 +76,16 @@ class ManageItems extends Component
     public $disabled = false;
     public $handles_serial;
     public $inventoriable;
+    public $wpStockPercentage = 100;
+    public $wpMinStock = 0;
+    public $maxLocationsCount = 0;
+    protected $exportSuppliers = [];
     public $tempValues = [];
-    
+
     // Propiedades para modal de ubicaciones
     public $showLocationsModal = false;
     public $selectedItemId;
-    
+
     // Propiedades para modal de stock
     public $showStockModal = false;
     public $selectedItemForStock;
@@ -115,13 +125,22 @@ class ManageItems extends Component
     public $validatingSku = false;
     public $showCommand = false;
     public $showSelectStore = false;
+    public $showProductionSection = false;
+    public $showDimensionSection = false;
+    public $showAccesoriosSection = false;
+    public $moduleKey = 'items';
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
     public $types = [
-        'COMBO' => 'Combo',
+        'COMBO'           => 'Combo',
         'COMPRA NACIONAL' => 'Compra nacional',
-        'IMPORTADO' => 'Importado',
-        'PRODUCIDO' => 'Producido',
+        'IMPORTADO'       => 'Importado',
+        'PRODUCIDO'       => 'Producido',
+        'INSUMO'          => 'Insumo',
+        'ENSAMBLADO'      => 'Ensamblado',
+        'PROYECTADOS'     => 'Proyectados',
+        'DESCONTINUADOS'  => 'Descontinuados',
+        'CZCL'            => 'CZCL',
     ];
 
     public $allLabelsValues = [
@@ -130,9 +149,10 @@ class ManageItems extends Component
             'Costo' => 'Costo',
         ],
         'precio' => [
-            'Precio Base' => 'Precio Base',
-            'Precio Regular' => 'Precio Regular',
+            'Precio Base' => 'Precio Lista',
+            'Precio Regular' => 'Precio Mínimo',
             'Precio Crédito' => 'Precio Crédito',
+            'Precio unitario x caja' => 'Precio unitario x caja',
         ],
     ];
 
@@ -191,9 +211,17 @@ class ManageItems extends Component
     {
         // Lista de campos que deben validarse en tiempo real
         $fieldsToValidate = [
-            'category_id', 'name', 'type', 'internal_code', 
-            'brandId', 'houseId', 'purchase_unit', 
-            'consumption_unit', 'tax', 'sku', 'description'
+            'category_id',
+            'name',
+            //'type',
+            'internal_code',
+            'brandId',
+            'houseId',
+            'purchase_unit',
+            'consumption_unit',
+            'tax',
+            'sku',
+            'description'
         ];
 
         if (in_array($propertyName, $fieldsToValidate)) {
@@ -241,12 +269,21 @@ class ManageItems extends Component
         // DEBUG: Limpiar caché para testing
         $this->clearConfigurationCache();
 
+        if (Auth::user()?->profile_id == 17) {
+            $this->selectedSupplierId = Auth::id();
+        }
+
         // DEBUG: Log para verificar inicialización
-        Log::info('🔍 DetailPettyCash mount() ejecutado', [
+        Log::info('🔍 Items mount() ejecutado', [
             'currentCompanyId' => $this->currentCompanyId,
             'currentPlainId' => $this->currentPlainId,
             'configService_exists' => $this->configService ? 'YES' : 'NO'
         ]);
+    }
+
+    public function updatedSelectedSupplierId($value)
+    {
+        $this->resetPage();
     }
 
     private function ensureTenantConnection()
@@ -310,7 +347,17 @@ class ManageItems extends Component
         $this->tax = $item->taxId;
         $this->handles_serial = $item->handles_serial;
         $this->inventoriable = $item->inventoriable;
+
+        if ($item->inventoriable == 1) {
+            $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
+            $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
+            $this->wpMinStock = $storeRecord?->wp_min_stock ?? 0;
+        }
+
         $this->disabled = true;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
 
         $this->showModal = true;
     }
@@ -322,10 +369,21 @@ class ManageItems extends Component
 
         $items = Items::query()
             ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
+            ->when($this->selectedSupplierId, function ($query) {
+                $query->whereHas('importSetup', function ($q) {
+                    $q->where('supplier_id', $this->selectedSupplierId);
+                });
+            })
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('sku', 'like', '%' . $this->search . '%')
-                    ->orWhere('internal_code', 'like', '%' . $this->search . '%');
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('name', 'like', '%' . $word . '%')
+                            ->orWhere('sku', 'like', '%' . $word . '%')
+                            ->orWhere('internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('type', 'like', '%' . $word . '%');
+                    });
+                }
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
@@ -337,6 +395,31 @@ class ManageItems extends Component
         ]);
     }
 
+    #[Computed]
+    public function suppliers()
+    {
+        $this->ensureTenantConnection();
+        $sessionTenant = session('tenant_id');
+
+        return \App\Models\Auth\User::select('users.id', 'users.name')
+            ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+            ->whereHas('tenants', function ($query) use ($sessionTenant) {
+                $query->where('tenants.id', $sessionTenant);
+            })
+            ->where('users.profile_id', 17)
+            ->where('vnt_contacts.status', 1)
+            ->whereNull('vnt_contacts.deleted_at')
+            ->distinct()
+            ->get()
+            ->map(function ($supplier) {
+                return [
+                    'id' => $supplier->id,
+                    'firstName' => $supplier->name
+                ];
+            })
+            ->toArray();
+    }
+
     public function toggleGeneric()
     {
         $this->generic = $this->generic ? 0 : 1;
@@ -344,7 +427,6 @@ class ManageItems extends Component
 
     public function create()
     {
-        $this->resetExcept(['categories', 'types', 'allLabelsValues']);
         $this->resetExcept(['categories', 'types', 'allLabelsValues', 'showCommand']); // No reseteamos las listas de opciones
         $this->showModal = true;
 
@@ -357,6 +439,7 @@ class ManageItems extends Component
 
         $this->clearValidationErrors();
         $this->resetForm();
+        Log::info('🔒 Show Campo Comanda Crear: ' . $this->showCommand);
     }
 
     public function save()
@@ -388,11 +471,11 @@ class ManageItems extends Component
             'purchasing_unit' => $this->purchase_unit,
             'consumption_unit' => $this->consumption_unit,
             'status' => 1,
-            'generic' => $this->generic,
+            'generic' => 0,
             'taxId' => (int)$this->tax,
-          
+
         ];
-    
+
         try {
             if ($this->item_id) { // Existing item
                 $existsValue = InvValues::where('itemId', $this->item_id)->exists();
@@ -414,12 +497,18 @@ class ManageItems extends Component
                         $this->createItemStore($item);
                     } elseif ($item->inventoriable == 1) {
                         // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
-                        $existingRecord = InvItemsStore::where('itemId', $item->id)->first();
+                        $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
                         if (!$existingRecord) {
                             Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
                                 'item_id' => $item->id
                             ]);
                             $this->createItemStore($item);
+                        } else {
+                            // Actualizar wp_stock_percentage y wp_min_stock
+                            $existingRecord->update([
+                                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+                                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
+                            ]);
                         }
                     }
 
@@ -448,7 +537,7 @@ class ManageItems extends Component
                     }
 
                     $this->clearTemporaryMessage();
-                    
+
                     // Solo cerrar modal si no hay errores de sincronización
                     if (!session()->has('sync_warning') && !session()->has('sync_error')) {
                         session()->flash('success', '✅ ¡Item actualizado exitosamente! El item "' . $item->name . '" ha sido actualizado correctamente.');
@@ -468,9 +557,9 @@ class ManageItems extends Component
                     // Si NO es inventoriable, solo requiere Costo Inicial
                     $requiredPrices = ['Costo Inicial'];
                 }
-                
+
                 $missingPrices = $this->validateRequiredPrices($requiredPrices);
-                
+
                 if (!empty($missingPrices)) {
                     $this->messageValues = 'Debe registrar todos los precios requeridos: ' . implode(', ', $missingPrices);
                 } else {
@@ -577,7 +666,7 @@ class ManageItems extends Component
             $this->selectedItemName = $item->name;
             $this->selectedItemSku = $item->sku;
         }
-        
+
         $this->loadStockByWarehouse($itemId);
         $this->showStockModal = true;
     }
@@ -595,24 +684,24 @@ class ManageItems extends Component
     {
         try {
             $this->ensureTenantConnection();
-            
+
             // Obtener todos los registros de inv_items_store para este item
             $itemStores = InvItemsStore::where('itemId', $itemId)
                 ->with('store')
                 ->get();
-            
+
             $this->stockByWarehouse = [];
-            
+
             foreach ($itemStores as $itemStore) {
                 if ($itemStore->store) {
                     // Obtener el warehouse asociado al store desde la BD central
                     $warehouse = VntWarehouse::on('central')
                         ->where('id', $itemStore->store->warehouseId)
                         ->first();
-                    
+
                     if ($warehouse) {
                         $warehouseId = $warehouse->id;
-                        
+
                         // Si el warehouse no existe en el array, inicializarlo
                         if (!isset($this->stockByWarehouse[$warehouseId])) {
                             $this->stockByWarehouse[$warehouseId] = [
@@ -621,7 +710,7 @@ class ManageItems extends Component
                                 'stores' => []
                             ];
                         }
-                        
+
                         // Agregar el store con su stock
                         $this->stockByWarehouse[$warehouseId]['stores'][] = [
                             'store_id' => $itemStore->store->id,
@@ -633,12 +722,11 @@ class ManageItems extends Component
                     }
                 }
             }
-            
+
             Log::info('Stock cargado por warehouse', [
                 'item_id' => $itemId,
                 'warehouses_count' => count($this->stockByWarehouse)
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Error cargando stock por warehouse', [
                 'item_id' => $itemId,
@@ -648,6 +736,7 @@ class ManageItems extends Component
         }
     }
 
+    #[On('closeItemsModal')]
     public function cancel()
     {
         $this->ensureTenantConnection();
@@ -702,15 +791,35 @@ class ManageItems extends Component
     public function getExportData()
     {
         $this->ensureTenantConnection();
-        return Items::query()
-            ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore'])
+        $items = Items::query()
+            ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store', 'invValues', 'importSetup', 'dimensions'])
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('sku', 'like', '%' . $this->search . '%')
-                    ->orWhere('internal_code', 'like', '%' . $this->search . '%');
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('name', 'like', '%' . $word . '%')
+                            ->orWhere('sku', 'like', '%' . $word . '%')
+                            ->orWhere('internal_code', 'like', '%' . $word . '%');
+                    });
+                }
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->get();
+
+        // Calcular el número máximo de ubicaciones asignadas a cualquier ítem
+        $this->maxLocationsCount = $items->map(fn($item) => $item->locations->count())->max() ?? 0;
+
+        // Cargar nombres de proveedores en memoria
+        $supplierIds = $items->pluck('importSetup.supplier_id')->filter()->unique()->toArray();
+        if (!empty($supplierIds)) {
+            $this->exportSuppliers = \App\Models\Auth\User::whereIn('id', $supplierIds)
+                ->pluck('name', 'id')
+                ->toArray();
+        } else {
+            $this->exportSuppliers = [];
+        }
+
+        return $items;
     }
 
     public function getExportHeadings(): array
@@ -725,23 +834,71 @@ class ManageItems extends Component
             'Unidad Compra',
             'Unidad Consumo',
             'Impuesto',
-            'Estado'
+            'Estado',
+            'Maneja Inventario',
+            '% Stock WordPress',
+            'Precio Lista',
+            'Precio Mínimo',
+            'Precio Crédito',
+            'Precio x caja',
+            'Proveedor',
+            'Ref fábrica',
+            'EXW',
+            'Peso',
+            'Cantidad por caja',
+            'Ubicación 1 PICKING',
+            'Stock PICKING',
+            'Ubicación 2 MINIMOS',
+            'Stock MINIMOS',
+            'Ubicación 3 RESERVAS',
+            'Stock RESERVAS'
+        ];
+    }
+
+    public function getExportColumnFormats(): array
+    {
+        return [
+            'F' => '#,##0',       // Stock General (Fuerza a mostrar el 0)
+            'M' => '"$"#,##0.00',
+            'N' => '"$"#,##0.00',
+            'O' => '"$"#,##0.00',
+            'P' => '"$"#,##0.00',
+            'S' => '"$"#,##0.00', // EXW
+            'W' => '#,##0',       // Stock PICKING (Fuerza a mostrar el 0)
+            'Y' => '#,##0',       // Stock MINIMOS (Fuerza a mostrar el 0)
+            'AA' => '#,##0',      // Stock RESERVAS (Fuerza a mostrar el 0)
         ];
     }
 
     public function getExportMapping($item): array
     {
-        $stock = 'No maneja';
-        if ($item->inventoriable == 1) {
-            if ($item->invItemsStore->isNotEmpty()) {
-                // Sumar el stock total de todas las bodegas
-                $stock = $item->invItemsStore->sum('stock_items_store');
-            } else {
-                $stock = '0';
+        // Determinar stock (Forzado a cadena '0' si es 0 para obligar a Excel a mostrarlo)
+        $stockSum = $item->invItemsStore->isNotEmpty() 
+            ? $item->invItemsStore->sum('stock_items_store') 
+            : 0;
+        $stock = ($stockSum !== null && (int) $stockSum !== 0) ? (int) $stockSum : '0';
+
+        // Obtener valores de precios mapeados
+        $precios = [
+            'Precio Base' => 0.0,
+            'Precio Regular' => 0.0,
+            'Precio Crédito' => 0.0,
+            'Precio unitario x caja' => 0.0,
+        ];
+        foreach ($item->invValues as $val) {
+            if (array_key_exists($val->label, $precios)) {
+                $precios[$val->label] = is_numeric($val->values) ? (float) $val->values : 0.0;
             }
         }
 
-        return [
+        // Obtener nombre del proveedor asignado
+        $supplierName = 'N/A';
+        if ($item->importSetup && $item->importSetup->supplier_id) {
+            $supplierName = $this->exportSuppliers[$item->importSetup->supplier_id] ?? 'N/A';
+        }
+
+        // Fila base con todos los parámetros
+        $row = [
             $item->sku,
             $item->internal_code ?? $item->internalCode ?? '',
             $item->name,
@@ -751,8 +908,54 @@ class ManageItems extends Component
             $item->purchasingUnit->description ?? 'N/A',
             $item->consumptionUnit->description ?? 'N/A',
             $item->tax->name ?? 'Sin impuesto',
-            $item->status ? 'Activo' : 'Inactivo'
+            $item->status ? 'Activo' : 'Inactivo',
+            $item->inventoriable == 1 ? 'Sí' : 'No',
+            $item->inventoriable == 1 ? ($item->invItemsStore->firstWhere('storeId', 2)->wp_stock_percentage ?? 100) . '%' : 'N/A',
+            $precios['Precio Base'],
+            $precios['Precio Regular'],
+            $precios['Precio Crédito'],
+            $precios['Precio unitario x caja'],
+            $supplierName,
+            $item->importSetup->factory_ref ?? 'N/A',
+            is_numeric($item->importSetup->exw ?? null) ? (float) $item->importSetup->exw : 0.0,
+            is_numeric($item->dimensions->weight ?? null) ? (float) $item->dimensions->weight : 0.0,
+            (int) ($item->dimensions->quntityxbox ?? 0),
         ];
+
+        // Agregar ubicaciones específicas por bodega: PICKING, MINIMOS, RESERVAS (Ubicación y Stock por separado)
+        $itemLocations = $item->locations ?? collect([]);
+
+        // 1. PICKING
+        $locPicking = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'PICKING'));
+        if ($locPicking) {
+            $row[] = $locPicking->locationId ?? '';
+            $row[] = ((int) $locPicking->stock_item_location !== 0) ? (int) $locPicking->stock_item_location : '0';
+        } else {
+            $row[] = '';
+            $row[] = '0';
+        }
+
+        // 2. MINIMOS
+        $locMinimos = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'MINIMOS'));
+        if ($locMinimos) {
+            $row[] = $locMinimos->locationId ?? '';
+            $row[] = ((int) $locMinimos->stock_item_location !== 0) ? (int) $locMinimos->stock_item_location : '0';
+        } else {
+            $row[] = '';
+            $row[] = '0';
+        }
+
+        // 3. RESERVAS
+        $locReservas = $itemLocations->first(fn($l) => str_contains(strtoupper($l->store->name ?? ''), 'RESERVAS'));
+        if ($locReservas) {
+            $row[] = $locReservas->locationId ?? '';
+            $row[] = ((int) $locReservas->stock_item_location !== 0) ? (int) $locReservas->stock_item_location : '0';
+        } else {
+            $row[] = '';
+            $row[] = '0';
+        }
+
+        return $row;
     }
 
     public function getExportFilename(): string
@@ -1096,6 +1299,9 @@ class ManageItems extends Component
         $this->messageValues = '';
         $this->temporaryErrorMessage;
         $this->showValuesModal = false;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
         $this->internal_codeExists = false;
         $this->validatingInternal_code = false;
         $this->skuExists = false;
@@ -1111,18 +1317,14 @@ class ManageItems extends Component
 
     public function validateMerchantType()
     {
-        $this->ensureTenantConnection();
-
-        $centralDbName = config('database.connections.central.database');
-        $userId = Auth::id(); // Get the authenticated user's ID
-
-        $exists = DB::table("{$centralDbName}.users", 'u')
-            ->join("{$centralDbName}.usr_profile_merchant as upm", 'upm.profile_id', '=', 'u.profile_id')
-            ->where('u.id', $userId)
-            ->where('upm.merchant_type_id', 5)
-            ->exists(); // Check if any record exists
-
-        $this->showCommand = $exists; // Set showCommand based on the existence check
+        $sessionTenant = $this->getTenantId();
+        // Obtener el tenant desde la base de datos usando el ID de sesión
+        $tenant = Tenant::find($sessionTenant);
+        if ($tenant->merchant_type_id === 5) {
+            $this->showCommand = true;
+        } else {
+            $this->showCommand = false;
+        }
     }
 
     /**
@@ -1239,6 +1441,15 @@ class ManageItems extends Component
         try {
             Log::info('🔄 syncItemWithApi INICIO', ['item_id' => $item->id]);
 
+            // Los items de tipo INSUMO no se sincronizan con Alegra
+            if ($item->type === 'INSUMO') {
+                Log::info('⏭️ syncItemWithApi OMITIDO - tipo INSUMO no se sincroniza con Alegra', [
+                    'item_id' => $item->id,
+                    'item_type' => $item->type,
+                ]);
+                return ['success' => true, 'message' => 'Item tipo INSUMO no requiere sincronización con API'];
+            }
+
             // Verificar que tenemos company_id válido, si no lo tenemos, obtenerlo del tenant
             if (!$this->currentCompanyId) {
                 Log::info('🔄 currentCompanyId es null, intentando obtener desde tenant', [
@@ -1346,13 +1557,8 @@ class ManageItems extends Component
                 ];
             }
 
-            // Crear ApiClient con configuración optimizada
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient con detección automática de proxy
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🚀 Usando configuración OPTIMIZADA para Items', [
                 'user_id' => $user->id,
@@ -1384,10 +1590,7 @@ class ManageItems extends Component
             if ($item->categoryId) {
                 $category = Category::find($item->categoryId);
                 $categoryAlegraId = $category ? $category->api_data_id : null;
-
-              
             } else {
-               
             }
 
             // Obtener información del store para inventory
@@ -1411,24 +1614,33 @@ class ManageItems extends Component
                 $warehouseApiId = '1'; // Fallback a warehouse por defecto
             }
 
-            $inventory = [
-                'unit' => 'unit',
-                'unitCost' => $this->getCost($item),
-                'negativeSale' => false,
-                'warehouses' => [
-                    [
-                        'id' => $warehouseApiId,
-                        'initialQuantity' => 0,
-                        'minQuantity' => 0,
-                        'maxQuantity' => 0
-                    ]
-                ]
-            ];
+            $isUpdate = (bool) $item->api_data_id;
+
+            if ($isUpdate) {
+                // Al actualizar solo se manda el costo; no se toca el stock de Alegra
+                $inventory = [
+                    'unit'         => 'unit',
+                    'unitCost'     => $this->getCost($item),
+                    'negativeSale' => false,
+                ];
+            } else {
+                // Al crear se incluye el warehouse con stock inicial en 0
+                $inventory = [
+                    'unit'         => 'unit',
+                    'unitCost'     => $this->getCost($item),
+                    'negativeSale' => false,
+                    'warehouses'   => [
+                        [
+                            'id'              => $warehouseApiId,
+                            'initialQuantity' => 0,
+                            'minQuantity'     => 0,
+                            'maxQuantity'     => 0,
+                        ]
+                    ],
+                ];
+            }
             // Preparar datos para la API según estructura requerida
             $apiData = [
-                'itemCategory' => [
-                    'id' => $categoryAlegraId // api_data_id de la categoría (ID de Alegra)
-                ],
                 'inventory' => $item->inventoriable == 1 ? $inventory : null,
                 'accounting' => [
                     'inventory' => $taxData['inventoryAccount'] ?? null, // inventoryAccount desde cnf_taxes
@@ -1439,8 +1651,17 @@ class ManageItems extends Component
                 'reference' => $item->sku ?? $item->internal_code ?? '',
                 'price' => [
                     [
-                        'price' => $this->getPriceBase($item) // Obtener precio base
-                    ]
+                        'idPriceList' => '019ac5f3-5f72-7440-874c-6e53c92fbfde', // Precio 1 (Base)
+                        'price'       => $this->getPriceBase($item),
+                    ],
+                    [
+                        'idPriceList' => '019b8e1a-f3fa-73b3-91d7-03f867191b3c', // Precio 2 (Regular)
+                        'price'       => $this->getPriceRegular($item),
+                    ],
+                    [
+                        'idPriceList' => '019b8e1b-ab7b-71da-8c15-cf1e136e06c3', // Precio 3 (Crédito)
+                        'price'       => $this->getPriceCredito($item),
+                    ],
                 ],
                 'type' => $item->inventoriable == 1 ? 'product' : 'service',
                 'tax' => $item->taxId ? (string)$item->taxId : '0' // Convertir a string
@@ -1505,7 +1726,6 @@ class ManageItems extends Component
                     'message' => 'Error en la API de facturación: ' . $errorMessage
                 ];
             }
-
         } catch (\Exception $e) {
             Log::error('❌ Excepción sincronizando item', [
                 'item_id' => $item->id,
@@ -1558,7 +1778,6 @@ class ManageItems extends Component
                 'inventariablePurchaseAccount' => $tax->inventariablePurchaseAccount,
                 'categoryAccount' => $tax->categoryAccount
             ];
-
         } catch (\Exception $e) {
             Log::error('Error obteniendo datos de cnf_taxes', [
                 'tax_id' => $taxId,
@@ -1588,6 +1807,34 @@ class ManageItems extends Component
                 'item_id' => $item->id,
                 'error' => $e->getMessage()
             ]);
+            return 0.0;
+        }
+    }
+
+    private function getPriceRegular($item): float
+    {
+        try {
+            $priceValue = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Regular')
+                ->first();
+
+            return $priceValue ? (float)$priceValue->values : 0.0;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo precio regular', ['item_id' => $item->id, 'error' => $e->getMessage()]);
+            return 0.0;
+        }
+    }
+
+    private function getPriceCredito($item): float
+    {
+        try {
+            $priceValue = InvValues::where('itemId', $item->id)
+                ->where('label', 'Precio Crédito')
+                ->first();
+
+            return $priceValue ? (float)$priceValue->values : 0.0;
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo precio crédito', ['item_id' => $item->id, 'error' => $e->getMessage()]);
             return 0.0;
         }
     }
@@ -1691,12 +1938,14 @@ class ManageItems extends Component
 
             // Crear nuevo registro
             InvItemsStore::create([
-                'itemId' => $item->id,
-                'storeId' => $principalStore->id,
-                'initial_stock' => 0,
-                'stock_items_store' => 0,
-                'stock_min' => 0,
-                'stock_max' => 0,
+                'itemId'              => $item->id,
+                'storeId'             => $principalStore->id,
+                'initial_stock'       => 0,
+                'stock_items_store'   => 0,
+                'stock_min'           => 0,
+                'stock_max'           => 0,
+                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
             ]);
 
             Log::info('✅ Registro creado en inv_items_store para item inventoriable', [
@@ -1706,7 +1955,6 @@ class ManageItems extends Component
                 'store_name' => $principalStore->name,
                 'inventoriable' => $item->inventoriable
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error creando registro en inv_items_store', [
                 'item_id' => $item->id,
@@ -1755,5 +2003,74 @@ class ManageItems extends Component
             ]);
             return false;
         }
+    }
+
+    public function updatedType($value)
+    {
+        $this->type = $value;
+    }
+
+    public function canUseImports()
+    {
+        $result = $this->isOptionEnabled(48);
+        $value = $this->getOptionValue(48);
+
+        Log::info('🚚 canUseImports() verificación', [
+            'companyId' => $this->currentCompanyId,
+            'option_id' => 48,
+            'result' => $result ? 'TRUE' : 'FALSE',
+            'option_value' => $value,
+            'configService_exists' => $this->configService ? 'YES' : 'NO',
+            'method_called' => 'isOptionEnabled(48) y getOptionValue(48)'
+        ]);
+        return $result;
+    }
+
+    public function showGeneralInfo()
+    {
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+    }
+
+    public function activateAccesoriosSection(int $item_id): void
+    {
+        $this->item_id = $item_id;
+        $this->showAccesoriosSection = true;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+    }
+
+    public function showImportSection($item_id)
+    {
+        $this->item_id = $item_id;
+        $this->showProductionSection = true;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+    }
+
+    public function showProductionSection($item_id)
+    {
+        Log::info('🏭 showProductionSection llamado', [
+            'item_id' => $item_id,
+            'type'    => $this->type,
+        ]);
+        $this->item_id = $item_id;
+        $this->showProductionSection = true;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+    }
+
+    public function  activateDimensionSection($item_id)
+    {
+        Log::info('📏 showDimensionSection llamado', [
+            'item_id' => $item_id,
+            'type'    => $this->type,
+            'inventoriable' => $this->inventoriable,
+        ]);
+        $this->item_id = $item_id;
+        $this->showDimensionSection = true;
+        $this->showProductionSection = false;
+        $this->showAccesoriosSection = false;
     }
 }

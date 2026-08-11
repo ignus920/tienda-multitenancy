@@ -338,13 +338,8 @@ class CategoriesService
                 throw new \Exception("No se encontró configuración de facturación para el usuario: {$user->email}");
             }
 
-            // Crear ApiClient directamente con la configuración optimizada
-            $apiClient = new ApiClient(
-                $optimizedConfig['base_url'],
-                $optimizedConfig['token'],
-                $optimizedConfig['username'],
-                $optimizedConfig['timeout']
-            );
+            // Crear ApiClient con detección automática de proxy
+            $apiClient = ApiClient::forConfig($optimizedConfig);
 
             Log::info('🚀 Usando configuración OPTIMIZADA (user → contact → warehouse)', [
                 'user_id' => $user->id,
@@ -355,9 +350,11 @@ class CategoriesService
             ]);
 
             // Preparar datos para la API
+            // La API requiere: name, description (no puede ser vacío) y status ("active"/"inactive")
             $apiData = [
-                'name' => $category->name,
-                'description' => $category->description ?? ''
+                'name'        => $category->name,
+                'description' => $category->description ?: $category->name, // fallback: usa el nombre si no hay descripción
+                'status'      => $category->status ? 'active' : 'inactive',
             ];
 
             // Sincronizar (crear o actualizar) usando ApiClient directo
@@ -379,7 +376,8 @@ class CategoriesService
 
             if ($apiResult['success']) {
                 // Extraer el ID de la respuesta de la API
-                $apiDataId = $apiResult['data']['id'] ?? null;
+                // La API puede devolver el id como string ("93"), se castea a int
+                $apiDataId = isset($apiResult['data']['id']) ? (int) $apiResult['data']['id'] : null;
 
                 if ($apiDataId) {
                     $category->setApiId($apiDataId);

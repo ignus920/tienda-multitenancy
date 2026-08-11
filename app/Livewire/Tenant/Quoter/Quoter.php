@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Livewire\Tenant\Quoter;
+
 use App\Services\Tenant\TenantManager;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Quoter\VntQuote;
@@ -10,18 +11,29 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Tenant\Remissions\InvRemissions;
-
+use App\Models\Tenant\Invoices\VntInvoices;
+use App\Services\Facturacion\FacturacionService;
+use App\Services\Facturacion\InvoiceDataBuilder;
+use App\Services\Facturacion\TenantConfigManager;
+use Illuminate\Support\Facades\DB;
+use App\Traits\Livewire\HasDynamicButtons;
+use App\Traits\Livewire\WithExport;
 
 class Quoter extends Component
 {
-    use WithPagination, HasCompanyConfiguration;
+    use WithPagination, HasCompanyConfiguration, HasDynamicButtons, WithExport;
 
     public $search = '';
+    public $filterNit = '';
+    public $filterName = '';
+    public $filterConsecutive = '';
+    public $filterDateFrom = '';
+    public $filterDateTo = '';
     public $viewType = 'desktop'; // 'desktop' o 'mobile'
     public $perPage = 10; // Registros por página
     public $showDetailModal = false;
     public $selectedQuoteId = null;
-
+    public $moduleKey = 'quoter';
 
 
 
@@ -43,6 +55,10 @@ class Quoter extends Component
 
         // Inicializar configuración de empresa
         $this->initializeCompanyConfiguration();
+
+        // Inicializar fechas por defecto (±7 días como en Pedidos)
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
 
         // DEBUG: Limpiar caché para testing
         $this->clearConfigurationCache();
@@ -82,14 +98,14 @@ class Quoter extends Component
 
         $this->ensureTenantConnection();
 
-        $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse'])
+        $quote = VntQuote::with(['customer', 'detalles.item', 'warehouse', 'branch.company'])
             ->find($this->selectedQuoteId);
-        
+
         // Agregar el storage_name al modelo
         if ($quote) {
             $quote->storage_name = $quote->getStorageName();
         }
-        
+
         return $quote;
     }
 
@@ -103,12 +119,35 @@ class Quoter extends Component
         $this->resetPage();
     }
 
+    public function updated($propertyName)
+    {
+        if (in_array($propertyName, ['filterNit', 'filterName', 'filterConsecutive', 'filterDateFrom', 'filterDateTo'])) {
+            $this->resetPage();
+        }
+    }
+
+    public function clearFilters()
+    {
+        $this->reset(['search', 'filterNit', 'filterName', 'filterConsecutive']);
+        
+        // Restablecer fechas por defecto al limpiar
+        $this->filterDateFrom = now()->subDays(7)->format('Y-m-d');
+        $this->filterDateTo = now()->addDays(7)->format('Y-m-d');
+        
+        $this->resetPage();
+    }
+
     public function nuevaCotizacion()
     {
         // Limpiar el carrito de la sesión para que el cotizador empiece vacío
         session()->forget('quoter_items');
-        
-        return redirect('/tenant/quoter/products');
+
+        // Determinar la ruta correcta según el tipo de vista actual para evitar fallos de detección
+        $routeName = $this->viewType === 'mobile'
+            ? 'tenant.quoter.products.mobile'
+            : 'tenant.quoter.products.desktop';
+
+        return redirect()->route($routeName);
     }
 
     public function eliminar($id)
@@ -208,7 +247,6 @@ class Quoter extends Component
             ]);
 
             return $finalValue;
-
         } catch (\Exception $e) {
             Log::error('❌ getPrintCopiesLimit() - Error al obtener valor', [
                 'error' => $e->getMessage(),
@@ -217,7 +255,7 @@ class Quoter extends Component
 
             return 0; // Default a POS en caso de error
         }
-     }
+    }
 
     public function viewDetails($id)
     {
@@ -235,7 +273,7 @@ class Quoter extends Component
 
 
 
-     
+
 
     /**
      * Método para imprimir cotización
@@ -271,13 +309,33 @@ class Quoter extends Component
 
             Log::info('🔄 Cargando cliente...');
             try {
-                $quote->load('customer');
-                Log::info('👤 Cliente cargado', ['customer_id' => $quote->customerId]);
+                $quote->load(['customer.company', 'customer.warehouse.city']);
+                Log::info('👤 Cliente cargado', [
+                    'customer_id' => $quote->customerId,
+                    'has_company' => $quote->customer && $quote->customer->company ? 'YES' : 'NO',
+                    'has_warehouse' => $quote->customer && $quote->customer->warehouse ? 'YES' : 'NO',
+                    'has_city' => $quote->customer && $quote->customer->warehouse && $quote->customer->warehouse->city ? 'YES' : 'NO'
+                ]);
             } catch (\Exception $customerError) {
                 Log::error('❌ Error cargando cliente', ['error' => $customerError->getMessage()]);
                 // Continuar sin cliente para debug
                 $quote->customer = null;
             }
+
+            // Cargar sucursal de entrega
+            $deliveryBranch = $quote->branch ?? null;
+            if (!$deliveryBranch && $quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+            Log::info('🏭 Sucursal de entrega cargada en printQuote', [
+                'branch_id' => $deliveryBranch->id ?? 'N/A',
+                'city' => $deliveryBranchCityName ?? 'N/A'
+            ]);
 
             // Nota: No cargamos warehouse aquí porque se consultará directamente desde central en getCompanyInfo()
             Log::info('🔄 WarehouseId de la cotización: ' . $quote->warehouseId);
@@ -300,6 +358,25 @@ class Quoter extends Component
             $company = $this->getCompanyInfo($quote);
             Log::info('🏢 Empresa cargada', ['company' => $company->businessName ?? 'N/A']);
 
+            $tableName = ($quote->status === 'REMISIÓN') ? 'inv_detail_remissions' : 'vnt_detail_quotes';
+            $tableNameId = ($quote->status === 'REMISIÓN') ? 'remissionId' : 'quoteId';
+            // Calcular el peso total de los items
+            $totalWeight = DB::connection('tenant')->table($tableName)
+                ->join('inv_items_dimensions', $tableName . '.itemId', '=', 'inv_items_dimensions.item_id')
+                ->where($tableName . '.' . $tableNameId, $id)
+                ->sum(DB::raw('inv_items_dimensions.weight * ' . $tableName . '.quantity'));
+
+
+            Log::info('⚖️ Peso total calculado:', ['totalWeight' => $totalWeight]);
+
+            $observations = DB::connection('tenant')->table('inv_remissions')
+                ->where('quoteId', $id)
+                ->select('id', 'observations_delivery', 'obs', 'deliveryTypeId')->first();
+
+            $deliveryType = ($observations && $observations->deliveryTypeId)
+                ? DB::connection('tenant')->table('inv_delivery_types')->where('id', $observations->deliveryTypeId)->value('name')
+                : null;
+
             // Determinar el formato de impresión según configuración
             $printFormat = $this->getPrintCopiesLimit(); // 0 = POS Simple, 1 = Institucional
             Log::info('🎯 Formato determinado desde configuración', ['printFormat' => $printFormat]);
@@ -315,7 +392,14 @@ class Quoter extends Component
                 'company' => $company,
                 'documentTitle' => $documentTitle,
                 'showQR' => true, // Opcional: mostrar código QR
-                'defaultObservations' => 'Observaciones por defecto'
+                'defaultObservations' => 'Observaciones por defecto',
+                'totalWeight' => $totalWeight,
+                'observations_delivery' => $observations->observations_delivery ?? null,
+                'obs' => $observations->obs ?? null,
+                'delivery_type' => $deliveryType ?? null,
+                'showValues' => true,
+                'deliveryBranch' => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
             ];
             Log::info('📝 Datos preparados para la vista');
 
@@ -365,7 +449,6 @@ class Quoter extends Component
                 'type' => 'success',
                 'message' => 'Cotización #' . $quote->consecutive . ' preparada para impresión (' . ($printFormat === 1 ? 'Formato Carta' : 'Formato POS') . ')'
             ]);
-
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -375,78 +458,262 @@ class Quoter extends Component
     }
 
     /**
-     * Obtener información de la empresa para los documentos
+     * Método para imprimir factura (basado en una cotización facturada)
+     * Utiliza el api_data_id si existe, o el endpoint de Vista Previa (Preview).
      */
-    private function getCompanyInfo($quote = null)
+    public function printInvoice($id)
     {
-        Log::info('🏢 getCompanyInfo llamado');
+        Log::info('🖨️ printInvoice llamado', ['quote_id' => $id]);
 
-        // Intentar obtener información del warehouse desde la base central
-        if ($quote && $quote->warehouseId) {
-            Log::info('🏢 Obteniendo warehouse desde base central', ['warehouse_id' => $quote->warehouseId]);
+        $this->ensureTenantConnection();
+        $this->initializeCompanyConfiguration();
 
-            try {
-                // Consultar directamente desde la base central usando el modelo VntWarehouse
-                $warehouse = VntWarehouse::find($quote->warehouseId);
+        try {
+            $quote = VntQuote::with(['detalles.item', 'customer', 'warehouse'])->findOrFail($id);
 
-                if ($warehouse) {
-                    Log::info('🏢 Warehouse encontrado en central', [
-                        'id' => $warehouse->id,
-                        'name' => $warehouse->name,
-                        'address' => $warehouse->address
+            // 🔍 Buscar factura local para obtener el ID de Alegra (api_data_id)
+            $invoice = VntInvoices::where('quoteId', $id)->first();
+
+            Log::info('🔍 Datos de factura local encontrados', [
+                'has_invoice' => !is_null($invoice),
+                'invoice_id' => $invoice ? $invoice->id : null,
+                'api_data_id' => $invoice ? $invoice->api_data_id : null
+            ]);
+
+            // 1. Obtener configuración del tenant
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            $hasConfig = $tenant && TenantConfigManager::hasFacturacionConfig($tenant);
+
+            Log::info('⚙️ Verificación de configuración de facturación', [
+                'has_config' => $hasConfig,
+                'tenant_id' => $tenant ? $tenant->id : 'No encontrado en sesión'
+            ]);
+
+            if ($hasConfig) {
+                $facturacionService = FacturacionService::forTenant($tenant);
+
+                // 🚀 PRIORIDAD 1: Si ya tiene api_data_id (Factura ya creada en Alegra)
+                if ($invoice && $invoice->api_data_id) {
+                    Log::info('🔗 Usando api_data_id existente para obtener PDF', ['api_id' => $invoice->api_data_id]);
+
+                    $apiResponse = $facturacionService->getInvoicePdf($invoice->api_data_id);
+
+                    // 🔍 Analizar estructura de respuesta para depurar
+                    $respData = $apiResponse['data'] ?? [];
+                    Log::info('📦 Estructura de respuesta PDF recibida', [
+                        'success' => $apiResponse['success'] ?? false,
+                        'keys_root' => array_keys($apiResponse),
+                        'keys_data' => is_array($respData) ? array_keys($respData) : 'not_array',
+                        'has_pdf_in_data' => isset($respData['pdf']),
+                        'has_publicUrl_in_data' => isset($respData['publicUrl']),
+                        'has_publicUrl_in_nested_data' => isset($respData['data']['publicUrl'])
                     ]);
 
-                    $companyData = [
-                        'businessName' => $warehouse->name ?? 'EMPRESA DE PRUEBA',
-                        'firstName' => 'Admin',
-                        'lastName' => 'Sistema',
-                        'identification' => '123456789',
-                        'billingAddress' => $warehouse->address ?? 'Dirección de prueba',
-                        'phone' => '1234567890',
-                        'billingEmail' => 'test@empresa.com'
-                    ];
+                    // Intentar obtener URL de varios posibles campos
+                    $printUrl = $respData['pdf'] ?? // Según snippet del usuario
+                        $respData['publicUrl'] ?? // Estándar Alegra
+                        ($respData['data']['publicUrl'] ?? null); // Anidado
 
-                    Log::info('🏢 Datos empresa obtenidos del warehouse central', $companyData);
-                } else {
-                    Log::warning('⚠️ Warehouse no encontrado en central con ID: ' . $quote->warehouseId);
-                    throw new \Exception('Warehouse no encontrado');
+                    if ($apiResponse['success'] && !empty($printUrl)) {
+                        Log::info('✅ URL de documento encontrada', ['url' => $printUrl]);
+
+                        $this->dispatch('open-print-window', [
+                            'url' => $printUrl,
+                            'format' => 'carta'
+                        ]);
+                        return;
+                    } else {
+                        Log::warning('⚠️ No se obtuvo URL válida vía endpoint de PDF.', [
+                            'response' => $apiResponse
+                        ]);
+                    }
                 }
-            } catch (\Exception $e) {
-                Log::error('❌ Error consultando warehouse central: ' . $e->getMessage());
 
-                // Datos por defecto si hay error
-                $companyData = [
-                    'businessName' => 'EMPRESA DE PRUEBA',
-                    'firstName' => 'Admin',
-                    'lastName' => 'Sistema',
-                    'identification' => '123456789',
-                    'billingAddress' => 'Dirección de prueba',
-                    'phone' => '1234567890',
-                    'billingEmail' => 'test@empresa.com'
-                ];
+                // 🚀 PRIORIDAD 2: Vista Previa (Preview) de Alegra
+                Log::info('📝 Intentando obtener vista previa (API Preview)');
+
+                // Obtener pagos si existen
+                $paymentMethods = [];
+                if ($invoice) {
+                    $payments = DB::connection('tenant')->table('vnt_invoice_payments')
+                        ->join('vnt_method_payments', 'vnt_invoice_payments.methodPaymentId', '=', 'vnt_method_payments.id')
+                        ->where('vnt_invoice_payments.invoiceId', $invoice->id)
+                        ->select('vnt_method_payments.name as method', 'vnt_invoice_payments.value as value')
+                        ->get();
+
+                    foreach ($payments as $p) {
+                        $paymentMethods[] = [
+                            'descriptionFormaPago' => $p->method,
+                            'nombre' => $p->method,
+                            'valor' => $p->value,
+                            'method' => $p->method
+                        ];
+                    }
+                }
+
+                $invoiceData = InvoiceDataBuilder::buildFromQuote($quote, $paymentMethods);
+                $apiResponse = $facturacionService->getInvoicePreview($invoiceData);
+
+                if ($apiResponse['success'] && isset($apiResponse['data']['publicUrl'])) {
+                    $printUrl = $apiResponse['data']['publicUrl'];
+                    Log::info('✅ Vista previa obtenida correctamente', ['url' => $printUrl]);
+
+                    $this->dispatch('open-print-window', [
+                        'url' => $printUrl,
+                        'format' => 'carta'
+                    ]);
+                    return;
+                } else {
+                    Log::warning('❌ Falló la vista previa de Alegra', ['response' => $apiResponse]);
+                }
             }
-        } else {
-            Log::warning('⚠️ No se encontró warehouseId en la cotización, usando datos por defecto');
 
-            // Datos por defecto si no hay warehouse
-            $companyData = [
+            // 🚀 FALLBACK: Impresión local
+            Log::warning('🏠 Ejecutando caída a impresión local');
+            return $this->printInvoiceLocal($id);
+        } catch (\Exception $e) {
+            Log::error('❌ Error crítico en printInvoice: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->printInvoiceLocal($id);
+        }
+    }
+
+    /**
+     * Respaldo de impresión local (Generación de HTML interno)
+     */
+    private function printInvoiceLocal($id)
+    {
+        Log::info('🏠 Ejecutando impresión local de factura', ['quote_id' => $id]);
+
+        try {
+            $quote = VntQuote::findOrFail($id);
+            $quote->load(['detalles.item', 'customer']);
+
+            // Cargar sucursal de entrega
+            $deliveryBranch = $quote->branch ?? null;
+            if (!$deliveryBranch && $quote->branchId) {
+                $deliveryBranch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+            }
+            $deliveryBranchCityName = null;
+            if ($deliveryBranch && $deliveryBranch->cityId) {
+                $cityRow = DB::connection('central')->table('cities')->where('id', $deliveryBranch->cityId)->first();
+                $deliveryBranchCityName = $cityRow ? $cityRow->name : null;
+            }
+
+            // Intentar obtener el número de factura real
+            $invoice = VntInvoices::where('quoteId', $id)->first();
+            if ($invoice && $invoice->invoiceNumber) {
+                $quote->consecutive = $invoice->invoiceNumber;
+            }
+
+            $company = $this->getCompanyInfo($quote);
+            $printFormat = $this->getPrintCopiesLimit();
+
+            $data = [
+                'quote' => $quote,
+                'customer' => $quote->customer,
+                'company' => $company,
+                'documentTitle' => 'FACTURA',
+                'showQR' => true,
+                'defaultObservations' => 'Factura electrónica (Copia Local)',
+                'showValues' => true,
+                'deliveryBranch' => $deliveryBranch,
+                'deliveryBranchCityName' => $deliveryBranchCityName,
+            ];
+
+            $viewName = ($printFormat === 1)
+                ? 'livewire.tenant.quoter.print.print-carta'
+                : 'livewire.tenant.quoter.print.print-pos';
+
+            $html = view($viewName, $data)->render();
+
+            $tempFileName = 'quote_' . $id . '_' . time() . '.html';
+            $tempPath = storage_path('app/temp/' . $tempFileName);
+
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            file_put_contents($tempPath, $html);
+
+            $printUrl = route('quoter.print.temp', ['file' => $tempFileName]);
+
+            $this->dispatch('open-print-window', [
+                'url' => $printUrl,
+                'format' => $printFormat === 1 ? 'carta' : 'pos'
+            ]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Factura local preparada'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ Error en printInvoiceLocal: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al preparar impresión local: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    private function getCompanyInfo($quote = null)
+    {
+        Log::info('🏢 getCompanyInfo llamado con consulta optimizada');
+
+        try {
+            $userId = auth()->id();
+
+            if (!$userId) {
+                Log::warning('⚠️ No hay usuario autenticado para getCompanyInfo');
+                throw new \Exception('Usuario no autenticado');
+            }
+
+            // Ejecutar la consulta proporcionada por el usuario adaptada a Query Builder
+            $companyData = DB::connection('central')->table('users as u')
+                ->join('user_tenants as uXt', 'uXt.user_id', '=', 'u.id')
+                ->join('tenants as t', 't.id', '=', 'uXt.tenant_id')
+                ->join('vnt_companies as v', 'v.id', '=', 't.company_id')
+                ->join('vnt_warehouses as w', 'w.companyId', '=', 'v.id')
+                ->join('cities as c', 'c.id', '=', 'w.cityId')
+                ->join('cnf_type_identifications as ti', 'ti.id', '=', 'v.typeIdentificationId')
+                ->where('u.id', $userId)
+                ->where('w.main', 1)
+                ->select([
+                    'v.businessName',
+                    'w.address as billingAddress',
+                    'c.name as city',
+                    'ti.acronym',
+                    'v.identification',
+                    'v.checkDigit',
+                    'v.billingEmail' // Campo extra útil para facturación
+                ])
+                ->first();
+
+            if ($companyData) {
+                Log::info('🏢 Datos empresa obtenidos exitosamente', (array)$companyData);
+                return $companyData;
+            } else {
+                Log::warning('⚠️ No se encontraron datos de empresa para el usuario ID: ' . $userId);
+                throw new \Exception('Datos de empresa no encontrados');
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ Error en getCompanyInfo: ' . $e->getMessage());
+
+            // Datos por defecto si hay error o no se encuentra el registro
+            return (object) [
                 'businessName' => 'EMPRESA DE PRUEBA',
-                'firstName' => 'Admin',
-                'lastName' => 'Sistema',
-                'identification' => '123456789',
                 'billingAddress' => 'Dirección de prueba',
-                'phone' => '1234567890',
+                'city' => 'Ciudad Prueba',
+                'acronym' => 'NIT',
+                'identification' => '123456789',
                 'billingEmail' => 'test@empresa.com'
             ];
         }
-
-        Log::info('🏢 Datos empresa preparados', $companyData);
-
-        return (object) $companyData;
     }
 
 
-      private function ensureTenantConnection()
+    private function ensureTenantConnection()
     {
         $tenantId = session('tenant_id');
 
@@ -471,65 +738,9 @@ class Quoter extends Component
 
     public function render()
     {
-        // Asegurar conexión tenant activa
         $this->ensureTenantConnection();
 
-        // Obtener el store (bodega) del usuario autenticado desde su contacto
-        $user = auth()->user();
-        $storeId = null;
-
-        if ($user && $user->contact_id) {
-            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
-            if ($contact) {
-                $storeId = $contact->store;
-            }
-        }
-
-        Log::info('📋 Quoter render() - Iniciando carga de cotizaciones', [
-            'search' => $this->search,
-            'perPage' => $this->perPage,
-            'viewType' => $this->viewType,
-            'user_id' => $user?->id,
-            'contact_id' => $user?->contact_id,
-            'store_id' => $storeId
-        ]);
-
-        // Cargar cotizaciones con sus relaciones, filtrando por store (warehouseId en vnt_quotes)
-        $quotes = VntQuote::with(['customer', 'warehouse.contacts', 'branch', 'detalles'])
-            ->when($storeId, function ($query) use ($storeId) {
-                // Filtrar por store del usuario (warehouseId en vnt_quotes = store del contacto)
-                $query->where('warehouseId', $storeId);
-                Log::info('🔍 Aplicando filtro por store', [
-                    'store_id' => $storeId,
-                    'field' => 'warehouseId'
-                ]);
-            })
-            ->when($this->search, function ($query) {
-                $query->where('consecutive', 'like', '%' . $this->search . '%')
-                    ->orWhere('status', 'like', '%' . $this->search . '%')
-                    ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
-                    ->orWhere('observations', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('customer', function ($q) {
-                        $q->where('businessName', 'like', '%' . $this->search . '%')
-                          ->orWhere('firstName', 'like', '%' . $this->search . '%')
-                          ->orWhere('lastName', 'like', '%' . $this->search . '%')
-                          ->orWhere('identification', 'like', '%' . $this->search . '%')
-                          ->orWhere('billingEmail', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhereHas('warehouse', function ($q) {
-                        $q->where('name', 'like', '%' . $this->search . '%')
-                          ->orWhere('address', 'like', '%' . $this->search . '%');
-                    });
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate($this->perPage);
-
-        Log::info('📊 Cotizaciones cargadas y filtradas', [
-            'total' => $quotes->total(),
-            'count' => $quotes->count(),
-            'current_page' => $quotes->currentPage(),
-            'filtered_by_store' => $storeId
-        ]);
+        $quotes = $this->getQuotesQuery()->paginate($this->perPage);
 
         // Agregar el nombre de la bodega a cada cotización
         $quotes->getCollection()->transform(function ($quote) {
@@ -540,7 +751,7 @@ class Quoter extends Component
             ]);
 
             $storageName = $quote->getStorageName();
-            
+
             Log::info('✅ Storage name obtenido', [
                 'quote_id' => $quote->id,
                 'storage_name' => $storageName
@@ -559,5 +770,176 @@ class Quoter extends Component
         return view($viewName, [
             'quotes' => $quotes
         ]);
+    }
+
+    /**
+     * Obtiene la consulta filtrada de cotizaciones
+     */
+    private function getQuotesQuery()
+    {
+        $this->ensureTenantConnection();
+
+        $user = auth()->user();
+        $storeId = null;
+
+        if ($user && $user->contact_id) {
+            $contact = \App\Models\Central\VntContact::on('central')->find($user->contact_id);
+            if ($contact) {
+                $storeId = $contact->store;
+            }
+        }
+
+        Log::info('📋 Quoter getQuotesQuery() - Iniciando carga de cotizaciones', [
+            'search' => $this->search,
+            'perPage' => $this->perPage,
+            'viewType' => $this->viewType,
+            'user_id' => $user?->id,
+            'contact_id' => $user?->contact_id,
+            'store_id' => $storeId
+        ]);
+
+        return VntQuote::with(['customer', 'branch.company', 'detalles'])
+            ->when($storeId, function ($query) use ($storeId) {
+                $query->where('warehouseId', $storeId);
+            })
+            ->when($this->search, function ($query) {
+                $query->where(function($q) {
+                    $q->where('consecutive', 'like', '%' . $this->search . '%')
+                        ->orWhere('status', 'like', '%' . $this->search . '%')
+                        ->orWhere('typeQuote', 'like', '%' . $this->search . '%')
+                        ->orWhere('observations', 'like', '%' . $this->search . '%')
+                        ->orWhere(DB::raw("DATE_FORMAT(created_at, '%d/%m/%Y')"), 'like', '%' . $this->search . '%')
+                        ->orWhere(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), 'like', '%' . $this->search . '%')
+                        ->orWhereHas('customer', function ($subQ) {
+                            $subQ->where('firstName', 'like', '%' . $this->search . '%')
+                                ->orWhere('secondName', 'like', '%' . $this->search . '%')
+                                ->orWhere('lastName', 'like', '%' . $this->search . '%')
+                                ->orWhere('secondLastName', 'like', '%' . $this->search . '%')
+                                ->orWhere('email', 'like', '%' . $this->search . '%')
+                                ->orWhere('business_phone', 'like', '%' . $this->search . '%')
+                                ->orWhere('personal_phone', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('customer.company', function ($subQ) {
+                            $subQ->where('businessName', 'like', '%' . $this->search . '%')
+                                ->orWhere('identification', 'like', '%' . $this->search . '%')
+                                ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                                ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('branch.company', function ($subQ) {
+                            $subQ->where('businessName', 'like', '%' . $this->search . '%')
+                                ->orWhere('identification', 'like', '%' . $this->search . '%')
+                                ->orWhere('firstName', 'like', '%' . $this->search . '%')
+                                ->orWhere('lastName', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhere(function ($subQ) {
+                            // Buscar vendedor por nombre o teléfono en base de datos central
+                            $userIds = DB::connection('central')->table('users')
+                                ->where('name', 'like', '%' . $this->search . '%')
+                                ->orWhere('phone', 'like', '%' . $this->search . '%')
+                                ->pluck('id')
+                                ->toArray();
+                            if (!empty($userIds)) {
+                                $subQ->whereIn('userId', $userIds);
+                            }
+                        })
+                        ->orWhere(function ($subQ) {
+                            // Buscar bodegas en tenant que coincidan por nombre
+                            $storeIds = DB::connection('tenant')->table('inv_store')
+                                ->where('name', 'like', '%' . $this->search . '%')
+                                ->pluck('id')
+                                ->toArray();
+                            
+                            if (!empty($storeIds)) {
+                                // Obtener contactos de central con esa bodega
+                                $contactIds = DB::connection('central')->table('vnt_contacts')
+                                    ->whereIn('store', $storeIds)
+                                    ->pluck('id')
+                                    ->toArray();
+                                    
+                                if (!empty($contactIds)) {
+                                    // Obtener usuarios con esos contactos
+                                    $userIds = DB::connection('central')->table('users')
+                                        ->whereIn('contact_id', $contactIds)
+                                        ->pluck('id')
+                                        ->toArray();
+                                        
+                                    if (!empty($userIds)) {
+                                        $subQ->whereIn('userId', $userIds);
+                                    }
+                                }
+                            }
+                        });
+                });
+            })
+            ->when($this->filterNit, function ($query) {
+                $query->whereHas('customer.company', function ($q) {
+                    $q->where('identification', 'like', '%' . $this->filterNit . '%');
+                });
+            })
+            ->when($this->filterName, function ($query) {
+                $query->whereHas('customer.company', function ($q) {
+                    $q->where('businessName', 'like', '%' . $this->filterName . '%')
+                        ->orWhere('firstName', 'like', '%' . $this->filterName . '%')
+                        ->orWhere('secondName', 'like', '%' . $this->filterName . '%')
+                        ->orWhere('lastName', 'like', '%' . $this->filterName . '%')
+                        ->orWhere('secondLastName', 'like', '%' . $this->filterName . '%');
+                });
+            })
+            ->when($this->filterConsecutive, function ($query) {
+                $query->where('consecutive', 'like', '%' . $this->filterConsecutive . '%');
+            })
+            ->when(empty($this->search) && empty($this->filterNit) && empty($this->filterName) && empty($this->filterConsecutive), function ($query) {
+                $query->when($this->filterDateFrom, function ($q) {
+                    $q->whereDate('created_at', '>=', $this->filterDateFrom);
+                })
+                ->when($this->filterDateTo, function ($q) {
+                    $q->whereDate('created_at', '<=', $this->filterDateTo);
+                });
+            })
+            ->orderBy('consecutive', 'desc');
+    }
+
+    /**
+     * Métodos de soporte para exportación
+     */
+    protected function getExportData()
+    {
+        $this->ensureTenantConnection();
+        return $this->getQuotesQuery()->get();
+    }
+
+    protected function getExportHeadings(): array
+    {
+        return [
+            'COTIZACIÓN #',
+            'CLIENTE',
+            'TIPO',
+            'ESTADO',
+            'BODEGA',
+            'VENDEDOR',
+            'TELÉFONO',
+            'FECHA'
+        ];
+    }
+
+    protected function getExportMapping()
+    {
+        return function ($quote) {
+            return [
+                '#' . $quote->consecutive,
+                $quote->customer_name,
+                $quote->typeQuote,
+                $quote->status,
+                $quote->getStorageName(),
+                $quote->seller_name,
+                ($quote->customer && $quote->customer->primary_phone) ? $quote->customer->primary_phone : 'Sin teléfono',
+                $quote->created_at ? $quote->created_at->format('d/m/Y H:i') : 'N/A'
+            ];
+        };
+    }
+
+    protected function getExportFilename(): string
+    {
+        return 'cotizaciones_' . now()->format('Y-m-d_His');
     }
 }

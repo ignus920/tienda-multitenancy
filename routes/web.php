@@ -64,10 +64,19 @@ Route::get('/settings/2fa', Enable2FA::class)
     ->middleware(['auth', 'company.complete'])
     ->name('settings.2fa');
 
-// Dashboard original de Breeze (redirige a selección de tenant)
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified', 'company.complete'])
-    ->name('dashboard');
+// Dashboard original de Breeze (redirige al dashboard del tenant o a la selección de sucursal)
+Route::get('dashboard', function () {
+    if (session()->has('tenant_id')) {
+        if (auth()->user() && auth()->user()->profile_id == 17) {
+            return redirect()->route('imports.imports-orders');
+        }
+        if (auth()->user() && auth()->user()->profile_id == 18) {
+            return redirect()->route('tenant.client.portal');
+        }
+        return redirect()->route('tenant.dashboard');
+    }
+    return redirect()->route('tenant.select');
+})->middleware(['auth', 'verified', 'company.complete'])->name('dashboard');
 
 Route::view('profile', 'profile')
     ->middleware(['auth', 'company.complete'])
@@ -149,17 +158,68 @@ Route::prefix('api/permissions')->middleware(['auth', 'company.complete'])->grou
 
 
 require __DIR__ . '/auth.php';
-
 // Incluir rutas del módulo de parámetros del tenant
 require __DIR__ . '/tenants/parameters.php';
 // Incluir rutas del módulo de pagos de cotizacion 
 require __DIR__ . '/tenants/payments.php';
-
-
 // Incluir rutas del módulo de remisiones 
 require __DIR__ . '/tenants/remissions.php';
-
 //Incluir rutas del módelo de facturas
 require __DIR__ . '/tenants/invoices.php';
 // Incluir rutas del módulo de usuarios
-require __DIR__.'/tenants/users.php';
+require __DIR__ . '/tenants/users.php';
+// Incluir rutas del módulo de solicitud de transferencia
+require __DIR__ . '/tenants/transfer_request.php';
+// Incluir rutas del módulo de importaciones
+require __DIR__ . '/tenants/imports.php';
+// Incluir rutas del módulo de producción
+require __DIR__ . '/tenants/production.php';
+// Incluir rutas del módulo de campañas (regalos)
+require __DIR__ . '/tenants/campaigns.php';
+// Incluir rutas del módulo de solicitudes/tickets
+require __DIR__ . '/tenants/tickets.php';
+// Incluir rutas del módulo de observacionesitems
+require __DIR__ . '/tenants/ItemObservation.php';
+// Incluir rutas del calculador de costos de importación
+require __DIR__ . '/tenants/import-cost-calculator.php';
+// Incluir rutas del calculador de potencia 
+require __DIR__ . '/tenants/product-bundle-power-calculator.php';
+// Incluir rutas del detalle de corte de items
+require __DIR__ . '/tenants/inv-items-cut-details.php';
+// Incluir rutas del módulo de cartera
+require __DIR__ . '/tenants/cartera.php';
+// Incluir rutas del módulo de empaque
+require __DIR__ . '/tenants/packing.php';
+
+// Incluir rutas del módulo de gestión
+require __DIR__ . '/tenants/gestion.php';
+
+// Incluir rutas del módulo de informes
+require __DIR__ . '/tenants/reports.php';
+
+// Incluir rutas del módulo de confirmaciones de inventario
+require __DIR__ . '/tenants/inventory_confirmations.php';
+
+// Incluir rutas del módulo de devoluciones
+require __DIR__ . '/tenants/returns.php';
+
+// Incluir rutas del módulo de despachos
+require __DIR__ . '/tenants/dispatches.php';
+
+// Incluir rutas de WordPress
+require __DIR__ . '/tenants/wordpress.php';
+
+// Incluir rutas de Catálogos
+require __DIR__ . '/tenants/catalogs.php';
+
+// Incluir rutas del portal de autogestión de clientes
+require __DIR__ . '/tenants/portal.php';
+
+// Incluir rutas del módulo de marketing (sliders de promociones)
+require __DIR__ . '/tenants/marketing.php';
+
+
+
+
+
+

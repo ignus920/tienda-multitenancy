@@ -21,7 +21,9 @@ class VntQuote extends Model
         'warehouseId',
         'userId',
         'observations',
-        'branchId'
+        'branchId',
+        'flete',
+        'empaque'
     ];
 
     protected $casts = [
@@ -29,6 +31,23 @@ class VntQuote extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::saving(function ($quote) {
+            if ($quote->branchId && $quote->customerId) {
+                $branch = \App\Models\Tenant\Customer\VntWarehouse::find($quote->branchId);
+                $contact = \App\Models\Tenant\Customer\VntContacts::where('warehouseId', $quote->customerId)->first();
+
+                if ($branch && $contact) {
+                    $contactWarehouse = \App\Models\Tenant\Customer\VntWarehouse::find($contact->warehouseId);
+                    if ($contactWarehouse && $branch->companyId !== $contactWarehouse->companyId) {
+                        throw new \Exception("La sucursal seleccionada no pertenece al cliente de la cotización.");
+                    }
+                }
+            }
+        });
+    }
 
     // Relaciones
     public function detalles(): HasMany
@@ -38,7 +57,8 @@ class VntQuote extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(VntContacts::class, 'customerId');
+        // customerId almacena el warehouseId del contacto (vnt_contacts.warehouseId = vnt_quotes.customerId)
+        return $this->belongsTo(VntContacts::class, 'customerId', 'warehouseId');
     }
 
     public function warehouse(): BelongsTo
@@ -51,11 +71,20 @@ class VntQuote extends Model
         return $this->belongsTo(VntWarehouse::class, 'branchId');
     }
 
+    public function observations(): HasMany
+    {
+        return $this->hasMany(\App\Models\Tenant\Sales\VntObservation::class, 'reference_id')
+                    ->where('reference_type', 'quote');
+    }
+
     // Métodos de utilidad
     public function getSubTotalAttribute()
     {
+        // IMPORTANTE: Los valores en vnt_detail_quotes YA incluyen impuestos
+        // Por lo tanto, debemos dividir entre (1 + tax/100) para obtener el valor base SIN impuestos
         return $this->detalles->sum(function ($detalle) {
-            return $detalle->quantity * $detalle->value;
+            $valorSinImpuesto = $detalle->value / (1 + $detalle->tax / 100);
+            return $detalle->quantity * $valorSinImpuesto;
         });
     }
 
@@ -66,14 +95,31 @@ class VntQuote extends Model
         });
     }
 
-    public function getCustomerNameAttribute()
+    public function getCustomerNameAttribute(): string
     {
-        if (!$this->customer) {
-            return 'Cliente no encontrado';
+        // Obtener el nombre desde la empresa (igual a como se muestra en el formulario)
+        // Ruta: quote.branchId → vnt_warehouses.id → vnt_warehouses.companyId → vnt_companies
+        if ($this->relationLoaded('branch') && $this->branch?->relationLoaded('company') && $this->branch?->company) {
+            return $this->branch->company->customer_name;
         }
 
-        // Usar el atributo full_name definido en el modelo VntContacts
-        return $this->customer->full_name ?: 'Sin nombre';
+        // Fallback: cargar la empresa si la relación no fue eager-loaded
+        if ($this->branchId) {
+            $branch = $this->branch ?? VntWarehouse::find($this->branchId);
+            if ($branch) {
+                $company = $branch->company ?? \App\Models\Tenant\Customer\VntCompany::find($branch->companyId);
+                if ($company) {
+                    return $company->customer_name;
+                }
+            }
+        }
+
+        // Último recurso: nombre del contacto
+        if ($this->customer) {
+            return $this->customer->full_name ?: 'Sin nombre';
+        }
+
+        return 'Cliente no encontrado';
     }
 
     public function getWarehouseNameAttribute()
@@ -95,6 +141,15 @@ class VntQuote extends Model
         $user = \App\Models\Auth\User::on('central')->find($this->userId);
 
         return $user ? $user->name : 'Sin vendedor';
+    }
+
+    /**
+     * Obtiene el teléfono del vendedor/usuario que creó la cotización
+     */
+    public function getSellerPhoneAttribute()
+    {
+        $user = $this->getUser();
+        return $user ? $user->phone : 'N/A';
     }
 
     /**

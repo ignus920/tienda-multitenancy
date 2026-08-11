@@ -22,11 +22,58 @@ class ImageGallery extends Model
     protected $fillable = [
         'itemId',       // ID del item al que pertenece la imagen
         'img_path',     // Ruta de la imagen en storage
-        'type',         // Tipo: PRINCIPAL o GALERIA
+        'type',         // Tipo: PRINCIPAL, GALERIA, PDF
+        'type_show',    // Clasificación: COMERCIAL, BODEGA
         'created_at',   // Fecha de creación
         'updated_at',   // Fecha de actualización
         'deleted_at',   // Fecha de eliminación (soft delete)
     ];
+
+    /**
+     * Relación con los datos de sincronización de WordPress.
+     */
+    public function wpSync()
+    {
+        return $this->hasOne(\App\Models\Tenant\WordPress\InvWordpressImage::class, 'image_id', 'id');
+    }
+
+    /**
+     * Accessor para mantener compatibilidad con el código que busca wp_media_id directamente.
+     */
+    public function getWpMediaIdAttribute()
+    {
+        return $this->wpSync ? $this->wpSync->wp_media_id : null;
+    }
+
+    /**
+     * Mutador para sincronizar automáticamente con la tabla externa de WordPress.
+     */
+    public function setWpMediaIdAttribute($value)
+    {
+        $this->wpSync()->updateOrCreate(
+            ['image_id' => $this->id],
+            ['itemId' => $this->itemId, 'wp_media_id' => $value]
+        );
+    }
+
+    /**
+     * Accessor para mantener compatibilidad con el código que busca sync_to_wp directamente.
+     */
+    public function getSyncToWpAttribute()
+    {
+        return $this->wpSync ? $this->wpSync->sync_to_wp : false;
+    }
+
+    /**
+     * Mutador para sincronizar automáticamente con la tabla externa de WordPress.
+     */
+    public function setSyncToWpAttribute($value)
+    {
+        $this->wpSync()->updateOrCreate(
+            ['image_id' => $this->id],
+            ['itemId' => $this->itemId, 'sync_to_wp' => $value]
+        );
+    }
 
     // Habilitar timestamps automáticos
     public $timestamps = true;
@@ -83,7 +130,7 @@ class ImageGallery extends Model
             $cleanPath = $this->cleanMalformedUrl($this->img_path);
 
             // Si ya es una URL completa, devolverla directamente
-            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+            if (str_starts_with(strtolower($cleanPath), 'http://') || str_starts_with(strtolower($cleanPath), 'https://')) {
                 return $cleanPath;
             }
 
@@ -110,7 +157,7 @@ class ImageGallery extends Model
             $cleanPath = $this->cleanMalformedUrl($this->img_path);
 
             // Si ya es una URL completa, devolverla directamente
-            if (filter_var($cleanPath, FILTER_VALIDATE_URL)) {
+            if (str_starts_with(strtolower($cleanPath), 'http://') || str_starts_with(strtolower($cleanPath), 'https://')) {
                 return $cleanPath;
             }
 
@@ -131,6 +178,34 @@ class ImageGallery extends Model
 
         // Retornar imagen placeholder si no existe
         return asset('images/placeholder-item.png');
+    }
+
+    /**
+     * Obtener la URL pública del archivo (PDF o imagen)
+     *
+     * @return string
+     */
+    public function getFileUrl()
+    {
+        if ($this->img_path) {
+            $cleanPath = $this->cleanMalformedUrl($this->img_path);
+            if (str_starts_with(strtolower($cleanPath), 'http://') || str_starts_with(strtolower($cleanPath), 'https://')) {
+                return $cleanPath;
+            }
+            if (Storage::disk('public')->exists($cleanPath)) {
+                $url = Storage::disk('public')->url($cleanPath);
+                return $this->cleanMalformedUrl($url);
+            }
+        }
+        // Retornar placeholder si no existe
+        return asset('images/placeholder-item.png');
+    }
+
+    public function getOriginalName()
+    {
+        // Si tienes un campo específico para el nombre original, usa ese.
+        // Si no, usa el nombre base del path.
+        return basename($this->img_path);
     }
 
     /**
@@ -217,14 +292,18 @@ class ImageGallery extends Model
             return $url;
         }
 
-        // Remover duplicaciones de protocolo
+        // Remover duplicaciones de protocolo (http:https://, etc)
         $url = preg_replace('/^https?:https?:\/\//', 'https://', $url);
         $url = preg_replace('/^https?:http:\/\//', 'https://', $url);
         $url = preg_replace('/^http:https:\/\//', 'https://', $url);
 
-        // Asegurar que use https en producción
-        if (str_contains($url, 'erp.dosil.com.co')) {
-            $url = str_replace('http:', 'https:', $url);
+        // Asegurar que use https en dominios conocidos de producción
+        $productionDomains = ['erp.dosil.com.co', 'cloud.ticsia.com'];
+        foreach ($productionDomains as $domain) {
+            if (str_contains($url, $domain)) {
+                $url = str_replace('http:', 'https:', $url);
+                break;
+            }
         }
 
         return $url;
