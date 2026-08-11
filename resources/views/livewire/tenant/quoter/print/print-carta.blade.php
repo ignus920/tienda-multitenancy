@@ -671,11 +671,24 @@
                     @endphp
                     <td class="col-price">${{ number_format($valueWithoutTax, 2) }}</td>
                     <td class="col-discount">
-                        @if(isset($detalle->price_label) && preg_match('/^\d+%$/', trim($detalle->price_label)))
-                            {{ $detalle->price_label }}
-                        @else
-                            -
-                        @endif
+                        @php
+                            $itemDiscountPercent = 0;
+                            if (isset($detalle->price_label) && preg_match('/(\d+(?:\.\d+)?)\s*%/', $detalle->price_label, $matches)) {
+                                $itemDiscountPercent = (float) $matches[1];
+                            } else if ($detalle->item) {
+                                $basePriceRecord = $detalle->item->invValues->firstWhere('label', 'Precio Base') ?? null;
+                                if ($basePriceRecord) {
+                                    $basePrice = (float) $basePriceRecord->values;
+                                    $taxMultiplier = 1 + (($detalle->tax ?? 0) / 100);
+                                    $basePriceWithTax = $basePrice * $taxMultiplier;
+                                    
+                                    if ($basePriceWithTax > 0 && $basePriceWithTax > $detalle->value) {
+                                        $itemDiscountPercent = (($basePriceWithTax - $detalle->value) / $basePriceWithTax) * 100;
+                                    }
+                                }
+                            }
+                        @endphp
+                        {{ $itemDiscountPercent > 0 ? round($itemDiscountPercent) . '%' : '-' }}
                     </td>
                     <td class="col-total">${{ number_format($valueWithoutTax * $detalle->quantity, 2) }}</td>
                     @endif
@@ -836,26 +849,39 @@
 
     <div style="margin-top: 15px; text-align: left; width: 100%;">
         @php
-            // Consulta directa proporcionada por el usuario adaptada al ID de la cotización actual
-            $discountResult = \Illuminate\Support\Facades\DB::connection('tenant')->selectOne("
-                SELECT SUM( (iv.values * REPLACE(vd.price_label, '%', '') / 100) * vd.quantity ) AS total 
-                FROM vnt_detail_quotes vd 
-                INNER JOIN inv_values iv ON iv.itemId = vd.itemId 
-                WHERE vd.quoteId = ? AND iv.label = 'Precio Base'
-            ", [$quote->id]);
+            $totalDiscountAmount = 0;
+            $discountLabels = [];
+
+            foreach($quote->detalles as $detalle) {
+                $itemDiscountPercent = 0;
+                $itemDiscountAmount = 0;
+                
+                if (isset($detalle->price_label) && preg_match('/(\d+(?:\.\d+)?)\s*%/', $detalle->price_label, $matches)) {
+                    $itemDiscountPercent = (float) $matches[1];
+                    $originalPrice = $detalle->value / (1 - $itemDiscountPercent / 100);
+                    $itemDiscountAmount = ($originalPrice - $detalle->value) * $detalle->quantity;
+                } else if ($detalle->item) {
+                    $basePriceRecord = $detalle->item->invValues->firstWhere('label', 'Precio Base') ?? null;
+                    if ($basePriceRecord) {
+                        $basePrice = (float) $basePriceRecord->values;
+                        $taxMultiplier = 1 + (($detalle->tax ?? 0) / 100);
+                        $basePriceWithTax = $basePrice * $taxMultiplier;
+                        
+                        if ($basePriceWithTax > 0 && $basePriceWithTax > $detalle->value) {
+                            $itemDiscountPercent = (($basePriceWithTax - $detalle->value) / $basePriceWithTax) * 100;
+                            $itemDiscountAmount = ($basePriceWithTax - $detalle->value) * $detalle->quantity;
+                        }
+                    }
+                }
+                
+                $totalDiscountAmount += $itemDiscountAmount;
+                
+                if ($itemDiscountPercent > 0) {
+                    $discountLabels[] = round($itemDiscountPercent) . '%';
+                }
+            }
             
-            $totalDiscountAmount = $discountResult->total ?? 0;
-            
-            // Obtener etiquetas de descuento para mostrar los nombres de las listas/etiquetas aplicadas
-            $discountLabels = $quote->detalles
-                ->pluck('price_label')
-                ->filter(function ($label) {
-                    if (empty($label)) return false;
-                    $l = trim(mb_strtolower($label, 'UTF-8'));
-                    return !in_array($l, ['precio regular', 'regular', 'precio base', 'precio', 'lista', 'crédito', 'precio crédito', 'precio remisión', 'precio seleccionado']);
-                })
-                ->unique()
-                ->values();
+            $discountLabels = collect($discountLabels)->unique()->values();
         @endphp
 
         @if($totalDiscountAmount > 0 || $discountLabels->count() > 0)
