@@ -95,6 +95,7 @@ class WordPressService
                         'sku'          => $product['sku'],
                         'name'         => $product['name'],
                         'images'       => $product['images'],
+                        'permalink'    => $product['permalink'] ?? null,
                         'is_variation' => ($product['type'] === 'variation'),
                     ];
                 }
@@ -136,6 +137,7 @@ class WordPressService
                                         'sku'          => $variation['sku'],
                                         'name'         => $parentProduct['name'] . ' - ' . implode(', ', array_column($variation['attributes'] ?? [], 'option')),
                                         'images'       => !empty($variation['image']) ? [$variation['image']] : $parentProduct['images'],
+                                        'permalink'    => $variation['permalink'] ?? $parentProduct['permalink'] ?? null,
                                         'is_variation' => true,
                                     ];
                                 }
