@@ -999,8 +999,8 @@
                                                                      // Disponibles = Stock - Cuarentena - Vitrina
                                                                      $dispStock = max(0, $physStock - $quarantineStock - $showroomStock);
                                                                      
-                                                                     // Reservas visuales = Reservas físicas + Cuarentena + Vitrina
-                                                                     $visualReservations = $resStock + $quarantineStock + $showroomStock;
+                                                                     // Reservas visuales = Reservas físicas de clientes únicamente
+                                                                     $visualReservations = $resStock;
                                                                      
                                                                      $hasSpecialStock = ($quarantineStock > 0 || $showroomStock > 0);
                                                                  @endphp
@@ -1015,7 +1015,7 @@
                                                                      </td>
                                                                      <!-- Celda Reservas (Columna derecha, clic abre reservas) -->
                                                                      <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
-                                                                         title="Reservas Físicas: {{ $resStock }}{{ $quarantineStock > 0 ? ' | En Cuarentena: ' . $quarantineStock : '' }}{{ $showroomStock > 0 ? ' | En Vitrina: ' . $showroomStock : '' }}. Haga clic para gestionar reservas."
+                                                                         title="Reservas Físicas: {{ $resStock }}. Haga clic para gestionar reservas."
                                                                          class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                                                                          {{ $visualReservations > 0 ? number_format($visualReservations, 0) : '' }}
                                                                      </td>
