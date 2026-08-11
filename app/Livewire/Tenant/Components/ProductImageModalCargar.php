@@ -26,6 +26,7 @@ class ProductImageModalCargar extends Component
     public $activeTab = 'COMERCIAL';
     public $userProfileId;
     public $hasWpProduct = false;
+    public $wpProductUrl = null;
  
     protected $rules = [
         'mainImage' => 'nullable|image|max:2048', // 2MB max
@@ -73,6 +74,7 @@ class ProductImageModalCargar extends Component
             $this->productName = $product->name;
             $this->isOpen = true;
             $this->hasWpProduct = false; // Se cargará de forma asíncrona mediante wire:init
+            $this->wpProductUrl = null;
             $this->userProfileId = auth()->user()->profile_id;
             
             if ($this->userProfileId == 6) {
@@ -89,7 +91,9 @@ class ProductImageModalCargar extends Component
         if ($this->productId) {
             $product = Items::find($this->productId);
             if ($product) {
-                $this->hasWpProduct = !empty($product->sku) && $wpService->findProductBySku($product->sku) !== null;
+                $wpProduct = !empty($product->sku) ? $wpService->findProductBySku($product->sku) : null;
+                $this->hasWpProduct = $wpProduct !== null;
+                $this->wpProductUrl = $wpProduct ? ($wpProduct['permalink'] ?? null) : null;
             }
         }
     }
