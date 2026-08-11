@@ -357,15 +357,10 @@
                             <select wire:model.live="productFilter"
                                 class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="todo">Todo</option>
-                                <option value="en_stock">En stock</option>
                                 <option value="bajo_stock">Bajo stock</option>
-                                <option value="agotados">Productos agotados</option>
                                 <option value="nuevos">Productos nuevos</option>
                                 <option value="sin_venta">Productos que no se están vendiendo</option>
                                 <option value="poca_venta">Productos con poca venta</option>
-                                <option value="reservas">Reservas</option>
-                                <option value="notas_asesores">Notas Asesores</option>
-                                <option value="notas_tecnicas">Observación o Notas Técnicas</option>
                             </select>
                         </div>
 
