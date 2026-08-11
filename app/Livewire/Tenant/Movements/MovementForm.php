@@ -697,10 +697,40 @@ class MovementForm extends Component
                 'warehouse' => ['id' => '1'],
             ] : [];
 
-            if ($reason && $reason->alegra_category_id) {
-                $alegraData['category'] = [
-                    'id' => $reason->alegra_category_id
-                ];
+            if ($reason) {
+                // Auto-mapeo dinámico: Si no tiene ID de categoría, lo buscamos en Alegra por nombre
+                if (empty($reason->alegra_category_id)) {
+                    try {
+                        $tenant = Tenant::find(session('tenant_id'));
+                        if ($tenant) {
+                            $apiClient = \App\Services\Facturacion\ApiClient::forTenant($tenant);
+                            $categories = $apiClient->get('categories');
+                            
+                            $matchedCategory = null;
+                            if (is_array($categories)) {
+                                foreach ($categories as $cat) {
+                                    if (isset($cat['name']) && stripos($cat['name'], $reason->name) !== false) {
+                                        $matchedCategory = $cat;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if ($matchedCategory && isset($matchedCategory['id'])) {
+                                $reason->update(['alegra_category_id' => (string) $matchedCategory['id']]);
+                                Log::info("♻️ [MovementForm] Motivo '{$reason->name}' auto-mapeado a la categoría Alegra ID: {$matchedCategory['id']}");
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("⚠️ [MovementForm] Error en auto-mapeo de categoría Alegra para '{$reason->name}': " . $e->getMessage());
+                    }
+                }
+
+                if ($reason->alegra_category_id) {
+                    $alegraData['category'] = [
+                        'id' => $reason->alegra_category_id
+                    ];
+                }
             }
 
 
