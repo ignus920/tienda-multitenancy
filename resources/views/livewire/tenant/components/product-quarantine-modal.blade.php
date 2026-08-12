@@ -33,27 +33,70 @@
                 <!-- Cuerpo del Modal -->
                 <div class="p-6 overflow-y-auto space-y-6 flex-1">
                     
-                    <!-- Tarjetas de Información de Stock (5 columnas) -->
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                        <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                            <div class="text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase">Stock Físico</div>
-                            <div class="text-lg font-bold text-slate-800 dark:text-white mt-1">{{ number_format($stock_bodega, 0) }}</div>
+                    <!-- Tarjetas de Información de Stock (4 columnas con tooltips Alpine) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <!-- DISPONIBLES -->
+                        <div class="relative p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-center" x-data="{ showTooltip: false }">
+                            <div class="flex justify-center items-center gap-1">
+                                <span class="text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase">DISPONIBLES</span>
+                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click="showTooltip = !showTooltip" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                                Cantidad total disponibles para venta (incluyendo las reservadas)
+                            </div>
+                            <div class="text-lg font-bold text-slate-800 dark:text-white mt-1">{{ number_format($stock_disponible, 0) }}</div>
                         </div>
-                        <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                            <div class="text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase">Reservado</div>
+
+                        <!-- RESERVADO -->
+                        <div class="relative p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-center" x-data="{ showTooltip: false }">
+                            <div class="flex justify-center items-center gap-1">
+                                <span class="text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase">Reservado</span>
+                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click="showTooltip = !showTooltip" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                                Total Unidades reservadas por asesores comerciales
+                            </div>
                             <div class="text-lg font-bold text-red-500 mt-1">{{ number_format($reserved_stock, 0) }}</div>
                         </div>
-                        <div class="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30 text-center">
-                            <div class="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase">Cuarentena</div>
+
+                        <!-- CUARENTENA -->
+                        <div class="relative p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30 text-center" x-data="{ showTooltip: false }">
+                            <div class="flex justify-center items-center gap-1">
+                                <span class="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase">Cuarentena</span>
+                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click="showTooltip = !showTooltip" class="text-blue-400 hover:text-blue-600 dark:hover:text-blue-350 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                                Unidades en revisión técnica, no están incluidas en las Disponibles
+                            </div>
                             <div class="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">{{ number_format($quarantine_stock, 0) }}</div>
                         </div>
-                        <div class="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center">
-                            <div class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">En Vitrina</div>
+
+                        <!-- EN VITRINA -->
+                        <div class="relative p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center" x-data="{ showTooltip: false }">
+                            <div class="flex justify-center items-center gap-1">
+                                <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">En Vitrina</span>
+                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click="showTooltip = !showTooltip" class="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-350 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                                De las cantidades disponibles para venta, estas se encuentran en vitrina
+                            </div>
                             <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">{{ number_format($showroom_stock, 0) }}</div>
-                        </div>
-                        <div class="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-center">
-                            <div class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Disp. Venta</div>
-                            <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ number_format($stock_disponible, 0) }}</div>
                         </div>
                     </div>
 
