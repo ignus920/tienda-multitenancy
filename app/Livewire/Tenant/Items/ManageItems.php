@@ -2074,8 +2074,26 @@ class ManageItems extends Component
         $this->showAccesoriosSection = false;
     }
 
+    private function ensureTenantConnection()
+    {
+        $tenantManager = app(TenantManager::class);
+        $tenantId = session('tenant_id');
+        if (!$tenantId) return;
+
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant) return;
+
+        $tenantManager->setConnection($tenant);
+        
+        if (!tenancy()->initialized) {
+            tenancy()->initialize($tenant);
+        }
+    }
+
     public function exportSpecialStocks()
     {
+        $this->ensureTenantConnection();
+
         $data = Items::where(function($q) {
             $q->where('quarantine_stock', '>', 0)
               ->orWhere('showroom_stock', '>', 0);
