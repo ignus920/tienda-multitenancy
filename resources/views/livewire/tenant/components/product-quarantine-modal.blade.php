@@ -45,7 +45,7 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-100 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
                                 Cantidad total disponibles para venta (incluyendo las reservadas)
                             </div>
                             <div class="text-lg font-bold text-slate-800 dark:text-white mt-1">{{ number_format($stock_disponible, 0) }}</div>
@@ -61,7 +61,7 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-100 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
                                 Total Unidades reservadas por asesores comerciales
                             </div>
                             <div class="text-lg font-bold text-red-500 mt-1">{{ number_format($reserved_stock, 0) }}</div>
@@ -77,7 +77,7 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-100 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
                                 Unidades en revisión técnica, no están incluidas en las Disponibles
                             </div>
                             <div class="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">{{ number_format($quarantine_stock, 0) }}</div>
@@ -93,7 +93,7 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
+                            <div x-show="showTooltip" x-transition x-cloak class="absolute z-100 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
                                 De las cantidades disponibles para venta, estas se encuentran en vitrina
                             </div>
                             <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">{{ number_format($showroom_stock, 0) }}</div>
