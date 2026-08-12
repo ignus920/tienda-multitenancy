@@ -68,33 +68,37 @@
                         </div>
 
                         <!-- CUARENTENA -->
-                        <div class="relative p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30 text-center" x-data="{ showTooltip: false }">
+                        <div class="relative p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30 text-center cursor-pointer hover:bg-blue-100/50 hover:border-blue-300 dark:hover:bg-blue-900/40 dark:hover:border-blue-700 transition-all" 
+                             x-data="{ showTooltip: false }"
+                             @click="$dispatch('openSpecialHistoryModal', { productId: {{ $productId }}, type: 'quarantine' })">
                             <div class="flex justify-center items-center gap-1">
                                 <span class="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase">Cuarentena</span>
-                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click="showTooltip = !showTooltip" class="text-blue-400 hover:text-blue-600 dark:hover:text-blue-350 transition-colors">
+                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click.stop="showTooltip = !showTooltip" class="text-blue-400 hover:text-blue-600 dark:hover:text-blue-350 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </button>
                             </div>
                             <div x-show="showTooltip" x-transition x-cloak class="absolute z-30 top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
-                                Unidades en revisión técnica, no están incluidas en las Disponibles
+                                Unidades en revisión técnica, no están incluidas en las Disponibles. (Haz clic para ver el historial)
                             </div>
                             <div class="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">{{ number_format($quarantine_stock, 0) }}</div>
                         </div>
 
                         <!-- EN VITRINA -->
-                        <div class="relative p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center" x-data="{ showTooltip: false }">
+                        <div class="relative p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center cursor-pointer hover:bg-indigo-100/50 hover:border-indigo-300 dark:hover:bg-indigo-900/40 dark:hover:border-indigo-700 transition-all" 
+                             x-data="{ showTooltip: false }"
+                             @click="$dispatch('openSpecialHistoryModal', { productId: {{ $productId }}, type: 'showroom' })">
                             <div class="flex justify-center items-center gap-1">
                                 <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">En Vitrina</span>
-                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click="showTooltip = !showTooltip" class="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-350 transition-colors">
+                                <button type="button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" @click.stop="showTooltip = !showTooltip" class="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-350 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </button>
                             </div>
                             <div x-show="showTooltip" x-transition x-cloak class="absolute z-30 top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 p-2 text-[11px] text-white bg-slate-900 dark:bg-slate-950 rounded-lg shadow-xl text-center leading-tight">
-                                De las cantidades disponibles para venta, estas se encuentran en vitrina
+                                De las cantidades disponibles para venta, estas se encuentran en vitrina. (Haz clic para ver el historial)
                             </div>
                             <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">{{ number_format($showroom_stock, 0) }}</div>
                         </div>
@@ -181,4 +185,6 @@
             </div>
         </div>
     @endif
+    
+    @livewire('tenant.components.product-special-history-modal')
 </div>
