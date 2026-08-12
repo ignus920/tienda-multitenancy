@@ -2090,16 +2090,23 @@ class ManageItems extends Component
             'Nombre del Producto',
             'Marca',
             'Cantidad en Cuarentena',
-            'Cantidad en Vitrina / Exhibición'
+            'Observación Última Cuarentena',
+            'Cantidad en Vitrina / Exhibición',
+            'Observación Última Vitrina / Exhibición'
         ];
 
         $mapping = function($item) {
+            $lastQuarantine = $item->quarantineMovements->sortByDesc('created_at')->first();
+            $lastShowroom = $item->showroomMovements->sortByDesc('created_at')->first();
+
             return [
                 $item->internal_code ?? $item->sku,
                 $item->name,
                 $item->brand?->name ?? 'N/A',
                 $item->quarantine_stock,
-                $item->showroom_stock
+                $lastQuarantine ? $lastQuarantine->justification : '',
+                $item->showroom_stock,
+                $lastShowroom ? $lastShowroom->justification : ''
             ];
         };
 
