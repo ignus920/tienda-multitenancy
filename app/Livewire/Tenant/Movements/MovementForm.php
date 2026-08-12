@@ -692,9 +692,10 @@ class MovementForm extends Component
             $reason = InvReason::find($this->movementForm['reasonId']);
 
             $alegraData = !empty($itemsAlegra) ? [
-                'date'      => $this->movementForm['date'],
-                'items'     => $itemsAlegra,
-                'warehouse' => ['id' => '1'],
+                'date'         => $this->movementForm['date'],
+                'items'        => $itemsAlegra,
+                'warehouse'    => ['id' => '1'],
+                'observations' => $this->movementForm['observations'] ?? '',
             ] : [];
 
             if ($reason) {
@@ -726,13 +727,7 @@ class MovementForm extends Component
                     }
                 }
 
-                if ($reason->alegra_category_id) {
-                    $alegraData['category'] = [
-                        'id' => $reason->alegra_category_id
-                    ];
-                }
             }
-
 
             Log::info('📦 [MovementForm] Payload Alegra construido', [
                 'items_total'  => count($this->details),
