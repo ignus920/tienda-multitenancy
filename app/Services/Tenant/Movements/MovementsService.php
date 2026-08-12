@@ -173,7 +173,7 @@ class MovementsService
                         'type'     => $item['type'],
                         'id'       => $item['id'],
                         'id_type'  => gettype($item['id']),
-                        'unitCost' => $item['unitCost'],
+                        'unitCost' => $item['unitCost'] ?? null,
                         'quantity' => $item['quantity'],
                     ];
                 }, $alegraData['items'] ?? []),
