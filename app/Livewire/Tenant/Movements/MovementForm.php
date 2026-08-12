@@ -679,21 +679,12 @@ class MovementForm extends Component
                     $invValue = InvValues::where('itemId', $detail['itemId'])->first();
                     $unitCost = $invValue ? floatval($invValue->values) : floatval($detail['cost'] ?? 0);
 
-                    $isOut = $selectedType !== 'entrada';
-                    
-                    $itemData = [
-                        'type'     => $isOut ? 'out' : 'in',
+                    $itemsAlegra[] = [
+                        'type'     => $selectedType === 'entrada' ? 'in' : 'out',
                         'id'       => (string) $item->api_data_id,
+                        'unitCost' => $unitCost,
                         'quantity' => floatval($detail['quantity']),
                     ];
-
-                    // El costo unitario solo se debe enviar para entradas (in). 
-                    // En las salidas (out), Alegra calcula el costo de manera automática con su promedio ponderado.
-                    if (!$isOut) {
-                        $itemData['unitCost'] = $unitCost;
-                    }
-
-                    $itemsAlegra[] = $itemData;
                 }
             }
 
@@ -735,6 +726,8 @@ class MovementForm extends Component
                         Log::error("⚠️ [MovementForm] Error en auto-mapeo de categoría Alegra para '{$reason->name}': " . $e->getMessage());
                     }
                 }
+
+            }
 
             Log::info('📦 [MovementForm] Payload Alegra construido', [
                 'items_total'  => count($this->details),
