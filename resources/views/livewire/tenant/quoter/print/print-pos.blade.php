@@ -232,10 +232,10 @@
             @else
                 CC: {{ $company->identification }}<br>
             @endif
-            @if($company->phone)
+            @if($company->phone ?? null)
                 Tel: {{ $company->phone }}<br>
             @endif
-            @if($company->billingEmail)
+            @if($company->billingEmail ?? null)
                 {{ Str::limit($company->billingEmail, 25) }}
             @endif
         </div>
@@ -486,13 +486,13 @@
 
     <!-- Footer -->
     <div class="footer">
-        @if($company->billingEmail || $company->phone)
+        @if(($company->billingEmail ?? null) || ($company->phone ?? null))
             <div class="contact-info">
                 <div class="bold small">CONTACTO:</div>
-                @if($company->billingEmail)
+                @if($company->billingEmail ?? null)
                     <div>{{ $company->billingEmail }}</div>
                 @endif
-                @if($company->phone)
+                @if($company->phone ?? null)
                     <div>{{ $company->phone }}</div>
                 @endif
             </div>
