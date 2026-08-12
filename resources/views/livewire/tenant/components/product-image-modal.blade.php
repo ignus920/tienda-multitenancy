@@ -146,14 +146,20 @@
 
         </div>
 
-        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 flex {{ $activeTab === 'COMERCIAL' && $wpProductUrl ? 'justify-between' : 'justify-end' }} items-center">
-            @if($activeTab === 'COMERCIAL' && $wpProductUrl)
-                <a href="{{ $wpProductUrl }}" target="_blank" class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    Ir a la tienda
-                </a>
+        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 flex {{ $activeTab === 'COMERCIAL' ? 'justify-between' : 'justify-end' }} items-center">
+            @if($activeTab === 'COMERCIAL')
+                @if($wpProductUrl)
+                    <a href="{{ $wpProductUrl }}" target="_blank" class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Ir a la tienda
+                    </a>
+                @else
+                    <div class="px-4 py-2 bg-red-650 text-white font-bold rounded-xl shadow-md text-xs sm:text-sm uppercase tracking-wider">
+                        No esta en página WEB
+                    </div>
+                @endif
             @endif
             <button @click="$wire.close()" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold rounded-xl transition-all shadow-sm">
                 Cerrar
