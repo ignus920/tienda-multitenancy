@@ -4575,4 +4575,41 @@ class ProductQuoter extends Component
             'hasLink' => $hasLink
         ]);
     }
+
+    public function exportSpecialStocks()
+    {
+        $this->ensureTenantConnection();
+
+        $data = Items::where(function($q) {
+            $q->where('quarantine_stock', '>', 0)
+              ->orWhere('showroom_stock', '>', 0);
+        })
+        ->orderBy('name', 'asc')
+        ->get();
+
+        $headings = [
+            'SKU (Código Interno)',
+            'Nombre del Producto',
+            'Marca',
+            'Cantidad en Cuarentena',
+            'Cantidad en Vitrina / Exhibición'
+        ];
+
+        $mapping = function($item) {
+            return [
+                $item->internal_code ?? $item->sku,
+                $item->name,
+                $item->brand?->name ?? 'N/A',
+                $item->quarantine_stock,
+                $item->showroom_stock
+            ];
+        };
+
+        $filename = 'Reporte_Especial_Inventario_' . now()->format('Ymd_His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\GenericExport($data, $headings, $mapping),
+            $filename
+        );
+    }
 }
