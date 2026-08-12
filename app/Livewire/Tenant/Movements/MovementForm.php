@@ -679,12 +679,21 @@ class MovementForm extends Component
                     $invValue = InvValues::where('itemId', $detail['itemId'])->first();
                     $unitCost = $invValue ? floatval($invValue->values) : floatval($detail['cost'] ?? 0);
 
-                    $itemsAlegra[] = [
-                        'type'     => $selectedType === 'entrada' ? 'in' : 'out',
+                    $isOut = $selectedType !== 'entrada';
+                    
+                    $itemData = [
+                        'type'     => $isOut ? 'out' : 'in',
                         'id'       => (string) $item->api_data_id,
-                        'unitCost' => $unitCost,
                         'quantity' => floatval($detail['quantity']),
                     ];
+
+                    // El costo unitario solo se debe enviar para entradas (in). 
+                    // En las salidas (out), Alegra calcula el costo de manera automática con su promedio ponderado.
+                    if (!$isOut) {
+                        $itemData['unitCost'] = $unitCost;
+                    }
+
+                    $itemsAlegra[] = $itemData;
                 }
             }
 
