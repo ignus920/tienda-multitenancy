@@ -2045,9 +2045,7 @@ class ProductQuoter extends Component
         }
 
         // 6. CALCULAR TOTAL FINAL INCLUYENDO FLETE DINÁMICO
-        $this->subTotal = round($this->subTotal, 2);
-        $this->totalTaxes = round($this->totalTaxes, 2);
-        $this->totalAmount = round($this->subTotal + $this->totalTaxes + $this->appliedFreight + $this->appliedPacking);
+        $this->totalAmount = round($this->subTotal + $this->totalTaxes);
 
         // 7. Descuentos y Retenciones
         $this->appliedDiscounts = collect($this->quoterItems)
