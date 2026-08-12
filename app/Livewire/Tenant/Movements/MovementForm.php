@@ -736,14 +736,6 @@ class MovementForm extends Component
                     }
                 }
 
-                if ($reason->alegra_category_id) {
-                    $alegraData['category'] = [
-                        'id' => $reason->alegra_category_id
-                    ];
-                }
-            }
-
-
             Log::info('📦 [MovementForm] Payload Alegra construido', [
                 'items_total'  => count($this->details),
                 'items_alegra' => count($itemsAlegra),
