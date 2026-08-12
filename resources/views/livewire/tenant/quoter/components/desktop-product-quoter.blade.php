@@ -991,8 +991,8 @@
                                                                      $physStock = (int) ($product->stock_bodega ?? 0);
                                                                      $resStock = (int) ($product->reserved_stock ?? 0);
                                                                      
-                                                                     // Disponibles = Stock - Cuarentena - Vitrina
-                                                                     $dispStock = max(0, $physStock - $quarantineStock - $showroomStock);
+                                                                     // Disponibles = Stock - Cuarentena
+                                                                     $dispStock = max(0, $physStock - $quarantineStock);
                                                                      
                                                                      // Reservas visuales = Reservas físicas de clientes únicamente
                                                                      $visualReservations = $resStock;

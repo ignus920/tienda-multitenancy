@@ -731,10 +731,8 @@ class Items extends Model
     public function getStockDisponibleVentaAttribute()
     {
         $stock = (int) $this->stock_bodega;
-        $reservas = (int) $this->reserved_stock;
         $cuarentena = (int) $this->quarantine_stock;
-        $vitrina = (int) $this->showroom_stock;
 
-        return max(0, $stock - $reservas - $cuarentena - $vitrina);
+        return max(0, $stock - $cuarentena);
     }
 }
