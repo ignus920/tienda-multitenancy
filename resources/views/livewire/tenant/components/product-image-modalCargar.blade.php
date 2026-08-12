@@ -276,7 +276,7 @@
                         Ir a la tienda
                     </a>
                 @else
-                    <div class="px-4 py-2 bg-red-650 text-white font-bold rounded-xl shadow-md text-xs sm:text-sm uppercase tracking-wider">
+                    <div class="px-4 py-2 bg-red-600 text-white font-bold rounded-xl shadow-md text-xs sm:text-sm uppercase tracking-wider">
                         No esta en página WEB
                     </div>
                 @endif
