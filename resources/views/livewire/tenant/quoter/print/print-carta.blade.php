@@ -646,6 +646,17 @@
                         @endif
                     <td class="col-desc">
                         {{ $detalle->description ?? $detalle->item->name ?? $detalle->item->display_name }}
+                        @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->dimensions && !empty($detalle->item->dimensions->packing_note))
+                            @php
+                                $maxQty = (int) ($detalle->item->dimensions->max_packing_qty ?? 0);
+                                $showNote = ($maxQty <= 0) || ($detalle->quantity <= $maxQty);
+                            @endphp
+                            @if($showNote)
+                                <div style="font-weight: bold; margin-top: 3px; font-size: 11pt; color: #2c3e50;">
+                                    {{ $detalle->item->dimensions->packing_note }}
+                                </div>
+                            @endif
+                        @endif
                         @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
                             <div style="color: red; font-size: 10.5pt; margin-top: 3px;">
                                 @foreach($detalle->item->accessories as $accessory)
