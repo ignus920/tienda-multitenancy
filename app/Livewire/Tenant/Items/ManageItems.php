@@ -2083,12 +2083,12 @@ class ManageItems extends Component
     {
         $this->ensureTenantConnection();
 
-        $data = Items::where(function($q) {
-            $q->where('quarantine_stock', '>', 0)
-              ->orWhere('showroom_stock', '>', 0);
-        })
-        ->orderBy('name', 'asc')
-        ->get();
+        $data = Items::with(['quarantineMovements', 'showroomMovements', 'brand'])
+            ->get()
+            ->filter(function($item) {
+                return $item->quarantine_stock > 0 || $item->showroom_stock > 0;
+            })
+            ->sortBy('name');
 
         $headings = [
             'SKU (Código Interno)',
