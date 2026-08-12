@@ -7,8 +7,11 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class GenericExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithColumnFormatting
+class GenericExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithColumnFormatting, WithStyles
 {
     protected $collection;
     protected $headings;
@@ -38,6 +41,22 @@ class GenericExport implements FromCollection, WithHeadings, WithMapping, Should
         return $this->columnFormats;
     }
 
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            // Estilo para la primera fila (cabeceras): Negrita y fondo color melón/durazno claro
+            1 => [
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => [
+                        'rgb' => 'FCE4D6', // Color melón/durazno claro de la solicitud
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function map($row): array
     {
         if (is_callable($this->mapping)) {
@@ -56,3 +75,4 @@ class GenericExport implements FromCollection, WithHeadings, WithMapping, Should
         return is_array($row) ? $row : $row->toArray();
     }
 }
+
