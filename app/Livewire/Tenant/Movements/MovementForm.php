@@ -692,9 +692,10 @@ class MovementForm extends Component
             $reason = InvReason::find($this->movementForm['reasonId']);
 
             $alegraData = !empty($itemsAlegra) ? [
-                'date'      => $this->movementForm['date'],
-                'items'     => $itemsAlegra,
-                'warehouse' => ['id' => '1'],
+                'date'         => $this->movementForm['date'],
+                'items'        => $itemsAlegra,
+                'warehouse'    => ['id' => '1'],
+                'observations' => $this->movementForm['observations'] ?? '',
             ] : [];
 
             if ($reason) {
