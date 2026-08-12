@@ -652,7 +652,7 @@
                                 $showNote = ($maxQty <= 0) || ($detalle->quantity <= $maxQty);
                             @endphp
                             @if($showNote)
-                                <div style="font-weight: bold; margin-top: 3px; font-size: 11pt; color: #2c3e50;">
+                                <div style="font-weight: bold; margin-top: 3px; font-size: 11pt; color: #e74c3c;">
                                     {{ $detalle->item->dimensions->packing_note }}
                                 </div>
                             @endif
