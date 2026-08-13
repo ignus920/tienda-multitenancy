@@ -1617,7 +1617,6 @@
                     </select>
                 </div>
 
-                {{--
                 @if($selectedBranchId)
                 <!-- Campo de Teléfono editable en línea -->
                 <div class="w-64">
@@ -1632,7 +1631,6 @@
                            required>
                 </div>
                 @endif
-                --}}
 
                 <!-- Botón para gestionar sucursales -->
                 <div class="flex-shrink-0 pt-5">
