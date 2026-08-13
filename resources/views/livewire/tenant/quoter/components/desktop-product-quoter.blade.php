@@ -1596,6 +1596,7 @@
                     <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Sucursal de envío</label>
                     <select wire:model.live="selectedBranchId"
                             class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        <option value="">Selecciona una sucursal</option>
                         @foreach($branches as $branch)
                             <option value="{{ $branch['id'] }}">
                                 {{ $branch['name'] }} ({{ $branch['city']['name'] ?? 'Sin ciudad' }}) — {{ $branch['address'] ?? 'Sin dirección' }} — Tel: {{ $branch['phone'] ?? 'Sin teléfono' }}
