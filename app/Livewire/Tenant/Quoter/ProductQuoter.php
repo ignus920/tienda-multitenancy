@@ -1541,6 +1541,30 @@ class ProductQuoter extends Component
         }
     }
 
+    /**
+     * Se ejecuta reactivamente cuando el usuario edita el teléfono de envío en el input.
+     */
+    public function updatedDeliveryPhone($value)
+    {
+        $cleanValue = trim($value);
+        if ($this->selectedBranchId && !empty($cleanValue)) {
+            $this->ensureTenantConnection();
+            $branchObj = VntWarehouse::find($this->selectedBranchId);
+            if ($branchObj) {
+                $branchObj->update(['phone' => $cleanValue]);
+                
+                // Recargar el listado de sucursales para actualizar el <select> con el nuevo teléfono
+                if ($this->selectedCustomer) {
+                    $this->loadBranches($this->selectedCustomer['id']);
+                }
+            }
+        }
+
+        if ($this->selectedCustomer) {
+            $this->selectedCustomer['phone'] = $cleanValue;
+        }
+    }
+
     #[On('warehouse-selected')]
     public function selectBranch($branchId)
     {
