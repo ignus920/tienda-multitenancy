@@ -22,6 +22,9 @@ class ManageDimensions extends Component
     public $min_packing_qty;
     public $min_packing_val;
     public $add_packing_val;
+    public $max_packing_qty;
+    public $packing_note;
+    public $packing_note_max;
 
     public function mount($itemId)
     {
@@ -44,7 +47,10 @@ class ManageDimensions extends Component
             'quntityxbox' => $this->quntityxbox,
             'min_packing_qty' => $this->min_packing_qty ?: 0,
             'min_packing_val' => $this->min_packing_val ?: 0.00,
-            'add_packing_val' => $this->add_packing_val ?: 0.00
+            'add_packing_val' => $this->add_packing_val ?: 0.00,
+            'max_packing_qty' => $this->max_packing_qty ?: 0,
+            'packing_note' => $this->packing_note ?: null,
+            'packing_note_max' => $this->packing_note_max ?: null
         ];
         //dd($infoItem);
         try {
@@ -91,6 +97,9 @@ class ManageDimensions extends Component
             $this->min_packing_qty = $itemDimension->min_packing_qty;
             $this->min_packing_val = $itemDimension->min_packing_val;
             $this->add_packing_val = $itemDimension->add_packing_val;
+            $this->max_packing_qty = $itemDimension->max_packing_qty;
+            $this->packing_note = $itemDimension->packing_note;
+            $this->packing_note_max = $itemDimension->packing_note_max;
         }
     }
 
@@ -132,6 +141,9 @@ class ManageDimensions extends Component
         $this->min_packing_qty = '';
         $this->min_packing_val = '';
         $this->add_packing_val = '';
+        $this->max_packing_qty = '';
+        $this->packing_note = '';
+        $this->packing_note_max = '';
         $this->itemId = '';
         $this->dimensions_id = '';
     }

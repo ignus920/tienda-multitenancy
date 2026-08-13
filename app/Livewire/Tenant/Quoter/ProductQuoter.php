@@ -904,6 +904,8 @@ class ProductQuoter extends Component
                 'min_packing_qty' => (int) ($product->dimensions->min_packing_qty ?? 0),
                 'min_packing_val' => (float) ($product->dimensions->min_packing_val ?? 0.0),
                 'add_packing_val' => (float) ($product->dimensions->add_packing_val ?? 0.0),
+                'max_packing_qty' => (int) ($product->dimensions->max_packing_qty ?? 0),
+                'packing_note'    => $product->dimensions->packing_note ?? null,
             ]);
         }
 
@@ -1973,13 +1975,18 @@ class ProductQuoter extends Component
 
             // Cálculo de empaque especial
             $minQty = isset($item['min_packing_qty']) ? (int)$item['min_packing_qty'] : 0;
+            $maxQty = isset($item['max_packing_qty']) ? (int)$item['max_packing_qty'] : 0;
             $minVal = isset($item['min_packing_val']) ? (float)$item['min_packing_val'] : 0.0;
             $addVal = isset($item['add_packing_val']) ? (float)$item['add_packing_val'] : 0.0;
             if ($minVal > 0) {
-                if ($quantity <= $minQty) {
-                    $this->appliedPacking += $minVal;
+                if ($maxQty > 0 && $quantity > $maxQty) {
+                    // No se cobra empaque si supera la cantidad máxima
                 } else {
-                    $this->appliedPacking += $minVal + (($quantity - $minQty) * $addVal);
+                    if ($quantity <= $minQty) {
+                        $this->appliedPacking += $minVal;
+                    } else {
+                        $this->appliedPacking += $minVal + (($quantity - $minQty) * $addVal);
+                    }
                 }
             }
 
@@ -2381,6 +2388,8 @@ class ProductQuoter extends Component
                         'min_packing_qty' => (int) ($product->dimensions->min_packing_qty ?? 0),
                         'min_packing_val' => (float) ($product->dimensions->min_packing_val ?? 0.0),
                         'add_packing_val' => (float) ($product->dimensions->add_packing_val ?? 0.0),
+                        'max_packing_qty' => (int) ($product->dimensions->max_packing_qty ?? 0),
+                        'packing_note'    => $product->dimensions->packing_note ?? null,
                     ];
 
                     $this->quoterItems[] = $itemData;
@@ -4008,6 +4017,8 @@ class ProductQuoter extends Component
                         'min_packing_qty' => (int) ($detalle->item->dimensions->min_packing_qty ?? 0),
                         'min_packing_val' => (float) ($detalle->item->dimensions->min_packing_val ?? 0.0),
                         'add_packing_val' => (float) ($detalle->item->dimensions->add_packing_val ?? 0.0),
+                        'max_packing_qty' => (int) ($detalle->item->dimensions->max_packing_qty ?? 0),
+                        'packing_note'    => $detalle->item->dimensions->packing_note ?? null,
                     ];
                 }
             }
