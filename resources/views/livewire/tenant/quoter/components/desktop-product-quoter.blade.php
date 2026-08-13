@@ -1579,7 +1579,7 @@
                         Selecciona una sucursal de envío
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                        Selecciona la sucursal, tipo de entrega y método de pago para la remisión
+                        Selecciona la sucursal de envio
                     </p>
                 </div>
                 <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
