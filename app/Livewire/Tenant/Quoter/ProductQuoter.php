@@ -512,15 +512,15 @@ class ProductQuoter extends Component
                             FROM inv_detail_remissions idr
                             INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
                             WHERE ir.status != \'ANULADO\'
-                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
-                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+                            AND ir.created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND ir.created_at >= \'2026-06-01\'
 
                             UNION ALL
 
                             SELECT item_sub.id as itemId, lsh.quantity as qty
                             FROM legacy_sales_history lsh
                             INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
-                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            WHERE lsh.year >= YEAR(DATE_SUB(CURDATE(), INTERVAL 6 MONTH))
                         ) sub
                         GROUP BY sub.itemId
                     ) s7m
