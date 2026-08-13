@@ -1625,7 +1625,7 @@
                         <span class="text-red-500 font-bold">*</span>
                     </label>
                     <input type="text"
-                           wire:model.live="deliveryPhone"
+                           wire:model.blur="deliveryPhone"
                            placeholder="Ej: 3123456789"
                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                            required>
