@@ -1578,9 +1578,9 @@
                         </svg>
                         Tipo de Entrega y Método de Pago
                     </h3>
-                    <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                        Selecciona el tipo de entrega y método de pago para la remisión
-                    </p>
+                    <!-- <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                        Selecciona la sucursal de envio
+                    </p> -->
                 </div>
                 <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1590,61 +1590,31 @@
             </div>
 
             @if($selectedCustomer)
-            @php
-                $selectedBranchName = collect($branches)->firstWhere('id', $selectedBranchId)['name']
-                    ?? (count($branches) === 1 ? $branches[0]['name'] : ($selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? ''))));
-            @endphp
-            <div wire:key="modal-customer-info-{{ $selectedBranchId }}" class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-2 items-center text-sm shadow-inner">
-                <!-- Nombre sucursal -->
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    <span class="font-bold text-gray-900 dark:text-white">{{ $selectedBranchName }}</span>
-                </div>
-                
-                <!-- Ciudad -->
-                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['cityName'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
-                        {{ $selectedCustomer['cityName'] ?? 'N/A' }}
-                    </span>
-                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerCityInline(value)" @blur="editing = false; $wire.updateCustomerCityInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
-                </div>
-
-                <!-- Dirección -->
-                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['address'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" class="text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted" title="Haga clic para editar">
-                        {{ $selectedCustomer['address'] ?? 'N/A' }}
-                    </span>
-                    <input x-show="editing" x-ref="input" type="text" x-model="value" @keydown.enter="editing = false; $wire.updateCustomerAddressInline(value)" @blur="editing = false; $wire.updateCustomerAddressInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
-                </div>
-
-                <!-- Teléfono -->
-                <div class="flex items-center gap-2" x-data="{ editing: false, value: '{{ addslashes($selectedCustomer['phone'] ?? '') }}' }" x-init="$watch('value', val => value = val)">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    <span x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus());" :class="value ? 'text-gray-700 dark:text-slate-300 font-medium cursor-pointer hover:underline decoration-dotted' : 'text-red-600 dark:text-red-400 font-bold italic cursor-pointer hover:underline decoration-dotted'" title="Haga clic para editar">
-                        <span x-text="value || 'Añadir teléfono (Obligatorio) *'"></span>
-                    </span>
-                    <input x-show="editing" x-ref="input" type="text" x-model="value" placeholder="Teléfono..." @keydown.enter="editing = false; $wire.updateCustomerPhoneInline(value)" @blur="editing = false; $wire.updateCustomerPhoneInline(value)" class="px-2 py-0.5 text-xs text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-white font-medium">
+            <div wire:key="modal-customer-info-{{ $selectedBranchId }}" class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-slate-700 flex items-center gap-3 shadow-inner">
+                <!-- Select de Sucursales -->
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Sucursal de envío</label>
+                    <select wire:model.live="selectedBranchId"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        <option value="">Selecciona una sucursal</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch['id'] }}">
+                                {{ $branch['name'] }} ({{ $branch['city']['name'] ?? 'Sin ciudad' }}) — {{ $branch['address'] ?? 'Sin dirección' }} — Tel: {{ $branch['phone'] ?? 'Sin teléfono' }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <!-- Botón para gestionar sucursales -->
-                <button wire:click="$set('showWarehouseModal', true)" 
-                        class="flex items-center gap-2 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 transition-colors text-xs font-bold"
-                        title="Gestionar Sucursales">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                </button>
+                <div class="flex-shrink-0 pt-5">
+                    <button wire:click="$set('showWarehouseModal', true)" 
+                            class="flex items-center gap-2 px-2.5 py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors text-xs font-bold"
+                            title="Gestionar Sucursales">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </button>
+                </div>
             </div>
             @endif
 
@@ -2219,6 +2189,114 @@
         </div>
     </div>
     @endteleport
+
+    <!-- Modal de Confirmación de OP -->
+    <div x-data="{ show: @entangle('showOPConfirmationModal') }"
+         x-show="show"
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+         style="display: none;"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
+
+        <div class="relative bg-white dark:bg-slate-800 rounded-xl text-left shadow-2xl transform transition-all w-full max-w-lg border border-gray-200 dark:border-slate-700"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Confirmar Datos de la OP
+                </h3>
+                <button @click="show = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <!-- Sticker de envío -->
+                <div class="border-2 border-gray-800 dark:border-slate-300 rounded-lg p-6 bg-white dark:bg-slate-800 text-center space-y-3">
+                    <p class="text-sm font-semibold uppercase tracking-widest text-gray-600 dark:text-slate-400">Destinatario:</p>
+                    <p class="text-xl font-extrabold text-gray-900 dark:text-white uppercase">
+                        @if($selectedCustomer)
+                            {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
+                        @endif
+                    </p>
+
+                    <div class="space-y-0.5">
+                        <p class="text-sm text-gray-700 dark:text-slate-300">
+                            <span class="font-bold">Nit:</span> {{ $selectedCustomer['identification'] ?? 'N/A' }}
+                        </p>
+                        <p class="text-sm text-gray-700 dark:text-slate-300">
+                            <span class="font-bold">Teléfono:</span> {{ $selectedCustomer['phone'] ?? 'N/A' }}
+                        </p>
+                    </div>
+
+                    <div class="pt-2 border-t border-gray-300 dark:border-slate-600 space-y-1">
+                        <p class="text-base font-bold text-gray-900 dark:text-white uppercase">
+                            {{ $selectedCustomer['address'] ?? 'N/A' }}
+                        </p>
+                        <p class="text-base font-bold text-gray-900 dark:text-white uppercase">
+                            {{ $selectedCustomer['cityName'] ?? 'N/A' }}
+                        </p>
+                    </div>
+
+                    @if($selectedDeliveryType)
+                        <div class="pt-2 border-t border-gray-300 dark:border-slate-600">
+                            <p class="text-sm text-gray-700 dark:text-slate-300">
+                                <span class="font-bold">Tipo de Entrega:</span>
+                                @php
+                                    $delType = collect($deliveryTypes)->firstWhere('id', $selectedDeliveryType);
+                                @endphp
+                                {{ $delType['name'] ?? 'N/A' }}
+                            </p>
+                        </div>
+                    @endif
+                </div>
+
+                <p class="text-xs text-gray-500 dark:text-slate-400 italic text-center">
+                    Por favor verifique que los datos de entrega correspondan a la sucursal seleccionada.
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3 rounded-b-xl">
+                <button wire:click="$set('showOPConfirmationModal', false)"
+                        class="px-5 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-semibold text-sm">
+                    Corregir
+                </button>
+                <button wire:click="confirmOPFinal"
+                        wire:loading.attr="disabled"
+                        wire:target="confirmOPFinal"
+                        class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center transition-colors shadow-md hover:shadow-lg disabled:opacity-50">
+                    <svg wire:loading.remove wire:target="confirmOPFinal" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg wire:loading wire:target="confirmOPFinal" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
 
 <script>
     document.addEventListener('livewire:init', () => {
