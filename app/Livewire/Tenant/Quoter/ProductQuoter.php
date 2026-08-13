@@ -1623,7 +1623,7 @@ class ProductQuoter extends Component
         $customer = VntCompany::find($this->selectedCustomer['id']);
         if ($customer) {
             if ((int)$customer->typeIdentificationId === 2) {
-                // Persona Jurídica
+                // Persona Jurídicas
                 $customer->update(['businessName' => $newValue]);
             } else {
                 // Persona Natural
