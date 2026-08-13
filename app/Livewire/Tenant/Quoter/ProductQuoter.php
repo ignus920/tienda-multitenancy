@@ -2716,14 +2716,15 @@ class ProductQuoter extends Component
         ];
         $this->additionalPaymentFiles = [];
 
-        // Inicializar el teléfono de entrega con el teléfono del cliente/sucursal actual
-        $this->deliveryPhone = $this->selectedCustomer['phone'] ?? '';
-        if ($this->selectedBranchId) {
-            $this->ensureTenantConnection();
-            $branchObj = VntWarehouse::find($this->selectedBranchId);
-            if ($branchObj) {
-                $this->deliveryPhone = $branchObj->phone ?? '';
-            }
+        // Obtener el teléfono directamente de la colección de sucursales en memoria para evitar consultas SQL lentas
+        $this->deliveryPhone = '';
+        if ($this->selectedBranchId && !empty($this->branches)) {
+            $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
+            $this->deliveryPhone = $branch['phone'] ?? '';
+        }
+
+        if (empty($this->deliveryPhone) && $this->selectedCustomer) {
+            $this->deliveryPhone = $this->selectedCustomer['phone'] ?? '';
         }
 
         // Mostrar modal de selección de tipo de entrega
