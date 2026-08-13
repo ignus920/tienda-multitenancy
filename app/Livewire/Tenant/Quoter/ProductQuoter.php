@@ -3076,6 +3076,11 @@ class ProductQuoter extends Component
 
             $quote = VntQuote::findOrFail($this->editingQuoteId);
 
+            // Actualizar la cotización con la sucursal de envío seleccionada por el comercial
+            $quote->update([
+                'branchId' => $this->selectedBranchId
+            ]);
+
             // Validar stock disponible antes de procesar (solo para items inventariables)
             foreach ($this->quoterItems as $item) {
                 // Items no inventariables no requieren control de stock
