@@ -1576,10 +1576,11 @@
                         <svg class="w-6 h-6 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
                         </svg>
+                        Tipo de Entrega y Método de Pago
                     </h3>
-                    <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                    <!-- <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
                         Selecciona la sucursal de envio
-                    </p>
+                    </p> -->
                 </div>
                 <button wire:click="closeDeliveryModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300 transition-colors">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
