@@ -116,6 +116,7 @@ class ProductQuoter extends Component
     public $branches = []; // Sucursales de la empresa seleccionada
     public $selectedBranchId = null; // ID de la sucursal seleccionada
     public $selectedContactId = null; // ID del contacto seleccionado
+    public $deliveryPhone = ''; // Teléfono de entrega para la sucursal/cliente
 
     // Propiedades para modal de tránsito (ETD, ETA, Fervicom)
     public $showTransitModal = false;
@@ -1597,6 +1598,7 @@ class ProductQuoter extends Component
             $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
             $this->selectedCustomer['address'] = $branch['address'] ?? '';
             $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
+            $this->deliveryPhone = $branch['phone'] ?? '';
         }
 
         $this->dispatch('show-toast', [
@@ -2928,12 +2930,27 @@ class ProductQuoter extends Component
             return;
         }
 
-        if (!$this->selectedCustomer || empty(trim($this->selectedCustomer['phone'] ?? ''))) {
+        if (empty(trim($this->deliveryPhone))) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'El número de teléfono del cliente es requerido para crear la OP. Por favor, añádalo antes de continuar.'
+                'message' => 'El número de teléfono del cliente/sucursal es requerido para crear la OP.'
             ]);
             return;
+        }
+
+        // Si el teléfono ingresado es válido y difiere de lo que tenemos guardado, lo actualizamos en la base de datos
+        if ($this->selectedBranchId) {
+            $this->ensureTenantConnection();
+            $branchObj = VntWarehouse::find($this->selectedBranchId);
+            if ($branchObj && trim($branchObj->phone) !== trim($this->deliveryPhone)) {
+                $branchObj->update(['phone' => trim($this->deliveryPhone)]);
+                // Sincronizar también en la colección local de sucursales
+                $this->loadBranches($this->selectedCustomer['id']);
+            }
+        }
+
+        if ($this->selectedCustomer) {
+            $this->selectedCustomer['phone'] = trim($this->deliveryPhone);
         }
 
         if (!$this->selectedDeliveryType) {
