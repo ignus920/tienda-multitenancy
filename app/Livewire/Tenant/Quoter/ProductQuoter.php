@@ -65,6 +65,7 @@ class ProductQuoter extends Component
     public $showCartModal = false;
     public $moduleKey = 'products';
     public $showWarehouseModal = false; // Flag para mostrar el modal de gestión de sucursales
+    public $showOPConfirmationModal = false; // Flag para mostrar el modal de confirmación de OP
     public $hideQuoter = false; // Flag para ocultar el carrito/cotizador (modo Bodega)
 
     // Propiedades para desglose de impuestos
@@ -1533,12 +1534,20 @@ class ProductQuoter extends Component
     public function selectBranch($branchId)
     {
         $this->selectedBranchId = $branchId;
-        $branch = collect($this->branches)->firstWhere('id', $branchId);
+        $this->ensureTenantConnection();
 
-        if ($branch) {
+        // Obtener el almacén/sucursal directamente de la base de datos con su ciudad para garantizar datos correctos y actualizados
+        $branchModel = VntWarehouse::with('city')->find($branchId);
+
+        if ($branchModel) {
+            $branch = $branchModel->toArray();
+
+            // Recargar el listado de sucursales en estado local para incluir la nueva sucursal si aplica
+            if ($this->selectedCustomer) {
+                $this->loadBranches($this->selectedCustomer['id']);
+            }
+
             $this->finalizeCustomerSelection($branch);
-
-            $this->ensureTenantConnection();
 
             // Buscar el contacto asociado a esta sucursal específica
             $contact = VntContacts::where('warehouseId', $branchId)->first();
@@ -1561,8 +1570,7 @@ class ProductQuoter extends Component
 
                     Log::info('✅ Cotización actualizada con nueva sucursal', [
                         'quote_id' => $quote->id,
-                        'new_branch_id' => $branchId,
-                        'customerId_unchanged' => $quote->customerId
+                        'branch_id' => $branchId
                     ]);
                 }
             }
@@ -2995,7 +3003,16 @@ class ProductQuoter extends Component
             return;
         }
 
-        // Cerrar modal y crear remisión
+        // Abrir modal de confirmación final
+        $this->showOPConfirmationModal = true;
+    }
+
+    /**
+     * Confirmar la creación final de la OP
+     */
+    public function confirmOPFinal()
+    {
+        $this->showOPConfirmationModal = false;
         $this->showDeliveryModal = false;
         $this->createRemissionWithDeliveryType();
     }

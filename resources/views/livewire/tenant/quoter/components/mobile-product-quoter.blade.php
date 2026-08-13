@@ -595,6 +595,108 @@ $header = 'Seleccionar productos';
     @livewire('tenant.components.product-reservation-modal')
     @livewire('tenant.components.product-quarantine-modal')
 </div>
+    <!-- Modal de Confirmación de OP -->
+    <div x-data="{ show: @entangle('showOPConfirmationModal') }"
+         x-show="show"
+         class="fixed inset-0 z-[130] flex items-end justify-center"
+         style="display: none;"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-full"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-full">
+
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/80 transition-opacity" aria-hidden="true" @click="show = false"></div>
+
+        <div class="relative bg-white dark:bg-slate-800 rounded-t-xl text-left shadow-2xl transform transition-all w-full max-h-[85vh] flex flex-col border-t border-gray-200 dark:border-slate-700">
+            <!-- Header -->
+            <div class="px-5 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Confirmar Datos de la OP
+                </h3>
+                <button @click="show = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-slate-300">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4 overflow-y-auto">
+                <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 p-4 rounded-xl space-y-3">
+                    <div>
+                        <span class="block text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Cliente</span>
+                        <span class="text-sm font-bold text-gray-900 dark:text-white">
+                            @if($selectedCustomer)
+                                {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
+                            @endif
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 pt-2 border-t border-indigo-100/50 dark:border-indigo-900/30">
+                        <div>
+                            <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Dirección de Envío</span>
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                                {{ $selectedCustomer['address'] ?? 'N/A' }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Ciudad</span>
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                                {{ $selectedCustomer['cityName'] ?? 'N/A' }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Teléfono</span>
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                                {{ $selectedCustomer['phone'] ?? 'N/A' }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Tipo de Entrega</span>
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                                @if($selectedCustomer && $selectedDeliveryType)
+                                    @php
+                                        $delType = collect($deliveryTypes)->firstWhere('id', $selectedDeliveryType);
+                                    @endphp
+                                    {{ $delType['name'] ?? 'N/A' }}
+                                @else
+                                    N/A
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-2xs text-gray-500 dark:text-slate-400 italic text-center">
+                    Por favor verifique que los datos de entrega correspondan a la sucursal seleccionada.
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-5 py-4 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 flex gap-3">
+                <button wire:click="$set('showOPConfirmationModal', false)"
+                        class="flex-1 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-semibold text-sm text-center">
+                    Corregir
+                </button>
+                <button wire:click="confirmOPFinal"
+                        wire:loading.attr="disabled"
+                        wire:target="confirmOPFinal"
+                        class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center justify-center transition-colors shadow-md disabled:opacity-50">
+                    <svg wire:loading wire:target="confirmOPFinal" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
 <script>
     document.addEventListener('livewire:init', () => {
         Livewire.on('open-box-justification-modal', (event) => {
