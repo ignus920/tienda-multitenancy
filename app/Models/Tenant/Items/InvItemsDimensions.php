@@ -49,7 +49,8 @@ class InvItemsDimensions extends Model
         'min_packing_val',
         'add_packing_val',
         'max_packing_qty',
-        'packing_note'
+        'packing_note',
+        'packing_note_max'
     ];
 
     /**

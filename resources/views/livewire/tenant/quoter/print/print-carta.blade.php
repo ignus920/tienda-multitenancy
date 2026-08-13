@@ -646,12 +646,16 @@
                         @endif
                     <td class="col-desc">
                         {{ $detalle->description ?? $detalle->item->name ?? $detalle->item->display_name }}
-                        @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->dimensions && !empty($detalle->item->dimensions->packing_note))
+                        @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->dimensions)
                             @php
                                 $maxQty = (int) ($detalle->item->dimensions->max_packing_qty ?? 0);
-                                $showNote = ($maxQty <= 0) || ($detalle->quantity <= $maxQty);
+                                $isOverMax = ($maxQty > 0) && ($detalle->quantity > $maxQty);
                             @endphp
-                            @if($showNote)
+                            @if($isOverMax && !empty($detalle->item->dimensions->packing_note_max))
+                                <div style="font-weight: bold; margin-top: 3px; font-size: 11pt; color: #e74c3c;">
+                                    {{ $detalle->item->dimensions->packing_note_max }}
+                                </div>
+                            @elseif(!$isOverMax && !empty($detalle->item->dimensions->packing_note))
                                 <div style="font-weight: bold; margin-top: 3px; font-size: 11pt; color: #e74c3c;">
                                     {{ $detalle->item->dimensions->packing_note }}
                                 </div>
