@@ -2716,7 +2716,6 @@ class ProductQuoter extends Component
         ];
         $this->additionalPaymentFiles = [];
 
-        /*
         // Obtener el teléfono directamente de la colección de sucursales en memoria para evitar consultas SQL lentas
         $this->deliveryPhone = '';
         if ($this->selectedBranchId && !empty($this->branches)) {
@@ -2727,7 +2726,6 @@ class ProductQuoter extends Component
         if (empty($this->deliveryPhone) && $this->selectedCustomer) {
             $this->deliveryPhone = $this->selectedCustomer['phone'] ?? '';
         }
-        */
 
         // Mostrar modal de selección de tipo de entrega
         $this->showDeliveryModal = true;
@@ -2960,7 +2958,6 @@ class ProductQuoter extends Component
             return;
         }
 
-        /*
         if (empty(trim($this->deliveryPhone))) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -2983,7 +2980,6 @@ class ProductQuoter extends Component
         if ($this->selectedCustomer) {
             $this->selectedCustomer['phone'] = trim($this->deliveryPhone);
         }
-        */
 
         if (!$this->selectedDeliveryType) {
             $this->dispatch('show-toast', [
@@ -3269,22 +3265,18 @@ class ProductQuoter extends Component
                         'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
                     ]);
 
-                    // Sincronizar stock con WordPress si wp_stock_percentage está al 100%
+                    // Sincronizar stock con WordPress si wp_stock_percentage está al 100% de forma asíncrona
                     if ((int)$itemStore->wp_stock_percentage === 100) {
                         try {
-                            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
-                            if ($wpService->isConfigured()) {
-                                $itemModel = Items::find($item['id']);
-                                if ($itemModel) {
-                                    $wpService->syncItemStock($itemModel);
-                                    Log::info('🔄 [WP-Stock-OP] Sincronización automática de stock ejecutada para ítem en OP', [
-                                        'item_id' => $item['id'],
-                                        'sku' => $item['sku']
-                                    ]);
-                                }
+                            $tenant = Tenant::find(session('tenant_id'));
+                            if ($tenant) {
+                                \App\Jobs\Tenant\WordPress\SyncSingleItemStockJob::dispatch($tenant, $item['id']);
+                                Log::info('🔄 [WP-Stock-OP] Job de sincronización de stock despachado en segundo plano', [
+                                    'item_id' => $item['id']
+                                ]);
                             }
                         } catch (\Exception $e) {
-                            Log::error('❌ [WP-Stock-OP] Error al sincronizar stock en OP para ítem ' . $item['id'] . ': ' . $e->getMessage());
+                            Log::error('❌ [WP-Stock-OP] Error al despachar Job de stock en OP para ítem ' . $item['id'] . ': ' . $e->getMessage());
                         }
                     }
                 }
