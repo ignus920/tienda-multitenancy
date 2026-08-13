@@ -2716,6 +2716,7 @@ class ProductQuoter extends Component
         ];
         $this->additionalPaymentFiles = [];
 
+        /*
         // Obtener el teléfono directamente de la colección de sucursales en memoria para evitar consultas SQL lentas
         $this->deliveryPhone = '';
         if ($this->selectedBranchId && !empty($this->branches)) {
@@ -2726,6 +2727,7 @@ class ProductQuoter extends Component
         if (empty($this->deliveryPhone) && $this->selectedCustomer) {
             $this->deliveryPhone = $this->selectedCustomer['phone'] ?? '';
         }
+        */
 
         // Mostrar modal de selección de tipo de entrega
         $this->showDeliveryModal = true;
@@ -2958,6 +2960,7 @@ class ProductQuoter extends Component
             return;
         }
 
+        /*
         if (empty(trim($this->deliveryPhone))) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
@@ -2980,6 +2983,7 @@ class ProductQuoter extends Component
         if ($this->selectedCustomer) {
             $this->selectedCustomer['phone'] = trim($this->deliveryPhone);
         }
+        */
 
         if (!$this->selectedDeliveryType) {
             $this->dispatch('show-toast', [
