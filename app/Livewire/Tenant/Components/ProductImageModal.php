@@ -69,6 +69,7 @@ class ProductImageModal extends Component
     }
 
     public $hasWpProduct = false;
+    public $wpProductUrl = null;
 
     #[On('openImageModal')]
     public function open($productId, $context = null)
@@ -82,6 +83,7 @@ class ProductImageModal extends Component
             $this->productCode = $product->internal_code;
             $this->isOpen = true;
             $this->hasWpProduct = false; // Se cargará de forma asíncrona mediante wire:init
+            $this->wpProductUrl = null;
             
             // Perfil del usuario
             $this->userProfileId = auth()->user()->profile_id;
@@ -108,7 +110,9 @@ class ProductImageModal extends Component
         if ($this->productId) {
             $product = Items::find($this->productId);
             if ($product) {
-                $this->hasWpProduct = !empty($product->sku) && $wpService->findProductBySku($product->sku) !== null;
+                $wpProduct = !empty($product->sku) ? $wpService->findProductBySku($product->sku) : null;
+                $this->hasWpProduct = $wpProduct !== null;
+                $this->wpProductUrl = $wpProduct ? ($wpProduct['permalink'] ?? null) : null;
             }
         }
     }
