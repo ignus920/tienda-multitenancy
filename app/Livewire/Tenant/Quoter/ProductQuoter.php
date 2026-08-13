@@ -1536,6 +1536,8 @@ class ProductQuoter extends Component
     {
         if ($value) {
             $this->selectBranch($value);
+        } else {
+            $this->deliveryPhone = '';
         }
     }
 
@@ -2689,6 +2691,16 @@ class ProductQuoter extends Component
             ]
         ];
         $this->additionalPaymentFiles = [];
+
+        // Inicializar el teléfono de entrega con el teléfono del cliente/sucursal actual
+        $this->deliveryPhone = $this->selectedCustomer['phone'] ?? '';
+        if ($this->selectedBranchId) {
+            $this->ensureTenantConnection();
+            $branchObj = VntWarehouse::find($this->selectedBranchId);
+            if ($branchObj) {
+                $this->deliveryPhone = $branchObj->phone ?? '';
+            }
+        }
 
         // Mostrar modal de selección de tipo de entrega
         $this->showDeliveryModal = true;
