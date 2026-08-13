@@ -442,6 +442,13 @@
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                             {{ $item_id ? 'Editar Item' : 'Crear Item' }}
                         </h3>
+                        @if($item_id)
+                            <div class="mt-1 text-xs text-gray-500 dark:text-slate-400 font-medium">
+                                <span class="font-bold text-gray-750 dark:text-slate-200">Código:</span> {{ $sku ?: $internal_code ?: 'N/A' }} 
+                                <span class="mx-2">|</span>
+                                <span class="font-bold text-gray-750 dark:text-slate-200">Producto:</span> {{ $name ?: 'N/A' }}
+                            </div>
+                        @endif
                     </div>
                     <button wire:click="cancel"
                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
