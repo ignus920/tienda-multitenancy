@@ -1530,6 +1530,16 @@ class ProductQuoter extends Component
         }
     }
 
+    /**
+     * Livewire lifecycle hook: se ejecuta cuando el usuario cambia la sucursal en el <select>.
+     */
+    public function updatedSelectedBranchId($value)
+    {
+        if ($value) {
+            $this->selectBranch($value);
+        }
+    }
+
     #[On('warehouse-selected')]
     public function selectBranch($branchId)
     {
