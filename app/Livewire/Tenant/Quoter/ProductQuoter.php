@@ -2920,6 +2920,14 @@ class ProductQuoter extends Component
      */
     public function proceedWithRemissionCreation()
     {
+        if (!$this->selectedBranchId) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Debes seleccionar una sucursal de envío.'
+            ]);
+            return;
+        }
+
         if (!$this->selectedCustomer || empty(trim($this->selectedCustomer['phone'] ?? ''))) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
