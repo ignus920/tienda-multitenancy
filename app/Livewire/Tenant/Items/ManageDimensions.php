@@ -19,6 +19,11 @@ class ManageDimensions extends Component
     public $power;
     public $weight;
     public $quntityxbox;
+    public $scale_1_qty;
+    public $scale_1_discount;
+    public $scale_2_qty;
+    public $scale_2_discount;
+    public $box_discount;
     public $min_packing_qty;
     public $min_packing_val;
     public $add_packing_val;
@@ -45,6 +50,11 @@ class ManageDimensions extends Component
             'power' => $this->power,
             'weight' => $this->weight,
             'quntityxbox' => $this->quntityxbox,
+            'scale_1_qty' => $this->scale_1_qty === '' ? null : $this->scale_1_qty,
+            'scale_1_discount' => $this->scale_1_discount === '' ? null : $this->scale_1_discount,
+            'scale_2_qty' => $this->scale_2_qty === '' ? null : $this->scale_2_qty,
+            'scale_2_discount' => $this->scale_2_discount === '' ? null : $this->scale_2_discount,
+            'box_discount' => $this->box_discount === '' ? null : $this->box_discount,
             'min_packing_qty' => $this->min_packing_qty ?: 0,
             'min_packing_val' => $this->min_packing_val ?: 0.00,
             'add_packing_val' => $this->add_packing_val ?: 0.00,
@@ -94,6 +104,11 @@ class ManageDimensions extends Component
             $this->power = $itemDimension->power;
             $this->weight = $itemDimension->weight;
             $this->quntityxbox = $itemDimension->quntityxbox;
+            $this->scale_1_qty = $itemDimension->scale_1_qty;
+            $this->scale_1_discount = $itemDimension->scale_1_discount;
+            $this->scale_2_qty = $itemDimension->scale_2_qty;
+            $this->scale_2_discount = $itemDimension->scale_2_discount;
+            $this->box_discount = $itemDimension->box_discount;
             $this->min_packing_qty = $itemDimension->min_packing_qty;
             $this->min_packing_val = $itemDimension->min_packing_val;
             $this->add_packing_val = $itemDimension->add_packing_val;
@@ -138,6 +153,11 @@ class ManageDimensions extends Component
         $this->power = '';
         $this->weight = '';
         $this->quntityxbox = '';
+        $this->scale_1_qty = '';
+        $this->scale_1_discount = '';
+        $this->scale_2_qty = '';
+        $this->scale_2_discount = '';
+        $this->box_discount = '';
         $this->min_packing_qty = '';
         $this->min_packing_val = '';
         $this->add_packing_val = '';
