@@ -363,7 +363,7 @@
                                     @endphp
                                     
                                     <div x-data="{ show: false }" class="relative inline-block" @click.away="show = false">
-                                        <div class="bg-gray-50 dark:bg-gray-800/80 rounded-lg p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm text-[10px] min-w-[120px] max-w-[140px] flex flex-col gap-0.5 cursor-help"
+                                        <div class="bg-gray-50 dark:bg-gray-800/80 rounded-lg p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm text-[10px] w-auto max-w-xs flex flex-col gap-0.5 cursor-help whitespace-nowrap"
                                              @mouseenter="show = true"
                                              @mouseleave="show = false">
                                             
@@ -372,26 +372,24 @@
                                                 @if($prog->status_id == 7 || !empty($prog->shipment_number))
                                                     <span class="text-blue-600 dark:text-blue-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
                                                     <span class="text-gray-300 dark:text-gray-600">|</span>
-                                                    <span class="truncate max-w-[70px]">{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                                    <span>{{ $prog->shipment_number ?? 'Shipment' }}</span>
                                                 @else
                                                     <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
                                                     <span class="text-gray-300 dark:text-gray-600">|</span>
-                                                    <span class="truncate max-w-[70px]">{{ $estadoTraducido }}</span>
+                                                    <span>{{ $estadoTraducido }}</span>
                                                 @endif
                                             </div>
 
-                                            <!-- Fila 2: Prioridad | Fecha -->
-                                            <div class="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
-                                                @if($prog->status_id != 7 && empty($prog->shipment_number))
+                                            <!-- Fila 2: Prioridad | Fecha (Sólo si NO está en Tránsito) -->
+                                            @if($prog->status_id != 7 && empty($prog->shipment_number))
+                                                <div class="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
                                                     <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
                                                     @if($prog->due_date)
                                                         <span class="text-gray-300 dark:text-gray-600">|</span>
                                                         <span class="text-[9px] text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
                                                     @endif
-                                                @else
-                                                    <span class="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200/50 px-1 py-0.5 rounded text-[8px] font-black uppercase">Tránsito</span>
-                                                @endif
-                                            </div>
+                                                </div>
+                                            @endif
                                         </div>
                                         
                                         <!-- Tooltip en hover -->
