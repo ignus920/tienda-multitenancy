@@ -2,6 +2,8 @@
      x-data="{ 
         cart: [],
         viewMode: localStorage.getItem('portal_view_mode') || 'list',
+        showPromoModal: false,
+        promoModalImg: '',
         init() {
             let savedPerPage = localStorage.getItem('portal_per_page');
             if (savedPerPage) {
@@ -86,8 +88,8 @@
                      x-init="startAutoPlay()"
                      @mouseenter="stopAutoPlay()"
                      @mouseleave="startAutoPlay()"
-                     style="height: 340px;"
-                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-sm"
+                     style="height: 180px;"
+                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                 >
                     <!-- Slides -->
                     <div class="relative w-full h-full">
@@ -99,6 +101,7 @@
                                  x-transition:leave="transition ease-in duration-400"
                                  x-transition:leave-start="opacity-100 translate-x-0"
                                  x-transition:leave-end="opacity-0 -translate-x-8"
+                                 @click="promoModalImg = '{{ $slider->image_path }}'; showPromoModal = true"
                                  class="absolute inset-0 w-full h-full flex items-center"
                             >
                                 <!-- Imagen con efecto parallax en hover -->
@@ -125,22 +128,22 @@
                                     
                                     <!-- Badge decorativo -->
                                     @if($slider->badge_text)
-                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4"
+                                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest mb-2"
                                              style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.20);">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span class="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
                                             {{ $slider->badge_text }}
                                         </div>
                                     @endif
                                     
                                     <!-- Título -->
-                                    <h3 class="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight mb-2"
+                                    <h3 class="text-lg sm:text-xl md:text-2xl font-extrabold leading-tight mb-1"
                                         style="text-shadow: 0 2px 20px rgba(0,0,0,0.3); {{ $slider->text_color ? 'color: ' . $slider->text_color . ' !important;' : 'color: #ffffff;' }}">
                                         {{ $slider->title }}
                                     </h3>
 
                                     <!-- Subtítulo -->
                                     @if($slider->subtitle)
-                                        <p class="text-sm sm:text-base mb-5 max-w-md" 
+                                        <p class="text-xs sm:text-sm mb-3 max-w-md" 
                                            style="text-shadow: 0 1px 8px rgba(0,0,0,0.2); {{ $slider->text_color ? 'color: ' . $slider->text_color . ' !important; opacity: 0.85;' : 'color: rgba(255,255,255,0.8);' }}">
                                             {{ $slider->subtitle }}
                                         </p>
@@ -162,10 +165,11 @@
                                             }
                                         @endphp
                                         <a href="{{ $slider->action_url }}" 
-                                           class="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl active:scale-95 group/btn"
+                                           @click.stop
+                                           class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl active:scale-95 group/btn"
                                            style="{{ $portalBtnStyle }}">
                                             {{ $slider->action_button_text }}
-                                            <svg class="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                                             </svg>
                                         </a>
@@ -771,6 +775,41 @@
             'companyId' => auth()->user()->tenant_company_id
         ], key('portal-warehouse-modal-' . auth()->user()->tenant_company_id))
     @endif
+
+    <!-- Modal de Visualización Ampliada de Promoción (Lightbox) -->
+    <div x-show="showPromoModal" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;"
+         @click="showPromoModal = false"
+         @keydown.escape.window="showPromoModal = false">
+        
+        <div class="relative max-w-5xl max-h-[90vh] bg-transparent rounded-2xl overflow-hidden shadow-2xl"
+             @click.stop
+             x-transition:enter="transition ease-out duration-350 transform scale-95"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-250 transform scale-100"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <!-- Botón de Cerrar -->
+            <button @click="showPromoModal = false" 
+                    class="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors border border-white/20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <!-- Imagen Ampliada -->
+            <img :src="promoModalImg" alt="Promoción ampliada" class="max-w-full max-h-[85vh] object-contain rounded-xl">
+        </div>
+    </div>
 
     <script>
         document.addEventListener('livewire:init', () => {
