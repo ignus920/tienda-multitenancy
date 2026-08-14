@@ -362,24 +362,37 @@
                                         };
                                     @endphp
                                     
-                                    <div class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 rounded text-[9px] text-gray-600 dark:text-gray-400 font-medium">
-                                        @if($prog->status_id == 7 || !empty($prog->shipment_number))
-                                            <!-- En Tránsito (Shipment) -->
-                                            <span class="text-blue-600 dark:text-blue-400 font-bold">{{ number_format($prog->qty_requested, 0) }}</span>
-                                            <span class="text-gray-400">|</span>
-                                            <span class="font-bold text-gray-700 dark:text-gray-300">{{ $prog->shipment_number ?? 'Shipment' }}</span>
-                                        @else
-                                            <!-- Solicitado, Producción, etc. -->
-                                            <span class="text-indigo-600 dark:text-indigo-400 font-bold">{{ number_format($prog->qty_requested, 0) }}</span>
-                                            <span class="text-gray-400">|</span>
-                                            <span>{{ $estadoTraducido }}</span>
-                                            <span class="text-gray-400">|</span>
-                                            <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
-                                        @endif
-                                        @if($prog->due_date && $prog->status_id != 7 && empty($prog->shipment_number))
-                                            <span class="text-gray-400">|</span>
-                                            <span class="text-gray-500 dark:text-gray-400 text-[8px]">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
-                                        @endif
+                                    <div x-data="{ show: false }" class="relative inline-block" @click.away="show = false">
+                                        <div class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 rounded text-[9px] text-gray-600 dark:text-gray-400 font-medium cursor-help"
+                                             @mouseenter="show = true"
+                                             @mouseleave="show = false">
+                                            @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                                <!-- En Tránsito (Shipment) -->
+                                                <span class="text-blue-600 dark:text-blue-400 font-bold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                <span class="text-gray-400">|</span>
+                                                <span class="font-bold text-gray-700 dark:text-gray-300">{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                            @else
+                                                <!-- Solicitado, Producción, etc. -->
+                                                <span class="text-indigo-600 dark:text-indigo-400 font-bold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                <span class="text-gray-400">|</span>
+                                                <span>{{ $estadoTraducido }}</span>
+                                                <span class="text-gray-400">|</span>
+                                                <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
+                                            @endif
+                                            @if($prog->due_date && $prog->status_id != 7 && empty($prog->shipment_number))
+                                                <span class="text-gray-400">|</span>
+                                                <span class="text-gray-500 dark:text-gray-400 text-[8px]">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
+                                            @endif
+                                        </div>
+                                        <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case select-none pointer-events-none">
+                                            {{ number_format($prog->qty_requested, 0) }} unidades {{ $estadoTraducido }}
+                                            @if(!empty($prog->priority))
+                                                 - Prioridad: {{ $prog->priority }}
+                                            @endif
+                                            @if($prog->due_date)
+                                                 (Entrega: {{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }})
+                                            @endif
+                                        </div>
                                     </div>
                                 @empty
                                     <span class="text-gray-400 text-[9px] italic select-none">Sin programar</span>
