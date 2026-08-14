@@ -687,6 +687,7 @@
 
                     <template x-for="(item, index) in cart" :key="index">
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700">
+                            <!-- Fila Superior: Código - Nombre y Botón Eliminar -->
                             <div class="flex items-start justify-between gap-2">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-[11px] font-bold text-gray-900 dark:text-white line-clamp-2" x-text="item.code + ' - ' + item.name"></p>
@@ -697,12 +698,35 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div class="flex items-center justify-between mt-2">
+
+                            <!-- Fila Intermedia: Recuadros estáticos de escala de precios por volumen -->
+                            <div class="flex flex-wrap items-center gap-1 mt-2">
+                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
+                                    $50.000
+                                </div>
+                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
+                                    +20 $45.000
+                                </div>
+                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
+                                    +50 $40.000
+                                </div>
+                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
+                                    Caja x100 $35.000
+                                </div>
+                            </div>
+
+                            <!-- Fila Inferior: Controles de cantidad, P. Unitario y Total de fila -->
+                            <div class="flex items-center justify-between mt-2.5">
                                 <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
                                     <button @click="updateQty(index, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">−</button>
                                     <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
                                     <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
                                 </div>
+
+                                <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                                    P. Unitario $50.000
+                                </div>
+
                                 <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" x-text="'$' + (($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * item.qty).toLocaleString('es-CO')"></span>
                             </div>
                         </div>
