@@ -2091,12 +2091,11 @@ class ManageItems extends Component
             ->sortBy('name');
 
         $headings = [
-            'SKU (Código Interno)',
-            'Nombre del Producto',
-            'Marca',
-            'Cantidad en Cuarentena',
-            'Observación Última Cuarentena',
-            'Cantidad en Vitrina / Exhibición',
+            'Código',
+            'Descripción',
+            'Cant. en Cuarentena',
+            'Ultima obsevación',
+            'Cant. en Vitrina',
             'Observación Última Vitrina / Exhibición'
         ];
 
@@ -2107,10 +2106,9 @@ class ManageItems extends Component
             return [
                 $item->internal_code ?? $item->sku,
                 $item->name,
-                $item->brand?->name ?? 'N/A',
-                $item->quarantine_stock,
+                (int) ($item->quarantine_stock ?? 0),
                 $lastQuarantine ? $lastQuarantine->justification : '',
-                $item->showroom_stock,
+                (int) ($item->showroom_stock ?? 0),
                 $lastShowroom ? $lastShowroom->justification : ''
             ];
         };
@@ -2118,7 +2116,7 @@ class ManageItems extends Component
         $filename = 'Reporte_Especial_Inventario_' . now()->format('Ymd_His') . '.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\GenericExport($data, $headings, $mapping),
+            new \App\Exports\SpecialStockExport($data),
             $filename
         );
     }
