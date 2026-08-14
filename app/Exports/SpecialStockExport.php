@@ -44,14 +44,17 @@ class SpecialStockExport implements FromCollection, WithHeadings, WithMapping, W
         $lastQuarantine = $item->quarantineMovements->sortByDesc('created_at')->first();
         $lastShowroom = $item->showroomMovements->sortByDesc('created_at')->first();
 
-        // Convertir las cantidades a int para asegurar que no se envíen vacías y muestren el cero en Excel
+        // Limpiar justificaciones de saltos de línea para evitar que Excel corra las columnas
+        $quarantineObs = $lastQuarantine ? str_replace(["\r", "\n", "\t"], " ", $lastQuarantine->justification) : '';
+        $showroomObs = $lastShowroom ? str_replace(["\r", "\n", "\t"], " ", $lastShowroom->justification) : '';
+
         return [
             $item->internal_code ?? $item->sku,
             $item->name,
-            (int) ($item->quarantine_stock ?? 0),
-            $lastQuarantine ? $lastQuarantine->justification : '',
-            (int) ($item->showroom_stock ?? 0),
-            $lastShowroom ? $lastShowroom->justification : ''
+            $item->quarantine_stock ? (int) $item->quarantine_stock : 0,
+            $quarantineObs,
+            $item->showroom_stock ? (int) $item->showroom_stock : 0,
+            $showroomObs
         ];
     }
 
