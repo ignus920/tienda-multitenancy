@@ -1,8 +1,3 @@
-{{-- Establecer el header --}}
-@php
-$header = 'Seleccionar productos';
-@endphp
-
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data @product-copied.window="
     const data = Array.isArray($event.detail) ? $event.detail[0] : $event.detail;
     const priceFormatted = new Intl.NumberFormat().format(Math.round(data.price));
@@ -62,6 +57,10 @@ $header = 'Seleccionar productos';
         fallbackCopyToClipboardMobile(textToCopy, performFeedback);
     }
 ">
+{{-- Establecer el header --}}
+@php
+$header = 'Seleccionar productos';
+@endphp
     <!-- Header fijo con búsqueda y carrito -->
     <div class="sticky top-16 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div class="px-4 py-3">
