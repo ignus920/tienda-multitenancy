@@ -40,6 +40,41 @@
         }
      }"
 >
+    <!-- Modal de Visualización Ampliada de Promoción (Lightbox) -->
+    <div x-show="showPromoModal" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;"
+         @click="showPromoModal = false"
+         @keydown.escape.window="showPromoModal = false">
+        
+        <div class="relative max-w-5xl max-h-[90vh] bg-transparent rounded-2xl overflow-hidden shadow-2xl"
+             @click.stop
+             x-transition:enter="transition ease-out duration-350 transform scale-95"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-250 transform scale-100"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <!-- Botón de Cerrar -->
+            <button @click="showPromoModal = false" 
+                    class="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors border border-white/20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <!-- Imagen Ampliada -->
+            <img :src="promoModalImg" alt="Promoción ampliada" class="max-w-full max-h-[85vh] object-contain rounded-xl">
+        </div>
+    </div>
+
     <!-- Layout con sidebar sticky -->
     <div class="flex gap-0">
         <div class="flex-1 min-w-0 px-4 sm:px-6">
@@ -775,41 +810,6 @@
             'companyId' => auth()->user()->tenant_company_id
         ], key('portal-warehouse-modal-' . auth()->user()->tenant_company_id))
     @endif
-
-    <!-- Modal de Visualización Ampliada de Promoción (Lightbox) -->
-    <div x-show="showPromoModal" 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         style="display: none;"
-         @click="showPromoModal = false"
-         @keydown.escape.window="showPromoModal = false">
-        
-        <div class="relative max-w-5xl max-h-[90vh] bg-transparent rounded-2xl overflow-hidden shadow-2xl"
-             @click.stop
-             x-transition:enter="transition ease-out duration-350 transform scale-95"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-250 transform scale-100"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-95">
-            
-            <!-- Botón de Cerrar -->
-            <button @click="showPromoModal = false" 
-                    class="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors border border-white/20">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            
-            <!-- Imagen Ampliada -->
-            <img :src="promoModalImg" alt="Promoción ampliada" class="max-w-full max-h-[85vh] object-contain rounded-xl">
-        </div>
-    </div>
 
     <script>
         document.addEventListener('livewire:init', () => {
