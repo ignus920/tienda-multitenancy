@@ -133,7 +133,7 @@
                         <x-export-buttons />
                         <!-- Botón Exportación Especial (Vitrina/Cuarentena) -->
                         <button wire:click="exportSpecialStocks"
-                            title="Exportar Especial (Vitrina/Cuarentena)"
+                            title="Exportar Excel (Vitrina y cuarentena)"
                             class="inline-flex items-center justify-center p-2 border border-blue-300 dark:border-blue-750 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors focus:outline-none"
                             wire:loading.attr="disabled">
                             <span wire:loading wire:target="exportSpecialStocks" class="inline-block mr-1">
