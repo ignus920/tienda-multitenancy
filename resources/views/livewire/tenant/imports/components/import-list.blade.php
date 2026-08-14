@@ -191,19 +191,31 @@
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">ítems seleccionados. Definir prioridad en lote:</span>
             </div>
              <div class="flex items-center gap-2">
+                 @php
+                     $asapDisabled = in_array('asap', $this->occupiedPriorities);
+                     $secondDisabled = in_array('second', $this->occupiedPriorities);
+                     $thirdDisabled = in_array('third', $this->occupiedPriorities);
+                     $expressDisabled = in_array('express', $this->occupiedPriorities);
+                     $express2Disabled = in_array('express 2', $this->occupiedPriorities);
+                     $express3Disabled = in_array('express 3', $this->occupiedPriorities);
+                 @endphp
+
                  <button wire:click="assignPriorityToSelected('ASAP')" 
+                         {{ $asapDisabled ? 'disabled' : '' }}
                          style="background-color: #dc2626; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $asapDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      ASAP
                  </button>
                  <button wire:click="assignPriorityToSelected('Second')" 
+                         {{ $secondDisabled ? 'disabled' : '' }}
                          style="background-color: #d97706; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $secondDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Second
                  </button>
                  <button wire:click="assignPriorityToSelected('Third')" 
+                         {{ $thirdDisabled ? 'disabled' : '' }}
                          style="background-color: #2563eb; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $thirdDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Third
                  </button>
                  
@@ -211,18 +223,21 @@
                  <span class="text-gray-300 mx-1">|</span>
                  
                  <button wire:click="assignPriorityToSelected('Express')" 
+                         {{ $expressDisabled ? 'disabled' : '' }}
                          style="background-color: #dc2626; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $expressDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express
                  </button>
                  <button wire:click="assignPriorityToSelected('Express 2')" 
+                         {{ $express2Disabled ? 'disabled' : '' }}
                          style="background-color: #d97706; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $express2Disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express 2
                  </button>
                  <button wire:click="assignPriorityToSelected('Express 3')" 
+                         {{ $express3Disabled ? 'disabled' : '' }}
                          style="background-color: #2563eb; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $express3Disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express 3
                  </button>
 
