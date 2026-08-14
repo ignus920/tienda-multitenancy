@@ -191,19 +191,31 @@
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">ítems seleccionados. Definir prioridad en lote:</span>
             </div>
              <div class="flex items-center gap-2">
+                 @php
+                     $asapDisabled = in_array('asap', $this->occupiedPriorities);
+                     $secondDisabled = in_array('second', $this->occupiedPriorities);
+                     $thirdDisabled = in_array('third', $this->occupiedPriorities);
+                     $expressDisabled = in_array('express', $this->occupiedPriorities);
+                     $express2Disabled = in_array('express 2', $this->occupiedPriorities);
+                     $express3Disabled = in_array('express 3', $this->occupiedPriorities);
+                 @endphp
+
                  <button wire:click="assignPriorityToSelected('ASAP')" 
+                         {{ $asapDisabled ? 'disabled' : '' }}
                          style="background-color: #dc2626; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $asapDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      ASAP
                  </button>
                  <button wire:click="assignPriorityToSelected('Second')" 
+                         {{ $secondDisabled ? 'disabled' : '' }}
                          style="background-color: #d97706; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $secondDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Second
                  </button>
                  <button wire:click="assignPriorityToSelected('Third')" 
+                         {{ $thirdDisabled ? 'disabled' : '' }}
                          style="background-color: #2563eb; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $thirdDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Third
                  </button>
                  
@@ -211,18 +223,21 @@
                  <span class="text-gray-300 mx-1">|</span>
                  
                  <button wire:click="assignPriorityToSelected('Express')" 
+                         {{ $expressDisabled ? 'disabled' : '' }}
                          style="background-color: #dc2626; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $expressDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express
                  </button>
                  <button wire:click="assignPriorityToSelected('Express 2')" 
+                         {{ $express2Disabled ? 'disabled' : '' }}
                          style="background-color: #d97706; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $express2Disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express 2
                  </button>
                  <button wire:click="assignPriorityToSelected('Express 3')" 
+                         {{ $express3Disabled ? 'disabled' : '' }}
                          style="background-color: #2563eb; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $express3Disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express 3
                  </button>
 
@@ -256,7 +271,6 @@
                             </div>
                         </th>
                         <th scope="col" x-show="visibleColumns.descripcion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                        <th scope="col" x-show="visibleColumns.programacion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Programación</th>
                         <th scope="col" x-show="visibleColumns.existencias" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('stock_items_store')">
                             <div class="flex items-center space-x-1">
@@ -341,12 +355,10 @@
                         </td>
                         <td x-show="visibleColumns.descripcion" class="px-6 py-4">
                             <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $item->description ?? $item->name }}</div>
-                        </td>
-                        <td x-show="visibleColumns.programacion" class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
-                            <div class="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
+                            <!-- Programación Compacta debajo de la Descripción -->
+                            <div x-show="visibleColumns.programacion" class="flex flex-wrap items-center gap-1 mt-1" onclick="event.stopPropagation()">
                                 @forelse($item->programaciones ?? [] as $prog)
                                     @php
-                                        // Traducir el estado al español de forma segura
                                         $estadoTraducido = match(strtolower($prog->status_name ?? '')) {
                                             'requested' => 'Solicitado',
                                             'pending' => 'Pendiente',
@@ -356,36 +368,58 @@
                                             default => $prog->status_name ?? 'Solicitado'
                                         };
 
-                                        // Definir clases de colores distintivos según la prioridad
                                         $prioridadLower = strtolower($prog->priority ?? '');
                                         $badgeClasses = match(true) {
-                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1.5 py-0.5 rounded text-[10px] font-semibold'
+                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1 py-0.5 rounded text-[8px] font-semibold'
                                         };
                                     @endphp
-                                    <div class="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-[11px] min-w-[150px] max-w-[180px] shadow-sm">
-                                        @if($prog->status_id == 7 || !empty($prog->shipment_number))
-                                            <!-- En Tránsito (Shipment) -->
-                                            <div class="flex justify-between items-center font-bold text-gray-800 dark:text-gray-200">
-                                                <span class="text-blue-600 dark:text-blue-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="text-gray-600 dark:text-gray-400">{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                    
+                                    <div x-data="{ show: false }" class="relative inline-block" @click.away="show = false">
+                                        <div class="bg-gray-50 dark:bg-gray-800/80 rounded-lg p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm text-[10px] w-auto max-w-xs flex flex-col gap-0.5 cursor-help whitespace-nowrap"
+                                             @mouseenter="show = true"
+                                             @mouseleave="show = false">
+                                            
+                                            <!-- Fila 1: Cantidad | Estado -->
+                                            <div class="flex items-center gap-1 font-bold text-gray-700 dark:text-gray-300">
+                                                @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                                    <span class="text-blue-600 dark:text-blue-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                @else
+                                                    <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                    <span class="text-gray-300 dark:text-gray-600">|</span>
+                                                    <span>{{ $estadoTraducido }}</span>
+                                                @endif
                                             </div>
-                                        @else
-                                            <!-- Solicitado, Producción, etc. -->
-                                            <div class="flex justify-between items-center font-bold mb-0.5 text-gray-800 dark:text-gray-200">
-                                                <span class="text-indigo-600 dark:text-indigo-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
+
+                                            <!-- Fila 2: Prioridad / Shipment | Fecha -->
+                                            <div class="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400 font-semibold">
+                                                @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                                    <span>{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                                @else
+                                                    <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
+                                                    @if($prog->due_date)
+                                                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                                                        <span class="text-[9px] text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
+                                                    @endif
+                                                @endif
                                             </div>
-                                            <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px]">
-                                                <span>{{ $estadoTraducido }}</span>
-                                                <span>{{ $prog->due_date ? \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') : '' }}</span>
-                                            </div>
-                                        @endif
+                                        </div>
+                                        
+                                        <!-- Tooltip en hover -->
+                                        <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case select-none pointer-events-none">
+                                            {{ number_format($prog->qty_requested, 0) }} unidades {{ $estadoTraducido }}
+                                            @if(!empty($prog->priority))
+                                                 - Prioridad: {{ $prog->priority }}
+                                            @endif
+                                            @if($prog->due_date)
+                                                 (Entrega: {{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }})
+                                            @endif
+                                        </div>
                                     </div>
                                 @empty
-                                    <span class="text-gray-400 text-xs italic">Sin programar</span>
+                                    <span class="text-gray-400 text-[9px] italic select-none">Sin programar</span>
                                 @endforelse
                             </div>
                         </td>
