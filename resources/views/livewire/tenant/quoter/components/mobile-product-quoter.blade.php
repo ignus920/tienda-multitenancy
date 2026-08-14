@@ -593,7 +593,7 @@ $header = 'Seleccionar productos';
     @endif
     @livewire('tenant.components.product-reservation-modal')
     @livewire('tenant.components.product-quarantine-modal')
-</div>
+
     <!-- Modal de Confirmación de OP -->
     <div x-data="{ show: @entangle('showOPConfirmationModal') }"
          x-show="show"
@@ -749,4 +749,5 @@ $header = 'Seleccionar productos';
         document.body.removeChild(textArea);
     }
 </script>
+</div>
 </div>
