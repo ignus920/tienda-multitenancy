@@ -256,7 +256,6 @@
                             </div>
                         </th>
                         <th scope="col" x-show="visibleColumns.descripcion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                        <th scope="col" x-show="visibleColumns.programacion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Programación</th>
                         <th scope="col" x-show="visibleColumns.existencias" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('stock_items_store')">
                             <div class="flex items-center space-x-1">
@@ -341,12 +340,10 @@
                         </td>
                         <td x-show="visibleColumns.descripcion" class="px-6 py-4">
                             <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $item->description ?? $item->name }}</div>
-                        </td>
-                        <td x-show="visibleColumns.programacion" class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
-                            <div class="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
+                            <!-- Programación Compacta debajo de la Descripción -->
+                            <div x-show="visibleColumns.programacion" class="flex flex-wrap items-center gap-1 mt-1" onclick="event.stopPropagation()">
                                 @forelse($item->programaciones ?? [] as $prog)
                                     @php
-                                        // Traducir el estado al español de forma segura
                                         $estadoTraducido = match(strtolower($prog->status_name ?? '')) {
                                             'requested' => 'Solicitado',
                                             'pending' => 'Pendiente',
@@ -356,36 +353,36 @@
                                             default => $prog->status_name ?? 'Solicitado'
                                         };
 
-                                        // Definir clases de colores distintivos según la prioridad
                                         $prioridadLower = strtolower($prog->priority ?? '');
                                         $badgeClasses = match(true) {
-                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1.5 py-0.5 rounded text-[10px] font-semibold'
+                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1 py-0.5 rounded text-[8px] font-semibold'
                                         };
                                     @endphp
-                                    <div class="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-[11px] min-w-[150px] max-w-[180px] shadow-sm">
+                                    
+                                    <div class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 rounded text-[9px] text-gray-600 dark:text-gray-400 font-medium">
                                         @if($prog->status_id == 7 || !empty($prog->shipment_number))
                                             <!-- En Tránsito (Shipment) -->
-                                            <div class="flex justify-between items-center font-bold text-gray-800 dark:text-gray-200">
-                                                <span class="text-blue-600 dark:text-blue-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="text-gray-600 dark:text-gray-400">{{ $prog->shipment_number ?? 'Shipment' }}</span>
-                                            </div>
+                                            <span class="text-blue-600 dark:text-blue-400 font-bold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                            <span class="text-gray-400">|</span>
+                                            <span class="font-bold text-gray-700 dark:text-gray-300">{{ $prog->shipment_number ?? 'Shipment' }}</span>
                                         @else
                                             <!-- Solicitado, Producción, etc. -->
-                                            <div class="flex justify-between items-center font-bold mb-0.5 text-gray-800 dark:text-gray-200">
-                                                <span class="text-indigo-600 dark:text-indigo-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
-                                            </div>
-                                            <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px]">
-                                                <span>{{ $estadoTraducido }}</span>
-                                                <span>{{ $prog->due_date ? \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') : '' }}</span>
-                                            </div>
+                                            <span class="text-indigo-600 dark:text-indigo-400 font-bold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                            <span class="text-gray-400">|</span>
+                                            <span>{{ $estadoTraducido }}</span>
+                                            <span class="text-gray-400">|</span>
+                                            <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
+                                        @endif
+                                        @if($prog->due_date)
+                                            <span class="text-gray-400">|</span>
+                                            <span class="text-gray-500 dark:text-gray-400 text-[8px]">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
                                         @endif
                                     </div>
                                 @empty
-                                    <span class="text-gray-400 text-xs italic">Sin programar</span>
+                                    <span class="text-gray-400 text-[9px] italic select-none">Sin programar</span>
                                 @endforelse
                             </div>
                         </td>
