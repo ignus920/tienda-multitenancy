@@ -512,15 +512,15 @@ class ProductQuoter extends Component
                             FROM inv_detail_remissions idr
                             INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
                             WHERE ir.status != \'ANULADO\'
-                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
-                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+                            AND ir.created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND ir.created_at >= \'2026-06-01\'
 
                             UNION ALL
 
                             SELECT item_sub.id as itemId, lsh.quantity as qty
                             FROM legacy_sales_history lsh
                             INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
-                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            WHERE lsh.year >= YEAR(DATE_SUB(CURDATE(), INTERVAL 6 MONTH))
                         ) sub
                         GROUP BY sub.itemId
                     ) s7m
@@ -3274,22 +3274,18 @@ class ProductQuoter extends Component
                         'stock_items_store' => $itemStore->stock_items_store - $item['quantity'],
                     ]);
 
-                    // Sincronizar stock con WordPress si wp_stock_percentage está al 100%
+                    // Sincronizar stock con WordPress si wp_stock_percentage está al 100% de forma asíncrona
                     if ((int)$itemStore->wp_stock_percentage === 100) {
                         try {
-                            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
-                            if ($wpService->isConfigured()) {
-                                $itemModel = Items::find($item['id']);
-                                if ($itemModel) {
-                                    $wpService->syncItemStock($itemModel);
-                                    Log::info('🔄 [WP-Stock-OP] Sincronización automática de stock ejecutada para ítem en OP', [
-                                        'item_id' => $item['id'],
-                                        'sku' => $item['sku']
-                                    ]);
-                                }
+                            $tenant = Tenant::find(session('tenant_id'));
+                            if ($tenant) {
+                                \App\Jobs\Tenant\WordPress\SyncSingleItemStockJob::dispatch($tenant, $item['id']);
+                                Log::info('🔄 [WP-Stock-OP] Job de sincronización de stock despachado en segundo plano', [
+                                    'item_id' => $item['id']
+                                ]);
                             }
                         } catch (\Exception $e) {
-                            Log::error('❌ [WP-Stock-OP] Error al sincronizar stock en OP para ítem ' . $item['id'] . ': ' . $e->getMessage());
+                            Log::error('❌ [WP-Stock-OP] Error al despachar Job de stock en OP para ítem ' . $item['id'] . ': ' . $e->getMessage());
                         }
                     }
                 }
