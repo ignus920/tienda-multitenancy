@@ -95,7 +95,7 @@ class Dashboard extends Component
             
             $this->activePeriodLabel = $start->format('d/m/Y') . ' al ' . $end->format('d/m/Y');
 
-            // 1. Ventas Hoy: Suma de totales antes de IVA de remisiones creadas hoy (excluyendo ANULADO)
+            // 1. Ventas Hoy: Suma de totales antes de IVA de todas las remisiones creadas hoy (excluyendo ANULADO)
             $ventasHoy = \App\Models\Tenant\Remissions\InvRemissions::with(['details'])
                 ->whereDate('created_at', \Illuminate\Support\Carbon::today('America/Bogota'))
                 ->where('status', '!=', 'ANULADO')
@@ -116,8 +116,9 @@ class Dashboard extends Component
             // 3. Total Productos: Conteo de items activos
             $totalProductos = Items::active()->count();
 
-            // 4. Ventas del Periodo: Suma de totales antes de IVA de remisiones creadas en el rango de fechas (excluyendo ANULADO)
-            $ventasPeriodo = \App\Models\Tenant\Remissions\InvRemissions::with(['details'])
+            // 4. Ventas del Periodo: Suma de totales antes de IVA de remisiones creadas en el rango de fechas y que ya estén facturadas (excluyendo ANULADO)
+            $ventasPeriodo = \App\Models\Tenant\Remissions\InvRemissions::has('invoice')
+                ->with(['details'])
                 ->whereBetween('created_at', [$start, $end])
                 ->where('status', '!=', 'ANULADO')
                 ->get()
