@@ -17,12 +17,26 @@
             this.viewMode = this.viewMode === 'list' ? 'grid' : 'list';
             localStorage.setItem('portal_view_mode', this.viewMode);
         },
-        addToCart(id, code, sku, name, priceCash, priceCredit) {
+        addToCart(id, code, sku, name, priceCash, priceCredit, scale1Qty, scale1Discount, scale2Qty, scale2Discount, boxQty, boxDiscount) {
             let exists = this.cart.find(item => item.id === id);
             if (exists) {
                 exists.qty++;
             } else {
-                this.cart.push({ id, code, sku, name, priceCash, priceCredit, qty: 1 });
+                this.cart.push({ 
+                    id, 
+                    code, 
+                    sku, 
+                    name, 
+                    priceCash, 
+                    priceCredit, 
+                    scale1Qty: parseInt(scale1Qty) || 0, 
+                    scale1Discount: parseFloat(scale1Discount) || 0, 
+                    scale2Qty: parseInt(scale2Qty) || 0, 
+                    scale2Discount: parseFloat(scale2Discount) || 0, 
+                    boxQty: parseInt(boxQty) || 0, 
+                    boxDiscount: parseFloat(boxDiscount) || 0, 
+                    qty: 1 
+                });
             }
         },
         removeFromCart(index) {
@@ -32,11 +46,22 @@
             this.cart[index].qty += delta;
             if (this.cart[index].qty < 1) this.cart[index].qty = 1;
         },
-        get total() {
+        getItemPrice(item) {
             let filter = $wire.paymentFilter;
+            let basePrice = filter === 'credito' ? item.priceCredit : item.priceCash;
+            let discount = 0;
+            if (item.boxQty > 0 && item.qty >= item.boxQty) {
+                discount = item.boxDiscount;
+            } else if (item.scale2Qty > 0 && item.qty >= item.scale2Qty) {
+                discount = item.scale2Discount;
+            } else if (item.scale1Qty > 0 && item.qty >= item.scale1Qty) {
+                discount = item.scale1Discount;
+            }
+            return basePrice * (1 - (discount / 100));
+        },
+        get total() {
             return this.cart.reduce((sum, item) => {
-                let price = filter === 'credito' ? item.priceCredit : item.priceCash;
-                return sum + (price * item.qty);
+                return sum + (this.getItemPrice(item) * item.qty);
             }, 0);
         },
         get totalItems() {
@@ -408,6 +433,13 @@
                             if ($visibleStock < 0) { $visibleStock = 0; }
                             
                             $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
+                            
+                            $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
+                            $scale1Discount = $product->dimensions ? $product->dimensions->scale_1_discount : 0;
+                            $scale2Qty = $product->dimensions ? $product->dimensions->scale_2_qty : 0;
+                            $scale2Discount = $product->dimensions ? $product->dimensions->scale_2_discount : 0;
+                            $boxQty = $product->dimensions ? $product->dimensions->quntityxbox : 0;
+                            $boxDiscount = $product->dimensions ? $product->dimensions->box_discount : 0;
                         @endphp
                         <div class="flex items-center px-4 py-3 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group"
                              x-data="{ showDetail: false }">
@@ -472,7 +504,7 @@
                                 @if($priceCash > 0)
                                     @if($paymentFilter === 'contado')
                                         <button 
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                             class="w-full py-1.5 px-2 rounded-lg border border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95 transition-all"
                                         >
                                             <div class="text-[11px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($priceCash, 0, ',', '.') }}</div>
@@ -492,7 +524,7 @@
                                 @if($priceCredit && $priceCredit > 0)
                                     @if($paymentFilter === 'credito')
                                         <button 
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                             class="w-full py-1.5 px-2 rounded-lg border border-yellow-400/40 bg-yellow-50 dark:bg-yellow-900/15 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 transition-all"
                                         >
                                             <div class="text-[11px] font-black text-yellow-700 dark:text-yellow-300">${{ number_format($priceCredit, 0, ',', '.') }}</div>
@@ -557,6 +589,13 @@
                         if ($visibleStock < 0) { $visibleStock = 0; }
                         
                         $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
+                            
+                        $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
+                        $scale1Discount = $product->dimensions ? $product->dimensions->scale_1_discount : 0;
+                        $scale2Qty = $product->dimensions ? $product->dimensions->scale_2_qty : 0;
+                        $scale2Discount = $product->dimensions ? $product->dimensions->scale_2_discount : 0;
+                        $boxQty = $product->dimensions ? $product->dimensions->quntityxbox : 0;
+                        $boxDiscount = $product->dimensions ? $product->dimensions->box_discount : 0;
                     @endphp
                     <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-indigo-300 dark:hover:border-indigo-500 flex flex-col">
                         
@@ -610,7 +649,7 @@
                                 <div>
                                     @if($priceCash > 0)
                                         @if($paymentFilter === 'contado')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                                     class="w-full py-1 px-1 rounded-md border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Contado</span>
                                                 <span class="block text-[11px] font-black text-emerald-700 dark:text-emerald-300">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
@@ -628,7 +667,7 @@
                                 <div>
                                     @if($priceCredit && $priceCredit > 0)
                                         @if($paymentFilter === 'credito')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                                     class="w-full py-1 px-1 rounded-md border border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-yellow-600 dark:text-yellow-400 uppercase">Crédito</span>
                                                 <span class="block text-[11px] font-black text-yellow-700 dark:text-yellow-300">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
@@ -699,36 +738,62 @@
                                 </button>
                             </div>
 
-                            <!-- Fila Intermedia: Recuadros estáticos de escala de precios por volumen -->
-                            <div class="flex flex-wrap items-center gap-1 mt-2">
-                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
-                                    $50.000
-                                </div>
-                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
-                                    +20 $45.000
-                                </div>
-                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
-                                    +50 $40.000
-                                </div>
-                                <div class="px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded bg-indigo-50/20">
-                                    Caja x100 $35.000
-                                </div>
-                            </div>
+                            <!-- Fila Intermedia: Recuadros interactivos de escala de precios por volumen -->
+                             <div class="flex flex-wrap items-center gap-1 mt-2">
+                                 <!-- Rango Base (Precio de Lista Cliente) -->
+                                 <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                      :class="(item.scale1Qty === 0 || item.qty < item.scale1Qty) && (item.scale2Qty === 0 || item.qty < item.scale2Qty) && (item.boxQty === 0 || item.qty < item.boxQty)
+                                              ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                              : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                      x-text="'$' + Math.round($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash).toLocaleString('es-CO')">
+                                 </div>
+                                 
+                                 <!-- Escala 1 (+20 unidades) -->
+                                 <template x-if="item.scale1Qty > 0">
+                                     <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                          :class="item.qty >= item.scale1Qty && (item.scale2Qty === 0 || item.qty < item.scale2Qty) && (item.boxQty === 0 || item.qty < item.boxQty)
+                                                  ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                                  : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                          x-text="'+' + item.scale1Qty + ' $' + Math.round(($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * (1 - (item.scale1Discount / 100))).toLocaleString('es-CO')">
+                                     </div>
+                                 </template>
 
-                            <!-- Fila Inferior: Controles de cantidad, P. Unitario y Total de fila -->
-                            <div class="flex items-center justify-between mt-2.5">
-                                <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
-                                    <button @click="updateQty(index, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">−</button>
-                                    <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
-                                    <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
-                                </div>
+                                 <!-- Escala 2 (+40 unidades) -->
+                                 <template x-if="item.scale2Qty > 0">
+                                     <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                          :class="item.qty >= item.scale2Qty && (item.boxQty === 0 || item.qty < item.boxQty)
+                                                  ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                                  : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                          x-text="'+' + item.scale2Qty + ' $' + Math.round(($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * (1 - (item.scale2Discount / 100))).toLocaleString('es-CO')">
+                                     </div>
+                                 </template>
 
-                                <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
-                                    P. Unitario $50.000
-                                </div>
+                                 <!-- Caja Cerrada -->
+                                 <template x-if="item.boxQty > 0">
+                                     <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                          :class="item.qty >= item.boxQty
+                                                  ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                                  : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                          x-text="'Caja x' + item.boxQty + ' $' + Math.round(($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * (1 - (item.boxDiscount / 100))).toLocaleString('es-CO')">
+                                     </div>
+                                 </template>
+                             </div>
 
-                                <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" x-text="'$' + (($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * item.qty).toLocaleString('es-CO')"></span>
-                            </div>
+                             <!-- Fila Inferior: Controles de cantidad, P. Unitario y Total de fila -->
+                             <div class="flex items-center justify-between mt-2.5">
+                                 <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
+                                     <button @click="updateQty(index, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">−</button>
+                                     <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
+                                     <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
+                                 </div>
+
+                                 <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400"
+                                      x-text="'P. Unitario $' + Math.round(getItemPrice(item)).toLocaleString('es-CO')">
+                                 </div>
+
+                                 <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" 
+                                       x-text="'$' + (Math.round(getItemPrice(item)) * item.qty).toLocaleString('es-CO')"></span>
+                             </div>
                         </div>
                     </template>
                 </div>

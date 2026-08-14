@@ -187,7 +187,7 @@ class CustomerPortal extends Component
             )
             ->where('inv_items.status', 1)
             ->where('inv_items.type', '!=', 'INSUMO')
-            ->with(['principalImage', 'invValues', 'tax'])
+            ->with(['principalImage', 'invValues', 'tax', 'dimensions'])
             ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
             ->groupBy(
                 'inv_items.id',
