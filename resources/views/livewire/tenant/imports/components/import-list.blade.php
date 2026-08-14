@@ -160,6 +160,7 @@
                             </div>
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Programación</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('stock_items_store')">
                             <div class="flex items-center space-x-1">
@@ -243,7 +244,34 @@
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900 dark:text-white">{{ $item->description ?? $item->name }}</div>
+                            <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $item->description ?? $item->name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                            <div class="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
+                                @forelse($item->programaciones ?? [] as $prog)
+                                    <div class="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-[11px] min-w-[150px] max-w-[180px] shadow-sm">
+                                        @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                            <!-- En Tránsito (Shipment) -->
+                                            <div class="flex justify-between items-center font-bold text-gray-800 dark:text-gray-200">
+                                                <span class="text-blue-600 dark:text-blue-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                <span class="text-gray-600 dark:text-gray-400">{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                            </div>
+                                        @else
+                                            <!-- Solicitado, Producción, etc. -->
+                                            <div class="flex justify-between items-center font-bold mb-0.5 text-gray-800 dark:text-gray-200">
+                                                <span class="text-indigo-600 dark:text-indigo-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                <span class="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1 py-0.2 rounded text-[10px]">{{ $prog->priority }}</span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px]">
+                                                <span>{{ $prog->status_name ?? 'Solicitado' }}</span>
+                                                <span>{{ $prog->due_date ? \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') : '' }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <span class="text-gray-400 text-xs italic">Sin programar</span>
+                                @endforelse
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap relative">
                             <div x-show="showTooltip"
