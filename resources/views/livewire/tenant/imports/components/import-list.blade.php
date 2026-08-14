@@ -376,7 +376,7 @@
                                             <span class="text-gray-400">|</span>
                                             <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
                                         @endif
-                                        @if($prog->due_date)
+                                        @if($prog->due_date && $prog->status_id != 7 && empty($prog->shipment_number))
                                             <span class="text-gray-400">|</span>
                                             <span class="text-gray-500 dark:text-gray-400 text-[8px]">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
                                         @endif
