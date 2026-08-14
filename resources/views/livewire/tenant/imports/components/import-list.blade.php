@@ -1,4 +1,30 @@
-<div>
+<div x-data="{
+    openColumnsDropdown: false,
+    visibleColumns: {
+        codigo: true,
+        descripcion: true,
+        programacion: true,
+        existencias: true,
+        cantidad: true,
+        porcentaje: true,
+        salida: true,
+        entrada: true,
+        exw: true,
+        acciones: true
+    },
+    init() {
+        const stored = localStorage.getItem('import_list_columns');
+        if (stored) {
+            try {
+                this.visibleColumns = { ...this.visibleColumns, ...JSON.parse(stored) };
+            } catch(e) {}
+        }
+    },
+    toggleColumn(key) {
+        this.visibleColumns[key] = !this.visibleColumns[key];
+        localStorage.setItem('import_list_columns', JSON.stringify(this.visibleColumns));
+    }
+}" @click.away="openColumnsDropdown = false">
     <!-- Mensajes de notificación -->
     @if (session()->has('message'))
         <div x-data="{ show: true }" 
@@ -75,6 +101,76 @@
                 {{ $filterCritical ? 'Ver Todos' : 'Prod. Críticos' }}
             </button>
 
+            <!-- Selector de Columnas (Alpine.js + LocalStorage) -->
+            <div class="relative w-full sm:w-auto">
+                <button type="button" @click.stop="openColumnsDropdown = !openColumnsDropdown"
+                        class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider bg-white hover:bg-gray-50 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/80 dark:text-gray-300 border border-gray-300 dark:border-gray-600 transition-all duration-200 shadow-sm">
+                    <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>Columnas</span>
+                    <svg class="w-3 h-3 ml-2 transition-transform duration-200" :class="{ 'rotate-180': openColumnsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <!-- Menú Dropdown -->
+                <div x-show="openColumnsDropdown"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-56 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-50 p-3 space-y-2 text-xs text-gray-700 dark:text-gray-300"
+                     style="display: none;">
+                    <div class="font-bold border-b border-gray-150 dark:border-gray-700 pb-1.5 mb-2 text-gray-400">
+                        Visibilidad de columnas
+                    </div>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.codigo" @change="toggleColumn('codigo')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Código</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.descripcion" @change="toggleColumn('descripcion')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Descripción</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.programacion" @change="toggleColumn('programacion')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Programación</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.existencias" @change="toggleColumn('existencias')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Existencias ERP</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.cantidad" @change="toggleColumn('cantidad')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Cantidad</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.porcentaje" @change="toggleColumn('porcentaje')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Porcentaje</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.salida" @change="toggleColumn('salida')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Salida ERP</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.entrada" @change="toggleColumn('entrada')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Entrada ERP</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.exw" @change="toggleColumn('exw')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>EXW</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
+                        <input type="checkbox" :checked="visibleColumns.acciones" @change="toggleColumn('acciones')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>Acciones</span>
+                    </label>
+                </div>
+            </div>
+
             <!-- Per Page -->
             <select wire:model.live="perPage" 
                     class="block w-full sm:w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
@@ -148,7 +244,7 @@
                 <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th scope="col" class="w-10 px-6 py-3"></th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
+                        <th scope="col" x-show="visibleColumns.codigo" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('name')">
                             <div class="flex items-center space-x-1">
                                 <span>Código</span>
@@ -159,9 +255,9 @@
                                 @endif
                             </div>
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Programación</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
+                        <th scope="col" x-show="visibleColumns.descripcion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
+                        <th scope="col" x-show="visibleColumns.programacion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Programación</th>
+                        <th scope="col" x-show="visibleColumns.existencias" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('stock_items_store')">
                             <div class="flex items-center space-x-1">
                                 <span>Existencias ERP</span>
@@ -172,8 +268,8 @@
                                 @endif
                             </div>
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
+                        <th scope="col" x-show="visibleColumns.cantidad" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
+                        <th scope="col" x-show="visibleColumns.porcentaje" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('percentage')">
                             <div class="flex items-center space-x-1">
                                 <span>Porcentaje</span>
@@ -184,7 +280,7 @@
                                 @endif
                             </div>
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
+                        <th scope="col" x-show="visibleColumns.salida" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('outsideMovement')">
                             <div class="flex items-center space-x-1">
                                 <span>Salida ERP</span>
@@ -195,9 +291,9 @@
                                 @endif
                             </div>
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Entrada ERP</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">EXW</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
+                        <th scope="col" x-show="visibleColumns.entrada" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Entrada ERP</th>
+                        <th scope="col" x-show="visibleColumns.exw" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">EXW</th>
+                        <th scope="col" x-show="visibleColumns.acciones" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -227,7 +323,7 @@
                                     class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 {{ $itemCurrentQty <= 0 ? 'opacity-50 cursor-not-allowed bg-gray-100' : '' }}"
                                 >
                             </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                            <td x-show="visibleColumns.codigo" class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
                                      @click.stop="$dispatch('openImageModal', { productId: {{ $item->id }}, context: 'COMERCIAL' })">
@@ -239,14 +335,14 @@
                                          class="w-full h-full object-cover">
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ $item->sku }}</div>
+                                     <div class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ $item->sku }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
+                        <td x-show="visibleColumns.descripcion" class="px-6 py-4">
                             <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $item->description ?? $item->name }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                        <td x-show="visibleColumns.programacion" class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                             <div class="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
                                 @forelse($item->programaciones ?? [] as $prog)
                                     @php
@@ -293,7 +389,7 @@
                                 @endforelse
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap relative">
+                        <td x-show="visibleColumns.existencias" class="px-6 py-4 whitespace-nowrap relative">
                             <div x-show="showTooltip"
                                 x-transition:enter="transition ease-out duration-200"
                                 x-transition:enter-start="opacity-0"
@@ -322,7 +418,7 @@
 
                             <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 0) }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                        <td x-show="visibleColumns.cantidad" class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                             <input type="number" 
                                 min="0" 
                                 step="1" 
@@ -338,17 +434,17 @@
                                 class="block w-24 px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                 placeholder="0">
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $item->percentage ?? 0 }}%</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td x-show="visibleColumns.porcentaje" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $item->percentage ?? 0 }}%</td>
+                        <td x-show="visibleColumns.salida" class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-red-600 dark:text-red-400">{{ number_format($item->outsideMovement ?? 0, 0) }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td x-show="visibleColumns.entrada" class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-green-600 dark:text-green-400">{{ number_format($item->insideMovement ?? 0, 0) }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td x-show="visibleColumns.exw" class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-semibold text-gray-900 dark:text-white">${{ number_format($item->exw ?? 0, 2) }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td x-show="visibleColumns.acciones" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-2">
                                 <button type="button" 
                                         @click.stop="$dispatch('openAccessoriesModal', { itemId: {{ $item->id }} })"
