@@ -689,13 +689,7 @@
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-[11px] font-bold text-gray-900 dark:text-white line-clamp-2" x-text="item.name"></p>
-                                    <p class="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
-                                        <span x-text="'SKU: ' + item.code"></span> · 
-                                        <span class="font-bold px-1 py-0.5 rounded text-[8px]" 
-                                              :class="$wire.paymentFilter === 'credito' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'"
-                                              x-text="$wire.paymentFilter === 'credito' ? 'Crédito' : 'Contado'"></span>
-                                    </p>
+                                    <p class="text-[11px] font-bold text-gray-900 dark:text-white line-clamp-2" x-text="item.code + ' - ' + item.name"></p>
                                 </div>
                                 <button @click="removeFromCart(index)" class="text-red-400 hover:text-red-600 transition-colors flex-shrink-0 p-1">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
