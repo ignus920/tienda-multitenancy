@@ -334,6 +334,41 @@ class ImportList extends Component
 
         $results = $query->paginate($this->perPage);
 
+        // Obtener programaciones y embarques agrupados de manera eficiente para los items de la página actual
+        try {
+            $itemIds = $results->pluck('id')->toArray();
+            $importData = DB::connection('tenant')
+                ->table('imp_imports as ii')
+                ->select([
+                    'ii.item_id',
+                    'ii.qty_requested',
+                    'ii.priority',
+                    'ii.status as status_id',
+                    'ist.translated_name as status_name',
+                    'il.name as label_name',
+                    's.operation_number as shipment_number',
+                    'ii.priority_assigned_at as due_date'
+                ])
+                ->leftJoin('imp_status as ist', 'ii.status', '=', 'ist.id')
+                ->leftJoin('imp_labels as il', 'ii.label_id', '=', 'il.id')
+                ->leftJoin('imp_packing as pk', 'ii.packing_id', '=', 'pk.id')
+                ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
+                ->whereIn('ii.item_id', $itemIds)
+                ->where('ii.status', '<', 8)
+                ->whereNull('ii.deleted_at')
+                ->get()
+                ->groupBy('item_id');
+
+            foreach ($results as $item) {
+                $item->programaciones = $importData->get($item->id, collect());
+            }
+        } catch (\Exception $e) {
+            Log::error('Error consultando programaciones en ImportList: ' . $e->getMessage());
+            foreach ($results as $item) {
+                $item->programaciones = collect();
+            }
+        }
+
         // Log de los resultados
         Log::info('Total items encontrados: ' . $results->total());
         Log::info('Items en página actual: ' . $results->count());
