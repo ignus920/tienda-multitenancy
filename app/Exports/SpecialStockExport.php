@@ -48,12 +48,16 @@ class SpecialStockExport implements FromCollection, WithHeadings, WithMapping, W
         $quarantineObs = $lastQuarantine ? str_replace(["\r", "\n", "\t"], " ", $lastQuarantine->justification) : '';
         $showroomObs = $lastShowroom ? str_replace(["\r", "\n", "\t"], " ", $lastShowroom->justification) : '';
 
+        // Obtener el stock numérico calculándolo explícitamente desde el accessor del modelo
+        $quarantineQty = (int) ($item->quarantine_stock ?? 0);
+        $showroomQty = (int) ($item->showroom_stock ?? 0);
+
         return [
             $item->internal_code ?? $item->sku,
             $item->name,
-            $item->quarantine_stock ? (int) $item->quarantine_stock : 0,
+            $quarantineQty,
             $quarantineObs,
-            $item->showroom_stock ? (int) $item->showroom_stock : 0,
+            $showroomQty,
             $showroomObs
         ];
     }
