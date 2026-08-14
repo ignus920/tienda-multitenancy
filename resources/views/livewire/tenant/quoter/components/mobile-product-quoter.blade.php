@@ -336,7 +336,7 @@ $header = 'Seleccionar productos';
                                     @endforeach
                                 @endif
                             </div>
-                        </div>               </div>
+                        </div>
 
                         <div class="flex flex-col items-center gap-2 flex-shrink-0">
                             @if($quantity > 0 && !$hideQuoter)
