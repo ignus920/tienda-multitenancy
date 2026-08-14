@@ -95,14 +95,16 @@ class Dashboard extends Component
             
             $this->activePeriodLabel = $start->format('d/m/Y') . ' al ' . $end->format('d/m/Y');
 
-            // 1. Ventas Hoy: Suma de totales con IVA de remisiones creadas hoy (excluyendo ANULADO)
+            // 1. Ventas Hoy: Suma de totales antes de IVA de remisiones creadas hoy (excluyendo ANULADO)
             $ventasHoy = \App\Models\Tenant\Remissions\InvRemissions::with(['details'])
                 ->whereDate('created_at', \Illuminate\Support\Carbon::today('America/Bogota'))
                 ->where('status', '!=', 'ANULADO')
                 ->get()
                 ->sum(function($remission) {
                     $totalRem = $remission->details->sum(function($detail) {
-                        return floatval($detail->quantity) * floatval($detail->value);
+                        $tax = floatval($detail->tax ?? 0);
+                        $valueBeforeTax = floatval($detail->value) / (1 + ($tax / 100));
+                        return floatval($detail->quantity) * $valueBeforeTax;
                     });
                     return $totalRem + floatval($remission->flete ?? 0);
                 });
@@ -114,14 +116,16 @@ class Dashboard extends Component
             // 3. Total Productos: Conteo de items activos
             $totalProductos = Items::active()->count();
 
-            // 4. Ventas del Periodo: Suma de totales con IVA de remisiones creadas en el rango de fechas (excluyendo ANULADO)
+            // 4. Ventas del Periodo: Suma de totales antes de IVA de remisiones creadas en el rango de fechas (excluyendo ANULADO)
             $ventasPeriodo = \App\Models\Tenant\Remissions\InvRemissions::with(['details'])
                 ->whereBetween('created_at', [$start, $end])
                 ->where('status', '!=', 'ANULADO')
                 ->get()
                 ->sum(function($remission) {
                     $totalRem = $remission->details->sum(function($detail) {
-                        return floatval($detail->quantity) * floatval($detail->value);
+                        $tax = floatval($detail->tax ?? 0);
+                        $valueBeforeTax = floatval($detail->value) / (1 + ($tax / 100));
+                        return floatval($detail->quantity) * $valueBeforeTax;
                     });
                     return $totalRem + floatval($remission->flete ?? 0);
                 });
