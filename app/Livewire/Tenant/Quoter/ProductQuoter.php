@@ -3150,18 +3150,29 @@ class ProductQuoter extends Component
 
                 if ($item['quantity'] > $availableStock) {
                     DB::connection('tenant')->rollBack();
-                    $this->dispatch('swal', [
-                        'icon' => 'error',
-                        'title' => 'Stock Insuficiente (Especial)',
-                        'html' => "El producto <strong>{$item['name']}</strong> tiene unidades no disponibles para venta.<br><br>"
-                               . "<div class='text-left space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-sm'>"
-                               . "• <strong>Cantidad Solicitada:</strong> " . number_format($item['quantity'], 0) . " und.<br>"
-                               . "• <strong>En Cuarentena:</strong> " . number_format($quarantineStock, 0) . " und.<br>"
-                               . "• <strong>En Vitrina:</strong> " . number_format($showroomStock, 0) . " und.<br>"
-                               . "• <strong>Disponible Real para Venta:</strong> <span class='text-emerald-600 dark:text-emerald-400 font-bold'>" . number_format($availableStock, 0) . " und.</span>"
-                               . "</div><br>"
-                               . "<em>Por favor, reduce la cantidad en el carrito o solicita la liberación del stock a un administrador.</em>"
-                    ]);
+                    
+                    if ($showroomStock > 0) {
+                        $this->dispatch('swal', [
+                            'icon' => 'error',
+                            'title' => 'Stock en Vitrina Bloqueado',
+                            'html' => "El producto <strong>{$item['name']}</strong> tiene unidades en vitrina.<br><br>"
+                                   . "<div class='p-3 bg-red-50 text-red-800 rounded-lg border border-red-200 text-sm font-semibold text-center'>"
+                                   . "Hay " . (int)$showroomStock . " unidades en vitrina, por favor solicite a Importaciones que las retire de vitrina"
+                                   . "</div>"
+                        ]);
+                    } else {
+                        $this->dispatch('swal', [
+                            'icon' => 'error',
+                            'title' => 'Stock Insuficiente (Especial)',
+                            'html' => "El producto <strong>{$item['name']}</strong> tiene unidades no disponibles para venta.<br><br>"
+                                   . "<div class='text-left space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-sm'>"
+                                   . "• <strong>Cantidad Solicitada:</strong> " . number_format($item['quantity'], 0) . " und.<br>"
+                                   . "• <strong>En Cuarentena:</strong> " . number_format($quarantineStock, 0) . " und.<br>"
+                                   . "• <strong>Disponible Real para Venta:</strong> <span class='text-emerald-600 dark:text-emerald-400 font-bold'>" . number_format($availableStock, 0) . " und.</span>"
+                                   . "</div><br>"
+                                   . "<em>Por favor, reduce la cantidad en el carrito o solicita la liberación del stock a un administrador.</em>"
+                        ]);
+                    }
                     return;
                 }
             }
@@ -4664,5 +4675,49 @@ class ProductQuoter extends Component
             'id' => $item->id,
             'hasLink' => $hasLink
         ]);
+    }
+
+    public function exportSpecialStocks()
+    {
+        $this->ensureTenantConnection();
+
+        $data = Items::with(['quarantineMovements', 'showroomMovements', 'brand'])
+            ->get()
+            ->filter(function($item) {
+                return $item->quarantine_stock > 0 || $item->showroom_stock > 0;
+            })
+            ->sortBy('name');
+
+        $headings = [
+            'SKU (Código Interno)',
+            'Nombre del Producto',
+            'Marca',
+            'Cantidad en Cuarentena',
+            'Observación Última Cuarentena',
+            'Cantidad en Vitrina / Exhibición',
+            'Observación Última Vitrina / Exhibición'
+        ];
+
+        $mapping = function($item) {
+            $lastQuarantine = $item->quarantineMovements->sortByDesc('created_at')->first();
+            $lastShowroom = $item->showroomMovements->sortByDesc('created_at')->first();
+
+            return [
+                $item->internal_code ?? $item->sku,
+                $item->name,
+                $item->brand?->name ?? 'N/A',
+                $item->quarantine_stock,
+                $lastQuarantine ? $lastQuarantine->justification : '',
+                $item->showroom_stock,
+                $lastShowroom ? $lastShowroom->justification : ''
+            ];
+        };
+
+        $filename = 'Reporte_Especial_Inventario_' . now()->format('Ymd_His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\GenericExport($data, $headings, $mapping),
+            $filename
+        );
     }
 }

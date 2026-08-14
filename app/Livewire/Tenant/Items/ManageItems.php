@@ -2078,4 +2078,46 @@ class ManageItems extends Component
         $this->showProductionSection = false;
         $this->showAccesoriosSection = false;
     }
+
+    public function exportSpecialStocks()
+    {
+        $this->ensureTenantConnection();
+
+        $data = Items::with(['quarantineMovements', 'showroomMovements', 'brand'])
+            ->get()
+            ->filter(function($item) {
+                return $item->quarantine_stock > 0 || $item->showroom_stock > 0;
+            })
+            ->sortBy('name');
+
+        $headings = [
+            'Código',
+            'Descripción',
+            'Cant. en Cuarentena',
+            'Ultima obsevación',
+            'Cant. en Vitrina',
+            'Observación Última Vitrina / Exhibición'
+        ];
+
+        $mapping = function($item) {
+            $lastQuarantine = $item->quarantineMovements->sortByDesc('created_at')->first();
+            $lastShowroom = $item->showroomMovements->sortByDesc('created_at')->first();
+
+            return [
+                $item->internal_code ?? $item->sku,
+                $item->name,
+                (int) ($item->quarantine_stock ?? 0),
+                $lastQuarantine ? $lastQuarantine->justification : '',
+                (int) ($item->showroom_stock ?? 0),
+                $lastShowroom ? $lastShowroom->justification : ''
+            ];
+        };
+
+        $filename = 'Reporte_Especial_Inventario_' . now()->format('Ymd_His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\SpecialStockExport($data),
+            $filename
+        );
+    }
 }

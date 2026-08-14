@@ -301,6 +301,18 @@
                                     @click.away="open = false"
                                     x-cloak
                                     class="absolute left-0 mt-2 w-56 rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-[60] border border-gray-100 dark:border-gray-700 py-1 overflow-hidden">
+                                     
+                                     <!-- Exportar especial -->
+                                     <button @click="open = false; $wire.exportSpecialStocks()"
+                                         class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors group">
+                                         <div class="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                             <svg class="w-4 h-4 text-blue-700 dark:text-blue-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                             </svg>
+                                         </div>
+                                         <span class="font-medium">Exportar Especial (V/C)</span>
+                                     </button>
+
                                      @if(!$hideQuoter)
                                      <!-- Producto generico -->
                                     <button @click="open = false; $wire.openGenericProductModal()"
@@ -991,11 +1003,11 @@
                                                                      $physStock = (int) ($product->stock_bodega ?? 0);
                                                                      $resStock = (int) ($product->reserved_stock ?? 0);
                                                                      
-                                                                     // Disponibles = Stock - Cuarentena - Vitrina
-                                                                     $dispStock = max(0, $physStock - $quarantineStock - $showroomStock);
+                                                                     // Disponibles = Stock - Cuarentena
+                                                                     $dispStock = max(0, $physStock - $quarantineStock);
                                                                      
-                                                                     // Reservas visuales = Reservas físicas + Cuarentena + Vitrina
-                                                                     $visualReservations = $resStock + $quarantineStock + $showroomStock;
+                                                                     // Reservas visuales = Reservas físicas de clientes únicamente
+                                                                     $visualReservations = $resStock;
                                                                      
                                                                      $hasSpecialStock = ($quarantineStock > 0 || $showroomStock > 0);
                                                                  @endphp
@@ -1010,7 +1022,7 @@
                                                                      </td>
                                                                      <!-- Celda Reservas (Columna derecha, clic abre reservas) -->
                                                                      <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
-                                                                         title="Reservas Físicas: {{ $resStock }}{{ $quarantineStock > 0 ? ' | En Cuarentena: ' . $quarantineStock : '' }}{{ $showroomStock > 0 ? ' | En Vitrina: ' . $showroomStock : '' }}. Haga clic para gestionar reservas."
+                                                                         title="Reservas Físicas: {{ $resStock }}. Haga clic para gestionar reservas."
                                                                          class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                                                                          {{ $visualReservations > 0 ? number_format($visualReservations, 0) : '' }}
                                                                      </td>
