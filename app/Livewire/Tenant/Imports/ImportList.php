@@ -185,6 +185,24 @@ class ImportList extends Component
         $this->resetPage();
     }
 
+    public function getOccupiedPrioritiesProperty()
+    {
+        if (empty($this->selectedItems)) {
+            return [];
+        }
+
+        $this->ensureTenantConnection();
+
+        return ImpImports::whereIn('item_id', $this->selectedItems)
+            ->where('status', '<', 8)
+            ->whereNotNull('priority')
+            ->whereNull('deleted_at')
+            ->pluck('priority')
+            ->map(fn($p) => strtolower($p))
+            ->unique()
+            ->toArray();
+    }
+
     public function getItemsProperty()
     {
         $this->ensureTenantConnection();
