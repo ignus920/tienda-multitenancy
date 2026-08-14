@@ -63,6 +63,15 @@ class SetTenantConnection
                 ?->touchLastAccessed();
         }
 
+        // Expirar reservas que hayan pasado su fecha de vencimiento (status_id = 3 representa Vencido)
+        try {
+            \App\Models\Tenant\Items\Reservation::where('status_id', 1)
+                ->where('due_date', '<', now()->format('Y-m-d'))
+                ->update(['status_id' => 3]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error expirando reservas en middleware: ' . $e->getMessage());
+        }
+
         return $next($request);
     }
 }

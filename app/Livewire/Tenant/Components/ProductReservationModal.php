@@ -171,7 +171,7 @@ class ProductReservationModal extends Component
             $alreadyReserved = Reservation::where('item_id', $this->productId)
                 ->where('stock_type', '1')
                 ->where('status_id', 1) // Solo reservas activas/registradas
-                ->where('due_date', '>=', DB::raw('DATE_SUB(CURDATE(), INTERVAL 15 DAY)'))
+                ->where('due_date', '>=', DB::raw('CURDATE()'))
                 ->sum('quantity');
 
             $stockDisponible = (int) DB::connection('tenant')
@@ -188,7 +188,7 @@ class ProductReservationModal extends Component
             $alreadyReserved = Reservation::where('item_id', $this->productId)
                 ->where('stock_type', '2')
                 ->where('status_id', 1) // Solo reservas activas/registradas
-                ->where('due_date', '>=', DB::raw('DATE_SUB(CURDATE(), INTERVAL 15 DAY)'))
+                ->where('due_date', '>=', DB::raw('CURDATE()'))
                 ->sum('quantity');
 
             $transitoDisponible = (int) DB::connection('tenant')
@@ -299,6 +299,15 @@ class ProductReservationModal extends Component
     public function render()
     {
         $this->ensureTenantConnection();
+
+        // Expira reservas vencidas bajo demanda antes de listar o calcular existencias
+        try {
+            Reservation::where('status_id', 1)
+                ->where('due_date', '<', now()->format('Y-m-d'))
+                ->update(['status_id' => 3]);
+        } catch (\Exception $e) {
+            Log::error('Error expirando reservas en modal: ' . $e->getMessage());
+        }
         
         $customers = [];
         if (strlen($this->customerSearch) > 0) {
