@@ -17,12 +17,12 @@
             this.viewMode = this.viewMode === 'list' ? 'grid' : 'list';
             localStorage.setItem('portal_view_mode', this.viewMode);
         },
-        addToCart(id, code, name, price, label) {
-            let exists = this.cart.find(item => item.id === id && item.label === label);
+        addToCart(id, code, sku, name, priceCash, priceCredit) {
+            let exists = this.cart.find(item => item.id === id);
             if (exists) {
                 exists.qty++;
             } else {
-                this.cart.push({ id, code, name, price, label, qty: 1 });
+                this.cart.push({ id, code, sku, name, priceCash, priceCredit, qty: 1 });
             }
         },
         removeFromCart(index) {
@@ -33,7 +33,11 @@
             if (this.cart[index].qty < 1) this.cart[index].qty = 1;
         },
         get total() {
-            return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            let filter = $wire.paymentFilter;
+            return this.cart.reduce((sum, item) => {
+                let price = filter === 'credito' ? item.priceCredit : item.priceCash;
+                return sum + (price * item.qty);
+            }, 0);
         },
         get totalItems() {
             return this.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -468,7 +472,7 @@
                                 @if($priceCash > 0)
                                     @if($paymentFilter === 'contado')
                                         <button 
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
                                             class="w-full py-1.5 px-2 rounded-lg border border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95 transition-all"
                                         >
                                             <div class="text-[11px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($priceCash, 0, ',', '.') }}</div>
@@ -488,7 +492,7 @@
                                 @if($priceCredit && $priceCredit > 0)
                                     @if($paymentFilter === 'credito')
                                         <button 
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
                                             class="w-full py-1.5 px-2 rounded-lg border border-yellow-400/40 bg-yellow-50 dark:bg-yellow-900/15 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 transition-all"
                                         >
                                             <div class="text-[11px] font-black text-yellow-700 dark:text-yellow-300">${{ number_format($priceCredit, 0, ',', '.') }}</div>
@@ -606,7 +610,7 @@
                                 <div>
                                     @if($priceCash > 0)
                                         @if($paymentFilter === 'contado')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
                                                     class="w-full py-1 px-1 rounded-md border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Contado</span>
                                                 <span class="block text-[11px] font-black text-emerald-700 dark:text-emerald-300">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
@@ -624,7 +628,7 @@
                                 <div>
                                     @if($priceCredit && $priceCredit > 0)
                                         @if($paymentFilter === 'credito')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }})"
                                                     class="w-full py-1 px-1 rounded-md border border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-yellow-600 dark:text-yellow-400 uppercase">Crédito</span>
                                                 <span class="block text-[11px] font-black text-yellow-700 dark:text-yellow-300">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
@@ -689,8 +693,8 @@
                                     <p class="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
                                         <span x-text="'SKU: ' + item.code"></span> · 
                                         <span class="font-bold px-1 py-0.5 rounded text-[8px]" 
-                                              :class="item.label === 'Contado' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'"
-                                              x-text="item.label"></span>
+                                              :class="$wire.paymentFilter === 'credito' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'"
+                                              x-text="$wire.paymentFilter === 'credito' ? 'Crédito' : 'Contado'"></span>
                                     </p>
                                 </div>
                                 <button @click="removeFromCart(index)" class="text-red-400 hover:text-red-600 transition-colors flex-shrink-0 p-1">
@@ -705,7 +709,7 @@
                                     <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
                                     <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
                                 </div>
-                                <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" x-text="'$' + (item.price * item.qty).toLocaleString('es-CO')"></span>
+                                <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" x-text="'$' + (($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * item.qty).toLocaleString('es-CO')"></span>
                             </div>
                         </div>
                     </template>
@@ -777,7 +781,7 @@
                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
                         wire:loading.attr="disabled"
                         wire:target="submitOrder"
-                        @click="$wire.submitOrder(cart).then(res => { if (res) { cart = []; } })"
+                        @click="$wire.submitOrder(cart.map(item => ({ id: item.id, code: item.code, name: item.name, price: $wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash, label: $wire.paymentFilter === 'credito' ? 'Crédito' : 'Contado', qty: item.qty }))).then(res => { if (res) { cart = []; } })"
                     >
                         <!-- Icono dinámico -->
                         <span wire:loading.remove wire:target="submitOrder">🚀</span>
