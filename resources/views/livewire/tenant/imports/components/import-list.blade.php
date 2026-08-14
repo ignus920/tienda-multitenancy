@@ -371,8 +371,6 @@
                                             <div class="flex items-center gap-1 font-bold text-gray-700 dark:text-gray-300">
                                                 @if($prog->status_id == 7 || !empty($prog->shipment_number))
                                                     <span class="text-blue-600 dark:text-blue-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                    <span class="text-gray-300 dark:text-gray-600">|</span>
-                                                    <span>{{ $prog->shipment_number ?? 'Shipment' }}</span>
                                                 @else
                                                     <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
                                                     <span class="text-gray-300 dark:text-gray-600">|</span>
@@ -380,16 +378,18 @@
                                                 @endif
                                             </div>
 
-                                            <!-- Fila 2: Prioridad | Fecha (Sólo si NO está en Tránsito) -->
-                                            @if($prog->status_id != 7 && empty($prog->shipment_number))
-                                                <div class="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
+                                            <!-- Fila 2: Prioridad / Shipment | Fecha -->
+                                            <div class="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400 font-semibold">
+                                                @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                                    <span>{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                                @else
                                                     <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
                                                     @if($prog->due_date)
                                                         <span class="text-gray-300 dark:text-gray-600">|</span>
                                                         <span class="text-[9px] text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
                                                     @endif
-                                                </div>
-                                            @endif
+                                                @endif
+                                            </div>
                                         </div>
                                         
                                         <!-- Tooltip en hover -->
