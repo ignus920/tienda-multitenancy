@@ -249,6 +249,26 @@
                         <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                             <div class="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
                                 @forelse($item->programaciones ?? [] as $prog)
+                                    @php
+                                        // Traducir el estado al español de forma segura
+                                        $estadoTraducido = match(strtolower($prog->status_name ?? '')) {
+                                            'requested' => 'Solicitado',
+                                            'pending' => 'Pendiente',
+                                            'approved' => 'Aprobado',
+                                            'production', 'in production' => 'En producción',
+                                            'transit', 'in transit' => 'En tránsito',
+                                            default => $prog->status_name ?? 'Solicitado'
+                                        };
+
+                                        // Definir clases de colores distintivos según la prioridad
+                                        $prioridadLower = strtolower($prog->priority ?? '');
+                                        $badgeClasses = match(true) {
+                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
+                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
+                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
+                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1.5 py-0.5 rounded text-[10px] font-semibold'
+                                        };
+                                    @endphp
                                     <div class="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-[11px] min-w-[150px] max-w-[180px] shadow-sm">
                                         @if($prog->status_id == 7 || !empty($prog->shipment_number))
                                             <!-- En Tránsito (Shipment) -->
@@ -260,10 +280,10 @@
                                             <!-- Solicitado, Producción, etc. -->
                                             <div class="flex justify-between items-center font-bold mb-0.5 text-gray-800 dark:text-gray-200">
                                                 <span class="text-indigo-600 dark:text-indigo-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1 py-0.2 rounded text-[10px]">{{ $prog->priority }}</span>
+                                                <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
                                             </div>
                                             <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px]">
-                                                <span>{{ $prog->status_name ?? 'Solicitado' }}</span>
+                                                <span>{{ $estadoTraducido }}</span>
                                                 <span>{{ $prog->due_date ? \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') : '' }}</span>
                                             </div>
                                         @endif
