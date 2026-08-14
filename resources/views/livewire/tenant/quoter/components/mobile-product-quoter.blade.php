@@ -695,7 +695,6 @@ $header = 'Seleccionar productos';
                 </button>
             </div>
         </div>
-    </div>
 
 <script>
     document.addEventListener('livewire:init', () => {
@@ -751,3 +750,4 @@ $header = 'Seleccionar productos';
         document.body.removeChild(textArea);
     }
 </script>
+</div>
