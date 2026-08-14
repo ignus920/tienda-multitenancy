@@ -95,14 +95,17 @@ class Dashboard extends Component
             
             $this->activePeriodLabel = $start->format('d/m/Y') . ' al ' . $end->format('d/m/Y');
 
-            // 1. Ventas Hoy: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN hoy
-            $ventasHoy = VntDetailQuote::whereHas('cotizacion', function($query) {
-                $query->whereDate('created_at', \Illuminate\Support\Carbon::today('America/Bogota'))
-                      ->whereIn('status', ['REMISIÓN', 'FACTURADO']);
-            })->get()->sum(function($detalle) {
-                $valorBase = floatval($detalle->value) / (1 + (floatval($detalle->tax) ?? 0) / 100);
-                return round(floatval($detalle->quantity) * $valorBase);
-            });
+            // 1. Ventas Hoy: Suma de totales con IVA de remisiones creadas hoy (excluyendo ANULADO)
+            $ventasHoy = \App\Models\Tenant\Remissions\InvRemissions::with(['details'])
+                ->whereDate('created_at', \Illuminate\Support\Carbon::today('America/Bogota'))
+                ->where('status', '!=', 'ANULADO')
+                ->get()
+                ->sum(function($remission) {
+                    $totalRem = $remission->details->sum(function($detail) {
+                        return floatval($detail->quantity) * floatval($detail->value);
+                    });
+                    return $totalRem + floatval($remission->flete ?? 0);
+                });
             $ventasHoy = round($ventasHoy);
 
             // 2. Total Clientes: Conteo de empresas registradas (excluyendo eliminados por SoftDeletes)
@@ -111,14 +114,17 @@ class Dashboard extends Component
             // 3. Total Productos: Conteo de items activos
             $totalProductos = Items::active()->count();
 
-            // 4. Ventas del Periodo: Suma de valor antes de IVA (valor / (1 + tax/100)) de cotizaciones confirmadas como REMISIÓN en el rango de fechas
-            $ventasPeriodo = VntDetailQuote::whereHas('cotizacion', function($query) use ($start, $end) {
-                $query->whereBetween('created_at', [$start, $end])
-                      ->whereIn('status', ['REMISIÓN', 'FACTURADO']);
-            })->get()->sum(function($detalle) {
-                $valorBase = floatval($detalle->value) / (1 + (floatval($detalle->tax) ?? 0) / 100);
-                return round(floatval($detalle->quantity) * $valorBase);
-            });
+            // 4. Ventas del Periodo: Suma de totales con IVA de remisiones creadas en el rango de fechas (excluyendo ANULADO)
+            $ventasPeriodo = \App\Models\Tenant\Remissions\InvRemissions::with(['details'])
+                ->whereBetween('created_at', [$start, $end])
+                ->where('status', '!=', 'ANULADO')
+                ->get()
+                ->sum(function($remission) {
+                    $totalRem = $remission->details->sum(function($detail) {
+                        return floatval($detail->quantity) * floatval($detail->value);
+                    });
+                    return $totalRem + floatval($remission->flete ?? 0);
+                });
             $ventasPeriodo = round($ventasPeriodo);
 
             $this->stats = [
