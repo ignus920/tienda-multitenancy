@@ -39,7 +39,12 @@ class ImportList extends Component
     // Property to track selected label for filtering
     public $selectedLabelId = null; // null = show all, number = filter by label
     public $selectedLabelName = 'Programación'; // Nombre a mostrar en el dropdown
-    public $filterCritical = false; // Filtrar por productos críticos
+    public $filterCritical = 'ninguno'; // Filtrar por productos críticos
+
+    public function updatingFilterCritical()
+    {
+        $this->resetPage();
+    }
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -316,9 +321,16 @@ class ImportList extends Component
                     });
                 }
             })
-            ->when($this->filterCritical, function ($query) {
-                $query->whereIn('inv_items.type', ['IMPORTADO', 'COMPRA NACIONAL'])
-                    ->where(DB::raw('
+            ->when($this->filterCritical !== 'ninguno', function ($query) {
+                if ($this->filterCritical === 'importados') {
+                    $query->where('inv_items.type', 'IMPORTADO');
+                } elseif ($this->filterCritical === 'compra_nacional') {
+                    $query->where('inv_items.type', 'COMPRA NACIONAL');
+                } else {
+                    $query->whereIn('inv_items.type', ['IMPORTADO', 'COMPRA NACIONAL']);
+                }
+
+                $query->where(DB::raw('
                         CASE 
                             WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
                             THEN (COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0))
