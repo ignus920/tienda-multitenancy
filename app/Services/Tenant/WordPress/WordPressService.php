@@ -211,15 +211,6 @@ class WordPressService
         return array_unique($skus);
     }
 
-        } catch (\Exception $e) {
-            Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return array_unique($skus);
-    }
-
     public function reconcileImageIds(int $itemId, string $productSku): array
     {
         $counts = ['corrected' => 0, 'already_ok' => 0, 'not_found' => 0];
