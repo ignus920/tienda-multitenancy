@@ -432,8 +432,8 @@ class ManageItems extends Component
             $query->when($this->productFilter === 'bajo_stock', function ($query) {
                 $query->havingRaw('
                     CASE 
-                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
-                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0))
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
                         ELSE 0 
                     END < 15
                 ');
@@ -444,8 +444,8 @@ class ManageItems extends Component
             ->when($this->productFilter === 'sin_venta', function ($query) {
                 $query->havingRaw('
                     CASE 
-                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
-                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0))
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
                         ELSE 0 
                     END > 60
                 ');
@@ -453,8 +453,8 @@ class ManageItems extends Component
             ->when($this->productFilter === 'poca_venta', function ($query) {
                 $query->havingRaw('
                     CASE 
-                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
-                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0))
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
                         ELSE 0 
                     END BETWEEN 50 AND 60
                 ');
