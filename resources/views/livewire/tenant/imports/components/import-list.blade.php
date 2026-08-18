@@ -667,20 +667,19 @@
 
     <style>
         .blue-scrollbar::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
         }
         .blue-scrollbar::-webkit-scrollbar-track {
             background: #f1f5f9;
             border-radius: 10px;
         }
         .blue-scrollbar::-webkit-scrollbar-thumb {
-            background: #3b82f6;
+            background: #2563eb;
             border-radius: 10px;
-            border: 2px solid #f1f5f9;
         }
         .blue-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #2563eb;
+            background: #1d4ed8;
         }
         .dark .blue-scrollbar::-webkit-scrollbar-track {
             background: #1e293b;
@@ -689,10 +688,9 @@
         .dark .blue-scrollbar::-webkit-scrollbar-thumb {
             background: #3b82f6;
             border-radius: 10px;
-            border: 2px solid #1e293b;
         }
         .dark .blue-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #60a5fa;
+            background: #2563eb;
         }
     </style>
 </div>
