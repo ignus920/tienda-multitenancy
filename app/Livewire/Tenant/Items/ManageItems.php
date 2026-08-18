@@ -100,11 +100,6 @@ class ManageItems extends Component
     public $sortDirection = 'asc';
     public $showModal = false;
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
     public function updatingProductFilter()
     {
         $this->resetPage();
