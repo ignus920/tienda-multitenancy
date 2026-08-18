@@ -666,31 +666,39 @@
     {{-- @livewire('tenant.components.item-accessories-modal') --}}
 
     <style>
+        .blue-scrollbar {
+            scrollbar-width: auto !important;
+            scrollbar-color: #2563eb #f1f5f9 !important;
+        }
         .blue-scrollbar::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
+            width: 10px !important;
+            height: 10px !important;
+            display: block !important;
         }
         .blue-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 10px;
+            background: #f1f5f9 !important;
+            border-radius: 10px !important;
         }
         .blue-scrollbar::-webkit-scrollbar-thumb {
-            background: #2563eb;
-            border-radius: 10px;
+            background: #2563eb !important;
+            border-radius: 10px !important;
         }
         .blue-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #1d4ed8;
+            background: #1d4ed8 !important;
+        }
+        .dark .blue-scrollbar {
+            scrollbar-color: #3b82f6 #1e293b !important;
         }
         .dark .blue-scrollbar::-webkit-scrollbar-track {
-            background: #1e293b;
-            border-radius: 10px;
+            background: #1e293b !important;
+            border-radius: 10px !important;
         }
         .dark .blue-scrollbar::-webkit-scrollbar-thumb {
-            background: #3b82f6;
-            border-radius: 10px;
+            background: #3b82f6 !important;
+            border-radius: 10px !important;
         }
         .dark .blue-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #2563eb;
+            background: #2563eb !important;
         }
     </style>
 </div>
