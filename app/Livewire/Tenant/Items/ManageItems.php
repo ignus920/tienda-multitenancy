@@ -401,16 +401,16 @@ class ManageItems extends Component
 
         // Filtros específicos para sin_imagen y no_en_ecommerce
         if ($this->productFilter === 'sin_imagen') {
-            $query->leftJoin('image_gallery', 'inv_items.id', '=', 'image_gallery.itemId')
-                ->whereNull('image_gallery.id')
-                ->groupBy('inv_items.id');
+            $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
+                ->whereNull('inv_image_gallery.id')
+                ->distinct('inv_items.id');
         } elseif ($this->productFilter === 'no_en_ecommerce') {
             $query->leftJoin('inv_items_store as iis_wp', function ($join) {
                 $join->on('inv_items.id', '=', 'iis_wp.itemId')
                     ->where('iis_wp.storeId', '=', 2);
             })
             ->whereNull('iis_wp.id')
-            ->groupBy('inv_items.id');
+            ->distinct('inv_items.id');
         } elseif ($this->productFilter !== 'todo') {
             // Filtros originales de stock y venta
             $centralDbName = config('database.connections.central.database');
