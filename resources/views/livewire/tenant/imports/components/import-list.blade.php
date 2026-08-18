@@ -254,7 +254,7 @@
 
     <!-- Vista Desktop (tabla) - oculta en móvil -->
     <div class="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="overflow-x-auto max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div class="overflow-x-auto max-h-[70vh] overflow-y-auto custom-scrollbar blue-scrollbar">
             <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
                 <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm">
                     <tr>
@@ -664,4 +664,35 @@
     <!-- Modales Compartidos -->
     @livewire('tenant.components.product-image-modal')
     {{-- @livewire('tenant.components.item-accessories-modal') --}}
+
+    <style>
+        .blue-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .blue-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        .blue-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 10px;
+            border: 2px solid #f1f5f9;
+        }
+        .blue-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #2563eb;
+        }
+        .dark .blue-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+        .dark .blue-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 10px;
+            border: 2px solid #1e293b;
+        }
+        .dark .blue-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #60a5fa;
+        }
+    </style>
 </div>
