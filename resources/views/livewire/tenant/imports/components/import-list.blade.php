@@ -88,18 +88,15 @@
                 @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Botón Productos Críticos -->
-            <button wire:click="$toggle('filterCritical')"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all duration-200
-                           {{ $filterCritical 
-                              ? 'bg-red-600 hover:bg-red-700 text-white shadow ring-2 ring-red-300 dark:ring-red-900' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600' 
-                           }}">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-                {{ $filterCritical ? 'Ver Todos' : 'Prod. Críticos' }}
-            </button>
+            <!-- Filtro de Productos Críticos -->
+            <div class="w-full sm:w-64">
+                <select wire:model.live="filterCritical" 
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="ninguno">Ninguno</option>
+                    <option value="importados">Productos críticos importados</option>
+                    <option value="compra_nacional">Productos críticos compra nacional</option>
+                </select>
+            </div>
 
             <!-- Selector de Columnas (Alpine.js + LocalStorage) -->
             <div class="relative w-full sm:w-auto">
