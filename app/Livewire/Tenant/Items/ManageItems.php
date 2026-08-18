@@ -399,7 +399,20 @@ class ManageItems extends Component
                 }
             });
 
-        if ($this->productFilter !== 'todo') {
+        // Filtros específicos para sin_imagen y no_en_ecommerce
+        if ($this->productFilter === 'sin_imagen') {
+            $query->leftJoin('image_gallery', 'inv_items.id', '=', 'image_gallery.itemId')
+                ->whereNull('image_gallery.id')
+                ->groupBy('inv_items.id');
+        } elseif ($this->productFilter === 'no_en_ecommerce') {
+            $query->leftJoin('inv_items_store as iis_wp', function ($join) {
+                $join->on('inv_items.id', '=', 'iis_wp.itemId')
+                    ->where('iis_wp.storeId', '=', 2);
+            })
+            ->whereNull('iis_wp.id')
+            ->groupBy('inv_items.id');
+        } elseif ($this->productFilter !== 'todo') {
+            // Filtros originales de stock y venta
             $centralDbName = config('database.connections.central.database');
 
             $query->addSelect(DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses'));
