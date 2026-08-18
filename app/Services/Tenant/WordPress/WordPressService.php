@@ -169,7 +169,7 @@ class WordPressService
         $page = 1;
         $perPage = 100;
         
-        Log::info('🔍 [WP] Obteniendo todos los SKUs de productos en WooCommerce...');
+        Log::info('🔍 [WP] Obteniendo SKUs de productos en WooCommerce...');
 
         try {
             do {
@@ -195,29 +195,21 @@ class WordPressService
                     if (!empty($product['sku'])) {
                         $skus[] = $product['sku'];
                     }
-
-                    // Si es un producto variable, consultamos sus variaciones para obtener sus SKUs correspondientes
-                    if (($product['type'] ?? '') === 'variable') {
-                        $variationsResponse = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                            ->get($this->baseUrl . "products/{$product['id']}/variations", [
-                                'per_page' => 100
-                            ]);
-
-                        if ($variationsResponse->successful()) {
-                            $variations = $variationsResponse->json();
-                            foreach ($variations as $variation) {
-                                if (!empty($variation['sku'])) {
-                                    $skus[] = $variation['sku'];
-                                }
-                            }
-                        }
-                    }
                 }
 
                 $page++;
             } while (count($products) == $perPage);
 
             Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito', ['total_skus' => count($skus)]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return array_unique($skus);
+    }
 
         } catch (\Exception $e) {
             Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [

@@ -77,6 +77,7 @@ class SyncWordPressStock extends Command
             $items = $itemsQuery->get();
 
             $this->line("  📦 Items a sincronizar: <info>{$items->count()}</info>");
+            $syncedSkus = [];
 
             $bar = $this->output->createProgressBar($items->count());
             $bar->start();
@@ -87,6 +88,9 @@ class SyncWordPressStock extends Command
 
                     if ($result['success']) {
                         $totalOk++;
+                        if (!empty($item->sku)) {
+                            $syncedSkus[] = $item->sku;
+                        }
                         if ($skuFiltro) {
                             $this->newLine();
                             $this->info("  ✅ Sincronizado: {$item->name}");
@@ -130,6 +134,11 @@ class SyncWordPressStock extends Command
 
             $bar->finish();
             $this->newLine();
+
+            // Guardar SKUs sincronizados en caché por 24 horas
+            if (!empty($syncedSkus)) {
+                \Illuminate\Support\Facades\Cache::put('wp_active_skus_' . $tenant->id, array_unique($syncedSkus), 86400);
+            }
         }
 
         $this->newLine();
