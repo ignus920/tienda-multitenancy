@@ -43,6 +43,7 @@ class ImportList extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
+        'page' => ['except' => 1],
     ];
 
     protected $listeners = [

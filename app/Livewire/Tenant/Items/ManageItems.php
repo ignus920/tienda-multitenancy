@@ -233,6 +233,7 @@ class ManageItems extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'perPage' => ['except' => 10],
+        'page' => ['except' => 1],
     ];
 
     public function updatingSearch()
