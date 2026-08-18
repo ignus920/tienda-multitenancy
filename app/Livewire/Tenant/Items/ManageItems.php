@@ -245,12 +245,12 @@ class ManageItems extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'perPage' => ['except' => 10],
-        'page' => ['except' => 1],
     ];
 
     public function updatingSearch()
     {
-        $this->resetPage();
+        // No resetear página para mantener el usuario en la página actual mientras busca
+        // $this->resetPage();
     }
 
     public function updatingPerPage()
