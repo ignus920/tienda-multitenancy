@@ -122,6 +122,8 @@
                                 <option value="nuevos">Productos nuevos</option>
                                 <option value="sin_venta">Productos que no se están vendiendo</option>
                                 <option value="poca_venta">Productos con poca venta</option>
+                                <option value="sin_imagen">Sin imagen</option>
+                                <option value="no_en_ecommerce">No se encuentra en ecommerce</option>
                             </select>
                         </div>
                     </div>
