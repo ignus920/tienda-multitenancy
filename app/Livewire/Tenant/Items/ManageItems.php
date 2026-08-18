@@ -95,9 +95,20 @@ class ManageItems extends Component
 
     // Propiedades para la tabla
     public $search = '';
+    public $productFilter = 'todo';
     public $sortField = 'name';
     public $sortDirection = 'asc';
     public $showModal = false;
+
+    public function updatingProductFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSelectedSupplierId()
+    {
+        $this->resetPage();
+    }
     public $confirmingItemDeletion = false;
     public $perPage = 10;
 
@@ -141,6 +152,7 @@ class ManageItems extends Component
         'PROYECTADOS'     => 'Proyectados',
         'DESCONTINUADOS'  => 'Descontinuados',
         'CZCL'            => 'CZCL',
+        'SERVICIO'        => 'Servicio',
     ];
 
     public $allLabelsValues = [
@@ -367,7 +379,8 @@ class ManageItems extends Component
         $this->ensureTenantConnection();
         $this->loadWarehouses();
 
-        $items = Items::query()
+        $query = Items::query()
+            ->select('inv_items.*')
             ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
             ->when($this->selectedSupplierId, function ($query) {
                 $query->whereHas('importSetup', function ($q) {
@@ -378,14 +391,102 @@ class ManageItems extends Component
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
                     $query->where(function ($q) use ($word) {
-                        $q->where('name', 'like', '%' . $word . '%')
-                            ->orWhere('sku', 'like', '%' . $word . '%')
-                            ->orWhere('internal_code', 'like', '%' . $word . '%')
-                            ->orWhere('type', 'like', '%' . $word . '%');
+                        $q->where('inv_items.name', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
                     });
                 }
+            });
+
+        if ($this->productFilter !== 'todo') {
+            $centralDbName = config('database.connections.central.database');
+
+            $query->addSelect(DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses'));
+
+            $query->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+                ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+                ->leftJoin("{$centralDbName}.vnt_warehouses as central_warehouses", 'inv_store.warehouseId', '=', 'central_warehouses.id')
+                ->leftJoin(DB::raw('
+                    (
+                        SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                        FROM (
+                            SELECT idr.itemId, idr.quantity as qty
+                            FROM inv_detail_remissions idr
+                            INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                            WHERE ir.status != \'ANULADO\'
+                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+
+                            UNION ALL
+
+                            SELECT item_sub.id as itemId, lsh.quantity as qty
+                            FROM legacy_sales_history lsh
+                            INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        ) sub
+                        GROUP BY sub.itemId
+                    ) s7m
+                '), 's7m.itemId', '=', 'inv_items.id');
+
+            $query->when($this->productFilter === 'bajo_stock', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END < 15
+                ');
             })
-            ->orderBy($this->sortField, $this->sortDirection)
+            ->when($this->productFilter === 'nuevos', function ($query) {
+                $query->where('inv_items.name', 'like', '%NVP%');
+            })
+            ->when($this->productFilter === 'sin_venta', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END > 60
+                ');
+            })
+            ->when($this->productFilter === 'poca_venta', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END BETWEEN 50 AND 60
+                ');
+            });
+
+            $query->groupBy(
+                'inv_items.id',
+                'inv_items.api_data_id',
+                'inv_items.categoryId',
+                'inv_items.name',
+                'inv_items.internal_code',
+                'inv_items.sku',
+                'inv_items.description',
+                'inv_items.type',
+                'inv_items.taxId',
+                'inv_items.commandId',
+                'inv_items.brandId',
+                'inv_items.houseId',
+                'inv_items.inventoriable',
+                'inv_items.purchasing_unit',
+                'inv_items.consumption_unit',
+                'inv_items.handles_serial',
+                'inv_items.status',
+                'inv_items.generic',
+                'inv_items.created_at',
+                'inv_items.updated_at',
+                'inv_items.deleted_at',
+                's7m.salidas_7_meses'
+            );
+        }
+
+        $items = $query->orderBy('inv_items.' . $this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
         return view('livewire.tenant.items.manage-items', [
