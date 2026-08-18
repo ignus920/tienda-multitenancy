@@ -402,6 +402,8 @@ class ManageItems extends Component
         if ($this->productFilter !== 'todo') {
             $centralDbName = config('database.connections.central.database');
 
+            $query->addSelect(DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses'));
+
             $query->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
                 ->leftJoin("{$centralDbName}.vnt_warehouses as central_warehouses", 'inv_store.warehouseId', '=', 'central_warehouses.id')
@@ -479,7 +481,8 @@ class ManageItems extends Component
                 'inv_items.generic',
                 'inv_items.created_at',
                 'inv_items.updated_at',
-                'inv_items.deleted_at'
+                'inv_items.deleted_at',
+                's7m.salidas_7_meses'
             );
         }
 
