@@ -195,6 +195,23 @@ class WordPressService
                     if (!empty($product['sku'])) {
                         $skus[] = $product['sku'];
                     }
+
+                    // Si es un producto variable, consultamos sus variaciones para obtener sus SKUs correspondientes
+                    if (($product['type'] ?? '') === 'variable') {
+                        $variationsResponse = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                            ->get($this->baseUrl . "products/{$product['id']}/variations", [
+                                'per_page' => 100
+                            ]);
+
+                        if ($variationsResponse->successful()) {
+                            $variations = $variationsResponse->json();
+                            foreach ($variations as $variation) {
+                                if (!empty($variation['sku'])) {
+                                    $skus[] = $variation['sku'];
+                                }
+                            }
+                        }
+                    }
                 }
 
                 $page++;
