@@ -249,7 +249,8 @@ class ManageItems extends Component
 
     public function updatingSearch()
     {
-        $this->resetPage();
+        // No resetear página para mantener el usuario en la página actual mientras busca
+        // $this->resetPage();
     }
 
     public function updatingPerPage()

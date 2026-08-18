@@ -170,7 +170,8 @@ class ImportList extends Component
 
     public function updatingSearch()
     {
-        $this->resetPage();
+        // No resetear página para mantener el usuario en la página actual mientras busca
+        // $this->resetPage();
     }
 
     public function sortBy($field)
@@ -182,7 +183,8 @@ class ImportList extends Component
         }
 
         $this->sortField = $field;
-        $this->resetPage();
+        // No resetear página para mantener el usuario en la página actual al ordenar
+        // $this->resetPage();
     }
 
     public function getOccupiedPrioritiesProperty()
@@ -410,8 +412,8 @@ class ImportList extends Component
         // Limpiar el cache de items
         unset($this->items);
 
-        // Resetear paginación
-        $this->resetPage();
+        // No resetear paginación cuando se actualiza la cantidad para mantener el usuario en la página actual
+        // $this->resetPage();
 
         // Limpiar cantidades seleccionadas
         $this->selectedQuantities = [];
