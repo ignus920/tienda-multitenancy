@@ -2156,8 +2156,6 @@
         </div>
     @endif
 
-    @endif
-
     <!-- MODAL: Crear Producto Nuevo (Borrador) -->
     @if($showModalCreateNewProduct)
         <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
