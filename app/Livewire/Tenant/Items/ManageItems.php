@@ -400,6 +400,13 @@ class ManageItems extends Component
                 }
             });
 
+        // Excluir inactivos, servicios y genéricos para los filtros de sin_imagen y no_en_ecommerce
+        if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
+            $query->where('inv_items.status', '!=', 0)
+                  ->where('inv_items.type', '!=', 'SERVICIO')
+                  ->where('inv_items.generic', '!=', 1);
+        }
+
         // Filtros específicos para sin_imagen y no_en_ecommerce
         if ($this->productFilter === 'sin_imagen') {
             $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
@@ -2204,6 +2211,81 @@ class ManageItems extends Component
     {
         $this->ensureTenantConnection();
 
+        if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
+            $query = Items::query()
+                ->select('inv_items.*')
+                ->with(['brand', 'purchasingUnit', 'consumptionUnit', 'tax'])
+                ->where('inv_items.status', '!=', 0)
+                ->where('inv_items.type', '!=', 'SERVICIO')
+                ->where('inv_items.generic', '!=', 1);
+
+            if ($this->productFilter === 'sin_imagen') {
+                $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
+                    ->whereNull('inv_image_gallery.id')
+                    ->distinct('inv_items.id');
+                $filename = 'Productos_sin_Imagen_' . now()->format('Ymd_His') . '.xlsx';
+            } else {
+                $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                $wpSkus = [];
+                if ($wpService->isConfigured()) {
+                    $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_' . session('tenant_id'), 300, function () use ($wpService) {
+                        return $wpService->getAllProductSkus();
+                    });
+                }
+                $query->where(function ($q) use ($wpSkus) {
+                    $q->whereNull('inv_items.sku')
+                      ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                      ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+                });
+                $filename = 'Productos_que_no_estan_en_Ecommerce_' . now()->format('Ymd_His') . '.xlsx';
+            }
+
+            if ($this->search) {
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('inv_items.name', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
+                    });
+                }
+            }
+
+            $items = $query->orderBy('inv_items.name')->get();
+
+            $headings = [
+                'Código Interno',
+                'SKU',
+                'Descripción / Nombre',
+                'Tipo',
+                'Marca',
+                'Casa',
+                'Stock',
+                'Impuesto'
+            ];
+
+            $mapping = function($item) {
+                return [
+                    $item->internal_code,
+                    $item->sku,
+                    $item->name,
+                    $item->type,
+                    $item->brand?->name ?? 'N/A',
+                    $item->house?->name ?? 'N/A',
+                    (int)$item->showroom_stock + (int)$item->quarantine_stock,
+                    $item->tax?->name ?? 'N/A'
+                ];
+            };
+
+            $data = $items->map($mapping)->toArray();
+
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\GenericExport($data, $headings),
+                $filename
+            );
+        }
+
         $data = Items::with(['quarantineMovements', 'showroomMovements', 'brand'])
             ->get()
             ->filter(function($item) {
@@ -2234,7 +2316,7 @@ class ManageItems extends Component
             ];
         };
 
-        $filename = 'Reporte_Especial_Inventario_' . now()->format('Ymd_His') . '.xlsx';
+        $filename = 'Informe_de_Vitrina_y_Cuarentena_' . now()->format('Ymd_His') . '.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download(
             new \App\Exports\SpecialStockExport($data),
