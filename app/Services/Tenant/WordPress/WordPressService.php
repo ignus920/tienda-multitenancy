@@ -168,10 +168,12 @@ class WordPressService
         $skus = [];
         $page = 1;
         $perPage = 100;
+        $variableProductIds = [];
         
-        Log::info('🔍 [WP] Obteniendo SKUs de WooCommerce de forma optimizada...');
+        Log::info('🔍 [WP] Obteniendo SKUs de WooCommerce de forma concurrente...');
 
         try {
+            // 1. Obtener productos principales
             do {
                 $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
                     ->get($this->baseUrl . 'products', [
@@ -196,13 +198,50 @@ class WordPressService
                     if (!empty($product['sku'])) {
                         $skus[] = trim($product['sku']);
                     }
+                    if (isset($product['type']) && $product['type'] === 'variable') {
+                        $variableProductIds[] = $product['id'];
+                    }
                 }
 
                 $page++;
             } while (count($products) == $perPage);
 
+            // 2. Obtener variaciones en paralelo usando HTTP Pool si hay productos variables
+            if (!empty($variableProductIds)) {
+                Log::info('⚡ [WP] Consultando variaciones de productos variables en paralelo...', [
+                    'count' => count($variableProductIds)
+                ]);
+
+                // Dividir en grupos de 15 para no saturar al servidor de WooCommerce
+                $chunks = array_chunk($variableProductIds, 15);
+                foreach ($chunks as $chunk) {
+                    $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($chunk) {
+                        $requests = [];
+                        foreach ($chunk as $id) {
+                            $requests[] = $pool->withBasicAuth($this->auth[0], $this->auth[1])
+                                ->get($this->baseUrl . "products/{$id}/variations", [
+                                    'per_page' => 100,
+                                    '_fields' => 'id,sku',
+                                ]);
+                        }
+                        return $requests;
+                    });
+
+                    foreach ($responses as $res) {
+                        if ($res->successful()) {
+                            $variations = $res->json();
+                            foreach ($variations as $variation) {
+                                if (!empty($variation['sku'])) {
+                                    $skus[] = trim($variation['sku']);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             $skus = array_values(array_unique(array_filter($skus)));
-            Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito', ['total_skus' => count($skus)]);
+            Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito (incluyendo variantes)', ['total_skus' => count($skus)]);
 
         } catch (\Exception $e) {
             Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [
