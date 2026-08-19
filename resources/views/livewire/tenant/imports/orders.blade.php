@@ -643,8 +643,20 @@
                                                 $thumbnail = $itemModel ? $itemModel->getPrincipalThumbnailUrl('COMERCIAL') : asset('images/placeholder-item.png');
                                             }
                                         @endphp
-                                        <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shrink-0 {{ $order->status != 13 ? 'cursor-pointer hover:opacity-80 transition-opacity' : '' }}"
-                                             @if($order->status != 13) @click.stop="$dispatch('openImageModal', { productId: {{ $order->item_id }}, context: 'COMERCIAL' })" @endif>
+                                        <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+                                             @click.stop="
+                                                 @if($order->status == 13)
+                                                     Swal.fire({
+                                                         imageUrl: '{{ $thumbnail }}',
+                                                         imageAlt: 'Imagen del producto nuevo',
+                                                         showConfirmButton: false,
+                                                         showCloseButton: true,
+                                                         background: 'rgba(255, 255, 255, 0.95)'
+                                                     })
+                                                 @else
+                                                     $dispatch('openImageModal', { productId: {{ $order->item_id }}, context: 'COMERCIAL' })
+                                                 @endif
+                                             ">
                                             <img src="{{ $thumbnail }}" 
                                                  alt="Product" 
                                                  class="w-full h-full object-cover">
