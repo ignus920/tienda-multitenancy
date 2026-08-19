@@ -169,7 +169,7 @@ class WordPressService
         $page = 1;
         $perPage = 100;
         
-        Log::info('🔍 [WP] Obteniendo SKUs de productos en WooCommerce...');
+        Log::info('🔍 [WP] Obteniendo SKUs de productos (simples, padres y variaciones/hijos) en WooCommerce...');
 
         try {
             do {
@@ -177,6 +177,7 @@ class WordPressService
                     ->get($this->baseUrl . 'products', [
                         'per_page' => $perPage,
                         'page' => $page,
+                        '_fields' => 'id,sku,type',
                     ]);
 
                 if (!$response->successful()) {
@@ -193,14 +194,43 @@ class WordPressService
 
                 foreach ($products as $product) {
                     if (!empty($product['sku'])) {
-                        $skus[] = $product['sku'];
+                        $skus[] = trim($product['sku']);
+                    }
+
+                    // Si es un producto variable, consultamos sus variaciones
+                    if (isset($product['type']) && $product['type'] === 'variable') {
+                        Log::info("🔍 [WP] Producto variable ID #{$product['id']} detectado, obteniendo SKUs de sus variaciones...");
+                        
+                        try {
+                            $varResponse = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                                ->get($this->baseUrl . "products/{$product['id']}/variations", [
+                                    'per_page' => 100,
+                                    '_fields' => 'id,sku',
+                                ]);
+
+                            if ($varResponse->successful()) {
+                                $variations = $varResponse->json();
+                                foreach ($variations as $variation) {
+                                    if (!empty($variation['sku'])) {
+                                        $skus[] = trim($variation['sku']);
+                                    }
+                                }
+                            } else {
+                                Log::error("❌ [WP] Error al obtener variaciones para producto variable ID #{$product['id']}", [
+                                    'http_status' => $varResponse->status(),
+                                ]);
+                            }
+                        } catch (\Exception $eVar) {
+                            Log::error("❌ [WP] Excepción al obtener variaciones del producto ID #{$product['id']}: " . $eVar->getMessage());
+                        }
                     }
                 }
 
                 $page++;
             } while (count($products) == $perPage);
 
-            Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito', ['total_skus' => count($skus)]);
+            $skus = array_values(array_unique(array_filter($skus)));
+            Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito (incluyendo variantes)', ['total_skus' => count($skus)]);
 
         } catch (\Exception $e) {
             Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [
@@ -208,7 +238,7 @@ class WordPressService
             ]);
         }
 
-        return array_unique($skus);
+        return $skus;
     }
 
     public function reconcileImageIds(int $itemId, string $productSku): array
