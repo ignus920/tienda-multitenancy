@@ -187,6 +187,7 @@ class Orders extends Component
             $newProductsCount = DB::connection('tenant')
                 ->table('imp_new_products')
                 ->whereNull('deleted_at')
+                ->where('status', '!=', 'CONVERTED')
                 ->count();
 
             $statuses->push((object)[
@@ -318,6 +319,7 @@ class Orders extends Component
                     'inp.image_path'
                 ])
                 ->whereNull('inp.deleted_at')
+                ->where('inp.status', '!=', 'CONVERTED')
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
                     foreach ($words as $word) {
