@@ -212,7 +212,7 @@
                  }
              }">
             <!-- Toolbar -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 mb-4">
+            <div class="py-8 px-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <!-- Búsqueda y Filtros Rápidos -->
                     <div class="flex flex-col sm:flex-row gap-3 flex-1 max-w-2xl">
