@@ -2972,8 +2972,10 @@ class Orders extends Component
                 'supplier_id' => $newProduct->supplier_id,
                 'factory_ref' => $newProduct->factory_ref ?: 'N/A',
                 'exw' => $newProduct->exw,
-                'porcentaje' => $newProduct->porcentaje,
-                'factor' => $newProduct->factor,
+                'percentage' => $newProduct->porcentaje,
+                'freight_increase' => $newProduct->incr_fletes,
+                'pvp_factor' => $newProduct->factor_pvp1,
+                'pvp_min_factor' => $newProduct->factor_pvp_min,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
