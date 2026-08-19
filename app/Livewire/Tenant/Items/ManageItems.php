@@ -425,10 +425,8 @@ class ManageItems extends Component
                 }
             }
             $query->where(function ($q) use ($wpSkus) {
-                if (empty($wpSkus)) {
-                    $q->whereNull('inv_items.sku')
-                      ->orWhere(DB::raw('TRIM(inv_items.sku)'), '');
-                } else {
+                // Si la caché está vacía temporalmente (cargando en segundo plano), no aplicamos exclusiones restrictivas
+                if (!empty($wpSkus)) {
                     $q->whereNull('inv_items.sku')
                       ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
                       ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
