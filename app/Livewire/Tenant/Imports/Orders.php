@@ -2982,36 +2982,7 @@ class Orders extends Component
                 'updated_at' => now()
             ]);
 
-            // 4. Crear registro en imp_imports en estado 4 (Aprobado) para iniciar la producción
-            $importId = DB::connection('tenant')->table('imp_imports')->insertGetId([
-                'item_id' => $itemId,
-                'qty_requested' => $newProduct->min_qty_supplier,
-                'price' => $newProduct->exw,
-                'status' => 4, // Aprobado
-                'priority' => 'ASAP',
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            // Registrar historial del estado de importación
-            DB::connection('tenant')->table('imp_status_history')->insert([
-                'import_id' => $importId,
-                'previous_state' => 1, // Solicitado
-                'new_state' => 4, // Aprobado
-                'user_id' => Auth::id(),
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            // Mapear los comentarios del borrador a la nueva orden de importación real
-            DB::connection('tenant')->table('imp_comments')
-                ->where('new_product_id', $this->selectedNewProductId)
-                ->update([
-                    'import_id' => $importId,
-                    'new_product_id' => null
-                ]);
-
-            // 5. Actualizar el estado de imp_new_products a CONVERTED
+            // 4. Actualizar el estado de imp_new_products a CONVERTED
             DB::connection('tenant')->table('imp_new_products')
                 ->where('id', $this->selectedNewProductId)
                 ->update([
