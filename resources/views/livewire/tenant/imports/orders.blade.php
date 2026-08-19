@@ -446,7 +446,7 @@
                     </div>
                 </div>
                 
-                @if ($profileUser != '17' && count($selectedOrders) > 0)
+                @if ($profileUser != '17' && count($selectedOrders) > 0 && $filterStatus != 13)
                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
                         <span class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mr-2">Prioridad en Lote:</span>
                         <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
@@ -575,7 +575,7 @@
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <tr>
-                            @if(!in_array($filterStatus, [6, 8]))
+                            @if(!in_array($filterStatus, [6, 8, 13]))
                             <th class="px-4 py-4 text-left w-12">
                             </th>
                             @endif
@@ -617,9 +617,9 @@
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse ($this->orders as $order)
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
-                                @if(!in_array($filterStatus, [6, 8]))
+                                @if(!in_array($filterStatus, [6, 8, 13]))
                                 <td class="px-4 py-4">
-                                    @if(!in_array($order->status, [6, 8]))
+                                    @if(!in_array($order->status, [6, 8, 13]))
                                         @php
                                             $hasPrice = isset($order->price) && floatval($order->price) > 0;
                                         @endphp
