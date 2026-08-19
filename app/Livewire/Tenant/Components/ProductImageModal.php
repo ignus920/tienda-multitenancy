@@ -88,6 +88,12 @@ class ProductImageModal extends Component
             $wpProduct = !empty($product->sku) ? $wpService->findProductBySku($product->sku) : null;
             $this->hasWpProduct = $wpProduct !== null;
             $this->wpProductUrl = $wpProduct ? ($wpProduct['permalink'] ?? null) : null;
+
+            \Illuminate\Support\Facades\Log::info('DEBUG WP PRODUCT MODAL', [
+                'item_sku' => $product->sku,
+                'found_in_wp' => $this->hasWpProduct,
+                'wp_product_data' => $wpProduct
+            ]);
             
             // Perfil del usuario
             $this->userProfileId = auth()->user()->profile_id;
