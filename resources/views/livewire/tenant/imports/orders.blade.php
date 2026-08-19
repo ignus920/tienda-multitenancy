@@ -706,7 +706,7 @@
                                 <td x-show="showCols.quotedPrice" class="px-4 py-4 text-center"
                                     x-data="{ priceQ: {{ $order->price ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.priceInput) priceQ = {{ $order->price ?? 0 }}">
-                                    @if ($profileUser == '17' && in_array($order->status, [1,2,4,6,7]))
+                                    @if ($profileUser == '17' && in_array($order->status, [1,2,4,6,7,13]))
                                         <div class="flex justify-center">
                                             <input type="number" 
                                             wire:key="price-input-{{ $order->id }}-{{ $refreshCounter }}"

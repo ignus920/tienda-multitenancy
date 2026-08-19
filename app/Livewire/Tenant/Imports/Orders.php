@@ -712,6 +712,20 @@ class Orders extends Component
 
         $centralDbName = config('database.connections.central.database');
 
+        if ($this->filterStatus == 13) {
+            $comments = ImpComments::query()
+                ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
+                ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
+                ->where('imp_comments.new_product_id', $this->import_id)
+                ->get()
+                ->map(function ($item) {
+                    $item->event_type = 'comment';
+                    return $item;
+                });
+
+            return $comments->sortBy('created_at');
+        }
+
         // 1. Obtener comentarios
         $comments = ImpComments::query()
             ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
