@@ -415,8 +415,8 @@ class ManageItems extends Component
             }
             $query->where(function ($q) use ($wpSkus) {
                 $q->whereNull('inv_items.sku')
-                  ->orWhere('inv_items.sku', '')
-                  ->orWhereNotIn('inv_items.sku', $wpSkus);
+                  ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                  ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
             });
         } elseif ($this->productFilter !== 'todo') {
             // Filtros originales de stock y venta
