@@ -159,6 +159,60 @@ class WordPressService
         return null;
     }
 
+    public function getAllProductSkus(): array
+    {
+        if (!$this->isConfigured()) {
+            return [];
+        }
+
+        $skus = [];
+        $page = 1;
+        $perPage = 100;
+        
+        Log::info('🔍 [WP] Obteniendo SKUs de WooCommerce de forma optimizada...');
+
+        try {
+            do {
+                $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                    ->get($this->baseUrl . 'products', [
+                        'per_page' => $perPage,
+                        'page' => $page,
+                        '_fields' => 'id,sku,type',
+                    ]);
+
+                if (!$response->successful()) {
+                    Log::error('❌ [WP] Error al obtener SKUs en la página ' . $page, [
+                        'http_status' => $response->status(),
+                    ]);
+                    break;
+                }
+
+                $products = $response->json();
+                if (empty($products)) {
+                    break;
+                }
+
+                foreach ($products as $product) {
+                    if (!empty($product['sku'])) {
+                        $skus[] = trim($product['sku']);
+                    }
+                }
+
+                $page++;
+            } while (count($products) == $perPage);
+
+            $skus = array_values(array_unique(array_filter($skus)));
+            Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito', ['total_skus' => count($skus)]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $skus;
+    }
+
     public function reconcileImageIds(int $itemId, string $productSku): array
     {
         $counts = ['corrected' => 0, 'already_ok' => 0, 'not_found' => 0];

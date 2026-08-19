@@ -2,6 +2,8 @@
      x-data="{ 
         cart: [],
         viewMode: localStorage.getItem('portal_view_mode') || 'list',
+        showPromoModal: false,
+        promoModalImg: '',
         init() {
             let savedPerPage = localStorage.getItem('portal_per_page');
             if (savedPerPage) {
@@ -15,12 +17,26 @@
             this.viewMode = this.viewMode === 'list' ? 'grid' : 'list';
             localStorage.setItem('portal_view_mode', this.viewMode);
         },
-        addToCart(id, code, name, price, label) {
-            let exists = this.cart.find(item => item.id === id && item.label === label);
+        addToCart(id, code, sku, name, priceCash, priceCredit, scale1Qty, scale1Discount, scale2Qty, scale2Discount, boxQty, boxDiscount) {
+            let exists = this.cart.find(item => item.id === id);
             if (exists) {
                 exists.qty++;
             } else {
-                this.cart.push({ id, code, name, price, label, qty: 1 });
+                this.cart.push({ 
+                    id, 
+                    code, 
+                    sku, 
+                    name, 
+                    priceCash, 
+                    priceCredit, 
+                    scale1Qty: parseInt(scale1Qty) || 0, 
+                    scale1Discount: parseFloat(scale1Discount) || 0, 
+                    scale2Qty: parseInt(scale2Qty) || 0, 
+                    scale2Discount: parseFloat(scale2Discount) || 0, 
+                    boxQty: parseInt(boxQty) || 0, 
+                    boxDiscount: parseFloat(boxDiscount) || 0, 
+                    qty: 1 
+                });
             }
         },
         removeFromCart(index) {
@@ -30,14 +46,64 @@
             this.cart[index].qty += delta;
             if (this.cart[index].qty < 1) this.cart[index].qty = 1;
         },
+        getItemPrice(item) {
+            let filter = $wire.paymentFilter;
+            let basePrice = filter === 'credito' ? item.priceCredit : item.priceCash;
+            let discount = 0;
+            if (item.boxQty > 0 && item.qty >= item.boxQty) {
+                discount = item.boxDiscount;
+            } else if (item.scale2Qty > 0 && item.qty >= item.scale2Qty) {
+                discount = item.scale2Discount;
+            } else if (item.scale1Qty > 0 && item.qty >= item.scale1Qty) {
+                discount = item.scale1Discount;
+            }
+            return basePrice * (1 - (discount / 100));
+        },
         get total() {
-            return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            return this.cart.reduce((sum, item) => {
+                return sum + (this.getItemPrice(item) * item.qty);
+            }, 0);
         },
         get totalItems() {
             return this.cart.reduce((sum, item) => sum + item.qty, 0);
         }
      }"
 >
+    <!-- Modal de Visualización Ampliada de Promoción (Lightbox) -->
+    <div x-show="showPromoModal" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;"
+         @click="showPromoModal = false"
+         @keydown.escape.window="showPromoModal = false">
+        
+        <div class="relative max-w-5xl max-h-[90vh] bg-transparent rounded-2xl overflow-hidden shadow-2xl"
+             @click.stop
+             x-transition:enter="transition ease-out duration-350 transform scale-95"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-250 transform scale-100"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <!-- Botón de Cerrar -->
+            <button @click="showPromoModal = false" 
+                    class="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors border border-white/20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <!-- Imagen Ampliada -->
+            <img :src="promoModalImg" alt="Promoción ampliada" class="max-w-full max-h-[85vh] object-contain rounded-xl">
+        </div>
+    </div>
+
     <!-- Layout con sidebar sticky -->
     <div class="flex gap-0">
         <div class="flex-1 min-w-0 px-4 sm:px-6">
@@ -86,8 +152,8 @@
                      x-init="startAutoPlay()"
                      @mouseenter="stopAutoPlay()"
                      @mouseleave="startAutoPlay()"
-                     style="height: 340px;"
-                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-sm"
+                     style="height: 180px;"
+                     class="relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl mb-6 group shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                 >
                     <!-- Slides -->
                     <div class="relative w-full h-full">
@@ -99,6 +165,7 @@
                                  x-transition:leave="transition ease-in duration-400"
                                  x-transition:leave-start="opacity-100 translate-x-0"
                                  x-transition:leave-end="opacity-0 -translate-x-8"
+                                 @click="promoModalImg = '{{ $slider->image_path }}'; showPromoModal = true"
                                  class="absolute inset-0 w-full h-full flex items-center"
                             >
                                 <!-- Imagen con efecto parallax en hover -->
@@ -125,22 +192,22 @@
                                     
                                     <!-- Badge decorativo -->
                                     @if($slider->badge_text)
-                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4"
+                                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest mb-2"
                                              style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.20);">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span class="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
                                             {{ $slider->badge_text }}
                                         </div>
                                     @endif
                                     
                                     <!-- Título -->
-                                    <h3 class="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight mb-2"
+                                    <h3 class="text-lg sm:text-xl md:text-2xl font-extrabold leading-tight mb-1"
                                         style="text-shadow: 0 2px 20px rgba(0,0,0,0.3); {{ $slider->text_color ? 'color: ' . $slider->text_color . ' !important;' : 'color: #ffffff;' }}">
                                         {{ $slider->title }}
                                     </h3>
 
                                     <!-- Subtítulo -->
                                     @if($slider->subtitle)
-                                        <p class="text-sm sm:text-base mb-5 max-w-md" 
+                                        <p class="text-xs sm:text-sm mb-3 max-w-md" 
                                            style="text-shadow: 0 1px 8px rgba(0,0,0,0.2); {{ $slider->text_color ? 'color: ' . $slider->text_color . ' !important; opacity: 0.85;' : 'color: rgba(255,255,255,0.8);' }}">
                                             {{ $slider->subtitle }}
                                         </p>
@@ -162,10 +229,11 @@
                                             }
                                         @endphp
                                         <a href="{{ $slider->action_url }}" 
-                                           class="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl active:scale-95 group/btn"
+                                           @click.stop
+                                           class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl active:scale-95 group/btn"
                                            style="{{ $portalBtnStyle }}">
                                             {{ $slider->action_button_text }}
-                                            <svg class="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                                             </svg>
                                         </a>
@@ -365,6 +433,13 @@
                             if ($visibleStock < 0) { $visibleStock = 0; }
                             
                             $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
+                            
+                            $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
+                            $scale1Discount = $product->dimensions ? $product->dimensions->scale_1_discount : 0;
+                            $scale2Qty = $product->dimensions ? $product->dimensions->scale_2_qty : 0;
+                            $scale2Discount = $product->dimensions ? $product->dimensions->scale_2_discount : 0;
+                            $boxQty = $product->dimensions ? $product->dimensions->quntityxbox : 0;
+                            $boxDiscount = $product->dimensions ? $product->dimensions->box_discount : 0;
                         @endphp
                         <div class="flex items-center px-4 py-3 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group"
                              x-data="{ showDetail: false }">
@@ -429,7 +504,7 @@
                                 @if($priceCash > 0)
                                     @if($paymentFilter === 'contado')
                                         <button 
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                             class="w-full py-1.5 px-2 rounded-lg border border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95 transition-all"
                                         >
                                             <div class="text-[11px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($priceCash, 0, ',', '.') }}</div>
@@ -449,7 +524,7 @@
                                 @if($priceCredit && $priceCredit > 0)
                                     @if($paymentFilter === 'credito')
                                         <button 
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                             class="w-full py-1.5 px-2 rounded-lg border border-yellow-400/40 bg-yellow-50 dark:bg-yellow-900/15 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 transition-all"
                                         >
                                             <div class="text-[11px] font-black text-yellow-700 dark:text-yellow-300">${{ number_format($priceCredit, 0, ',', '.') }}</div>
@@ -514,6 +589,13 @@
                         if ($visibleStock < 0) { $visibleStock = 0; }
                         
                         $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
+                            
+                        $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
+                        $scale1Discount = $product->dimensions ? $product->dimensions->scale_1_discount : 0;
+                        $scale2Qty = $product->dimensions ? $product->dimensions->scale_2_qty : 0;
+                        $scale2Discount = $product->dimensions ? $product->dimensions->scale_2_discount : 0;
+                        $boxQty = $product->dimensions ? $product->dimensions->quntityxbox : 0;
+                        $boxDiscount = $product->dimensions ? $product->dimensions->box_discount : 0;
                     @endphp
                     <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-indigo-300 dark:hover:border-indigo-500 flex flex-col">
                         
@@ -567,7 +649,7 @@
                                 <div>
                                     @if($priceCash > 0)
                                         @if($paymentFilter === 'contado')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, 'Contado')"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                                     class="w-full py-1 px-1 rounded-md border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Contado</span>
                                                 <span class="block text-[11px] font-black text-emerald-700 dark:text-emerald-300">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
@@ -585,7 +667,7 @@
                                 <div>
                                     @if($priceCredit && $priceCredit > 0)
                                         @if($paymentFilter === 'credito')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ addslashes($product->name) }}', {{ $priceCredit }}, 'Crédito')"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
                                                     class="w-full py-1 px-1 rounded-md border border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-yellow-600 dark:text-yellow-400 uppercase">Crédito</span>
                                                 <span class="block text-[11px] font-black text-yellow-700 dark:text-yellow-300">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
@@ -644,15 +726,10 @@
 
                     <template x-for="(item, index) in cart" :key="index">
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700">
+                            <!-- Fila Superior: Código - Nombre y Botón Eliminar -->
                             <div class="flex items-start justify-between gap-2">
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-[11px] font-bold text-gray-900 dark:text-white line-clamp-2" x-text="item.name"></p>
-                                    <p class="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
-                                        <span x-text="'SKU: ' + item.code"></span> · 
-                                        <span class="font-bold px-1 py-0.5 rounded text-[8px]" 
-                                              :class="item.label === 'Contado' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'"
-                                              x-text="item.label"></span>
-                                    </p>
+                                    <p class="text-[11px] font-bold text-gray-900 dark:text-white line-clamp-2" x-text="item.code + ' - ' + item.name"></p>
                                 </div>
                                 <button @click="removeFromCart(index)" class="text-red-400 hover:text-red-600 transition-colors flex-shrink-0 p-1">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -660,14 +737,63 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div class="flex items-center justify-between mt-2">
-                                <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
-                                    <button @click="updateQty(index, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">−</button>
-                                    <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
-                                    <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
-                                </div>
-                                <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" x-text="'$' + (item.price * item.qty).toLocaleString('es-CO')"></span>
-                            </div>
+
+                            <!-- Fila Intermedia: Recuadros interactivos de escala de precios por volumen -->
+                             <div class="flex flex-wrap items-center gap-1 mt-2">
+                                 <!-- Rango Base (Precio de Lista Cliente) -->
+                                 <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                      :class="(item.scale1Qty === 0 || item.qty < item.scale1Qty) && (item.scale2Qty === 0 || item.qty < item.scale2Qty) && (item.boxQty === 0 || item.qty < item.boxQty)
+                                              ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                              : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                      x-text="'$' + Math.round($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash).toLocaleString('es-CO')">
+                                 </div>
+                                 
+                                 <!-- Escala 1 (+20 unidades) -->
+                                 <template x-if="item.scale1Qty > 0">
+                                     <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                          :class="item.qty >= item.scale1Qty && (item.scale2Qty === 0 || item.qty < item.scale2Qty) && (item.boxQty === 0 || item.qty < item.boxQty)
+                                                  ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                                  : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                          x-text="'+' + item.scale1Qty + ' $' + Math.round(($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * (1 - (item.scale1Discount / 100))).toLocaleString('es-CO')">
+                                     </div>
+                                 </template>
+
+                                 <!-- Escala 2 (+40 unidades) -->
+                                 <template x-if="item.scale2Qty > 0">
+                                     <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                          :class="item.qty >= item.scale2Qty && (item.boxQty === 0 || item.qty < item.boxQty)
+                                                  ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                                  : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                          x-text="'+' + item.scale2Qty + ' $' + Math.round(($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * (1 - (item.scale2Discount / 100))).toLocaleString('es-CO')">
+                                     </div>
+                                 </template>
+
+                                 <!-- Caja Cerrada -->
+                                 <template x-if="item.boxQty > 0">
+                                     <div class="px-1.5 py-0.5 text-[9px] font-bold rounded transition-all"
+                                          :class="item.qty >= item.boxQty
+                                                  ? 'text-white bg-indigo-600 border border-indigo-600 shadow-sm scale-105' 
+                                                  : 'text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/10 opacity-60'"
+                                          x-text="'Caja x' + item.boxQty + ' $' + Math.round(($wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash) * (1 - (item.boxDiscount / 100))).toLocaleString('es-CO')">
+                                     </div>
+                                 </template>
+                             </div>
+
+                             <!-- Fila Inferior: Controles de cantidad, P. Unitario y Total de fila -->
+                             <div class="flex items-center justify-between mt-2.5">
+                                 <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
+                                     <button @click="updateQty(index, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">−</button>
+                                     <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
+                                     <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
+                                 </div>
+
+                                 <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400"
+                                      x-text="'P. Unitario $' + Math.round(getItemPrice(item)).toLocaleString('es-CO')">
+                                 </div>
+
+                                 <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" 
+                                       x-text="'$' + (Math.round(getItemPrice(item)) * item.qty).toLocaleString('es-CO')"></span>
+                             </div>
                         </div>
                     </template>
                 </div>
@@ -738,7 +864,7 @@
                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
                         wire:loading.attr="disabled"
                         wire:target="submitOrder"
-                        @click="$wire.submitOrder(cart).then(res => { if (res) { cart = []; } })"
+                        @click="$wire.submitOrder(cart.map(item => ({ id: item.id, code: item.code, name: item.name, price: $wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash, label: $wire.paymentFilter === 'credito' ? 'Crédito' : 'Contado', qty: item.qty }))).then(res => { if (res) { cart = []; } })"
                     >
                         <!-- Icono dinámico -->
                         <span wire:loading.remove wire:target="submitOrder">🚀</span>

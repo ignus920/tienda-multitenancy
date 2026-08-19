@@ -406,12 +406,24 @@ class ManageItems extends Component
                 ->whereNull('inv_image_gallery.id')
                 ->distinct('inv_items.id');
         } elseif ($this->productFilter === 'no_en_ecommerce') {
-            $query->leftJoin('inv_items_store as iis_wp', function ($join) {
-                $join->on('inv_items.id', '=', 'iis_wp.itemId')
-                    ->where('iis_wp.storeId', '=', 2);
-            })
-            ->whereNull('iis_wp.id')
-            ->distinct('inv_items.id');
+            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $wpSkus = [];
+            if ($wpService->isConfigured()) {
+                // Priorizar la caché de 24 horas generada por el comando wp:sync-stock (que contiene todas las variaciones)
+                $wpSkus = \Illuminate\Support\Facades\Cache::get('wp_active_skus_' . session('tenant_id'));
+                
+                // Si no existe, usamos una caché temporal corta llamando a la API optimizada (solo productos principales)
+                if (empty($wpSkus)) {
+                    $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_temp_' . session('tenant_id'), 300, function () use ($wpService) {
+                        return $wpService->getAllProductSkus();
+                    });
+                }
+            }
+            $query->where(function ($q) use ($wpSkus) {
+                $q->whereNull('inv_items.sku')
+                  ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                  ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+            });
         } elseif ($this->productFilter !== 'todo') {
             // Filtros originales de stock y venta
             $centralDbName = config('database.connections.central.database');
