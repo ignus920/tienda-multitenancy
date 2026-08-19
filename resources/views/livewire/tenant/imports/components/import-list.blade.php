@@ -92,7 +92,7 @@
             <div class="w-full sm:w-64">
                 <select wire:model.live="filterCritical" 
                         class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                    <option value="ninguno">Ninguno</option>
+                    <option value="ninguno">Todos los Productos</option>
                     <option value="importados">Productos críticos importados</option>
                     <option value="compra_nacional">Productos críticos compra nacional</option>
                 </select>
