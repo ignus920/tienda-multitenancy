@@ -300,7 +300,7 @@ class Orders extends Component
                     DB::raw("'N/A' AS label"),
                     DB::raw("'New Product' AS translated_name"),
                     DB::raw('13 AS status'),
-                    DB::raw("'ASAP' AS priority"),
+                    DB::raw('NULL AS priority'),
                     DB::raw('NULL as priority_assigned_at'),
                     DB::raw('0 as qty_shipped'),
                     DB::raw('0 as news'),
