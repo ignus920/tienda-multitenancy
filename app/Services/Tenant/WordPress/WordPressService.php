@@ -81,6 +81,16 @@ class WordPressService
 
                 if (count($products) > 0) {
                     $product = $products[0];
+                    
+                    // Solo considerar si el producto tiene estado 'publish'
+                    if (($product['status'] ?? 'publish') !== 'publish') {
+                        Log::warning('⚠️ [WP] Producto encontrado pero no está publicado (está en borrador o papelera)', [
+                            'sku' => $sku,
+                            'status' => $product['status'] ?? 'N/A'
+                        ]);
+                        return null;
+                    }
+
                     Log::info('✅ [WP] Producto encontrado en paso 1', [
                         'sku'        => $sku,
                         'wp_id'      => $product['id'],
