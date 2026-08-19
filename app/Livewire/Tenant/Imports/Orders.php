@@ -187,9 +187,6 @@ class Orders extends Component
             $newProductsCount = DB::connection('tenant')
                 ->table('imp_new_products')
                 ->whereNull('deleted_at')
-                ->when(Auth::user()->profile_id == 17, function ($query) {
-                    return $query->where('supplier_id', Auth::id());
-                })
                 ->count();
 
             $statuses->push((object)[
@@ -321,9 +318,6 @@ class Orders extends Component
                     'inp.image_path'
                 ])
                 ->whereNull('inp.deleted_at')
-                ->when(Auth::user()->profile_id == 17, function ($query) {
-                    return $query->where('inp.supplier_id', Auth::id());
-                })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
                     foreach ($words as $word) {
