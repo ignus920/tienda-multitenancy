@@ -919,7 +919,7 @@ class ManageItems extends Component
     public function getExportData()
     {
         $this->ensureTenantConnection();
-        $items = Items::query()
+        $query = Items::query()
             ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store', 'invValues', 'importSetup', 'dimensions'])
             ->when($this->search, function ($query) {
                 $words = array_filter(explode(' ', trim($this->search)));
@@ -930,9 +930,37 @@ class ManageItems extends Component
                             ->orWhere('internal_code', 'like', '%' . $word . '%');
                     });
                 }
-            })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->get();
+            });
+
+        // Aplicar exclusiones en los filtros correspondientes
+        if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
+            $query->where('inv_items.status', '!=', 0)
+                  ->where('inv_items.type', '!=', 'SERVICIO')
+                  ->where('inv_items.generic', '!=', 1);
+        }
+
+        // Filtros específicos
+        if ($this->productFilter === 'sin_imagen') {
+            $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
+                ->whereNull('inv_image_gallery.id')
+                ->distinct('inv_items.id');
+        } elseif ($this->productFilter === 'no_en_ecommerce') {
+            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $wpSkus = [];
+            if ($wpService->isConfigured()) {
+                $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_' . session('tenant_id'), 300, function () use ($wpService) {
+                    return $wpService->getAllProductSkus();
+                });
+            }
+            $query->where(function ($q) use ($wpSkus) {
+                $q->whereNull('inv_items.sku')
+                  ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                  ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+            });
+        }
+
+        return $query->orderBy($this->sortField, $this->sortDirection)->get();
+    }
 
         // Calcular el número máximo de ubicaciones asignadas a cualquier ítem
         $this->maxLocationsCount = $items->map(fn($item) => $item->locations->count())->max() ?? 0;
@@ -1093,6 +1121,12 @@ class ManageItems extends Component
 
     public function getExportFilename(): string
     {
+        if ($this->productFilter === 'sin_imagen') {
+            return 'Productos_sin_Imagen_' . date('Ymd_His');
+        } elseif ($this->productFilter === 'no_en_ecommerce') {
+            return 'Productos_que_no_estan_en_Ecommerce_' . date('Ymd_His');
+        }
+
         return 'items_' . date('Y-m-d_His');
     }
 
