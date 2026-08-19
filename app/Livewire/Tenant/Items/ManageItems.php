@@ -409,20 +409,30 @@ class ManageItems extends Component
             $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
             $wpSkus = [];
             if ($wpService->isConfigured()) {
-                // Priorizar la caché de 24 horas generada por el comando wp:sync-stock (que contiene todas las variaciones)
+                // Priorizar la caché generada (que contiene todas las variaciones)
                 $wpSkus = \Illuminate\Support\Facades\Cache::get('wp_active_skus_' . session('tenant_id'));
                 
-                // Si no existe, usamos una caché temporal corta llamando a la API optimizada (solo productos principales)
+                // Si no existe, despachamos el Job en segundo plano para calentar la caché rápidamente
                 if (empty($wpSkus)) {
-                    $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_temp_' . session('tenant_id'), 300, function () use ($wpService) {
-                        return $wpService->getAllProductSkus();
-                    });
+                    // Evitar despachar el Job múltiples veces seguidas si se hace clic de forma repetida
+                    $isJobRunning = \Illuminate\Support\Facades\Cache::get('wp_cache_job_running_' . session('tenant_id'));
+                    if (!$isJobRunning) {
+                        \Illuminate\Support\Facades\Cache::put('wp_cache_job_running_' . session('tenant_id'), true, 60);
+                        \App\Jobs\Tenant\WordPress\WarmUpWpSkusCacheJob::dispatch(session('tenant_id'));
+                    }
+                    
+                    session()->flash('info', 'Estamos recopilando la información de WooCommerce en segundo plano por primera vez. Esto tomará unos segundos. Por favor, refresque la lista en un momento.');
                 }
             }
             $query->where(function ($q) use ($wpSkus) {
-                $q->whereNull('inv_items.sku')
-                  ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
-                  ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+                if (empty($wpSkus)) {
+                    $q->whereNull('inv_items.sku')
+                      ->orWhere(DB::raw('TRIM(inv_items.sku)'), '');
+                } else {
+                    $q->whereNull('inv_items.sku')
+                      ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                      ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+                }
             });
         } elseif ($this->productFilter !== 'todo') {
             // Filtros originales de stock y venta
