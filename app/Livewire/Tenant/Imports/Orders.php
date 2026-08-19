@@ -201,17 +201,17 @@ class Orders extends Component
         }
 
         $customOrder = [
-            13 => 1,  // New Product
-            1 => 2,   // Solicitado
-            2 => 3,   // Cotizado
-            4 => 4,   // Aprobado
-            5 => 5,   // Produccion
-            12 => 6,  // Terminados
-            7 => 7,   // En transito
-            8 => 8,   // Recibido
-            9 => 9,   // Retrasado
-            10 => 10, // Novedades
-            11 => 11  // Eliminado
+            1 => 1,   // Solicitado
+            2 => 2,   // Cotizado
+            4 => 3,   // Aprobado
+            5 => 4,   // Produccion
+            12 => 5,  // Terminados
+            7 => 6,   // En transito
+            8 => 7,   // Recibido
+            9 => 8,   // Retrasado
+            10 => 9,  // Novedades
+            11 => 10, // Eliminado
+            13 => 11  // New Product
         ];
 
         return $statuses->sortBy(function ($item) use ($customOrder) {
