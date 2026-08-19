@@ -959,8 +959,7 @@ class ManageItems extends Component
             });
         }
 
-        return $query->orderBy($this->sortField, $this->sortDirection)->get();
-    }
+        $items = $query->orderBy($this->sortField, $this->sortDirection)->get();
 
         // Calcular el número máximo de ubicaciones asignadas a cualquier ítem
         $this->maxLocationsCount = $items->map(fn($item) => $item->locations->count())->max() ?? 0;
