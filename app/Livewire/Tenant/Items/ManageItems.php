@@ -2234,7 +2234,7 @@ class ManageItems extends Component
             ];
         };
 
-        $filename = 'Reporte_Especial_Inventario_' . now()->format('Ymd_His') . '.xlsx';
+        $filename = 'Informe_de_Vitrina_y_Cuarentena_' . now()->format('Ymd_His') . '.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download(
             new \App\Exports\SpecialStockExport($data),
