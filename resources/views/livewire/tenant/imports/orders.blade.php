@@ -2223,8 +2223,8 @@
                         </div>
                     </div>
 
-                    <!-- Cantidad Mínima del Proveedor y Factores Generales (Ocultados por no ser necesarios inicialmente) -->
-                    <!--
+                    {{-- Cantidad Mínima del Proveedor y Factores Generales (Ocultados por no ser necesarios inicialmente) --}}
+                    {{--
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cant Mínima Proveedor <span class="text-red-500">*</span></label>
@@ -2242,7 +2242,7 @@
                             <input type="number" step="0.01" wire:model="newProductFactor" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
                         </div>
                     </div>
-                    -->
+                    --}}
 
                     <!-- Imagen del Producto -->
                     <div>
@@ -2257,8 +2257,8 @@
                         @endif
                     </div>
 
-                    <!-- Sección de Factores de Precios (Ocultada por no ser necesaria inicialmente) -->
-                    <!--
+                    {{-- Sección de Factores de Precios (Ocultada por no ser necesaria inicialmente) --}}
+                    {{--
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                         <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Factores de Precio y Descuentos</h4>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -2284,7 +2284,7 @@
                             </div>
                         </div>
                     </div>
-                    -->
+                    --}}
 
                     <!-- Footer -->
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
