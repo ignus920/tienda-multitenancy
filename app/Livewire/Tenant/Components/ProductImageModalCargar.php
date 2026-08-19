@@ -64,7 +64,7 @@ class ProductImageModalCargar extends Component
     }
  
     #[On('openImageModalCargar')]
-    public function open($productId)
+    public function open($productId, \App\Services\Tenant\WordPress\WordPressService $wpService = null)
     {
         $this->ensureTenantConnection();
         $this->productId = $productId;
@@ -73,8 +73,13 @@ class ProductImageModalCargar extends Component
         if ($product) {
             $this->productName = $product->name;
             $this->isOpen = true;
-            $this->hasWpProduct = false; // Se cargará de forma asíncrona mediante wire:init
-            $this->wpProductUrl = null;
+            
+            // Cargar estado de WooCommerce interactivamente en la apertura
+            $wpService = $wpService ?: app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $wpProduct = !empty($product->sku) ? $wpService->findProductBySku($product->sku) : null;
+            $this->hasWpProduct = $wpProduct !== null;
+            $this->wpProductUrl = $wpProduct ? ($wpProduct['permalink'] ?? null) : null;
+            
             $this->userProfileId = auth()->user()->profile_id;
             
             if ($this->userProfileId == 6) {
