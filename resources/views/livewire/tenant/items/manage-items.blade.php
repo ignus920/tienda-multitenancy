@@ -116,27 +116,6 @@
                         @endif
                         <div class="w-full sm:w-64">
                             <select wire:model.live="productFilter"
-                                x-on:change="
-                                    if ($el.value === 'no_en_ecommerce') {
-                                        Swal.fire({
-                                            title: 'Consultando WooCommerce...',
-                                            text: 'Por favor espere mientras verificamos los productos en el ecommerce.',
-                                            allowOutsideClick: false,
-                                            didOpen: () => {
-                                                Swal.showLoading();
-                                            }
-                                        });
-                                    } else {
-                                        Swal.fire({
-                                            title: 'Filtrando productos...',
-                                            text: 'Por favor espere un momento.',
-                                            allowOutsideClick: false,
-                                            didOpen: () => {
-                                                Swal.showLoading();
-                                            }
-                                        });
-                                    }
-                                "
                                 class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="todo">Todo</option>
                                 <option value="bajo_stock">Bajo stock</option>
@@ -1319,6 +1298,20 @@
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.hook('request', ({ respond, fail }) => {
+                const selectFilter = document.querySelector('select[wire\\:model\\.live="productFilter"]');
+                
+                // Si el filtro de productos está configurado en 'no_en_ecommerce' o está cambiando en esta petición
+                if (selectFilter && selectFilter.value === 'no_en_ecommerce') {
+                    Swal.fire({
+                        title: 'Procesando datos...',
+                        text: 'Por favor espere un momento.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                }
+
                 respond(() => {
                     if (typeof Swal !== 'undefined' && Swal.isVisible()) {
                         Swal.close();
