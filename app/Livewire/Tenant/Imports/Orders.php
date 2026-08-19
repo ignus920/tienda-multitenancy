@@ -2841,13 +2841,10 @@ class Orders extends Component
             'newProductCode' => 'required|unique:tenant.imp_new_products,code',
             'newProductDescription' => 'required|min:3',
             'newProductSupplierId' => 'required|integer',
-            'newProductMinQty' => 'required|integer|min:1',
-            'newProductExw' => 'required|numeric|min:0',
             'newProductImage' => 'nullable|image|max:2048'
         ], [
             'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductSupplierId.required' => 'Debe seleccionar un proveedor',
-            'newProductExw.required' => 'Debe ingresar un precio $EXW'
+            'newProductSupplierId.required' => 'Debe seleccionar un proveedor'
         ]);
 
         $imagePath = null;
@@ -2860,16 +2857,16 @@ class Orders extends Component
             DB::connection('tenant')->table('imp_new_products')->insert([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
-                'porcentaje' => (float)$this->newProductPorcentaje,
-                'min_qty_supplier' => (int)$this->newProductMinQty,
-                'factor' => (float)$this->newProductFactor,
+                'porcentaje' => (float)($this->newProductPorcentaje ?: 0),
+                'min_qty_supplier' => (int)($this->newProductMinQty ?: 1),
+                'factor' => (float)($this->newProductFactor ?: 0),
                 'supplier_id' => (int)$this->newProductSupplierId,
                 'factory_ref' => $this->newProductFactoryRef ?: null,
                 'image_path' => $imagePath,
-                'exw' => (float)$this->newProductExw,
-                'incr_fletes' => (float)$this->newProductIncrFletes,
-                'factor_pvp1' => (float)$this->newProductPvp1,
-                'factor_pvp_min' => (float)$this->newProductPvpMin,
+                'exw' => (float)($this->newProductExw ?: 0),
+                'incr_fletes' => (float)($this->newProductIncrFletes ?: 0),
+                'factor_pvp1' => (float)($this->newProductPvp1 ?: 0),
+                'factor_pvp_min' => (float)($this->newProductPvpMin ?: 0),
                 'status' => 'PENDING',
                 'created_by' => Auth::id(),
                 'created_at' => now(),
