@@ -3083,6 +3083,20 @@ class Orders extends Component
     /**
      * Asignar prioridad y registrar pedido en lote de productos convertidos
      */
+    public function updatedOrderQuantities($value, $key)
+    {
+        $productId = (int)$key;
+        $qty = (int)$value;
+
+        if ($qty > 0) {
+            if (!in_array($productId, $this->selectedConvertedIds)) {
+                $this->selectedConvertedIds[] = $productId;
+            }
+        } else {
+            $this->selectedConvertedIds = array_values(array_filter($this->selectedConvertedIds, fn($id) => $id != $productId));
+        }
+    }
+
     public function assignPriorityToNewProducts($priority)
     {
         try {

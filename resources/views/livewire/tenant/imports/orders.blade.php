@@ -755,7 +755,7 @@
                                     x-effect="if (document.activeElement !== $refs.qtyInput) qtyOrdered = {{ $order->qty_requested ?? 0 }}">
                                     @if ($filterStatus == 14)
                                         <input type="number"
-                                        wire:model.live="orderQuantities.{{ $order->id }}"
+                                        wire:model.live.debounce.500ms="orderQuantities.{{ $order->id }}"
                                         class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
                                         placeholder="{{ $order->qty_requested ?? 0 }}">
                                     @elseif ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
