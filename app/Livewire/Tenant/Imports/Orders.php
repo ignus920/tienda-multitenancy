@@ -191,7 +191,7 @@ class Orders extends Component
             $newProductsCount = DB::connection('tenant')
                 ->table('imp_new_products')
                 ->whereNull('deleted_at')
-                ->where('status', '!=', 'CONVERTED')
+                ->where('status', '=', 'PENDING')
                 ->when(Auth::user()->profile_id == 17, function ($query) {
                     return $query->where('supplier_id', Auth::id());
                 })
@@ -342,7 +342,7 @@ class Orders extends Component
                     'inp.image_path'
                 ])
                 ->whereNull('inp.deleted_at')
-                ->where('inp.status', '!=', 'CONVERTED')
+                ->where('inp.status', '=', 'PENDING')
                 ->when(Auth::user()->profile_id == 17, function ($query) {
                     return $query->where('inp.supplier_id', Auth::id());
                 })
@@ -365,8 +365,8 @@ class Orders extends Component
                 ->table('imp_new_products as inp')
                 ->select([
                     'inp.id',
-                    DB::raw('NULL as item_id'),
-                    DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
+                    'inp.real_item_id as item_id',
+                    DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
                     'inp.factory_ref',
                     'inp.exw',
                     'inp.min_qty_supplier as qty_requested',
@@ -393,6 +393,7 @@ class Orders extends Component
                     DB::raw('NULL as deleted_by_user'),
                     'inp.image_path'
                 ])
+                ->leftJoin('inv_items as iv', 'inp.real_item_id', '=', 'iv.id')
                 ->whereNull('inp.deleted_at')
                 ->where('inp.status', '=', 'CONVERTED')
                 ->when($this->search, function ($query) {
