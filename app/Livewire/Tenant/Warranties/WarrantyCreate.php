@@ -19,7 +19,7 @@ class WarrantyCreate extends Component
     use WithFileUploads;
 
     public $remissionId;
-    public $remission;
+    protected $remission;
     public $items = []; // Estructura: [ ['item_id' => X, 'description' => Z, 'available_qty' => Q, 'qty' => 0, 'failure' => '', 'request' => ''] ]
     
     // Almacena temporalmente los archivos subidos. Estructura: [ index => [file1, file2] ]
