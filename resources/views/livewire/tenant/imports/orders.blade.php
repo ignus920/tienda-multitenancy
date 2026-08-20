@@ -2390,7 +2390,7 @@
     <!-- MODAL: Convertir Producto Nuevo a Real (Camilo) -->
     @if($showModalConvertNewProduct)
         <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full border border-gray-200 dark:border-gray-700">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full border border-gray-200 dark:border-gray-700">
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -2405,21 +2405,48 @@
 
                 <!-- Formulario -->
                 <form wire:submit.prevent="convertNewProductToReal" class="p-6 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código Interno Definitivo <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="finalInternalCode" placeholder="Ej: 7800201" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
-                        @error('finalInternalCode') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código Interno Definitivo <span class="text-red-500">*</span></label>
+                            <input type="text" wire:model="finalInternalCode" placeholder="Ej: 7800201" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            @error('finalInternalCode') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría del Inventario <span class="text-red-500">*</span></label>
+                            <select wire:model="finalCategoryId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="">Seleccionar Categoría</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('finalCategoryId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Categoría del Inventario <span class="text-red-500">*</span></label>
-                        <select wire:model="finalCategoryId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="">Seleccionar Categoría</option>
-                            @foreach($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('finalCategoryId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción / Nombre definitivo <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="finalDescription" placeholder="Nombre completo del producto" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        @error('finalDescription') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Sección WooCommerce -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                        <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">Parámetros de Página Web (WooCommerce)</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">% Stock WordPress <span class="text-red-500">*</span></label>
+                                <input type="number" wire:model="finalStockWordpress" placeholder="Ej: 80" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+                                @error('finalStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Can Mínima WordPress <span class="text-red-500">*</span></label>
+                                <input type="number" step="0.01" wire:model="finalMinQtyWordpress" placeholder="Ej: 5.00" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+                                @error('finalMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Footer -->

@@ -48,6 +48,9 @@ class Orders extends Component
     public $selectedNewProductId;
     public $finalInternalCode;
     public $finalCategoryId;
+    public $finalDescription;
+    public $finalStockWordpress;
+    public $finalMinQtyWordpress;
 
     // Propiedades para ordenar productos convertidos en lote
     public $selectedConvertedIds = [];
@@ -2971,6 +2974,9 @@ class Orders extends Component
         $this->selectedNewProductId = $newProductId;
         $this->finalInternalCode = '';
         $this->finalCategoryId = '';
+        $this->finalDescription = '';
+        $this->finalStockWordpress = null;
+        $this->finalMinQtyWordpress = null;
         
         $newProduct = DB::connection('tenant')
             ->table('imp_new_products')
@@ -2979,6 +2985,7 @@ class Orders extends Component
 
         if ($newProduct) {
             $this->finalInternalCode = ''; // Camilo ingresa el código final
+            $this->finalDescription = $newProduct->description;
             $this->showModalConvertNewProduct = true;
         }
     }
@@ -2991,11 +2998,23 @@ class Orders extends Component
         $this->ensureTenantConnection();
         $this->validate([
             'finalInternalCode' => 'required|unique:tenant.inv_items,internal_code',
-            'finalCategoryId' => 'required|integer'
+            'finalCategoryId' => 'required|integer',
+            'finalDescription' => 'required|min:3',
+            'finalStockWordpress' => 'required|numeric|min:0|max:100',
+            'finalMinQtyWordpress' => 'required|numeric|min:0'
         ], [
             'finalInternalCode.required' => 'El código interno definitivo es obligatorio.',
             'finalInternalCode.unique' => 'Este código interno ya existe en el inventario real.',
-            'finalCategoryId.required' => 'Debe seleccionar una categoría de inventario.'
+            'finalCategoryId.required' => 'Debe seleccionar una categoría de inventario.',
+            'finalDescription.required' => 'La descripción o nombre es obligatorio.',
+            'finalDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
+            'finalStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
+            'finalStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
+            'finalStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
+            'finalStockWordpress.max' => 'El % Stock WordPress no puede superar el 100%.',
+            'finalMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
+            'finalMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser un valor numérico.',
+            'finalMinQtyWordpress.min' => 'La Cantidad Mínima WordPress no puede ser menor a 0.'
         ]);
 
         $newProduct = DB::connection('tenant')
@@ -3014,10 +3033,10 @@ class Orders extends Component
             // 1. Crear el ítem en inv_items (ERP Real)
             $itemId = DB::connection('tenant')->table('inv_items')->insertGetId([
                 'categoryId' => $this->finalCategoryId,
-                'name' => $newProduct->description,
+                'name' => $this->finalDescription,
                 'internal_code' => $this->finalInternalCode,
                 'sku' => $this->finalInternalCode, // Usar código interno como SKU inicialmente
-                'description' => $newProduct->description,
+                'description' => $this->finalDescription,
                 'type' => 'IMPORTADO',
                 'brandId' => 1, // Por defecto marca inicial o general
                 'houseId' => 1,
@@ -3039,6 +3058,25 @@ class Orders extends Component
                     'type_show' => 'COMERCIAL',
                     'created_at' => now(),
                     'updated_at' => now()
+                ]);
+            }
+
+            // 2.5 Crear el registro de bodega en inv_items_store
+            $principalStore = DB::connection('tenant')->table('inv_store')
+                ->where('status', 1)
+                ->orderBy('id', 'asc')
+                ->first();
+
+            if ($principalStore) {
+                DB::connection('tenant')->table('inv_items_store')->insert([
+                    'itemId'              => $itemId,
+                    'storeId'             => $principalStore->id,
+                    'initial_stock'       => 0,
+                    'stock_items_store'   => 0,
+                    'stock_min'           => 0,
+                    'stock_max'           => 0,
+                    'wp_stock_percentage' => (float)$this->finalStockWordpress,
+                    'wp_min_stock'        => (float)$this->finalMinQtyWordpress,
                 ]);
             }
 
