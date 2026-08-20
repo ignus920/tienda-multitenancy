@@ -39,10 +39,9 @@
 
                 <!-- Scrollable Content -->
                 <div class="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50 dark:bg-slate-900/30">
-                    @if($warranty)
-                        <!-- metadata block (inspired by mockup) -->
+                    @if($warranty)                        <!-- metadata block (inspired by mockup) -->
                         <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-gray-100 dark:border-slate-700 shadow-sm">
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                 <div>
                                     <span class="text-gray-400 font-medium block">Consecutivo</span>
                                     <span class="text-gray-900 dark:text-white font-bold text-sm">{{ $warranty->consecutive }}</span>
@@ -54,10 +53,6 @@
                                 <div class="col-span-2 md:col-span-1">
                                     <span class="text-gray-400 font-medium block">Cliente</span>
                                     <span class="text-gray-900 dark:text-slate-200 font-semibold truncate block max-w-[150px]">{{ $warranty->remission->quote->customer_name ?? 'N/A' }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-400 font-medium block">Ciudad</span>
-                                    <span class="text-gray-900 dark:text-slate-200 font-semibold">{{ $warranty->remission->quote->city ?? 'N/A' }}</span>
                                 </div>
                                 <div>
                                     <span class="text-gray-400 font-medium block">Fecha OP</span>
