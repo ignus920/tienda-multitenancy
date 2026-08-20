@@ -14,13 +14,12 @@ use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
-class WarrantyRegistrationModal extends Component
+class WarrantyCreate extends Component
 {
     use WithFileUploads;
 
-    public $isOpen = false;
     public $remissionId;
-    protected $remission;
+    public $remission;
     public $items = []; // Estructura: [ ['item_id' => X, 'description' => Z, 'available_qty' => Q, 'qty' => 0, 'failure' => '', 'request' => ''] ]
     
     // Almacena temporalmente los archivos subidos. Estructura: [ index => [file1, file2] ]
@@ -30,8 +29,6 @@ class WarrantyRegistrationModal extends Component
     public $isEvidenceModalOpen = false;
     public $activeItemIndex = null;
     public $evidenceFiles = []; // Enlace temporal para el input file de evidencias
-
-    protected $listeners = ['openWarrantyRegistration' => 'loadRemission'];
 
     public function boot()
     {
@@ -51,15 +48,20 @@ class WarrantyRegistrationModal extends Component
         tenancy()->initialize($tenant);
     }
 
-    public function loadRemission($id)
+    public function mount($id)
     {
         $this->ensureTenantConnection();
         $this->remissionId = $id;
-        $this->remission = InvRemissions::with('details.item', 'quote')->find($id);
+        $this->loadRemission($id);
+    }
+
+    public function loadRemission($id)
+    {
+        $this->remission = InvRemissions::with(['details.item', 'quote'])->find($id);
 
         if (!$this->remission) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'OP/Remisión no encontrada']);
-            return;
+            session()->flash('error', 'OP/Remisión no encontrada');
+            return redirect()->route('tenant.remissions'); // o la ruta de listado de pedidos
         }
 
         $this->items = [];
@@ -90,8 +92,6 @@ class WarrantyRegistrationModal extends Component
             
             $this->tempEvidences[$index] = [];
         }
-
-        $this->isOpen = true;
     }
 
     // Métodos para el sub-modal de evidencias
@@ -112,7 +112,7 @@ class WarrantyRegistrationModal extends Component
     public function updatedEvidenceFiles()
     {
         $this->validate([
-            'evidenceFiles.*' => 'file|max:15360' // Límite de 15MB por archivo para admitir videos cortos
+            'evidenceFiles.*' => 'file|max:15360' // Límite de 15MB por archivo para admitir videos
         ]);
 
         if ($this->activeItemIndex !== null) {
@@ -130,13 +130,6 @@ class WarrantyRegistrationModal extends Component
             unset($this->tempEvidences[$this->activeItemIndex][$fileIndex]);
             $this->tempEvidences[$this->activeItemIndex] = array_values($this->tempEvidences[$this->activeItemIndex]);
         }
-    }
-
-    public function close()
-    {
-        $this->isOpen = false;
-        $this->remission = null;
-        $this->reset(['items', 'remissionId', 'tempEvidences', 'isEvidenceModalOpen', 'activeItemIndex', 'evidenceFiles']);
     }
 
     public function save()
@@ -213,10 +206,8 @@ class WarrantyRegistrationModal extends Component
 
             DB::connection('tenant')->commit();
 
-            $this->dispatch('show-toast', ['type' => 'success', 'message' => "Garantía {$consecutive} creada con éxito."]);
-            $this->isOpen = false;
-            $this->dispatch('refreshWarranties');
-            $this->close();
+            session()->flash('success', "Garantía {$consecutive} creada con éxito.");
+            return redirect()->route('tenant.warranties');
 
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
@@ -226,13 +217,8 @@ class WarrantyRegistrationModal extends Component
 
     public function render()
     {
-        if ($this->remissionId && !$this->remission) {
-            $this->ensureTenantConnection();
-            $this->remission = InvRemissions::with(['details.item', 'quote'])->find($this->remissionId);
-        }
-
-        return view('livewire.tenant.warranties.warranty-registration-modal', [
+        return view('livewire.tenant.warranties.warranty-create', [
             'remission' => $this->remission
-        ]);
+        ])->layout('layouts.app');
     }
 }

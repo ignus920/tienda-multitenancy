@@ -528,13 +528,13 @@
                                             </button>
                                             @endif
                                             @if($remission->status !== 'ANULADO')
-                                            <button wire:click="$dispatch('openWarrantyRegistration', { id: {{ $remission->id }} })" 
-                                                class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
+                                            <a href="{{ route('tenant.warranties.create', $remission->id) }}" 
+                                               class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                                 </svg>
                                                 Garantía
-                                            </button>
+                                            </a>
                                             @endif
                                             @if($remission->invoice && !in_array(auth()->user()?->profile_id, [6, 7]))
                                             <button wire:click="printInvoice({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
@@ -1144,8 +1144,7 @@
             });
         });
     </script>
-    @livewire('tenant.returns.return-registration-modal')
-    @livewire('tenant.warranties.warranty-registration-modal')
+
 
     <!-- Modal: Completar datos del cliente antes de facturar desde remisiones -->
     @if($showCompleteCustomerModal && $completingCustomerId)
