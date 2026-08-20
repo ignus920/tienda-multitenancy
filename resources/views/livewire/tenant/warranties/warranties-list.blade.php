@@ -59,8 +59,10 @@
 
         <!-- Barra de Herramientas y Filtros -->
         <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
-            <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+            <div class="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+                <!-- Búsqueda y Exportaciones -->
                 <div class="flex-1 max-w-md">
+                    <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Búsqueda rápida</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
                             <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,23 +70,42 @@
                             </svg>
                         </span>
                         <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por OP, cliente o producto..." 
-                               class="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="mt-2">
+                        <x-export-buttons />
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400">Desde:</span>
+                <!-- Fechas, Limpieza y Mostrar -->
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Desde:</span>
                         <input wire:model.live="dateFrom" type="date" class="block px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400">Hasta:</span>
-                        <input wire:model.live="dateTo" type="date" class="block px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Hasta:</span>
+                        <div class="flex items-center gap-2">
+                            <input wire:model.live="dateTo" type="date" class="block px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+                            
+                            <!-- Botón limpiar filtros (bote de basura) -->
+                            <button wire:click="clearFilters" class="p-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Limpiar filtros">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     
-                    @if($filterStatus)
-                    <button wire:click="applyFilter(null)" class="text-xs font-bold text-red-500 hover:text-red-600 uppercase">Limpiar Filtro</button>
-                    @endif
+                    <!-- Paginación perPage -->
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Mostrar</span>
+                        <select wire:model.live="perPage" class="rounded-lg border-gray-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2 text-gray-900 dark:text-slate-200 focus:ring-indigo-500">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
