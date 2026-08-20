@@ -23,7 +23,7 @@
                      x-transition:leave="ease-in duration-200" 
                      x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
                      x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
-                     class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
+                     class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
                     
                     <div class="bg-white dark:bg-gray-800 px-6 py-6 sm:px-8">
                         <div class="flex items-center justify-between mb-6">
@@ -64,9 +64,10 @@
                                         </td>
                                         <!-- Producto -->
                                         <td class="px-4 py-3">
-                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ $item['description'] }}</div>
-                                            <div class="text-[10px] text-gray-500">Cod: {{ $item['codigo'] }}</div>
-                                            <div class="text-[10px] text-gray-400">Total Pedido: {{ number_format($item['original_qty'], 2) }} | Previo Garantía: {{ number_format($item['previously_returned'], 2) }}</div>
+                                            <div class="text-sm text-gray-900 dark:text-white">
+                                                <span class="text-gray-500 dark:text-gray-400 font-semibold mr-2">{{ $item['codigo'] }}</span>
+                                                <span>{{ $item['description'] }}</span>
+                                            </div>
                                         </td>
                                         <!-- Disponible -->
                                         <td class="px-4 py-3 text-center text-sm font-bold text-gray-600 dark:text-gray-300">
