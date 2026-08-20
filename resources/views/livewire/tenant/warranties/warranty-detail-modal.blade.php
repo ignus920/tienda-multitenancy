@@ -76,16 +76,16 @@
                                 @foreach($warranty->items as $item)
                                     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4 space-y-3">
                                         <!-- Header Item -->
-                                        <div class="flex justify-between items-start gap-4">
-                                            <div>
-                                                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-700 pb-2">
+                                            <div class="flex items-center flex-wrap gap-2 flex-1">
+                                                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md whitespace-nowrap">
                                                     {{ $item->item->internal_code ?? 'N/A' }}
                                                 </span>
-                                                <h5 class="text-sm font-bold text-gray-900 dark:text-white mt-1">{{ $item->item->name ?? $item->item->description ?? 'Producto sin nombre' }}</h5>
+                                                <h5 class="text-sm font-bold text-gray-900 dark:text-white break-words">{{ $item->item->name ?? $item->item->description ?? 'Producto sin nombre' }}</h5>
                                             </div>
-                                            <div class="text-right whitespace-nowrap">
-                                                <span class="text-[10px] text-gray-400 block">CANTIDAD</span>
-                                                <span class="text-sm font-black text-gray-900 dark:text-white">{{ number_format($item->quantity, 2) }}</span>
+                                            <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-700/30 px-2.5 py-1 rounded-lg self-start sm:self-center">
+                                                <span class="text-[9px] text-gray-400 font-bold uppercase">Cant:</span>
+                                                <span class="text-xs font-black text-gray-900 dark:text-white">{{ (float)$item->quantity }}</span>
                                             </div>
                                         </div>
 

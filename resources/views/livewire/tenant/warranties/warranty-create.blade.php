@@ -49,11 +49,11 @@
                                 <span class="text-gray-500 dark:text-gray-400 font-semibold mr-2">{{ $item['codigo'] }}</span>
                                 <span>{{ $item['description'] }}</span>
                             </div>
-                            <div class="text-[10px] text-gray-400 mt-1">Total Pedido: {{ number_format($item['original_qty'], 2) }} | Previo Garantía: {{ number_format($item['previously_returned'], 2) }}</div>
+                            <div class="text-[10px] text-gray-400 mt-1">Total Pedido: {{ (float)$item['original_qty'] }} | Previo Garantía: {{ (float)$item['previously_returned'] }}</div>
                         </td>
                         <!-- Disponible -->
                         <td class="px-6 py-4 text-center text-sm font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                            {{ number_format($item['available_qty'], 2) }}
+                            {{ (float)$item['available_qty'] }}
                         </td>
                         <!-- Cant. Reclamo -->
                         <td class="px-6 py-4 text-center whitespace-nowrap">
