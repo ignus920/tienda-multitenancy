@@ -49,6 +49,10 @@ class Orders extends Component
     public $finalInternalCode;
     public $finalCategoryId;
 
+    // Propiedades para ordenar productos convertidos en lote
+    public $selectedConvertedIds = [];
+    public $orderQuantities = [];
+
     public $filterStatus = '';
     public $filterNews = '';
     public $filterPacking = '';
@@ -3072,6 +3076,76 @@ class Orders extends Component
             DB::connection('tenant')->rollBack();
             Log::error('❌ Error al convertir producto nuevo: ' . $e->getMessage());
             $this->addError('finalInternalCode', 'Error durante la conversión: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Asignar prioridad y registrar pedido en lote de productos convertidos
+     */
+    public function assignPriorityToNewProducts($priority)
+    {
+        try {
+            if (empty($this->selectedConvertedIds)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No hay productos convertidos seleccionados'
+                ]);
+                return;
+            }
+
+            $this->ensureTenantConnection();
+
+            DB::connection('tenant')->transaction(function () use ($priority) {
+                foreach ($this->selectedConvertedIds as $productId) {
+                    $newProduct = DB::connection('tenant')
+                        ->table('imp_new_products')
+                        ->where('id', $productId)
+                        ->first();
+
+                    if ($newProduct && $newProduct->real_item_id) {
+                        $qty = isset($this->orderQuantities[$productId]) && (int)$this->orderQuantities[$productId] > 0
+                            ? (int)$this->orderQuantities[$productId]
+                            : (int)$newProduct->min_qty_supplier;
+
+                        // Insertar el pedido en imp_imports
+                        DB::connection('tenant')->table('imp_imports')->insert([
+                            'item_id' => $newProduct->real_item_id,
+                            'priority' => $priority,
+                            'priority_assigned_at' => now(),
+                            'qty_requested' => $qty,
+                            'user_id' => Auth::id(),
+                            'status' => 1, // Solicitado
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+
+                        // Cambiar estado en imp_new_products a ORDERED
+                        DB::connection('tenant')
+                            ->table('imp_new_products')
+                            ->where('id', $productId)
+                            ->update([
+                                'status' => 'ORDERED',
+                                'updated_at' => now()
+                            ]);
+                    }
+                }
+            });
+
+            $this->selectedConvertedIds = [];
+            $this->orderQuantities = [];
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Pedidos creados y asignados correctamente en lote.'
+            ]);
+
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            Log::error('❌ Error al registrar pedidos en lote desde Producto Nuevo: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al crear pedidos: ' . $e->getMessage()
+            ]);
         }
     }
 }

@@ -474,7 +474,7 @@
                     </div>
                 </div>
                 
-                @if ($profileUser != '17' && count($selectedOrders) > 0 && $filterStatus != 13)
+                @if ($profileUser != '17' && count($selectedOrders) > 0 && $filterStatus != 13 && $filterStatus != 14)
                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
                         <span class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mr-2">Prioridad en Lote:</span>
                         <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
@@ -506,6 +506,45 @@
                             Express 2
                         </button>
                         <button wire:click="assignPriorityToSelectedOrders('Express 3')" 
+                                style="background-color: #2563eb; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express 3
+                        </button>
+                    </div>
+                @endif
+
+                @if ($profileUser != '17' && $filterStatus == 14 && count($selectedConvertedIds) > 0)
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mr-2">Crear Pedido de Producto Nuevo (Lote):</span>
+                        <button wire:click="assignPriorityToNewProducts('ASAP')" 
+                                style="background-color: #dc2626; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            ASAP
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Second')" 
+                                style="background-color: #d97706; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Second
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Third')" 
+                                style="background-color: #2563eb; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Third
+                        </button>
+                        
+                        <span class="text-gray-300 dark:text-gray-600 mx-1">|</span>
+                        
+                        <button wire:click="assignPriorityToNewProducts('Express')" 
+                                style="background-color: #dc2626; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Express 2')" 
+                                style="background-color: #d97706; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express 2
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Express 3')" 
                                 style="background-color: #2563eb; color: #ffffff;"
                                 class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
                             Express 3
@@ -647,7 +686,14 @@
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
                                 @if(!in_array($filterStatus, [6, 8, 13]))
                                 <td class="px-4 py-4">
-                                    @if(!in_array($order->status, [6, 8, 13]))
+                                    @if($filterStatus == 14)
+                                        <input type="checkbox" 
+                                            wire:model.live="selectedConvertedIds" 
+                                            value="{{ $order->id }}"
+                                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer"
+                                            title="Seleccionar para ordenar"
+                                        >
+                                    @elseif(!in_array($order->status, [6, 8, 13]))
                                         @php
                                             $hasPrice = isset($order->price) && floatval($order->price) > 0;
                                         @endphp
@@ -664,7 +710,7 @@
                                 <td class="px-4 py-4 max-w-[300px]">
                                     <div class="flex items-center gap-3">
                                         @php
-                                            if ($order->status == 13) {
+                                            if ($order->status == 13 || $order->status == 14) {
                                                 $thumbnail = !empty($order->image_path) ? asset('storage/' . $order->image_path) : asset('images/placeholder-item.png');
                                             } else {
                                                 $itemModel = \App\Models\Tenant\Items\Items::find($order->item_id);
@@ -673,7 +719,7 @@
                                         @endphp
                                         <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                                              @click.stop="
-                                                 @if($order->status == 13)
+                                                 @if($order->status == 13 || $order->status == 14)
                                                      Swal.fire({
                                                          imageUrl: '{{ $thumbnail }}',
                                                          imageAlt: 'Imagen del producto nuevo',
@@ -707,7 +753,12 @@
                                 <td class="px-4 py-4 text-center"
                                     x-data="{ qtyOrdered: {{ $order->qty_requested ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.qtyInput) qtyOrdered = {{ $order->qty_requested ?? 0 }}">
-                                    @if ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
+                                    @if ($filterStatus == 14)
+                                        <input type="number"
+                                        wire:model.live="orderQuantities.{{ $order->id }}"
+                                        class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
+                                        placeholder="{{ $order->qty_requested ?? 0 }}">
+                                    @elseif ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
                                         <input type="number"
                                         wire:key="qty-input-{{ $order->id }}-{{ $refreshCounter }}"
                                         x-ref="qtyInput"
