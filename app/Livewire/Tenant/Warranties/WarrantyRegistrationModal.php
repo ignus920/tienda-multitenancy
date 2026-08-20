@@ -26,6 +26,11 @@ class WarrantyRegistrationModal extends Component
     // Almacena temporalmente los archivos subidos. Estructura: [ index => [file1, file2] ]
     public $tempEvidences = [];
 
+    // Propiedades para el sub-modal de evidencias
+    public $isEvidenceModalOpen = false;
+    public $activeItemIndex = null;
+    public $evidenceFiles = []; // Enlace temporal para el input file de evidencias
+
     protected $listeners = ['openWarrantyRegistration' => 'loadRemission'];
 
     public function boot()
@@ -89,11 +94,49 @@ class WarrantyRegistrationModal extends Component
         $this->isOpen = true;
     }
 
+    // Métodos para el sub-modal de evidencias
+    public function openEvidenceUploadModal($index)
+    {
+        $this->activeItemIndex = $index;
+        $this->evidenceFiles = [];
+        $this->isEvidenceModalOpen = true;
+    }
+
+    public function closeEvidenceUploadModal()
+    {
+        $this->isEvidenceModalOpen = false;
+        $this->activeItemIndex = null;
+        $this->evidenceFiles = [];
+    }
+
+    public function updatedEvidenceFiles()
+    {
+        $this->validate([
+            'evidenceFiles.*' => 'file|max:15360' // Límite de 15MB por archivo para admitir videos cortos
+        ]);
+
+        if ($this->activeItemIndex !== null) {
+            foreach ($this->evidenceFiles as $file) {
+                $this->tempEvidences[$this->activeItemIndex][] = $file;
+            }
+        }
+
+        $this->evidenceFiles = []; // Limpiar entrada temporal
+    }
+
+    public function removeEvidenceFile($fileIndex)
+    {
+        if ($this->activeItemIndex !== null && isset($this->tempEvidences[$this->activeItemIndex][$fileIndex])) {
+            unset($this->tempEvidences[$this->activeItemIndex][$fileIndex]);
+            $this->tempEvidences[$this->activeItemIndex] = array_values($this->tempEvidences[$this->activeItemIndex]);
+        }
+    }
+
     public function close()
     {
         $this->isOpen = false;
         $this->remission = null;
-        $this->reset(['items', 'remissionId', 'tempEvidences']);
+        $this->reset(['items', 'remissionId', 'tempEvidences', 'isEvidenceModalOpen', 'activeItemIndex', 'evidenceFiles']);
     }
 
     public function save()
