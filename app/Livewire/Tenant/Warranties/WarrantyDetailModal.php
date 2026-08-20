@@ -13,7 +13,7 @@ class WarrantyDetailModal extends Component
 {
     public $isOpen = false;
     public $warrantyId;
-    public $warranty;
+    protected $warranty;
 
     // Campos de interacción
     public $adminConcept = '';
@@ -195,6 +195,11 @@ class WarrantyDetailModal extends Component
 
     public function render()
     {
+        if ($this->warrantyId && !$this->warranty) {
+            $this->ensureTenantConnection();
+            $this->warranty = VntWarranty::with(['remission.quote.customer', 'items.item', 'items.evidences', 'user'])->find($this->warrantyId);
+        }
+
         return view('livewire.tenant.warranties.warranty-detail-modal');
     }
 }
