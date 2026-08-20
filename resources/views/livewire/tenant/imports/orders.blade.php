@@ -18,18 +18,18 @@
     <template x-teleport="#header-actions-container">
         <div class="flex items-center gap-3">
             @php
-                $newReqs = $this->status->where('id', 10)->first()?->cantidad ?? 0;
-                $isActiveReqs = ($filterNews == 1);
+                $newReqs = $this->status->where('id', 13)->first()?->cantidad ?? 0;
+                $isActiveReqs = ($filterStatus == 13);
                 
-                $newProds = $this->status->where('id', 13)->first()?->cantidad ?? 0;
-                $isActiveProds = ($filterStatus == 13);
+                $newProds = $this->status->where('id', 14)->first()?->cantidad ?? 0;
+                $isActiveProds = ($filterStatus == 14);
             @endphp
-            <button wire:click="putFilter(10)" 
+            <button wire:click="putFilter(13)" 
                 class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
                 <span>Nuevas solicitudes</span>
                 <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newReqs }}</span>
             </button>
-            <button wire:click="putFilter(13)" 
+            <button wire:click="putFilter(14)" 
                 class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveProds ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
                 <span>Producto Nuevo</span>
                 <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
@@ -80,7 +80,7 @@
     <!-- Status Summary -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
         @foreach($this->status as $stat)
-            @if(Auth::user()?->profile_id != 17 && ($stat->{'id'} == 10 || $stat->{'id'} == 13))
+            @if(Auth::user()?->profile_id != 17 && ($stat->{'id'} == 13 || $stat->{'id'} == 14))
                 @continue
             @endif
             @php
