@@ -256,27 +256,27 @@
 
             </div>
         </div>
+
+        <!-- Visualizador de Imagen Flotante (Lightbox) -->
+        <div x-show="activeImage" 
+             class="fixed inset-0 z-[110] bg-black bg-opacity-90 flex items-center justify-center p-4" 
+             style="display: none;"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="activeImage = null"
+             @keydown.escape.window="activeImage = null">
+            
+            <button type="button" @click="activeImage = null" class="absolute top-4 right-4 text-white bg-slate-800 hover:bg-slate-700 p-2.5 rounded-full transition-colors focus:outline-none shadow-md">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <img :src="activeImage" class="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain" @click.stop>
+        </div>
     </template>
-
-    <!-- Visualizador de Imagen Flotante (Lightbox) -->
-    <div x-show="activeImage" 
-         class="fixed inset-0 z-[200] bg-black bg-opacity-90 flex items-center justify-center p-4" 
-         style="display: none;"
-         x-transition:enter="ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         @click="activeImage = null"
-         @keydown.escape.window="activeImage = null">
-        
-        <button type="button" @click="activeImage = null" class="absolute top-4 right-4 text-white bg-slate-800 hover:bg-slate-700 p-2.5 rounded-full transition-colors focus:outline-none shadow-md">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-
-        <img :src="activeImage" class="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain" @click.stop>
-    </div>
 </div>
