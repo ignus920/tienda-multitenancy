@@ -816,9 +816,12 @@
                                     @endif
                                 </td>
                                 <td x-show="showCols.comment" class="px-4 py-4">
-                                    <div class="space-y-2 min-w-[200px]">
-                                        <div x-data="{ comment: '' }" class="flex items-center gap-1">
-                                            <input type="text" 
+                                    @if ($filterStatus == 14)
+                                        <span class="text-xs text-gray-500 italic">N/A</span>
+                                    @else
+                                        <div class="space-y-2 min-w-[200px]">
+                                            <div x-data="{ comment: '' }" class="flex items-center gap-1">
+                                                <input type="text" 
                                                 x-model="comment"
                                                 @change="$wire.saveComment({{ $order->id }}, comment); comment = ''"
                                                 @keydown.enter="$wire.saveComment({{ $order->id }}, comment); comment = ''"
@@ -861,9 +864,13 @@
                                             </div>
                                         @endif
                                     </div> 
+                                    @endif
                                 </td>
                                 <td x-show="showCols.action" class="px-4 py-4 text-center">
-                                    <div class="flex items-center justify-center gap-1.5">
+                                    @if ($filterStatus == 14)
+                                        <span class="text-xs text-gray-500 italic">N/A</span>
+                                    @else
+                                        <div class="flex items-center justify-center gap-1.5">
                                         @if($order->status == 13)
                                             @if($profileUser != '17')
                                                 <button wire:click="openConvertModal({{ $order->id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
@@ -928,6 +935,7 @@
                                             </button>
                                         @endif
                                     </div>
+                                    @endif
                                 </td>
                                 <td x-show="showCols.status" class="px-4 py-4 text-center">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
