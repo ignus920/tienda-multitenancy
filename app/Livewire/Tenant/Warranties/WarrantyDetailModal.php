@@ -68,6 +68,14 @@ class WarrantyDetailModal extends Component
         }
     }
 
+    private function loadWarrantyIfNeeded()
+    {
+        if (!$this->warranty && $this->warrantyId) {
+            $this->ensureTenantConnection();
+            $this->warranty = VntWarranty::find($this->warrantyId);
+        }
+    }
+
     public function close()
     {
         $this->isOpen = false;
@@ -84,6 +92,7 @@ class WarrantyDetailModal extends Component
 
         try {
             $this->ensureTenantConnection();
+            $this->loadWarrantyIfNeeded();
             $this->warranty->update([
                 'admin_concept' => $this->adminConcept ?: 'Caso resuelto directamente.',
                 'admin_solution' => $this->adminSolution,
@@ -104,6 +113,7 @@ class WarrantyDetailModal extends Component
     {
         try {
             $this->ensureTenantConnection();
+            $this->loadWarrantyIfNeeded();
             $this->warranty->update([
                 'admin_concept' => $this->adminConcept ?: 'Remitido a revisión de Laboratorio.',
                 'status' => 2 // En Laboratorio
@@ -122,6 +132,7 @@ class WarrantyDetailModal extends Component
     {
         try {
             $this->ensureTenantConnection();
+            $this->loadWarrantyIfNeeded();
             $this->warranty->update([
                 'admin_concept' => $this->adminConcept ?: 'Remitido a revisión de Importaciones.',
                 'status' => 3 // En Importaciones
@@ -140,6 +151,7 @@ class WarrantyDetailModal extends Component
     {
         try {
             $this->ensureTenantConnection();
+            $this->loadWarrantyIfNeeded();
             DB::connection('tenant')->beginTransaction();
 
             foreach ($this->labConcepts as $itemId => $concept) {
@@ -169,6 +181,7 @@ class WarrantyDetailModal extends Component
     {
         try {
             $this->ensureTenantConnection();
+            $this->loadWarrantyIfNeeded();
             DB::connection('tenant')->beginTransaction();
 
             foreach ($this->importsConcepts as $itemId => $concept) {
