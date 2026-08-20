@@ -217,6 +217,11 @@ class WarrantyCreate extends Component
 
     public function render()
     {
+        if ($this->remissionId && !$this->remission) {
+            $this->ensureTenantConnection();
+            $this->remission = InvRemissions::with(['details.item', 'quote'])->find($this->remissionId);
+        }
+
         return view('livewire.tenant.warranties.warranty-create', [
             'remission' => $this->remission
         ])->layout('layouts.app');
