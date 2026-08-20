@@ -200,6 +200,8 @@ class WarrantyDetailModal extends Component
             $this->warranty = VntWarranty::with(['remission.quote.customer', 'items.item', 'items.evidences', 'user'])->find($this->warrantyId);
         }
 
-        return view('livewire.tenant.warranties.warranty-detail-modal');
+        return view('livewire.tenant.warranties.warranty-detail-modal', [
+            'warranty' => $this->warranty
+        ]);
     }
 }
