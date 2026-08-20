@@ -638,7 +638,7 @@
             @endif
 
             <!-- Tabla -->
-            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm m-6">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <tr>
