@@ -188,6 +188,9 @@ class Orders extends Component
                 ->table('imp_new_products')
                 ->whereNull('deleted_at')
                 ->where('status', '!=', 'CONVERTED')
+                ->when(Auth::user()->profile_id == 17, function ($query) {
+                    return $query->where('supplier_id', Auth::id());
+                })
                 ->count();
 
             $statuses->push((object)[
@@ -195,6 +198,22 @@ class Orders extends Component
                 'translated_name' => $status13->translated_name,
                 'cantidad' => $newProductsCount,
                 'id' => 13
+            ]);
+        }
+
+        // Agregar de forma dinámica el estado 14 (Converted Products) para Camilo/Fervicom
+        if (Auth::user()->profile_id != 17) {
+            $convertedProductsCount = DB::connection('tenant')
+                ->table('imp_new_products')
+                ->whereNull('deleted_at')
+                ->where('status', '=', 'CONVERTED')
+                ->count();
+
+            $statuses->push((object)[
+                'nombre_estado' => 'Producto Nuevo',
+                'translated_name' => 'Converted',
+                'cantidad' => $convertedProductsCount,
+                'id' => 14
             ]);
         }
 
@@ -333,6 +352,56 @@ class Orders extends Component
                 })
                 ->paginate($this->perPage);
         }
+
+        if ($this->filterStatus == 14) {
+            return DB::connection('tenant')
+                ->table('imp_new_products as inp')
+                ->select([
+                    'inp.id',
+                    DB::raw('NULL as item_id'),
+                    DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
+                    'inp.factory_ref',
+                    'inp.exw',
+                    'inp.min_qty_supplier as qty_requested',
+                    DB::raw("'N/A' AS label"),
+                    DB::raw("'Converted' AS translated_name"),
+                    DB::raw('14 AS status'),
+                    DB::raw('NULL AS priority'),
+                    DB::raw('NULL as priority_assigned_at'),
+                    DB::raw('0 as qty_shipped'),
+                    DB::raw('0 as news'),
+                    'inp.exw as price',
+                    DB::raw('NULL as delete_justification'),
+                    DB::raw('NULL as packing_number'),
+                    DB::raw('NULL as operation_number'),
+                    DB::raw('NULL as etd'),
+                    DB::raw('NULL as way'),
+                    DB::raw("(SELECT comment 
+                            FROM imp_comments 
+                            WHERE new_product_id = inp.id 
+                            ORDER BY created_at DESC 
+                            LIMIT 1
+                        ) AS ultimo_comentario"),
+                    DB::raw('NULL as received_at'),
+                    DB::raw('NULL as deleted_by_user'),
+                    'inp.image_path'
+                ])
+                ->whereNull('inp.deleted_at')
+                ->where('inp.status', '=', 'CONVERTED')
+                ->when($this->search, function ($query) {
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inp.description', 'like', '%' . $word . '%')
+                              ->orWhere('inp.code', 'like', '%' . $word . '%')
+                              ->orWhere('inp.factory_ref', 'like', '%' . $word . '%');
+                        });
+                    }
+                    return $query;
+                })
+                ->paginate($this->perPage);
+        }
+
 
         return DB::connection('tenant')
             ->table('imp_imports as i')
