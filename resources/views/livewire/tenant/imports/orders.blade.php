@@ -13,6 +13,31 @@
         }
     }"
     @notify.window="addNotification($event.detail.message, $event.detail.type)">
+
+    @if(Auth::user()?->profile_id != 17)
+    <div x-teleport="#header-actions-container">
+        <div class="flex items-center gap-3">
+            @php
+                $newReqs = $this->status->where('id', 10)->first()?->cantidad ?? 0;
+                $isActiveReqs = ($filterNews == 1);
+                
+                $newProds = $this->status->where('id', 13)->first()?->cantidad ?? 0;
+                $isActiveProds = ($filterStatus == 13);
+            @endphp
+            <button wire:click="putFilter(10)" 
+                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                <span>Nuevas solicitudes</span>
+                <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newReqs }}</span>
+            </button>
+            <button wire:click="putFilter(13)" 
+                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveProds ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                <span>Producto Nuevo</span>
+                <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
+            </button>
+        </div>
+    </div>
+    @endif
+
     <!-- Notification Toast Container -->
     <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3">
         <template x-for="notification in notifications" :key="notification.id">
@@ -55,6 +80,9 @@
     <!-- Status Summary -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
         @foreach($this->status as $stat)
+            @if($stat->{'id'} == 10 || $stat->{'id'} == 13)
+                @continue
+            @endif
             @php
                 $isActive = ($filterStatus == $stat->{'id'}) || ($stat->{'id'} == 10 && $filterNews == 1);
             @endphp
