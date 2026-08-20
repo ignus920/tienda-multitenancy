@@ -17,6 +17,7 @@ class WarrantiesList extends Component
     public $dateFrom;
     public $dateTo;
     public $filterStatus = null;
+    public $perPage = 10;
 
     // Contadores
     public $countPending = 0;
@@ -32,6 +33,7 @@ class WarrantiesList extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'filterStatus' => ['except' => null],
+        'perPage' => ['except' => 10],
     ];
 
     public function boot()
@@ -92,6 +94,19 @@ class WarrantiesList extends Component
         $this->resetPage();
     }
 
+    public function updatedPerPage()
+    {
+        $this->resetPage();
+    }
+
+    public function clearFilters()
+    {
+        $this->reset(['search', 'filterStatus']);
+        $this->dateFrom = now()->startOfMonth()->format('Y-m-d');
+        $this->dateTo = now()->endOfMonth()->format('Y-m-d');
+        $this->resetPage();
+    }
+
     public function render()
     {
         $warranties = VntWarranty::with(['remission.quote.customer', 'items.item', 'user'])
@@ -113,7 +128,7 @@ class WarrantiesList extends Component
                 $query->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59']);
             })
             ->orderBy('id', 'desc')
-            ->paginate(10);
+            ->paginate($this->perPage);
 
         $this->loadCounts();
 
