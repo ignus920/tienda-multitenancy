@@ -15,7 +15,7 @@
     @notify.window="addNotification($event.detail.message, $event.detail.type)">
 
     @if(Auth::user()?->profile_id != 17)
-    <div x-teleport="#header-actions-container">
+    <template x-teleport="#header-actions-container">
         <div class="flex items-center gap-3">
             @php
                 $newReqs = $this->status->where('id', 10)->first()?->cantidad ?? 0;
@@ -35,7 +35,7 @@
                 <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
             </button>
         </div>
-    </div>
+    </template>
     @endif
 
     <!-- Notification Toast Container -->
