@@ -117,7 +117,7 @@
                                     <div class="text-xs text-gray-500">{{ $warranty->created_at->format('H:i') }}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900 dark:text-white truncate max-w-xs">{{ $warranty->remission->quote->customer->customer_name ?? 'Cliente Desconocido' }}</div>
+                                    <div class="text-sm text-gray-900 dark:text-white truncate max-w-xs">{{ $warranty->remission->quote->customer_name ?? 'Cliente Desconocido' }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-3 py-1 text-xs font-bold rounded-full {{ $warranty->status_color }}">
