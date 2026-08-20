@@ -51,6 +51,7 @@ class Orders extends Component
     public $finalDescription;
     public $finalStockWordpress;
     public $finalMinQtyWordpress;
+    public $finalSupplierId;
 
     // Propiedades para ordenar productos convertidos en lote
     public $selectedConvertedIds = [];
@@ -2977,6 +2978,7 @@ class Orders extends Component
         $this->finalDescription = '';
         $this->finalStockWordpress = null;
         $this->finalMinQtyWordpress = null;
+        $this->finalSupplierId = '';
         
         $newProduct = DB::connection('tenant')
             ->table('imp_new_products')
@@ -2986,6 +2988,7 @@ class Orders extends Component
         if ($newProduct) {
             $this->finalInternalCode = ''; // Camilo ingresa el código final
             $this->finalDescription = $newProduct->description;
+            $this->finalSupplierId = $newProduct->supplier_id;
             $this->showModalConvertNewProduct = true;
         }
     }
@@ -3001,7 +3004,8 @@ class Orders extends Component
             'finalCategoryId' => 'required|integer',
             'finalDescription' => 'required|min:3',
             'finalStockWordpress' => 'required|numeric|min:0|max:100',
-            'finalMinQtyWordpress' => 'required|numeric|min:0'
+            'finalMinQtyWordpress' => 'required|numeric|min:0',
+            'finalSupplierId' => 'required|integer'
         ], [
             'finalInternalCode.required' => 'El código interno definitivo es obligatorio.',
             'finalInternalCode.unique' => 'Este código interno ya existe en el inventario real.',
@@ -3014,7 +3018,8 @@ class Orders extends Component
             'finalStockWordpress.max' => 'El % Stock WordPress no puede superar el 100%.',
             'finalMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
             'finalMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser un valor numérico.',
-            'finalMinQtyWordpress.min' => 'La Cantidad Mínima WordPress no puede ser menor a 0.'
+            'finalMinQtyWordpress.min' => 'La Cantidad Mínima WordPress no puede ser menor a 0.',
+            'finalSupplierId.required' => 'Debe seleccionar un proveedor para este producto.'
         ]);
 
         $newProduct = DB::connection('tenant')
@@ -3083,7 +3088,7 @@ class Orders extends Component
             // 3. Crear setup de importación del item en imp_items_setup
             DB::connection('tenant')->table('imp_items_setup')->insert([
                 'item_id' => $itemId,
-                'supplier_id' => $newProduct->supplier_id,
+                'supplier_id' => $this->finalSupplierId,
                 'factory_ref' => $newProduct->factory_ref ?: 'N/A',
                 'exw' => $newProduct->exw,
                 'percentage' => $newProduct->porcentaje,
