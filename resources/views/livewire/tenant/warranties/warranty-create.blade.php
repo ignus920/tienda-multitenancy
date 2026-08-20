@@ -1,33 +1,22 @@
 <div class="p-6 bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors">
-    <!-- Breadcrumbs & Header -->
+    <!-- Header Card -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <nav class="flex text-xs text-gray-500 mb-2" aria-label="Breadcrumb">
-                    <ol class="inline-flex items-center space-x-1 md:space-x-3">
-                        <li class="inline-flex items-center">
-                            <a href="#" class="hover:text-gray-700">Inicio</a>
-                        </li>
-                        <li>
-                            <div class="flex items-center">
-                                <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                                <a href="{{ route('tenant.remissions') }}" class="hover:text-gray-700">Pedidos</a>
-                            </div>
-                        </li>
-                        <li aria-current="page">
-                            <div class="flex items-center">
-                                <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                                <span class="text-gray-400 dark:text-slate-500">Crear Garantía</span>
-                            </div>
-                        </li>
-                    </ol>
-                </nav>
                 <h1 class="text-xl font-bold text-gray-900 dark:text-white">Registrar Solicitud de Garantía</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Pedido / OP #{{ $remission->consecutive ?? '' }} - Cliente: {{ $remission->quote->customer_name ?? '' }} 
                     ({{ $remission->quote->city ?? 'Ciudad No Definida' }})
                 </p>
                 <p class="text-xs text-gray-400 mt-1">Fecha OP: {{ $remission->created_at ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <a href="{{ route('tenant.remissions') }}" class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl text-xs font-bold uppercase transition-all shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Volver a Pedidos
+                </a>
             </div>
         </div>
     </div>
