@@ -123,7 +123,11 @@ class ProjectWorkspace extends Component
         if (!empty($matches[1])) {
             $usernames = array_unique($matches[1]);
             // Buscar usuarios correspondientes en el tenant
-            $users = User::whereIn('name', $usernames)->where('status', 1)->get();
+            $sessionTenant = session('tenant_id');
+            $users = User::whereIn('name', $usernames)
+                ->whereHas('tenants', function($q) use ($sessionTenant) {
+                    $q->where('tenants.id', $sessionTenant);
+                })->get();
 
             foreach ($users as $user) {
                 // Registrar mención
@@ -330,7 +334,10 @@ class ProjectWorkspace extends Component
         $project = Project::with(['customer', 'creator'])->findOrFail($this->projectId);
         
         // 1. Obtener lista de usuarios para el autocompletado de menciones @ en Alpine
-        $usersList = User::where('status', 1)->get()->map(function($u) {
+        $sessionTenant = session('tenant_id');
+        $usersList = User::whereHas('tenants', function($q) use ($sessionTenant) {
+                $q->where('tenants.id', $sessionTenant);
+            })->get()->map(function($u) {
             return ['id' => $u->id, 'name' => $u->name];
         })->toArray();
 
