@@ -13,6 +13,31 @@
         }
     }"
     @notify.window="addNotification($event.detail.message, $event.detail.type)">
+
+    @if(Auth::user()?->profile_id != 17)
+    <template x-teleport="#header-actions-container">
+        <div class="flex items-center gap-3">
+            @php
+                $newReqs = $this->status->where('id', 13)->first()?->cantidad ?? 0;
+                $isActiveReqs = ($filterStatus == 13);
+                
+                $newProds = $this->status->where('id', 14)->first()?->cantidad ?? 0;
+                $isActiveProds = ($filterStatus == 14);
+            @endphp
+            <button wire:click="putFilter(13)" 
+                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                <span>Nuevas solicitudes</span>
+                <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newReqs }}</span>
+            </button>
+            <button wire:click="putFilter(14)" 
+                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveProds ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                <span>Producto Nuevo</span>
+                <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
+            </button>
+        </div>
+    </template>
+    @endif
+
     <!-- Notification Toast Container -->
     <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3">
         <template x-for="notification in notifications" :key="notification.id">
@@ -55,6 +80,9 @@
     <!-- Status Summary -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
         @foreach($this->status as $stat)
+            @if(Auth::user()?->profile_id != 17 && ($stat->{'id'} == 13 || $stat->{'id'} == 14))
+                @continue
+            @endif
             @php
                 $isActive = ($filterStatus == $stat->{'id'}) || ($stat->{'id'} == 10 && $filterNews == 1);
             @endphp
@@ -212,7 +240,7 @@
                  }
              }">
             <!-- Toolbar -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="py-8 px-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <!-- Búsqueda y Filtros Rápidos -->
                     <div class="flex flex-col sm:flex-row gap-3 flex-1 max-w-2xl">
@@ -290,6 +318,16 @@
                                     title="{{ Auth::user()?->profile_id == 17 ? 'Clear all filters and reset the board' : 'Limpiar todos los filtros y restablecer el tablero' }}">
                                 <span>{{ Auth::user()?->profile_id == 17 ? 'Clear Filters' : 'Borrar Filtros' }}</span>
                             </button>
+
+                            @if ($profileUser != '17')
+                                <button wire:click="openCreateNewProductModal" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg border border-transparent bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Crear Producto Nuevo</span>
+                                </button>
+                            @endif
+
                             @if (count($selectedOrders) > 0 && ($filterStatus == 5 || $filterStatus == 12))
                                 <button wire:click="openModalShipping" class="inline-flex items-center justify-center px-4 py-2 text-sm border border-transparent rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><x-heroicon-o-truck class="w-4 h-4 mr-2"/> Assign Shipping Data</button>
                             @endif
@@ -436,7 +474,7 @@
                     </div>
                 </div>
                 
-                @if ($profileUser != '17' && count($selectedOrders) > 0)
+                @if ($profileUser != '17' && count($selectedOrders) > 0 && $filterStatus != 13 && $filterStatus != 14)
                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
                         <span class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mr-2">Prioridad en Lote:</span>
                         <button wire:click="assignPriorityToSelectedOrders('ASAP')" 
@@ -468,6 +506,45 @@
                             Express 2
                         </button>
                         <button wire:click="assignPriorityToSelectedOrders('Express 3')" 
+                                style="background-color: #2563eb; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express 3
+                        </button>
+                    </div>
+                @endif
+
+                @if ($profileUser != '17' && $filterStatus == 14 && count($selectedConvertedIds) > 0)
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mr-2">Crear Pedido de Producto Nuevo (Lote):</span>
+                        <button wire:click="assignPriorityToNewProducts('ASAP')" 
+                                style="background-color: #dc2626; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            ASAP
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Second')" 
+                                style="background-color: #d97706; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Second
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Third')" 
+                                style="background-color: #2563eb; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Third
+                        </button>
+                        
+                        <span class="text-gray-300 dark:text-gray-600 mx-1">|</span>
+                        
+                        <button wire:click="assignPriorityToNewProducts('Express')" 
+                                style="background-color: #dc2626; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Express 2')" 
+                                style="background-color: #d97706; color: #ffffff;"
+                                class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
+                            Express 2
+                        </button>
+                        <button wire:click="assignPriorityToNewProducts('Express 3')" 
                                 style="background-color: #2563eb; color: #ffffff;"
                                 class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg shadow hover:opacity-90 transition-all focus:outline-none">
                             Express 3
@@ -561,11 +638,11 @@
             @endif
 
             <!-- Tabla -->
-            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm m-6">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <tr>
-                            @if(!in_array($filterStatus, [6, 8]))
+                            @if(!in_array($filterStatus, [6, 8, 13]))
                             <th class="px-4 py-4 text-left w-12">
                             </th>
                             @endif
@@ -607,9 +684,16 @@
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse ($this->orders as $order)
                             <tr wire:key="order-{{ $order->id }}-{{ $refreshCounter }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 {{ in_array($order->id, $selectedOrders) ? 'bg-indigo-50/70 dark:bg-indigo-900/20' : '' }}">
-                                @if(!in_array($filterStatus, [6, 8]))
+                                @if(!in_array($filterStatus, [6, 8, 13]))
                                 <td class="px-4 py-4">
-                                    @if(!in_array($order->status, [6, 8]))
+                                    @if($filterStatus == 14)
+                                        <input type="checkbox" 
+                                            wire:model.live="selectedConvertedIds" 
+                                            value="{{ $order->id }}"
+                                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer"
+                                            title="Seleccionar para ordenar"
+                                        >
+                                    @elseif(!in_array($order->status, [6, 8, 13]))
                                         @php
                                             $hasPrice = isset($order->price) && floatval($order->price) > 0;
                                         @endphp
@@ -626,11 +710,27 @@
                                 <td class="px-4 py-4 max-w-[300px]">
                                     <div class="flex items-center gap-3">
                                         @php
-                                            $itemModel = \App\Models\Tenant\Items\Items::find($order->item_id);
-                                            $thumbnail = $itemModel ? $itemModel->getPrincipalThumbnailUrl('COMERCIAL') : asset('images/placeholder-item.png');
+                                            if ($order->status == 13 || $order->status == 14) {
+                                                $thumbnail = !empty($order->image_path) ? asset('storage/' . $order->image_path) : asset('images/placeholder-item.png');
+                                            } else {
+                                                $itemModel = \App\Models\Tenant\Items\Items::find($order->item_id);
+                                                $thumbnail = $itemModel ? $itemModel->getPrincipalThumbnailUrl('COMERCIAL') : asset('images/placeholder-item.png');
+                                            }
                                         @endphp
                                         <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
-                                             @click.stop="$dispatch('openImageModal', { productId: {{ $order->item_id }}, context: 'COMERCIAL' })">
+                                             @click.stop="
+                                                 @if($order->status == 13 || $order->status == 14)
+                                                     Swal.fire({
+                                                         imageUrl: '{{ $thumbnail }}',
+                                                         imageAlt: 'Imagen del producto nuevo',
+                                                         showConfirmButton: false,
+                                                         showCloseButton: true,
+                                                         background: 'rgba(255, 255, 255, 0.95)'
+                                                     })
+                                                 @else
+                                                     $dispatch('openImageModal', { productId: {{ $order->item_id }}, context: 'COMERCIAL' })
+                                                 @endif
+                                             ">
                                             <img src="{{ $thumbnail }}" 
                                                  alt="Product" 
                                                  class="w-full h-full object-cover">
@@ -653,7 +753,12 @@
                                 <td class="px-4 py-4 text-center"
                                     x-data="{ qtyOrdered: {{ $order->qty_requested ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.qtyInput) qtyOrdered = {{ $order->qty_requested ?? 0 }}">
-                                    @if ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
+                                    @if ($filterStatus == 14)
+                                        <input type="number"
+                                        wire:model.live.debounce.500ms="orderQuantities.{{ $order->id }}"
+                                        class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
+                                        placeholder="{{ $order->qty_requested ?? 0 }}">
+                                    @elseif ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
                                         <input type="number"
                                         wire:key="qty-input-{{ $order->id }}-{{ $refreshCounter }}"
                                         x-ref="qtyInput"
@@ -692,7 +797,7 @@
                                 <td x-show="showCols.quotedPrice" class="px-4 py-4 text-center"
                                     x-data="{ priceQ: {{ $order->price ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.priceInput) priceQ = {{ $order->price ?? 0 }}">
-                                    @if ($profileUser == '17' && in_array($order->status, [1,2,4,6,7]))
+                                    @if ($profileUser == '17' && in_array($order->status, [1,2,4,6,7,13]))
                                         <div class="flex justify-center">
                                             <input type="number" 
                                             wire:key="price-input-{{ $order->id }}-{{ $refreshCounter }}"
@@ -711,9 +816,12 @@
                                     @endif
                                 </td>
                                 <td x-show="showCols.comment" class="px-4 py-4">
-                                    <div class="space-y-2 min-w-[200px]">
-                                        <div x-data="{ comment: '' }" class="flex items-center gap-1">
-                                            <input type="text" 
+                                    @if ($filterStatus == 14)
+                                        <span class="text-xs text-gray-500 italic">N/A</span>
+                                    @else
+                                        <div class="space-y-2 min-w-[200px]">
+                                            <div x-data="{ comment: '' }" class="flex items-center gap-1">
+                                                <input type="text" 
                                                 x-model="comment"
                                                 @change="$wire.saveComment({{ $order->id }}, comment); comment = ''"
                                                 @keydown.enter="$wire.saveComment({{ $order->id }}, comment); comment = ''"
@@ -756,9 +864,25 @@
                                             </div>
                                         @endif
                                     </div> 
+                                    @endif
                                 </td>
                                 <td x-show="showCols.action" class="px-4 py-4 text-center">
-                                    <div class="flex items-center justify-center gap-1.5">
+                                    @if ($filterStatus == 14)
+                                        <span class="text-xs text-gray-500 italic">N/A</span>
+                                    @else
+                                        <div class="flex items-center justify-center gap-1.5">
+                                        @if($order->status == 13)
+                                            @if($profileUser != '17')
+                                                <button wire:click="openConvertModal({{ $order->id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span>Convertir</span>
+                                                </button>
+                                            @else
+                                                <span class="text-xs text-gray-500 italic font-medium">Cotización Temporal</span>
+                                            @endif
+                                        @endif
                                         @if($order->status == 2 && $profileUser != '17')
                                             <button wire:click="approvePrice({{ $order->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
                                                 <x-heroicon-o-check class="w-4 h-4" /> Approve price
@@ -811,6 +935,7 @@
                                             </button>
                                         @endif
                                     </div>
+                                    @endif
                                 </td>
                                 <td x-show="showCols.status" class="px-4 py-4 text-center">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -969,7 +1094,9 @@
                     
                     <!-- Modal Header -->
                     <div class="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Historial de la importación</h2>
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                            {{ $filterStatus == 13 ? 'Historial de la cotización' : 'Historial de la importación' }}
+                        </h2>
                         <button wire:click="cancel" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <x-heroicon-o-x-mark class="w-6 h-6" />
                         </button>
@@ -2126,6 +2253,223 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL: Crear Producto Nuevo (Borrador) -->
+    @if($showModalCreateNewProduct)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+                <!-- Header -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Crear Producto Nuevo (Borrador)
+                    </h3>
+                    <button wire:click="$set('showModalCreateNewProduct', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Formulario -->
+                <form wire:submit.prevent="saveNewProduct" class="p-6 space-y-6">
+                    <!-- Código Interno Autogenerado y Descripción -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código Interno <span class="text-red-500">*</span></label>
+                            <input type="text" wire:model="newProductCode" readonly class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm focus:outline-none">
+                            @error('newProductCode') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción / Nombre <span class="text-red-500">*</span></label>
+                            <input type="text" wire:model="newProductDescription" placeholder="Ej: NEW_PRODUCT" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                            @error('newProductDescription') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Proveedor y Ref Fábrica -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Proveedor <span class="text-red-500">*</span></label>
+                            <select wire:model="newProductSupplierId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Seleccionar Proveedor</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('newProductSupplierId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Referencia de fábrica</label>
+                            <input type="text" wire:model="newProductFactoryRef" placeholder="Ej: Ref Fábrica" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                            @error('newProductFactoryRef') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    {{-- Cantidad Mínima del Proveedor y Factores Generales (Ocultados por no ser necesarios inicialmente) --}}
+                    {{--
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cant Mínima Proveedor <span class="text-red-500">*</span></label>
+                            <input type="number" wire:model="newProductMinQty" min="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            @error('newProductMinQty') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Porcentaje (%)</label>
+                            <input type="number" step="0.01" wire:model="newProductPorcentaje" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Factor</label>
+                            <input type="number" step="0.01" wire:model="newProductFactor" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                        </div>
+                    </div>
+                    --}}
+
+                    <!-- Imagen del Producto -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Producto</label>
+                        <input type="file" wire:model="newProductImage" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200">
+                        @error('newProductImage') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        
+                        @if ($newProductImage)
+                            <div class="mt-4 flex items-center justify-center p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+                                <img src="{{ $newProductImage->temporaryUrl() }}" class="max-h-36 object-contain rounded">
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Sección de Factores de Precios (Ocultada por no ser necesaria inicialmente) --}}
+                    {{--
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Factores de Precio y Descuentos</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">$EXW <span class="text-red-500">*</span></label>
+                                <input type="number" step="0.0001" wire:model="newProductExw" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                                @error('newProductExw') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Incr. Fletes</label>
+                                <input type="number" step="0.01" wire:model="newProductIncrFletes" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Factor PVP1</label>
+                                <input type="number" step="0.01" wire:model="newProductPvp1" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Factor PVP Mín</label>
+                                <input type="number" step="0.01" wire:model="newProductPvpMin" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            </div>
+                        </div>
+                    </div>
+                    --}}
+
+                    <!-- Footer -->
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" wire:click="$set('showModalCreateNewProduct', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg text-sm font-medium text-white shadow transition-colors">
+                            Crear
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL: Convertir Producto Nuevo a Real (Camilo) -->
+    @if($showModalConvertNewProduct)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full border border-gray-200 dark:border-gray-700">
+                <!-- Header -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Convertir a Producto Real
+                    </h3>
+                    <button wire:click="$set('showModalConvertNewProduct', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Formulario -->
+                <form wire:submit.prevent="convertNewProductToReal" class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código Interno Definitivo <span class="text-red-500">*</span></label>
+                            <input type="text" wire:model="finalInternalCode" placeholder="Ej: 7800201" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            @error('finalInternalCode') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría del Inventario <span class="text-red-500">*</span></label>
+                            <select wire:model="finalCategoryId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="">Seleccionar Categoría</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('finalCategoryId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción / Nombre definitivo <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="finalDescription" placeholder="Nombre completo del producto" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        @error('finalDescription') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor <span class="text-red-500">*</span></label>
+                        <select wire:model="finalSupplierId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Seleccionar Proveedor</option>
+                            @foreach($suppliers as $supplier)
+                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('finalSupplierId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Sección WooCommerce -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                        <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">Parámetros de Página Web (WooCommerce)</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">% Stock WordPress <span class="text-red-500">*</span></label>
+                                <input type="number" wire:model="finalStockWordpress" placeholder="Ej: 80" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+                                @error('finalStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Can Mínima WordPress <span class="text-red-500">*</span></label>
+                                <input type="number" step="0.01" wire:model="finalMinQtyWordpress" placeholder="Ej: 5.00" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+                                @error('finalMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" wire:click="$set('showModalConvertNewProduct', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 border border-transparent rounded-lg text-sm font-medium text-white shadow transition-colors">
+                            Convertir y Aprobado
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif

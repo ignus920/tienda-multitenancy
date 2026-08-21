@@ -37,6 +37,7 @@ class ImpComments extends Model
      */
     protected $fillable = [
         'import_id',
+        'new_product_id',
         'comment',
         'user_id',
         'initiator',
@@ -49,6 +50,7 @@ class ImpComments extends Model
      */
     protected $casts = [
         'import_id' => 'integer',
+        'new_product_id' => 'integer',
         'comment' => 'string',
         'user_id' => 'integer',
         'initiator' => 'integer',
@@ -60,5 +62,13 @@ class ImpComments extends Model
     public function import()
     {
         return $this->belongsTo(ImpImports::class, 'import_id', 'id');
+    }
+
+    /**
+     * Relación con el producto nuevo temporal
+     */
+    public function newProduct()
+    {
+        return $this->belongsTo(ImpNewProduct::class, 'new_product_id', 'id');
     }
 }
