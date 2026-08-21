@@ -7,6 +7,8 @@ use App\Models\Auth\User;
 
 class ProjectAdvance extends Model
 {
+    protected $connection = 'tenant';
+
     protected $table = 'inv_project_advances';
 
     protected $fillable = [
