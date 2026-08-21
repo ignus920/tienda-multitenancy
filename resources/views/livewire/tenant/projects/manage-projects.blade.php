@@ -1,4 +1,4 @@
-<div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="py-4 w-full px-4 sm:px-6">
     <!-- Encabezado y Estadísticas -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
         <div>
