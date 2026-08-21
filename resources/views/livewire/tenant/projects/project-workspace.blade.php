@@ -1,11 +1,13 @@
-<div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{ 
+<div class="py-4 w-full px-4 sm:px-6" x-data="{ 
     scrollToBottom() {
         const container = this.$refs.chatContainer;
         if(container) {
-            container.scrollTop = container.scrollHeight;
+            this.$nextTick(() => {
+                container.scrollTop = container.scrollHeight;
+            });
         }
     }
-}" x-init="$nextTick(() => scrollToBottom())" @message-sent.window="$nextTick(() => scrollToBottom())">
+}" x-init="scrollToBottom()" @message-sent.window="scrollToBottom()">
 
     <!-- Header del Espacio de Trabajo -->
     <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -232,18 +234,32 @@
         </div>
 
         <!-- Columna Derecha: Chat Interactivo estilo WhatsApp -->
-        <div class="lg:col-span-2 flex flex-col h-[70vh] bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <!-- Header del Chat -->
-            <div class="px-5 py-3.5 bg-gray-50 dark:bg-gray-850 border-b border-gray-100 dark:border-gray-750 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Foro del Proyecto</span>
+        <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 180px);">
+            <!-- Header del Chat (estilo WhatsApp) -->
+            <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Foro del Proyecto</h3>
+                        <p class="text-2xs text-indigo-200">{{ count($messages) }} mensajes • {{ count($usersList) }} participantes</p>
+                    </div>
                 </div>
                 
                 <!-- Filtros del chat -->
-                <div class="flex items-center gap-2 self-stretch sm:self-auto">
+                <div class="flex items-center gap-2">
+                    <select wire:model.live="chatFilterUser" 
+                        class="py-1.5 px-2.5 bg-white/15 border border-white/20 text-white rounded-lg text-2xs focus:outline-none focus:ring-2 focus:ring-white/30 placeholder-white/60 [&>option]:text-gray-900">
+                        <option value="">Todos los usuarios</option>
+                        @foreach($usersList as $u)
+                            <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                        @endforeach
+                    </select>
                     <select wire:model.live="chatFilterRole" 
-                        class="py-1 px-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white rounded text-2xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        class="py-1.5 px-2.5 bg-white/15 border border-white/20 text-white rounded-lg text-2xs focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:text-gray-900">
                         <option value="">Todos los roles</option>
                         <option value="2">Comercial</option>
                         <option value="8">Laboratorio</option>
@@ -252,79 +268,104 @@
                 </div>
             </div>
 
-            <!-- Contenedor del Chat (Mensajes) -->
-            <div x-ref="chatContainer" class="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/10">
+            <!-- Contenedor del Chat (Mensajes) con fondo estilo WhatsApp -->
+            <div x-ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-3" style="background-color: #e5ddd5; background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
                 @forelse($messages as $msg)
                     @php
                         $isMe = $msg->user_id === Auth::id();
-                        // Asignación de colores por rol
                         $roleColors = [
-                            2 => 'text-indigo-600 dark:text-indigo-400',
-                            8 => 'text-pink-600 dark:text-pink-400',
-                            1 => 'text-emerald-600 dark:text-emerald-400',
+                            2 => ['name' => 'text-indigo-700', 'bg' => 'bg-indigo-100', 'avatar' => 'bg-indigo-500'],
+                            8 => ['name' => 'text-pink-700', 'bg' => 'bg-pink-100', 'avatar' => 'bg-pink-500'],
+                            1 => ['name' => 'text-emerald-700', 'bg' => 'bg-emerald-100', 'avatar' => 'bg-emerald-500'],
                         ];
-                        $userRoleColor = $roleColors[$msg->user->profile_id] ?? 'text-gray-500';
+                        $roleStyle = $roleColors[$msg->user->profile_id] ?? ['name' => 'text-gray-700', 'bg' => 'bg-gray-100', 'avatar' => 'bg-gray-500'];
+                        $initials = strtoupper(substr($msg->user->name, 0, 2));
                     @endphp
 
                     <!-- Burbuja de mensaje -->
-                    <div id="msg-{{ $msg->id }}" class="flex flex-col {{ $isMe ? 'items-end' : 'items-start' }} group relative">
-                        <div class="max-w-[85%] rounded-2xl px-4 py-2.5 shadow-2xs {{ $isMe ? 'bg-indigo-650 text-white rounded-tr-xs' : 'bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-750 rounded-tl-xs' }}">
-                            
-                            <!-- Remitente (solo en mensajes de otros) -->
-                            @if(!$isMe)
-                                <div class="text-3xs font-extrabold uppercase {{ $userRoleColor }} mb-1">
-                                    {{ $msg->user->name }}
+                    <div id="msg-{{ $msg->id }}" class="flex {{ $isMe ? 'justify-end' : 'justify-start' }} group">
+                        <!-- Avatar (solo otros) -->
+                        @if(!$isMe)
+                            <div class="w-8 h-8 rounded-full {{ $roleStyle['avatar'] }} flex items-center justify-center text-white text-3xs font-bold mr-2 mt-auto shrink-0 shadow-sm">
+                                {{ $initials }}
+                            </div>
+                        @endif
+
+                        <div class="max-w-[75%] relative">
+                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-emerald-100 dark:bg-emerald-900/60 rounded-br-sm' : 'bg-white dark:bg-gray-750 rounded-bl-sm' }}">
+                                
+                                <!-- Remitente (solo en mensajes de otros) -->
+                                @if(!$isMe)
+                                    <div class="text-3xs font-extrabold {{ $roleStyle['name'] }} mb-0.5 flex items-center gap-1.5">
+                                        {{ $msg->user->name }}
+                                        <span class="text-gray-400 font-normal">• {{ $msg->user->profile->name ?? 'Usuario' }}</span>
+                                    </div>
+                                @endif
+
+                                <!-- Cita / Respuesta a un mensaje anterior -->
+                                @if($msg->repliedTo)
+                                    <div @click="
+                                        const el = document.getElementById('msg-{{ $msg->reply_to_id }}');
+                                        if(el) {
+                                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            el.classList.add('ring-2', 'ring-amber-400', 'rounded-xl');
+                                            setTimeout(() => el.classList.remove('ring-2', 'ring-amber-400', 'rounded-xl'), 2500);
+                                        }
+                                    " class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-3 border-indigo-400 text-3xs cursor-pointer hover:bg-black/8 dark:hover:bg-white/10 transition-colors">
+                                        <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ $msg->repliedTo->user->name }}</span>
+                                        <p class="truncate text-gray-600 dark:text-gray-300 italic mt-0.5">"{{ Str::limit($msg->repliedTo->message, 80) }}"</p>
+                                    </div>
+                                @endif
+
+                                <!-- Contenido del mensaje -->
+                                <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
+                                    {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-0.5 rounded">$1</span>', e($msg->message)) !!}
+                                </p>
+
+                                <!-- Hora -->
+                                <div class="flex items-center justify-end gap-1.5 mt-1 text-3xs text-gray-400">
+                                    <span>{{ $msg->created_at->format('h:i a') }}</span>
+                                    @if($isMe)
+                                        <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                                        </svg>
+                                    @endif
                                 </div>
-                            @endif
+                            </div>
 
-                            <!-- Cita / Respuesta a un mensaje anterior -->
-                            @if($msg->repliedTo)
-                                <div @click="
-                                    const el = document.getElementById('msg-{{ $msg->reply_to_id }}');
-                                    if(el) {
-                                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        el.classList.add('ring-2', 'ring-indigo-500', 'transition-all');
-                                        setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500'), 2000);
-                                    }
-                                " class="mb-2 p-2 rounded bg-black/5 dark:bg-white/5 border-l-2 border-indigo-400 text-3xs cursor-pointer flex flex-col gap-0.5 select-none hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-                                    <span class="font-bold text-gray-500 dark:text-gray-400">Respuesta a {{ $msg->repliedTo->user->name }}:</span>
-                                    <p class="truncate italic text-gray-600 dark:text-gray-300">"{{ $msg->repliedTo->message }}"</p>
-                                </div>
-                            @endif
-
-                            <!-- Contenido del mensaje -->
-                            <p class="text-xs leading-relaxed break-words font-medium">
-                                {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-amber-500">$1</span>', e($msg->message)) !!}
-                            </p>
-
-                            <!-- Hora y acciones -->
-                            <div class="flex items-center justify-end gap-2 mt-1.5 text-3xs {{ $isMe ? 'text-indigo-200' : 'text-gray-400' }}">
-                                <span>{{ $msg->created_at->format('H:i') }}</span>
+                            <!-- Botón responder (hover) -->
+                            <div class="absolute top-1/2 -translate-y-1/2 {{ $isMe ? '-left-9' : '-right-9' }} opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                <button wire:click="selectReplyMessage({{ $msg->id }})" title="Responder a este mensaje"
+                                    class="p-1.5 rounded-full bg-white dark:bg-gray-700 shadow-md hover:shadow-lg text-gray-500 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Botón responder (Aparece en hover) -->
-                        <div class="absolute top-1/2 -translate-y-1/2 {{ $isMe ? 'left-0 -ml-8' : 'right-0 -mr-8' }} opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button wire:click="selectReplyMessage({{ $msg->id }})" title="Responder a este mensaje"
-                                class="p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                </svg>
-                            </button>
-                        </div>
+                        <!-- Avatar propio (solo mis mensajes) -->
+                        @if($isMe)
+                            <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-3xs font-bold ml-2 mt-auto shrink-0 shadow-sm">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                            </div>
+                        @endif
                     </div>
                 @empty
-                    <div class="text-center py-12 text-gray-400 dark:text-gray-500">
-                        <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <p class="text-xs">No hay mensajes. Comienza la conversación aquí.</p>
+                    <div class="text-center py-16">
+                        <div class="w-20 h-20 rounded-full bg-white/80 dark:bg-gray-800/80 mx-auto mb-4 flex items-center justify-center shadow-lg">
+                            <svg class="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-600">Aún no hay mensajes</p>
+                        <p class="text-xs text-gray-400 mt-1">Envía el primer mensaje para iniciar la conversación del proyecto</p>
                     </div>
                 @endforelse
             </div>
 
-            <!-- Caja de Mensaje con Autocompletado @ -->
-            <div class="p-4 border-t border-gray-100 dark:border-gray-750 bg-white dark:bg-gray-800 flex flex-col gap-2 relative"
+            <!-- Caja de Mensaje con Autocompletado @ (estilo WhatsApp) -->
+            <div class="px-3 py-3 bg-gray-100 dark:bg-gray-850 border-t border-gray-200 dark:border-gray-700 shrink-0"
                 x-data="{
                     newMessage: @entangle('newMessageText'),
                     users: {{ json_encode($usersList) }},
@@ -368,16 +409,26 @@
                             const newCursorPos = lastAt + name.length + 2;
                             textarea.setSelectionRange(newCursorPos, newCursorPos);
                         });
+                    },
+
+                    handleKeydown(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (this.newMessage && this.newMessage.trim().length > 0) {
+                                $wire.sendMessage();
+                            }
+                        }
                     }
                 }">
                 
                 <!-- Banner de Respuesta Activa -->
                 @if($replyingToMessageId)
-                    <div class="flex items-center justify-between p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-150 dark:border-indigo-900 text-xs">
-                        <div class="truncate text-indigo-700 dark:text-indigo-400">
-                            <span class="font-bold">Respondiendo a:</span> {{ $replyingToMessageText }}
+                    <div class="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-white dark:bg-gray-800 border-l-4 border-indigo-500 shadow-sm text-xs">
+                        <div class="truncate text-gray-700 dark:text-gray-300 flex-1">
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400 block text-2xs mb-0.5">Respondiendo a:</span> 
+                            <span class="italic text-gray-500">"{{ Str::limit($replyingToMessageText, 60) }}"</span>
                         </div>
-                        <button wire:click="clearReply" class="text-indigo-500 hover:text-indigo-700">
+                        <button wire:click="clearReply" class="text-gray-400 hover:text-red-500 ml-3 p-1 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -387,25 +438,32 @@
 
                 <!-- Autocompletar Menciones Modal -->
                 <div x-show="showDropdown" x-cloak
-                    class="absolute left-4 right-4 bottom-full mb-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-36 overflow-y-auto z-50">
-                    <template x-for="u in filteredUsers" :key="u.id">
-                        <button type="button" @click="insertMention(u.name)"
-                            class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center gap-2 border-b border-gray-50 dark:border-gray-750">
-                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                            <span class="font-bold" x-text="u.name"></span>
-                        </button>
-                    </template>
+                    class="absolute left-3 right-3 bottom-full mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-44 overflow-y-auto z-50" x-transition>
+                    <div class="p-1.5">
+                        <template x-for="u in filteredUsers" :key="u.id">
+                            <button type="button" @click="insertMention(u.name)"
+                                class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2.5 rounded-lg transition-colors">
+                                <span class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xs font-bold shrink-0" x-text="u.name.substring(0,2).toUpperCase()"></span>
+                                <span class="font-semibold" x-text="u.name"></span>
+                            </button>
+                        </template>
+                    </div>
                 </div>
 
-                <div class="flex gap-2">
-                    <textarea x-ref="chatTextarea" wire:model="newMessageText" @keyup="checkTrigger" @input="checkTrigger" rows="2"
-                        placeholder="Escribe un mensaje aquí... Usa @ para mencionar a alguien"
-                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"></textarea>
+                <div class="flex items-end gap-2 relative">
+                    <textarea x-ref="chatTextarea" wire:model="newMessageText" 
+                        @keyup="checkTrigger" @input="checkTrigger"
+                        @keydown="handleKeydown($event)"
+                        rows="1"
+                        placeholder="Escribe un mensaje... (Enter para enviar, Shift+Enter salto de línea)"
+                        class="block w-full border-0 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none shadow-sm"
+                        style="max-height: 120px; overflow-y: auto;"
+                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"></textarea>
                     
                     <button wire:click="sendMessage"
-                        class="inline-flex items-center justify-center p-3 text-white bg-indigo-650 hover:bg-indigo-750 rounded-lg shadow transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        class="inline-flex items-center justify-center w-11 h-11 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-95">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
                     </button>
                 </div>

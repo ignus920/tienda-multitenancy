@@ -350,9 +350,10 @@ class ProjectWorkspace extends Component
         }
 
         if ($this->chatFilterRole) {
-            $chatQuery->whereHas('user', function($q) {
-                $q->where('profile_id', $this->chatFilterRole);
-            });
+            // Los usuarios están en la conexión central, no en tenant.
+            // Primero obtenemos los IDs desde central y luego filtramos.
+            $roleUserIds = User::where('profile_id', $this->chatFilterRole)->pluck('id')->toArray();
+            $chatQuery->whereIn('user_id', $roleUserIds);
         }
 
         $messages = $chatQuery->orderBy('created_at', 'asc')->get();
