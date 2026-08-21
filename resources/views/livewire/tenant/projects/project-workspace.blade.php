@@ -292,7 +292,7 @@
                         @endif
 
                         <div class="max-w-[75%] relative">
-                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-emerald-100 dark:bg-emerald-900 rounded-br-sm' : 'bg-white dark:bg-gray-700 rounded-bl-sm' }}">
+                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-green-100 dark:bg-green-800 rounded-br-sm' : 'bg-white dark:bg-gray-700 rounded-bl-sm' }}">
                                 
                                 <!-- Remitente (solo en mensajes de otros) -->
                                 @if(!$isMe)
