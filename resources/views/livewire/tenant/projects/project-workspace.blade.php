@@ -252,15 +252,15 @@
                 <!-- Filtros del chat -->
                 <div class="flex items-center gap-2">
                     <select wire:model.live="chatFilterUser" 
-                        class="py-1.5 px-2.5 bg-white/15 border border-white/20 text-white rounded-lg text-2xs focus:outline-none focus:ring-2 focus:ring-white/30 placeholder-white/60 [&>option]:text-gray-900">
-                        <option value="">Todos los usuarios</option>
+                        class="py-1.5 px-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-2xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
+                        <option value="">👤 Todos los usuarios</option>
                         @foreach($usersList as $u)
                             <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
                         @endforeach
                     </select>
                     <select wire:model.live="chatFilterRole" 
-                        class="py-1.5 px-2.5 bg-white/15 border border-white/20 text-white rounded-lg text-2xs focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:text-gray-900">
-                        <option value="">Todos los roles</option>
+                        class="py-1.5 px-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-2xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
+                        <option value="">🏷️ Todos los roles</option>
                         <option value="2">Comercial</option>
                         <option value="8">Laboratorio</option>
                         <option value="1">Gerencia / Admin</option>
@@ -450,19 +450,22 @@
                     </div>
                 </div>
 
-                <div class="flex items-end gap-2 relative">
-                    <textarea x-ref="chatTextarea" wire:model="newMessageText" 
-                        @keyup="checkTrigger" @input="checkTrigger"
-                        @keydown="handleKeydown($event)"
-                        rows="1"
-                        placeholder="Escribe un mensaje... (Enter para enviar, Shift+Enter salto de línea)"
-                        class="block w-full border-0 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none shadow-sm"
-                        style="max-height: 120px; overflow-y: auto;"
-                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"></textarea>
+                <div class="flex items-end gap-3 relative">
+                    <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
+                        <textarea x-ref="chatTextarea" wire:model="newMessageText" 
+                            @keyup="checkTrigger" @input="checkTrigger"
+                            @keydown="handleKeydown($event)"
+                            rows="1"
+                            placeholder="Escribe un mensaje..."
+                            class="block w-full border-0 bg-transparent text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-0 focus:outline-none resize-none"
+                            style="max-height: 120px; overflow-y: auto;"
+                            x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"></textarea>
+                    </div>
                     
                     <button wire:click="sendMessage"
-                        class="inline-flex items-center justify-center w-11 h-11 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-95">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        class="flex items-center justify-center w-12 h-12 text-white bg-gradient-to-br from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5"
+                        title="Enviar mensaje (Enter)">
+                        <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
                     </button>
@@ -513,7 +516,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showOrderModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="saveProductionOrder" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded shadow">Generar Orden</button>
+                <button wire:click="saveProductionOrder" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Generar Orden</button>
             </div>
         </div>
     </div>
@@ -539,7 +542,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showQuestionModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="createQuestion" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded shadow">Enviar Pregunta</button>
+                <button wire:click="createQuestion" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Enviar Pregunta</button>
             </div>
         </div>
     </div>
@@ -565,7 +568,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showAnswerModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="saveAnswer" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded shadow">Guardar Respuesta</button>
+                <button wire:click="saveAnswer" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Guardar Respuesta</button>
             </div>
         </div>
     </div>
@@ -597,7 +600,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showAdvanceModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="addAdvance" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded shadow">Guardar Avance</button>
+                <button wire:click="addAdvance" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Guardar Avance</button>
             </div>
         </div>
     </div>
@@ -628,7 +631,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showLabFinishModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="finishProduction" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded shadow">Terminar Producción</button>
+                <button wire:click="finishProduction" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Terminar Producción</button>
             </div>
         </div>
     </div>
@@ -659,7 +662,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showCloseModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="closeProject" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded shadow">Guardar y Archivar</button>
+                <button wire:click="closeProject" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Guardar y Archivar</button>
             </div>
         </div>
     </div>
