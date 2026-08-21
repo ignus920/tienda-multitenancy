@@ -60,6 +60,7 @@ new class extends Component
         @php
             $isOperario     = auth()->user()?->profile_id === 8;
             $isAlmacenista  = auth()->user()?->profile_id === 6;
+            $isAdmin        = in_array(auth()->user()?->profile_id, [1, 2]);
         @endphp
         <!-- Dashboard
         <a href="{{ route('dashboard') }}" wire:navigate
@@ -228,7 +229,7 @@ new class extends Component
 
 
 
-        @if($isAlmacenista)
+        @if($isAlmacenista || $isAdmin)
         <!-- Almacén (Menú agrupado) -->
         <div x-data="{
             tooltip: false,
