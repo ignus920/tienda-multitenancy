@@ -11,6 +11,8 @@ class Project extends Model
 {
     use SoftDeletes;
 
+    protected $connection = 'tenant';
+
     protected $table = 'inv_projects';
 
     protected $fillable = [
