@@ -292,7 +292,7 @@
                         @endif
 
                         <div class="max-w-[75%] relative">
-                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-emerald-100 dark:bg-emerald-900/60 rounded-br-sm' : 'bg-white dark:bg-gray-750 rounded-bl-sm' }}">
+                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-emerald-100 dark:bg-emerald-900 rounded-br-sm' : 'bg-white dark:bg-gray-700 rounded-bl-sm' }}">
                                 
                                 <!-- Remitente (solo en mensajes de otros) -->
                                 @if(!$isMe)
@@ -319,7 +319,7 @@
 
                                 <!-- Contenido del mensaje -->
                                 <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
-                                    {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-0.5 rounded">$1</span>', e($msg->message)) !!}
+                                    {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
                                 </p>
 
                                 <!-- Hora -->
@@ -365,7 +365,7 @@
             </div>
 
             <!-- Caja de Mensaje con Autocompletado @ (estilo WhatsApp) -->
-            <div class="px-3 py-3 bg-gray-100 dark:bg-gray-850 border-t border-gray-200 dark:border-gray-700 shrink-0"
+            <div class="px-3 py-3 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shrink-0"
                 x-data="{
                     newMessage: @entangle('newMessageText'),
                     users: {{ json_encode($usersList) }},
@@ -442,7 +442,7 @@
                     <div class="p-1.5">
                         <template x-for="u in filteredUsers" :key="u.id">
                             <button type="button" @click="insertMention(u.name)"
-                                class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2.5 rounded-lg transition-colors">
+                                class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900 flex items-center gap-2.5 rounded-lg transition-colors">
                                 <span class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xs font-bold shrink-0" x-text="u.name.substring(0,2).toUpperCase()"></span>
                                 <span class="font-semibold" x-text="u.name"></span>
                             </button>
@@ -463,9 +463,9 @@
                     </div>
                     
                     <button wire:click="sendMessage"
-                        class="flex items-center justify-center w-12 h-12 text-white bg-gradient-to-br from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5"
+                        class="flex items-center justify-center w-12 h-12 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5"
                         title="Enviar mensaje (Enter)">
-                        <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                        <svg class="w-5 h-5 ml-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
                     </button>
