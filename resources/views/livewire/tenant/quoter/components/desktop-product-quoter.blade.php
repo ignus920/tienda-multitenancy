@@ -492,6 +492,19 @@
                                         </svg>
                                         Accesorios
                                     </button>
+                                    @else
+                                    <button disabled title="Este producto no tiene accesorios"
+                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed flex items-center justify-between gap-2.5 transition-colors whitespace-nowrap">
+                                        <div class="flex items-center gap-2.5">
+                                            <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                            </svg>
+                                            Accesorios
+                                        </div>
+                                        <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                        </svg>
+                                    </button>
                                     @endif
  
                                      <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
@@ -856,6 +869,19 @@
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                                                 </svg>
                                                                 Accesorios
+                                                            </button>
+                                                            @else
+                                                            <button disabled title="Este producto no tiene accesorios"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed flex items-center justify-between gap-2.5 transition-colors whitespace-nowrap">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                                                    </svg>
+                                                                    Accesorios
+                                                                </div>
+                                                                <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                                                </svg>
                                                             </button>
                                                             @endif
 
