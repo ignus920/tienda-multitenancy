@@ -238,28 +238,28 @@
             <!-- Header del Chat (estilo WhatsApp) -->
             <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex items-center justify-between gap-3 shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-white">Foro del Proyecto</h3>
-                        <p class="text-2xs text-indigo-200">{{ count($messages) }} mensajes • {{ count($usersList) }} participantes</p>
+                        <h3 class="text-base font-bold text-white">Foro del Proyecto</h3>
+                        <p class="text-xs text-indigo-100">{{ count($messages) }} mensajes • {{ count($usersList) }} participantes</p>
                     </div>
                 </div>
                 
                 <!-- Filtros del chat -->
                 <div class="flex items-center gap-2">
                     <select wire:model.live="chatFilterUser" 
-                        class="py-1.5 px-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-2xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
+                        class="py-2 px-3 bg-white border border-gray-200 text-gray-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
                         <option value="">👤 Todos los usuarios</option>
                         @foreach($usersList as $u)
                             <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
                         @endforeach
                     </select>
                     <select wire:model.live="chatFilterRole" 
-                        class="py-1.5 px-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-2xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
+                        class="py-2 px-3 bg-white border border-gray-200 text-gray-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
                         <option value="">🏷️ Todos los roles</option>
                         <option value="2">Comercial</option>
                         <option value="8">Laboratorio</option>
@@ -269,7 +269,7 @@
             </div>
 
             <!-- Contenedor del Chat (Mensajes) con fondo estilo WhatsApp -->
-            <div x-ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-3" style="background-color: #e5ddd5; background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
+            <div x-ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5] dark:bg-gray-900 bg-blend-multiply" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
                 @forelse($messages as $msg)
                     @php
                         $isMe = $msg->user_id === Auth::id();
