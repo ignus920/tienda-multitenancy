@@ -365,7 +365,7 @@
             </div>
 
             <!-- Caja de Mensaje con Autocompletado @ (estilo WhatsApp) -->
-            <div class="px-3 py-3 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shrink-0"
+            <div class="px-3 py-3 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shrink-0 relative"
                 x-data="{
                     newMessage: @entangle('newMessageText'),
                     users: {{ json_encode($usersList) }},
@@ -375,7 +375,7 @@
                     searchQuery: '',
                     
                     checkTrigger(e) {
-                        const text = this.newMessage || '';
+                        const text = e.target.value || '';
                         const selectionEnd = e.target.selectionEnd;
                         const beforeCursor = text.slice(0, selectionEnd);
                         const lastAt = beforeCursor.lastIndexOf(this.triggerChar);
