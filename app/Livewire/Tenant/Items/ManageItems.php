@@ -1213,13 +1213,24 @@ class ManageItems extends Component
 
     public function getExportFilename(): string
     {
-        if ($this->productFilter === 'sin_imagen') {
-            return 'Productos_sin_Imagen_' . date('Ymd_His');
-        } elseif ($this->productFilter === 'no_en_ecommerce') {
-            return 'Productos_que_no_estan_en_Ecommerce_' . date('Ymd_His');
+        $timestamp = date('Ymd_His');
+        
+        switch ($this->productFilter) {
+            case 'sin_imagen':
+                return 'Productos_sin_Imagen_' . $timestamp;
+            case 'no_en_ecommerce':
+                return 'Productos_que_no_estan_en_Ecommerce_' . $timestamp;
+            case 'bajo_stock':
+                return 'Productos_con_Bajo_Stock_' . $timestamp;
+            case 'nuevos':
+                return 'Productos_Nuevos_' . $timestamp;
+            case 'sin_venta':
+                return 'Productos_Sin_Venta_' . $timestamp;
+            case 'poca_venta':
+                return 'Productos_con_Poca_Venta_' . $timestamp;
+            default:
+                return 'Todos_los_Productos_' . $timestamp;
         }
-
-        return 'items_' . date('Y-m-d_His');
     }
 
     public function getTaxesProperty()
