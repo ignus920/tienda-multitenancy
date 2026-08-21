@@ -100,7 +100,7 @@
                             <h1 class="text-xl font-semibold text-gray-900 dark:text-white shrink-0">{{ $header }}</h1>
                         @endif
                         <!-- Contenedor para Teleport del Buscador de Cliente (solo en el cotizador) -->
-                        <div id="customer-header-container" class="flex-1 max-w-4xl ml-4"></div>
+                        <div id="customer-header-container" class="flex-1 max-w-4xl ml-auto flex justify-end"></div>
                         @if (Auth::user()?->profile_id == 17 && request()->routeIs('imports.imports-orders'))
                             <a href="{{ route('tenant.tickets') }}" 
                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg shadow-sm transition-colors ml-2">
