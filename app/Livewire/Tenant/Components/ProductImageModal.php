@@ -101,7 +101,11 @@ class ProductImageModal extends Component
             // Si se pasa un contexto explícito (desde el botón), lo usamos
             if ($context) {
                 $this->activeTab = strtoupper($context);
-                $this->isContextForced = true;
+                if ($this->activeTab === 'BODEGA') {
+                    $this->isContextForced = false; // Permitimos cambiar a Comercial si estamos en bodega
+                } else {
+                    $this->isContextForced = true;
+                }
             } else {
                 $this->isContextForced = false;
                 // Lógica por defecto según perfil si no hay contexto
