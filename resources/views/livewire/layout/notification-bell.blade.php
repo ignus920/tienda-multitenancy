@@ -32,7 +32,7 @@
 
         {{-- Badge rojo con contador --}}
         @if($unreadCount > 0)
-            <span class="absolute -top-0.5 -right-0.5 flex items-center justify-center h-5 min-w-[1.25rem] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse">
+            <span class="absolute top-0 right-0 flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold text-white bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse">
                 {{ $unreadCount > 99 ? '99+' : $unreadCount }}
             </span>
         @endif
