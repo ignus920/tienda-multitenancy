@@ -192,6 +192,15 @@ class ImportList extends Component
         // $this->resetPage();
     }
 
+    public function clearFilters()
+    {
+        $this->search = '';
+        $this->selectedLabelId = null;
+        $this->selectedLabelName = 'Programación';
+        $this->filterCritical = 'ninguno';
+        $this->resetPage();
+    }
+
     public function getOccupiedPrioritiesProperty()
     {
         if (empty($this->selectedItems)) {
