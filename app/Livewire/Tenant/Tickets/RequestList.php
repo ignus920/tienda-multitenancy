@@ -30,7 +30,10 @@ class RequestList extends Component
         'departmentId' => ['except' => ''],
         'supplierIdFilter' => ['except' => ''],
         'selectedStatus' => ['except' => null],
+        'type' => ['except' => 'internal'],
     ];
+
+    public $type = 'internal'; // 'internal' o 'supplier'
 
     private function ensureTenantConnection()
     {
@@ -64,9 +67,17 @@ class RequestList extends Component
             ->when($isSupplier, function($q) use ($user) {
                 return $q->where('supplier_id', $user->id);
             })
+            ->when(!$isSupplier && $this->type === 'supplier', function($q) {
+                return $q->whereNotNull('supplier_id');
+            })
+            ->when(!$isSupplier && $this->type === 'internal', function($q) {
+                return $q->whereNull('supplier_id');
+            })
             ->when(!$isSupplier && $this->supplierIdFilter, function($q) {
                 return $q->where('supplier_id', $this->supplierIdFilter);
             })
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->groupBy('status_id')
             ->pluck('total', 'status_id');
 
@@ -74,6 +85,12 @@ class RequestList extends Component
         $requests = TickRequest::with(['department', 'status', 'creator', 'product'])
             ->when($isSupplier, function($q) use ($user) {
                 return $q->where('supplier_id', $user->id);
+            })
+            ->when(!$isSupplier && $this->type === 'supplier', function($q) {
+                return $q->whereNotNull('supplier_id');
+            })
+            ->when(!$isSupplier && $this->type === 'internal', function($q) {
+                return $q->whereNull('supplier_id');
             })
             ->when(!$isSupplier && $this->supplierIdFilter, function($q) {
                 return $q->where('supplier_id', $this->supplierIdFilter);
