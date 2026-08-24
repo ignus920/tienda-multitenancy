@@ -57,6 +57,7 @@ class WordPressStockSync extends Component
             ->map(function ($item) {
                 $store      = $item->invItemsStore->firstWhere('storeId', 2);
                 $stockBruto = (float) ($store?->stock_items_store ?? 0);
+                $cuarentena = (float) ($item->quarantine_stock ?? 0);
                 $stockMin   = (float) ($store?->wp_min_stock ?? 0);
                 $porcentaje = (float) ($store?->wp_stock_percentage ?? 100);
 
@@ -65,7 +66,7 @@ class WordPressStockSync extends Component
                     'remission', fn($q) => $q->where('status', 'REGISTRADO')
                 )->where('itemId', $item->id)->sum('quantity');
 
-                $stockNeto = max(0, $stockBruto - (float) $reservas);
+                $stockNeto = max(0, $stockBruto - $cuarentena - (float) $reservas);
                 $stockWP   = ($stockNeto >= $stockMin)
                     ? (int) round($stockNeto * ($porcentaje / 100))
                     : 0;
@@ -76,6 +77,7 @@ class WordPressStockSync extends Component
                     'sku'           => $item->sku,
                     'internal_code' => $item->internal_code,
                     'stock'         => $stockBruto,
+                    'cuarentena'    => $cuarentena,
                     'reservas'      => (float) $reservas,
                     'stock_neto'    => $stockNeto,
                     'stock_min'     => $stockMin,
