@@ -42,4 +42,9 @@ class ProjectMessage extends Model
     {
         return $this->hasMany(ProjectMention::class, 'message_id');
     }
+
+    public function files()
+    {
+        return $this->hasMany(ProjectFile::class, 'message_id');
+    }
 }

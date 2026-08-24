@@ -16,6 +16,7 @@ class Project extends Model
     protected $table = 'inv_projects';
 
     protected $fillable = [
+        'type',
         'title',
         'company_id',
         'description',
@@ -64,5 +65,15 @@ class Project extends Model
     public function advances()
     {
         return $this->hasMany(ProjectAdvance::class, 'project_id');
+    }
+
+    public function participants()
+    {
+        return $this->hasMany(ProjectParticipant::class, 'project_id');
+    }
+
+    public function files()
+    {
+        return $this->hasMany(ProjectFile::class, 'project_id');
     }
 }
