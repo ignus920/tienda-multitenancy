@@ -7,11 +7,14 @@ use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMessage;
 use App\Models\Tenant\Projects\ProjectMention;
+use App\Models\Tenant\Projects\ProjectNotification;
+use App\Models\Tenant\Projects\ProjectParticipant;
 use App\Models\Tenant\Projects\ProjectQuestion;
 use App\Models\Tenant\Projects\ProjectAdvance;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
+use App\Events\Tenant\Projects\NewProjectNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -128,12 +131,16 @@ class ProjectWorkspace extends Component
         // Disparar evento WebSocket al túnel de Reverb sin toOthers() para evitar errores de Socket ID
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
+        // Obtener datos del proyecto para las notificaciones
+        $project = Project::find($this->projectId);
+        $senderName = Auth::user()->name;
+        $messagePreview = mb_substr($this->newMessageText, 0, 80);
+
         // Procesar menciones con @
-        // Buscamos todas las ocurrencias de @nombre en el texto
-        preg_match_all('/@([a-zA-Z0-9_\-\.]+)/', $this->newMessageText, $matches);
+        $mentionedUserIds = [];
+        preg_match_all('/@([a-zA-Z0-9_\-\.\s]+?)(?=\s@|\s[^@]|$)/', $this->newMessageText, $matches);
         if (!empty($matches[1])) {
-            $usernames = array_unique($matches[1]);
-            // Buscar usuarios correspondientes en el tenant
+            $usernames = array_unique(array_map('trim', $matches[1]));
             $sessionTenant = session('tenant_id');
             $users = User::whereIn('name', $usernames)
                 ->whereHas('tenants', function($q) use ($sessionTenant) {
@@ -149,6 +156,45 @@ class ProjectWorkspace extends Component
                     'mentioned_to' => $user->id,
                     'status' => 'pendiente'
                 ]);
+                $mentionedUserIds[] = $user->id;
+            }
+        }
+
+        // Crear notificaciones y enviar broadcast
+        if (!empty($mentionedUserIds)) {
+            // Si hay menciones, notificar SOLO a los mencionados (excepto al emisor)
+            $recipientIds = array_filter($mentionedUserIds, fn($id) => $id !== Auth::id());
+            foreach ($recipientIds as $userId) {
+                $notification = ProjectNotification::create([
+                    'user_id' => $userId,
+                    'project_id' => $this->projectId,
+                    'message_id' => $message->id,
+                    'sender_id' => Auth::id(),
+                    'type' => 'mencion',
+                ]);
+                broadcast(new NewProjectNotification(
+                    $userId, $this->projectId, $project->title ?? 'Proyecto',
+                    $senderName, $messagePreview, 'mencion', $notification->id
+                ));
+            }
+        } else {
+            // Sin menciones: notificar a TODOS los participantes (excepto al emisor)
+            $participantIds = ProjectParticipant::where('project_id', $this->projectId)
+                ->where('user_id', '!=', Auth::id())
+                ->pluck('user_id');
+
+            foreach ($participantIds as $userId) {
+                $notification = ProjectNotification::create([
+                    'user_id' => $userId,
+                    'project_id' => $this->projectId,
+                    'message_id' => $message->id,
+                    'sender_id' => Auth::id(),
+                    'type' => 'mensaje',
+                ]);
+                broadcast(new NewProjectNotification(
+                    $userId, $this->projectId, $project->title ?? 'Proyecto',
+                    $senderName, $messagePreview, 'mensaje', $notification->id
+                ));
             }
         }
 
