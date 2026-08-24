@@ -198,7 +198,10 @@ class ImportList extends Component
         $this->selectedLabelId = null;
         $this->selectedLabelName = 'Programación';
         $this->filterCritical = 'ninguno';
+        $this->selectedItems = [];
         $this->resetPage();
+        
+        $this->dispatch('clear-item-selection');
     }
 
     public function getOccupiedPrioritiesProperty()

@@ -344,8 +344,7 @@
                                 tooltipPosition = rect.top < 100 ? 'bottom' : 'top';
                             "
                         @mouseleave="showTooltip = false"
-                        class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700' }} cursor-pointer transition-colors relative group"
-                        wire:click="selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})">
+                        class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700' }} transition-colors relative group">
 
                         <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                                 @php
@@ -479,7 +478,8 @@
                                 step="{{ (isset($item->quntityxbox) && (int)$item->quntityxbox > 0) ? (int)$item->quntityxbox : 1 }}" 
                                 value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                                 @if($selectedLabelId) disabled @endif
-                                @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
+                                @focus="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
+                                @blur="setTimeout(() => $wire.dispatch('clear-item-selection'), 200)"
                                 @change="
             $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
                 $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
