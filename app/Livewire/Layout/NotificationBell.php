@@ -14,9 +14,11 @@ class NotificationBell extends Component
     public $notifications = [];
     public $unreadCount = 0;
     public $showDropdown = false;
+    public $userId;
 
     public function mount()
     {
+        $this->userId = Auth::id();
         $this->loadNotifications();
     }
 
@@ -56,14 +58,6 @@ class NotificationBell extends Component
 
         // Despachar evento al navegador para reproducir el sonido de notificación
         $this->dispatch('play-notification-sound');
-    }
-
-    /**
-     * Propiedad computada que Livewire usa para resolver el {userId} del listener.
-     */
-    public function getUserIdProperty()
-    {
-        return Auth::id();
     }
 
     public function loadNotifications()
