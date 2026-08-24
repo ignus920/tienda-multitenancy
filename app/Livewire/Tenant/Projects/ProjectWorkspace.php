@@ -3,6 +3,7 @@
 namespace App\Livewire\Tenant\Projects;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMessage;
 use App\Models\Tenant\Projects\ProjectMention;
@@ -62,6 +63,13 @@ class ProjectWorkspace extends Component
     public $showLabFinishModal = false;
     public $showCloseModal = false;
 
+    #[On('echo-private:project.{projectId},.NewProjectMessage')]
+    public function refreshChat()
+    {
+        // Al recibir el WebSocket, este método vacío obliga a Livewire a hacer re-render 
+        // y traer los nuevos mensajes actualizados de la base de datos automáticamente.
+    }
+
     public function mount($id)
     {
         $this->projectId = $id;
@@ -116,6 +124,9 @@ class ProjectWorkspace extends Component
             'message' => $this->newMessageText,
             'reply_to_id' => $this->replyingToMessageId
         ]);
+
+        // Disparar evento WebSocket al túnel de Reverb
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message))->toOthers();
 
         // Procesar menciones con @
         // Buscamos todas las ocurrencias de @nombre en el texto
