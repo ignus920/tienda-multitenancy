@@ -22,6 +22,7 @@ use App\Services\Tenant\Inventory\CommandsServices;
 use App\Livewire\Tenant\Items\Services\InvValuesService;
 use App\Services\Facturacion\DatabaseConfigService;
 use App\Services\Facturacion\ApiClient;
+use App\Services\Tenant\WordPress\WordPressService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -664,6 +665,9 @@ class ManageItems extends Component
                         // NO cerrar modal para que el usuario vea el mensaje de error
                     }
 
+                    // Sincronizar stock/precio con WordPress (WooCommerce) inmediatamente
+                    $this->syncItemWithWordPress($item);
+
                     $this->clearTemporaryMessage();
 
                     // Solo cerrar modal si no hay errores de sincronización
@@ -728,6 +732,9 @@ class ManageItems extends Component
                         session()->flash('sync_error', '❌ Item creado localmente, pero falló la sincronización con API de facturación. Error: ' . $e->getMessage());
                         // NO cerrar modal para que el usuario vea el mensaje de error
                     }
+
+                    // Sincronizar stock/precio con WordPress (WooCommerce) inmediatamente
+                    $this->syncItemWithWordPress($newItem);
 
                     // Solo proceder a editar si no hay errores de sincronización
                     if (!session()->has('sync_warning') && !session()->has('sync_error')) {
@@ -864,7 +871,24 @@ class ManageItems extends Component
         }
     }
 
+    /**
+     * Los componentes anidados de las pestañas (Importado, Medidas) disparan este mismo
+     * evento global al guardar, pensado originalmente para cerrar SU propio modal cuando
+     * se usan de forma independiente en otras pantallas. Aquí, dentro del modal de Editar
+     * Item, "cerrarse" no debe tumbar todo el modal — solo se vuelve a Información General.
+     * Si no hay ninguna pestaña anidada activa, sí se comporta como el cierre real (cancel()).
+     */
     #[On('closeItemsModal')]
+    public function handleNestedTabClosed()
+    {
+        if ($this->showProductionSection || $this->showDimensionSection || $this->showAccesoriosSection) {
+            $this->showGeneralInfo();
+            return;
+        }
+
+        $this->cancel();
+    }
+
     public function cancel()
     {
         $this->ensureTenantConnection();
@@ -2162,6 +2186,43 @@ class ManageItems extends Component
                 'company_id' => $this->currentCompanyId
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Sincroniza stock y precio del item con WordPress/WooCommerce inmediatamente
+     * (en vez de esperar al cron nocturno o a la sincronización manual).
+     * No bloquea el guardado del item si falla: solo deja una advertencia.
+     */
+    private function syncItemWithWordPress(Items $item): void
+    {
+        if ($item->inventoriable != 1) {
+            return;
+        }
+
+        try {
+            $wpService = app(WordPressService::class);
+
+            if (!$wpService->isConfigured()) {
+                return;
+            }
+
+            $item->load(['tax', 'invItemsStore']);
+            $result = $wpService->syncItemStock($item);
+
+            if (!$result['success']) {
+                Log::warning('Item guardado, pero falló la sincronización inmediata con WordPress', [
+                    'item_id' => $item->id,
+                    'message' => $result['message']
+                ]);
+                session()->flash('wp_sync_warning', '⚠️ Item guardado, pero no se pudo sincronizar con la página web: ' . $result['message']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Excepción sincronizando item con WordPress', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage()
+            ]);
+            session()->flash('wp_sync_warning', '⚠️ Item guardado, pero no se pudo sincronizar con la página web. Error: ' . $e->getMessage());
         }
     }
 
