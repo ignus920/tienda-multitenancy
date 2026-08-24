@@ -66,10 +66,10 @@
                 <div class="flex items-center gap-4">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-                            {{ $isSupplier ? 'Requests Panel' : 'Panel de Solicitudes' }}
+                            {{ $isSupplier ? 'Requests Panel' : ($type === 'supplier' ? 'Tickets de Proveedores' : 'Solicitudes Internas Fervicom') }}
                         </h1>
                         <p class="text-gray-600 dark:text-gray-400 mt-1">
-                            {{ $isSupplier ? 'Management and tracking of requests' : 'Gestión y seguimiento de requerimientos' }}
+                            {{ $isSupplier ? 'Management and tracking of requests' : ($type === 'supplier' ? 'Gestión y seguimiento de solicitudes a proveedores' : 'Gestión y seguimiento de requerimientos internos') }}
                         </p>
                     </div>
                     @if($isSupplier)
