@@ -20,15 +20,28 @@
                     Volver a Proyectos
                 </a>
             </div>
-            <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ $project->title }}</h1>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                {{ $project->title }}
+                @if($project->vencimiento_status === 'vencido')
+                    <span class="px-2 py-0.5 text-2xs font-bold rounded-full bg-red-600 text-white">Vencido</span>
+                @elseif($project->vencimiento_status === 'proximo_vencer')
+                    <span class="px-2 py-0.5 text-2xs font-bold rounded-full bg-amber-500 text-white">Próximo a vencer</span>
+                @endif
+            </h1>
             <p class="text-xs text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">
-                Cliente: {{ $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? '')) }}
+                @if($project->type === 'internal')
+                    Dirigido a: {{ $project->assignedUser->name ?? 'N/A' }}
+                @else
+                    Cliente: {{ $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? '')) }}
+                @endif
             </p>
         </div>
         <!-- Selector de Estado Visual (Pipeline) -->
         <div class="flex items-center gap-2">
             @php
-                $statuses = ['cotizacion' => 'Cotización', 'negociacion' => 'Negociación', 'orden_creada' => 'Orden Creada', 'en_produccion' => 'En Producción', 'terminado' => 'Terminado', 'archivados' => 'Archivado'];
+                $statuses = $project->type === 'internal'
+                    ? ['cotizacion' => 'Creado', 'en_produccion' => 'En Desarrollo', 'terminado' => 'Terminado', 'cerrado_entregado' => 'Finalizado']
+                    : ['cotizacion' => 'Cotización', 'negociacion' => 'Negociación', 'orden_creada' => 'Orden Creada', 'en_produccion' => 'En Producción', 'terminado' => 'Terminado', 'cerrado_entregado' => 'Finalizado / Entregado'];
             @endphp
             <div class="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-2xs font-semibold">
                 @foreach($statuses as $key => $name)
@@ -38,6 +51,25 @@
                 @endforeach
             </div>
         </div>
+    </div>
+
+    <!-- Barra de Pestañas -->
+    <div class="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold mb-6 w-fit">
+        <button wire:click="$set('activeTab', 'chat')"
+            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'chat' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+            Chat
+        </button>
+        <button wire:click="$set('activeTab', 'materiales')"
+            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+            Materiales
+        </button>
+        <button wire:click="$set('activeTab', 'participantes')"
+            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+            Participantes
+        </button>
+        <span class="px-4 py-1.5 rounded-md text-gray-300 dark:text-gray-600 cursor-not-allowed" title="Próximamente">
+            Archivos
+        </span>
     </div>
 
     <!-- Layout Grid -->
@@ -108,51 +140,75 @@
 
                     <!-- Acciones según rol y estado -->
                     <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-2">
-                        <!-- Comercial genera Orden -->
-                        @if(in_array($project->status, ['cotizacion', 'negociacion']))
-                            <button wire:click="$set('showOrderModal', true)"
-                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                                </svg>
-                                Crear Orden de Pedido
-                            </button>
+                        @if($project->type === 'external')
+                            <!-- Comercial marca en negociación -->
+                            @if($project->status === 'cotizacion')
+                                <button wire:click="markNegotiation"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                    Marcar en Negociación
+                                </button>
+                            @endif
+
+                            <!-- Comercial genera Orden -->
+                            @if(in_array($project->status, ['cotizacion', 'negociacion']))
+                                <button wire:click="$set('showOrderModal', true)"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                    </svg>
+                                    Crear Orden de Pedido
+                                </button>
+                            @endif
+
+                            <!-- Comercial / Laboratorio inicia producción -->
+                            @if($project->status === 'orden_creada')
+                                <button wire:click="startProduction"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                    Iniciar Producción (Fábrica)
+                                </button>
+                            @endif
+                        @else
+                            <!-- Área responsable inicia desarrollo (proyecto interno) -->
+                            @if($project->status === 'cotizacion')
+                                <button wire:click="$set('showStartDevelopmentModal', true)"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                    Iniciar Desarrollo
+                                </button>
+                            @endif
                         @endif
 
-                        <!-- Comercial / Laboratorio inicia producción -->
-                        @if($project->status === 'orden_creada')
-                            <button wire:click="startProduction"
-                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                Iniciar Producción (Fábrica)
-                            </button>
-                        @endif
-
-                        <!-- Laboratorio agrega avances y preguntas en producción -->
+                        <!-- Se agregan avances y preguntas durante el desarrollo/producción -->
                         @if($project->status === 'en_produccion')
                             <button wire:click="$set('showAdvanceModal', true)"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-white rounded-lg font-bold shadow-2xs transition-colors">
                                 Registrar Avance Técnico
                             </button>
 
-                            <button wire:click="$set('showQuestionModal', true)"
-                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                Generar Pregunta al Asesor/Cliente
-                            </button>
+                            @if($project->type === 'external')
+                                <button wire:click="$set('showQuestionModal', true)"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                    Generar Pregunta al Asesor/Cliente
+                                </button>
+                            @endif
 
                             <button wire:click="$set('showLabFinishModal', true)"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-colors mt-2">
-                                Terminar Producción
+                                {{ $project->type === 'internal' ? 'Marcar como Terminado' : 'Terminar Producción' }}
                             </button>
                         @endif
 
-                        <!-- Comercial cierra y archiva el caso -->
+                        <!-- Cierra el caso: entrega (externo) o finalización (interno) -->
                         @if($project->status === 'terminado')
                             <div class="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 p-2.5 rounded-lg text-center font-semibold mb-2">
-                                ¡Producción Terminada! Listo para entregar al cliente.
+                                @if($project->type === 'internal')
+                                    ¡Trabajo Terminado! Listo para que el solicitante lo verifique y finalice.
+                                @else
+                                    ¡Producción Terminada! Listo para entregar al cliente.
+                                @endif
                             </div>
                             <button wire:click="$set('showCloseModal', true)"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                Registrar Entrega y Archivar
+                                {{ $project->type === 'internal' ? 'Finalizar Proyecto' : 'Registrar Entrega' }}
                             </button>
                         @endif
                     </div>
@@ -231,9 +287,34 @@
                 </div>
             </div>
 
+            <!-- Historial de Estados -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700" x-data="{ open: false }">
+                <button type="button" @click="open = !open" class="w-full flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Historial de Estados</h2>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="space-y-3 max-h-[260px] overflow-y-auto pr-1 mt-4">
+                    @forelse($project->statusHistory as $entry)
+                        <div class="relative pl-4 border-l-2 border-gray-300 dark:border-gray-600 text-xs">
+                            <div class="flex items-center justify-between mb-0.5">
+                                <span class="font-bold text-gray-900 dark:text-white">{{ $entry->from_status ?? 'Creado' }} → {{ $entry->to_status }}</span>
+                                <span class="text-gray-400 text-3xs">{{ $entry->created_at->format('d/m/Y H:i') }}</span>
+                            </div>
+                            <p class="text-gray-500 dark:text-gray-400">{{ $entry->user->name ?? 'Usuario' }}</p>
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">Sin cambios de estado registrados.</p>
+                    @endforelse
+                </div>
+            </div>
+
         </div>
 
-        <!-- Columna Derecha: Chat Interactivo estilo WhatsApp -->
+        <!-- Columna Derecha: contenido según pestaña activa -->
+        @if($activeTab === 'chat')
+        <!-- Chat Interactivo estilo WhatsApp -->
         <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 180px);">
             <!-- Header del Chat (estilo WhatsApp) -->
             <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex items-center justify-between gap-3 shrink-0">
@@ -283,7 +364,15 @@
                     @endphp
 
                     <!-- Burbuja de mensaje -->
-                    <div id="msg-{{ $msg->id }}" class="flex {{ $isMe ? 'justify-end' : 'justify-start' }} group">
+                    <div id="msg-{{ $msg->id }}" class="flex {{ $isMe ? 'justify-end' : 'justify-start' }} group"
+                        x-data="{
+                            editing: false,
+                            editText: @js($msg->message),
+                            canEdit: {{ $isMe ? 'true' : 'false' }}
+                        }"
+                        @if($isMe)
+                        x-init="setTimeout(() => canEdit = false, {{ max(0, (10 - now()->diffInSeconds($msg->created_at)) * 1000) }})"
+                        @endif>
                         <!-- Avatar (solo otros) -->
                         @if(!$isMe)
                             <div class="w-8 h-8 rounded-full {{ $roleStyle['avatar'] }} flex items-center justify-center text-white text-3xs font-bold mr-2 mt-auto shrink-0 shadow-sm">
@@ -318,12 +407,28 @@
                                 @endif
 
                                 <!-- Contenido del mensaje -->
-                                <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
-                                    {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
-                                </p>
+                                <div x-show="!editing">
+                                    <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
+                                        {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
+                                    </p>
+                                </div>
+
+                                @if($isMe)
+                                    <div x-show="editing" x-cloak class="space-y-1.5">
+                                        <textarea x-model="editText" rows="2"
+                                            class="w-full text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" @click="editing = false" class="text-3xs font-semibold text-gray-500 hover:text-gray-700">Cancelar</button>
+                                            <button type="button" @click="$wire.editMessage({{ $msg->id }}, editText); editing = false;" class="text-3xs font-semibold text-indigo-600 hover:text-indigo-700">Guardar</button>
+                                        </div>
+                                    </div>
+                                @endif
 
                                 <!-- Hora -->
                                 <div class="flex items-center justify-end gap-1.5 mt-1 text-3xs text-gray-400">
+                                    @if($isMe)
+                                        <button type="button" x-show="canEdit && !editing" @click="editing = true" class="text-indigo-500 hover:text-indigo-600 font-semibold mr-1">Editar</button>
+                                    @endif
                                     <span>{{ $msg->created_at->format('h:i a') }}</span>
                                     @if($isMe)
                                         <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
@@ -368,6 +473,7 @@
             <div class="px-3 py-3 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shrink-0 relative"
                 x-data="{
                     newMessage: @entangle('newMessageText'),
+                    mentionedIds: @entangle('mentionedUserIds'),
                     users: {{ json_encode($usersList) }},
                     filteredUsers: [],
                     showDropdown: false,
@@ -391,22 +497,25 @@
                         this.showDropdown = false;
                     },
                     
-                    insertMention(name) {
+                    insertMention(user) {
                         const text = this.newMessage || '';
                         const textarea = this.$refs.chatTextarea;
                         const selectionEnd = textarea.selectionEnd;
                         const beforeCursor = text.slice(0, selectionEnd);
                         const lastAt = beforeCursor.lastIndexOf(this.triggerChar);
-                        
+
                         const afterCursor = text.slice(selectionEnd);
-                        const newText = beforeCursor.slice(0, lastAt) + '@' + name + ' ' + afterCursor;
-                        
+                        const newText = beforeCursor.slice(0, lastAt) + '@' + user.name + ' ' + afterCursor;
+
                         this.newMessage = newText;
                         this.showDropdown = false;
-                        
+                        if (!this.mentionedIds.includes(user.id)) {
+                            this.mentionedIds.push(user.id);
+                        }
+
                         this.$nextTick(() => {
                             textarea.focus();
-                            const newCursorPos = lastAt + name.length + 2;
+                            const newCursorPos = lastAt + user.name.length + 2;
                             textarea.setSelectionRange(newCursorPos, newCursorPos);
                         });
                     },
@@ -441,7 +550,7 @@
                     class="absolute left-3 right-3 bottom-full mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-44 overflow-y-auto z-50" x-transition>
                     <div class="p-1.5">
                         <template x-for="u in filteredUsers" :key="u.id">
-                            <button type="button" @click="insertMention(u.name)"
+                            <button type="button" @click="insertMention(u)"
                                 class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900 flex items-center gap-2.5 rounded-lg transition-colors">
                                 <span class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xs font-bold shrink-0" x-text="u.name.substring(0,2).toUpperCase()"></span>
                                 <span class="font-semibold" x-text="u.name"></span>
@@ -450,28 +559,48 @@
                     </div>
                 </div>
 
-                <div class="flex items-end gap-3 relative">
-                    <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
-                        <textarea x-ref="chatTextarea" wire:model="newMessageText" 
-                            @keyup="checkTrigger" @input="checkTrigger"
-                            @keydown="handleKeydown($event)"
-                            rows="1"
-                            placeholder="Escribe un mensaje..."
-                            class="block w-full border-0 bg-transparent text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-0 focus:outline-none resize-none"
-                            style="max-height: 120px; overflow-y: auto;"
-                            x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"></textarea>
+                @if($isParticipant)
+                    <div class="flex items-end gap-3 relative">
+                        <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
+                            <textarea x-ref="chatTextarea" wire:model="newMessageText"
+                                @keyup="checkTrigger" @input="checkTrigger"
+                                @keydown="handleKeydown($event)"
+                                rows="1"
+                                placeholder="Escribe un mensaje..."
+                                class="block w-full border-0 bg-transparent text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-0 focus:outline-none resize-none"
+                                style="max-height: 120px; overflow-y: auto;"
+                                x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"></textarea>
+                        </div>
+
+                        <button wire:click="sendMessage"
+                            class="flex items-center justify-center w-12 h-12 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5"
+                            title="Enviar mensaje (Enter)">
+                            <svg class="w-5 h-5 ml-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
                     </div>
-                    
-                    <button wire:click="sendMessage"
-                        class="flex items-center justify-center w-12 h-12 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5"
-                        title="Enviar mensaje (Enter)">
-                        <svg class="w-5 h-5 ml-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                @else
+                    <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                    </button>
-                </div>
+                        No eres participante de este proyecto. Pide a alguien de la pestaña "Participantes" que te agregue para poder escribir.
+                    </div>
+                @endif
             </div>
         </div>
+        @elseif($activeTab === 'materiales')
+        <!-- Lista de Materiales -->
+        <div class="lg:col-span-2">
+            <livewire:tenant.projects.project-materials :project-id="$project->id" :key="'materials-'.$project->id" />
+        </div>
+        @elseif($activeTab === 'participantes')
+        <!-- Participantes -->
+        <div class="lg:col-span-2">
+            <livewire:tenant.projects.project-participants :project-id="$project->id" :key="'participants-'.$project->id" />
+        </div>
+        @endif
 
     </div>
 
@@ -611,7 +740,7 @@
     <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">Cierre de Producción</h3>
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ $project->type === 'internal' ? 'Marcar como Terminado' : 'Cierre de Producción' }}</h3>
                 <button wire:click="$set('showLabFinishModal', false)" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -631,7 +760,7 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showLabFinishModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="finishProduction" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Terminar Producción</button>
+                <button wire:click="finishProduction" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">{{ $project->type === 'internal' ? 'Marcar como Terminado' : 'Terminar Producción' }}</button>
             </div>
         </div>
     </div>
@@ -642,7 +771,7 @@
     <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">Registrar Entrega y Archivar</h3>
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ $project->type === 'internal' ? 'Finalizar Proyecto' : 'Registrar Entrega' }}</h3>
                 <button wire:click="$set('showCloseModal', false)" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -662,7 +791,34 @@
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showCloseModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
-                <button wire:click="closeProject" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Guardar y Archivar</button>
+                <button wire:click="closeProject" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">{{ $project->type === 'internal' ? 'Finalizar Proyecto' : 'Registrar Entrega' }}</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- 7. Modal Iniciar Desarrollo (Proyecto Interno) -->
+    @if($showStartDevelopmentModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">Iniciar Desarrollo</h3>
+                <button wire:click="$set('showStartDevelopmentModal', false)" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <span class="text-2xs text-gray-500 dark:text-gray-400 block mb-2">Fecha de entrega solicitada: <strong>{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : 'No establecida' }}</strong></span>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha Sugerida de Entrega *</label>
+                    <input wire:model="suggested_delivery_date" type="date"
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    @error('suggested_delivery_date') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button wire:click="$set('showStartDevelopmentModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
+                <button wire:click="startInternalDevelopment" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded shadow">Iniciar Desarrollo</button>
             </div>
         </div>
     </div>
