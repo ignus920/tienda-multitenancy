@@ -12,3 +12,9 @@ Broadcast::channel('project.{projectId}', function ($user, $projectId) {
     // (A futuro se puede restringir verificando que exista en inv_project_participants)
     return !is_null($user);
 });
+
+// Autorización para el canal privado de notificaciones personales del usuario
+Broadcast::channel('user.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
