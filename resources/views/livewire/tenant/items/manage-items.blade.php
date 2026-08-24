@@ -473,6 +473,7 @@
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection),
                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection)}">
@@ -485,6 +486,7 @@
                                 <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
                                 @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
@@ -498,6 +500,7 @@
                                 <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
                                 @if($type == 'PRODUCIDO')
                                 <button type="button" wire:click="$set('showProductionSection', true)"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
@@ -511,6 +514,7 @@
                                 <!-- Pestaña Accesorios - No visible para items tipo INSUMO -->
                                 @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
@@ -524,6 +528,7 @@
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
                                 @if ($inventoriable === 1)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
@@ -540,6 +545,7 @@
 
                 <!-- Contenido según la pestaña activa -->
                 @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
+                <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -941,6 +947,25 @@
                                 </div>
                             </div>
                             @endif
+
+                            <!-- Mensaje de advertencia de sincronización con WordPress -->
+                            @if (session()->has('wp_sync_warning'))
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"></path>
+                                        </svg>
+                                        <span>{{ session('wp_sync_warning') }}</span>
+                                    </div>
+                                    <button wire:click="cancel" class="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            @endif
                         </div>
 
                         <div class="border-t border-gray-300 my-6"></div>
@@ -1063,7 +1088,12 @@
                         </div>
                     </div>
                 </form>
+                </div>
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
+                    @php
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : 'acc');
+                    @endphp
+                    <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item -->
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
@@ -1076,6 +1106,7 @@
                     @elseif($showAccesoriosSection)
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @endif
+                    </div>
                 @endif
 
             </div>
