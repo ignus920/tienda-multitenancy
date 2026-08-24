@@ -128,6 +128,12 @@ class ProjectWorkspace extends Component
             'reply_to_id' => $this->replyingToMessageId
         ]);
 
+        // Auto-registrar al usuario como participante si aún no lo es
+        ProjectParticipant::firstOrCreate(
+            ['project_id' => $this->projectId, 'user_id' => Auth::id()],
+            ['role' => 'participante']
+        );
+
         // Disparar evento WebSocket al túnel de Reverb sin toOthers() para evitar errores de Socket ID
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
@@ -136,27 +142,28 @@ class ProjectWorkspace extends Component
         $senderName = Auth::user()->name;
         $messagePreview = mb_substr($this->newMessageText, 0, 80);
 
-        // Procesar menciones con @
+        // Procesar menciones con @ usando los nombres conocidos del tenant
         $mentionedUserIds = [];
-        preg_match_all('/@([a-zA-Z0-9_\-\.\s]+?)(?=\s@|\s[^@]|$)/', $this->newMessageText, $matches);
-        if (!empty($matches[1])) {
-            $usernames = array_unique(array_map('trim', $matches[1]));
-            $sessionTenant = session('tenant_id');
-            $users = User::whereIn('name', $usernames)
-                ->whereHas('tenants', function($q) use ($sessionTenant) {
-                    $q->where('tenants.id', $sessionTenant);
-                })->get();
+        $sessionTenant = session('tenant_id');
+        if (str_contains($this->newMessageText, '@')) {
+            // Obtener todos los usuarios del tenant para comparar contra sus nombres
+            $tenantUsers = User::whereHas('tenants', function($q) use ($sessionTenant) {
+                $q->where('tenants.id', $sessionTenant);
+            })->get();
 
-            foreach ($users as $user) {
-                // Registrar mención
-                ProjectMention::create([
-                    'project_id' => $this->projectId,
-                    'message_id' => $message->id,
-                    'mentioned_by' => Auth::id(),
-                    'mentioned_to' => $user->id,
-                    'status' => 'pendiente'
-                ]);
-                $mentionedUserIds[] = $user->id;
+            foreach ($tenantUsers as $user) {
+                // Verificar si el mensaje contiene @NombreDelUsuario
+                if (stripos($this->newMessageText, '@' . $user->name) !== false) {
+                    // Registrar mención
+                    ProjectMention::create([
+                        'project_id' => $this->projectId,
+                        'message_id' => $message->id,
+                        'mentioned_by' => Auth::id(),
+                        'mentioned_to' => $user->id,
+                        'status' => 'pendiente'
+                    ]);
+                    $mentionedUserIds[] = $user->id;
+                }
             }
         }
 
