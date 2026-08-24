@@ -545,6 +545,7 @@
 
                 <!-- Contenido según la pestaña activa -->
                 @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
+                <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -1087,7 +1088,12 @@
                         </div>
                     </div>
                 </form>
+                </div>
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
+                    @php
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : 'acc');
+                    @endphp
+                    <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item -->
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
@@ -1100,6 +1106,7 @@
                     @elseif($showAccesoriosSection)
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @endif
+                    </div>
                 @endif
 
             </div>
