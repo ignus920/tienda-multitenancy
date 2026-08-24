@@ -564,6 +564,7 @@ class WordPressService
         }
 
         $stockBruto = (float) $storeStock->stock_items_store;
+        $cuarentena = (float) $item->quarantine_stock;
         $stockMin   = (float) ($storeStock->wp_min_stock ?? 0);
 
         // 2. Reservas activas (Omitido: se usa 0 para no restar remisiones registradas globales)
@@ -571,8 +572,8 @@ class WordPressService
 
         $reservas = (float) $reservas;
 
-        // 3. Stock disponible neto (igual al stock bruto del almacén)
-        $stockNeto = max(0, $stockBruto - $reservas);
+        // 3. Stock disponible neto (igual al stock bruto del almacén - cuarentena)
+        $stockNeto = max(0, $stockBruto - $cuarentena - $reservas);
 
         // 4. Gate de mínimo + aplicar porcentaje (igual que sistema anterior)
         $porcentaje = (float) ($storeStock->wp_stock_percentage ?? 100);
@@ -589,6 +590,7 @@ class WordPressService
         Log::info('📊 [WP-Stock] Cálculo de stock', [
             'item_id'     => $item->id,
             'stock_bruto' => $stockBruto,
+            'cuarentena'  => $cuarentena,
             'reservas'    => $reservas,
             'stock_neto'  => $stockNeto,
             'stock_min'   => $stockMin,
