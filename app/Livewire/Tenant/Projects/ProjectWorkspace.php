@@ -125,8 +125,8 @@ class ProjectWorkspace extends Component
             'reply_to_id' => $this->replyingToMessageId
         ]);
 
-        // Disparar evento WebSocket al túnel de Reverb
-        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message))->toOthers();
+        // Disparar evento WebSocket al túnel de Reverb sin toOthers() para evitar errores de Socket ID
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         // Procesar menciones con @
         // Buscamos todas las ocurrencias de @nombre en el texto
