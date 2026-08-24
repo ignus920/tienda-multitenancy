@@ -42,9 +42,9 @@
                         class="px-4 py-1.5 rounded-md transition-colors {{ $selectedTab === 'activos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                         Activos
                     </button>
-                    <button wire:click="$set('selectedTab', 'archivados')" 
+                    <button wire:click="$set('selectedTab', 'archivados')"
                         class="px-4 py-1.5 rounded-md transition-colors {{ $selectedTab === 'archivados' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-                        Historial Archivados
+                        Historial
                     </button>
                 </div>
 
@@ -58,7 +58,50 @@
                         <option value="orden_creada">Orden Creada</option>
                         <option value="en_produccion">En Producción</option>
                         <option value="terminado">Terminado / Listo</option>
+                        <option value="cerrado_entregado">Finalizado / Entregado</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Filtros rápidos de vencimiento (proyectos internos) + Más filtros -->
+            <div class="flex flex-wrap items-center gap-2" x-data="{ showMoreFilters: false }">
+                <button wire:click="$set('vencimientoFilter', '{{ $vencimientoFilter === 'proximo' ? '' : 'proximo' }}')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ $vencimientoFilter === 'proximo' ? 'bg-amber-500 border-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' }}">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Próximos a vencer
+                </button>
+                <button wire:click="$set('vencimientoFilter', '{{ $vencimientoFilter === 'vencido' ? '' : 'vencido' }}')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ $vencimientoFilter === 'vencido' ? 'bg-red-600 border-red-600 text-white' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400' }}">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    Vencidos
+                </button>
+
+                <button type="button" @click="showMoreFilters = !showMoreFilters"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    Más filtros
+                    <svg class="w-3.5 h-3.5 transition-transform" :class="showMoreFilters ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="showMoreFilters" x-cloak class="w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-3">
+                    <div class="flex-1">
+                        <label class="block text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Creado desde</label>
+                        <input wire:model.live="searchDateFrom" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Creado hasta</label>
+                        <input wire:model.live="searchDateTo" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Participante</label>
+                        <select wire:model.live="searchParticipantId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Todos</option>
+                            @foreach($assignableUsers as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -72,15 +115,20 @@
                             'orden_creada' => 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
                             'en_produccion' => 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 animate-pulse',
                             'terminado' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-                            'archivados' => 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400'
+                            'cerrado_entregado' => 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400'
                         ];
-                        $statusNames = [
+                        $statusNames = $project->type === 'internal' ? [
+                            'cotizacion' => 'Creado',
+                            'en_produccion' => 'En Desarrollo',
+                            'terminado' => 'Terminado',
+                            'cerrado_entregado' => 'Finalizado'
+                        ] : [
                             'cotizacion' => 'Cotización',
                             'negociacion' => 'Negociación',
                             'orden_creada' => 'Orden Creada',
                             'en_produccion' => 'En Producción',
                             'terminado' => 'Terminado',
-                            'archivados' => 'Archivado'
+                            'cerrado_entregado' => 'Finalizado / Entregado'
                         ];
                     @endphp
 
@@ -91,6 +139,15 @@
                                 <span class="px-2 py-0.5 text-2xs font-bold rounded-full {{ $statusColors[$project->status] ?? 'bg-gray-50' }}">
                                     {{ $statusNames[$project->status] ?? $project->status }}
                                 </span>
+                                @if($project->vencimiento_status === 'vencido')
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-red-600 text-white" title="Fecha de entrega vencida">
+                                        Vencido
+                                    </span>
+                                @elseif($project->vencimiento_status === 'proximo_vencer')
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-amber-500 text-white" title="Próximo a vencer">
+                                        Próximo a vencer
+                                    </span>
+                                @endif
                                 @if($project->questions_count > 0)
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-semibold bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400" title="Tiene preguntas pendientes para el cliente">
                                         <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,9 +163,13 @@
                                 <h3 class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-1 mb-1">{{ $project->title }}</h3>
                             </a>
 
-                            <!-- Cliente y Asesor -->
+                            <!-- Cliente (externo) o Destinatario (interno) -->
                             <p class="text-xs font-semibold text-indigo-500 dark:text-indigo-400 truncate mb-1">
-                                {{ $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? '')) }}
+                                @if($project->type === 'internal')
+                                    Dirigido a: {{ $project->assignedUser->name ?? 'N/A' }}
+                                @else
+                                    {{ $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? '')) }}
+                                @endif
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
                                 {{ $project->description }}
@@ -141,16 +202,45 @@
         <!-- Columna Derecha: Panel de Pendientes de Usuario -->
         <div class="space-y-6">
             <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-gray-850 dark:to-gray-800 rounded-xl p-5 shadow-sm border border-indigo-100 dark:border-gray-700">
-                <h2 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    Mis Pendientes
+                <h2 class="text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between gap-2 mb-4">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        Mis Pendientes
+                    </span>
+                    <span class="px-2 py-0.5 text-2xs font-extrabold rounded-full bg-indigo-600 text-white">{{ $pendientesCount }}</span>
                 </h2>
 
                 <!-- Alertas de Menciones -->
                 <div class="space-y-3">
-                    <h3 class="text-2xs font-bold text-gray-400 tracking-wider uppercase">Menciones en Chats (@)</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-2xs font-bold text-gray-400 tracking-wider uppercase">Menciones en Chats (@)</h3>
+                    </div>
+
+                    <!-- Filtros del panel de pendientes -->
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <select wire:model.live="pendientesStatusFilter" class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-3xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Todos los estados</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="vista">Vista</option>
+                            <option value="respondida">Respondida</option>
+                        </select>
+                        <select wire:model.live="pendientesProjectFilter" class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-3xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Todos los proyectos</option>
+                            @foreach($myMentionProjects as $mp)
+                                <option value="{{ $mp->id }}">{{ Str::limit($mp->title, 20) }}</option>
+                            @endforeach
+                        </select>
+                        <input wire:model.live="pendientesDateFilter" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-3xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <select wire:model.live="pendientesPersonFilter" class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-3xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Cualquier persona</option>
+                            @foreach($assignableUsers as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     @forelse($myMentions as $mention)
                         <div class="bg-white dark:bg-gray-850 rounded-lg p-3 border border-gray-100 dark:border-gray-750 shadow-2xs relative flex flex-col justify-between gap-1.5">
                             <div class="flex items-center justify-between text-2xs">
@@ -162,6 +252,7 @@
                             </p>
                             <div class="flex items-center justify-between border-t border-gray-50 dark:border-gray-750 pt-2 mt-1">
                                 <span class="text-3xs text-gray-400 truncate max-w-[120px]" title="{{ $mention->project->title }}">{{ $mention->project->title }}</span>
+                                <span class="text-3xs font-bold {{ $mention->status === 'pendiente' ? 'text-red-500' : ($mention->status === 'vista' ? 'text-amber-500' : 'text-emerald-500') }}">{{ ucfirst($mention->status) }}</span>
                                 <button wire:click="markNotificationAsSeen({{ $mention->id }})"
                                     class="text-xs font-semibold text-indigo-500 hover:text-indigo-600 flex items-center gap-0.5">
                                     Ver mensaje
@@ -172,7 +263,7 @@
                             </div>
                         </div>
                     @empty
-                        <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No tienes menciones nuevas.</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No tienes menciones con estos filtros.</p>
                     @endforelse
 
                     <!-- Alertas de Preguntas al Cliente por Responder -->
@@ -222,6 +313,21 @@
 
             <!-- Modal Body -->
             <div class="p-6 space-y-4">
+                <!-- Tipo de Proyecto -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">¿Qué tipo de proyecto desea crear? *</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" wire:click="$set('projectType', 'external')"
+                            class="px-3 py-2 text-sm font-semibold rounded-lg border transition-colors {{ $projectType === 'external' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300' }}">
+                            Cliente Externo
+                        </button>
+                        <button type="button" wire:click="$set('projectType', 'internal')"
+                            class="px-3 py-2 text-sm font-semibold rounded-lg border transition-colors {{ $projectType === 'internal' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300' }}">
+                            Interno
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Título -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Título del Proyecto *</label>
@@ -230,10 +336,32 @@
                     @error('title') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
                 </div>
 
+                @if($projectType === 'internal')
+                    <!-- Destinatario (Proyecto Interno) -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Dirigido a *</label>
+                        <select wire:model="assignedToUserId"
+                            class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Selecciona un usuario o área...</option>
+                            @foreach($assignableUsers as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('assignedToUserId') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Fecha de Entrega Solicitada (Proyecto Interno) -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha de Entrega Solicitada *</label>
+                        <input wire:model="requestedDeliveryDate" type="date"
+                            class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        @error('requestedDeliveryDate') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
+                    </div>
+                @else
                 <!-- Buscador de Cliente (Autocompletar) -->
                 <div class="relative" x-data="{ open: true }" @click.away="open = false">
                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Cliente *</label>
-                    
+
                     @if($selectedCustomerId)
                         <div class="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-2 text-sm text-indigo-700 dark:text-indigo-400">
                             <span class="font-semibold">{{ $selectedCustomerName }}</span>
@@ -261,6 +389,7 @@
                     @endif
                     @error('selectedCustomerId') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
                 </div>
+                @endif
 
                 <!-- Descripción -->
                 <div>

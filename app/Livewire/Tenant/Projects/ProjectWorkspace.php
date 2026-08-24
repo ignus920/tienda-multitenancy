@@ -11,6 +11,7 @@ use App\Models\Tenant\Projects\ProjectNotification;
 use App\Models\Tenant\Projects\ProjectParticipant;
 use App\Models\Tenant\Projects\ProjectQuestion;
 use App\Models\Tenant\Projects\ProjectAdvance;
+use App\Models\Tenant\Projects\ProjectStatusHistory;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
@@ -22,7 +23,10 @@ use Illuminate\Support\Facades\Log;
 class ProjectWorkspace extends Component
 {
     public $projectId;
-    
+
+    // Pestaña activa del workspace
+    public $activeTab = 'chat';
+
     // Filtros de chat
     public $chatFilterUser = '';
     public $chatFilterRole = '';
@@ -31,6 +35,7 @@ class ProjectWorkspace extends Component
     public $newMessageText = '';
     public $replyingToMessageId = null;
     public $replyingToMessageText = '';
+    public $mentionedUserIds = [];
 
     // Campos de la Orden de Producción (Comercial)
     public $qty;
@@ -58,6 +63,9 @@ class ProjectWorkspace extends Component
     public $real_delivery_date;
     public $close_observations;
 
+    // Campo de Fecha Sugerida (Proyecto Interno)
+    public $suggested_delivery_date;
+
     // Control de modales/secciones
     public $showOrderModal = false;
     public $showQuestionModal = false;
@@ -65,6 +73,7 @@ class ProjectWorkspace extends Component
     public $showAdvanceModal = false;
     public $showLabFinishModal = false;
     public $showCloseModal = false;
+    public $showStartDevelopmentModal = false;
 
     #[On('echo-private:project.{projectId},.NewProjectMessage')]
     public function refreshChat()
@@ -119,6 +128,16 @@ class ProjectWorkspace extends Component
     public function sendMessage()
     {
         $this->ensureTenantConnection();
+
+        $isParticipant = ProjectParticipant::where('project_id', $this->projectId)
+            ->where('user_id', Auth::id())
+            ->exists();
+
+        if (!$isParticipant) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No eres participante de este proyecto']);
+            return;
+        }
+
         $this->validate(['newMessageText' => 'required|string']);
 
         $message = ProjectMessage::create([
@@ -128,11 +147,14 @@ class ProjectWorkspace extends Component
             'reply_to_id' => $this->replyingToMessageId
         ]);
 
-        // Auto-registrar al usuario como participante si aún no lo es
-        ProjectParticipant::firstOrCreate(
-            ['project_id' => $this->projectId, 'user_id' => Auth::id()],
-            ['role' => 'participante']
-        );
+        // Si el mensaje responde a otro que generó un pendiente dirigido a este usuario,
+        // se marca automáticamente como "respondida" (punto 49 de la espec)
+        if ($this->replyingToMessageId) {
+            ProjectMention::where('message_id', $this->replyingToMessageId)
+                ->where('mentioned_to', Auth::id())
+                ->where('status', '!=', 'respondida')
+                ->update(['status' => 'respondida']);
+        }
 
         // Disparar evento WebSocket al túnel de Reverb sin toOthers() para evitar errores de Socket ID
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
@@ -142,28 +164,24 @@ class ProjectWorkspace extends Component
         $senderName = Auth::user()->name;
         $messagePreview = mb_substr($this->newMessageText, 0, 80);
 
-        // Procesar menciones con @ usando los nombres conocidos del tenant
+        // Procesar menciones seleccionadas explícitamente desde el autocompletado @ (por ID, no por texto)
         $mentionedUserIds = [];
-        $sessionTenant = session('tenant_id');
-        if (str_contains($this->newMessageText, '@')) {
-            // Obtener todos los usuarios del tenant para comparar contra sus nombres
-            $tenantUsers = User::whereHas('tenants', function($q) use ($sessionTenant) {
+        if (!empty($this->mentionedUserIds)) {
+            $sessionTenant = session('tenant_id');
+            // Validar que los IDs recibidos del cliente realmente pertenecen al tenant actual
+            $validUserIds = User::whereHas('tenants', function ($q) use ($sessionTenant) {
                 $q->where('tenants.id', $sessionTenant);
-            })->get();
+            })->whereIn('id', $this->mentionedUserIds)->pluck('id')->toArray();
 
-            foreach ($tenantUsers as $user) {
-                // Verificar si el mensaje contiene @NombreDelUsuario
-                if (stripos($this->newMessageText, '@' . $user->name) !== false) {
-                    // Registrar mención
-                    ProjectMention::create([
-                        'project_id' => $this->projectId,
-                        'message_id' => $message->id,
-                        'mentioned_by' => Auth::id(),
-                        'mentioned_to' => $user->id,
-                        'status' => 'pendiente'
-                    ]);
-                    $mentionedUserIds[] = $user->id;
-                }
+            foreach ($validUserIds as $userId) {
+                ProjectMention::create([
+                    'project_id' => $this->projectId,
+                    'message_id' => $message->id,
+                    'mentioned_by' => Auth::id(),
+                    'mentioned_to' => $userId,
+                    'status' => 'pendiente'
+                ]);
+                $mentionedUserIds[] = $userId;
             }
         }
 
@@ -205,8 +223,33 @@ class ProjectWorkspace extends Component
             }
         }
 
-        $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText']);
+        $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds']);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje enviado']);
+    }
+
+    // Editar un mensaje propio, solo dentro de los primeros 10 segundos (punto 53)
+    public function editMessage($messageId, $newText)
+    {
+        $this->ensureTenantConnection();
+
+        $newText = trim($newText);
+        if ($newText === '') {
+            return;
+        }
+
+        $message = ProjectMessage::find($messageId);
+        if (!$message || (int) $message->user_id !== (int) Auth::id()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No puedes editar este mensaje']);
+            return;
+        }
+
+        if (now()->diffInSeconds($message->created_at) > 10) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El tiempo para editar este mensaje ya expiró']);
+            return;
+        }
+
+        $message->update(['message' => $newText]);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje actualizado']);
     }
 
     public function selectReplyMessage($messageId)
@@ -224,11 +267,27 @@ class ProjectWorkspace extends Component
         $this->reset(['replyingToMessageId', 'replyingToMessageText']);
     }
 
+    // Registra en la bitácora cada cambio de estado del proyecto (punto 64 - trazabilidad)
+    private function logStatusChange(Project $project, string $newStatus)
+    {
+        if ($project->status === $newStatus) {
+            return;
+        }
+
+        ProjectStatusHistory::create([
+            'project_id' => $project->id,
+            'from_status' => $project->status,
+            'to_status' => $newStatus,
+            'changed_by' => Auth::id()
+        ]);
+    }
+
     // Cambiar estado del proyecto
     public function updateStatus($newStatus)
     {
         $this->ensureTenantConnection();
         $project = Project::findOrFail($this->projectId);
+        $this->logStatusChange($project, $newStatus);
         $project->update(['status' => $newStatus]);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Estado del proyecto actualizado']);
     }
@@ -245,9 +304,10 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
-        
+
         $total = $this->qty * $this->price_unit;
 
+        $this->logStatusChange($project, 'orden_creada');
         $project->update([
             'qty' => $this->qty,
             'price_unit' => $this->price_unit,
@@ -262,10 +322,37 @@ class ProjectWorkspace extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Orden de producción creada y guardada']);
     }
 
-    // Iniciar producción (Laboratorio o comercial)
+    // Iniciar producción (Laboratorio o comercial) - Proyecto externo
     public function startProduction()
     {
         $this->updateStatus('en_produccion');
+    }
+
+    // Marcar en negociación (Comercial) - Proyecto externo
+    public function markNegotiation()
+    {
+        $this->updateStatus('negociacion');
+    }
+
+    // Guardar fecha sugerida e iniciar desarrollo (área responsable) - Proyecto interno
+    public function startInternalDevelopment()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'suggested_delivery_date' => 'required|date'
+        ], [
+            'suggested_delivery_date.required' => 'La fecha sugerida de entrega es obligatoria.'
+        ]);
+
+        $project = Project::findOrFail($this->projectId);
+        $this->logStatusChange($project, 'en_produccion');
+        $project->update([
+            'suggested_delivery_date' => $this->suggested_delivery_date,
+            'status' => 'en_produccion'
+        ]);
+
+        $this->showStartDevelopmentModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Desarrollo iniciado']);
     }
 
     // Crear pregunta para el cliente (Laboratorio)
@@ -308,11 +395,6 @@ class ProjectWorkspace extends Component
             'answered_by' => Auth::id(),
             'status' => 'respondida'
         ]);
-
-        // Marcar menciones de este proyecto asociadas a este comercial como respondidas si aplica
-        ProjectMention::where('project_id', $this->projectId)
-            ->where('mentioned_to', Auth::id())
-            ->update(['status' => 'respondida']);
 
         $this->reset(['answeringQuestionId', 'answerText']);
         $this->showAnswerModal = false;
@@ -359,6 +441,7 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
+        $this->logStatusChange($project, 'terminado');
         $project->update([
             'completion_date' => $this->completion_date,
             'lab_observations' => $this->lab_observations,
@@ -379,14 +462,15 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
+        $this->logStatusChange($project, 'cerrado_entregado');
         $project->update([
             'real_delivery_date' => $this->real_delivery_date,
             'close_observations' => $this->close_observations,
-            'status' => 'archivados' // Archivado en historial
+            'status' => 'cerrado_entregado'
         ]);
 
         $this->showCloseModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Proyecto entregado y archivado correctamente']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Proyecto finalizado correctamente']);
         
         return redirect()->route('tenant.projects');
     }
@@ -395,7 +479,7 @@ class ProjectWorkspace extends Component
     {
         $this->ensureTenantConnection();
         
-        $project = Project::with(['customer', 'creator'])->findOrFail($this->projectId);
+        $project = Project::with(['customer', 'creator', 'assignedUser', 'statusHistory.user'])->findOrFail($this->projectId);
         
         // 1. Obtener lista de usuarios para el autocompletado de menciones @ en Alpine
         $sessionTenant = session('tenant_id');
@@ -433,12 +517,18 @@ class ProjectWorkspace extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // 4. ¿El usuario actual es participante? (controla si puede escribir en el chat)
+        $isParticipant = ProjectParticipant::where('project_id', $this->projectId)
+            ->where('user_id', Auth::id())
+            ->exists();
+
         return view('livewire.tenant.projects.project-workspace', [
             'project' => $project,
             'messages' => $messages,
             'advances' => $advances,
             'questions' => $questions,
-            'usersList' => $usersList
+            'usersList' => $usersList,
+            'isParticipant' => $isParticipant
         ])->layout('layouts.app', ['header' => 'Espacio de Trabajo: ' . $project->title]);
     }
 }
