@@ -211,18 +211,14 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
                 @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
                 <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Ventas</div>
-                @if(!$isAlmacenista)
                 <a href="{{ route('tenant.quoter.products') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Ventas</a>
                 <a href="{{ route('tenant.quoter') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Cotizaciones</a>
-                @endif
                 <a href="{{ route('tenant.remissions') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Pedidos</a>
-                @if(!$isAlmacenista)
                 <a href="{{ route('tenant.gestion') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión</a>
-                @endif
             </div>
         </div>
         @endif
@@ -342,14 +338,14 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
                 @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
                 <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Almacén</div>
-                <a href="{{ route('tenant.remissions') }}" wire:navigate
-                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Pedidos</a>
                 <a href="{{ route('tenant.bodega') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Bodega</a>
                 <a href="{{ route('inventory.confirmations') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Confirmación</a>
                 <a href="{{ route('tenant.dispatches') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Despachos</a>
+                <a href="{{ route('tenant.remissions') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Pedidos</a>
             </div>
         </div>
         @endif
@@ -466,7 +462,7 @@ new class extends Component
                 <a href="{{ route('tenant.reports.list') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">General</a>
                 <a href="{{ route('tenant.reports.justifications') }}" wire:navigate
-                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Justificaciones</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Justificaciones de Cantidad</a>
             </div>
         </div>
         @endif
@@ -623,8 +619,10 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Zonas</a>
                 <a href="{{ route('tenant.parameters.routes') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Rutas</a>
+                <a href="{{ route('tenant.parameters.buttons') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Botones</a>
                 <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
-                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Control Acceso</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Control de Acceso</a>
             </div>
         </div>
         @endif
