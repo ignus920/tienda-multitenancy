@@ -65,6 +65,7 @@ class Orders extends Component
     public $finalStockWordpress;
     public $finalMinQtyWordpress;
     public $finalSupplierId;
+    public $tempValues = [];
 
     // Propiedades para ordenar productos convertidos en lote
     public $selectedConvertedIds = [];
@@ -3031,6 +3032,7 @@ class Orders extends Component
         $this->finalStockWordpress = null;
         $this->finalMinQtyWordpress = null;
         $this->finalSupplierId = '';
+        $this->tempValues = [];
         
         $newProduct = DB::connection('tenant')
             ->table('imp_new_products')
@@ -3154,7 +3156,33 @@ class Orders extends Component
                 ]);
             }
 
-            // 3. Crear setup de importación del item en imp_items_setup
+            // 3. Guardar precios (Valores)
+            $typeMap = [
+                'Costo Inicial' => 'costo',
+                'Costo' => 'costo',
+                'Precio Base' => 'precio',
+                'Precio Regular' => 'precio',
+                'Precio Crédito' => 'precio',
+                'Precio unitario x caja' => 'precio',
+                'Precio Minimo' => 'precio',
+            ];
+
+            foreach ($this->tempValues as $label => $value) {
+                if ($value !== null && $value !== '' && $value > 0) {
+                    DB::connection('tenant')->table('inv_values')->insert([
+                        'itemId' => $itemId,
+                        'label' => $label,
+                        'type' => $typeMap[$label] ?? 'costo',
+                        'values' => (float)$value,
+                        'date' => now(),
+                        'warehouseId' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+            }
+
+            // 4. Crear setup de importación del item en imp_items_setup
             DB::connection('tenant')->table('imp_items_setup')->insert([
                 'item_id' => $itemId,
                 'supplier_id' => $this->finalSupplierId,
