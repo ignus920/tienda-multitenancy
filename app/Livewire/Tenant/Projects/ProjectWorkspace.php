@@ -3,6 +3,7 @@
 namespace App\Livewire\Tenant\Projects;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMessage;
@@ -12,6 +13,7 @@ use App\Models\Tenant\Projects\ProjectParticipant;
 use App\Models\Tenant\Projects\ProjectQuestion;
 use App\Models\Tenant\Projects\ProjectAdvance;
 use App\Models\Tenant\Projects\ProjectStatusHistory;
+use App\Models\Tenant\Projects\ProjectFile;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
@@ -22,6 +24,8 @@ use Illuminate\Support\Facades\Log;
 
 class ProjectWorkspace extends Component
 {
+    use WithFileUploads;
+
     public $projectId;
 
     // Pestaña activa del workspace
@@ -36,6 +40,7 @@ class ProjectWorkspace extends Component
     public $replyingToMessageId = null;
     public $replyingToMessageText = '';
     public $mentionedUserIds = [];
+    public $attachments = [];
 
     // Campos de la Orden de Producción (Comercial)
     public $qty;
@@ -138,7 +143,15 @@ class ProjectWorkspace extends Component
             return;
         }
 
-        $this->validate(['newMessageText' => 'required|string']);
+        if (empty(trim((string) $this->newMessageText)) && empty($this->attachments)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Escribe un mensaje o adjunta un archivo']);
+            return;
+        }
+
+        $this->validate([
+            'newMessageText' => 'nullable|string',
+            'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx|max:10240'
+        ]);
 
         $message = ProjectMessage::create([
             'project_id' => $this->projectId,
@@ -146,6 +159,20 @@ class ProjectWorkspace extends Component
             'message' => $this->newMessageText,
             'reply_to_id' => $this->replyingToMessageId
         ]);
+
+        // Guardar archivos adjuntos (fotografías, PDF, documentos, hojas de cálculo)
+        $tenantIdForFiles = session('tenant_id');
+        foreach ($this->attachments as $file) {
+            $path = $file->store("projects/{$tenantIdForFiles}/{$this->projectId}", 'public');
+            ProjectFile::create([
+                'project_id' => $this->projectId,
+                'message_id' => $message->id,
+                'user_id' => Auth::id(),
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_type' => strtolower($file->getClientOriginalExtension())
+            ]);
+        }
 
         // Si el mensaje responde a otro que generó un pendiente dirigido a este usuario,
         // se marca automáticamente como "respondida" (punto 49 de la espec)
@@ -162,7 +189,9 @@ class ProjectWorkspace extends Component
         // Obtener datos del proyecto para las notificaciones
         $project = Project::find($this->projectId);
         $senderName = Auth::user()->name;
-        $messagePreview = mb_substr($this->newMessageText, 0, 80);
+        $messagePreview = $this->newMessageText
+            ? mb_substr($this->newMessageText, 0, 80)
+            : '📎 Archivo adjunto';
 
         // Procesar menciones seleccionadas explícitamente desde el autocompletado @ (por ID, no por texto)
         $mentionedUserIds = [];
@@ -223,7 +252,7 @@ class ProjectWorkspace extends Component
             }
         }
 
-        $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds']);
+        $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds', 'attachments']);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje enviado']);
     }
 
@@ -250,6 +279,13 @@ class ProjectWorkspace extends Component
 
         $message->update(['message' => $newText]);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje actualizado']);
+    }
+
+    // Quitar un archivo de la lista de adjuntos antes de enviar el mensaje
+    public function removeAttachment($index)
+    {
+        unset($this->attachments[$index]);
+        $this->attachments = array_values($this->attachments);
     }
 
     public function selectReplyMessage($messageId)
@@ -491,7 +527,7 @@ class ProjectWorkspace extends Component
 
         // 2. Consulta de chat con filtros aplicados
         $chatQuery = ProjectMessage::where('project_id', $this->projectId)
-            ->with(['user.profile', 'repliedTo.user']);
+            ->with(['user.profile', 'repliedTo.user', 'files']);
 
         if ($this->chatFilterUser) {
             $chatQuery->where('user_id', $this->chatFilterUser);

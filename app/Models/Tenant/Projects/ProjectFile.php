@@ -34,4 +34,9 @@ class ProjectFile extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function getIsImageAttribute()
+    {
+        return in_array(strtolower($this->file_type), ['jpg', 'jpeg', 'png', 'webp']);
+    }
 }
