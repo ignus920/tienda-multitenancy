@@ -162,11 +162,12 @@ class ManageProjects extends Component
             $this->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'selectedCustomerId' => 'required|exists:vnt_companies,id'
+                'selectedCustomerId' => 'required|exists:tenant.vnt_companies,id'
             ], [
                 'title.required' => 'El título del proyecto es obligatorio.',
                 'description.required' => 'La descripción del proyecto es obligatoria.',
-                'selectedCustomerId.required' => 'Debe seleccionar un cliente de la lista.'
+                'selectedCustomerId.required' => 'Debe seleccionar un cliente de la lista.',
+                'selectedCustomerId.exists' => 'El cliente seleccionado no es válido, intenta buscarlo de nuevo.'
             ]);
 
             $project = Project::create([
