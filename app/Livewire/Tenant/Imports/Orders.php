@@ -42,12 +42,25 @@ class Orders extends Component
     public $newProductIncrFletes = 0;
     public $newProductPvp1 = 0;
     public $newProductPvpMin = 0;
+    
+    // Parámetros WordPress
+    public $newProductStockWordpress;
+    public $newProductMinQtyWordpress;
 
     // Propiedades para conversión de Producto Nuevo a Real (Camilo)
     public $showModalConvertNewProduct = false;
     public $selectedNewProductId;
     public $finalInternalCode;
+    public $finalSku;
     public $finalCategoryId;
+    public $finalType;
+    public $finalTaxId;
+    public $finalBrandId;
+    public $finalHouseId;
+    public $finalPurchasingUnit;
+    public $finalConsumptionUnit;
+    public $finalManageSerial;
+    public $finalInventoriable;
     public $finalDescription;
     public $finalStockWordpress;
     public $finalMinQtyWordpress;
@@ -242,6 +255,30 @@ class Orders extends Component
         return $statuses->sortBy(function ($item) use ($customOrder) {
             return $customOrder[$item->id] ?? 999;
         })->values();
+    }
+
+    #[Computed]
+    public function taxes()
+    {
+        return DB::connection('tenant')->table('cnf_taxes')->where('status', 1)->get();
+    }
+
+    #[Computed]
+    public function brands()
+    {
+        return DB::connection('tenant')->table('inv_values')->where('type', 'brands')->where('status', 1)->get();
+    }
+
+    #[Computed]
+    public function houses()
+    {
+        return DB::connection('tenant')->table('inv_values')->where('type', 'houses')->where('status', 1)->get();
+    }
+
+    #[Computed]
+    public function units()
+    {
+        return DB::connection('tenant')->table('inv_values')->where('type', 'units')->where('status', 1)->get();
     }
 
     public function putFilter($statusId)
@@ -2922,10 +2959,14 @@ class Orders extends Component
             'newProductCode' => 'required|unique:tenant.imp_new_products,code',
             'newProductDescription' => 'required|min:3',
             'newProductSupplierId' => 'required|integer',
-            'newProductImage' => 'nullable|image|max:2048'
+            'newProductImage' => 'nullable|image|max:2048',
+            'newProductStockWordpress' => 'required|numeric|min:0',
+            'newProductMinQtyWordpress' => 'required|numeric|min:0',
         ], [
             'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductSupplierId.required' => 'Debe seleccionar un proveedor'
+            'newProductSupplierId.required' => 'Debe seleccionar un proveedor',
+            'newProductStockWordpress.required' => 'El % de Stock es obligatorio',
+            'newProductMinQtyWordpress.required' => 'La Cantidad Mínima es obligatoria',
         ]);
 
         $imagePath = null;
@@ -2948,6 +2989,8 @@ class Orders extends Component
                 'incr_fletes' => (float)($this->newProductIncrFletes ?: 0),
                 'factor_pvp1' => (float)($this->newProductPvp1 ?: 0),
                 'factor_pvp_min' => (float)($this->newProductPvpMin ?: 0),
+                'stock_wordpress' => (float)$this->newProductStockWordpress,
+                'min_qty_wordpress' => (float)$this->newProductMinQtyWordpress,
                 'status' => 'PENDING',
                 'created_by' => Auth::id(),
                 'created_at' => now(),
@@ -2974,7 +3017,16 @@ class Orders extends Component
         $this->ensureTenantConnection();
         $this->selectedNewProductId = $newProductId;
         $this->finalInternalCode = '';
+        $this->finalSku = '';
         $this->finalCategoryId = '';
+        $this->finalType = '';
+        $this->finalTaxId = '';
+        $this->finalBrandId = '';
+        $this->finalHouseId = '';
+        $this->finalPurchasingUnit = '';
+        $this->finalConsumptionUnit = '';
+        $this->finalManageSerial = '0';
+        $this->finalInventoriable = '1';
         $this->finalDescription = '';
         $this->finalStockWordpress = null;
         $this->finalMinQtyWordpress = null;
@@ -2986,9 +3038,10 @@ class Orders extends Component
             ->first();
 
         if ($newProduct) {
-            $this->finalInternalCode = ''; // Camilo ingresa el código final
             $this->finalDescription = $newProduct->description;
             $this->finalSupplierId = $newProduct->supplier_id;
+            $this->finalStockWordpress = $newProduct->stock_wordpress;
+            $this->finalMinQtyWordpress = $newProduct->min_qty_wordpress;
             $this->showModalConvertNewProduct = true;
         }
     }
@@ -3001,21 +3054,36 @@ class Orders extends Component
         $this->ensureTenantConnection();
         $this->validate([
             'finalInternalCode' => 'required|unique:tenant.inv_items,internal_code',
+            'finalSku' => 'required',
             'finalCategoryId' => 'required|integer',
+            'finalType' => 'required',
+            'finalTaxId' => 'required|integer',
+            'finalBrandId' => 'required|integer',
+            'finalHouseId' => 'required|integer',
+            'finalPurchasingUnit' => 'required|integer',
+            'finalConsumptionUnit' => 'required|integer',
+            'finalManageSerial' => 'required|boolean',
+            'finalInventoriable' => 'required|boolean',
             'finalDescription' => 'required|min:3',
-            'finalStockWordpress' => 'required|numeric|min:0|max:100',
+            'finalStockWordpress' => 'required|numeric|min:0',
             'finalMinQtyWordpress' => 'required|numeric|min:0',
             'finalSupplierId' => 'required|integer'
         ], [
             'finalInternalCode.required' => 'El código interno definitivo es obligatorio.',
             'finalInternalCode.unique' => 'Este código interno ya existe en el inventario real.',
+            'finalSku.required' => 'El SKU es obligatorio.',
             'finalCategoryId.required' => 'Debe seleccionar una categoría de inventario.',
+            'finalType.required' => 'Debe seleccionar el tipo.',
+            'finalTaxId.required' => 'Debe seleccionar el impuesto.',
+            'finalBrandId.required' => 'Debe seleccionar la marca.',
+            'finalHouseId.required' => 'Debe seleccionar la casa.',
+            'finalPurchasingUnit.required' => 'Debe seleccionar la unidad de compra.',
+            'finalConsumptionUnit.required' => 'Debe seleccionar la unidad de consumo.',
             'finalDescription.required' => 'La descripción o nombre es obligatorio.',
             'finalDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
             'finalStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
             'finalStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
             'finalStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
-            'finalStockWordpress.max' => 'El % Stock WordPress no puede superar el 100%.',
             'finalMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
             'finalMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser un valor numérico.',
             'finalMinQtyWordpress.min' => 'La Cantidad Mínima WordPress no puede ser menor a 0.',
@@ -3040,16 +3108,17 @@ class Orders extends Component
                 'categoryId' => $this->finalCategoryId,
                 'name' => $this->finalDescription,
                 'internal_code' => $this->finalInternalCode,
-                'sku' => $this->finalInternalCode, // Usar código interno como SKU inicialmente
+                'sku' => $this->finalSku,
                 'description' => $this->finalDescription,
-                'type' => 'IMPORTADO',
-                'brandId' => 1, // Por defecto marca inicial o general
-                'houseId' => 1,
-                'inventoriable' => 1,
-                'purchasing_unit' => 1, // Unidad
-                'consumption_unit' => 1,
+                'type' => $this->finalType,
+                'brandId' => $this->finalBrandId,
+                'houseId' => $this->finalHouseId,
+                'inventoriable' => $this->finalInventoriable ? 1 : 0,
+                'manage_serial' => $this->finalManageSerial ? 1 : 0,
+                'purchasing_unit' => $this->finalPurchasingUnit,
+                'consumption_unit' => $this->finalConsumptionUnit,
                 'status' => 1,
-                'taxId' => 1, // Impuesto general
+                'taxId' => $this->finalTaxId,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);

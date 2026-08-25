@@ -2336,6 +2336,24 @@
                         </div>
                     </div>
                     --}}
+                    
+                    <!-- Parámetros de WordPress -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-4">
+                        <h4 class="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">Parámetros de página web (Woocommerce)</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">% Stock WordPress <span class="text-red-500">*</span></label>
+                                <input type="number" step="0.01" wire:model="newProductStockWordpress" placeholder="Ej: 80" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                                @error('newProductStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Can Mínima WordPress <span class="text-red-500">*</span></label>
+                                <input type="number" step="0.01" wire:model="newProductMinQtyWordpress" placeholder="Ej: 5.00" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                                @error('newProductMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Imagen del Producto -->
                     <div>
