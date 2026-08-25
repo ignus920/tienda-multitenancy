@@ -31,10 +31,16 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </span>
-                    <input wire:model.live.debounce.300ms="search" type="search" 
+                    <input wire:model.live.debounce.300ms="search" type="search"
                         placeholder="Buscar por título, cliente, comercial..."
                         class="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
+
+                <!-- Limpiar filtros -->
+                <button wire:click="clearFilters" type="button" title="Limpiar todos los filtros"
+                    class="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-400 hover:text-red-500 hover:border-red-300 dark:hover:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                    <x-heroicon-o-trash class="w-4 h-4" />
+                </button>
 
                 <!-- Pestañas (Tabs) -->
                 <div class="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold self-stretch md:self-auto">
