@@ -180,7 +180,7 @@
 
                         <!-- Se agregan avances y preguntas durante el desarrollo/producción -->
                         @if($project->status === 'en_produccion')
-                            <button wire:click="$set('showAdvanceModal', true)"
+                            <button wire:click="openAdvanceModal"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-white rounded-lg font-bold shadow-2xs transition-colors">
                                 Registrar Avance Técnico
                             </button>
@@ -773,9 +773,10 @@
                     @error('advanceDescription') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Porcentaje de Avance General (0 - 100%) *</label>
-                    <input wire:model="advancePercentage" type="number" min="0" max="100"
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Porcentaje de Avance General ({{ $advanceModalLastPercentage }} - 100%) *</label>
+                    <input wire:model="advancePercentage" type="number" min="{{ $advanceModalLastPercentage }}" max="100"
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    <p class="text-3xs text-gray-400 mt-0.5">Último avance registrado: {{ $advanceModalLastPercentage }}%. No puedes registrar un porcentaje menor.</p>
                     @error('advancePercentage') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                 </div>
             </div>
