@@ -62,6 +62,21 @@ class ManageProjects extends Component
         $this->ensureTenantConnection();
     }
 
+    // Limpia el buscador y todos los filtros del listado (vencimiento, estado, fechas, participante)
+    public function clearFilters()
+    {
+        $this->reset([
+            'search',
+            'selectedStatus',
+            'selectedTab',
+            'vencimientoFilter',
+            'searchDateFrom',
+            'searchDateTo',
+            'searchParticipantId'
+        ]);
+        $this->resetPage();
+    }
+
     private function ensureTenantConnection()
     {
         $tenantId = session('tenant_id');
