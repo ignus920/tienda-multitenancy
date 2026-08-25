@@ -2420,12 +2420,14 @@
                                     </div>
                                 </div>
                             </label>
-                            <select wire:model="finalCategoryId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Seleccione una categoria</option>
-                                @foreach($this->categories ?? [] as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
+                            @livewire('tenant.items.categories', [
+                                'categoryId' => $finalCategoryId,
+                                'name' => 'finalCategoryId',
+                                'label' => 'Categoría',
+                                'placeholder' => 'Seleccione una categoria',
+                                'required' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
                             @error('finalCategoryId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
@@ -2510,13 +2512,14 @@
                                     </div>
                                 </div>
                                 </label>
-                                <select wire:model="finalType"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">-- Seleccione --</option>
-                                    <option value="IMPORTADO">IMPORTADO</option>
-                                    <option value="NACIONAL">NACIONAL</option>
-                                    <option value="TERMINADO">TERMINADO</option>
-                                </select>
+                                @livewire('tenant.items.types', [
+                                    'type' => $finalType,
+                                    'name' => 'finalType',
+                                    'label' => 'Tipo',
+                                    'placeholder' => 'Seleccione un tipo',
+                                    'required' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
                                 @error('finalType') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
@@ -2550,12 +2553,14 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Marca
                                 <span class="text-red-500 ml-0.5">*</span>
                             </label>
-                            <select wire:model="finalBrandId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Seleccione una marca</option>
-                                @foreach($this->brands ?? [] as $brand)
-                                    <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                @endforeach
-                            </select>
+                            @livewire('tenant.items.brand',[
+                                'brandId' => $finalBrandId,
+                                'name' => 'finalBrandId',
+                                'label' => 'Marca',
+                                'placeholder' => 'Seleccione una marca',
+                                'required' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
                             @error('finalBrandId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
@@ -2563,12 +2568,14 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Casa
                                 <span class="text-red-500 ml-0.5">*</span>
                             </label>
-                            <select wire:model="finalHouseId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Seleccione una casa</option>
-                                @foreach($this->houses ?? [] as $house)
-                                    <option value="{{ $house->id }}">{{ $house->name }}</option>
-                                @endforeach
-                            </select>
+                            @livewire('tenant.items.house',[
+                                'houseId' => $finalHouseId,
+                                'name' => 'finalHouseId',
+                                'label' => 'Casa',
+                                'placeholder' => 'Seleccione una casa',
+                                'required' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
                             @error('finalHouseId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
@@ -2577,12 +2584,14 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Unidad de compra
                                     <span class="text-red-500 ml-0.5">*</span>
                                 </label>
-                                <select wire:model="finalPurchasingUnit" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">Seleccione una unidad de compra</option>
-                                    @foreach($this->units ?? [] as $unit)
-                                        <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-                                    @endforeach
-                                </select>
+                                @livewire('tenant.items.purchasing-unit', [
+                                    'purchaseUnitId' => $finalPurchasingUnit,
+                                    'name' => 'finalPurchasingUnit',
+                                    'label' => 'Unidad de compra',
+                                    'placeholder' => 'Seleccione una unidad de compra',
+                                    'required' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
                                 @error('finalPurchasingUnit') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
 
@@ -2590,12 +2599,14 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Unidad de consumo
                                     <span class="text-red-500 ml-0.5">*</span>
                                 </label>
-                                <select wire:model="finalConsumptionUnit" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">Seleccione una unidad de consumo</option>
-                                    @foreach($this->units ?? [] as $unit)
-                                        <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-                                    @endforeach
-                                </select>
+                                @livewire('tenant.items.consumption-unit', [
+                                    'consumptionUnitId' => $finalConsumptionUnit,
+                                    'name' => 'finalConsumptionUnit',
+                                    'label' => 'Unidad de consumo',
+                                    'placeholder' => 'Seleccione una unidad de consumo',
+                                    'required' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
                                 @error('finalConsumptionUnit') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
