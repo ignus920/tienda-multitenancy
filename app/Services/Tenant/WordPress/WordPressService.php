@@ -658,8 +658,11 @@ class WordPressService
         }
 
         // 1. Stock en bodega PRINCIPAL (storeId=2)
+        // Orden determinístico por si existiera más de un registro para el mismo item+bodega
+        // (dato heredado/manual): siempre se toma el más reciente, igual que en ManageItems.
         $storeStock = InvItemsStore::where('itemId', $item->id)
             ->where('storeId', 2)
+            ->orderByDesc('id')
             ->first();
 
         if (!$storeStock) {

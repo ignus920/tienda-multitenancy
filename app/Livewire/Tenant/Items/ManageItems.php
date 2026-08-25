@@ -363,7 +363,7 @@ class ManageItems extends Component
         $this->inventoriable = $item->inventoriable;
 
         if ($item->inventoriable == 1) {
-            $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
+            $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
             $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
             $this->wpMinStock = $storeRecord?->wp_min_stock ?? 0;
         }
@@ -626,7 +626,7 @@ class ManageItems extends Component
                         $this->createItemStore($item);
                     } elseif ($item->inventoriable == 1) {
                         // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
-                        $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
+                        $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
                         if (!$existingRecord) {
                             Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
                                 'item_id' => $item->id
@@ -1187,7 +1187,7 @@ class ManageItems extends Component
             $item->tax->name ?? 'Sin impuesto',
             $item->status ? 'Activo' : 'Inactivo',
             $item->inventoriable == 1 ? 'Sí' : 'No',
-            $item->inventoriable == 1 ? ($item->invItemsStore->firstWhere('storeId', 2)->wp_stock_percentage ?? 100) . '%' : 'N/A',
+            $item->inventoriable == 1 ? ($item->invItemsStore->where('storeId', 2)->sortByDesc('id')->first()->wp_stock_percentage ?? 100) . '%' : 'N/A',
             $precios['Precio Base'],
             $precios['Precio Regular'],
             $precios['Precio Crédito'],
@@ -2187,6 +2187,46 @@ class ManageItems extends Component
             ]);
             return null;
         }
+    }
+
+    /**
+     * Guarda % Stock WordPress y Cant Mínima WordPress de forma independiente
+     * al resto del formulario del item, para que un dato inválido en otro campo
+     * (marca, casa, categoría, etc.) no bloquee silenciosamente este guardado.
+     */
+    public function saveWordPressParams()
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->item_id) {
+            return;
+        }
+
+        $this->validate([
+            'wpStockPercentage' => 'required|numeric|min:0|max:100',
+            'wpMinStock' => 'required|numeric|min:0',
+        ], [], [
+            'wpStockPercentage' => '% Stock WordPress',
+            'wpMinStock' => 'Cant Mínima WordPress',
+        ]);
+
+        $item = Items::findOrFail($this->item_id);
+
+        $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
+
+        if (!$storeRecord) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Este item no tiene registro de stock en la bodega principal.']);
+            return;
+        }
+
+        $storeRecord->update([
+            'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+            'wp_min_stock' => max(0, (float) $this->wpMinStock),
+        ]);
+
+        $this->syncItemWithWordPress($item);
+
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Parámetros de WordPress guardados y sincronizados con éxito.']);
     }
 
     /**

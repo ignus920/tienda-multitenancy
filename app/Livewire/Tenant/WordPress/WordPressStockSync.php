@@ -55,7 +55,7 @@ class WordPressStockSync extends Component
             ->limit(20)
             ->get()
             ->map(function ($item) {
-                $store      = $item->invItemsStore->firstWhere('storeId', 2);
+                $store      = $item->invItemsStore->where('storeId', 2)->sortByDesc('id')->first();
                 $stockBruto = (float) ($store?->stock_items_store ?? 0);
                 $cuarentena = (float) ($item->quarantine_stock ?? 0);
                 $stockMin   = (float) ($store?->wp_min_stock ?? 0);
