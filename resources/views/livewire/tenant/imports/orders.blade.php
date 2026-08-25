@@ -2387,8 +2387,9 @@
 
     <!-- MODAL: Convertir Producto Nuevo a Real (Camilo) -->
     @if($showModalConvertNewProduct)
-        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-start justify-center pt-10 pb-10 px-4">
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full border border-gray-200 dark:border-gray-700">
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50">
+            <div class="relative min-h-screen flex items-center justify-center p-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -2720,6 +2721,7 @@
                         </button>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
     @endif
