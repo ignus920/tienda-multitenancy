@@ -59,6 +59,7 @@ class ProjectWorkspace extends Component
     // Campos de Avance de Laboratorio
     public $advanceDescription = '';
     public $advancePercentage = 0;
+    public $advanceModalLastPercentage = 0;
 
     // Campos de Cierre Laboratorio
     public $completion_date;
@@ -446,13 +447,36 @@ class ProjectWorkspace extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Pregunta marcada como cerrada']);
     }
 
+    // Obtiene el último porcentaje de avance registrado en el proyecto (0 si no hay ninguno)
+    private function getLastAdvancePercentage(): int
+    {
+        return (int) (ProjectAdvance::where('project_id', $this->projectId)
+            ->orderByDesc('created_at')
+            ->value('percentage') ?? 0);
+    }
+
+    // Abrir modal de avance técnico, precargado con el último porcentaje registrado
+    public function openAdvanceModal()
+    {
+        $this->ensureTenantConnection();
+        $this->advanceDescription = '';
+        $this->advanceModalLastPercentage = $this->getLastAdvancePercentage();
+        $this->advancePercentage = $this->advanceModalLastPercentage;
+        $this->showAdvanceModal = true;
+    }
+
     // Agregar avance de producción (Laboratorio)
     public function addAdvance()
     {
         $this->ensureTenantConnection();
+
+        $lastPercentage = $this->getLastAdvancePercentage();
+
         $this->validate([
             'advanceDescription' => 'required|string',
-            'advancePercentage' => 'required|integer|min:0|max:100'
+            'advancePercentage' => 'required|integer|min:' . $lastPercentage . '|max:100'
+        ], [
+            'advancePercentage.min' => "El porcentaje no puede ser menor al último avance registrado ({$lastPercentage}%)."
         ]);
 
         ProjectAdvance::create([
