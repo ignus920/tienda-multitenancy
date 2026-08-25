@@ -53,19 +53,67 @@ class Orders extends Component
     public $finalInternalCode;
     public $finalSku;
     public $finalCategoryId;
-    public $finalType;
-    public $finalTaxId;
-    public $finalBrandId;
-    public $finalHouseId;
-    public $finalPurchasingUnit;
-    public $finalConsumptionUnit;
-    public $finalManageSerial;
-    public $finalInventoriable;
-    public $finalDescription;
-    public $finalStockWordpress;
-    public $finalMinQtyWordpress;
-    public $finalSupplierId;
+    public $finalType = '';
+    public $finalTaxId = '';
+    public $finalBrandId = '';
+    public $finalHouseId = '';
+    public $finalPurchasingUnit = '';
+    public $finalConsumptionUnit = '';
+    public $finalManageSerial = '0';
+    public $finalInventoriable = '1';
+    public $finalDescription = '';
+    public $finalStockWordpress = null;
+    public $finalMinQtyWordpress = null;
+    public $finalSupplierId = '';
+
     public $tempValues = [];
+
+    // tipos disponibles
+    public $types = [
+        'COMBO'           => 'Combo',
+        'COMPRA NACIONAL' => 'Compra nacional',
+        'IMPORTADO'       => 'Importado',
+        'PRODUCIDO'       => 'Producido',
+        'INSUMO'          => 'Insumo',
+        'ENSAMBLADO'      => 'Ensamblado',
+        'PROYECTADOS'     => 'Proyectados',
+        'DESCONTINUADOS'  => 'Descontinuados',
+        'CZCL'            => 'CZCL',
+        'SERVICIO'        => 'Servicio',
+    ];
+
+    protected $listeners = [
+        'category-changed' => 'onCategorySelected',
+        'brand-changed' => 'onBrandSelected',
+        'house-changed' => 'onHouseSelected',
+        'purchase-unit-changed' => 'onPurchaseUnitSelected',
+        'consumption-unit-changed' => 'onConsumptionUnitSelected',
+    ];
+
+    public function onCategorySelected($id)
+    {
+        $this->finalCategoryId = $id;
+    }
+
+    public function onBrandSelected($id)
+    {
+        $this->finalBrandId = $id;
+    }
+
+    public function onHouseSelected($id)
+    {
+        $this->finalHouseId = $id;
+    }
+
+    public function onPurchaseUnitSelected($id)
+    {
+        $this->finalPurchasingUnit = $id;
+    }
+
+    public function onConsumptionUnitSelected($id)
+    {
+        $this->finalConsumptionUnit = $id;
+    }
 
     // Propiedades para ordenar productos convertidos en lote
     public $selectedConvertedIds = [];
