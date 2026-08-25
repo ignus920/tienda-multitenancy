@@ -67,9 +67,10 @@
             class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
             Participantes
         </button>
-        <span class="px-4 py-1.5 rounded-md text-gray-300 dark:text-gray-600 cursor-not-allowed" title="Próximamente">
+        <button wire:click="$set('activeTab', 'archivos')"
+            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
             Archivos
-        </span>
+        </button>
     </div>
 
     <!-- Layout Grid -->
@@ -408,9 +409,32 @@
 
                                 <!-- Contenido del mensaje -->
                                 <div x-show="!editing">
-                                    <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
-                                        {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
-                                    </p>
+                                    @if(trim($msg->message ?? ''))
+                                        <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
+                                            {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
+                                        </p>
+                                    @endif
+
+                                    <!-- Adjuntos del mensaje (solo dentro de esta burbuja, sin mosaico) -->
+                                    @if($msg->files->isNotEmpty())
+                                        <div class="flex flex-col gap-1.5 {{ trim($msg->message ?? '') ? 'mt-2' : '' }}">
+                                            @foreach($msg->files as $file)
+                                                <a href="{{ Storage::url($file->file_path) }}" target="_blank"
+                                                    class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-2xs">
+                                                    @if($file->is_image)
+                                                        <x-heroicon-o-photo class="w-4 h-4 text-indigo-500 shrink-0" />
+                                                    @elseif(in_array($file->file_type, ['xls', 'xlsx']))
+                                                        <x-heroicon-o-table-cells class="w-4 h-4 text-emerald-500 shrink-0" />
+                                                    @elseif($file->file_type === 'pdf')
+                                                        <x-heroicon-o-document-text class="w-4 h-4 text-red-500 shrink-0" />
+                                                    @else
+                                                        <x-heroicon-o-document class="w-4 h-4 text-indigo-500 shrink-0" />
+                                                    @endif
+                                                    <span class="truncate text-gray-700 dark:text-gray-200 font-medium">{{ $file->file_name }}</span>
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
 
                                 @if($isMe)
@@ -560,7 +584,30 @@
                 </div>
 
                 @if($isParticipant)
+                    <!-- Archivos seleccionados, pendientes de enviar -->
+                    @if(!empty($attachments))
+                        <div class="flex flex-wrap gap-1.5 mb-2">
+                            @foreach($attachments as $index => $attachment)
+                                <span class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-2xs text-gray-700 dark:text-gray-200">
+                                    <x-heroicon-o-paper-clip class="w-3 h-3 text-gray-400" />
+                                    {{ $attachment->getClientOriginalName() }}
+                                    <button type="button" wire:click="removeAttachment({{ $index }})" class="p-0.5 text-gray-400 hover:text-red-500 rounded-full">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            @endforeach
+                        </div>
+                        @error('attachments.*') <span class="text-2xs text-red-500 block mb-1.5">{{ $message }}</span> @enderror
+                    @endif
+
                     <div class="flex items-end gap-3 relative">
+                        <label class="flex items-center justify-center w-10 h-10 shrink-0 mb-0.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-white dark:bg-gray-700 rounded-full shadow-sm border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors"
+                            title="Adjuntar fotografía o archivo">
+                            <input type="file" wire:model="attachments" multiple class="hidden" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx">
+                            <x-heroicon-o-paper-clip class="w-5 h-5" />
+                        </label>
                         <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
                             <textarea x-ref="chatTextarea" wire:model="newMessageText"
                                 @keyup="checkTrigger" @input="checkTrigger"
@@ -599,6 +646,11 @@
         <!-- Participantes -->
         <div class="lg:col-span-2">
             <livewire:tenant.projects.project-participants :project-id="$project->id" :key="'participants-'.$project->id" />
+        </div>
+        @elseif($activeTab === 'archivos')
+        <!-- Archivos -->
+        <div class="lg:col-span-2">
+            <livewire:tenant.projects.project-files :project-id="$project->id" :key="'files-'.$project->id" />
         </div>
         @endif
 
