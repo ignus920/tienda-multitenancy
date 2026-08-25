@@ -266,19 +266,19 @@ class Orders extends Component
     #[Computed]
     public function brands()
     {
-        return DB::connection('tenant')->table('inv_values')->where('type', 'brands')->where('status', 1)->get();
+        return DB::connection('tenant')->table('inv_values')->where('type', 'brands')->get();
     }
 
     #[Computed]
     public function houses()
     {
-        return DB::connection('tenant')->table('inv_values')->where('type', 'houses')->where('status', 1)->get();
+        return DB::connection('tenant')->table('inv_values')->where('type', 'houses')->get();
     }
 
     #[Computed]
     public function units()
     {
-        return DB::connection('tenant')->table('inv_values')->where('type', 'units')->where('status', 1)->get();
+        return DB::connection('tenant')->table('inv_values')->where('type', 'units')->get();
     }
 
     public function putFilter($statusId)
