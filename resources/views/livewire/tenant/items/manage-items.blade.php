@@ -849,8 +849,8 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </button>
-                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0).
+                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0). Para que se publique el 100% del stock (ej: Stock=1, WP=1), se debe dejar en 0 y % Stock WordPress en 100.
                                             </div>
                                         </div>
                                     </label>
@@ -860,6 +860,16 @@
                                         placeholder="0">
                                     @error('wpMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                                 </div>
+                                @if($item_id)
+                                    <div class="col-span-2 flex justify-end">
+                                        <button type="button" wire:click="saveWordPressParams" wire:loading.attr="disabled" wire:target="saveWordPressParams"
+                                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                            <span wire:loading.remove wire:target="saveWordPressParams">Guardar parámetros WordPress</span>
+                                            <span wire:loading wire:target="saveWordPressParams">Guardando...</span>
+                                        </button>
+                                    </div>
+                                    <p class="col-span-2 text-2xs text-gray-400 -mt-2">Este botón guarda y sincroniza solo estos dos campos, sin necesidad de guardar el resto del formulario.</p>
+                                @endif
                             </div>
                             @endif
                         </div>
