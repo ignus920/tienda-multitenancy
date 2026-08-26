@@ -450,20 +450,24 @@ class WordPressService
         return null;
     }
 
-    public function setFeaturedImage($productId, $mediaId)
+    public function setFeaturedImage($productId, $mediaId, $parentId = null)
     {
         if (!$this->isConfigured()) return false;
 
         Log::info('🖼️ [WP] Asignando imagen principal', [
             'wp_product_id' => $productId,
             'wp_media_id'   => $mediaId,
+            'parent_id'     => $parentId
         ]);
 
         try {
+            $endpoint = $parentId ? "products/$parentId/variations/$productId" : "products/$productId";
+            $payload = $parentId 
+                ? ['image' => ['id' => (int)$mediaId]] 
+                : ['images' => [['id' => (int)$mediaId]]];
+
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", [
-                    'images' => [['id' => (int)$mediaId]]
-                ]);
+                ->put($this->baseUrl . $endpoint, $payload);
 
             Log::info('📡 [WP] Respuesta setFeaturedImage', [
                 'wp_product_id' => $productId,
@@ -489,18 +493,22 @@ class WordPressService
         return false;
     }
 
-    public function addToGallery($productId, $mediaId)
+    public function addToGallery($productId, $mediaId, $parentId = null)
     {
         if (!$this->isConfigured()) return false;
+
+        // En WooCommerce, la galería siempre pertenece al producto Padre
+        $targetId = $parentId ? $parentId : $productId;
 
         Log::info('🖼️ [WP] Agregando imagen a galería', [
             'wp_product_id' => $productId,
             'wp_media_id'   => $mediaId,
+            'target_wp_id'  => $targetId
         ]);
 
         try {
             $currentProduct = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->get($this->baseUrl . "products/$productId")
+                ->get($this->baseUrl . "products/$targetId")
                 ->json();
 
             $images = $currentProduct['images'] ?? [];
@@ -523,7 +531,7 @@ class WordPressService
             $images[] = ['id' => (int)$mediaId];
 
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", ['images' => $images]);
+                ->put($this->baseUrl . "products/$targetId", ['images' => $images]);
 
             Log::info('📡 [WP] Respuesta addToGallery', [
                 'wp_product_id'   => $productId,
@@ -1003,10 +1011,10 @@ class WordPressService
 
         if ($image->type === 'PRINCIPAL') {
             Log::info('🌟 [WP] Asignando como imagen PRINCIPAL del producto');
-            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId);
+            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId, $wpProduct['parent_id'] ?? null);
         } else {
             Log::info('📷 [WP] Agregando a GALERÍA del producto');
-            $result = $this->addToGallery($wpProduct['id'], $mediaId);
+            $result = $this->addToGallery($wpProduct['id'], $mediaId, $wpProduct['parent_id'] ?? null);
         }
 
         if (!$result) {
