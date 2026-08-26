@@ -2512,14 +2512,13 @@
                                     </div>
                                 </div>
                                 </label>
-                                @livewire('tenant.items.types', [
-                                    'type' => $finalType,
-                                    'name' => 'finalType',
-                                    'label' => 'Tipo',
-                                    'placeholder' => 'Seleccione un tipo',
-                                    'required' => true,
-                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                                ])
+                                <select wire:model="finalType" id="finalType" required
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Seleccione un tipo</option>
+                                    @foreach($types as $k => $v)
+                                    <option value="{{ $k }}">{{ $v }}</option>
+                                    @endforeach
+                                </select>
                                 @error('finalType') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
