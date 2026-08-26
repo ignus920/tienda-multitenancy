@@ -3163,7 +3163,7 @@ class Orders extends Component
                 'brandId' => $this->finalBrandId,
                 'houseId' => $this->finalHouseId,
                 'inventoriable' => $this->finalInventoriable ? 1 : 0,
-                'manage_serial' => $this->finalManageSerial ? 1 : 0,
+                'handles_serial' => $this->finalManageSerial ? 1 : 0,
                 'purchasing_unit' => $this->finalPurchasingUnit,
                 'consumption_unit' => $this->finalConsumptionUnit,
                 'status' => 1,
