@@ -16,8 +16,8 @@
     <!-- Buscador de productos ERP -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agregar producto del ERP</span>
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 w-full">
-            <div class="relative md:col-span-5 w-full" x-data="{ open: true }" @click.away="open = false">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <div class="relative md:col-span-5" x-data="{ open: true }" @click.away="open = false">
                 <input wire:model.live.debounce.300ms="search" @focus="open = true" type="text" placeholder="Buscar por código, referencia o nombre..."
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 @if(!empty($searchResults) && $search)
@@ -35,16 +35,16 @@
                     </div>
                 @endif
             </div>
-            <div class="md:col-span-2 w-full">
+            <div class="md:col-span-2">
                 <input wire:model="quantity" type="number" step="0.01" min="0.01" placeholder="Cant."
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 @error('quantity') <span class="text-3xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
             </div>
-            <div class="md:col-span-3 w-full">
+            <div class="md:col-span-3">
                 <input wire:model="observations" type="text" placeholder="Observaciones (opcional)"
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
-            <div class="md:col-span-2 flex items-start w-full">
+            <div class="md:col-span-2 flex items-start">
                 <button type="button" wire:click="addErpMaterial" 
                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors">
                     AGREGAR
@@ -108,10 +108,10 @@
                                     {{ $material->origin === 'erp' ? 'ERP' : 'Externo' }}
                                 </span>
                                 <div x-show="show" x-transition.opacity style="display: none;"
-                                     class="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-1 w-max px-2 py-1.5 bg-gray-800 text-white text-[10px] rounded shadow-lg leading-tight text-center">
+                                     class="absolute z-50 left-0 bottom-full mb-1 w-max px-2 py-1.5 bg-gray-800 text-white text-[10px] rounded shadow-lg leading-tight text-left">
                                     <span class="font-bold">{{ $material->creator ? $material->creator->name : 'Usuario Desconocido' }}</span><br>
                                     <span class="text-gray-300">{{ $material->created_at->format('d/m/Y h:i A') }}</span>
-                                    <div class="absolute w-2 h-2 bg-gray-800 rotate-45 left-1/2 -translate-x-1/2 -bottom-1"></div>
+                                    <div class="absolute w-2 h-2 bg-gray-800 rotate-45 left-4 -bottom-1"></div>
                                 </div>
                             </div>
                         </td>
