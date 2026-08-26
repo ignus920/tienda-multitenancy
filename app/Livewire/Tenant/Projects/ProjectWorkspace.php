@@ -550,6 +550,33 @@ class ProjectWorkspace extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Avance técnico guardado']);
     }
 
+    // Agregar novedad de cliente
+    public function addNovelty()
+    {
+        $this->ensureTenantConnection();
+
+        $this->validate([
+            'noveltyDescription' => 'required|string'
+        ]);
+
+        \App\Models\Tenant\Projects\ProjectNovelty::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'description' => $this->noveltyDescription
+        ]);
+
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "Novedad del cliente:\n\n{$this->noveltyDescription}"
+        ]);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
+
+        $this->reset(['noveltyDescription']);
+        $this->showNoveltyModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Novedad registrada y enviada al chat']);
+    }
+
     // Terminar producción (Laboratorio)
     public function finishProduction()
     {
