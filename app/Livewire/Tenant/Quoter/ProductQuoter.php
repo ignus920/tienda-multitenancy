@@ -3038,6 +3038,25 @@ class ProductQuoter extends Component
             }
             $sumAdditional += $this->getCleanPaymentValue($payment['value']);
 
+            // Validar si este método requiere soporte obligatorio
+            $methodName = strtoupper(trim(\Illuminate\Support\Facades\DB::connection('tenant')->table('vnt_method_payments')->where('id', $payment['method_payment_id'])->value('name')));
+            $exemptKeywords = ['EFECTIVO', 'CONTRA ENTREGA', 'CONTRAENTREGA', 'CREDITO', 'TARJETA', 'WOMPI', 'COVINOC', 'ADDI'];
+            $isExempt = false;
+            foreach ($exemptKeywords as $keyword) {
+                if (strpos($methodName, $keyword) !== false) {
+                    $isExempt = true;
+                    break;
+                }
+            }
+            
+            if (!$isExempt && empty($this->additionalPaymentFiles[$index])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => "El archivo de soporte (imagen) es obligatorio para el método de pago: {$methodName}."
+                ]);
+                return;
+            }
+
             // Validar archivo de soporte para este pago si fue cargado
             if (isset($this->additionalPaymentFiles[$index])) {
                 try {
