@@ -2249,7 +2249,20 @@
                 <div class="border-2 border-gray-800 dark:border-slate-300 rounded-lg p-6 bg-white dark:bg-slate-800 text-center space-y-3">
                     <p class="text-sm font-semibold uppercase tracking-widest text-gray-600 dark:text-slate-400">Destinatario:</p>
                     <p class="text-xl font-extrabold text-gray-900 dark:text-white uppercase">
-                        @if($selectedCustomer)
+                        @php
+                            $isDespacho = false;
+                            $branchName = null;
+                            if ($selectedBranchId && !empty($branches)) {
+                                $branch = collect($branches)->firstWhere('id', $selectedBranchId);
+                                if ($branch && isset($branch['branch_type']) && $branch['branch_type'] === \App\Models\Tenant\Customer\VntWarehouse::BRANCH_TYPE_DESPACHO) {
+                                    $isDespacho = true;
+                                    $branchName = $branch['name'];
+                                }
+                            }
+                        @endphp
+                        @if($isDespacho && $branchName)
+                            {{ $branchName }}
+                        @elseif($selectedCustomer)
                             {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
                         @endif
                     </p>

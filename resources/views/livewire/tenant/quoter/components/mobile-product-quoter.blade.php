@@ -632,9 +632,22 @@ $header = 'Seleccionar productos';
                     <div>
                         <span class="block text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Cliente</span>
                         <span class="text-sm font-bold text-gray-900 dark:text-white">
-                            @if($selectedCustomer)
-                                {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
-                            @endif
+                        @php
+                            $isDespacho = false;
+                            $branchName = null;
+                            if ($selectedBranchId && !empty($branches)) {
+                                $branch = collect($branches)->firstWhere('id', $selectedBranchId);
+                                if ($branch && isset($branch['branch_type']) && $branch['branch_type'] === \App\Models\Tenant\Customer\VntWarehouse::BRANCH_TYPE_DESPACHO) {
+                                    $isDespacho = true;
+                                    $branchName = $branch['name'];
+                                }
+                            }
+                        @endphp
+                        @if($isDespacho && $branchName)
+                            {{ $branchName }}
+                        @elseif($selectedCustomer)
+                            {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
+                        @endif
                         </span>
                     </div>
 
