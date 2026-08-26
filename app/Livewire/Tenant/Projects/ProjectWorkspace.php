@@ -79,6 +79,8 @@ class ProjectWorkspace extends Component
     public $showLabFinishModal = false;
     public $showCloseModal = false;
     public $showStartDevelopmentModal = false;
+    public $showNoveltyModal = false;
+    public $noveltyDescription = '';
 
     #[On('echo-private:project.{projectId},.NewProjectMessage')]
     public function refreshChat()
@@ -430,11 +432,12 @@ class ProjectWorkspace extends Component
             'status' => 'pendiente'
         ]);
 
-        \App\Models\Tenant\Projects\ProjectMessage::create([
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $this->projectId,
             'user_id' => Auth::id(),
-            'message' => "**Preguntar a Cliente:** {$this->newQuestionText}"
+            'message' => "Preguntar a Cliente:\n\n{$this->newQuestionText}"
         ]);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         $this->reset(['newQuestionText']);
         $this->showQuestionModal = false;
@@ -535,11 +538,12 @@ class ProjectWorkspace extends Component
             'percentage' => $this->advancePercentage
         ]);
 
-        \App\Models\Tenant\Projects\ProjectMessage::create([
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $this->projectId,
             'user_id' => Auth::id(),
-            'message' => "**Avance del proyecto:** {$this->advanceDescription}\n% avance {$this->advancePercentage}%"
+            'message' => "Avance del proyecto:\n\n{$this->advanceDescription}\n% avance: {$this->advancePercentage}%"
         ]);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         $this->reset(['advanceDescription', 'advancePercentage']);
         $this->showAdvanceModal = false;
