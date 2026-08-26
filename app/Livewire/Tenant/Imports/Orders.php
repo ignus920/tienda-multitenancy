@@ -1076,7 +1076,7 @@ class Orders extends Component
 
                             if ($principalStore) {
                                 $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $import->item_id)
-                                    ->where('storeId', $principalStore->id)
+                                    ->where('storeId', 2)
                                     ->first();
 
                                 $qtyToAdd = $import->qty_shipped;
@@ -1087,7 +1087,7 @@ class Orders extends Component
                                 } else {
                                     \App\Models\Tenant\Items\InvItemsStore::create([
                                         'itemId' => $import->item_id,
-                                        'storeId' => $principalStore->id,
+                                        'storeId' => 2,
                                         'stock_items_store' => $qtyToAdd,
                                         'initial_stock' => 0.00,
                                         'wp_stock_percentage' => 100,
@@ -2976,7 +2976,9 @@ class Orders extends Component
             'newProductExw', 
             'newProductIncrFletes', 
             'newProductPvp1', 
-            'newProductPvpMin'
+            'newProductPvpMin',
+            'newProductStockWordpress',
+            'newProductMinQtyWordpress'
         ]);
         
         // Obtener el último código secuencial NEW_PRODUCTXX
@@ -3193,7 +3195,7 @@ class Orders extends Component
             if ($principalStore) {
                 DB::connection('tenant')->table('inv_items_store')->insert([
                     'itemId'              => $itemId,
-                    'storeId'             => $principalStore->id,
+                    'storeId'             => 2,
                     'initial_stock'       => 0,
                     'stock_items_store'   => 0,
                     'stock_min'           => 0,
