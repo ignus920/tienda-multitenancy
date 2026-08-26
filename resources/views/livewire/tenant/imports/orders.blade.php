@@ -2316,6 +2316,31 @@
                         </div>
                     </div>
 
+                    <!-- Parámetros de WordPress -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">% Stock WordPress <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="inline-block relative">
+                                    <svg @mouseenter="show = true" @mouseleave="show = false" class="w-4 h-4 text-gray-400 inline-block ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div x-show="show" class="absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-800 rounded-lg shadow-lg -left-20" style="display: none;">Porcentaje del stock disponible que se sincronizará con WordPress.</div>
+                                </div>
+                            </label>
+                            <input type="number" wire:model="newProductStockWordpress" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            @error('newProductStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Can Mínima WordPress <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="inline-block relative">
+                                    <svg @mouseenter="show = true" @mouseleave="show = false" class="w-4 h-4 text-gray-400 inline-block ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div x-show="show" class="absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-800 rounded-lg shadow-lg -left-20" style="display: none;">Cantidad mínima requerida en inventario para enviarla a WooCommerce.</div>
+                                </div>
+                            </label>
+                            <input type="number" wire:model="newProductMinQtyWordpress" min="0" step="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            @error('newProductMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
                     {{-- Cantidad Mínima del Proveedor y Factores Generales (Ocultados por no ser necesarios inicialmente) --}}
                     {{--
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
