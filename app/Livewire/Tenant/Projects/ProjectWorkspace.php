@@ -363,11 +363,12 @@ class ProjectWorkspace extends Component
 
         // Enviar mensaje automático al chat del proyecto
         $userName = \Illuminate\Support\Facades\Auth::user()->name;
-        \App\Models\Tenant\Projects\ProjectMessage::create([
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $project->id,
             'user_id' => \Illuminate\Support\Facades\Auth::id(),
             'message' => "**AVANCE DEL PROYECTO**\n\n{$userName} ha Creado Orden de Pedido"
         ]);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         // Ya no asignamos una única cantidad y precio al componente
         $this->showOrderModal = false;
@@ -381,11 +382,12 @@ class ProjectWorkspace extends Component
 
         // Enviar mensaje automático al chat del proyecto
         $userName = \Illuminate\Support\Facades\Auth::user()->name;
-        \App\Models\Tenant\Projects\ProjectMessage::create([
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $this->projectId,
             'user_id' => \Illuminate\Support\Facades\Auth::id(),
             'message' => "**AVANCE DEL PROYECTO**\n\n{$userName} ha Iniciado Producción"
         ]);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
     }
 
     // Marcar en negociación (Comercial) - Proyecto externo
@@ -561,11 +563,12 @@ class ProjectWorkspace extends Component
             'status' => 'terminado' // Listo para entregar
         ]);
 
-        \App\Models\Tenant\Projects\ProjectMessage::create([
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $this->projectId,
             'user_id' => Auth::id(),
             'message' => "**Proyecto terminado:** " . ($this->lab_observations ?: 'Sin observaciones adicionales.')
         ]);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         $this->showLabFinishModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producción marcada como terminada con éxito']);
