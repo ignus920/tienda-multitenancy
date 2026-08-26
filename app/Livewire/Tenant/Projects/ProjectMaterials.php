@@ -67,7 +67,6 @@ class ProjectMaterials extends Component
     public function updatedSearch()
     {
         $this->ensureTenantConnection();
-
         if (strlen($this->search) < 2) {
             $this->searchResults = [];
             return;
@@ -94,8 +93,26 @@ class ProjectMaterials extends Component
         })->toArray();
     }
 
-    public function addErpMaterial($itemId, $itemName, $itemPrice)
+    public $selectedErpItem = null;
+
+    public function selectErpMaterial($itemId, $itemName, $itemPrice)
     {
+        $this->selectedErpItem = [
+            'id' => $itemId,
+            'name' => $itemName,
+            'price' => $itemPrice
+        ];
+        $this->search = $itemName;
+        $this->searchResults = [];
+    }
+
+    public function addErpMaterial()
+    {
+        if (!$this->selectedErpItem) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Debes seleccionar un producto primero.']);
+            return;
+        }
+
         $this->ensureTenantConnection();
         $this->validate([
             'quantity' => 'required|numeric|min:0.01'
@@ -106,18 +123,17 @@ class ProjectMaterials extends Component
 
         ProjectMaterial::create([
             'project_id' => $this->projectId,
-            'item_id' => $itemId,
+            'item_id' => $this->selectedErpItem['id'],
             'origin' => 'erp',
-            'description' => $itemName,
+            'description' => $this->selectedErpItem['name'],
             'quantity' => $this->quantity,
-            'unit_value' => $itemPrice,
-            'line_cost' => $this->quantity * $itemPrice,
+            'unit_value' => $this->selectedErpItem['price'],
+            'line_cost' => $this->quantity * $this->selectedErpItem['price'],
             'observations' => $this->observations,
             'created_by' => Auth::id()
         ]);
 
-        $this->reset(['search', 'searchResults', 'quantity', 'observations']);
-        $this->quantity = 1;
+        $this->reset(['search', 'quantity', 'observations', 'searchResults', 'selectedErpItem']);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Material agregado']);
     }
 
@@ -200,7 +216,7 @@ class ProjectMaterials extends Component
 
     // --- Exportación (trait WithExport: exportExcel(), exportCsv(), exportPdf()) ---
 
-    protected function getDataForExport()
+    public function getDataForExport()
     {
         $this->ensureTenantConnection();
         return ProjectMaterial::where('project_id', $this->projectId)
@@ -208,12 +224,12 @@ class ProjectMaterials extends Component
             ->get();
     }
 
-    protected function getExportHeadings(): array
+    public function getExportHeadings(): array
     {
         return ['Origen', 'Descripción', 'Cantidad', 'Precio Unitario', 'Costo', 'Observaciones'];
     }
 
-    protected function getExportMapping($item = null)
+    public function getExportMapping($item = null)
     {
         if ($item === null) {
             return null;
@@ -228,9 +244,24 @@ class ProjectMaterials extends Component
         ];
     }
 
-    protected function getExportFilename(): string
+    public function getExportFilename(): string
     {
-        return 'materiales_proyecto_' . $this->projectId . '_' . now()->format('Y-m-d_His');
+        $project = \App\Models\Tenant\Projects\Project::with('customer')->find($this->projectId);
+        $projectName = 'proyecto';
+        $clientName = 'cliente';
+
+        if ($project) {
+            if (!empty($project->title)) {
+                $wordsProject = array_filter(explode(' ', trim($project->title)));
+                $projectName = implode('_', array_slice($wordsProject, 0, 2));
+            }
+            if ($project->customer && !empty($project->customer->name)) {
+                $wordsClient = array_filter(explode(' ', trim($project->customer->name)));
+                $clientName = $wordsClient[0] ?? 'cliente';
+            }
+        }
+
+        return $projectName . '_' . $clientName;
     }
 
     public function render()

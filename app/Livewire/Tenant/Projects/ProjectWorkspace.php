@@ -43,11 +43,10 @@ class ProjectWorkspace extends Component
     public $attachments = [];
 
     // Campos de la Orden de Producción (Comercial)
-    public $qty;
-    public $price_unit;
-    public $total_value;
+    public $orderItems = [
+        ['qty' => 1, 'price_unit' => '', 'observations' => '']
+    ];
     public $delivery_date;
-    public $prod_observations;
 
     // Campos de Pregunta para el Cliente (Laboratorio)
     public $newQuestionText = '';
@@ -232,25 +231,6 @@ class ProjectWorkspace extends Component
                     $senderName, $messagePreview, 'mencion', $notification->id
                 ));
             }
-        } else {
-            // Sin menciones: notificar a TODOS los participantes (excepto al emisor)
-            $participantIds = ProjectParticipant::where('project_id', $this->projectId)
-                ->where('user_id', '!=', Auth::id())
-                ->pluck('user_id');
-
-            foreach ($participantIds as $userId) {
-                $notification = ProjectNotification::create([
-                    'user_id' => $userId,
-                    'project_id' => $this->projectId,
-                    'message_id' => $message->id,
-                    'sender_id' => Auth::id(),
-                    'type' => 'mensaje',
-                ]);
-                broadcast(new NewProjectNotification(
-                    $userId, $this->projectId, $project->title ?? 'Proyecto',
-                    $senderName, $messagePreview, 'mensaje', $notification->id
-                ));
-            }
         }
 
         $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds', 'attachments']);
@@ -330,33 +310,60 @@ class ProjectWorkspace extends Component
     }
 
     // Crear orden de producción (Comercial)
+    public function addOrderItem()
+    {
+        $this->orderItems[] = ['qty' => 1, 'price_unit' => '', 'observations' => ''];
+    }
+
+    public function removeOrderItem($index)
+    {
+        if (count($this->orderItems) > 1) {
+            unset($this->orderItems[$index]);
+            $this->orderItems = array_values($this->orderItems);
+        }
+    }
+
     public function saveProductionOrder()
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'qty' => 'required|integer|min:1',
-            'price_unit' => 'required|numeric|min:0',
+            'orderItems' => 'required|array|min:1',
+            'orderItems.*.qty' => 'required|integer|min:1',
+            'orderItems.*.price_unit' => 'required|numeric|min:0',
+            'orderItems.*.observations' => 'nullable|string',
             'delivery_date' => 'required|date',
-            'prod_observations' => 'nullable|string'
         ]);
 
         $project = Project::findOrFail($this->projectId);
 
-        $total = $this->qty * $this->price_unit;
+        $totalGeneral = 0;
+        
+        // Guardar cada ítem
+        foreach ($this->orderItems as $item) {
+            $itemTotal = $item['qty'] * $item['price_unit'];
+            $totalGeneral += $itemTotal;
+            
+            \App\Models\Tenant\Projects\ProjectOrder::create([
+                'project_id' => $project->id,
+                'qty' => $item['qty'],
+                'price_unit' => $item['price_unit'],
+                'total_value' => $itemTotal,
+                'observations' => $item['observations'] ?? null,
+            ]);
+        }
 
         $this->logStatusChange($project, 'orden_creada');
+        
+        // Actualizamos el proyecto con el nuevo total y estado (ya no se guardan qty ni price_unit en la cabecera, o los dejamos en 0/null si se prefiere, pero actualizaremos el total)
         $project->update([
-            'qty' => $this->qty,
-            'price_unit' => $this->price_unit,
-            'total_value' => $total,
+            'total_value' => $totalGeneral,
             'delivery_date' => $this->delivery_date,
-            'prod_observations' => $this->prod_observations,
             'status' => 'orden_creada' // Cambia de cotización a orden creada
         ]);
 
-        $this->total_value = $total;
+        // Ya no asignamos una única cantidad y precio al componente
         $this->showOrderModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Orden de producción creada y guardada']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Orden de producción creada con ' . count($this->orderItems) . ' ítems']);
     }
 
     // Iniciar producción (Laboratorio o comercial) - Proyecto externo
