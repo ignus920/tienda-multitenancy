@@ -426,9 +426,9 @@
                                 
                                 <!-- Remitente (solo en mensajes de otros) -->
                                 @if(!$isMe)
-                                    <div class="text-3xs font-extrabold {{ $roleStyle['name'] }} mb-0.5 flex items-center gap-1.5">
+                                    <div class="text-sm font-extrabold {{ $roleStyle['name'] }} mb-0.5 flex items-center gap-1.5">
                                         {{ $msg->user->name }}
-                                        <span class="text-gray-400 font-normal">• {{ $msg->user->profile->name ?? 'Usuario' }}</span>
+                                        <span class="text-gray-400 font-normal text-[10px]">• {{ $msg->user->profile->name ?? 'Usuario' }}</span>
                                     </div>
                                 @endif
 
@@ -489,7 +489,7 @@
                                 @endif
 
                                 <!-- Hora -->
-                                <div class="flex items-center justify-end gap-1.5 mt-1 text-3xs text-gray-400">
+                                <div class="flex items-center justify-end gap-1.5 mt-1 text-[10px] text-gray-400">
                                     @if($isMe)
                                         <button type="button" x-show="canEdit && !editing" @click="editing = true" class="text-indigo-500 hover:text-indigo-600 font-semibold mr-1">Editar</button>
                                     @endif
