@@ -2316,6 +2316,31 @@
                         </div>
                     </div>
 
+                    <!-- Parámetros de WordPress -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">% Stock WordPress <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="inline-block relative">
+                                    <svg @mouseenter="show = true" @mouseleave="show = false" class="w-4 h-4 text-gray-400 inline-block ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div x-show="show" class="absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-800 rounded-lg shadow-lg -left-20" style="display: none;">Porcentaje del stock disponible que se sincronizará con WordPress.</div>
+                                </div>
+                            </label>
+                            <input type="number" wire:model="newProductStockWordpress" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            @error('newProductStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Can Mínima WordPress <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="inline-block relative">
+                                    <svg @mouseenter="show = true" @mouseleave="show = false" class="w-4 h-4 text-gray-400 inline-block ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div x-show="show" class="absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-800 rounded-lg shadow-lg -left-20" style="display: none;">Cantidad mínima requerida en inventario para enviarla a WooCommerce.</div>
+                                </div>
+                            </label>
+                            <input type="number" wire:model="newProductMinQtyWordpress" min="0" step="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            @error('newProductMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
                     {{-- Cantidad Mínima del Proveedor y Factores Generales (Ocultados por no ser necesarios inicialmente) --}}
                     {{--
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2329,14 +2354,6 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Porcentaje (%)</label>
                             <input type="number" step="0.01" wire:model="newProductPorcentaje" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
                         </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Factor</label>
-                            <input type="number" step="0.01" wire:model="newProductFactor" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                        </div>
-                    </div>
-                    --}}
-
                     <!-- Imagen del Producto -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Producto</label>
@@ -2395,8 +2412,9 @@
 
     <!-- MODAL: Convertir Producto Nuevo a Real (Camilo) -->
     @if($showModalConvertNewProduct)
-        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full border border-gray-200 dark:border-gray-700">
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50">
+            <div class="relative min-h-screen flex items-center justify-center p-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -2411,58 +2429,299 @@
 
                 <!-- Formulario -->
                 <form wire:submit.prevent="convertNewProductToReal" class="p-6 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código Interno Definitivo <span class="text-red-500">*</span></label>
-                            <input type="text" wire:model="finalInternalCode" placeholder="Ej: 7800201" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            @error('finalInternalCode') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <div class="space-y-6">
+                        <div class="mb-3">
+
+                            @livewire('tenant.items.categories', [
+                                'categoryId' => $finalCategoryId,
+                                'name' => 'finalCategoryId',
+                                'label' => 'Categoría',
+                                'placeholder' => 'Seleccione una categoria',
+                                'required' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('finalCategoryId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría del Inventario <span class="text-red-500">*</span></label>
-                            <select wire:model="finalCategoryId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                                <option value="">Seleccionar Categoría</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('finalCategoryId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Nombre
+                                <span class="text-red-500 ml-0.5">*</span>
+                                <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Nombre comercial o descripción corta del producto.
+                                    </div>
+                                </div>
+                            </label>
+                            <input wire:model="finalDescription" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Ingrese nombre del producto">
+                            @error('finalDescription') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                         </div>
-                    </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción / Nombre definitivo <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="finalDescription" placeholder="Nombre completo del producto" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        @error('finalDescription') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                        <div class="mb-3 grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Código interno
+                                    <span class="text-red-500 ml-0.5">*</span>
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Código de identificación interno del producto.
+                                    </div>
+                                </div>
+                                </label>
+                                <input wire:model="finalInternalCode" type="text"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Ingrese el código interno">
+                                @error('finalInternalCode') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    SKU
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Código SKU (Stock Keeping Unit) para el control de inventario.
+                                    </div>
+                                </div>
+                                </label>
+                                <input wire:model="finalSku" type="text"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Ingrese el sku">
+                                @error('finalSku') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor <span class="text-red-500">*</span></label>
-                        <select wire:model="finalSupplierId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="">Seleccionar Proveedor</option>
-                            @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('finalSupplierId') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                        <div class="mb-3 grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Tipo
+                                    <span class="text-red-500 ml-0.5">*</span>
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Define el tipo de artículo (Importado, Ensamblado, Producido, Insumo, etc.).
+                                    </div>
+                                </div>
+                                </label>
+                                <select wire:model="finalType" id="finalType" required
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Seleccione un tipo</option>
+                                    @foreach($types as $k => $v)
+                                    <option value="{{ $k }}">{{ $v }}</option>
+                                    @endforeach
+                                </select>
+                                @error('finalType') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Impuesto
+                                    <span class="text-red-500 ml-0.5">*</span>
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Porcentaje de IVA o impuesto aplicable a este producto.
+                                    </div>
+                                </div>
+                                </label>
+                                <select wire:model="finalTaxId"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    @foreach($this->taxes as $taxItem)
+                                    <option value="{{ $taxItem->id }}">{{ $taxItem->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('finalTaxId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
 
-                    <!-- Sección WooCommerce -->
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
-                        <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">Parámetros de Página Web (WooCommerce)</h4>
-                        
+                        <div class="mb-3">
+
+                            @livewire('tenant.items.brand',[
+                                'brandId' => $finalBrandId,
+                                'name' => 'finalBrandId',
+                                'label' => 'Marca',
+                                'placeholder' => 'Seleccione una marca',
+                                'required' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('finalBrandId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="mb-3">
+
+                            @livewire('tenant.items.house',[
+                                'houseId' => $finalHouseId,
+                                'name' => 'finalHouseId',
+                                'label' => 'Casa',
+                                'placeholder' => 'Seleccione una casa',
+                                'required' => true,
+                                'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                            ])
+                            @error('finalHouseId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">% Stock WordPress <span class="text-red-500">*</span></label>
-                                <input type="number" wire:model="finalStockWordpress" placeholder="Ej: 80" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
-                                @error('finalStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+
+                                @livewire('tenant.items.purchasing-unit', [
+                                    'purchaseUnitId' => $finalPurchasingUnit,
+                                    'name' => 'finalPurchasingUnit',
+                                    'label' => 'Unidad de compra',
+                                    'placeholder' => 'Seleccione una unidad de compra',
+                                    'required' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                                @error('finalPurchasingUnit') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Can Mínima WordPress <span class="text-red-500">*</span></label>
-                                <input type="number" step="0.01" wire:model="finalMinQtyWordpress" placeholder="Ej: 5.00" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
-                                @error('finalMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+
+                                @livewire('tenant.items.consumption-unit', [
+                                    'consumptionUnitId' => $finalConsumptionUnit,
+                                    'name' => 'finalConsumptionUnit',
+                                    'label' => 'Unidad de consumo',
+                                    'placeholder' => 'Seleccione una unidad de consumo',
+                                    'required' => true,
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                ])
+                                @error('finalConsumptionUnit') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
+                        </div>
+
+                        <div class="mb-3 grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Maneja Serial
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Indica si el producto requiere seguimiento mediante número de serie único.
+                                    </div>
+                                </div>
+                                </label>
+                                <select wire:model="finalManageSerial"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="1">SI</option>
+                                    <option value="0">NO</option>
+                                </select>
+                                @error('finalManageSerial') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                    Maneja Inventario
+                                    <!-- Tooltip -->
+                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Indica si se controlan las existencias físicas del producto en el inventario.
+                                    </div>
+                                </div>
+                                </label>
+                                <select wire:model="finalInventoriable"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="1">SI</option>
+                                    <option value="0">NO</option>
+                                </select>
+                                @error('finalInventoriable') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Proveedor <span class="text-red-500 ml-0.5">*</span></label>
+                            <select wire:model="finalSupplierId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Seleccionar Proveedor</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('finalSupplierId') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Valores -->
+                        <div class="border-t border-gray-300 my-6"></div>
+                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Valores</h3>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Etiqueta</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    @php
+                                        $staticValues = [
+                                            ['label' => 'Costo Inicial', 'type' => 'Costo'],
+                                            ['label' => 'Costo', 'type' => 'Costo'],
+                                            ['label' => 'Precio Base', 'type' => 'Precio'],
+                                            ['label' => 'Precio Regular', 'type' => 'Precio'],
+                                            ['label' => 'Precio Crédito', 'type' => 'Precio'],
+                                            ['label' => 'Precio unitario x caja', 'type' => 'Precio'],
+                                        ];
+                                    @endphp
+                                    @foreach ($staticValues as $index => $staticValue)
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                                {{ $staticValue['label'] === 'Precio Base' ? 'Precio Lista' : ($staticValue['label'] === 'Precio Regular' ? 'Precio Mínimo' : $staticValue['label']) }}
+                                            </td>
+                                            <td class="px-4 py-3 text-sm">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $staticValue['type'] === 'Costo' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' }}">
+                                                    {{ $staticValue['type'] }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-right">
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    min="0"
+                                                    wire:model="tempValues.{{ $staticValue['label'] }}"
+                                                    placeholder="0.00"
+                                                    class="w-28 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                                                >
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -2476,6 +2735,7 @@
                         </button>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
     @endif
