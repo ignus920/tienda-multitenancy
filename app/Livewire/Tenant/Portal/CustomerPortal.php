@@ -388,7 +388,8 @@ class CustomerPortal extends Component
                 'warehouseId' => $physicalStoreId, // Asignar correctamente el ID de la bodega física (inv_store.id)
                 'deliveryTypeId' => 1, // Por defecto Contra entrega/estándar
                 'methodPaymentId' => $methodPaymentId,
-                'userId' => $user->id,
+                'userId' => $quote->userId,
+                'created_by' => $user->id,
                 'deliveryDate' => now()->format('Y-m-d'),
                 'expiration' => 0,
                 'modify' => 0,

@@ -26,6 +26,7 @@ class InvRemissions extends Model
         'deliveryTypeId', // Campo correcto para tipo de entrega
         'methodPaymentId',
         'userId',
+        'created_by',
         'deliveryDate',
         'delivery_id',
         'expiration',
