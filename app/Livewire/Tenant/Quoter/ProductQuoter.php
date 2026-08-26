@@ -2798,21 +2798,58 @@ class ProductQuoter extends Component
     public function updatedAdditionalPayments($value, $key)
     {
         if (str_contains($key, '.method_payment_id')) {
-            $parts = explode('.', $key);
-            $index = intval($parts[0]);
-            
-            $method = collect($this->methodPayments)->firstWhere('id', $value);
-            if ($method) {
-                $methodName = $method['name'] ?? 'Método';
-                
-                // Agregar el nombre del método a la caja única de observaciones de pago si no está ya escrito
-                if (!str_contains(strtolower($this->paymentDetails), strtolower($methodName))) {
-                    if (!empty(trim($this->paymentDetails))) {
-                        $this->paymentDetails .= "\n";
+            // Reconstruir la caja basándose en los métodos seleccionados actualmente
+            $selectedMethods = [];
+            foreach ($this->additionalPayments as $payment) {
+                if (!empty($payment['method_payment_id'])) {
+                    $method = collect($this->methodPayments)->firstWhere('id', $payment['method_payment_id']);
+                    if ($method) {
+                        $selectedMethods[] = $method['name'];
                     }
-                    $this->paymentDetails .= $methodName . ": ";
                 }
             }
+            
+            $lines = explode("\n", $this->paymentDetails);
+            $newLines = [];
+            
+            // Conservar solo líneas que NO comiencen con métodos que ya no están seleccionados
+            foreach ($lines as $line) {
+                if (trim($line) === '') continue;
+                
+                $isAnyMethod = false;
+                $isCurrentlySelected = false;
+                
+                foreach ($this->methodPayments as $mp) {
+                    if (str_starts_with(strtoupper(trim($line)), strtoupper($mp['name']))) {
+                        $isAnyMethod = true;
+                        if (in_array($mp['name'], $selectedMethods)) {
+                            $isCurrentlySelected = true;
+                        }
+                        break;
+                    }
+                }
+                
+                // Conservar texto libre o métodos que SÍ están seleccionados actualmente
+                if (!$isAnyMethod || $isCurrentlySelected) {
+                    $newLines[] = $line;
+                }
+            }
+            
+            // Agregar los métodos seleccionados que falten en el texto
+            foreach ($selectedMethods as $sm) {
+                $found = false;
+                foreach ($newLines as $line) {
+                    if (str_starts_with(strtoupper(trim($line)), strtoupper($sm))) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $newLines[] = $sm . ": ";
+                }
+            }
+            
+            $this->paymentDetails = implode("\n", $newLines);
         }
 
         if (str_contains($key, '.value')) {
