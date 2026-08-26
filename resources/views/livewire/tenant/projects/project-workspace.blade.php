@@ -214,18 +214,18 @@
                         <!-- Se agregan avances y preguntas durante el desarrollo/producción -->
                         @if($project->status === 'en_produccion')
                             <div class="flex flex-col sm:flex-row gap-2">
-                                <button wire:click="prefillChat('**Avance del proyecto:** ')"
+                                <button wire:click="openAdvanceModal"
                                     class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-white rounded-lg font-bold shadow-2xs transition-colors">
                                     Registrar Avance Técnico
                                 </button>
 
-                                <button wire:click="prefillChat('**Novedad del cliente:** ')"
+                                <button wire:click="$set('showNoveltyModal', true)"
                                     class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition-colors">
                                     Novedades del cliente
                                 </button>
 
                                 @if($project->type === 'external')
-                                    <button wire:click="prefillChat('**Preguntar a Cliente:** ')"
+                                    <button wire:click="$set('showQuestionModal', true)"
                                         class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors">
                                         Generar Pregunta al Asesor/Cliente
                                     </button>
@@ -844,6 +844,32 @@
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showAdvanceModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
                 <button wire:click="addAdvance" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">Guardar Avance</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- 4b. Modal Registrar Novedad del Cliente -->
+    @if($showNoveltyModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">Registrar Novedad del Cliente</h3>
+                <button wire:click="$set('showNoveltyModal', false)" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Descripción de la Novedad *</label>
+                    <textarea wire:model="noveltyDescription" rows="3" placeholder="Ej: El cliente solicita una unidad más..."
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    @error('noveltyDescription') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button wire:click="$set('showNoveltyModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
+                <button wire:click="addNovelty" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded shadow">Guardar Novedad</button>
             </div>
         </div>
     </div>
