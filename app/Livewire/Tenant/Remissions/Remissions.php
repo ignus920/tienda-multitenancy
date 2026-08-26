@@ -2463,6 +2463,9 @@ class Remissions extends Component
             }
 
             $customerName = $quote ? $quote->customer_name : 'N/A';
+            if ($branch && $branch->branch_type === \App\Models\Tenant\Customer\VntWarehouse::BRANCH_TYPE_DESPACHO) {
+                $customerName = $branch->name;
+            }
             $contactName = $contact ? ($contact->firstName . ' ' . $contact->lastName) : '';
             $phone = $branch ? $branch->phone : ($contact ? ($contact->business_phone ?? $contact->personal_phone ?? 'N/A') : 'N/A');
             $email = ($contact && $contact->company) ? $contact->company->billingEmail : ($contact ? $contact->email : 'N/A');
