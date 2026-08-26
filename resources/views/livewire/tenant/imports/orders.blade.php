@@ -2400,20 +2400,7 @@
                 <form wire:submit.prevent="convertNewProductToReal" class="p-6 space-y-4">
                     <div class="space-y-6">
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Categoría
-                                <span class="text-red-500 ml-0.5">*</span>
-                                <!-- Tooltip -->
-                                <div x-data="{ show: false }" class="relative inline-block ml-1.5">
-                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </button>
-                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                                        Categoría a la que pertenece el producto.
-                                    </div>
-                                </div>
-                            </label>
+
                             @livewire('tenant.items.categories', [
                                 'categoryId' => $finalCategoryId,
                                 'name' => 'finalCategoryId',
@@ -2543,9 +2530,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Marca
-                                <span class="text-red-500 ml-0.5">*</span>
-                            </label>
+
                             @livewire('tenant.items.brand',[
                                 'brandId' => $finalBrandId,
                                 'name' => 'finalBrandId',
@@ -2558,9 +2543,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Casa
-                                <span class="text-red-500 ml-0.5">*</span>
-                            </label>
+
                             @livewire('tenant.items.house',[
                                 'houseId' => $finalHouseId,
                                 'name' => 'finalHouseId',
@@ -2574,9 +2557,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Unidad de compra
-                                    <span class="text-red-500 ml-0.5">*</span>
-                                </label>
+
                                 @livewire('tenant.items.purchasing-unit', [
                                     'purchaseUnitId' => $finalPurchasingUnit,
                                     'name' => 'finalPurchasingUnit',
@@ -2589,9 +2570,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">Unidad de consumo
-                                    <span class="text-red-500 ml-0.5">*</span>
-                                </label>
+
                                 @livewire('tenant.items.consumption-unit', [
                                     'consumptionUnitId' => $finalConsumptionUnit,
                                     'name' => 'finalConsumptionUnit',
