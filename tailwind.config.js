@@ -16,6 +16,10 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            fontSize: {
+                '2xs': ['0.65rem', { lineHeight: '0.85rem' }],
+                '3xs': ['0.55rem', { lineHeight: '0.75rem' }],
+            },
         },
     },
 
