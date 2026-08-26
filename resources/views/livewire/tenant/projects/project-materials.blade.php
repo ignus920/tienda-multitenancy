@@ -16,17 +16,17 @@
     <!-- Buscador de productos ERP -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agregar producto del ERP</span>
-        <div class="flex flex-col md:flex-row items-start gap-2">
-            <div class="relative flex-1 w-full" x-data="{ open: true }" @click.away="open = false">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 w-full">
+            <div class="relative md:col-span-5 w-full" x-data="{ open: true }" @click.away="open = false">
                 <input wire:model.live.debounce.300ms="search" @focus="open = true" type="text" placeholder="Buscar por código, referencia o nombre..."
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 @if(!empty($searchResults) && $search)
-                    <div x-show="open" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-56 overflow-y-auto min-w-[300px]">
+                    <div x-show="open" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-56 overflow-y-auto">
                         @foreach($searchResults as $result)
                             <button type="button" wire:click="selectErpMaterial({{ $result['id'] }}, '{{ addslashes($result['name']) }}', {{ $result['price'] }})"
                                 class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-750 flex items-center justify-between gap-2">
                                 <span>
-                                    <span class="font-bold block">{{ $result['name'] }}</span>
+                                    <span class="font-bold block truncate max-w-[200px]">{{ $result['name'] }}</span>
                                     <span class="text-gray-400 text-3xs">{{ $result['code'] }}</span>
                                 </span>
                                 <span class="font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">${{ number_format($result['price'], 2) }}</span>
@@ -35,18 +35,18 @@
                     </div>
                 @endif
             </div>
-            <div class="w-full md:w-28">
+            <div class="md:col-span-2 w-full">
                 <input wire:model="quantity" type="number" step="0.01" min="0.01" placeholder="Cant."
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 @error('quantity') <span class="text-3xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
             </div>
-            <div class="w-full md:w-48">
+            <div class="md:col-span-3 w-full">
                 <input wire:model="observations" type="text" placeholder="Observaciones (opcional)"
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
-            <div class="w-full md:w-auto shrink-0">
+            <div class="md:col-span-2 flex items-start w-full">
                 <button type="button" wire:click="addErpMaterial" 
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors whitespace-nowrap">
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors">
                     AGREGAR
                 </button>
             </div>
@@ -55,7 +55,7 @@
     </div>
 
     <!-- Producto externo -->
-    <div class="space-y-3">
+    <div class="space-y-3 mt-4">
         @if(!$showExternalForm)
             <button wire:click="$set('showExternalForm', true)" type="button"
                 class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
