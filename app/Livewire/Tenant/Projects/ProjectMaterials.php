@@ -255,9 +255,13 @@ class ProjectMaterials extends Component
                 $wordsProject = array_filter(explode(' ', trim($project->title)));
                 $projectName = implode('_', array_slice($wordsProject, 0, 2));
             }
-            if ($project->customer && !empty($project->customer->name)) {
-                $wordsClient = array_filter(explode(' ', trim($project->customer->name)));
-                $clientName = $wordsClient[0] ?? 'cliente';
+            if ($project->customer) {
+                $customerName = $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? ''));
+                if (!empty($customerName)) {
+                    $wordsClient = array_filter(explode(' ', trim($customerName)));
+                    $wordsClient = array_values($wordsClient);
+                    $clientName = $wordsClient[0] ?? 'cliente';
+                }
             }
         }
 
