@@ -82,13 +82,7 @@ class Orders extends Component
         'SERVICIO'        => 'Servicio',
     ];
 
-    protected $listeners = [
-        'category-changed' => 'onCategorySelected',
-        'brand-changed' => 'onBrandSelected',
-        'house-changed' => 'onHouseSelected',
-        'purchase-unit-changed' => 'onPurchaseUnitSelected',
-        'consumption-unit-changed' => 'onConsumptionUnitSelected',
-    ];
+
 
     public function onCategorySelected($id)
     {
@@ -177,9 +171,14 @@ class Orders extends Component
     public $observations;
 
     protected $listeners = [
-        'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
+        'labelSelected' => 'onLabelSelected',
         'shippmentSelected' => 'onShippmentSelected',
         'testEvent' => 'testEvent',
+        'category-changed' => 'onCategorySelected',
+        'brand-changed' => 'onBrandSelected',
+        'house-changed' => 'onHouseSelected',
+        'purchase-unit-changed' => 'onPurchaseUnitSelected',
+        'consumption-unit-changed' => 'onConsumptionUnitSelected',
     ];
 
     protected $rules = [
