@@ -361,6 +361,14 @@ class ProjectWorkspace extends Component
             'status' => 'orden_creada' // Cambia de cotización a orden creada
         ]);
 
+        // Enviar mensaje automático al chat del proyecto
+        $userName = \Illuminate\Support\Facades\Auth::user()->name;
+        \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $project->id,
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'message' => "**AVANCE DEL PROYECTO**\n\n{$userName} ha Creado Orden de Pedido"
+        ]);
+
         // Ya no asignamos una única cantidad y precio al componente
         $this->showOrderModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Orden de producción creada con ' . count($this->orderItems) . ' ítems']);
@@ -370,6 +378,14 @@ class ProjectWorkspace extends Component
     public function startProduction()
     {
         $this->updateStatus('en_produccion');
+
+        // Enviar mensaje automático al chat del proyecto
+        $userName = \Illuminate\Support\Facades\Auth::user()->name;
+        \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'message' => "**AVANCE DEL PROYECTO**\n\n{$userName} ha Iniciado Producción"
+        ]);
     }
 
     // Marcar en negociación (Comercial) - Proyecto externo
@@ -410,6 +426,12 @@ class ProjectWorkspace extends Component
             'asked_by' => Auth::id(),
             'question' => $this->newQuestionText,
             'status' => 'pendiente'
+        ]);
+
+        \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "**Preguntar a Cliente:** {$this->newQuestionText}"
         ]);
 
         $this->reset(['newQuestionText']);
@@ -454,6 +476,24 @@ class ProjectWorkspace extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Pregunta marcada como cerrada']);
     }
 
+    public function deleteMessage($messageId)
+    {
+        $this->ensureTenantConnection();
+        $msg = ProjectMessage::findOrFail($messageId);
+        if ($msg->user_id !== Auth::id()) {
+            return;
+        }
+
+        $msg->delete();
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje eliminado']);
+    }
+
+    public function prefillChat($text)
+    {
+        $this->newMessageText = $text;
+        $this->dispatch('focus-chat');
+    }
+
     // Obtiene el último porcentaje de avance registrado en el proyecto (0 si no hay ninguno)
     private function getLastAdvancePercentage(): int
     {
@@ -493,6 +533,12 @@ class ProjectWorkspace extends Component
             'percentage' => $this->advancePercentage
         ]);
 
+        \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "**Avance del proyecto:** {$this->advanceDescription}\n% avance {$this->advancePercentage}%"
+        ]);
+
         $this->reset(['advanceDescription', 'advancePercentage']);
         $this->showAdvanceModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Avance técnico guardado']);
@@ -513,6 +559,12 @@ class ProjectWorkspace extends Component
             'completion_date' => $this->completion_date,
             'lab_observations' => $this->lab_observations,
             'status' => 'terminado' // Listo para entregar
+        ]);
+
+        \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "**Proyecto terminado:** " . ($this->lab_observations ?: 'Sin observaciones adicionales.')
         ]);
 
         $this->showLabFinishModal = false;
