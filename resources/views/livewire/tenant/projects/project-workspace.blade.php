@@ -90,33 +90,66 @@
                     </div>
 
                     <!-- Datos de Orden de Producción -->
-                    @if($project->qty)
-                        <div class="bg-gray-50 dark:bg-gray-850 p-3 rounded-lg border border-gray-100 dark:border-gray-750 grid grid-cols-2 gap-3">
-                            <div class="col-span-2 text-2xs font-bold text-indigo-600 dark:text-indigo-400 uppercase border-b border-indigo-100 dark:border-indigo-900 pb-1">
+                    @if($project->orders->count() > 0 || $project->qty)
+                        <div class="bg-gray-50 dark:bg-gray-850 p-3 rounded-lg border border-gray-100 dark:border-gray-750">
+                            <div class="text-2xs font-bold text-indigo-600 dark:text-indigo-400 uppercase border-b border-indigo-100 dark:border-indigo-900 pb-1 mb-2">
                                 Orden de Pedido / Producción
                             </div>
-                            <div>
-                                <span class="text-gray-400 block">Cantidad:</span>
-                                <span class="font-bold text-gray-900 dark:text-white">{{ $project->qty }} unidades</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 block">Precio Unit:</span>
-                                <span class="font-bold text-gray-900 dark:text-white">${{ number_format($project->price_unit, 2) }}</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 block">Valor Total:</span>
-                                <span class="font-bold text-gray-900 dark:text-white">${{ number_format($project->total_value, 2) }}</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 block">Fecha Entrega:</span>
-                                <span class="font-bold text-gray-900 dark:text-white">{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : 'No establecida' }}</span>
-                            </div>
-                            @if($project->prod_observations)
-                                <div class="col-span-2">
-                                    <span class="text-gray-400 block">Observaciones Producción:</span>
-                                    <p class="text-gray-700 dark:text-gray-300 mt-0.5">{{ $project->prod_observations }}</p>
+                            
+                            @if($project->orders->count() > 0)
+                                <!-- Nueva lógica: Múltiples ítems -->
+                                <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded mb-3">
+                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead class="bg-gray-100 dark:bg-gray-800">
+                                            <tr>
+                                                <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Cant.</th>
+                                                <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Precio Unit.</th>
+                                                <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                                                <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Obs.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                            @foreach($project->orders as $orderItem)
+                                            <tr>
+                                                <td class="px-2 py-1.5 whitespace-nowrap text-xs font-medium text-gray-900 dark:text-gray-100">{{ $orderItem->qty }}</td>
+                                                <td class="px-2 py-1.5 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">${{ number_format($orderItem->price_unit, 2) }}</td>
+                                                <td class="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100 font-bold">${{ number_format($orderItem->total_value, 2) }}</td>
+                                                <td class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]" title="{{ $orderItem->observations }}">{{ $orderItem->observations ?: '-' }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <!-- Lógica antigua: Ítem único -->
+                                <div class="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <span class="text-gray-400 block text-[10px] uppercase">Cantidad:</span>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{ $project->qty }} unidades</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 block text-[10px] uppercase">Precio Unit:</span>
+                                        <span class="font-bold text-gray-900 dark:text-white">${{ number_format($project->price_unit, 2) }}</span>
+                                    </div>
+                                    @if($project->prod_observations)
+                                    <div class="col-span-2">
+                                        <span class="text-gray-400 block text-[10px] uppercase">Observaciones:</span>
+                                        <p class="text-gray-700 dark:text-gray-300 mt-0.5">{{ $project->prod_observations }}</p>
+                                    </div>
+                                    @endif
                                 </div>
                             @endif
+
+                            <div class="grid grid-cols-2 gap-3 mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
+                                <div>
+                                    <span class="text-gray-400 block text-[10px] uppercase">Valor Total Global:</span>
+                                    <span class="font-bold text-indigo-600 dark:text-indigo-400 text-sm">${{ number_format($project->total_value, 2) }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block text-[10px] uppercase">Fecha Entrega:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : 'No establecida' }}</span>
+                                </div>
+                            </div>
                         </div>
                     @endif
 
@@ -150,8 +183,8 @@
                                 </button>
                             @endif
 
-                            <!-- Comercial genera Orden -->
-                            @if(in_array($project->status, ['cotizacion', 'negociacion']))
+                            <!-- Comercial genera Orden (Solo el creador del proyecto) -->
+                            @if(in_array($project->status, ['cotizacion', 'negociacion']) && Auth::id() === $project->created_by)
                                 <button wire:click="$set('showOrderModal', true)"
                                     class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-sm transition-colors">
                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -670,31 +703,52 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Cantidad *</label>
-                        <input wire:model="qty" type="number" min="1"
-                            class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                        @error('qty') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Precio Unitario ($) *</label>
-                        <input wire:model="price_unit" type="number" step="0.01" min="0"
-                            class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                        @error('price_unit') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
-                    </div>
-                </div>
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div>
-                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha de Entrega acordada *</label>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha de Entrega acordada (Global) *</label>
                     <input wire:model="delivery_date" type="date"
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                     @error('delivery_date') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                 </div>
-                <div>
-                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Observaciones / Especificaciones técnicas</label>
-                    <textarea wire:model="prod_observations" rows="3" placeholder="Tipo de led, drivers necesarios, colores de cables..."
-                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
+
+                <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200">Ítems de la Orden</h4>
+                        <button type="button" wire:click="addOrderItem" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Añadir Ítem
+                        </button>
+                    </div>
+
+                    @foreach($orderItems as $index => $item)
+                    <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 mb-3 relative group">
+                        @if(count($orderItems) > 1)
+                        <button type="button" wire:click="removeOrderItem({{ $index }})" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        @endif
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-3 pr-6">
+                            <div>
+                                <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Cantidad *</label>
+                                <input wire:model="orderItems.{{ $index }}.qty" type="number" min="1"
+                                    class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                                @error('orderItems.'.$index.'.qty') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Precio Unitario ($) *</label>
+                                <input wire:model="orderItems.{{ $index }}.price_unit" type="number" step="0.01" min="0"
+                                    class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                                @error('orderItems.'.$index.'.price_unit') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Observaciones / Especificaciones (Opcional)</label>
+                            <textarea wire:model="orderItems.{{ $index }}.observations" rows="2" placeholder="Detalles de este ítem..."
+                                class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
