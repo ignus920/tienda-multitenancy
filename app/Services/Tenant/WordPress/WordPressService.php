@@ -355,12 +355,25 @@ class WordPressService
         Log::info('📤 [WP] Iniciando uploadMedia', ['local_path' => $localPath]);
 
         try {
-            if (!Storage::disk('public')->exists($localPath)) {
-                Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
-                throw new Exception("Archivo local no encontrado: $localPath");
-            }
+            $isUrl = str_starts_with($localPath, 'http');
+            $tempFile = null;
 
-            $absolutePath = Storage::disk('public')->path($localPath);
+            if ($isUrl) {
+                Log::info('📥 [WP] Archivo es una URL, descargando temporalmente...', ['url' => $localPath]);
+                $urlResponse = Http::get($localPath);
+                if (!$urlResponse->successful()) {
+                    throw new Exception("No se pudo descargar la imagen desde la URL: $localPath");
+                }
+                $tempFile = tempnam(sys_get_temp_dir(), 'wp_img_');
+                file_put_contents($tempFile, $urlResponse->body());
+                $absolutePath = $tempFile;
+            } else {
+                if (!Storage::disk('public')->exists($localPath)) {
+                    Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
+                    throw new Exception("Archivo local no encontrado: $localPath");
+                }
+                $absolutePath = Storage::disk('public')->path($localPath);
+            }
             $originalSize = filesize($absolutePath);
 
             Log::info('📁 [WP] Archivo local encontrado', [
@@ -400,6 +413,9 @@ class WordPressService
             // Eliminar temporal si se optimizó
             if ($finalPath !== $absolutePath && file_exists($finalPath)) {
                 unlink($finalPath);
+            }
+            if ($isUrl && $tempFile && file_exists($tempFile)) {
+                unlink($tempFile);
             }
 
             Log::info('📡 [WP] Respuesta uploadMedia', [
