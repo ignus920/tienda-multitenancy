@@ -2049,15 +2049,15 @@ class ManageItems extends Component
 
             // Verificar si ya existe el registro
             $existingRecord = InvItemsStore::where('itemId', $item->id)
-                ->where('storeId', $principalStore->id)
+                ->where('storeId', 2)
                 ->first();
 
             if ($existingRecord) {
                 Log::info('Registro en inv_items_store ya existe', [
                     'item_id' => $item->id,
                     'item_name' => $item->name,
-                    'store_id' => $principalStore->id,
-                    'store_name' => $principalStore->name
+                    'store_id' => 2,
+                    'store_name' => 'Principal (Forzada a 2)'
                 ]);
                 return;
             }
@@ -2065,7 +2065,7 @@ class ManageItems extends Component
             // Crear nuevo registro
             InvItemsStore::create([
                 'itemId'              => $item->id,
-                'storeId'             => $principalStore->id,
+                'storeId'             => 2,
                 'initial_stock'       => 0,
                 'stock_items_store'   => 0,
                 'stock_min'           => 0,
