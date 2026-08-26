@@ -696,7 +696,7 @@
     <!-- 1. Modal Orden de Producción -->
     @if($showOrderModal)
     <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-2xl w-full overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">Crear Orden de Pedido y Producción</h3>
                 <button wire:click="$set('showOrderModal', false)" class="text-gray-400 hover:text-gray-600">
