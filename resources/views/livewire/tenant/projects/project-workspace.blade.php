@@ -464,7 +464,7 @@
                                 <!-- Contenido del mensaje -->
                                 <div x-show="!editing">
                                     @if(trim($msg->message ?? ''))
-                                        <p class="text-xs leading-relaxed break-words text-gray-800 dark:text-gray-100">
+                                        <p class="text-xs leading-relaxed break-words whitespace-pre-wrap text-gray-800 dark:text-gray-100">
                                             {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
                                         </p>
                                     @endif
@@ -663,6 +663,14 @@
                             <input type="file" wire:model="attachments" multiple class="hidden" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx">
                             <x-heroicon-o-paper-clip class="w-5 h-5" />
                         </label>
+                        
+                        <button type="button" 
+                            @click="$refs.chatTextarea.value = $refs.chatTextarea.value + '@'; $refs.chatTextarea.dispatchEvent(new Event('input')); $refs.chatTextarea.focus();"
+                            class="flex items-center justify-center w-10 h-10 shrink-0 mb-0.5 text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-600 dark:hover:text-white rounded-full shadow-sm border border-indigo-200 dark:border-indigo-800 cursor-pointer transition-colors text-lg font-bold"
+                            title="Mencionar a un usuario (@)">
+                            @
+                        </button>
+
                         <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden relative">
                             <textarea x-ref="chatTextarea" wire:model="newMessageText"
                                 wire:loading.attr="disabled" wire:target="attachments"
