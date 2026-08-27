@@ -237,6 +237,59 @@ class ManageProductionOrders extends Component
         $this->ensureTenantConnection();
         $this->validate();
 
+        // Validar datos completos del cliente antes de subir la OP
+        if ($this->warehouse_customer_id) {
+            $contact = \App\Models\Tenant\Customer\VntContacts::with('company')->find($this->warehouse_customer_id);
+            if ($contact) {
+                $company = $contact->company;
+                $missingFields = [];
+
+                if ($company) {
+                    if (empty($company->typeIdentificationId)) $missingFields[] = 'Tipo de Identificación';
+                    if (empty($company->identification)) $missingFields[] = 'Número de Identificación';
+                    if (empty($company->regimeId)) $missingFields[] = 'Régimen';
+                    if (empty($company->fiscalResponsabilityId)) $missingFields[] = 'Responsabilidad Fiscal';
+                    
+                    if ($company->typeIdentificationId == 2 && empty(trim($company->businessName))) {
+                        $missingFields[] = 'Razón Social';
+                    }
+                } else {
+                    $missingFields[] = 'Datos de Empresa (No asociados)';
+                }
+
+                if (!$company || $company->typeIdentificationId == 1) {
+                    if (empty(trim($contact->firstName))) $missingFields[] = 'Primer Nombre';
+                    if (empty(trim($contact->lastName))) $missingFields[] = 'Primer Apellido';
+                }
+
+                $phone = $contact->personal_phone ?: $contact->business_phone;
+                if (!$phone || !preg_match('/^3[0-9]{9}$/', $phone)) {
+                    $missingFields[] = 'Teléfono Celular (Falta o no tiene formato válido de 10 dígitos iniciando en 3)';
+                }
+
+                if (empty(trim($contact->email)) && empty(trim($company?->billingEmail ?? ''))) {
+                    $missingFields[] = 'Email de Facturación / Contacto';
+                }
+
+                if (!empty($missingFields)) {
+                    $htmlContent = "<p style='margin-bottom: 12px; text-align: left;'>No se puede subir la OP porque el cliente tiene datos incompletos:</p>";
+                    $htmlContent .= "<ul style='text-align: left; padding-left: 20px; list-style-type: disc; margin-bottom: 12px;'>";
+                    foreach ($missingFields as $field) {
+                        $htmlContent .= "<li style='margin-bottom: 8px;'><strong>{$field}</strong></li>";
+                    }
+                    $htmlContent .= "</ul>";
+                    $htmlContent .= "<p style='margin-top: 15px; text-align: left;'>Por favor, vaya al módulo de Clientes y complete estos datos antes de continuar.</p>";
+
+                    $this->dispatch('swal', [
+                        'icon' => 'error',
+                        'title' => 'Datos de Cliente Incompletos',
+                        'html' => $htmlContent,
+                    ]);
+                    return;
+                }
+            }
+        }
+
         $data = [
             'date'                  => $this->date,
             'item_id'               => $this->item_id,

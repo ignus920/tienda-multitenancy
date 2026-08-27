@@ -67,7 +67,10 @@ class CompanyValidationService
 
             // Contacto
             'business_phone.max' => 'El teléfono empresarial no puede tener más de 100 caracteres.',
+            'business_phone.regex' => 'El teléfono empresarial debe ser un celular válido de 10 dígitos (ej. 3001234567).',
+            'personal_phone.required_without' => 'Debe ingresar al menos un teléfono (Empresarial o Personal).',
             'personal_phone.max' => 'El teléfono personal no puede tener más de 100 caracteres.',
+            'personal_phone.regex' => 'El teléfono personal debe ser un celular válido de 10 dígitos (ej. 3001234567).',
             'positionId.exists' => 'La posición seleccionada no es válida.',
         ];
     }
@@ -208,8 +211,8 @@ class CompanyValidationService
             'warehouseAddress' => 'required|string|max:255',
             'warehousePostcode' => 'nullable|string|max:10',
             'warehouseCityId' => 'nullable|integer',
-            'business_phone' => 'nullable|string|max:100',
-            'personal_phone' => 'nullable|string|max:100',
+            'business_phone' => ['nullable', 'string', 'regex:/^3[0-9]{9}$/'],
+            'personal_phone' => ['required_without:business_phone', 'nullable', 'string', 'regex:/^3[0-9]{9}$/'],
             'positionId' => 'nullable|integer|exists:cnf_positions,id',
         ]);
     }
