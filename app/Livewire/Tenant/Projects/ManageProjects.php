@@ -256,9 +256,16 @@ class ManageProjects extends Component
         // Todos los proyectos disponibles para el filtro del panel
         $myMentionProjects = Project::orderBy('title')->get(['id', 'title']);
 
-        // Usuarios que realmente han mencionado al usuario actual
-        $mentioningUserIds = ProjectMention::where('mentioned_to', $userId)->pluck('mentioned_by')->unique()->toArray();
-        $mentioningUsers = User::whereIn('id', $mentioningUserIds)->orderBy('name')->get(['id', 'name']);
+        // Usuarios a mostrar en el filtro "Cualquier persona" (Depende del proyecto seleccionado)
+        if ($this->pendientesProjectFilter) {
+            // Si hay un proyecto seleccionado, mostrar solo los participantes de ese proyecto
+            $participantIds = \App\Models\Tenant\Projects\ProjectParticipant::where('project_id', $this->pendientesProjectFilter)->pluck('user_id')->unique()->toArray();
+            $mentioningUsers = User::whereIn('id', $participantIds)->orderBy('name')->get(['id', 'name']);
+        } else {
+            // Si no hay filtro, mostrar a todos los que son participantes de algún proyecto
+            $participantIds = \App\Models\Tenant\Projects\ProjectParticipant::pluck('user_id')->unique()->toArray();
+            $mentioningUsers = User::whereIn('id', $participantIds)->orderBy('name')->get(['id', 'name']);
+        }
 
         $myQuestions = ProjectQuestion::where('status', 'pendiente')
             ->whereHas('project', function ($q) use ($userId) {
