@@ -60,6 +60,7 @@ class NotificationBell extends Component
         $this->dispatch('play-notification-sound');
     }
 
+    #[On('notifications-updated')]
     public function loadNotifications()
     {
         $this->ensureTenantConnection();
