@@ -490,9 +490,6 @@
 
                                 <!-- Hora -->
                                 <div class="flex items-center justify-end gap-1.5 mt-1 text-[10px] text-gray-400">
-                                    @if($isMe)
-                                        <button type="button" x-show="canEdit && !editing" @click="editing = true" class="text-indigo-500 hover:text-indigo-600 font-semibold mr-1">Editar</button>
-                                    @endif
                                     <span>{{ $msg->created_at->format('h:i a') }}</span>
                                     @if($isMe)
                                         <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
