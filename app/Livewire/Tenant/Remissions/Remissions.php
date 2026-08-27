@@ -547,9 +547,12 @@ class Remissions extends Component
                                 ->first();
 
                             $stockDisponible = $itemStore ? (float) $itemStore->stock_items_store : 0;
-                            if ($stockDisponible < $detail->quantity) {
+                            // La remisión ya descontó el stock al crearse.
+                            // Por lo tanto, el stock real antes de esta remisión era ($stockDisponible + $detail->quantity).
+                            // Si ($stockDisponible + $detail->quantity) < $detail->quantity, es matemáticamente igual a decir $stockDisponible < 0.
+                            if ($stockDisponible < 0) {
                                 $sku = $item->sku ?: 'Sin SKU';
-                                $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Disponible: {$stockDisponible}, Requerido: {$detail->quantity})</span></li>";
+                                $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Faltante en bodega para cumplir todas las OPs: " . abs($stockDisponible) . ")</span></li>";
                             }
                         }
                     }
