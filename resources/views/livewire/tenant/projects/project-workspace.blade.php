@@ -473,19 +473,23 @@
                                     @if($msg->files->isNotEmpty())
                                         <div class="flex flex-col gap-1.5 {{ trim($msg->message ?? '') ? 'mt-2' : '' }}">
                                             @foreach($msg->files as $file)
-                                                <a href="{{ Storage::url($file->file_path) }}" target="_blank"
-                                                    class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-2xs">
-                                                    @if($file->is_image)
-                                                        <x-heroicon-o-photo class="w-4 h-4 text-indigo-500 shrink-0" />
-                                                    @elseif(in_array($file->file_type, ['xls', 'xlsx']))
-                                                        <x-heroicon-o-table-cells class="w-4 h-4 text-emerald-500 shrink-0" />
-                                                    @elseif($file->file_type === 'pdf')
-                                                        <x-heroicon-o-document-text class="w-4 h-4 text-red-500 shrink-0" />
-                                                    @else
-                                                        <x-heroicon-o-document class="w-4 h-4 text-indigo-500 shrink-0" />
-                                                    @endif
-                                                    <span class="truncate text-gray-700 dark:text-gray-200 font-medium">{{ $file->file_name }}</span>
-                                                </a>
+                                                @if($file->is_image)
+                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="block max-w-[220px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm hover:opacity-90 transition-opacity mt-1">
+                                                        <img src="{{ Storage::url($file->file_path) }}" alt="{{ $file->file_name }}" class="w-full h-auto object-cover">
+                                                    </a>
+                                                @else
+                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank"
+                                                        class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-2xs mt-1">
+                                                        @if(in_array($file->file_type, ['xls', 'xlsx']))
+                                                            <x-heroicon-o-table-cells class="w-4 h-4 text-emerald-500 shrink-0" />
+                                                        @elseif($file->file_type === 'pdf')
+                                                            <x-heroicon-o-document-text class="w-4 h-4 text-red-500 shrink-0" />
+                                                        @else
+                                                            <x-heroicon-o-document class="w-4 h-4 text-indigo-500 shrink-0" />
+                                                        @endif
+                                                        <span class="truncate text-gray-700 dark:text-gray-200 font-medium">{{ $file->file_name }}</span>
+                                                    </a>
+                                                @endif
                                             @endforeach
                                         </div>
                                     @endif
