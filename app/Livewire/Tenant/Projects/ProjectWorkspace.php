@@ -687,10 +687,7 @@ class ProjectWorkspace extends Component
         if ($this->chatViewMode === 'questions') {
             $chatQuery->where('message', 'LIKE', 'Preguntar a Cliente:%');
         } elseif ($this->chatViewMode === 'advances') {
-            $chatQuery->where(function($q) {
-                $q->where('message', 'LIKE', '%AVANCE DEL PROYECTO%')
-                  ->orWhere('message', 'LIKE', 'Avance del proyecto:%');
-            });
+            $chatQuery->where('message', 'LIKE', 'Avance del proyecto:%');
         } elseif ($this->chatViewMode === 'novelties') {
             $chatQuery->where('message', 'LIKE', 'Novedad del cliente:%');
         } elseif ($this->chatViewMode === 'history') {
