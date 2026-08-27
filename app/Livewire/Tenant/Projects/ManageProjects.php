@@ -253,10 +253,8 @@ class ManageProjects extends Component
             ->where('status', 'pendiente')
             ->count();
 
-        // Proyectos donde el usuario tiene menciones, para el filtro del panel
-        $myMentionProjects = Project::whereHas('mentions', function ($q) use ($userId) {
-                $q->where('mentioned_to', $userId);
-            })->orderBy('title')->get(['id', 'title']);
+        // Todos los proyectos disponibles para el filtro del panel
+        $myMentionProjects = Project::orderBy('title')->get(['id', 'title']);
 
         $myQuestions = ProjectQuestion::where('status', 'pendiente')
             ->whereHas('project', function ($q) use ($userId) {

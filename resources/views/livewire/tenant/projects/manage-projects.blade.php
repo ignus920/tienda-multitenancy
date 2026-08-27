@@ -138,7 +138,7 @@
                         ];
                     @endphp
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all flex flex-col justify-between h-56 group relative">
+                    <a href="{{ route('tenant.projects.workspace', ['id' => $project->id]) }}" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all flex flex-col justify-between h-56 group relative cursor-pointer block">
                         <div>
                             <!-- Header de la tarjeta -->
                             <div class="flex items-start justify-between gap-2 mb-2">
@@ -165,9 +165,7 @@
                             </div>
 
                             <!-- Título del proyecto -->
-                            <a href="{{ route('tenant.projects.workspace', ['id' => $project->id]) }}" class="block">
-                                <h3 class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-1 mb-1">{{ $project->title }}</h3>
-                            </a>
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-1 mb-1">{{ $project->title }}</h3>
 
                             <!-- Cliente (externo) o Destinatario (interno) -->
                             <p class="text-xs font-semibold text-indigo-500 dark:text-indigo-400 truncate mb-1">
@@ -187,7 +185,7 @@
                             <span class="truncate">Comercial: {{ $project->creator->name ?? 'N/A' }}</span>
                             <span>{{ $project->created_at->format('d/m/Y') }}</span>
                         </div>
-                    </div>
+                    </a>
                 @empty
                     <div class="col-span-full bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-dashed border-gray-200 dark:border-gray-700">
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
