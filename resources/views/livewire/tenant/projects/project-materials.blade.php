@@ -202,7 +202,19 @@
                                             })" 
                                             class="text-amber-600 hover:text-amber-700 font-semibold text-2xs">Desactivar</button>
                                 @else
-                                    <button wire:click="reactivateMaterial({{ $material->id }})" wire:confirm="¿Reactivar este material?" class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs">Reactivar</button>
+                                    <button type="button" 
+                                            @click="Swal.fire({
+                                                title: '¿Reactivar material?',
+                                                text: 'Este material volverá a estar activo y a sumar al costo total.',
+                                                icon: 'question',
+                                                showCancelButton: true,
+                                                confirmButtonColor: '#10b981',
+                                                confirmButtonText: 'Sí, reactivar',
+                                                cancelButtonText: 'Cancelar'
+                                            }).then((result) => {
+                                                if (result.isConfirmed) { $wire.reactivateMaterial({{ $material->id }}) }
+                                            })"
+                                            class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs">Reactivar</button>
                                 @endif
                             </td>
                         @endif
