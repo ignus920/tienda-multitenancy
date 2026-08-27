@@ -462,7 +462,7 @@
                                             el.classList.add('ring-2', 'ring-amber-400', 'rounded-xl');
                                             setTimeout(() => el.classList.remove('ring-2', 'ring-amber-400', 'rounded-xl'), 2500);
                                         }
-                                    " class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-3 border-indigo-400 text-3xs cursor-pointer hover:bg-black/8 dark:hover:bg-white/10 transition-colors">
+                                    " class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-3 border-indigo-400 text-xs cursor-pointer hover:bg-black/8 dark:hover:bg-white/10 transition-colors">
                                         <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ $msg->repliedTo->user->name }}</span>
                                         <p class="truncate text-gray-600 dark:text-gray-300 italic mt-0.5">"{{ Str::limit($msg->repliedTo->message, 80) }}"</p>
                                     </div>
