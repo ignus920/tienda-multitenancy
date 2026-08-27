@@ -471,9 +471,7 @@
                                 <!-- Contenido del mensaje -->
                                 <div x-show="!editing">
                                     @if(trim($msg->message ?? ''))
-                                        <p class="text-xs leading-relaxed break-words whitespace-pre-wrap text-gray-800 dark:text-gray-100">
-                                            {!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}
-                                        </p>
+                                        <p class="text-xs leading-relaxed break-words whitespace-pre-wrap text-gray-800 dark:text-gray-100">{!! preg_replace('/(@[a-zA-Z0-9_\-\.]+)/', '<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900 px-0.5 rounded">$1</span>', e($msg->message)) !!}</p>
                                     @endif
 
                                     <!-- Adjuntos del mensaje (solo dentro de esta burbuja, sin mosaico) -->
