@@ -380,6 +380,7 @@
                         <option value="chat">💬 Foro (Chat)</option>
                         <option value="questions">❓ Preguntas Cliente</option>
                         <option value="advances">🛠️ Avances Técnicos</option>
+                        <option value="novelties">🔔 Novedades del Cliente</option>
                         <option value="history">📋 Historial de Estados</option>
                     </select>
                     <select wire:model.live="chatFilterUser" 
@@ -401,7 +402,6 @@
 
             <!-- Contenedor del Chat (Mensajes) con fondo estilo WhatsApp -->
             <div x-ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5] dark:bg-gray-900 bg-blend-multiply" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
-                @if($chatViewMode === 'chat')
                 @forelse($messages as $msg)
                     @php
                         $isMe = $msg->user_id === Auth::id();
@@ -538,95 +538,6 @@
                         <p class="text-xs text-gray-400 mt-1">Envía el primer mensaje para iniciar la conversación del proyecto</p>
                     </div>
                 @endforelse
-                
-                @elseif($chatViewMode === 'questions')
-                <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-                    <h2 class="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider flex items-center justify-between">
-                        <span>Preguntas Cliente</span>
-                        <span class="px-2 py-0.5 text-3xs font-extrabold rounded-full bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                            {{ count($questions->where('status', 'pendiente')) }} Pendientes
-                        </span>
-                    </h2>
-                    <div class="space-y-4">
-                        @forelse($questions as $q)
-                            <div class="p-3 rounded-lg border text-xs {{ $q->status === 'pendiente' ? 'bg-red-50/50 dark:bg-red-950/10 border-red-100 dark:border-red-900/50' : 'bg-gray-50 dark:bg-gray-850 border-gray-200 dark:border-gray-750' }}">
-                                <div class="flex items-center justify-between mb-1.5">
-                                    <span class="font-bold text-gray-500">Pregunta de {{ $q->asker->name }}</span>
-                                    <span class="text-gray-400 text-3xs">{{ $q->created_at->format('d/m H:i') }}</span>
-                                </div>
-                                <p class="text-gray-800 dark:text-gray-200 font-semibold mb-2">{{ $q->question }}</p>
-                                
-                                @if($q->answer)
-                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="font-bold text-indigo-600 dark:text-indigo-400">Respuesta de {{ $q->answerer->name ?? 'Comercial' }}</span>
-                                        </div>
-                                        <p class="text-gray-600 dark:text-gray-300 italic">"{{ $q->answer }}"</p>
-                                    </div>
-                                @endif
-
-                                <div class="mt-2.5 flex justify-end gap-2 pt-1.5 border-t border-gray-100 dark:border-gray-700">
-                                    @if($q->status === 'pendiente')
-                                        <button wire:click="openAnswerModal({{ $q->id }})"
-                                            class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold text-2xs transition-colors">
-                                            Responder
-                                        </button>
-                                    @elseif($q->status === 'respondida')
-                                        <button wire:click="closeQuestion({{ $q->id }})"
-                                            class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-2xs transition-colors">
-                                            Marcar como Resuelta
-                                        </button>
-                                    @else
-                                        <span class="text-2xs font-extrabold text-gray-400 flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                            </svg> Resuelta
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">No se han registrado preguntas.</p>
-                        @endforelse
-                    </div>
-                </div>
-
-                @elseif($chatViewMode === 'advances')
-                <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-                    <h2 class="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Avances Técnicos</h2>
-                    <div class="space-y-4">
-                        @forelse($advances as $adv)
-                            <div class="relative pl-4 border-l-2 border-indigo-500 text-xs">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ $adv->user->name }} ({{ $adv->percentage }}%)</span>
-                                    <span class="text-gray-400 text-3xs">{{ $adv->created_at->format('d/m/Y H:i') }}</span>
-                                </div>
-                                <p class="text-gray-600 dark:text-gray-300 font-medium">{{ $adv->description }}</p>
-                            </div>
-                        @empty
-                            <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">No se han registrado avances.</p>
-                        @endforelse
-                    </div>
-                </div>
-
-                @elseif($chatViewMode === 'history')
-                <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-                    <h2 class="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Historial de Estados</h2>
-                    <div class="space-y-3 mt-4">
-                        @forelse($project->statusHistory as $entry)
-                            <div class="relative pl-4 border-l-2 border-gray-300 dark:border-gray-600 text-xs">
-                                <div class="flex items-center justify-between mb-0.5">
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ $entry->from_status ?? 'Creado' }} → {{ $entry->to_status }}</span>
-                                    <span class="text-gray-400 text-3xs">{{ $entry->created_at->format('d/m/Y H:i') }}</span>
-                                </div>
-                                <p class="text-gray-500 dark:text-gray-400">{{ $entry->user->name ?? 'Usuario' }}</p>
-                            </div>
-                        @empty
-                            <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">Sin cambios de estado registrados.</p>
-                        @endforelse
-                    </div>
-                </div>
-                @endif
             </div>
 
             <!-- Caja de Mensaje con Autocompletado @ (estilo WhatsApp) -->
