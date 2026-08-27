@@ -186,10 +186,14 @@ class ProjectWorkspace extends Component
                 ->update(['status' => 'respondida']);
                 
             // Disminuir contador marcando como leída la notificación de mención que originó esta respuesta
-            ProjectNotification::where('message_id', $this->replyingToMessageId)
+            $updated = ProjectNotification::where('message_id', $this->replyingToMessageId)
                 ->where('user_id', Auth::id())
                 ->where('type', 'mencion')
                 ->update(['read_at' => now()]);
+
+            if ($updated) {
+                $this->dispatch('notifications-updated');
+            }
         }
 
         // Disparar evento WebSocket al túnel de Reverb sin toOthers() para evitar errores de Socket ID
