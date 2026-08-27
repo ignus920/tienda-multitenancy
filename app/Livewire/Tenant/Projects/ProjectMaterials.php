@@ -3,6 +3,7 @@
 namespace App\Livewire\Tenant\Projects;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMaterial;
 use App\Models\Tenant\Items\Items;
@@ -207,14 +208,70 @@ class ProjectMaterials extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Línea actualizada']);
     }
 
-    public function deleteMaterial($materialId)
+    #[On('deactivateMaterial')]
+    public function deactivateMaterial($materialId, $reason)
     {
         $this->ensureTenantConnection();
-        ProjectMaterial::where('id', $materialId)->delete();
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Línea eliminada']);
+        $material = ProjectMaterial::find($materialId);
+        if ($material) {
+            $material->is_active = false;
+            $material->deactivation_reason = $reason;
+            $material->save();
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Línea desactivada']);
+        }
     }
 
-    // --- Exportación (trait WithExport: exportExcel(), exportCsv(), exportPdf()) ---
+    public function reactivateMaterial($materialId)
+    {
+        $this->ensureTenantConnection();
+        $material = ProjectMaterial::find($materialId);
+        if ($material) {
+            $material->is_active = true;
+            $material->deactivation_reason = null;
+            $material->save();
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Línea reactivada']);
+        }
+    }
+
+    #[On('clearMaterialList')]
+    public function clearMaterialList($reason)
+    {
+        $this->ensureTenantConnection();
+        $materials = ProjectMaterial::where('project_id', $this->projectId)->get();
+        
+        foreach ($materials as $material) {
+            $material->clear_reason = $reason;
+            $material->save();
+            $material->delete(); // Soft Delete
+        }
+        
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Lista de materiales eliminada y archivada']);
+    }
+
+    // --- Exportación (trait WithExport: exportCsv(), exportPdf()) ---
+    // exportExcel está sobreescrito aquí para aplicar formato personalizado
+
+    public function exportExcel()
+    {
+        $this->ensureTenantConnection();
+        $materials = $this->getDataForExport();
+        $project = \App\Models\Tenant\Projects\Project::with('customer')->find($this->projectId);
+        
+        $projectName = 'Proyecto';
+        $clientName = 'Cliente';
+
+        if ($project) {
+            $projectName = $project->title ?: 'Proyecto';
+            if ($project->customer) {
+                $clientName = $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? ''));
+            }
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ProjectMaterialsExport($materials, $projectName, $clientName),
+            $this->getExportFilename() . '.xlsx'
+        );
+    }
 
     public function getDataForExport()
     {
@@ -276,8 +333,8 @@ class ProjectMaterials extends Component
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $subtotalErp = $materials->where('origin', 'erp')->sum('line_cost');
-        $subtotalExterno = $materials->where('origin', 'externo')->sum('line_cost');
+        $subtotalErp = $materials->where('origin', 'erp')->where('is_active', true)->sum('line_cost');
+        $subtotalExterno = $materials->where('origin', 'externo')->where('is_active', true)->sum('line_cost');
 
         return view('livewire.tenant.projects.project-materials', [
             'materials' => $materials,

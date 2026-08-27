@@ -24,13 +24,17 @@ class ProjectMaterial extends Model
         'unit_value',
         'line_cost',
         'observations',
-        'created_by'
+        'created_by',
+        'is_active',
+        'deactivation_reason',
+        'clear_reason'
     ];
 
     protected $casts = [
         'quantity' => 'decimal:2',
         'unit_value' => 'decimal:2',
         'line_cost' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
     public function project()
