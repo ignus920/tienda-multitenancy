@@ -197,7 +197,7 @@
                             @endif
 
                             <!-- Comercial / Laboratorio inicia producción -->
-                            @if($project->status === 'orden_creada')
+                            @if($project->status === 'orden_creada' && in_array(Auth::user()->profile_id, [1, 2, 4]))
                                 <button wire:click="startProduction"
                                     class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
                                     Iniciar Producción (Fábrica)
@@ -392,6 +392,7 @@
                             <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
                         @endforeach
                     </select>
+                    {{-- 
                     <select wire:model.live="chatFilterRole" 
                         class="py-2 px-3 bg-white border border-gray-200 text-gray-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
                         <option value="">🏷️ Todos los roles</option>
@@ -399,6 +400,7 @@
                         <option value="8">Laboratorio</option>
                         <option value="1">Gerencia / Admin</option>
                     </select>
+                    --}}
                 </div>
             </div>
 
