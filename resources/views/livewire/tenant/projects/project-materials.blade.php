@@ -102,9 +102,9 @@
                 @error('externalDescription') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
                 @error('externalUnitValue') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
                 @error('externalQuantity') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
-                <div class="flex justify-end gap-2">
-                    <button wire:click="$set('showExternalForm', false)" type="button" class="px-3 py-1.5 text-2xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
-                    <button wire:click="addExternalMaterial" type="button" class="px-3 py-1.5 text-2xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow">Agregar</button>
+                <div class="flex justify-end gap-2 mt-2">
+                    <button wire:click="$set('showExternalForm', false)" type="button" class="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">CANCELAR</button>
+                    <button wire:click="addExternalMaterial" type="button" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition-colors">AGREGAR</button>
                 </div>
             </div>
         @endif
