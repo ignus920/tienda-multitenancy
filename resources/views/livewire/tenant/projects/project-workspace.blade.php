@@ -590,6 +590,7 @@
                         this.showDropdown = false;
                         if (!this.mentionedIds.includes(user.id)) {
                             this.mentionedIds.push(user.id);
+                        }
                         this.$nextTick(() => {
                             textarea.focus();
                             const newCursorPos = lastAt + user.name.length + 2;
