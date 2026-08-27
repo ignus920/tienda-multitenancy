@@ -44,9 +44,8 @@
                     @foreach($searchResults as $result)
                         <button type="button" wire:click="selectErpMaterial({{ $result['id'] }}, '{{ addslashes($result['name']) }}', {{ $result['price'] }})"
                             class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-750 flex items-center justify-between gap-2">
-                            <span>
-                                <span class="font-bold block truncate max-w-lg">{{ $result['name'] }}</span>
-                                <span class="text-gray-400 text-3xs">{{ $result['code'] }}</span>
+                            <span class="truncate max-w-lg">
+                                <span class="text-gray-400 mr-1">{{ $result['code'] }}</span> - <span class="font-bold ml-1">{{ $result['name'] }}</span>
                             </span>
                             <span class="font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">${{ number_format($result['price'], 2) }}</span>
                         </button>
@@ -97,13 +96,13 @@
         <table class="w-full text-xs">
             <thead>
                 <tr class="text-2xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700">
-                    <th class="text-left py-2 pr-2">Origen</th>
-                    <th class="text-left py-2 pr-2">Descripción</th>
+                    <th class="text-left py-2 pr-2 w-16">Origen</th>
+                    <th class="text-left py-2 pr-2 w-[45%]">Descripción</th>
                     <th class="text-right py-2 pr-2">Cantidad</th>
                     <th class="text-right py-2 pr-2">Precio Unit.</th>
                     <th class="text-right py-2 pr-2">Costo</th>
-                    <th class="text-left py-2 pr-2">Observaciones</th>
-                    <th class="text-right py-2">Acciones</th>
+                    <th class="text-left py-2 pr-2 w-[15%]">Observaciones</th>
+                    <th class="text-right py-2 w-20">Acciones</th>
                 </tr>
             </thead>
             <tbody>
