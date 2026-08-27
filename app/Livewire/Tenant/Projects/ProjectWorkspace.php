@@ -691,7 +691,7 @@ class ProjectWorkspace extends Component
         } elseif ($this->chatViewMode === 'novelties') {
             $chatQuery->where('message', 'LIKE', 'Novedad del cliente:%');
         } elseif ($this->chatViewMode === 'history') {
-            $chatQuery->where('message', 'LIKE', '%ESTADO DEL PROYECTO%');
+            $chatQuery->where('message', 'LIKE', '%AVANCE DEL PROYECTO%');
         }
 
         $messages = $chatQuery->orderBy('created_at', 'asc')->get();
