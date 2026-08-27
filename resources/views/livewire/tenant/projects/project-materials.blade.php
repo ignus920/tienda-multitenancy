@@ -61,7 +61,7 @@
             @if(!empty($searchResults) && $search)
                 <div x-show="open" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-56 overflow-y-auto">
                     @foreach($searchResults as $result)
-                        <button type="button" wire:click="selectErpMaterial({{ $result['id'] }}, '{{ addslashes($result['name']) }}', {{ $result['price'] }})"
+                        <button type="button" wire:click="selectErpMaterial({{ $result['id'] }}, '{{ addslashes($result['name']) }}', {{ $result['price'] }}, '{{ addslashes($result['code']) }}')"
                             class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-750 flex items-center justify-between gap-2">
                             <span class="truncate max-w-lg">
                                 <span class="text-gray-400 mr-1">{{ $result['code'] }}</span> - <span class="font-bold ml-1">{{ $result['name'] }}</span>
