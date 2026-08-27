@@ -239,7 +239,7 @@
                         <input wire:model.live="pendientesDateFilter" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-3xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                         <select wire:model.live="pendientesPersonFilter" class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-3xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                             <option value="">Cualquier persona</option>
-                            @foreach($assignableUsers as $user)
+                            @foreach($mentioningUsers as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>

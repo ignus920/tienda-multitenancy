@@ -256,6 +256,10 @@ class ManageProjects extends Component
         // Todos los proyectos disponibles para el filtro del panel
         $myMentionProjects = Project::orderBy('title')->get(['id', 'title']);
 
+        // Usuarios que realmente han mencionado al usuario actual
+        $mentioningUserIds = ProjectMention::where('mentioned_to', $userId)->pluck('mentioned_by')->unique()->toArray();
+        $mentioningUsers = User::whereIn('id', $mentioningUserIds)->orderBy('name')->get(['id', 'name']);
+
         $myQuestions = ProjectQuestion::where('status', 'pendiente')
             ->whereHas('project', function ($q) use ($userId) {
                 $q->where('created_by', $userId);
@@ -342,7 +346,8 @@ class ManageProjects extends Component
             'myQuestions' => $myQuestions,
             'assignableUsers' => $assignableUsers,
             'pendientesCount' => $pendientesCount,
-            'myMentionProjects' => $myMentionProjects
+            'myMentionProjects' => $myMentionProjects,
+            'mentioningUsers' => $mentioningUsers
         ])->layout('layouts.app', ['header' => 'Gestión de Proyectos']);
     }
 }
