@@ -32,6 +32,7 @@ class ProjectWorkspace extends Component
     public $activeTab = 'chat';
 
     // Filtros de chat
+    public $chatViewMode = 'chat';
     public $chatFilterUser = '';
     public $chatFilterRole = '';
 
@@ -634,11 +635,9 @@ class ProjectWorkspace extends Component
         
         $project = Project::with(['customer', 'creator', 'assignedUser', 'statusHistory.user'])->findOrFail($this->projectId);
         
-        // 1. Obtener lista de usuarios para el autocompletado de menciones @ en Alpine
-        $sessionTenant = session('tenant_id');
-        $usersList = User::whereHas('tenants', function($q) use ($sessionTenant) {
-                $q->where('tenants.id', $sessionTenant);
-            })->get()->map(function($u) {
+        // 1. Obtener lista de usuarios para el autocompletado y el filtro (solo participantes)
+        $participantIds = ProjectParticipant::where('project_id', $this->projectId)->pluck('user_id')->toArray();
+        $usersList = User::whereIn('id', $participantIds)->get()->map(function($u) {
             return ['id' => $u->id, 'name' => $u->name];
         })->toArray();
 
