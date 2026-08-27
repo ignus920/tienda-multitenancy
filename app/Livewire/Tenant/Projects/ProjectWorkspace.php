@@ -184,6 +184,12 @@ class ProjectWorkspace extends Component
                 ->where('mentioned_to', Auth::id())
                 ->where('status', '!=', 'respondida')
                 ->update(['status' => 'respondida']);
+                
+            // Disminuir contador marcando como leída la notificación de mención que originó esta respuesta
+            ProjectNotification::where('message_id', $this->replyingToMessageId)
+                ->where('user_id', Auth::id())
+                ->where('type', 'mencion')
+                ->update(['read_at' => now()]);
         }
 
         // Disparar evento WebSocket al túnel de Reverb sin toOthers() para evitar errores de Socket ID
@@ -217,7 +223,7 @@ class ProjectWorkspace extends Component
             }
         }
 
-        // Crear notificaciones y enviar broadcast
+        // Crear notificaciones y enviar broadcast para menciones
         if (!empty($mentionedUserIds)) {
             // Si hay menciones, notificar SOLO a los mencionados (excepto al emisor)
             $recipientIds = array_filter($mentionedUserIds, fn($id) => $id !== Auth::id());
@@ -232,6 +238,24 @@ class ProjectWorkspace extends Component
                 broadcast(new NewProjectNotification(
                     $userId, $this->projectId, $project->title ?? 'Proyecto',
                     $senderName, $messagePreview, 'mencion', $notification->id
+                ));
+            }
+        }
+
+        // Crear notificación de respuesta si aplica
+        if ($this->replyingToMessageId) {
+            $repliedMessage = ProjectMessage::find($this->replyingToMessageId);
+            if ($repliedMessage && $repliedMessage->user_id !== Auth::id()) {
+                $notification = ProjectNotification::create([
+                    'user_id' => $repliedMessage->user_id,
+                    'project_id' => $this->projectId,
+                    'message_id' => $message->id,
+                    'sender_id' => Auth::id(),
+                    'type' => 'respuesta',
+                ]);
+                broadcast(new NewProjectNotification(
+                    $repliedMessage->user_id, $this->projectId, $project->title ?? 'Proyecto',
+                    $senderName, $messagePreview, 'respuesta', $notification->id
                 ));
             }
         }
@@ -643,7 +667,7 @@ class ProjectWorkspace extends Component
 
         // 2. Consulta de chat con filtros aplicados
         $chatQuery = ProjectMessage::where('project_id', $this->projectId)
-            ->with(['user.profile', 'repliedTo.user', 'files']);
+            ->with(['user.profile', 'repliedTo.user', 'files', 'mentions']);
 
         if ($this->chatFilterUser) {
             $chatQuery->where('user_id', $this->chatFilterUser);

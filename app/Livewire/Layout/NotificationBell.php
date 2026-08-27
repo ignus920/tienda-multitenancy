@@ -101,11 +101,20 @@ class NotificationBell extends Component
             ->first();
 
         if ($notification) {
-            $notification->update(['read_at' => now()]);
+            // No marcar como leída si es una mención, se descuenta solo al responder
+            if ($notification->type !== 'mencion') {
+                $notification->update(['read_at' => now()]);
+            }
             $projectId = $notification->project_id;
             $this->loadNotifications();
 
-            return redirect()->route('tenant.projects.workspace', $projectId);
+            // Si tiene message_id, anexarlo para que haga scroll automático
+            $routeParams = ['id' => $projectId];
+            if ($notification->message_id) {
+                $routeParams['msg'] = $notification->message_id;
+            }
+
+            return redirect()->route('tenant.projects.workspace', $routeParams);
         }
     }
 
@@ -115,6 +124,7 @@ class NotificationBell extends Component
 
         ProjectNotification::where('user_id', Auth::id())
             ->whereNull('read_at')
+            ->where('type', '!=', 'mencion') // Excluir menciones
             ->update(['read_at' => now()]);
 
         $this->loadNotifications();

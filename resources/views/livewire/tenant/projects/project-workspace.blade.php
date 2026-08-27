@@ -435,9 +435,16 @@
                             </div>
                         @endif
 
+                        @php
+                            $hasPendingMention = !$isMe && $msg->mentions && $msg->mentions->where('mentioned_to', Auth::id())->where('status', 'pendiente')->isNotEmpty();
+                        @endphp
                         <div class="max-w-[75%] relative">
-                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-green-100 dark:bg-green-800 rounded-br-sm' : 'bg-white dark:bg-gray-700 rounded-bl-sm' }}">
+                            <div class="rounded-xl px-3.5 py-2.5 shadow-sm {{ $isMe ? 'bg-green-100 dark:bg-green-800 rounded-br-sm' : 'bg-white dark:bg-gray-700 rounded-bl-sm' }} {{ $hasPendingMention ? 'ring-2 ring-red-400 !bg-red-50 dark:!bg-red-900/40' : '' }}">
                                 
+                                @if($hasPendingMention)
+                                    <div class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                                    <div class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" title="Tienes una mención pendiente por responder en este mensaje"></div>
+                                @endif
                                 <!-- Remitente (solo en mensajes de otros) -->
                                 @if(!$isMe)
                                     <div class="text-sm font-extrabold {{ $roleStyle['name'] }} mb-0.5 flex items-center gap-1.5">
@@ -1009,3 +1016,30 @@
     </div>
 
 </div>
+
+@script
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const msgId = urlParams.get('msg');
+        
+        if (msgId) {
+            setTimeout(() => {
+                const el = document.getElementById('msg-' + msgId);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-2', 'ring-amber-400', 'rounded-xl', 'transition-all', 'duration-500');
+                    
+                    // Remover url param para que si recarga no vuelva a hacer animacion (opcional, aunque util)
+                    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                    window.history.pushState({path:newUrl}, '', newUrl);
+
+                    setTimeout(() => {
+                        el.classList.remove('ring-2', 'ring-amber-400', 'rounded-xl');
+                    }, 3000);
+                }
+            }, 800); // Dar un poco de tiempo para asegurar que Alpine y Livewire rendericen el chat
+        }
+    });
+</script>
+@endscript
