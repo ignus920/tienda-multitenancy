@@ -2,6 +2,25 @@
     <div class="flex items-center justify-between">
         <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Lista de Materiales</h2>
         <div class="flex items-center gap-2">
+            @if($materials && $materials->count() > 0)
+                <button type="button" 
+                        @click="Swal.fire({
+                            title: 'Eliminar Lista Completa',
+                            text: 'Ingresa la justificación para eliminar y archivar todos los materiales actuales:',
+                            input: 'text',
+                            inputAttributes: { autocapitalize: 'off' },
+                            showCancelButton: true,
+                            confirmButtonText: 'Eliminar',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#ef4444',
+                            inputValidator: (value) => { if (!value) return 'Debes ingresar una justificación' }
+                        }).then((result) => {
+                            if (result.isConfirmed) { $wire.clearMaterialList(result.value) }
+                        })"
+                    class="px-3 py-1.5 text-2xs font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg transition-colors border border-red-200 dark:border-red-800">
+                    Eliminar Lista
+                </button>
+            @endif
             <button wire:click="exportPdf" type="button"
                 class="px-3 py-1.5 text-2xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 rounded-lg transition-colors">
                 Descargar PDF
@@ -107,7 +126,7 @@
             </thead>
             <tbody>
                 @forelse($materials as $material)
-                    <tr class="border-b border-gray-50 dark:border-gray-750">
+                    <tr class="border-b border-gray-50 dark:border-gray-750 {{ !$material->is_active ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : '' }}">
                         <td class="py-2 pr-2">
                             <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block">
                                 <span class="cursor-help px-1.5 py-0.5 rounded text-3xs font-bold {{ $material->origin === 'erp' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }}">
@@ -147,14 +166,44 @@
                                 <button wire:click="cancelEdit" class="text-gray-400 hover:text-gray-600 font-semibold text-2xs">Cancelar</button>
                             </td>
                         @else
-                            <td class="py-2 pr-2 text-gray-800 dark:text-gray-200 font-medium">{{ $material->description }}</td>
+                            <td class="py-2 pr-2 text-gray-800 dark:text-gray-200 font-medium">
+                                @if(!$material->is_active)
+                                    <span class="inline-flex items-center justify-center bg-red-100 text-red-600 rounded-full w-4 h-4 mr-1 cursor-help" title="Desactivado: {{ $material->deactivation_reason }}">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </span>
+                                @endif
+                                {{ $material->description }}
+                            </td>
                             <td class="py-2 pr-2 text-right">{{ rtrim(rtrim(number_format($material->quantity, 2), '0'), '.') }}</td>
                             <td class="py-2 pr-2 text-right">${{ number_format($material->unit_value, 2) }}</td>
-                            <td class="py-2 pr-2 text-right font-semibold">${{ number_format($material->line_cost, 2) }}</td>
+                            <td class="py-2 pr-2 text-right font-semibold">
+                                @if(!$material->is_active)
+                                    <span class="line-through text-gray-400">${{ number_format($material->line_cost, 2) }}</span>
+                                @else
+                                    ${{ number_format($material->line_cost, 2) }}
+                                @endif
+                            </td>
                             <td class="py-2 pr-2 text-gray-500">{{ $material->observations }}</td>
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="editMaterial({{ $material->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
-                                <button wire:click="deleteMaterial({{ $material->id }})" wire:confirm="¿Eliminar esta línea de materiales?" class="text-red-500 hover:text-red-600 font-semibold text-2xs">Eliminar</button>
+                                @if($material->is_active)
+                                    <button type="button" 
+                                            @click="Swal.fire({
+                                                title: 'Desactivar Material',
+                                                text: 'Ingresa la justificación para desactivar este material:',
+                                                input: 'text',
+                                                inputAttributes: { autocapitalize: 'off' },
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Desactivar',
+                                                cancelButtonText: 'Cancelar',
+                                                inputValidator: (value) => { if (!value) return 'Debes ingresar una justificación' }
+                                            }).then((result) => {
+                                                if (result.isConfirmed) { $wire.deactivateMaterial({{ $material->id }}, result.value) }
+                                            })" 
+                                            class="text-amber-600 hover:text-amber-700 font-semibold text-2xs">Desactivar</button>
+                                @else
+                                    <button wire:click="reactivateMaterial({{ $material->id }})" wire:confirm="¿Reactivar este material?" class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs">Reactivar</button>
+                                @endif
                             </td>
                         @endif
                     </tr>
@@ -168,18 +217,10 @@
     </div>
 
     <!-- Subtotales -->
-    <div class="flex justify-end">
-        <div class="w-full md:w-72 space-y-1 text-xs">
-            <div class="flex justify-between text-gray-500">
-                <span>Subtotal ERP</span>
-                <span>${{ number_format($subtotalErp, 2) }}</span>
-            </div>
-            <div class="flex justify-between text-gray-500">
-                <span>Subtotal Externos</span>
-                <span>${{ number_format($subtotalExterno, 2) }}</span>
-            </div>
-            <div class="flex justify-between font-bold text-gray-900 dark:text-white border-t border-gray-100 dark:border-gray-700 pt-1">
-                <span>Costo Total</span>
+    <div class="flex justify-end mt-4">
+        <div class="w-full md:w-72 text-xs">
+            <div class="flex justify-between font-bold text-gray-900 dark:text-white pt-1">
+                <span>Total</span>
                 <span>${{ number_format($total, 2) }}</span>
             </div>
         </div>
