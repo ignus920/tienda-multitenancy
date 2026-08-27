@@ -96,14 +96,22 @@ class ProjectMaterials extends Component
 
     public $selectedErpItem = null;
 
-    public function selectErpMaterial($itemId, $itemName, $itemPrice)
+    public function selectErpMaterial($itemId, $itemName, $itemPrice, $itemCode = '')
     {
         $this->selectedErpItem = [
             'id' => $itemId,
             'name' => $itemName,
-            'price' => $itemPrice
+            'price' => $itemPrice,
+            'code' => $itemCode
         ];
-        $this->search = $itemName;
+        
+        $priceFormatted = '$' . number_format($itemPrice, 2);
+        if ($itemCode) {
+            $this->search = "{$itemCode} - {$itemName} ({$priceFormatted})";
+        } else {
+            $this->search = "{$itemName} ({$priceFormatted})";
+        }
+        
         $this->searchResults = [];
     }
 
@@ -122,11 +130,15 @@ class ProjectMaterials extends Component
             'quantity.min' => 'La cantidad debe ser mayor a cero.'
         ]);
 
+        $fullDescription = !empty($this->selectedErpItem['code']) 
+            ? "{$this->selectedErpItem['code']} - {$this->selectedErpItem['name']}" 
+            : $this->selectedErpItem['name'];
+
         ProjectMaterial::create([
             'project_id' => $this->projectId,
             'item_id' => $this->selectedErpItem['id'],
             'origin' => 'erp',
-            'description' => $this->selectedErpItem['name'],
+            'description' => $fullDescription,
             'quantity' => $this->quantity,
             'unit_value' => $this->selectedErpItem['price'],
             'line_cost' => $this->quantity * $this->selectedErpItem['price'],
