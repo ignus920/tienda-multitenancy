@@ -119,7 +119,7 @@
                     <th class="text-left py-2 pr-2 w-[45%]">Descripción</th>
                     <th class="text-right py-2 pr-2">Cantidad</th>
                     <th class="text-right py-2 pr-2">Precio Unit.</th>
-                    <th class="text-right py-2 pr-2">Costo</th>
+                    <th class="text-right py-2 pr-2">Subtotal</th>
                     <th class="text-left py-2 pr-2 w-[15%]">Observaciones</th>
                     <th class="text-right py-2 w-20">Acciones</th>
                 </tr>
