@@ -97,7 +97,7 @@
                             <img src="{{ asset('images/logofervi.png') }}" alt="Fervicom" class="h-8 w-auto mr-1">
                         @endif
                         @if (isset($header))
-                            <h1 class="text-xl font-semibold text-gray-900 dark:text-white shrink-0">{{ $header }}</h1>
+                            <h1 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate" title="{{ $header }}">{{ $header }}</h1>
                         @endif
                         <!-- Contenedor para Teleport del Buscador de Cliente (solo en el cotizador) -->
                         <div id="customer-header-container" class="flex-1 max-w-4xl ml-auto flex justify-end"></div>

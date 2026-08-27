@@ -362,9 +362,9 @@
         <!-- Chat Interactivo estilo WhatsApp -->
         <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 180px);">
             <!-- Header del Chat (estilo WhatsApp) -->
-            <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex items-center justify-between gap-3 shrink-0">
+            <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
@@ -376,7 +376,7 @@
                 </div>
                 
                 <!-- Filtros del chat -->
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap md:flex-nowrap items-center gap-2">
                     <select wire:model.live="chatViewMode" 
                         class="py-2 px-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm">
                         <option value="chat">💬 Foro (Chat)</option>

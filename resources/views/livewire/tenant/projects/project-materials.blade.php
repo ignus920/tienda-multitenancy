@@ -1,7 +1,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Lista de Materiales</h2>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
             @if($materials && $materials->count() > 0)
                 <button type="button" 
                         @click="Swal.fire({
