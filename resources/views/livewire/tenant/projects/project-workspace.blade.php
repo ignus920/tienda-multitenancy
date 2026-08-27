@@ -474,9 +474,9 @@
                                         <div class="flex flex-col gap-1.5 {{ trim($msg->message ?? '') ? 'mt-2' : '' }}">
                                             @foreach($msg->files as $file)
                                                 @if($file->is_image)
-                                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="block max-w-[220px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm hover:opacity-90 transition-opacity mt-1">
+                                                    <button type="button" @click="$dispatch('open-lightbox', '{{ Storage::url($file->file_path) }}')" class="block max-w-[220px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm hover:opacity-90 transition-opacity mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left">
                                                         <img src="{{ Storage::url($file->file_path) }}" alt="{{ $file->file_name }}" class="w-full h-auto object-cover">
-                                                    </a>
+                                                    </button>
                                                 @else
                                                     <a href="{{ Storage::url($file->file_path) }}" target="_blank"
                                                         class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-2xs mt-1">
@@ -590,8 +590,6 @@
                         this.showDropdown = false;
                         if (!this.mentionedIds.includes(user.id)) {
                             this.mentionedIds.push(user.id);
-                        }
-
                         this.$nextTick(() => {
                             textarea.focus();
                             const newCursorPos = lastAt + user.name.length + 2;
@@ -600,6 +598,7 @@
                     },
 
                     handleKeydown(e) {
+                        if (e.target.disabled) { e.preventDefault(); return; }
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             if (this.newMessage && this.newMessage.trim().length > 0) {
@@ -663,19 +662,27 @@
                             <input type="file" wire:model="attachments" multiple class="hidden" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx">
                             <x-heroicon-o-paper-clip class="w-5 h-5" />
                         </label>
-                        <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
+                        <div class="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden relative">
+                            <div wire:loading wire:target="attachments" class="absolute inset-0 bg-white/60 dark:bg-gray-800/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 shadow-sm bg-white dark:bg-gray-800 rounded-full px-3 py-1 border border-indigo-100 dark:border-indigo-900">
+                                    <svg class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Cargando archivo...
+                                </span>
+                            </div>
                             <textarea x-ref="chatTextarea" wire:model="newMessageText"
+                                wire:loading.attr="disabled" wire:target="attachments"
                                 @keyup="checkTrigger" @input="checkTrigger"
                                 @keydown="handleKeydown($event)"
                                 rows="1"
                                 placeholder="Escribe un mensaje..."
-                                class="block w-full border-0 bg-transparent text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-0 focus:outline-none resize-none"
+                                class="block w-full border-0 bg-transparent text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-0 focus:outline-none resize-none disabled:opacity-30 disabled:cursor-wait"
                                 style="max-height: 120px; overflow-y: auto;"
                                 x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"></textarea>
                         </div>
 
                         <button wire:click="sendMessage"
-                            class="flex items-center justify-center w-12 h-12 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5"
+                            wire:loading.attr="disabled" wire:target="attachments"
+                            class="flex items-center justify-center w-12 h-12 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0 active:scale-90 mb-0.5 disabled:bg-gray-400 disabled:cursor-wait"
                             title="Enviar mensaje (Enter)">
                             <svg class="w-5 h-5 ml-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
@@ -978,5 +985,24 @@
         </div>
     </div>
     @endif
+
+    <!-- Modal Lightbox para Imágenes -->
+    <div x-data="{ showLightbox: false, lightboxImg: '' }"
+         @open-lightbox.window="lightboxImg = $event.detail; showLightbox = true"
+         x-show="showLightbox" x-cloak
+         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        
+        <button type="button" @click="showLightbox = false" class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2 z-[101]">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+
+        <img @click.away="showLightbox = false" :src="lightboxImg" class="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl" />
+    </div>
 
 </div>
