@@ -103,7 +103,7 @@ class NotificationBell extends Component
 
         if ($notification) {
             // No marcar como leída si es una mención, se descuenta solo al responder
-            if ($notification->type !== 'mencion') {
+            if (!in_array($notification->type, ['mencion', 'mencion_avance'])) {
                 $notification->update(['read_at' => now()]);
             }
             $projectId = $notification->project_id;
@@ -125,7 +125,7 @@ class NotificationBell extends Component
 
         ProjectNotification::where('user_id', Auth::id())
             ->whereNull('read_at')
-            ->where('type', '!=', 'mencion') // Excluir menciones
+            ->whereNotIn('type', ['mencion', 'mencion_avance']) // Excluir menciones
             ->update(['read_at' => now()]);
 
         $this->loadNotifications();
