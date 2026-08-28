@@ -2487,7 +2487,7 @@
                 </div>
 
                 <!-- Formulario -->
-                <form wire:submit.prevent="convertNewProductToReal" class="p-6 space-y-4">
+                <form wire:submit.prevent="updateRealProductExtensive" class="p-6 space-y-4">
                     <div class="space-y-6">
                         <div class="mb-3">
 
