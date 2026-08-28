@@ -306,7 +306,7 @@ class ProjectWorkspace extends Component
         $msg = ProjectMessage::with('user')->find($messageId);
         if ($msg) {
             $this->replyingToMessageId = $msg->id;
-            $this->replyingToMessageText = $msg->user->name . ': ' . substr($msg->message, 0, 50) . '...';
+            $this->replyingToMessageText = $msg->user->name . ': ' . $msg->message;
         }
     }
 
