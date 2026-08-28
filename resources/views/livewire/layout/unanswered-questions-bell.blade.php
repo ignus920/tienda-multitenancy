@@ -46,31 +46,38 @@
                 <a href="{{ route('tenant.projects.workspace', $question['project_id']) }}"
                    class="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left group">
                     
-                    {{-- Icono representativo --}}
+                    {{-- Avatar del destinatario --}}
                     <div class="flex-shrink-0 mt-1">
-                        <div class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
-                            <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
+                        @if(isset($question['recipient_avatar']) && $question['recipient_avatar'])
+                            <img src="{{ $question['recipient_avatar'] }}" alt="{{ $question['recipient_name'] }}"
+                                 class="h-9 w-9 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800">
+                        @else
+                            <div class="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center ring-2 ring-orange-200 dark:ring-orange-800">
+                                <span class="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                                    {{ strtoupper(substr($question['recipient_name'] ?? 'U', 0, 1)) }}
+                                </span>
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Contenido --}}
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5 justify-between">
-                            <span class="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                {{ $question['project_title'] }}
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                Esperando a: {{ $question['recipient_name'] }}
                             </span>
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
-                                {{ $question['time_ago'] }}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                                Pendiente
                             </span>
                         </div>
-                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
-                            "{{ $question['question_preview'] }}"
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            {{ $question['project_title'] }}
                         </p>
-                        <p class="text-[10px] font-semibold text-red-500 mt-1.5 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                            Pendiente de respuesta
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 italic">
+                            "{{ mb_substr($question['question_preview'], 0, 60) }}{{ mb_strlen($question['question_preview']) > 60 ? '...' : '' }}"
+                        </p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+                            Hace {{ $question['time_ago'] }}
                         </p>
                     </div>
                 </a>
