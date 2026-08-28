@@ -1157,8 +1157,18 @@
                                                         <div class="bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
                                                             <div class="flex flex-col sm:flex-row gap-4 items-start">
                                                                 @if(!empty($data['image']))
-                                                                    <div class="flex-shrink-0">
-                                                                        <img src="{{ Storage::url($data['image']) }}" alt="Producto" class="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                                    <div class="flex-shrink-0" x-data="{ openImage: false }">
+                                                                        <img @click="openImage = true" src="{{ Storage::url($data['image']) }}" alt="Producto" class="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer hover:opacity-75 transition-opacity">
+                                                                        
+                                                                        <!-- Visor de imagen ampliada -->
+                                                                        <div x-show="openImage" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-80 transition-opacity" x-transition.opacity>
+                                                                            <div class="relative max-w-5xl max-h-screen p-4 flex justify-center items-center">
+                                                                                <button @click="openImage = false" class="absolute top-2 right-2 sm:top-6 sm:right-6 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 transition-colors">
+                                                                                    <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                                                </button>
+                                                                                <img @click.away="openImage = false" src="{{ Storage::url($data['image']) }}" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 @endif
                                                                 <div class="flex-1 w-full">
