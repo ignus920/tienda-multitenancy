@@ -184,9 +184,11 @@ class ProjectWorkspace extends Component
         // Si el mensaje responde a otro que generó un pendiente dirigido a este usuario,
         // se marca automáticamente como "respondida" (punto 49 de la espec)
         if ($this->replyingToMessageId) {
-            ProjectMention::where('message_id', $this->replyingToMessageId)
+            // Resolver menciones si las hay
+            $updatedMention = ProjectMention::where('project_id', $this->projectId)
+                ->where('message_id', $this->replyingToMessageId)
                 ->where('mentioned_to', Auth::id())
-                ->where('status', '!=', 'respondida')
+                ->where('status', 'pendiente')
                 ->update(['status' => 'respondida']);
                 
             // Disminuir contador marcando como leída la notificación de mención que originó esta respuesta
@@ -195,7 +197,7 @@ class ProjectWorkspace extends Component
                 ->whereIn('type', ['mencion', 'mencion_avance'])
                 ->update(['read_at' => now()]);
 
-            if ($updated || $updatedNotification) {
+            if ($updatedMention || $updatedNotification) {
                 $this->dispatch('notifications-updated');
                 $this->dispatch('unanswered-questions-updated');
             }
