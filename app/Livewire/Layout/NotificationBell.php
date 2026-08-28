@@ -60,6 +60,7 @@ class NotificationBell extends Component
     public function onNewNotification($payload = null)
     {
         $this->loadNotifications();
+        $this->loadPendingMentions(); // Recargar pendientes (por si la notificacion fue una respuesta)
         $this->dispatch('play-notification-sound');
     }
 
@@ -68,6 +69,7 @@ class NotificationBell extends Component
     public function onPendingMentionsUpdate()
     {
         $this->loadPendingMentions();
+        $this->loadNotifications();
     }
 
     #[On('notifications-updated')]
