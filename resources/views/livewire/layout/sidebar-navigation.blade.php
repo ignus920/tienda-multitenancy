@@ -631,10 +631,10 @@ new class extends Component
         @if(!$isOperario && PermissionHelper::userCan('Mercadeo', 'show'))
         <div x-data="{
             tooltip: false,
-            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') ? 'true' : 'false' }},
+            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') || request()->routeIs('tenant.marketing.videos.*') ? 'true' : 'false' }},
             _t: null
         }" class="w-full relative">
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') || request()->routeIs('tenant.marketing.videos.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
                 @mouseenter="tooltip = sidebarCollapsed"
                 @mouseleave="_t = setTimeout(() => tooltip = false, 200)"
@@ -669,6 +669,12 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.sliders.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Sliders de Promoción
                 </a>
+                @if(PermissionHelper::userCan('Gestión de Videos', 'show'))
+                <a href="{{ route('tenant.marketing.videos.index') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.marketing.videos.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Gestión de Videos
+                </a>
+                @endif
             </div>
 
             <!-- Tooltip colapsado -->
@@ -684,6 +690,10 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Catálogos</a>
                 <a href="{{ route('tenant.sliders.index') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Sliders de Promoción</a>
+                @if(PermissionHelper::userCan('Gestión de Videos', 'show'))
+                <a href="{{ route('tenant.marketing.videos.index') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión de Videos</a>
+                @endif
             </div>
         </div>
         @endif
