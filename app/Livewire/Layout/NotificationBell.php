@@ -5,14 +5,19 @@ namespace App\Livewire\Layout;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\ProjectNotification;
+use App\Models\Tenant\Projects\ProjectMention;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class NotificationBell extends Component
 {
     public $notifications = [];
     public $unreadCount = 0;
+    public $pendingMentions = [];
+    public $pendingCount = 0;
+    public $activeTab = 'general';
     public $showDropdown = false;
     public $userId;
 
@@ -20,6 +25,7 @@ class NotificationBell extends Component
     {
         $this->userId = Auth::id();
         $this->loadNotifications();
+        $this->loadPendingMentions();
     }
 
     public function boot()
@@ -53,11 +59,15 @@ class NotificationBell extends Component
     #[On('echo-private:user.{userId},.NewProjectNotification')]
     public function onNewNotification($payload = null)
     {
-        // Al recibir el WebSocket, recargamos las notificaciones de la base de datos
         $this->loadNotifications();
-
-        // Despachar evento al navegador para reproducir el sonido de notificación
         $this->dispatch('play-notification-sound');
+    }
+
+    #[On('unanswered-questions-updated')]
+    #[On('echo-private:user.{userId},.NewProjectMessage')]
+    public function onPendingMentionsUpdate()
+    {
+        $this->loadPendingMentions();
     }
 
     #[On('notifications-updated')]
@@ -91,6 +101,41 @@ class NotificationBell extends Component
                 ];
             })
             ->toArray();
+    }
+
+    public function loadPendingMentions()
+    {
+        $this->ensureTenantConnection();
+
+        if (!Auth::check()) {
+            $this->pendingMentions = [];
+            $this->pendingCount = 0;
+            return;
+        }
+
+        // Obtener menciones/preguntas donde el creador sea el usuario actual y sigan pendientes
+        $rawQuestions = ProjectMention::with(['project', 'message', 'recipient'])
+            ->where('mentioned_by', Auth::id())
+            ->where('status', 'pendiente')
+            ->orderBy('created_at', 'desc')
+            ->take(15) // Limitamos a 15 para no saturar el menú
+            ->get();
+
+        $this->pendingCount = ProjectMention::where('mentioned_by', Auth::id())
+            ->where('status', 'pendiente')
+            ->count();
+
+        $this->pendingMentions = $rawQuestions->map(function ($q) {
+            return [
+                'id' => $q->id,
+                'project_id' => $q->project_id,
+                'project_title' => $q->project ? $q->project->title : 'Proyecto Desconocido',
+                'question_preview' => $q->message ? $q->message->message : 'Mención',
+                'time_ago' => Carbon::parse($q->created_at)->locale('es')->diffForHumans(),
+                'recipient_name' => $q->recipient ? $q->recipient->name : 'Usuario',
+                'recipient_avatar' => $q->recipient ? $q->recipient->getAvatarUrl() : ''
+            ];
+        })->toArray();
     }
 
     public function markAsRead($notificationId)

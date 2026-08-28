@@ -30,32 +30,54 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
         </svg>
 
-        {{-- Badge rojo con contador --}}
-        @if($unreadCount > 0)
-            <span class="absolute top-0 right-0 flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold text-white bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse">
-                {{ $unreadCount > 99 ? '99+' : $unreadCount }}
-            </span>
+        {{-- Badge rojo (Punto indicador global) --}}
+        @if(($unreadCount + $pendingCount) > 0)
+            <span class="absolute top-1 right-1 flex items-center justify-center h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-800"></span>
         @endif
     </button>
 
     {{-- Dropdown de Notificaciones --}}
     <div x-show="open"
+         x-data="{ tab: 'general' }"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="transform opacity-0 scale-95"
          x-transition:enter-end="transform opacity-100 scale-100"
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="transform opacity-100 scale-100"
          x-transition:leave-end="transform opacity-0 scale-95"
-         class="absolute right-0 mt-2 w-96 max-h-[28rem] origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-gray-700 overflow-hidden z-50"
+         class="absolute right-0 mt-2 w-96 max-h-[32rem] origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-gray-700 overflow-hidden z-50 flex flex-col"
          style="display: none;">
 
-        {{-- Encabezado --}}
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notificaciones Proyectos</h3>
+        {{-- Encabezado con Pestañas --}}
+        <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 shrink-0 bg-gray-50/50 dark:bg-gray-800/50">
+            <div class="flex w-full">
+                <button @click="tab = 'general'" 
+                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'general', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'general' }"
+                        class="relative flex-1 py-3 text-xs font-semibold text-center focus:outline-none transition-colors">
+                    Notif. del Proyecto
+                    @if($unreadCount > 0)
+                        <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
+                            {{ $unreadCount }}
+                        </span>
+                    @endif
+                    <span x-show="tab === 'general'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
+                </button>
+                <button @click="tab = 'pendientes'" 
+                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'pendientes', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'pendientes' }"
+                        class="relative flex-1 py-3 text-xs font-semibold text-center focus:outline-none transition-colors">
+                    Pendientes
+                    @if($pendingCount > 0)
+                        <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
+                            {{ $pendingCount }}
+                        </span>
+                    @endif
+                    <span x-show="tab === 'pendientes'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
+                </button>
+            </div>
         </div>
 
-        {{-- Lista de Notificaciones --}}
-        <div class="overflow-y-auto max-h-[22rem] divide-y divide-gray-50 dark:divide-gray-700/50">
+        {{-- Tab: Notificaciones Generales --}}
+        <div x-show="tab === 'general'" class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50">
             @forelse($notifications as $notification)
                 <button wire:click="markAsRead({{ $notification['id'] }})"
                         class="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left">
@@ -102,11 +124,64 @@
                     </div>
                 </button>
             @empty
-                <div class="px-4 py-8 text-center">
-                    <svg class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                <div class="px-4 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                     </svg>
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Sin notificaciones pendientes</p>
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Bandeja al día</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No tienes notificaciones pendientes.</p>
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Tab: Pendientes (Parlante) --}}
+        <div x-show="tab === 'pendientes'" style="display: none;" class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50 bg-orange-50/30 dark:bg-orange-900/10">
+            @forelse($pendingMentions as $question)
+                <a href="{{ route('tenant.projects.workspace', $question['project_id']) }}"
+                   class="w-full flex items-start gap-3 px-4 py-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors text-left group">
+                    
+                    {{-- Avatar del destinatario --}}
+                    <div class="flex-shrink-0 mt-1">
+                        @if(isset($question['recipient_avatar']) && $question['recipient_avatar'])
+                            <img src="{{ $question['recipient_avatar'] }}" alt="{{ $question['recipient_name'] }}"
+                                 class="h-9 w-9 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800">
+                        @else
+                            <div class="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center ring-2 ring-orange-200 dark:ring-orange-800">
+                                <span class="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                                    {{ strtoupper(substr($question['recipient_name'] ?? 'U', 0, 1)) }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Contenido --}}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                Esperando a: {{ $question['recipient_name'] }}
+                            </span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                                Pendiente
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            {{ $question['project_title'] }}
+                        </p>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 italic">
+                            "{{ mb_substr($question['question_preview'], 0, 60) }}{{ mb_strlen($question['question_preview']) > 60 ? '...' : '' }}"
+                        </p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+                            Hace {{ $question['time_ago'] }}
+                        </p>
+                    </div>
+                </a>
+            @empty
+                <div class="px-4 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-orange-200 dark:text-orange-900/50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Nadie te debe respuestas</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Todos tus pendientes han sido atendidos.</p>
                 </div>
             @endforelse
         </div>
