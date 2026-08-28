@@ -3038,7 +3038,7 @@ class Orders extends Component
         }
 
         try {
-            DB::connection('tenant')->table('imp_new_products')->insert([
+            $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
                 'observations' => $this->newProductObservations,
@@ -3048,6 +3048,16 @@ class Orders extends Component
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            if (!empty($this->newProductObservations)) {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'new_product_id' => $newProductId,
+                    'comment' => "Observación Inicial: " . $this->newProductObservations,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             $this->showModalCreateNewProduct = false;
             $this->dispatch('show-toast', [
