@@ -43,7 +43,7 @@
         {{-- Lista de Preguntas --}}
         <div class="overflow-y-auto max-h-[22rem] divide-y divide-gray-50 dark:divide-gray-700/50">
             @forelse($questions as $question)
-                <a href="{{ route('tenant.projects.show', $question['project_id']) }}"
+                <a href="{{ route('tenant.projects.workspace', $question['project_id']) }}"
                    class="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left group">
                     
                     {{-- Icono representativo --}}
