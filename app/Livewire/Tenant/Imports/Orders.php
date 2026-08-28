@@ -253,7 +253,7 @@ class Orders extends Component
                 ->whereNull('deleted_at')
                 ->where('status', '=', 'PENDING')
                 ->when(Auth::user()->profile_id == 17, function ($query) {
-                    return $query->where('supplier_id', Auth::id());
+                    return $query->where('created_by', Auth::id());
                 })
                 ->count();
 
@@ -427,6 +427,9 @@ class Orders extends Component
                 ])
                 ->whereNull('inp.deleted_at')
                 ->where('inp.status', '=', 'PENDING')
+                ->when(Auth::user()->profile_id == 17, function ($query) {
+                    return $query->where('inp.created_by', Auth::id());
+                })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
                     foreach ($words as $word) {
