@@ -815,6 +815,19 @@
             </div>
             <div class="p-6 space-y-4">
                 <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Dirigido a: *</label>
+                    <select wire:model="questionUserId"
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">-- Seleccione un destinatario --</option>
+                        @foreach($usersList as $u)
+                            @if($u['id'] != auth()->id())
+                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    @error('questionUserId') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+                <div>
                     <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Escribe la Pregunta *</label>
                     <textarea wire:model="newQuestionText" rows="4" placeholder="Escribe aquí de forma clara la duda sobre materiales o potencia para que el comercial la consulte con el cliente..."
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
@@ -867,6 +880,19 @@
             </div>
             <div class="p-6 space-y-4">
                 <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Dirigido a: *</label>
+                    <select wire:model="advanceUserId"
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">-- Seleccione un destinatario --</option>
+                        @foreach($usersList as $u)
+                            @if($u['id'] != auth()->id())
+                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    @error('advanceUserId') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+                <div>
                     <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Descripción del Avance *</label>
                     <textarea wire:model="advanceDescription" rows="3" placeholder="Ej: Material recibido del almacén, ensamblado inicial completado..."
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
@@ -900,6 +926,19 @@
             </div>
             <div class="p-6 space-y-4">
                 <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Dirigido a: *</label>
+                    <select wire:model="noveltyUserId"
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">-- Seleccione un destinatario --</option>
+                        @foreach($usersList as $u)
+                            @if($u['id'] != auth()->id())
+                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    @error('noveltyUserId') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+                <div>
                     <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Descripción de la Novedad *</label>
                     <textarea wire:model="noveltyDescription" rows="3" placeholder="Ej: El cliente solicita una unidad más..."
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
@@ -925,6 +964,19 @@
                 </button>
             </div>
             <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Dirigido a: *</label>
+                    <select wire:model="finishUserId"
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">-- Seleccione un destinatario --</option>
+                        @foreach($usersList as $u)
+                            @if($u['id'] != auth()->id())
+                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    @error('finishUserId') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
                 <div>
                     <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha de Terminación *</label>
                     <input wire:model="completion_date" type="date"
