@@ -687,11 +687,15 @@
                                 @if(!in_array($filterStatus, [6, 8, 13]))
                                 <td class="px-4 py-4">
                                     @if($filterStatus == 14)
+                                        @php
+                                            $isUpdated = !str_starts_with($order->sku, 'NEW_PRODUCT');
+                                        @endphp
                                         <input type="checkbox" 
                                             wire:model.live="selectedConvertedIds" 
                                             value="{{ $order->id }}"
-                                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer"
-                                            title="Seleccionar para ordenar"
+                                            {{ !$isUpdated ? 'disabled' : '' }}
+                                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 {{ !$isUpdated ? 'opacity-40 cursor-not-allowed bg-gray-150' : 'cursor-pointer' }}"
+                                            title="{{ !$isUpdated ? 'Camilo debe actualizar el producto primero' : 'Seleccionar para ordenar' }}"
                                         >
                                     @elseif(!in_array($order->status, [6, 8, 13]))
                                         @php
@@ -754,10 +758,19 @@
                                     x-data="{ qtyOrdered: {{ $order->qty_requested ?? 0 }} }"
                                     x-effect="if (document.activeElement !== $refs.qtyInput) qtyOrdered = {{ $order->qty_requested ?? 0 }}">
                                     @if ($filterStatus == 14)
-                                        <input type="number"
-                                        wire:model.live.debounce.500ms="orderQuantities.{{ $order->id }}"
-                                        class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
-                                        placeholder="{{ $order->qty_requested ?? 0 }}">
+                                        @php
+                                            $isUpdated = !str_starts_with($order->sku, 'NEW_PRODUCT');
+                                        @endphp
+                                        @if(!$isUpdated)
+                                            <span class="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 text-[10px] font-semibold rounded-full dark:bg-yellow-900/30 dark:text-yellow-400 whitespace-nowrap">
+                                                <x-heroicon-s-exclamation-triangle class="w-3 h-3 mr-1"/> Falta Info
+                                            </span>
+                                        @else
+                                            <input type="number"
+                                            wire:model.live.debounce.500ms="orderQuantities.{{ $order->id }}"
+                                            class="w-24 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
+                                            placeholder="{{ $order->qty_requested ?? 0 }}">
+                                        @endif
                                     @elseif ($profileUser != '17' && in_array($order->status, [1,2,4,5]))
                                         <input type="number"
                                         wire:key="qty-input-{{ $order->id }}-{{ $refreshCounter }}"
@@ -868,13 +881,22 @@
                                 </td>
                                 <td x-show="showCols.action" class="px-4 py-4 text-center">
                                     @if ($filterStatus == 14)
+                                        @php
+                                            $isUpdated = !str_starts_with($order->sku, 'NEW_PRODUCT');
+                                        @endphp
                                         @if($profileUser != '17')
-                                            <button wire:click="openExtensiveConvertModal({{ $order->id }}, {{ $order->item_id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span>Convertir</span>
-                                            </button>
+                                            @if(!$isUpdated)
+                                                <button wire:click="openExtensiveConvertModal({{ $order->id }}, {{ $order->item_id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span>Actualizar</span>
+                                                </button>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-800 text-[11px] font-bold rounded-lg dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap border border-green-200 dark:border-green-800">
+                                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5 mr-1"/> Listo para Pedir
+                                                </span>
+                                            @endif
                                         @endif
                                     @else
                                         <div class="flex items-center justify-center gap-1.5">
