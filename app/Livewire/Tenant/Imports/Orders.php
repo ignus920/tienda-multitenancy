@@ -398,9 +398,9 @@ class Orders extends Component
                     'inp.id',
                     DB::raw('NULL as item_id'),
                     DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
-                    'inp.factory_ref',
-                    'inp.exw',
-                    'inp.min_qty_supplier as qty_requested',
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
                     DB::raw("'N/A' AS label"),
                     DB::raw("'New Product' AS translated_name"),
                     DB::raw('13 AS status'),
@@ -408,7 +408,7 @@ class Orders extends Component
                     DB::raw('NULL as priority_assigned_at'),
                     DB::raw('0 as qty_shipped'),
                     DB::raw('0 as news'),
-                    'inp.exw as price',
+                    DB::raw('0 as price'),
                     DB::raw('NULL as delete_justification'),
                     DB::raw('NULL as packing_number'),
                     DB::raw('NULL as operation_number'),
@@ -426,16 +426,12 @@ class Orders extends Component
                 ])
                 ->whereNull('inp.deleted_at')
                 ->where('inp.status', '=', 'PENDING')
-                ->when(Auth::user()->profile_id == 17, function ($query) {
-                    return $query->where('inp.supplier_id', Auth::id());
-                })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
                     foreach ($words as $word) {
                         $query->where(function ($q) use ($word) {
                             $q->where('inp.description', 'like', '%' . $word . '%')
-                              ->orWhere('inp.code', 'like', '%' . $word . '%')
-                              ->orWhere('inp.factory_ref', 'like', '%' . $word . '%');
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
                         });
                     }
                     return $query;
@@ -450,9 +446,9 @@ class Orders extends Component
                     'inp.id',
                     'inp.real_item_id as item_id',
                     DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
-                    'inp.factory_ref',
-                    'inp.exw',
-                    'inp.min_qty_supplier as qty_requested',
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
                     DB::raw("'N/A' AS label"),
                     DB::raw("'Converted' AS translated_name"),
                     DB::raw('14 AS status'),
@@ -460,7 +456,7 @@ class Orders extends Component
                     DB::raw('NULL as priority_assigned_at'),
                     DB::raw('0 as qty_shipped'),
                     DB::raw('0 as news'),
-                    'inp.exw as price',
+                    DB::raw('0 as price'),
                     DB::raw('NULL as delete_justification'),
                     DB::raw('NULL as packing_number'),
                     DB::raw('NULL as operation_number'),
@@ -484,8 +480,7 @@ class Orders extends Component
                     foreach ($words as $word) {
                         $query->where(function ($q) use ($word) {
                             $q->where('inp.description', 'like', '%' . $word . '%')
-                              ->orWhere('inp.code', 'like', '%' . $word . '%')
-                              ->orWhere('inp.factory_ref', 'like', '%' . $word . '%');
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
                         });
                     }
                     return $query;
