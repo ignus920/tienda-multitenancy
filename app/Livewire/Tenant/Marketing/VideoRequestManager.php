@@ -9,6 +9,7 @@ use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Marketing\VideoRequest;
 use App\Services\Tenant\Marketing\VideoRequestService;
 use App\Services\Tenant\TenantManager;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -29,8 +30,14 @@ class VideoRequestManager extends Component
     #[Url(as: 'canal', history: true)]
     public string $channelFilter = '';
 
+    #[Url(as: 'desde', history: true)]
+    public string $dateFrom = '';
+
+    #[Url(as: 'hasta', history: true)]
+    public string $dateTo = '';
+
     #[Url(as: 'vista', history: true)]
-    public string $viewMode = 'matriz'; // matriz | lista
+    public string $viewMode = 'lista'; // lista (tabla tradicional) | matriz (tipo Excel)
 
     public int $perPage = 15;
     public string $sortField = 'smart';
@@ -44,8 +51,8 @@ class VideoRequestManager extends Component
     public string $newInstructions = '';
     public ?int $newGestorId = null;
 
-    /* ── Modal: detalle / lista de chequeo ───────────── */
-    public bool $showDetailModal = false;
+    /* ── Detalle / lista de chequeo (pantalla completa) ─ */
+    public bool $showDetail = false;
     public ?int $currentRequestId = null;
     public ?int $detailGestorId = null;
     /** @var array<string,array{status:string,link:?string}> */
@@ -106,6 +113,22 @@ class VideoRequestManager extends Component
 
     public function updatingChannelFilter(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatingDateFrom(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateTo(): void
+    {
+        $this->resetPage();
+    }
+
+    public function clearFilters(): void
+    {
+        $this->reset(['search', 'statusFilter', 'channelFilter', 'dateFrom', 'dateTo']);
         $this->resetPage();
     }
 
@@ -213,12 +236,12 @@ class VideoRequestManager extends Component
         }
 
         $this->resetValidation();
-        $this->showDetailModal = true;
+        $this->showDetail = true;
     }
 
     public function closeDetail(): void
     {
-        $this->showDetailModal = false;
+        $this->showDetail = false;
         $this->currentRequestId = null;
         $this->taskInput = [];
     }
@@ -294,7 +317,9 @@ class VideoRequestManager extends Component
             ->when($this->channelFilter !== '', function ($q) {
                 $channel = str_replace('sin_', '', $this->channelFilter);
                 $q->whereHas('tasks', fn ($t) => $t->where('channel', $channel)->where('status', '!=', 'listo'));
-            });
+            })
+            ->when($this->dateFrom !== '', fn ($q) => $q->whereDate('mkt_video_requests.created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo !== '', fn ($q) => $q->whereDate('mkt_video_requests.created_at', '<=', $this->dateTo));
 
         $statusCounts = [
             'todos'      => (clone $baseQuery())->count(),
@@ -348,7 +373,7 @@ class VideoRequestManager extends Component
         $detailHistory = collect();
         $detailUserNames = collect();
 
-        if ($this->showDetailModal && $this->currentRequestId) {
+        if ($this->showDetail && $this->currentRequestId) {
             $detail = VideoRequest::on('tenant')
                 ->with(['tasks', 'logs', 'item'])
                 ->find($this->currentRequestId);
@@ -391,20 +416,32 @@ class VideoRequestManager extends Component
 
         $words = array_filter(explode(' ', trim($this->productSearch)));
 
-        return Items::on('tenant')
-            ->where('status', 1)
+        return DB::connection('tenant')
+            ->table('inv_items')
+            ->leftJoin('inv_categories', 'inv_categories.id', '=', 'inv_items.categoryId')
+            ->leftJoin('inv_items_store', 'inv_items_store.itemId', '=', 'inv_items.id')
+            ->whereNull('inv_items.deleted_at')
+            ->where('inv_items.status', 1)
             ->where(function ($q) use ($words) {
                 foreach ($words as $word) {
                     $q->where(function ($qq) use ($word) {
-                        $qq->where('name', 'like', "%{$word}%")
-                            ->orWhere('internal_code', 'like', "%{$word}%")
-                            ->orWhere('sku', 'like', "%{$word}%")
-                            ->orWhere('description', 'like', "%{$word}%");
+                        $qq->where('inv_items.name', 'like', "%{$word}%")
+                            ->orWhere('inv_items.internal_code', 'like', "%{$word}%")
+                            ->orWhere('inv_items.sku', 'like', "%{$word}%")
+                            ->orWhere('inv_items.description', 'like', "%{$word}%");
                     });
                 }
             })
-            ->orderBy('name')
+            ->groupBy('inv_items.id', 'inv_items.name', 'inv_items.internal_code', 'inv_items.sku', 'inv_categories.name')
+            ->orderBy('inv_items.name')
             ->limit(15)
-            ->get(['id', 'name', 'internal_code', 'sku', 'description']);
+            ->get([
+                'inv_items.id',
+                'inv_items.name',
+                'inv_items.internal_code',
+                'inv_items.sku',
+                DB::raw('inv_categories.name as category_name'),
+                DB::raw('COALESCE(SUM(inv_items_store.stock_items_store), 0) as total_stock'),
+            ]);
     }
 }
