@@ -874,16 +874,23 @@
                                 </td>
                                 <td x-show="showCols.action" class="px-4 py-4 text-center">
                                     @if ($filterStatus == 14)
-                                        <span class="text-xs text-gray-500 italic">N/A</span>
+                                        @if($profileUser != '17')
+                                            <button wire:click="openExtensiveConvertModal({{ $order->id }}, {{ $order->item_id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span>Convertir</span>
+                                            </button>
+                                        @endif
                                     @else
                                         <div class="flex items-center justify-center gap-1.5">
                                         @if($order->status == 13)
                                             @if($profileUser != '17')
-                                                <button wire:click="openConvertModal({{ $order->id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
+                                                <button wire:click="openConvertModal({{ $order->id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap shadow-sm">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                                                     </svg>
-                                                    <span>Convertir</span>
+                                                    <span>Crear Producto Nuevo</span>
                                                 </button>
                                             @else
                                                 <span class="text-xs text-gray-500 italic font-medium">Cotización Temporal</span>

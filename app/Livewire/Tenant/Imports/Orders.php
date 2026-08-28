@@ -36,6 +36,8 @@ class Orders extends Component
     // Propiedades para conversión de Producto Nuevo a Real (Camilo)
     public $showModalConvertNewProduct = false;
     public $showModalConvertNewProductExtenso = false;
+    public $selectedNewProductId;
+    public $selectedRealItemId;
     
     // Variables temporales para el nuevo modal visual
     public $newProductSupplierId;
@@ -3187,6 +3189,113 @@ class Orders extends Component
             DB::connection('tenant')->rollBack();
             Log::error('❌ Error al convertir producto nuevo: ' . $e->getMessage());
             $this->addError('newProductCode', 'Error durante la conversión: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Abrir modal extenso para editar el Producto Real
+     */
+    public function openExtensiveConvertModal($newProductId, $realItemId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedNewProductId = $newProductId;
+        $this->selectedRealItemId = $realItemId;
+        
+        $item = DB::connection('tenant')->table('inv_items')->where('id', $realItemId)->first();
+        if ($item) {
+            $this->finalInternalCode = $item->internal_code;
+            $this->finalSku = $item->sku;
+            $this->finalCategoryId = $item->categoryId;
+            $this->finalType = $item->type;
+            $this->finalTaxId = $item->taxId;
+            $this->finalBrandId = $item->brandId;
+            $this->finalHouseId = $item->houseId;
+            $this->finalPurchasingUnit = $item->purchasing_unit;
+            $this->finalConsumptionUnit = $item->consumption_unit;
+            $this->finalManageSerial = $item->handles_serial;
+            $this->finalInventoriable = $item->inventoriable;
+            $this->finalDescription = $item->name;
+        }
+
+        $setup = DB::connection('tenant')->table('imp_items_setup')->where('item_id', $realItemId)->first();
+        if ($setup) {
+            $this->finalSupplierId = $setup->supplier_id;
+        }
+
+        $store = DB::connection('tenant')->table('inv_items_store')->where('itemId', $realItemId)->where('storeId', 2)->first();
+        if ($store) {
+            $this->finalStockWordpress = $store->wp_stock_percentage;
+            $this->finalMinQtyWordpress = $store->wp_min_stock;
+        }
+
+        $this->showModalConvertNewProductExtenso = true;
+    }
+
+    /**
+     * Actualizar los datos del producto real desde el modal extenso
+     */
+    public function updateRealProductExtensive()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'finalInternalCode' => 'required',
+            'finalSku' => 'required',
+            'finalCategoryId' => 'required|integer',
+            'finalType' => 'required',
+            'finalTaxId' => 'required|integer',
+            'finalDescription' => 'required|min:3',
+            'finalStockWordpress' => 'required|numeric|min:0',
+            'finalMinQtyWordpress' => 'required|numeric|min:0',
+            'finalSupplierId' => 'required|integer'
+        ]);
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            DB::connection('tenant')->table('inv_items')->where('id', $this->selectedRealItemId)->update([
+                'categoryId' => $this->finalCategoryId,
+                'name' => $this->finalDescription,
+                'internal_code' => $this->finalInternalCode,
+                'sku' => $this->finalSku,
+                'description' => $this->finalDescription,
+                'type' => $this->finalType,
+                'brandId' => $this->finalBrandId ?: null,
+                'houseId' => $this->finalHouseId ?: null,
+                'inventoriable' => $this->finalInventoriable ? 1 : 0,
+                'handles_serial' => $this->finalManageSerial ? 1 : 0,
+                'purchasing_unit' => $this->finalPurchasingUnit,
+                'consumption_unit' => $this->finalConsumptionUnit,
+                'taxId' => $this->finalTaxId,
+                'updated_at' => now()
+            ]);
+
+            DB::connection('tenant')->table('inv_items_store')
+                ->where('itemId', $this->selectedRealItemId)
+                ->where('storeId', 2)
+                ->update([
+                    'wp_stock_percentage' => (float)$this->finalStockWordpress,
+                    'wp_min_stock'        => (float)$this->finalMinQtyWordpress,
+                ]);
+
+            DB::connection('tenant')->table('imp_items_setup')
+                ->where('item_id', $this->selectedRealItemId)
+                ->update([
+                    'supplier_id' => $this->finalSupplierId,
+                    'updated_at' => now()
+                ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showModalConvertNewProductExtenso = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Producto real actualizado correctamente!'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error al actualizar producto real: ' . $e->getMessage());
+            $this->addError('finalInternalCode', 'Error durante la actualización: ' . $e->getMessage());
         }
     }
 
