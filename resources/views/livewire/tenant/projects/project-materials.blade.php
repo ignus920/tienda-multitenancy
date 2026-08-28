@@ -165,9 +165,9 @@
                                     <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block w-full">
                                         <div class="truncate cursor-pointer text-xs">{{ \Illuminate\Support\Str::limit($material->observations, 30) }}</div>
                                         <div x-show="show" x-cloak x-transition style="display: none;"
-                                             class="absolute z-50 bottom-full left-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
+                                             class="absolute z-50 bottom-full right-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
                                             {{ $material->observations }}
-                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 left-4 -bottom-1"></div>
+                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 right-4 -bottom-1"></div>
                                         </div>
                                     </div>
                                 @endif
@@ -199,9 +199,9 @@
                                     <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block w-full">
                                         <div class="truncate cursor-pointer text-xs">{{ \Illuminate\Support\Str::limit($material->observations, 30) }}</div>
                                         <div x-show="show" x-cloak x-transition style="display: none;"
-                                             class="absolute z-50 bottom-full left-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
+                                             class="absolute z-50 bottom-full right-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
                                             {{ $material->observations }}
-                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 left-4 -bottom-1"></div>
+                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 right-4 -bottom-1"></div>
                                         </div>
                                     </div>
                                 @endif
