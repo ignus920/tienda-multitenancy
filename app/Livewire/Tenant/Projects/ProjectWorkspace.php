@@ -271,7 +271,7 @@ class ProjectWorkspace extends Component
         $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds', 'attachments']);
     }
 
-    private function createMentionNotification($userId, $message)
+    private function createMentionNotification($userId, $message, $type = 'mencion_avance')
     {
         if (!$userId) return;
 
@@ -288,7 +288,7 @@ class ProjectWorkspace extends Component
             'project_id' => $this->projectId,
             'message_id' => $message->id,
             'sender_id' => Auth::id(),
-            'type' => 'mencion',
+            'type' => $type,
         ]);
 
         $project = Project::find($this->projectId);
@@ -297,7 +297,7 @@ class ProjectWorkspace extends Component
 
         broadcast(new NewProjectNotification(
             $userId, $this->projectId, $project->title ?? 'Proyecto',
-            $senderName, $messagePreview, 'mencion', $notification->id
+            $senderName, $messagePreview, $type, $notification->id
         ));
     }
 

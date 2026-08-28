@@ -79,9 +79,9 @@
                             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                 {{ $notification['sender_name'] }}
                             </span>
-                            @if($notification['type'] === 'mencion')
+                            @if(in_array($notification['type'], ['mencion', 'mencion_avance']))
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
-                                    @mención
+                                    {{ $notification['type'] === 'mencion_avance' ? 'Avances de Proyectos' : '@mención' }}
                                 </span>
                             @endif
                         </div>
