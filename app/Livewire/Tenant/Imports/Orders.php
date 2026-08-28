@@ -445,6 +445,7 @@ class Orders extends Component
                     'inp.id',
                     'inp.real_item_id as item_id',
                     DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
+                    'iv.sku as sku',
                     DB::raw("'N/A' as factory_ref"),
                     DB::raw("0 as exw"),
                     DB::raw("1 as qty_requested"),
