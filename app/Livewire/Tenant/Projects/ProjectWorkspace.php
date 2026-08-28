@@ -60,10 +60,12 @@ class ProjectWorkspace extends Component
     public $advanceDescription = '';
     public $advancePercentage = 0;
     public $advanceModalLastPercentage = 0;
+    public $advanceUserId = '';
 
     // Campos de Cierre Laboratorio
     public $completion_date;
     public $lab_observations;
+    public $finishUserId = '';
 
     // Campos de Cierre Comercial
     public $real_delivery_date;
@@ -82,6 +84,8 @@ class ProjectWorkspace extends Component
     public $showStartDevelopmentModal = false;
     public $showNoveltyModal = false;
     public $noveltyDescription = '';
+    public $noveltyUserId = '';
+    public $questionUserId = '';
 
     #[On('echo-private:project.{projectId},.NewProjectMessage')]
     public function refreshChat()
@@ -265,7 +269,36 @@ class ProjectWorkspace extends Component
         }
 
         $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds', 'attachments']);
-        // $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje enviado']);
+    }
+
+    private function createMentionNotification($userId, $message)
+    {
+        if (!$userId) return;
+
+        ProjectMention::create([
+            'project_id' => $this->projectId,
+            'message_id' => $message->id,
+            'mentioned_by' => Auth::id(),
+            'mentioned_to' => $userId,
+            'status' => 'pendiente'
+        ]);
+
+        $notification = ProjectNotification::create([
+            'user_id' => $userId,
+            'project_id' => $this->projectId,
+            'message_id' => $message->id,
+            'sender_id' => Auth::id(),
+            'type' => 'mencion',
+        ]);
+
+        $project = Project::find($this->projectId);
+        $senderName = Auth::user()->name;
+        $messagePreview = mb_substr($message->message, 0, 100);
+
+        broadcast(new NewProjectNotification(
+            $userId, $this->projectId, $project->title ?? 'Proyecto',
+            $senderName, $messagePreview, 'mencion', $notification->id
+        ));
     }
 
     // Editar un mensaje propio, solo dentro de los primeros 10 segundos (punto 53)
@@ -452,7 +485,10 @@ class ProjectWorkspace extends Component
     public function createQuestion()
     {
         $this->ensureTenantConnection();
-        $this->validate(['newQuestionText' => 'required|string']);
+        $this->validate([
+            'newQuestionText' => 'required|string',
+            'questionUserId' => 'required'
+        ]);
 
         ProjectQuestion::create([
             'project_id' => $this->projectId,
@@ -466,11 +502,14 @@ class ProjectWorkspace extends Component
             'user_id' => Auth::id(),
             'message' => "Preguntar a Cliente:\n\n{$this->newQuestionText}"
         ]);
+        
+        $this->createMentionNotification($this->questionUserId, $message);
+
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
-        $this->reset(['newQuestionText']);
+        $this->reset(['newQuestionText', 'questionUserId']);
         $this->showQuestionModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Pregunta enviada al asesor comercial']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Pregunta enviada y notificada']);
     }
 
     // Abrir modal para responder pregunta (Comercial)
@@ -555,7 +594,8 @@ class ProjectWorkspace extends Component
 
         $this->validate([
             'advanceDescription' => 'required|string',
-            'advancePercentage' => 'required|integer|min:' . $lastPercentage . '|max:100'
+            'advancePercentage' => 'required|integer|min:' . $lastPercentage . '|max:100',
+            'advanceUserId' => 'required'
         ], [
             'advancePercentage.min' => "El porcentaje no puede ser menor al último avance registrado ({$lastPercentage}%)."
         ]);
@@ -572,11 +612,14 @@ class ProjectWorkspace extends Component
             'user_id' => Auth::id(),
             'message' => "Avance del proyecto:\n\n{$this->advanceDescription}\n% avance: {$this->advancePercentage}%"
         ]);
+        
+        $this->createMentionNotification($this->advanceUserId, $message);
+
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
-        $this->reset(['advanceDescription', 'advancePercentage']);
+        $this->reset(['advanceDescription', 'advancePercentage', 'advanceUserId']);
         $this->showAdvanceModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Avance técnico guardado']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Avance técnico guardado y notificado']);
     }
 
     // Agregar novedad de cliente
@@ -585,7 +628,8 @@ class ProjectWorkspace extends Component
         $this->ensureTenantConnection();
 
         $this->validate([
-            'noveltyDescription' => 'required|string'
+            'noveltyDescription' => 'required|string',
+            'noveltyUserId' => 'required'
         ]);
 
         \App\Models\Tenant\Projects\ProjectNovelty::create([
@@ -599,11 +643,14 @@ class ProjectWorkspace extends Component
             'user_id' => Auth::id(),
             'message' => "Novedad del cliente:\n\n{$this->noveltyDescription}"
         ]);
+        
+        $this->createMentionNotification($this->noveltyUserId, $message);
+
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
-        $this->reset(['noveltyDescription']);
+        $this->reset(['noveltyDescription', 'noveltyUserId']);
         $this->showNoveltyModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Novedad registrada y enviada al chat']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Novedad registrada y notificada']);
     }
 
     // Terminar producción (Laboratorio)
@@ -612,26 +659,31 @@ class ProjectWorkspace extends Component
         $this->ensureTenantConnection();
         $this->validate([
             'completion_date' => 'required|date',
-            'lab_observations' => 'nullable|string'
+            'lab_observations' => 'nullable|string',
+            'finishUserId' => 'required'
         ]);
 
         $project = Project::findOrFail($this->projectId);
         $this->logStatusChange($project, 'terminado');
         $project->update([
+            'status' => 'terminado',
             'completion_date' => $this->completion_date,
-            'lab_observations' => $this->lab_observations,
-            'status' => 'terminado' // Listo para entregar
+            'lab_observations' => $this->lab_observations
         ]);
 
         $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $this->projectId,
             'user_id' => Auth::id(),
-            'message' => "**Proyecto terminado:** " . ($this->lab_observations ?: 'Sin observaciones adicionales.')
+            'message' => "El área responsable ha terminado la producción/desarrollo." . ($this->lab_observations ? "\nObservaciones: {$this->lab_observations}" : "")
         ]);
+        
+        $this->createMentionNotification($this->finishUserId, $message);
+
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         $this->showLabFinishModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producción marcada como terminada con éxito']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producción marcada como terminada y notificada']);
+        $this->dispatch('refresh-component');
     }
 
     // Cerrar y archivar proyecto (Comercial)

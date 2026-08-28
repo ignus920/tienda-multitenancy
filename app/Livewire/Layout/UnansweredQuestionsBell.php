@@ -5,6 +5,8 @@ namespace App\Livewire\Layout;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Tenant\Projects\ProjectQuestion;
+use App\Models\Auth\Tenant;
+use App\Services\Tenant\TenantManager;
 use Carbon\Carbon;
 
 class UnansweredQuestionsBell extends Component
@@ -15,6 +17,29 @@ class UnansweredQuestionsBell extends Component
     public function mount()
     {
         $this->loadQuestions();
+    }
+
+    public function boot()
+    {
+        $this->ensureTenantConnection();
+    }
+
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+        if (!$tenantId) return;
+
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant) return;
+
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+
+        if (!tenancy()->initialized) {
+            tenancy()->initialize($tenant);
+        }
+
+        config(['database.connections.tenant.database' => $tenant->tenancy_db_name]);
     }
 
     public function loadQuestions()
