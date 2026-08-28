@@ -360,7 +360,7 @@
         <!-- Columna Derecha: contenido según pestaña activa -->
         @if($activeTab === 'chat')
         <!-- Chat Interactivo estilo WhatsApp -->
-        <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 140px);">
+        <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 250px);">
             <!-- Header del Chat (estilo WhatsApp) -->
             <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
                 <div class="flex items-center gap-3">
