@@ -51,13 +51,7 @@
 
         {{-- Encabezado --}}
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notificaciones</h3>
-            @if($unreadCount > 0)
-                <button wire:click="markAllAsRead"
-                        class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors">
-                    Marcar todas como leídas
-                </button>
-            @endif
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notificaciones Proyectos</h3>
         </div>
 
         {{-- Lista de Notificaciones --}}
