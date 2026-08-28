@@ -36,7 +36,6 @@ class Orders extends Component
     // Propiedades para conversión de Producto Nuevo a Real (Camilo)
     public $showModalConvertNewProduct = false;
     public $showModalConvertNewProductExtenso = false;
-    public $selectedNewProductId;
     public $selectedRealItemId;
     
     // Variables temporales para el nuevo modal visual
