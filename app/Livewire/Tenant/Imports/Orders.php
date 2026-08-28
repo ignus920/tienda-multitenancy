@@ -3054,10 +3054,17 @@ class Orders extends Component
             ->first();
 
         if ($newProduct) {
+            // Pre-llenar datos para el modal extenso (si alguna vez se usa)
             $this->finalDescription = $newProduct->description;
-            $this->finalSupplierId = $newProduct->supplier_id;
-            $this->finalStockWordpress = $newProduct->stock_wordpress;
-            $this->finalMinQtyWordpress = $newProduct->min_qty_wordpress;
+            
+            // Pre-llenar datos para el nuevo modal simplificado
+            $this->newProductCode = $newProduct->code;
+            $this->newProductDescription = $newProduct->description;
+            $this->newProductSupplierId = '';
+            $this->newProductFactoryRef = '';
+            $this->newProductStockWordpress = null;
+            $this->newProductMinQtyWordpress = null;
+
             $this->showModalConvertNewProduct = true;
         }
     }
