@@ -14,9 +14,11 @@ class UnansweredQuestionsBell extends Component
 {
     public $questions = [];
     public $unansweredCount = 0;
+    public $userId;
 
     public function mount()
     {
+        $this->userId = Auth::id();
         $this->loadQuestions();
     }
 
