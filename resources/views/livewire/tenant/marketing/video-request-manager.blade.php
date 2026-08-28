@@ -17,6 +17,7 @@
             </div>
         @endif
 
+        @unless ($showDetail)
         <!-- Encabezado -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-5">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -75,6 +76,17 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Estado</label>
+                    <select wire:model.live="statusFilter"
+                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white py-2 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_proceso">En proceso</option>
+                        <option value="terminado">Terminado</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Actividad pendiente</label>
                     <select wire:model.live="channelFilter"
                         class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white py-2 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500">
@@ -87,7 +99,26 @@
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 p-1">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Desde</label>
+                    <input wire:model.live="dateFrom" type="date"
+                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white py-2 px-3 focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Hasta</label>
+                    <input wire:model.live="dateTo" type="date"
+                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white py-2 px-3 focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                @if ($search || $statusFilter || $channelFilter || $dateFrom || $dateTo)
+                    <button wire:click="clearFilters"
+                        class="px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                        Limpiar
+                    </button>
+                @endif
+
+                <div class="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 p-1 lg:ml-auto">
                     <button wire:click="setView('matriz')"
                         class="px-3 py-1.5 text-xs font-bold rounded-md transition {{ $viewMode === 'matriz' ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400' }}">
                         Matriz
@@ -213,57 +244,82 @@
                 </div>
             </div>
         @else
-            <!-- ══════════ VISTA LISTA ══════════ -->
-            <div class="space-y-3">
-                @forelse ($requests as $req)
-                    @php $sm = $statusMeta[$req->status] ?? $statusMeta['pendiente']; @endphp
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">{{ $req->request_number }}</span>
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $sm['cell'] }}">
-                                        <span class="w-1.5 h-1.5 rounded-full {{ $sm['dot'] }}"></span>{{ $sm['label'] }}
-                                    </span>
-                                </div>
-                                <div class="font-bold text-gray-900 dark:text-white mt-1">{{ $req->product_code_actual }} · <span class="font-normal text-gray-600 dark:text-gray-300">{{ $req->product_name_actual }}</span></div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Solicitó {{ $userNames[$req->requested_by] ?? '—' }} · {{ $req->created_at?->format('d/m/Y') }}
-                                    · Gestor: {{ $req->gestor_id ? ($userNames[$req->gestor_id] ?? 'Asignado') : 'Sin asignar' }}
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-4 shrink-0">
-                                <div class="text-right">
-                                    <div class="text-sm font-bold text-gray-700 dark:text-gray-200 tabular-nums">{{ $req->progress_done }}/{{ $req->progress_total }} — {{ $req->progress_percent }}%</div>
-                                    <div class="w-28 h-1.5 mt-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                        <div class="h-full bg-indigo-500" style="width: {{ $req->progress_percent }}%"></div>
-                                    </div>
-                                </div>
-                                <button wire:click="openDetail({{ $req->id }})"
-                                    class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
-                                    Ver solicitud
-                                </button>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-2 mt-3">
-                            @foreach ($channels as $key => $cfg)
-                                @php $task = $req->tasks->firstWhere('channel', $key); $ts = $statusMeta[$task->status ?? 'pendiente'] ?? $statusMeta['pendiente']; @endphp
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $ts['cell'] }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ $ts['dot'] }}"></span>
-                                    {{ \Illuminate\Support\Str::of($cfg['label'])->after('Video ')->ucfirst() }}: {{ $ts['label'] }}
-                                </span>
-                            @endforeach
-                        </div>
-                    </div>
-                @empty
-                    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-12 text-center text-gray-400 dark:text-gray-500">
-                        No hay solicitudes de video que coincidan con los filtros.
-                    </div>
-                @endforelse
-
-                <div>{{ $requests->links() }}</div>
+            <!-- ══════════ VISTA LISTA (tabla tradicional) ══════════ -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-900 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            <tr>
+                                <th class="px-4 py-3 text-left">
+                                    <button wire:click="sortBy('request_number')" class="hover:text-gray-800 dark:hover:text-gray-200"># Solicitud</button>
+                                </th>
+                                <th class="px-4 py-3 text-left">
+                                    <button wire:click="sortBy('created_at')" class="hover:text-gray-800 dark:hover:text-gray-200">Fecha solicitud</button>
+                                </th>
+                                <th class="px-4 py-3 text-left">
+                                    <button wire:click="sortBy('product_code')" class="hover:text-gray-800 dark:hover:text-gray-200">Código</button>
+                                </th>
+                                <th class="px-4 py-3 text-left">
+                                    <button wire:click="sortBy('product_name')" class="hover:text-gray-800 dark:hover:text-gray-200">Producto</button>
+                                </th>
+                                <th class="px-4 py-3 text-left">Solicitado por</th>
+                                <th class="px-4 py-3 text-left">Gestor</th>
+                                <th class="px-4 py-3 text-center">
+                                    <button wire:click="sortBy('status')" class="hover:text-gray-800 dark:hover:text-gray-200">Estado</button>
+                                </th>
+                                <th class="px-4 py-3 text-center">
+                                    <button wire:click="sortBy('progress')" class="hover:text-gray-800 dark:hover:text-gray-200">Avance</button>
+                                </th>
+                                <th class="px-4 py-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            @forelse ($requests as $req)
+                                @php $sm = $statusMeta[$req->status] ?? $statusMeta['pendiente']; @endphp
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                    <td class="px-4 py-3 font-mono text-xs text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{{ $req->request_number }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ $req->created_at?->format('d/m/Y') }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap font-bold text-gray-900 dark:text-white">{{ $req->product_code_actual ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-gray-700 dark:text-gray-200 max-w-xs truncate" title="{{ $req->product_name_actual }}">{{ $req->product_name_actual }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">{{ $userNames[$req->requested_by] ?? '—' }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">{{ $req->gestor_id ? ($userNames[$req->gestor_id] ?? 'Asignado') : '—' }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold {{ $sm['cell'] }}">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $sm['dot'] }}"></span>{{ $sm['label'] }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        <div class="text-xs font-bold text-gray-700 dark:text-gray-200 tabular-nums">{{ $req->progress_done }} de {{ $req->progress_total }} ({{ $req->progress_percent }}%)</div>
+                                        <div class="w-24 h-1.5 mx-auto mt-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                            <div class="h-full bg-indigo-500" style="width: {{ $req->progress_percent }}%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        <button wire:click="openDetail({{ $req->id }})" title="Ver solicitud"
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" class="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
+                                        No hay solicitudes de video que coincidan con los filtros.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    {{ $requests->links() }}
+                </div>
             </div>
         @endif
+        @endunless
     </div>
 
     {{-- ═══════════════ MODAL: CREAR SOLICITUD ═══════════════ --}}
@@ -271,32 +327,57 @@
         <div class="fixed inset-0 z-[80] flex items-start justify-center p-4 overflow-y-auto"
             x-data @keydown.escape.window="$wire.closeCreateModal()">
             <div class="fixed inset-0 bg-black/50" wire:click="closeCreateModal"></div>
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl mt-10 border border-gray-200 dark:border-gray-700">
+            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl mt-10 border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nueva solicitud de video</h3>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        {{ $selectedItemId ? 'Nueva solicitud de video' : 'Solicitar video — Buscar producto' }}
+                    </h3>
                     <button wire:click="closeCreateModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">&times;</button>
                 </div>
 
                 <div class="p-5 space-y-4">
                     @if (!$selectedItemId)
                         <div>
-                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Buscar producto (código o descripción)</label>
                             <input wire:model.live.debounce.300ms="productSearch" type="text" autofocus
-                                placeholder="Escribe al menos 2 caracteres…"
+                                placeholder="Buscar por código o descripción (mínimo 2 caracteres)…"
                                 class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
 
-                            <div class="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-700 max-h-64 overflow-y-auto">
-                                @forelse ($productResults as $p)
-                                    <button type="button" wire:click="selectProduct({{ $p->id }})"
-                                        class="w-full text-left px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition">
-                                        <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $p->internal_code ?: $p->sku }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ $p->name }}</div>
-                                    </button>
-                                @empty
-                                    <div class="px-3 py-4 text-xs text-gray-400 text-center">
-                                        {{ mb_strlen(trim($productSearch)) < 2 ? 'Escribe para buscar…' : 'Sin resultados.' }}
-                                    </div>
-                                @endforelse
+                            <div class="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <div class="max-h-72 overflow-y-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 sticky top-0">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left">Código</th>
+                                                <th class="px-3 py-2 text-left">Producto</th>
+                                                <th class="px-3 py-2 text-left">Categoría</th>
+                                                <th class="px-3 py-2 text-right">Stock</th>
+                                                <th class="px-3 py-2"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                            @forelse ($productResults as $p)
+                                                <tr class="hover:bg-indigo-50 dark:hover:bg-indigo-900/20">
+                                                    <td class="px-3 py-2 font-bold text-gray-900 dark:text-white whitespace-nowrap">{{ $p->internal_code ?: $p->sku }}</td>
+                                                    <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $p->name }}</td>
+                                                    <td class="px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $p->category_name ?: '—' }}</td>
+                                                    <td class="px-3 py-2 text-right tabular-nums text-gray-600 dark:text-gray-300">{{ (int) $p->total_stock }}</td>
+                                                    <td class="px-3 py-2 text-right">
+                                                        <button type="button" wire:click="selectProduct({{ $p->id }})"
+                                                            class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-bold transition">
+                                                            Seleccionar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="5" class="px-3 py-4 text-xs text-gray-400 text-center">
+                                                        {{ mb_strlen(trim($productSearch)) < 2 ? 'Escribe para buscar…' : 'Sin resultados.' }}
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                             @error('selectedItemId') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
@@ -342,17 +423,15 @@
         </div>
     @endif
 
-    {{-- ═══════════════ MODAL: DETALLE / LISTA DE CHEQUEO ═══════════════ --}}
-    @if ($showDetailModal && $detail)
+    {{-- ═══════════════ DETALLE / LISTA DE CHEQUEO (pantalla completa) ═══════════════ --}}
+    @if ($showDetail && $detail)
         @php $dsm = $statusMeta[$detail->status] ?? $statusMeta['pendiente']; @endphp
-        <div class="fixed inset-0 z-[80] flex items-start justify-center p-4 overflow-y-auto"
-            x-data @keydown.escape.window="$wire.closeDetail()">
-            <div class="fixed inset-0 bg-black/50" wire:click="closeDetail"></div>
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl my-8 border border-gray-200 dark:border-gray-700">
-                <div class="flex items-start justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-[1600px] mx-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700">
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $detail->request_number }}</h3>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">Solicitud {{ $detail->request_number }}</h2>
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $dsm['cell'] }}">
                                 <span class="w-1.5 h-1.5 rounded-full {{ $dsm['dot'] }}"></span>{{ $dsm['label'] }}
                             </span>
@@ -361,10 +440,21 @@
                             <span class="font-bold">{{ $detail->product_code_actual }}</span> · {{ $detail->product_name_actual }}
                         </div>
                     </div>
-                    <button wire:click="closeDetail" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">&times;</button>
+                    <div class="flex items-center gap-2">
+                        <button wire:click="closeDetail"
+                            class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            ← Volver al listado
+                        </button>
+                        @if ($this->canEdit)
+                            <button wire:click="saveDetail" wire:loading.attr="disabled"
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition">
+                                Guardar cambios
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
-                <div class="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+                <div class="p-5 space-y-5">
                     <!-- Datos -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div>
@@ -404,40 +494,63 @@
                     </div>
 
                     <!-- Lista de chequeo -->
+                    @php $detailTasks = $detail->tasks->keyBy('channel'); @endphp
                     <div>
                         <div class="text-xs text-gray-400 uppercase font-bold mb-2">Lista de chequeo</div>
-                        <div class="space-y-2">
-                            @foreach ($channels as $key => $cfg)
-                                @php $ts = $statusMeta[$taskInput[$key]['status'] ?? 'pendiente'] ?? $statusMeta['pendiente']; @endphp
-                                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div class="font-semibold text-sm text-gray-800 dark:text-gray-100">{{ $cfg['label'] }}</div>
-                                        @if (!$cfg['requires_link'])
-                                            <select wire:model="taskInput.{{ $key }}.status" @disabled(!$this->canEdit)
-                                                class="text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 py-1 pl-2 pr-6 text-gray-900 dark:text-white disabled:opacity-60">
-                                                <option value="pendiente">Pendiente</option>
-                                                <option value="en_proceso">En proceso</option>
-                                                <option value="listo">Listo</option>
-                                            </select>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $ts['cell'] }}">
-                                                <span class="w-1.5 h-1.5 rounded-full {{ $ts['dot'] }}"></span>{{ $ts['label'] }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    @if ($cfg['requires_link'])
-                                        <div class="mt-2">
-                                            <input type="url" wire:model="taskInput.{{ $key }}.link" @disabled(!$this->canEdit)
-                                                placeholder="Pega aquí el enlace…"
-                                                class="block w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-60">
-                                            @error("taskInput.$key.link") <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                                            @if (!empty($taskInput[$key]['link']))
-                                                <a href="{{ $taskInput[$key]['link'] }}" target="_blank" rel="noopener" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline">Abrir enlace en pestaña nueva</a>
-                                            @endif
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
+                        <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                            <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left w-8">#</th>
+                                        <th class="px-3 py-2 text-left">Proceso</th>
+                                        <th class="px-3 py-2 text-left w-32">Estado</th>
+                                        <th class="px-3 py-2 text-left">Información / Enlace</th>
+                                        <th class="px-3 py-2 text-left w-36">Última actualización</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    @foreach ($channels as $key => $cfg)
+                                        @php
+                                            $ts = $statusMeta[$taskInput[$key]['status'] ?? 'pendiente'] ?? $statusMeta['pendiente'];
+                                            $t = $detailTasks->get($key);
+                                        @endphp
+                                        <tr>
+                                            <td class="px-3 py-2 text-gray-400 align-top">{{ $cfg['order'] }}</td>
+                                            <td class="px-3 py-2 font-semibold text-gray-800 dark:text-gray-100 align-top">{{ $cfg['label'] }}</td>
+                                            <td class="px-3 py-2 align-top">
+                                                @if (!$cfg['requires_link'])
+                                                    <select wire:model="taskInput.{{ $key }}.status" @disabled(!$this->canEdit)
+                                                        class="text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 py-1 pl-2 pr-6 text-gray-900 dark:text-white disabled:opacity-60">
+                                                        <option value="pendiente">Pendiente</option>
+                                                        <option value="en_proceso">En proceso</option>
+                                                        <option value="listo">Listo</option>
+                                                    </select>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $ts['cell'] }}">
+                                                        <span class="w-1.5 h-1.5 rounded-full {{ $ts['dot'] }}"></span>{{ $ts['label'] }}
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-2 align-top">
+                                                @if ($cfg['requires_link'])
+                                                    <input type="url" wire:model="taskInput.{{ $key }}.link" @disabled(!$this->canEdit)
+                                                        placeholder="Pegar enlace de {{ \Illuminate\Support\Str::of($cfg['label'])->after('subido a ') }}…"
+                                                        class="block w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-60">
+                                                    @error("taskInput.$key.link") <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p> @enderror
+                                                    @if (!empty($taskInput[$key]['link']))
+                                                        <a href="{{ $taskInput[$key]['link'] }}" target="_blank" rel="noopener" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline">Abrir enlace ↗</a>
+                                                    @endif
+                                                @else
+                                                    <span class="text-xs text-gray-400">Sin enlace</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-2 align-top text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                {{ $t && $t->updated_at && !$t->updated_at->eq($t->created_at) ? $t->updated_at->format('d/m/Y H:i') : '—' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                         <p class="text-[11px] text-gray-400 mt-2">Los canales con enlace se marcan como “Listo” automáticamente al guardar un enlace válido. El enlace de YouTube se agrega a las Observaciones técnicas del producto.</p>
                     </div>
@@ -481,11 +594,11 @@
                     <a href="{{ route('items') }}" target="_blank"
                         class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Abrir producto en inventario ↗</a>
                     <div class="flex items-center gap-2">
-                        <button wire:click="closeDetail" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Cerrar</button>
+                        <button wire:click="closeDetail" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Volver al listado</button>
                         @if ($this->canEdit)
                             <button wire:click="saveDetail" wire:loading.attr="disabled"
                                 class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition">
-                                Guardar
+                                Guardar cambios
                             </button>
                         @endif
                     </div>
