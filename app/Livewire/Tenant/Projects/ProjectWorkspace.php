@@ -248,6 +248,8 @@ class ProjectWorkspace extends Component
                     $senderName, $messagePreview, 'mencion', $notification->id
                 ));
             }
+            // Actualizar Parlante del creador
+            $this->dispatch('unanswered-questions-updated');
         }
 
         // Crear notificación de respuesta si aplica
@@ -282,6 +284,8 @@ class ProjectWorkspace extends Component
             'mentioned_to' => $userId,
             'status' => 'pendiente'
         ]);
+
+        $this->dispatch('unanswered-questions-updated');
 
         $notification = ProjectNotification::create([
             'user_id' => $userId,
