@@ -407,12 +407,12 @@
             <!-- Contenedor del Chat (Mensajes) con fondo estilo WhatsApp -->
             <div x-ref="chatContainer" 
                  x-data="{ 
-                    scrollToBottom() { $el.scrollTop = $el.scrollHeight; }
-                 }"
-                 x-init="
-                    setTimeout(() => scrollToBottom(), 50);
-                    const observer = new MutationObserver(() => { scrollToBottom(); });
-                    observer.observe($el, { childList: true, subtree: true });
+                    init() {
+                        setTimeout(() => this.scrollToBottom(), 50);
+                        const observer = new MutationObserver(() => this.scrollToBottom());
+                        observer.observe(this.$el, { childList: true, subtree: true });
+                    },
+                    scrollToBottom() { this.$el.scrollTop = this.$el.scrollHeight; }
                  }"
                  class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 bg-[#e5ddd5] dark:bg-gray-900 bg-blend-multiply" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
                 @forelse($messages as $msg)
