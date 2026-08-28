@@ -16,28 +16,14 @@ class ImpNewProduct extends Model
     protected $fillable = [
         'code',
         'description',
-        'porcentaje',
-        'min_qty_supplier',
-        'factor',
-        'supplier_id',
-        'factory_ref',
+        'observations',
         'image_path',
-        'exw',
-        'incr_fletes',
-        'factor_pvp1',
-        'factor_pvp_min',
         'status',
         'real_item_id',
         'created_by'
     ];
 
-    /**
-     * Relación con el Proveedor
-     */
-    public function supplier()
-    {
-        return $this->belongsTo(User::class, 'supplier_id');
-    }
+
 
     /**
      * Relación con el creador del producto temporal
@@ -66,8 +52,7 @@ class ImpNewProduct extends Model
 
         return $query->where(function ($q) use ($term) {
             $q->where('code', 'like', '%' . $term . '%')
-              ->orWhere('description', 'like', '%' . $term . '%')
-              ->orWhere('factory_ref', 'like', '%' . $term . '%');
+              ->orWhere('description', 'like', '%' . $term . '%');
         });
     }
 

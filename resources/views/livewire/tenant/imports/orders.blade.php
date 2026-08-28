@@ -330,7 +330,7 @@
                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                                     </svg>
-                                    <span>Crear Producto Nuevo</span>
+                                    <span>Cotizar Producto Nuevo</span>
                                 </button>
                             @endif
 
@@ -2270,7 +2270,7 @@
                 <!-- Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Crear Producto Nuevo (Borrador)
+                        Cotizar Producto Nuevo
                     </h3>
                     <button wire:click="$set('showModalCreateNewProduct', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2281,6 +2281,80 @@
 
                 <!-- Formulario -->
                 <form wire:submit.prevent="saveNewProduct" class="p-6 space-y-6">
+                    <!-- Código Interno Autogenerado y Descripción -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código Interno <span class="text-red-500">*</span></label>
+                            <input type="text" wire:model="newProductCode" readonly class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm focus:outline-none">
+                            @error('newProductCode') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción / Nombre <span class="text-red-500">*</span></label>
+                            <input type="text" wire:model="newProductDescription" placeholder="Ej: NEW_PRODUCT" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                            @error('newProductDescription') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Observaciones</label>
+                        <textarea wire:model="newProductObservations" rows="3" placeholder="Ej: Observaciones adicionales sobre el producto..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+                        @error('newProductObservations') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Imagen del Producto -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Producto / Foto</label>
+                        <input type="file" wire:model="newProductImage" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200">
+                        @error('newProductImage') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        
+                        @if ($newProductImage)
+                            <div class="mt-4 flex items-center justify-center p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+                                <img src="{{ $newProductImage->temporaryUrl() }}" class="max-h-36 object-contain rounded">
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" wire:click="$set('showModalCreateNewProduct', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="newProductImage, saveNewProduct" class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg text-sm font-medium text-white shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span wire:loading.remove wire:target="newProductImage, saveNewProduct">Crear cotizacion</span>
+                            <span wire:loading wire:target="newProductImage, saveNewProduct" class="inline-flex items-center">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL: Nuevo Convertir Producto Nuevo (Borrador) -->
+    @if($showModalConvertNewProduct)
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+                <!-- Header -->
+                <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Crear Producto Nuevo (Borrador)
+                    </h3>
+                    <button wire:click="$set('showModalConvertNewProduct', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Formulario -->
+                <form wire:submit.prevent="convertNewProductToReal" class="p-6 space-y-6">
                     <!-- Código Interno Autogenerado y Descripción -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -2319,86 +2393,21 @@
                     <!-- Parámetros de WordPress -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">% Stock WordPress <span class="text-red-500">*</span>
-                                <div x-data="{ show: false }" class="inline-block relative">
-                                    <svg @mouseenter="show = true" @mouseleave="show = false" class="w-4 h-4 text-gray-400 inline-block ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <div x-show="show" class="absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-800 rounded-lg shadow-lg -left-20" style="display: none;">Porcentaje del stock disponible que se sincronizará con WordPress.</div>
-                                </div>
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">% Stock WordPress <span class="text-red-500">*</span></label>
                             <input type="number" wire:model="newProductStockWordpress" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
                             @error('newProductStockWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Can Mínima WordPress <span class="text-red-500">*</span>
-                                <div x-data="{ show: false }" class="inline-block relative">
-                                    <svg @mouseenter="show = true" @mouseleave="show = false" class="w-4 h-4 text-gray-400 inline-block ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <div x-show="show" class="absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-800 rounded-lg shadow-lg -left-20" style="display: none;">Cantidad mínima requerida en inventario para enviarla a WooCommerce.</div>
-                                </div>
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Can Mínima WordPress <span class="text-red-500">*</span></label>
                             <input type="number" wire:model="newProductMinQtyWordpress" min="0" step="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
                             @error('newProductMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
-                    {{-- Cantidad Mínima del Proveedor y Factores Generales (Ocultados por no ser necesarios inicialmente) --}}
-                    {{--
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cant Mínima Proveedor <span class="text-red-500">*</span></label>
-                            <input type="number" wire:model="newProductMinQty" min="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                            @error('newProductMinQty') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Porcentaje (%)</label>
-                            <input type="number" step="0.01" wire:model="newProductPorcentaje" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                        </div>
-                    <!-- Imagen del Producto -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Producto</label>
-                        <input type="file" wire:model="newProductImage" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200">
-                        @error('newProductImage') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        
-                        @if ($newProductImage)
-                            <div class="mt-4 flex items-center justify-center p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
-                                <img src="{{ $newProductImage->temporaryUrl() }}" class="max-h-36 object-contain rounded">
-                            </div>
-                        @endif
-                    </div>
-
-                    {{-- Sección de Factores de Precios (Ocultada por no ser necesaria inicialmente) --}}
-                    {{--
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Factores de Precio y Descuentos</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">$EXW <span class="text-red-500">*</span></label>
-                                <input type="number" step="0.0001" wire:model="newProductExw" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                                @error('newProductExw') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Incr. Fletes</label>
-                                <input type="number" step="0.01" wire:model="newProductIncrFletes" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Factor PVP1</label>
-                                <input type="number" step="0.01" wire:model="newProductPvp1" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Factor PVP Mín</label>
-                                <input type="number" step="0.01" wire:model="newProductPvpMin" class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
-                            </div>
-                        </div>
-                    </div>
-                    --}}
-
                     <!-- Footer -->
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <button type="button" wire:click="$set('showModalCreateNewProduct', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        <button type="button" wire:click="$set('showModalConvertNewProduct', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                             Cancelar
                         </button>
                         <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg text-sm font-medium text-white shadow transition-colors">
@@ -2411,7 +2420,7 @@
     @endif
 
     <!-- MODAL: Convertir Producto Nuevo a Real (Camilo) -->
-    @if($showModalConvertNewProduct)
+    @if($showModalConvertNewProductExtenso)
         <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50">
             <div class="relative min-h-screen flex items-center justify-center p-4">
                 <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">

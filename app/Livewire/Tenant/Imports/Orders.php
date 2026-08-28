@@ -30,25 +30,19 @@ class Orders extends Component
     public $showModalCreateNewProduct = false;
     public $newProductCode;
     public $newProductDescription;
-    public $newProductPorcentaje = 0;
-    public $newProductMinQty = 1;
-    public $newProductFactor = 0;
-    public $newProductSupplierId;
-    public $newProductFactoryRef;
+    public $newProductObservations;
     public $newProductImage; // Para cargar la foto
     
-    // Factores de precio y descuento
-    public $newProductExw = 0;
-    public $newProductIncrFletes = 0;
-    public $newProductPvp1 = 0;
-    public $newProductPvpMin = 0;
+    // Propiedades para conversión de Producto Nuevo a Real (Camilo)
+    public $showModalConvertNewProduct = false;
+    public $showModalConvertNewProductExtenso = false;
     
-    // Parámetros WordPress
+    // Variables temporales para el nuevo modal visual
+    public $newProductSupplierId;
+    public $newProductFactoryRef;
     public $newProductStockWordpress;
     public $newProductMinQtyWordpress;
 
-    // Propiedades para conversión de Producto Nuevo a Real (Camilo)
-    public $showModalConvertNewProduct = false;
     public $selectedNewProductId;
     public $finalInternalCode;
     public $finalSku;
@@ -2966,19 +2960,10 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->reset([
+            'newProductCode', 
             'newProductDescription', 
-            'newProductPorcentaje', 
-            'newProductMinQty', 
-            'newProductFactor', 
-            'newProductSupplierId', 
-            'newProductFactoryRef', 
-            'newProductImage', 
-            'newProductExw', 
-            'newProductIncrFletes', 
-            'newProductPvp1', 
-            'newProductPvpMin',
-            'newProductStockWordpress',
-            'newProductMinQtyWordpress'
+            'newProductObservations',
+            'newProductImage'
         ]);
         
         // Obtener el último código secuencial NEW_PRODUCTXX
@@ -3008,15 +2993,10 @@ class Orders extends Component
         $this->validate([
             'newProductCode' => 'required|unique:tenant.imp_new_products,code',
             'newProductDescription' => 'required|min:3',
-            'newProductSupplierId' => 'required|integer',
-            'newProductImage' => 'nullable|image|max:2048',
-            'newProductStockWordpress' => 'required|numeric|min:0',
-            'newProductMinQtyWordpress' => 'required|numeric|min:0',
+            'newProductObservations' => 'nullable|string',
+            'newProductImage' => 'nullable|image|max:2048'
         ], [
-            'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductSupplierId.required' => 'Debe seleccionar un proveedor',
-            'newProductStockWordpress.required' => 'El % de Stock es obligatorio',
-            'newProductMinQtyWordpress.required' => 'La Cantidad Mínima es obligatoria',
+            'newProductDescription.required' => 'La descripción es obligatoria'
         ]);
 
         $imagePath = null;
@@ -3029,18 +3009,8 @@ class Orders extends Component
             DB::connection('tenant')->table('imp_new_products')->insert([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
-                'porcentaje' => (float)($this->newProductPorcentaje ?: 0),
-                'min_qty_supplier' => (int)($this->newProductMinQty ?: 1),
-                'factor' => (float)($this->newProductFactor ?: 0),
-                'supplier_id' => (int)$this->newProductSupplierId,
-                'factory_ref' => $this->newProductFactoryRef ?: null,
+                'observations' => $this->newProductObservations,
                 'image_path' => $imagePath,
-                'exw' => (float)($this->newProductExw ?: 0),
-                'incr_fletes' => (float)($this->newProductIncrFletes ?: 0),
-                'factor_pvp1' => (float)($this->newProductPvp1 ?: 0),
-                'factor_pvp_min' => (float)($this->newProductPvpMin ?: 0),
-                'stock_wordpress' => (float)$this->newProductStockWordpress,
-                'min_qty_wordpress' => (float)$this->newProductMinQtyWordpress,
                 'status' => 'PENDING',
                 'created_by' => Auth::id(),
                 'created_at' => now(),
