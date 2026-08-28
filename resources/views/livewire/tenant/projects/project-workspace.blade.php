@@ -53,32 +53,32 @@
         </div>
     </div>
 
-    <!-- Barra de Pestañas -->
-    <div class="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold mb-6 w-fit">
-        <button wire:click="$set('activeTab', 'chat')"
-            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'chat' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-            Chat
-        </button>
-        <button wire:click="$set('activeTab', 'materiales')"
-            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-            Materiales
-        </button>
-        <button wire:click="$set('activeTab', 'participantes')"
-            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-            Participantes
-        </button>
-        <button wire:click="$set('activeTab', 'archivos')"
-            class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-            Archivos
-        </button>
-    </div>
-
     <!-- Layout Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
 
         <!-- Columna Izquierda: Información de Orden, Avances y Preguntas -->
         <div class="lg:col-span-1 space-y-6">
-            
+
+            <!-- Barra de Pestañas -->
+            <div class="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold w-fit">
+                <button wire:click="$set('activeTab', 'chat')"
+                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'chat' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Chat
+                </button>
+                <button wire:click="$set('activeTab', 'materiales')"
+                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Materiales
+                </button>
+                <button wire:click="$set('activeTab', 'participantes')"
+                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Participantes
+                </button>
+                <button wire:click="$set('activeTab', 'archivos')"
+                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Archivos
+                </button>
+            </div>
+
             <!-- Ficha Técnica y Acciones de Estado -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <h2 class="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Estado e Información</h2>
@@ -360,7 +360,7 @@
         <!-- Columna Derecha: contenido según pestaña activa -->
         @if($activeTab === 'chat')
         <!-- Chat Interactivo estilo WhatsApp -->
-        <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 180px);">
+        <div class="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style="height: calc(100vh - 140px);">
             <!-- Header del Chat (estilo WhatsApp) -->
             <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
                 <div class="flex items-center gap-3">
