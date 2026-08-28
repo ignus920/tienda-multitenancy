@@ -30,25 +30,20 @@ class Orders extends Component
     public $showModalCreateNewProduct = false;
     public $newProductCode;
     public $newProductDescription;
-    public $newProductPorcentaje = 0;
-    public $newProductMinQty = 1;
-    public $newProductFactor = 0;
-    public $newProductSupplierId;
-    public $newProductFactoryRef;
+    public $newProductObservations;
     public $newProductImage; // Para cargar la foto
     
-    // Factores de precio y descuento
-    public $newProductExw = 0;
-    public $newProductIncrFletes = 0;
-    public $newProductPvp1 = 0;
-    public $newProductPvpMin = 0;
+    // Propiedades para conversión de Producto Nuevo a Real (Camilo)
+    public $showModalConvertNewProduct = false;
+    public $showModalConvertNewProductExtenso = false;
+    public $selectedRealItemId;
     
-    // Parámetros WordPress
+    // Variables temporales para el nuevo modal visual
+    public $newProductSupplierId;
+    public $newProductFactoryRef;
     public $newProductStockWordpress;
     public $newProductMinQtyWordpress;
 
-    // Propiedades para conversión de Producto Nuevo a Real (Camilo)
-    public $showModalConvertNewProduct = false;
     public $selectedNewProductId;
     public $finalInternalCode;
     public $finalSku;
@@ -126,6 +121,7 @@ class Orders extends Component
     public $selectedShipp = 0;
     public $allLabels = [];
     public $showModalHistory = false;
+    public $historyComment = '';
     public $shipmentComment = '';
     public $showModalShipmentHistory = false;
     public $showModalChangeQuantity = false;
@@ -257,9 +253,6 @@ class Orders extends Component
                 ->table('imp_new_products')
                 ->whereNull('deleted_at')
                 ->where('status', '=', 'PENDING')
-                ->when(Auth::user()->profile_id == 17, function ($query) {
-                    return $query->where('supplier_id', Auth::id());
-                })
                 ->count();
 
             $statuses->push((object)[
@@ -404,9 +397,9 @@ class Orders extends Component
                     'inp.id',
                     DB::raw('NULL as item_id'),
                     DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
-                    'inp.factory_ref',
-                    'inp.exw',
-                    'inp.min_qty_supplier as qty_requested',
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
                     DB::raw("'N/A' AS label"),
                     DB::raw("'New Product' AS translated_name"),
                     DB::raw('13 AS status'),
@@ -414,7 +407,7 @@ class Orders extends Component
                     DB::raw('NULL as priority_assigned_at'),
                     DB::raw('0 as qty_shipped'),
                     DB::raw('0 as news'),
-                    'inp.exw as price',
+                    DB::raw('0 as price'),
                     DB::raw('NULL as delete_justification'),
                     DB::raw('NULL as packing_number'),
                     DB::raw('NULL as operation_number'),
@@ -432,16 +425,12 @@ class Orders extends Component
                 ])
                 ->whereNull('inp.deleted_at')
                 ->where('inp.status', '=', 'PENDING')
-                ->when(Auth::user()->profile_id == 17, function ($query) {
-                    return $query->where('inp.supplier_id', Auth::id());
-                })
                 ->when($this->search, function ($query) {
                     $words = array_filter(explode(' ', trim($this->search)));
                     foreach ($words as $word) {
                         $query->where(function ($q) use ($word) {
                             $q->where('inp.description', 'like', '%' . $word . '%')
-                              ->orWhere('inp.code', 'like', '%' . $word . '%')
-                              ->orWhere('inp.factory_ref', 'like', '%' . $word . '%');
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
                         });
                     }
                     return $query;
@@ -456,9 +445,10 @@ class Orders extends Component
                     'inp.id',
                     'inp.real_item_id as item_id',
                     DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
-                    'inp.factory_ref',
-                    'inp.exw',
-                    'inp.min_qty_supplier as qty_requested',
+                    'iv.sku as sku',
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
                     DB::raw("'N/A' AS label"),
                     DB::raw("'Converted' AS translated_name"),
                     DB::raw('14 AS status'),
@@ -466,7 +456,7 @@ class Orders extends Component
                     DB::raw('NULL as priority_assigned_at'),
                     DB::raw('0 as qty_shipped'),
                     DB::raw('0 as news'),
-                    'inp.exw as price',
+                    DB::raw('0 as price'),
                     DB::raw('NULL as delete_justification'),
                     DB::raw('NULL as packing_number'),
                     DB::raw('NULL as operation_number'),
@@ -490,8 +480,7 @@ class Orders extends Component
                     foreach ($words as $word) {
                         $query->where(function ($q) use ($word) {
                             $q->where('inp.description', 'like', '%' . $word . '%')
-                              ->orWhere('inp.code', 'like', '%' . $word . '%')
-                              ->orWhere('inp.factory_ref', 'like', '%' . $word . '%');
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
                         });
                     }
                     return $query;
@@ -2020,6 +2009,44 @@ class Orders extends Component
         $this->showModalHistory = true;
     }
 
+    public function saveHistoryComment()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'historyComment' => 'required'
+        ]);
+
+        try {
+            if ($this->filterStatus == 13) {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'new_product_id' => $this->import_id,
+                    'comment' => $this->historyComment,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'import_id' => $this->import_id,
+                    'comment' => $this->historyComment,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $this->historyComment = '';
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Comentario agregado correctamente.'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error saving history comment: ' . $e->getMessage());
+        }
+    }
+
     /*
     public function togglePacking($packingId)
     {
@@ -2966,19 +2993,10 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->reset([
+            'newProductCode', 
             'newProductDescription', 
-            'newProductPorcentaje', 
-            'newProductMinQty', 
-            'newProductFactor', 
-            'newProductSupplierId', 
-            'newProductFactoryRef', 
-            'newProductImage', 
-            'newProductExw', 
-            'newProductIncrFletes', 
-            'newProductPvp1', 
-            'newProductPvpMin',
-            'newProductStockWordpress',
-            'newProductMinQtyWordpress'
+            'newProductObservations',
+            'newProductImage'
         ]);
         
         // Obtener el último código secuencial NEW_PRODUCTXX
@@ -3008,15 +3026,10 @@ class Orders extends Component
         $this->validate([
             'newProductCode' => 'required|unique:tenant.imp_new_products,code',
             'newProductDescription' => 'required|min:3',
-            'newProductSupplierId' => 'required|integer',
-            'newProductImage' => 'nullable|image|max:2048',
-            'newProductStockWordpress' => 'required|numeric|min:0',
-            'newProductMinQtyWordpress' => 'required|numeric|min:0',
+            'newProductObservations' => 'nullable|string',
+            'newProductImage' => 'nullable|image|max:2048'
         ], [
-            'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductSupplierId.required' => 'Debe seleccionar un proveedor',
-            'newProductStockWordpress.required' => 'El % de Stock es obligatorio',
-            'newProductMinQtyWordpress.required' => 'La Cantidad Mínima es obligatoria',
+            'newProductDescription.required' => 'La descripción es obligatoria'
         ]);
 
         $imagePath = null;
@@ -3026,25 +3039,32 @@ class Orders extends Component
         }
 
         try {
-            DB::connection('tenant')->table('imp_new_products')->insert([
+            $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
-                'porcentaje' => (float)($this->newProductPorcentaje ?: 0),
-                'min_qty_supplier' => (int)($this->newProductMinQty ?: 1),
-                'factor' => (float)($this->newProductFactor ?: 0),
-                'supplier_id' => (int)$this->newProductSupplierId,
-                'factory_ref' => $this->newProductFactoryRef ?: null,
+                'observations' => $this->newProductObservations,
                 'image_path' => $imagePath,
-                'exw' => (float)($this->newProductExw ?: 0),
-                'incr_fletes' => (float)($this->newProductIncrFletes ?: 0),
-                'factor_pvp1' => (float)($this->newProductPvp1 ?: 0),
-                'factor_pvp_min' => (float)($this->newProductPvpMin ?: 0),
-                'stock_wordpress' => (float)$this->newProductStockWordpress,
-                'min_qty_wordpress' => (float)$this->newProductMinQtyWordpress,
                 'status' => 'PENDING',
                 'created_by' => Auth::id(),
                 'created_at' => now(),
                 'updated_at' => now()
+            ]);
+
+            // Siempre guardamos la información inicial para que el proveedor la vea
+            $commentData = [
+                'type' => 'new_product_info',
+                'code' => $this->newProductCode,
+                'name' => $this->newProductDescription,
+                'note' => $this->newProductObservations,
+                'image' => $imagePath
+            ];
+            
+            DB::connection('tenant')->table('imp_comments')->insert([
+                'new_product_id' => $newProductId,
+                'comment' => json_encode($commentData, JSON_UNESCAPED_UNICODE),
+                'user_id' => Auth::id(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $this->showModalCreateNewProduct = false;
@@ -3089,10 +3109,17 @@ class Orders extends Component
             ->first();
 
         if ($newProduct) {
+            // Pre-llenar datos para el modal extenso (si alguna vez se usa)
             $this->finalDescription = $newProduct->description;
-            $this->finalSupplierId = $newProduct->supplier_id;
-            $this->finalStockWordpress = $newProduct->stock_wordpress;
-            $this->finalMinQtyWordpress = $newProduct->min_qty_wordpress;
+            
+            // Pre-llenar datos para el nuevo modal simplificado
+            $this->newProductCode = $newProduct->code;
+            $this->newProductDescription = $newProduct->description;
+            $this->newProductSupplierId = '';
+            $this->newProductFactoryRef = '';
+            $this->newProductStockWordpress = null;
+            $this->newProductMinQtyWordpress = null;
+
             $this->showModalConvertNewProduct = true;
         }
     }
@@ -3104,41 +3131,23 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'finalInternalCode' => 'required|unique:tenant.inv_items,internal_code',
-            'finalSku' => 'required',
-            'finalCategoryId' => 'required|integer',
-            'finalType' => 'required',
-            'finalTaxId' => 'required|integer',
-            'finalBrandId' => 'required|integer',
-            'finalHouseId' => 'required|integer',
-            'finalPurchasingUnit' => 'required|integer',
-            'finalConsumptionUnit' => 'required|integer',
-            'finalManageSerial' => 'required|boolean',
-            'finalInventoriable' => 'required|boolean',
-            'finalDescription' => 'required|min:3',
-            'finalStockWordpress' => 'required|numeric|min:0',
-            'finalMinQtyWordpress' => 'required|numeric|min:0',
-            'finalSupplierId' => 'required|integer'
+            'newProductCode' => 'required|unique:tenant.inv_items,internal_code',
+            'newProductDescription' => 'required|min:3',
+            'newProductSupplierId' => 'required|integer',
+            'newProductStockWordpress' => 'required|numeric|min:0',
+            'newProductMinQtyWordpress' => 'required|numeric|min:0',
         ], [
-            'finalInternalCode.required' => 'El código interno definitivo es obligatorio.',
-            'finalInternalCode.unique' => 'Este código interno ya existe en el inventario real.',
-            'finalSku.required' => 'El SKU es obligatorio.',
-            'finalCategoryId.required' => 'Debe seleccionar una categoría de inventario.',
-            'finalType.required' => 'Debe seleccionar el tipo.',
-            'finalTaxId.required' => 'Debe seleccionar el impuesto.',
-            'finalBrandId.required' => 'Debe seleccionar la marca.',
-            'finalHouseId.required' => 'Debe seleccionar la casa.',
-            'finalPurchasingUnit.required' => 'Debe seleccionar la unidad de compra.',
-            'finalConsumptionUnit.required' => 'Debe seleccionar la unidad de consumo.',
-            'finalDescription.required' => 'La descripción o nombre es obligatorio.',
-            'finalDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
-            'finalStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
-            'finalStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
-            'finalStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
-            'finalMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
-            'finalMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser un valor numérico.',
-            'finalMinQtyWordpress.min' => 'La Cantidad Mínima WordPress no puede ser menor a 0.',
-            'finalSupplierId.required' => 'Debe seleccionar un proveedor para este producto.'
+            'newProductCode.required' => 'El código interno es obligatorio.',
+            'newProductCode.unique' => 'Este código interno ya existe en el inventario real.',
+            'newProductDescription.required' => 'La descripción o nombre es obligatorio.',
+            'newProductDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
+            'newProductSupplierId.required' => 'Debe seleccionar un proveedor para este producto.',
+            'newProductStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
+            'newProductStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
+            'newProductStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
+            'newProductMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
+            'newProductMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser numérico.',
+            'newProductMinQtyWordpress.min' => 'La Cantidad Mínima no puede ser menor a 0.',
         ]);
 
         $newProduct = DB::connection('tenant')
@@ -3147,29 +3156,29 @@ class Orders extends Component
             ->first();
 
         if (!$newProduct) {
-            $this->addError('finalInternalCode', 'El producto nuevo temporal no existe.');
+            $this->addError('newProductCode', 'El producto nuevo temporal no existe.');
             return;
         }
 
         try {
             DB::connection('tenant')->beginTransaction();
 
-            // 1. Crear el ítem en inv_items (ERP Real)
+            // 1. Crear el ítem en inv_items (ERP Real) con valores por defecto para lo que no está en el modal
             $itemId = DB::connection('tenant')->table('inv_items')->insertGetId([
-                'categoryId' => $this->finalCategoryId,
-                'name' => $this->finalDescription,
-                'internal_code' => $this->finalInternalCode,
-                'sku' => $this->finalSku,
-                'description' => $this->finalDescription,
-                'type' => $this->finalType,
-                'brandId' => $this->finalBrandId,
-                'houseId' => $this->finalHouseId,
-                'inventoriable' => $this->finalInventoriable ? 1 : 0,
-                'handles_serial' => $this->finalManageSerial ? 1 : 0,
-                'purchasing_unit' => $this->finalPurchasingUnit,
-                'consumption_unit' => $this->finalConsumptionUnit,
+                'categoryId' => 1, // Por defecto
+                'name' => $this->newProductDescription,
+                'internal_code' => $this->newProductCode,
+                'sku' => $this->newProductCode,
+                'description' => $this->newProductDescription,
+                'type' => 'IMPORTADO', // Tipo por defecto
+                'brandId' => null,
+                'houseId' => null,
+                'inventoriable' => 1,
+                'handles_serial' => 0,
+                'purchasing_unit' => 1,
+                'consumption_unit' => 1,
                 'status' => 1,
-                'taxId' => $this->finalTaxId,
+                'taxId' => 2,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -3186,61 +3195,28 @@ class Orders extends Component
                 ]);
             }
 
-            // 2.5 Crear el registro de bodega en inv_items_store
-            $principalStore = DB::connection('tenant')->table('inv_store')
-                ->where('status', 1)
-                ->orderBy('id', 'asc')
-                ->first();
+            // 2.5 Crear el registro de bodega en inv_items_store (storeId quemado a 2 según requerimiento)
+            DB::connection('tenant')->table('inv_items_store')->insert([
+                'itemId'              => $itemId,
+                'storeId'             => 2,
+                'initial_stock'       => 0,
+                'stock_items_store'   => 0,
+                'stock_min'           => 0,
+                'stock_max'           => 0,
+                'wp_stock_percentage' => (float)$this->newProductStockWordpress,
+                'wp_min_stock'        => (float)$this->newProductMinQtyWordpress,
+            ]);
 
-            if ($principalStore) {
-                DB::connection('tenant')->table('inv_items_store')->insert([
-                    'itemId'              => $itemId,
-                    'storeId'             => 2,
-                    'initial_stock'       => 0,
-                    'stock_items_store'   => 0,
-                    'stock_min'           => 0,
-                    'stock_max'           => 0,
-                    'wp_stock_percentage' => (float)$this->finalStockWordpress,
-                    'wp_min_stock'        => (float)$this->finalMinQtyWordpress,
-                ]);
-            }
-
-            // 3. Guardar precios (Valores)
-            $typeMap = [
-                'Costo Inicial' => 'costo',
-                'Costo' => 'costo',
-                'Precio Base' => 'precio',
-                'Precio Regular' => 'precio',
-                'Precio Crédito' => 'precio',
-                'Precio unitario x caja' => 'precio',
-                'Precio Minimo' => 'precio',
-            ];
-
-            foreach ($this->tempValues as $label => $value) {
-                if ($value !== null && $value !== '' && $value > 0) {
-                    DB::connection('tenant')->table('inv_values')->insert([
-                        'itemId' => $itemId,
-                        'label' => $label,
-                        'type' => $typeMap[$label] ?? 'costo',
-                        'values' => (float)$value,
-                        'date' => now(),
-                        'warehouseId' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
-
-            // 4. Crear setup de importación del item en imp_items_setup
+            // 3. Crear setup de importación del item en imp_items_setup
             DB::connection('tenant')->table('imp_items_setup')->insert([
                 'item_id' => $itemId,
-                'supplier_id' => $this->finalSupplierId,
-                'factory_ref' => $newProduct->factory_ref ?: 'N/A',
-                'exw' => $newProduct->exw,
-                'percentage' => $newProduct->porcentaje,
-                'freight_increase' => $newProduct->incr_fletes,
-                'pvp_factor' => $newProduct->factor_pvp1,
-                'pvp_min_factor' => $newProduct->factor_pvp_min,
+                'supplier_id' => $this->newProductSupplierId,
+                'factory_ref' => $this->newProductFactoryRef ?: 'N/A',
+                'exw' => 0,
+                'percentage' => 0,
+                'freight_increase' => 0,
+                'pvp_factor' => 0,
+                'pvp_min_factor' => 0,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -3265,7 +3241,114 @@ class Orders extends Component
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('❌ Error al convertir producto nuevo: ' . $e->getMessage());
-            $this->addError('finalInternalCode', 'Error durante la conversión: ' . $e->getMessage());
+            $this->addError('newProductCode', 'Error durante la conversión: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Abrir modal extenso para editar el Producto Real
+     */
+    public function openExtensiveConvertModal($newProductId, $realItemId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedNewProductId = $newProductId;
+        $this->selectedRealItemId = $realItemId;
+        
+        $item = DB::connection('tenant')->table('inv_items')->where('id', $realItemId)->first();
+        if ($item) {
+            $this->finalInternalCode = $item->internal_code;
+            $this->finalSku = $item->sku;
+            $this->finalCategoryId = $item->categoryId;
+            $this->finalType = $item->type;
+            $this->finalTaxId = $item->taxId;
+            $this->finalBrandId = $item->brandId;
+            $this->finalHouseId = $item->houseId;
+            $this->finalPurchasingUnit = $item->purchasing_unit;
+            $this->finalConsumptionUnit = $item->consumption_unit;
+            $this->finalManageSerial = $item->handles_serial;
+            $this->finalInventoriable = $item->inventoriable;
+            $this->finalDescription = $item->name;
+        }
+
+        $setup = DB::connection('tenant')->table('imp_items_setup')->where('item_id', $realItemId)->first();
+        if ($setup) {
+            $this->finalSupplierId = $setup->supplier_id;
+        }
+
+        $store = DB::connection('tenant')->table('inv_items_store')->where('itemId', $realItemId)->where('storeId', 2)->first();
+        if ($store) {
+            $this->finalStockWordpress = $store->wp_stock_percentage;
+            $this->finalMinQtyWordpress = $store->wp_min_stock;
+        }
+
+        $this->showModalConvertNewProductExtenso = true;
+    }
+
+    /**
+     * Actualizar los datos del producto real desde el modal extenso
+     */
+    public function updateRealProductExtensive()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'finalInternalCode' => 'required',
+            'finalSku' => 'required',
+            'finalCategoryId' => 'required|integer',
+            'finalType' => 'required',
+            'finalTaxId' => 'required|integer',
+            'finalDescription' => 'required|min:3',
+            'finalStockWordpress' => 'required|numeric|min:0',
+            'finalMinQtyWordpress' => 'required|numeric|min:0',
+            'finalSupplierId' => 'required|integer'
+        ]);
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            DB::connection('tenant')->table('inv_items')->where('id', $this->selectedRealItemId)->update([
+                'categoryId' => $this->finalCategoryId,
+                'name' => $this->finalDescription,
+                'internal_code' => $this->finalInternalCode,
+                'sku' => $this->finalSku,
+                'description' => $this->finalDescription,
+                'type' => $this->finalType,
+                'brandId' => $this->finalBrandId ?: null,
+                'houseId' => $this->finalHouseId ?: null,
+                'inventoriable' => $this->finalInventoriable ? 1 : 0,
+                'handles_serial' => $this->finalManageSerial ? 1 : 0,
+                'purchasing_unit' => $this->finalPurchasingUnit,
+                'consumption_unit' => $this->finalConsumptionUnit,
+                'taxId' => $this->finalTaxId,
+                'updated_at' => now()
+            ]);
+
+            DB::connection('tenant')->table('inv_items_store')
+                ->where('itemId', $this->selectedRealItemId)
+                ->where('storeId', 2)
+                ->update([
+                    'wp_stock_percentage' => (float)$this->finalStockWordpress,
+                    'wp_min_stock'        => (float)$this->finalMinQtyWordpress,
+                ]);
+
+            DB::connection('tenant')->table('imp_items_setup')
+                ->where('item_id', $this->selectedRealItemId)
+                ->update([
+                    'supplier_id' => $this->finalSupplierId,
+                    'updated_at' => now()
+                ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showModalConvertNewProductExtenso = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Producto real actualizado correctamente!'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error al actualizar producto real: ' . $e->getMessage());
+            $this->addError('finalInternalCode', 'Error durante la actualización: ' . $e->getMessage());
         }
     }
 
