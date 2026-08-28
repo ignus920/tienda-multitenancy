@@ -190,13 +190,14 @@ class ProjectWorkspace extends Component
                 ->update(['status' => 'respondida']);
                 
             // Disminuir contador marcando como leída la notificación de mención que originó esta respuesta
-            $updated = ProjectNotification::where('message_id', $this->replyingToMessageId)
+            $updatedNotification = ProjectNotification::where('message_id', $this->replyingToMessageId)
                 ->where('user_id', Auth::id())
-                ->where('type', 'mencion')
+                ->whereIn('type', ['mencion', 'mencion_avance'])
                 ->update(['read_at' => now()]);
 
-            if ($updated) {
+            if ($updated || $updatedNotification) {
                 $this->dispatch('notifications-updated');
+                $this->dispatch('unanswered-questions-updated');
             }
         }
 
