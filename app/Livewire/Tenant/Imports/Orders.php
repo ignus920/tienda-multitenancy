@@ -3049,15 +3049,22 @@ class Orders extends Component
                 'updated_at' => now()
             ]);
 
-            if (!empty($this->newProductObservations)) {
-                DB::connection('tenant')->table('imp_comments')->insert([
-                    'new_product_id' => $newProductId,
-                    'comment' => "Observación Inicial: " . $this->newProductObservations,
-                    'user_id' => Auth::id(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
+            // Siempre guardamos la información inicial para que el proveedor la vea
+            $commentData = [
+                'type' => 'new_product_info',
+                'code' => $this->newProductCode,
+                'name' => $this->newProductDescription,
+                'note' => $this->newProductObservations,
+                'image' => $imagePath
+            ];
+            
+            DB::connection('tenant')->table('imp_comments')->insert([
+                'new_product_id' => $newProductId,
+                'comment' => json_encode($commentData, JSON_UNESCAPED_UNICODE),
+                'user_id' => Auth::id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             $this->showModalCreateNewProduct = false;
             $this->dispatch('show-toast', [
