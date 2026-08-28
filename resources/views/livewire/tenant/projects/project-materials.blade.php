@@ -162,12 +162,16 @@
                             <td class="py-2 pr-2 text-right font-semibold">${{ number_format($material->line_cost, 2) }}</td>
                             <td class="py-2 pr-2 text-gray-500 max-w-[150px]">
                                 @if($material->observations)
-                                    <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block w-full">
+                                    <div x-data="{ show: false, x: 0, y: 0 }" 
+                                         @mouseenter="show = true; x = $event.clientX; y = $event.clientY;" 
+                                         @mousemove="x = $event.clientX; y = $event.clientY;"
+                                         @mouseleave="show = false" 
+                                         class="inline-block w-full">
                                         <div class="truncate cursor-pointer text-xs">{{ \Illuminate\Support\Str::limit($material->observations, 30) }}</div>
                                         <div x-show="show" x-cloak x-transition style="display: none;"
-                                             class="absolute z-50 bottom-full right-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
+                                             :style="`position: fixed; top: ${y + 15}px; left: ${x - 240}px; z-index: 99999;`"
+                                             class="w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left pointer-events-none">
                                             {{ $material->observations }}
-                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 right-4 -bottom-1"></div>
                                         </div>
                                     </div>
                                 @endif
@@ -196,12 +200,16 @@
                             </td>
                             <td class="py-2 pr-2 text-gray-500 max-w-[150px]">
                                 @if($material->observations)
-                                    <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block w-full">
+                                    <div x-data="{ show: false, x: 0, y: 0 }" 
+                                         @mouseenter="show = true; x = $event.clientX; y = $event.clientY;" 
+                                         @mousemove="x = $event.clientX; y = $event.clientY;"
+                                         @mouseleave="show = false" 
+                                         class="inline-block w-full">
                                         <div class="truncate cursor-pointer text-xs">{{ \Illuminate\Support\Str::limit($material->observations, 30) }}</div>
                                         <div x-show="show" x-cloak x-transition style="display: none;"
-                                             class="absolute z-50 bottom-full right-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
+                                             :style="`position: fixed; top: ${y + 15}px; left: ${x - 240}px; z-index: 99999;`"
+                                             class="w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left pointer-events-none">
                                             {{ $material->observations }}
-                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 right-4 -bottom-1"></div>
                                         </div>
                                     </div>
                                 @endif
