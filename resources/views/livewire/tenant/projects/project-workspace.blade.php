@@ -405,7 +405,16 @@
             </div>
 
             <!-- Contenedor del Chat (Mensajes) con fondo estilo WhatsApp -->
-            <div x-ref="chatContainer" class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 bg-[#e5ddd5] dark:bg-gray-900 bg-blend-multiply" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
+            <div x-ref="chatContainer" 
+                 x-data="{ 
+                    scrollToBottom() { $el.scrollTop = $el.scrollHeight; }
+                 }"
+                 x-init="
+                    setTimeout(() => scrollToBottom(), 50);
+                    const observer = new MutationObserver(() => { scrollToBottom(); });
+                    observer.observe($el, { childList: true, subtree: true });
+                 }"
+                 class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 bg-[#e5ddd5] dark:bg-gray-900 bg-blend-multiply" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;200&quot; height=&quot;200&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cdefs%3E%3Cpattern id=&quot;p&quot; width=&quot;40&quot; height=&quot;40&quot; patternUnits=&quot;userSpaceOnUse&quot;%3E%3Ccircle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;%23ccc4b8&quot; opacity=&quot;0.3&quot;/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=&quot;200&quot; height=&quot;200&quot; fill=&quot;url(%23p)&quot;/%3E%3C/svg%3E');">
                 @forelse($messages as $msg)
                     @php
                         $isMe = $msg->user_id === Auth::id();
@@ -617,9 +626,9 @@
                 <!-- Banner de Respuesta Activa -->
                 @if($replyingToMessageId)
                     <div class="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-white dark:bg-gray-800 border-l-4 border-indigo-500 shadow-sm text-xs">
-                        <div class="truncate text-gray-700 dark:text-gray-300 flex-1">
+                        <div class="text-gray-700 dark:text-gray-300 flex-1 whitespace-normal break-words">
                             <span class="font-bold text-indigo-600 dark:text-indigo-400 block text-2xs mb-0.5">Respondiendo a:</span> 
-                            <span class="italic text-gray-500">"{{ Str::limit($replyingToMessageText, 60) }}"</span>
+                            <span class="italic text-gray-500">"{{ $replyingToMessageText }}"</span>
                         </div>
                         <button wire:click="clearReply" class="text-gray-400 hover:text-red-500 ml-3 p-1 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
