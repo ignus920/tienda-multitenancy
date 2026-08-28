@@ -2430,7 +2430,7 @@
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                         Convertir a Producto Real
                     </h3>
-                    <button wire:click="$set('showModalConvertNewProduct', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <button wire:click="$set('showModalConvertNewProductExtenso', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -2737,7 +2737,7 @@
 
                     <!-- Footer -->
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <button type="button" wire:click="$set('showModalConvertNewProduct', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        <button type="button" wire:click="$set('showModalConvertNewProductExtenso', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                             Cancelar
                         </button>
                         <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 border border-transparent rounded-lg text-sm font-medium text-white shadow transition-colors">
