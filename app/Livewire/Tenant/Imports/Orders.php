@@ -121,6 +121,7 @@ class Orders extends Component
     public $selectedShipp = 0;
     public $allLabels = [];
     public $showModalHistory = false;
+    public $historyComment = '';
     public $shipmentComment = '';
     public $showModalShipmentHistory = false;
     public $showModalChangeQuantity = false;
@@ -2005,6 +2006,44 @@ class Orders extends Component
     {
         $this->import_id = $import_id;
         $this->showModalHistory = true;
+    }
+
+    public function saveHistoryComment()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'historyComment' => 'required'
+        ]);
+
+        try {
+            if ($this->filterStatus == 13) {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'new_product_id' => $this->import_id,
+                    'comment' => $this->historyComment,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'import_id' => $this->import_id,
+                    'comment' => $this->historyComment,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $this->historyComment = '';
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Comentario agregado correctamente.'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error saving history comment: ' . $e->getMessage());
+        }
     }
 
     /*
