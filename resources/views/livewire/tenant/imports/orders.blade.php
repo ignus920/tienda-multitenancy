@@ -1159,21 +1159,42 @@
                                                     $data = is_string($event->comment) ? json_decode($event->comment, true) : null;
                                                 @endphp
                                                 @if(is_array($data) && isset($data['type']))
-                                                    <div class="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded border border-blue-100 dark:border-blue-900/50 text-sm">
-                                                        <span class="font-medium text-blue-700 dark:text-blue-400">
-                                                            {{ $data['type'] === 'qty_change' ? 'Ajuste de Cantidad' : 'Ajuste de Precio' }}
-                                                        </span>
-                                                        <p class="mt-1 font-mono text-gray-700 dark:text-gray-300">
-                                                            De: <span class="line-through text-gray-400">{{ $data['old'] }}</span> 
-                                                            <span class="mx-2">→</span> 
-                                                            A: <span class="font-bold text-gray-900 dark:text-white">{{ $data['new'] }}</span>
-                                                        </p>
-                                                        @if(!empty($data['note']))
-                                                            <p class="mt-2 text-xs italic text-gray-500 dark:text-gray-400 border-l-2 border-blue-300 pl-2">
-                                                                "{{ $data['note'] }}"
+                                                    @if($data['type'] === 'new_product_info')
+                                                        <div class="bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
+                                                            <div class="flex flex-col sm:flex-row gap-4 items-start">
+                                                                @if(!empty($data['image']))
+                                                                    <div class="flex-shrink-0">
+                                                                        <img src="{{ Storage::url($data['image']) }}" alt="Producto" class="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                                    </div>
+                                                                @endif
+                                                                <div class="flex-1 w-full">
+                                                                    <h4 class="font-bold text-indigo-800 dark:text-indigo-400 text-base mb-1">{{ $data['name'] }}</h4>
+                                                                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Código: {{ $data['code'] }}</p>
+                                                                    @if(!empty($data['note']))
+                                                                        <div class="bg-white dark:bg-gray-800 p-3 rounded shadow-sm text-sm text-gray-700 dark:text-gray-300 border-l-4 border-indigo-500">
+                                                                            {{ $data['note'] }}
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <div class="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded border border-blue-100 dark:border-blue-900/50 text-sm">
+                                                            <span class="font-medium text-blue-700 dark:text-blue-400">
+                                                                {{ $data['type'] === 'qty_change' ? 'Ajuste de Cantidad' : 'Ajuste de Precio' }}
+                                                            </span>
+                                                            <p class="mt-1 font-mono text-gray-700 dark:text-gray-300">
+                                                                De: <span class="line-through text-gray-400">{{ $data['old'] }}</span> 
+                                                                <span class="mx-2">→</span> 
+                                                                A: <span class="font-bold text-gray-900 dark:text-white">{{ $data['new'] }}</span>
                                                             </p>
-                                                        @endif
-                                                    </div>
+                                                            @if(!empty($data['note']))
+                                                                <p class="mt-2 text-xs italic text-gray-500 dark:text-gray-400 border-l-2 border-blue-300 pl-2">
+                                                                    "{{ $data['note'] }}"
+                                                                </p>
+                                                            @endif
+                                                        </div>
+                                                    @endif
                                                 @else
                                                     <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
                                                         {{ $event->comment }}
