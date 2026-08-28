@@ -259,16 +259,24 @@ class ProjectWorkspace extends Component
         if ($this->replyingToMessageId) {
             $repliedMessage = ProjectMessage::find($this->replyingToMessageId);
             if ($repliedMessage && $repliedMessage->user_id !== Auth::id()) {
+                
+                // Verificar si el mensaje original fue un avance/novedad/pregunta
+                $isReplyToAvance = ProjectNotification::where('message_id', $this->replyingToMessageId)
+                    ->where('type', 'mencion_avance')
+                    ->exists();
+
+                $replyType = $isReplyToAvance ? 'respuesta_avance' : 'respuesta';
+
                 $notification = ProjectNotification::create([
                     'user_id' => $repliedMessage->user_id,
                     'project_id' => $this->projectId,
                     'message_id' => $message->id,
                     'sender_id' => Auth::id(),
-                    'type' => 'respuesta',
+                    'type' => $replyType,
                 ]);
                 broadcast(new NewProjectNotification(
                     $repliedMessage->user_id, $this->projectId, $project->title ?? 'Proyecto',
-                    $senderName, $messagePreview, 'respuesta', $notification->id
+                    $senderName, $messagePreview, $replyType, $notification->id
                 ));
             }
         }
