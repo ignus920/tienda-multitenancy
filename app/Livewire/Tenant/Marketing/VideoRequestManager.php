@@ -124,6 +124,12 @@ class VideoRequestManager extends Component
         $this->viewMode = in_array($mode, ['matriz', 'lista'], true) ? $mode : 'matriz';
     }
 
+    public function filterByStatus(string $status = ''): void
+    {
+        $this->statusFilter = in_array($status, ['pendiente', 'en_proceso', 'terminado'], true) ? $status : '';
+        $this->resetPage();
+    }
+
     /* ── Crear solicitud ─────────────────────────────── */
     public function openCreateModal(): void
     {
@@ -269,10 +275,10 @@ class VideoRequestManager extends Component
 
         $tenantId = session('tenant_id');
 
-        $query = VideoRequest::on('tenant')
+        // Base: búsqueda + filtro de actividad pendiente (sin filtro de estado, para los contadores)
+        $baseQuery = fn () => VideoRequest::on('tenant')
             ->leftJoin('inv_items', 'inv_items.id', '=', 'mkt_video_requests.item_id')
             ->select('mkt_video_requests.*')
-            ->with(['tasks', 'item'])
             ->when($this->search !== '', function ($q) {
                 $s = trim($this->search);
                 $q->where(function ($qq) use ($s) {
@@ -285,11 +291,21 @@ class VideoRequestManager extends Component
                         ->orWhere('mkt_video_requests.product_name', 'like', "%{$s}%");
                 });
             })
-            ->when($this->statusFilter !== '', fn ($q) => $q->where('mkt_video_requests.status', $this->statusFilter))
             ->when($this->channelFilter !== '', function ($q) {
                 $channel = str_replace('sin_', '', $this->channelFilter);
                 $q->whereHas('tasks', fn ($t) => $t->where('channel', $channel)->where('status', '!=', 'listo'));
             });
+
+        $statusCounts = [
+            'todos'      => (clone $baseQuery())->count(),
+            'pendiente'  => (clone $baseQuery())->where('mkt_video_requests.status', 'pendiente')->count(),
+            'en_proceso' => (clone $baseQuery())->where('mkt_video_requests.status', 'en_proceso')->count(),
+            'terminado'  => (clone $baseQuery())->where('mkt_video_requests.status', 'terminado')->count(),
+        ];
+
+        $query = $baseQuery()
+            ->with(['tasks', 'item'])
+            ->when($this->statusFilter !== '', fn ($q) => $q->where('mkt_video_requests.status', $this->statusFilter));
 
         $sortMap = [
             'request_number' => 'mkt_video_requests.request_number',
@@ -356,6 +372,7 @@ class VideoRequestManager extends Component
 
         return view('livewire.tenant.marketing.video-request-manager', [
             'requests'        => $requests,
+            'statusCounts'    => $statusCounts,
             'userNames'       => $userNames,
             'gestores'        => $gestores,
             'channels'        => VideoRequest::CHANNELS,
