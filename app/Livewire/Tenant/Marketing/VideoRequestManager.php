@@ -55,7 +55,10 @@ class VideoRequestManager extends Component
     {
         $this->ensureTenantConnection();
 
-        abort_unless(PermissionHelper::userCan(self::PERMISSION, 'show'), 403);
+        abort_unless(
+            PermissionHelper::userCan(self::PERMISSION, 'show') || PermissionHelper::userCan('Mercadeo', 'show'),
+            403
+        );
     }
 
     protected function ensureTenantConnection()
@@ -80,12 +83,14 @@ class VideoRequestManager extends Component
     /* ── Permisos ────────────────────────────────────── */
     public function getCanCreateProperty(): bool
     {
-        return PermissionHelper::userCan(self::PERMISSION, 'create');
+        return PermissionHelper::userCan(self::PERMISSION, 'create')
+            || PermissionHelper::userCan('Mercadeo', 'create');
     }
 
     public function getCanEditProperty(): bool
     {
-        return PermissionHelper::userCan(self::PERMISSION, 'edit');
+        return PermissionHelper::userCan(self::PERMISSION, 'edit')
+            || PermissionHelper::userCan('Mercadeo', 'edit');
     }
 
     /* ── Filtros ─────────────────────────────────────── */
