@@ -38,6 +38,33 @@
             </div>
         </div>
 
+        <!-- Accesos rápidos por estado (vista del Gestor) -->
+        @php
+            $quickTabs = [
+                ''           => ['label' => 'Todos',      'count' => $statusCounts['todos'],      'ring' => 'ring-indigo-500', 'active' => 'bg-indigo-600 text-white', 'badge' => 'bg-white/20'],
+                'pendiente'  => ['label' => 'Pendientes', 'count' => $statusCounts['pendiente'],  'ring' => 'ring-red-500',    'active' => 'bg-red-600 text-white',    'badge' => 'bg-white/20'],
+                'en_proceso' => ['label' => 'En proceso', 'count' => $statusCounts['en_proceso'], 'ring' => 'ring-amber-500',  'active' => 'bg-amber-500 text-white',  'badge' => 'bg-white/20'],
+                'terminado'  => ['label' => 'Terminados', 'count' => $statusCounts['terminado'],  'ring' => 'ring-green-500',  'active' => 'bg-green-600 text-white',  'badge' => 'bg-white/20'],
+            ];
+        @endphp
+        <div class="flex flex-wrap gap-2 mb-4">
+            @foreach ($quickTabs as $value => $tab)
+                @php $isActive = $statusFilter === $value; @endphp
+                <button
+                    wire:click="filterByStatus('{{ $value }}')"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition
+                        {{ $isActive
+                            ? $tab['active'] . ' border-transparent shadow-sm'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:ring-2 ' . $tab['ring'] }}">
+                    {{ $tab['label'] }}
+                    <span class="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded-full text-[11px] tabular-nums
+                        {{ $isActive ? $tab['badge'] : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300' }}">
+                        {{ $tab['count'] }}
+                    </span>
+                </button>
+            @endforeach
+        </div>
+
         <!-- Barra de filtros -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-5">
             <div class="flex flex-col lg:flex-row lg:items-end gap-3">
@@ -45,17 +72,6 @@
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Buscar</label>
                     <input wire:model.live.debounce.300ms="search" type="text" placeholder="N° solicitud, código o descripción del producto…"
                         class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Estado general</label>
-                    <select wire:model.live="statusFilter"
-                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white py-2 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Todos</option>
-                        <option value="pendiente">Pendiente</option>
-                        <option value="en_proceso">En proceso</option>
-                        <option value="terminado">Terminado</option>
-                    </select>
                 </div>
 
                 <div>
