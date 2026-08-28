@@ -160,7 +160,18 @@
                                 @endif
                             </td>
                             <td class="py-2 pr-2 text-right font-semibold">${{ number_format($material->line_cost, 2) }}</td>
-                            <td class="py-2 pr-2 text-gray-500">{{ $material->observations }}</td>
+                            <td class="py-2 pr-2 text-gray-500 max-w-[150px]">
+                                @if($material->observations)
+                                    <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block w-full">
+                                        <div class="truncate cursor-pointer text-xs">{{ \Illuminate\Support\Str::limit($material->observations, 30) }}</div>
+                                        <div x-show="show" x-cloak x-transition style="display: none;"
+                                             class="absolute z-50 bottom-full left-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
+                                            {{ $material->observations }}
+                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 left-4 -bottom-1"></div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </td>
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="saveEdit" class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs mr-2">Guardar</button>
                                 <button wire:click="cancelEdit" class="text-gray-400 hover:text-gray-600 font-semibold text-2xs">Cancelar</button>
@@ -183,7 +194,18 @@
                                     ${{ number_format($material->line_cost, 2) }}
                                 @endif
                             </td>
-                            <td class="py-2 pr-2 text-gray-500">{{ $material->observations }}</td>
+                            <td class="py-2 pr-2 text-gray-500 max-w-[150px]">
+                                @if($material->observations)
+                                    <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block w-full">
+                                        <div class="truncate cursor-pointer text-xs">{{ \Illuminate\Support\Str::limit($material->observations, 30) }}</div>
+                                        <div x-show="show" x-cloak x-transition style="display: none;"
+                                             class="absolute z-50 bottom-full left-0 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl break-all whitespace-normal leading-relaxed text-left">
+                                            {{ $material->observations }}
+                                            <div class="absolute w-2 h-2 bg-gray-900 transform rotate-45 left-4 -bottom-1"></div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </td>
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="editMaterial({{ $material->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
                                 @if($material->is_active)

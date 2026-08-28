@@ -229,8 +229,8 @@ class ProjectWorkspace extends Component
 
         // Crear notificaciones y enviar broadcast para menciones
         if (!empty($mentionedUserIds)) {
-            // Si hay menciones, notificar SOLO a los mencionados (excepto al emisor)
-            $recipientIds = array_filter($mentionedUserIds, fn($id) => $id !== Auth::id());
+            // Si hay menciones, notificar a los mencionados (incluyendo al emisor si se auto-etiqueta)
+            $recipientIds = $mentionedUserIds;
             foreach ($recipientIds as $userId) {
                 $notification = ProjectNotification::create([
                     'user_id' => $userId,
@@ -265,7 +265,7 @@ class ProjectWorkspace extends Component
         }
 
         $this->reset(['newMessageText', 'replyingToMessageId', 'replyingToMessageText', 'mentionedUserIds', 'attachments']);
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje enviado']);
+        // $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Mensaje enviado']);
     }
 
     // Editar un mensaje propio, solo dentro de los primeros 10 segundos (punto 53)
