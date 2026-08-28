@@ -3076,41 +3076,23 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'finalInternalCode' => 'required|unique:tenant.inv_items,internal_code',
-            'finalSku' => 'required',
-            'finalCategoryId' => 'required|integer',
-            'finalType' => 'required',
-            'finalTaxId' => 'required|integer',
-            'finalBrandId' => 'required|integer',
-            'finalHouseId' => 'required|integer',
-            'finalPurchasingUnit' => 'required|integer',
-            'finalConsumptionUnit' => 'required|integer',
-            'finalManageSerial' => 'required|boolean',
-            'finalInventoriable' => 'required|boolean',
-            'finalDescription' => 'required|min:3',
-            'finalStockWordpress' => 'required|numeric|min:0',
-            'finalMinQtyWordpress' => 'required|numeric|min:0',
-            'finalSupplierId' => 'required|integer'
+            'newProductCode' => 'required|unique:tenant.inv_items,internal_code',
+            'newProductDescription' => 'required|min:3',
+            'newProductSupplierId' => 'required|integer',
+            'newProductStockWordpress' => 'required|numeric|min:0',
+            'newProductMinQtyWordpress' => 'required|numeric|min:0',
         ], [
-            'finalInternalCode.required' => 'El código interno definitivo es obligatorio.',
-            'finalInternalCode.unique' => 'Este código interno ya existe en el inventario real.',
-            'finalSku.required' => 'El SKU es obligatorio.',
-            'finalCategoryId.required' => 'Debe seleccionar una categoría de inventario.',
-            'finalType.required' => 'Debe seleccionar el tipo.',
-            'finalTaxId.required' => 'Debe seleccionar el impuesto.',
-            'finalBrandId.required' => 'Debe seleccionar la marca.',
-            'finalHouseId.required' => 'Debe seleccionar la casa.',
-            'finalPurchasingUnit.required' => 'Debe seleccionar la unidad de compra.',
-            'finalConsumptionUnit.required' => 'Debe seleccionar la unidad de consumo.',
-            'finalDescription.required' => 'La descripción o nombre es obligatorio.',
-            'finalDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
-            'finalStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
-            'finalStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
-            'finalStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
-            'finalMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
-            'finalMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser un valor numérico.',
-            'finalMinQtyWordpress.min' => 'La Cantidad Mínima WordPress no puede ser menor a 0.',
-            'finalSupplierId.required' => 'Debe seleccionar un proveedor para este producto.'
+            'newProductCode.required' => 'El código interno es obligatorio.',
+            'newProductCode.unique' => 'Este código interno ya existe en el inventario real.',
+            'newProductDescription.required' => 'La descripción o nombre es obligatorio.',
+            'newProductDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
+            'newProductSupplierId.required' => 'Debe seleccionar un proveedor para este producto.',
+            'newProductStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
+            'newProductStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
+            'newProductStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
+            'newProductMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
+            'newProductMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser numérico.',
+            'newProductMinQtyWordpress.min' => 'La Cantidad Mínima no puede ser menor a 0.',
         ]);
 
         $newProduct = DB::connection('tenant')
@@ -3119,29 +3101,29 @@ class Orders extends Component
             ->first();
 
         if (!$newProduct) {
-            $this->addError('finalInternalCode', 'El producto nuevo temporal no existe.');
+            $this->addError('newProductCode', 'El producto nuevo temporal no existe.');
             return;
         }
 
         try {
             DB::connection('tenant')->beginTransaction();
 
-            // 1. Crear el ítem en inv_items (ERP Real)
+            // 1. Crear el ítem en inv_items (ERP Real) con valores por defecto para lo que no está en el modal
             $itemId = DB::connection('tenant')->table('inv_items')->insertGetId([
-                'categoryId' => $this->finalCategoryId,
-                'name' => $this->finalDescription,
-                'internal_code' => $this->finalInternalCode,
-                'sku' => $this->finalSku,
-                'description' => $this->finalDescription,
-                'type' => $this->finalType,
-                'brandId' => $this->finalBrandId,
-                'houseId' => $this->finalHouseId,
-                'inventoriable' => $this->finalInventoriable ? 1 : 0,
-                'handles_serial' => $this->finalManageSerial ? 1 : 0,
-                'purchasing_unit' => $this->finalPurchasingUnit,
-                'consumption_unit' => $this->finalConsumptionUnit,
+                'categoryId' => 1, // Por defecto
+                'name' => $this->newProductDescription,
+                'internal_code' => $this->newProductCode,
+                'sku' => $this->newProductCode,
+                'description' => $this->newProductDescription,
+                'type' => 'IMPORTADO', // Tipo por defecto
+                'brandId' => null,
+                'houseId' => null,
+                'inventoriable' => 1,
+                'handles_serial' => 0,
+                'purchasing_unit' => 0,
+                'consumption_unit' => 0,
                 'status' => 1,
-                'taxId' => $this->finalTaxId,
+                'taxId' => 2,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -3158,61 +3140,28 @@ class Orders extends Component
                 ]);
             }
 
-            // 2.5 Crear el registro de bodega en inv_items_store
-            $principalStore = DB::connection('tenant')->table('inv_store')
-                ->where('status', 1)
-                ->orderBy('id', 'asc')
-                ->first();
+            // 2.5 Crear el registro de bodega en inv_items_store (storeId quemado a 2 según requerimiento)
+            DB::connection('tenant')->table('inv_items_store')->insert([
+                'itemId'              => $itemId,
+                'storeId'             => 2,
+                'initial_stock'       => 0,
+                'stock_items_store'   => 0,
+                'stock_min'           => 0,
+                'stock_max'           => 0,
+                'wp_stock_percentage' => (float)$this->newProductStockWordpress,
+                'wp_min_stock'        => (float)$this->newProductMinQtyWordpress,
+            ]);
 
-            if ($principalStore) {
-                DB::connection('tenant')->table('inv_items_store')->insert([
-                    'itemId'              => $itemId,
-                    'storeId'             => 2,
-                    'initial_stock'       => 0,
-                    'stock_items_store'   => 0,
-                    'stock_min'           => 0,
-                    'stock_max'           => 0,
-                    'wp_stock_percentage' => (float)$this->finalStockWordpress,
-                    'wp_min_stock'        => (float)$this->finalMinQtyWordpress,
-                ]);
-            }
-
-            // 3. Guardar precios (Valores)
-            $typeMap = [
-                'Costo Inicial' => 'costo',
-                'Costo' => 'costo',
-                'Precio Base' => 'precio',
-                'Precio Regular' => 'precio',
-                'Precio Crédito' => 'precio',
-                'Precio unitario x caja' => 'precio',
-                'Precio Minimo' => 'precio',
-            ];
-
-            foreach ($this->tempValues as $label => $value) {
-                if ($value !== null && $value !== '' && $value > 0) {
-                    DB::connection('tenant')->table('inv_values')->insert([
-                        'itemId' => $itemId,
-                        'label' => $label,
-                        'type' => $typeMap[$label] ?? 'costo',
-                        'values' => (float)$value,
-                        'date' => now(),
-                        'warehouseId' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
-
-            // 4. Crear setup de importación del item en imp_items_setup
+            // 3. Crear setup de importación del item en imp_items_setup
             DB::connection('tenant')->table('imp_items_setup')->insert([
                 'item_id' => $itemId,
-                'supplier_id' => $this->finalSupplierId,
-                'factory_ref' => $newProduct->factory_ref ?: 'N/A',
-                'exw' => $newProduct->exw,
-                'percentage' => $newProduct->porcentaje,
-                'freight_increase' => $newProduct->incr_fletes,
-                'pvp_factor' => $newProduct->factor_pvp1,
-                'pvp_min_factor' => $newProduct->factor_pvp_min,
+                'supplier_id' => $this->newProductSupplierId,
+                'factory_ref' => $this->newProductFactoryRef ?: 'N/A',
+                'exw' => 0,
+                'percentage' => 0,
+                'freight_increase' => 0,
+                'pvp_factor' => 0,
+                'pvp_min_factor' => 0,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -3237,7 +3186,7 @@ class Orders extends Component
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('❌ Error al convertir producto nuevo: ' . $e->getMessage());
-            $this->addError('finalInternalCode', 'Error durante la conversión: ' . $e->getMessage());
+            $this->addError('newProductCode', 'Error durante la conversión: ' . $e->getMessage());
         }
     }
 
