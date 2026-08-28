@@ -124,6 +124,9 @@
                     <!-- Contenedor para Teleport de Acciones de Cabecera (ej: Nuevas Solicitudes / Producto Nuevo) -->
                     <div id="header-actions-container" class="flex items-center gap-3 mr-2"></div>
 
+                    <!-- Parlante de Preguntas Sin Responder -->
+                    <livewire:layout.unanswered-questions-bell />
+
                     <!-- Campanita de Notificaciones -->
                     <livewire:layout.notification-bell />
 
