@@ -51,6 +51,11 @@
          class="absolute right-0 mt-2 w-96 max-h-[32rem] origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-gray-700 overflow-hidden z-50 flex flex-col"
          style="display: none;">
 
+        {{-- Título Principal --}}
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Notificaciones</h3>
+        </div>
+
         {{-- Encabezado con Pestañas --}}
         <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 shrink-0 bg-gray-50/50 dark:bg-gray-800/50">
             <div class="flex w-full">
