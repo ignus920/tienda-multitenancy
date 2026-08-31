@@ -1376,16 +1376,6 @@ class VntCompanyForm extends Component
         // Actualizar la bandera que controla la vista
         $this->showNaturalPersonFields = ($this->typePerson === 'Natural');
 
-        // Limpiar variables incompatibles para forzar re-renderización limpia
-        if ($this->typePerson === 'Natural') {
-            $this->businessName = '';
-        } else {
-            $this->firstName = '';
-            $this->secondName = '';
-            $this->lastName = '';
-            $this->secondLastName = '';
-        }
-
         $this->evaluateWarehousePermissions();
     }
 
