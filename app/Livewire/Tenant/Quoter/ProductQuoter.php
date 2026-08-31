@@ -2720,28 +2720,28 @@ class ProductQuoter extends Component
         $missingFields = [];
 
         if (empty($customer['identification'])) $missingFields[] = 'Identificación';
-        if (empty($customer['type_identification_id'])) $missingFields[] = 'Tipo de Identificación';
-        if (empty($customer['regime_id'])) $missingFields[] = 'Régimen';
-        if (empty($customer['fiscal_responsibility_id'])) $missingFields[] = 'Responsabilidad Fiscal';
+        if (empty($customer['typeIdentificationId'])) $missingFields[] = 'Tipo de Identificación';
+        if (empty($customer['regimeId'])) $missingFields[] = 'Régimen';
+        if (empty($customer['fiscalResponsibilityId'])) $missingFields[] = 'Responsabilidad Fiscal';
         
-        $typePerson = $customer['type_person'] ?? '';
-        $typeId = (int) ($customer['type_identification_id'] ?? 0);
+        $typePerson = $customer['typePerson'] ?? '';
+        $typeId = (int) ($customer['typeIdentificationId'] ?? 0);
         
-        // Si no tiene type_person explícito, pero tiene un tipo de identificación diferente a NIT (2), asumimos que es natural.
-        // Si no tiene ni type_person ni type_identification_id, exigiremos 'Nombres o Razón Social'.
-        $isNatural = in_array($typePerson, ['Natural', 'Persona Natural']);
+        // Si no tiene typePerson explícito, pero tiene un tipo de identificación diferente a NIT (2), asumimos que es natural.
+        // Si no tiene ni typePerson ni typeIdentificationId, exigiremos 'Nombres o Razón Social'.
+        $isNatural = in_array($typePerson, ['Natural', 'Persona Natural', 'PERSON_ENTITY', '1']);
         if (!$isNatural && $typeId !== 2 && $typeId !== 0) {
             $isNatural = true;
         }
 
         if ($isNatural) {
-            if (empty($customer['first_name'])) $missingFields[] = 'Primer Nombre';
-            if (empty($customer['last_name'])) $missingFields[] = 'Primer Apellido';
-        } else if ($typeId === 2 || $typePerson === 'Juridica') {
-            if (empty($customer['business_name'])) $missingFields[] = 'Razón Social';
+            if (empty($customer['firstName'])) $missingFields[] = 'Primer Nombre';
+            if (empty($customer['lastName'])) $missingFields[] = 'Primer Apellido';
+        } else if ($typeId === 2 || $typePerson === 'Juridica' || $typePerson === 'LEGAL_ENTITY' || $typePerson === '2') {
+            if (empty($customer['businessName'])) $missingFields[] = 'Razón Social';
         } else {
             // Si no sabemos qué es (porque está totalmente vacío), pedimos uno de los dos
-            if (empty($customer['first_name']) && empty($customer['business_name'])) {
+            if (empty($customer['firstName']) && empty($customer['businessName'])) {
                 $missingFields[] = 'Nombres o Razón Social';
             }
         }
