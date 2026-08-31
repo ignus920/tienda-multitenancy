@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\ProjectNotification;
 use App\Models\Tenant\Projects\ProjectMention;
+use App\Models\Tenant\Projects\ProjectTask;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,10 @@ class NotificationBell extends Component
     public $unreadCount = 0;
     public $pendingMentions = [];
     public $pendingCount = 0;
+    
+    public $pendingTasks = [];
+    public $taskCount = 0;
+
     public $activeTab = 'general';
     public $showDropdown = false;
     public $userId;
@@ -26,6 +31,7 @@ class NotificationBell extends Component
         $this->userId = Auth::id();
         $this->loadNotifications();
         $this->loadPendingMentions();
+        $this->loadPendingTasks();
     }
 
     public function boot()
@@ -61,6 +67,7 @@ class NotificationBell extends Component
     {
         $this->loadNotifications();
         $this->loadPendingMentions(); // Recargar pendientes (por si la notificacion fue una respuesta)
+        $this->loadPendingTasks();
         $this->dispatch('play-notification-sound');
     }
 
@@ -69,6 +76,7 @@ class NotificationBell extends Component
     public function onPendingMentionsUpdate()
     {
         $this->loadPendingMentions();
+        $this->loadPendingTasks();
         $this->loadNotifications();
     }
 
@@ -136,6 +144,40 @@ class NotificationBell extends Component
                 'time_ago' => Carbon::parse($q->created_at)->locale('es')->diffForHumans(),
                 'recipient_name' => $q->recipient ? $q->recipient->name : 'Usuario',
                 'recipient_avatar' => $q->recipient ? $q->recipient->getAvatarUrl() : ''
+            ];
+        })->toArray();
+    }
+
+    public function loadPendingTasks()
+    {
+        $this->ensureTenantConnection();
+
+        if (!Auth::check()) {
+            $this->pendingTasks = [];
+            $this->taskCount = 0;
+            return;
+        }
+
+        $rawTasks = ProjectTask::with(['project', 'creator'])
+            ->where('assigned_to', Auth::id())
+            ->where('status', 'pendiente')
+            ->orderBy('created_at', 'desc')
+            ->limit(15)
+            ->get();
+
+        $this->taskCount = ProjectTask::where('assigned_to', Auth::id())
+            ->where('status', 'pendiente')
+            ->count();
+
+        $this->pendingTasks = $rawTasks->map(function ($t) {
+            return [
+                'id' => $t->id,
+                'project_id' => $t->project_id,
+                'project_title' => $t->project ? $t->project->title : 'Proyecto Desconocido',
+                'title' => $t->title,
+                'creator_name' => $t->creator ? $t->creator->name : 'Usuario',
+                'creator_avatar' => $t->creator ? $t->creator->getAvatarUrl() : '',
+                'time_ago' => Carbon::parse($t->created_at)->locale('es')->diffForHumans(),
             ];
         })->toArray();
     }

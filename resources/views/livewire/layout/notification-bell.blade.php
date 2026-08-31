@@ -31,7 +31,7 @@
         </svg>
 
         {{-- Badge rojo (Punto indicador global con animación radar) --}}
-        @if(($unreadCount + $pendingCount) > 0)
+        @if(($unreadCount + $pendingCount + $taskCount) > 0)
             <span class="absolute top-1 right-1 flex items-center justify-center">
                 <span class="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
@@ -80,6 +80,17 @@
                         </span>
                     @endif
                     <span x-show="tab === 'pendientes'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
+                </button>
+                <button @click="tab = 'tareas'" 
+                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'tareas', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'tareas' }"
+                        class="relative flex-1 py-3 text-xs font-semibold text-center focus:outline-none transition-colors">
+                    Tareas
+                    @if($taskCount > 0)
+                        <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
+                            {{ $taskCount }}
+                        </span>
+                    @endif
+                    <span x-show="tab === 'tareas'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
                 </button>
             </div>
         </div>
@@ -190,6 +201,58 @@
                     </svg>
                     <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Nadie te debe respuestas</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Todos tus pendientes han sido atendidos.</p>
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Tab: Tareas --}}
+        <div x-show="tab === 'tareas'" style="display: none;" class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50 bg-blue-50/30 dark:bg-blue-900/10">
+            @forelse($pendingTasks as $task)
+                <a href="{{ route('tenant.projects.workspace', $task['project_id']) }}"
+                   class="w-full flex items-start gap-3 px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left group">
+                    
+                    {{-- Avatar del asignador --}}
+                    <div class="flex-shrink-0 mt-1">
+                        @if(isset($task['creator_avatar']) && $task['creator_avatar'])
+                            <img src="{{ $task['creator_avatar'] }}" alt="{{ $task['creator_name'] }}"
+                                 class="h-9 w-9 rounded-full object-cover ring-2 ring-blue-200 dark:ring-blue-800">
+                        @else
+                            <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center ring-2 ring-blue-200 dark:ring-blue-800">
+                                <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                    {{ strtoupper(substr($task['creator_name'] ?? 'U', 0, 1)) }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Contenido --}}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                Asignó: {{ $task['creator_name'] }}
+                            </span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                Tarea Pendiente
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            {{ $task['project_title'] }}
+                        </p>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 font-bold">
+                            {{ $task['title'] }}
+                        </p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+                            Hace {{ $task['time_ago'] }}
+                        </p>
+                    </div>
+                </a>
+            @empty
+                <div class="px-4 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-blue-200 dark:text-blue-900/50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Libre de Tareas</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No tienes tareas asignadas pendientes.</p>
                 </div>
             @endforelse
         </div>
