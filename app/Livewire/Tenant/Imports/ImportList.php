@@ -796,18 +796,22 @@ class ImportList extends Component
 
     private function getExportFileName($extension)
     {
-        $name = 'Importaciones';
+        $name = ($extension === 'xlsx') ? 'Gestion_de_importaciones' : 'Importaciones';
         
         if ($this->filterCritical === 'importados') {
-            $name = 'Productos_Criticos_Importados';
+            $name .= '_Productos_Criticos_Importados';
         } elseif ($this->filterCritical === 'compra_nacional') {
-            $name = 'Productos_Criticos_Compra_Nacional';
+            $name .= '_Productos_Criticos_Compra_Nacional';
         } elseif ($this->filterCritical === 'ninguno' && $this->selectedLabelId) {
-            $name = 'Programacion_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $this->selectedLabelName);
+            $name .= '_Programacion_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $this->selectedLabelName);
         }
 
         if ($this->search) {
             $name .= '_Busqueda_' . preg_replace('/[^A-Za-z0-9_-]/', '_', trim($this->search));
+        }
+
+        if ($extension === 'xlsx') {
+            return str_replace('_', ' ', $name) . '.' . $extension;
         }
 
         return $name . '_' . date('Y-m-d_H-i-s') . '.' . $extension;
@@ -815,11 +819,7 @@ class ImportList extends Component
 
     public function exportExcel()
     {
-        $name = 'Gestion de importaciones';
-        if ($this->search) {
-            $name .= ' ' . trim($this->search);
-        }
-        $filename = $name . '.xlsx';
+        $filename = $this->getExportFileName('xlsx');
         
         $query = $this->getBaseQuery();
         $items = $query->get();
