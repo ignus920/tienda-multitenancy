@@ -1138,20 +1138,14 @@
                                 </div>
                                 <div class="flex gap-2 shrink-0 ml-4">
                                     @if($task->status === 'pendiente')
-                                        <div class="relative flex items-center gap-2" x-data="{ showReassign: false, showComplete: false }">
-                                            <div class="relative">
-                                                <button wire:click="openReassignModal({{ $task->id }})" @mouseenter="showReassign = true" @mouseleave="showReassign = false" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white text-xs font-bold rounded shadow-sm transition-colors">
-                                                    Reasignar
-                                                </button>
-                                                <div x-show="showReassign" x-cloak class="absolute right-full mr-2 top-1/2 transform -translate-y-1/2 w-32 p-1.5 bg-gray-800 text-white text-[10px] leading-tight text-center rounded shadow-lg z-[60]" style="display: none;">Reasignar a otro</div>
-                                            </div>
+                                        <div class="flex items-center gap-2">
+                                            <button wire:click="openReassignModal({{ $task->id }})" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white text-xs font-bold rounded shadow-sm transition-colors">
+                                                Reasignar
+                                            </button>
                                             
-                                            <div class="relative">
-                                                <button wire:click="openCompleteModal({{ $task->id }})" @mouseenter="showComplete = true" @mouseleave="showComplete = false" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow-sm transition-colors">
-                                                    Completar
-                                                </button>
-                                                <div x-show="showComplete" x-cloak class="absolute right-full mr-2 top-1/2 transform -translate-y-1/2 w-32 p-1.5 bg-gray-800 text-white text-[10px] leading-tight text-center rounded shadow-lg z-[60]" style="display: none;">Marcar como lista</div>
-                                            </div>
+                                            <button wire:click="openCompleteModal({{ $task->id }})" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow-sm transition-colors">
+                                                Completar
+                                            </button>
                                         </div>
                                     @endif
                                 </div>
