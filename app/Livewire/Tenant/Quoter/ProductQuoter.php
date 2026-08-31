@@ -2725,11 +2725,25 @@ class ProductQuoter extends Component
         if (empty($customer['fiscal_responsibility_id'])) $missingFields[] = 'Responsabilidad Fiscal';
         
         $typePerson = $customer['type_person'] ?? '';
-        if ($typePerson === 'Natural') {
+        $typeId = (int) ($customer['type_identification_id'] ?? 0);
+        
+        // Si no tiene type_person explícito, pero tiene un tipo de identificación diferente a NIT (2), asumimos que es natural.
+        // Si no tiene ni type_person ni type_identification_id, exigiremos 'Nombres o Razón Social'.
+        $isNatural = in_array($typePerson, ['Natural', 'Persona Natural']);
+        if (!$isNatural && $typeId !== 2 && $typeId !== 0) {
+            $isNatural = true;
+        }
+
+        if ($isNatural) {
             if (empty($customer['first_name'])) $missingFields[] = 'Primer Nombre';
             if (empty($customer['last_name'])) $missingFields[] = 'Primer Apellido';
-        } else {
+        } else if ($typeId === 2 || $typePerson === 'Juridica') {
             if (empty($customer['business_name'])) $missingFields[] = 'Razón Social';
+        } else {
+            // Si no sabemos qué es (porque está totalmente vacío), pedimos uno de los dos
+            if (empty($customer['first_name']) && empty($customer['business_name'])) {
+                $missingFields[] = 'Nombres o Razón Social';
+            }
         }
 
         $phone = $customer['phone'] ?? '';
