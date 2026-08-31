@@ -1872,6 +1872,10 @@ class ProductQuoter extends Component
                         'identification' => $customer->identification,
                         'billingEmail' => $customer->billingEmail,
                         'api_data_id' => $customer->api_data_id,
+                        'typeIdentificationId' => $customer->typeIdentificationId,
+                        'regimeId' => $customer->regimeId,
+                        'fiscalResponsabilityId' => $customer->fiscalResponsabilityId,
+                        'typePerson' => $customer->typePerson,
                     ]
                 );
 
@@ -2722,7 +2726,7 @@ class ProductQuoter extends Component
         if (empty($customer['identification'])) $missingFields[] = 'Identificación';
         if (empty($customer['typeIdentificationId'])) $missingFields[] = 'Tipo de Identificación';
         if (empty($customer['regimeId'])) $missingFields[] = 'Régimen';
-        if (empty($customer['fiscalResponsibilityId'])) $missingFields[] = 'Responsabilidad Fiscal';
+        if (empty($customer['fiscalResponsabilityId'])) $missingFields[] = 'Responsabilidad Fiscal';
         
         $typePerson = $customer['typePerson'] ?? '';
         $typeId = (int) ($customer['typeIdentificationId'] ?? 0);
