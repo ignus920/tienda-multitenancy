@@ -49,11 +49,11 @@ class ImportsExport implements FromCollection, WithHeadings, WithMapping, WithSt
             $item->id,
             $item->sku,
             $item->description ?? $item->name,
-            $item->stock_items_store,
-            $item->quantity,
-            ($item->percentage ?? 0) / 100,
-            $item->outsideMovement,
-            $item->insideMovement,
+            (string) ($item->stock_items_store ?? 0),
+            (string) ($item->quantity ?? 0),
+            (string) ($item->percentage ?? 0) . '%',
+            (string) ($item->outsideMovement ?? 0),
+            (string) ($item->insideMovement ?? 0),
             $item->exw,
             $item->priority ?? 'Sin asignar'
         ];
@@ -65,6 +65,10 @@ class ImportsExport implements FromCollection, WithHeadings, WithMapping, WithSt
         
         // Ajustar texto en la columna de descripción
         $sheet->getStyle('C')->getAlignment()->setWrapText(true);
+        
+        // Centrar las columnas de cantidades y porcentajes (D hasta H)
+        $sheet->getStyle('D:H')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
         
         return [
             1 => [
@@ -87,7 +91,11 @@ class ImportsExport implements FromCollection, WithHeadings, WithMapping, WithSt
     public function columnFormats(): array
     {
         return [
-            'F' => NumberFormat::FORMAT_PERCENTAGE,
+            'D' => NumberFormat::FORMAT_TEXT,
+            'E' => NumberFormat::FORMAT_TEXT,
+            'F' => NumberFormat::FORMAT_TEXT,
+            'G' => NumberFormat::FORMAT_TEXT,
+            'H' => NumberFormat::FORMAT_TEXT,
             'I' => '"$"#,##0.00',
         ];
     }
