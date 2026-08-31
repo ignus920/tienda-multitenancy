@@ -849,6 +849,29 @@ class ProjectWorkspace extends Component
             'completion_note' => $this->completeNote
         ]);
 
+        // Intentar marcar la mención original (la que notificó la creación de la tarea) como respondida
+        $taskTitleStr = "Se ha creado una nueva Tarea: **{$task->title}**";
+        $relatedMessage = \App\Models\Tenant\Projects\ProjectMessage::where('project_id', $this->projectId)
+            ->where('message', 'like', "%{$taskTitleStr}%")
+            ->first();
+
+        if ($relatedMessage) {
+            $updatedMention = \App\Models\Tenant\Projects\ProjectMention::where('project_id', $this->projectId)
+                ->where('message_id', $relatedMessage->id)
+                ->where('mentioned_to', Auth::id())
+                ->where('status', 'pendiente')
+                ->update(['status' => 'respondida']);
+                
+            $updatedNotification = \App\Models\Tenant\Projects\ProjectNotification::where('message_id', $relatedMessage->id)
+                ->where('user_id', Auth::id())
+                ->update(['read_at' => now()]);
+                
+            if ($updatedMention || $updatedNotification) {
+                $this->dispatch('notifications-updated');
+                $this->dispatch('unanswered-questions-updated');
+            }
+        }
+
         $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $this->projectId,
             'user_id' => Auth::id(),

@@ -1143,9 +1143,11 @@
                                                 Reasignar
                                             </button>
                                             
-                                            <button wire:click="openCompleteModal({{ $task->id }})" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow-sm transition-colors">
-                                                Completar
-                                            </button>
+                                            @if(Auth::id() === $task->assigned_to)
+                                                <button wire:click="openCompleteModal({{ $task->id }})" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow-sm transition-colors">
+                                                    Completar
+                                                </button>
+                                            @endif
                                         </div>
                                     @endif
                                 </div>
