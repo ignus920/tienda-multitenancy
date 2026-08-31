@@ -2329,6 +2329,10 @@ class ProductQuoter extends Component
                         'lastName' => $company->lastName,
                         'identification' => $company->identification,
                         'billingEmail' => $company->billingEmail,
+                        'typeIdentificationId' => $company->typeIdentificationId,
+                        'regimeId' => $company->regimeId,
+                        'fiscalResponsabilityId' => $company->fiscalResponsabilityId,
+                        'typePerson' => $company->typePerson,
                     ];
                 } else {
                     // Si no hay empresa asociada, usar datos del contacto
