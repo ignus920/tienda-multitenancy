@@ -18,6 +18,7 @@ use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Projects\ProjectTask;
 use App\Models\Tenant\Projects\ProjectTaskReassignment;
+use App\Services\Tenant\TenantManager;
 use App\Events\Tenant\Projects\NewProjectNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
