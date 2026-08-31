@@ -815,8 +815,16 @@ class ImportList extends Component
 
     public function exportExcel()
     {
-        // Descargaremos un CSV compatible con Excel para no depender de librerías extra
-        return $this->generateCsvExport();
+        $name = 'Gestion de importaciones';
+        if ($this->search) {
+            $name .= ' ' . trim($this->search);
+        }
+        $filename = $name . '.xlsx';
+        
+        $query = $this->getBaseQuery();
+        $items = $query->get();
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Tenant\ImportsExport($items), $filename);
     }
 
     public function exportCsv()
