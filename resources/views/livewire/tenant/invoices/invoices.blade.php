@@ -14,9 +14,9 @@
 
     <!-- Barra de Herramientas -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
-        <div style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;">
+        <div class="flex flex-wrap items-end gap-3 w-full">
             <!-- Búsqueda Rápida -->
-            <div style="flex: 1.5; min-width: 200px;">
+            <div class="flex-1 min-w-[150px] max-w-xs">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Búsqueda rápida</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -30,55 +30,59 @@
             </div>
 
             <!-- Desde -->
-            <div style="flex: 1; min-width: 150px;">
+            <div class="w-36">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">desde:</label>
                 <input type="date" wire:model.live="filterDateFrom"
                     class="block w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
             </div>
 
             <!-- Hasta -->
-            <div style="flex: 1.2; min-width: 250px;">
+            <div class="w-36">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">hasta:</label>
-                <div class="flex items-center gap-2">
-                    <input type="date" wire:model.live="filterDateTo"
-                        class="block w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
-                    <button wire:click="clearFilters" title="Limpiar filtros"
-                        class="p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
-                    <button wire:click="exportToExcel" wire:loading.attr="disabled" title="Exportar a Excel"
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm">
-                        <!-- Icono normal de Excel (se oculta al cargar) -->
-                        <svg wire:loading.remove wire:target="exportToExcel" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <!-- Spinner de carga (se muestra al cargar) -->
-                        <svg wire:loading wire:target="exportToExcel" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span wire:loading.remove wire:target="exportToExcel">Excel</span>
-                        <span wire:loading wire:target="exportToExcel">Exportando...</span>
-                    </button>
-                    <button wire:click="emitirFacturasMasivamente" wire:loading.attr="disabled" title="Emitir Facturas Seleccionadas"
-                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm">
-                        <svg wire:loading.remove wire:target="emitirFacturasMasivamente" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <svg wire:loading wire:target="emitirFacturasMasivamente" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span wire:loading.remove wire:target="emitirFacturasMasivamente">Emitir Masivo</span>
-                        <span wire:loading wire:target="emitirFacturasMasivamente">Emitiendo...</span>
-                    </button>
-                </div>
+                <input type="date" wire:model.live="filterDateTo"
+                    class="block w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center gap-2 ml-auto shrink-0">
+                <button wire:click="clearFilters" title="Limpiar filtros"
+                    class="p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+                <button wire:click="exportToExcel" wire:loading.attr="disabled" title="Exportar a Excel"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm whitespace-nowrap">
+                    <!-- Icono normal de Excel (se oculta al cargar) -->
+                    <svg wire:loading.remove wire:target="exportToExcel" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <!-- Spinner de carga (se muestra al cargar) -->
+                    <svg wire:loading wire:target="exportToExcel" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span wire:loading.remove wire:target="exportToExcel">Excel</span>
+                    <span wire:loading wire:target="exportToExcel">Exportando...</span>
+                </button>
+                <button wire:click="emitirFacturasMasivamente" wire:loading.attr="disabled" title="Emitir Facturas Seleccionadas"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm whitespace-nowrap">
+                    <svg wire:loading.remove wire:target="emitirFacturasMasivamente" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <svg wire:loading wire:target="emitirFacturasMasivamente" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span wire:loading.remove wire:target="emitirFacturasMasivamente">
+                        Emitir Masivo @if(count($selectedInvoices) > 0) ({{ count($selectedInvoices) }}) @endif
+                    </span>
+                    <span wire:loading wire:target="emitirFacturasMasivamente">Emitiendo...</span>
+                </button>
             </div>
 
             <!-- Mostrar -->
-            <div class="ml-auto">
+            <div class="w-20">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">MOSTRAR</label>
                 <select wire:model.live="perPage"
                     class="block px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
