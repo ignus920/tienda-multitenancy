@@ -77,6 +77,10 @@
                     class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Archivos
                 </button>
+                <button wire:click="$set('showTasksListModal', true)"
+                    class="px-4 py-1.5 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700 font-bold ml-2 shadow-sm">
+                    Lista de Tareas
+                </button>
             </div>
 
             <!-- Ficha Técnica y Acciones de Estado -->
@@ -1073,6 +1077,195 @@
 
         <img @click.away="showLightbox = false" :src="lightboxImg" class="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl" />
     </div>
+
+    <!-- MODAL: Lista de Tareas -->
+    @if($showTasksListModal)
+    <div class="fixed inset-0 z-[110] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75" aria-hidden="true" wire:click="$set('showTasksListModal', false)"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-gray-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
+                <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="modal-title">Lista de Tareas del Proyecto</h3>
+                    <div class="flex gap-2">
+                        <button wire:click="$set('showCreateTaskModal', true)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
+                            + Nueva Tarea
+                        </button>
+                        <button wire:click="$set('showTasksListModal', false)" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="max-h-[60vh] overflow-y-auto space-y-3 pr-2">
+                    @forelse($projectTasks as $task)
+                        <div class="p-4 rounded-lg border {{ $task->status === 'completada' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700' }}">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-bold {{ $task->status === 'completada' ? 'text-green-800 dark:text-green-400 line-through' : 'text-gray-900 dark:text-white' }}">{{ $task->title }}</h4>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap">{{ $task->description }}</p>
+                                    <div class="mt-2 text-[10px] text-gray-500 flex items-center gap-3">
+                                        <span>Creada por: <strong>{{ $task->creator->name ?? 'N/A' }}</strong></span>
+                                        <span>Asignada a: <strong>{{ $task->assignedUser->name ?? 'N/A' }}</strong></span>
+                                        @if($task->status === 'completada')
+                                            <span class="text-green-600 font-bold">Completada el {{ $task->completed_at->format('d/m/Y H:i') }}</span>
+                                        @else
+                                            <span class="text-blue-600 font-bold">Pendiente</span>
+                                        @endif
+                                    </div>
+                                    @if($task->status === 'completada' && $task->completion_note)
+                                        <div class="mt-2 bg-white dark:bg-gray-800 p-2 rounded text-xs border border-gray-100 dark:border-gray-700">
+                                            <strong class="text-gray-700 dark:text-gray-300">Nota de completado:</strong>
+                                            <p class="text-gray-600 dark:text-gray-400">{{ $task->completion_note }}</p>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($task->reassignments->count() > 0)
+                                        <div class="mt-2" x-data="{ showHistorial: false }">
+                                            <button @click="showHistorial = !showHistorial" class="text-[10px] text-indigo-600 hover:underline">Ver historial de reasignaciones ({{ $task->reassignments->count() }})</button>
+                                            <div x-show="showHistorial" class="mt-1 pl-2 border-l-2 border-indigo-200 space-y-1">
+                                                @foreach($task->reassignments as $reasignacion)
+                                                    <div class="text-[10px] text-gray-500">
+                                                        <strong>{{ $reasignacion->created_at->format('d/m/y H:i') }}</strong> - De {{ $reasignacion->fromUser->name ?? 'N/A' }} a {{ $reasignacion->toUser->name ?? 'N/A' }}. 
+                                                        <br>Justificación: <em>{{ $reasignacion->justification }}</em>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="flex gap-2 shrink-0 ml-4">
+                                    @if($task->status === 'pendiente')
+                                        <div class="flex items-center gap-2">
+                                            <button wire:click="openReassignModal({{ $task->id }})" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white text-xs font-bold rounded shadow-sm transition-colors">
+                                                Reasignar
+                                            </button>
+                                            
+                                            @if(Auth::id() === $task->assigned_to)
+                                                <button wire:click="openCompleteModal({{ $task->id }})" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow-sm transition-colors">
+                                                    Completar
+                                                </button>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">No hay tareas creadas en este proyecto.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- MODAL: Crear Tarea -->
+    @if($showCreateTaskModal)
+    <div class="fixed inset-0 z-[120] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75" aria-hidden="true" wire:click="$set('showCreateTaskModal', false)"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-gray-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Nueva Tarea</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Título de la Tarea <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="newTaskTitle" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                        @error('newTaskTitle') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+                        <textarea wire:model="newTaskDescription" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"></textarea>
+                        @error('newTaskDescription') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Asignar a <span class="text-red-500">*</span></label>
+                        <select wire:model="newTaskAssignedTo" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            <option value="">Seleccione participante</option>
+                            @foreach($usersList as $u)
+                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('newTaskAssignedTo') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button wire:click="$set('showCreateTaskModal', false)" class="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+                    <button wire:click="createTask" class="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Guardar Tarea</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- MODAL: Reasignar Tarea -->
+    @if($showReassignTaskModal)
+    <div class="fixed inset-0 z-[120] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75" aria-hidden="true" wire:click="$set('showReassignTaskModal', false)"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-gray-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Reasignar Tarea</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Nuevo responsable <span class="text-red-500">*</span></label>
+                        <select wire:model="reassignToUserId" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            <option value="">Seleccione participante</option>
+                            @foreach($usersList as $u)
+                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('reassignToUserId') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Justificación / Motivo <span class="text-red-500">*</span></label>
+                        <textarea wire:model="reassignJustification" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="Explique por qué se reasigna esta tarea"></textarea>
+                        @error('reassignJustification') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button wire:click="$set('showReassignTaskModal', false)" class="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+                    <button wire:click="reassignTask" class="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Confirmar Reasignación</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- MODAL: Completar Tarea -->
+    @if($showCompleteTaskModal)
+    <div class="fixed inset-0 z-[120] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75" aria-hidden="true" wire:click="$set('showCompleteTaskModal', false)"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-gray-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-green-700 dark:text-green-400 mb-4">Completar Tarea</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Nota de Completado <span class="text-red-500">*</span></label>
+                        <textarea wire:model="completeNote" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-green-500 focus:border-green-500 text-sm" placeholder="Deje un mensaje o evidencia de la tarea completada..."></textarea>
+                        @error('completeNote') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button wire:click="$set('showCompleteTaskModal', false)" class="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+                    <button wire:click="completeTask" class="px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">Marcar como Completada</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div>
 

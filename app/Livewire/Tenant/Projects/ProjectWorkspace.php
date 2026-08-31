@@ -16,6 +16,8 @@ use App\Models\Tenant\Projects\ProjectStatusHistory;
 use App\Models\Tenant\Projects\ProjectFile;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
+use App\Models\Tenant\Projects\ProjectTask;
+use App\Models\Tenant\Projects\ProjectTaskReassignment;
 use App\Services\Tenant\TenantManager;
 use App\Events\Tenant\Projects\NewProjectNotification;
 use Illuminate\Support\Facades\Auth;
@@ -86,6 +88,23 @@ class ProjectWorkspace extends Component
     public $noveltyDescription = '';
     public $noveltyUserId = '';
     public $questionUserId = '';
+
+    // Modales y variables Tareas
+    public $showTasksListModal = false;
+    public $showCreateTaskModal = false;
+    public $showReassignTaskModal = false;
+    public $showCompleteTaskModal = false;
+
+    public $newTaskTitle = '';
+    public $newTaskDescription = '';
+    public $newTaskAssignedTo = '';
+
+    public $reassigningTaskId = null;
+    public $reassignToUserId = '';
+    public $reassignJustification = '';
+
+    public $completingTaskId = null;
+    public $completeNote = '';
 
     #[On('echo-private:project.{projectId},.NewProjectMessage')]
     public function refreshChat()
@@ -724,6 +743,148 @@ class ProjectWorkspace extends Component
         return redirect()->route('tenant.projects');
     }
 
+    // TAREAS: Crear
+    public function createTask()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'newTaskTitle' => 'required|string|max:255',
+            'newTaskDescription' => 'nullable|string',
+            'newTaskAssignedTo' => 'required'
+        ]);
+
+        $task = ProjectTask::create([
+            'project_id' => $this->projectId,
+            'created_by' => Auth::id(),
+            'assigned_to' => $this->newTaskAssignedTo,
+            'title' => $this->newTaskTitle,
+            'description' => $this->newTaskDescription,
+            'status' => 'pendiente'
+        ]);
+
+        // Create message in chat for the assignment
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "Se ha creado una nueva Tarea: **{$task->title}**\nAsignada a: " . User::find($this->newTaskAssignedTo)->name
+        ]);
+
+        $this->createMentionNotification($this->newTaskAssignedTo, $message);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
+
+        $this->reset(['newTaskTitle', 'newTaskDescription', 'newTaskAssignedTo']);
+        $this->showCreateTaskModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea creada y notificada exitosamente']);
+    }
+
+    // TAREAS: Reasignar
+    public function openReassignModal($taskId)
+    {
+        $this->ensureTenantConnection();
+        $this->reassigningTaskId = $taskId;
+        $this->reassignToUserId = '';
+        $this->reassignJustification = '';
+        $this->showReassignTaskModal = true;
+    }
+
+    public function reassignTask()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'reassigningTaskId' => 'required',
+            'reassignToUserId' => 'required',
+            'reassignJustification' => 'required|string|min:5'
+        ]);
+
+        $task = ProjectTask::findOrFail($this->reassigningTaskId);
+        $oldUserId = $task->assigned_to;
+
+        $task->update([
+            'assigned_to' => $this->reassignToUserId
+        ]);
+
+        ProjectTaskReassignment::create([
+            'task_id' => $task->id,
+            'from_user_id' => $oldUserId,
+            'to_user_id' => $this->reassignToUserId,
+            'justification' => $this->reassignJustification
+        ]);
+
+        $newUserName = User::find($this->reassignToUserId)->name;
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "La Tarea **{$task->title}** ha sido reasignada a {$newUserName}.\nJustificación: {$this->reassignJustification}"
+        ]);
+
+        $this->createMentionNotification($this->reassignToUserId, $message);
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
+
+        $this->showReassignTaskModal = false;
+        $this->reset(['reassigningTaskId', 'reassignToUserId', 'reassignJustification']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea reasignada']);
+    }
+
+    // TAREAS: Completar
+    public function openCompleteModal($taskId)
+    {
+        $this->ensureTenantConnection();
+        $this->completingTaskId = $taskId;
+        $this->completeNote = '';
+        $this->showCompleteTaskModal = true;
+    }
+
+    public function completeTask()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'completingTaskId' => 'required',
+            'completeNote' => 'required|string|min:3'
+        ]);
+
+        $task = ProjectTask::findOrFail($this->completingTaskId);
+        $task->update([
+            'status' => 'completada',
+            'completed_at' => now(),
+            'completion_note' => $this->completeNote
+        ]);
+
+        // Intentar marcar la mención original (la que notificó la creación de la tarea) como respondida
+        $taskTitleStr = "Se ha creado una nueva Tarea: **{$task->title}**";
+        $relatedMessage = \App\Models\Tenant\Projects\ProjectMessage::where('project_id', $this->projectId)
+            ->where('message', 'like', "%{$taskTitleStr}%")
+            ->first();
+
+        if ($relatedMessage) {
+            $updatedMention = \App\Models\Tenant\Projects\ProjectMention::where('project_id', $this->projectId)
+                ->where('message_id', $relatedMessage->id)
+                ->where('mentioned_to', Auth::id())
+                ->where('status', 'pendiente')
+                ->update(['status' => 'respondida']);
+                
+            $updatedNotification = \App\Models\Tenant\Projects\ProjectNotification::where('message_id', $relatedMessage->id)
+                ->where('user_id', Auth::id())
+                ->update(['read_at' => now()]);
+                
+            if ($updatedMention || $updatedNotification) {
+                $this->dispatch('notifications-updated');
+                $this->dispatch('unanswered-questions-updated');
+            }
+        }
+
+        $message = \App\Models\Tenant\Projects\ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => "✅ Tarea Completada: **{$task->title}**\nNota: {$this->completeNote}"
+        ]);
+
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
+
+        $this->showCompleteTaskModal = false;
+        $this->reset(['completingTaskId', 'completeNote']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea completada exitosamente']);
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
@@ -774,6 +935,12 @@ class ProjectWorkspace extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $projectTasks = ProjectTask::where('project_id', $this->projectId)
+            ->with(['creator', 'assignedUser', 'reassignments.fromUser', 'reassignments.toUser'])
+            ->orderByRaw("FIELD(status, 'pendiente', 'completada')")
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         // 4. ¿El usuario actual es participante? (controla si puede escribir en el chat)
         $isParticipant = ProjectParticipant::where('project_id', $this->projectId)
             ->where('user_id', Auth::id())
@@ -784,6 +951,7 @@ class ProjectWorkspace extends Component
             'messages' => $messages,
             'advances' => $advances,
             'questions' => $questions,
+            'projectTasks' => $projectTasks,
             'usersList' => $usersList,
             'isParticipant' => $isParticipant
         ])->layout('layouts.app', ['header' => 'Espacio de Trabajo: ' . $project->title]);
