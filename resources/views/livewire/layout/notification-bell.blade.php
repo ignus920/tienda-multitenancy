@@ -48,7 +48,7 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="transform opacity-100 scale-100"
          x-transition:leave-end="transform opacity-0 scale-95"
-         class="absolute right-0 mt-2 w-96 max-h-[32rem] origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-gray-700 overflow-hidden z-50 flex flex-col"
+         class="absolute right-0 mt-2 w-[28rem] max-h-[32rem] origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-gray-700 overflow-hidden z-50 flex flex-col"
          style="display: none;">
 
         {{-- Título Principal --}}
@@ -61,7 +61,7 @@
             <div class="flex w-full">
                 <button @click="tab = 'general'" 
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'general', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'general' }"
-                        class="relative flex-1 py-3 text-xs font-semibold text-center focus:outline-none transition-colors">
+                        class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
                     Notif. del Proyecto
                     @if($unreadCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
@@ -72,7 +72,7 @@
                 </button>
                 <button @click="tab = 'pendientes'" 
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'pendientes', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'pendientes' }"
-                        class="relative flex-1 py-3 text-xs font-semibold text-center focus:outline-none transition-colors">
+                        class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
                     Pendientes
                     @if($pendingCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
@@ -83,7 +83,7 @@
                 </button>
                 <button @click="tab = 'tareas'" 
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'tareas', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'tareas' }"
-                        class="relative flex-1 py-3 text-xs font-semibold text-center focus:outline-none transition-colors">
+                        class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
                     Tareas
                     @if($taskCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
