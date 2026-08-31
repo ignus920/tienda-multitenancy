@@ -91,8 +91,10 @@ class ProductQuoter extends Component
     public $isEditingRemission = false;
     public $hasChanges = false;
 
-    // Modal para completar datos del cliente antes de facturar
+    // Modal para completar datos del cliente antes de facturar / crear OP
     public $showCompleteCustomerModal = false;
+    public $showMissingFieldsModal = false;
+    public $missingFieldsMessage = '';
     public $pendingInvoiceAfterCustomerCompletion = false; // Reanudar facturación tras completar cliente
 
     // Propiedades para modal de pagos
@@ -2741,17 +2743,13 @@ class ProductQuoter extends Component
             ]);
             
             $msg = count($missingFields) > 0 
-                ? 'Faltan datos obligatorios del cliente. ' 
+                ? 'Faltan datos obligatorios del cliente: ' . implode(', ', $missingFields) . '. ' 
                 : '';
             $msg .= !$isPhoneValid ? 'El teléfono principal debe ser un celular de 10 dígitos numéricos.' : '';
             
-            $this->dispatch('show-toast', [
-                'type' => 'warning',
-                'message' => trim($msg)
-            ]);
-            
+            $this->missingFieldsMessage = trim($msg);
+            $this->showMissingFieldsModal = true;
             $this->editingCustomerId = $customer['id'];
-            $this->showCompleteCustomerModal = true;
             return;
         }
 
@@ -2780,6 +2778,12 @@ class ProductQuoter extends Component
 
         // Mostrar modal de selección de tipo de entrega
         $this->showDeliveryModal = true;
+    }
+
+    public function proceedToCompleteCustomer()
+    {
+        $this->showMissingFieldsModal = false;
+        $this->showCompleteCustomerModal = true;
     }
 
     public function addAdditionalPayment()
