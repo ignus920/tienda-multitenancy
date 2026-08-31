@@ -2723,13 +2723,21 @@ class ProductQuoter extends Component
         $customer = $this->selectedCustomer;
         $missingFields = [];
 
-        if (empty($customer['identification'])) $missingFields[] = 'Identificación';
-        if (empty($customer['typeIdentificationId'])) $missingFields[] = 'Tipo de Identificación';
-        if (empty($customer['regimeId'])) $missingFields[] = 'Régimen';
-        if (empty($customer['fiscalResponsabilityId'])) $missingFields[] = 'Responsabilidad Fiscal';
+        $identification = $customer['identification'] ?? '';
+        $typeIdentificationId = $customer['typeIdentificationId'] ?? $customer['type_identification_id'] ?? null;
+        $regimeId = $customer['regimeId'] ?? $customer['regime_id'] ?? null;
+        $fiscalResponsabilityId = $customer['fiscalResponsabilityId'] ?? $customer['fiscal_responsability_id'] ?? $customer['fiscalResponsibilityId'] ?? null;
+        $typePerson = $customer['typePerson'] ?? $customer['type_person'] ?? '';
+        $firstName = $customer['firstName'] ?? $customer['first_name'] ?? '';
+        $lastName = $customer['lastName'] ?? $customer['last_name'] ?? '';
+        $businessName = $customer['businessName'] ?? $customer['business_name'] ?? '';
+
+        if (empty($identification)) $missingFields[] = 'Identificación';
+        if (empty($typeIdentificationId)) $missingFields[] = 'Tipo de Identificación';
+        if (empty($regimeId)) $missingFields[] = 'Régimen';
+        if (empty($fiscalResponsabilityId)) $missingFields[] = 'Responsabilidad Fiscal';
         
-        $typePerson = $customer['typePerson'] ?? '';
-        $typeId = (int) ($customer['typeIdentificationId'] ?? 0);
+        $typeId = (int) ($typeIdentificationId ?? 0);
         
         // Si no tiene typePerson explícito, pero tiene un tipo de identificación diferente a NIT (2), asumimos que es natural.
         // Si no tiene ni typePerson ni typeIdentificationId, exigiremos 'Nombres o Razón Social'.
@@ -2739,13 +2747,13 @@ class ProductQuoter extends Component
         }
 
         if ($isNatural) {
-            if (empty($customer['firstName'])) $missingFields[] = 'Primer Nombre';
-            if (empty($customer['lastName'])) $missingFields[] = 'Primer Apellido';
+            if (empty($firstName)) $missingFields[] = 'Primer Nombre';
+            if (empty($lastName)) $missingFields[] = 'Primer Apellido';
         } else if ($typeId === 2 || $typePerson === 'Juridica' || $typePerson === 'LEGAL_ENTITY' || $typePerson === '2') {
-            if (empty($customer['businessName'])) $missingFields[] = 'Razón Social';
+            if (empty($businessName)) $missingFields[] = 'Razón Social';
         } else {
             // Si no sabemos qué es (porque está totalmente vacío), pedimos uno de los dos
-            if (empty($customer['firstName']) && empty($customer['businessName'])) {
+            if (empty($firstName) && empty($businessName)) {
                 $missingFields[] = 'Nombres o Razón Social';
             }
         }
