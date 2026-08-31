@@ -437,19 +437,7 @@ class Invoices extends Component
      * Método para imprimir factura (basado en una factura emitida)
      * Utiliza el api_data_id para obtener el PDF oficial de Alegra.
      */
-    public function emitirFactura($invoiceId)
-    {
-        // ... (código existente truncado por simplicidad, no lo modifico) ...
-        $this->ensureTenantConnection();
 
-        try {
-            $invoice = VntInvoices::findOrFail($invoiceId);
-            // ...
-            // (Voy a insertar el método de emisión masiva justo antes de printInvoice)
-        } catch (\Exception $e) {
-            // ...
-        }
-    }
 
     public function emitirFacturasMasivamente()
     {
