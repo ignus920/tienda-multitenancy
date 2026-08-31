@@ -2713,6 +2713,48 @@ class ProductQuoter extends Component
             return;
         }
 
+        // VALIDACIÓN DE CLIENTE COMPLETO PARA CREAR OP
+        $customer = $this->selectedCustomer;
+        $missingFields = [];
+
+        if (empty($customer['identification'])) $missingFields[] = 'Identificación';
+        if (empty($customer['type_identification_id'])) $missingFields[] = 'Tipo de Identificación';
+        if (empty($customer['regime_id'])) $missingFields[] = 'Régimen';
+        if (empty($customer['fiscal_responsibility_id'])) $missingFields[] = 'Responsabilidad Fiscal';
+        
+        $typePerson = $customer['type_person'] ?? '';
+        if ($typePerson === 'Natural') {
+            if (empty($customer['first_name'])) $missingFields[] = 'Primer Nombre';
+            if (empty($customer['last_name'])) $missingFields[] = 'Primer Apellido';
+        } else {
+            if (empty($customer['business_name'])) $missingFields[] = 'Razón Social';
+        }
+
+        $phone = $customer['phone'] ?? '';
+        $isPhoneValid = preg_match('/^[0-9]{10}$/', trim($phone));
+
+        if (count($missingFields) > 0 || !$isPhoneValid) {
+            \Illuminate\Support\Facades\Log::info('⚠️ Cliente incompleto o sin celular válido - solicitando completar datos antes de crear OP', [
+                'customer_id' => $customer['id'] ?? null,
+                'missing_fields' => $missingFields,
+                'phone_valid' => $isPhoneValid
+            ]);
+            
+            $msg = count($missingFields) > 0 
+                ? 'Faltan datos obligatorios del cliente. ' 
+                : '';
+            $msg .= !$isPhoneValid ? 'El teléfono principal debe ser un celular de 10 dígitos numéricos.' : '';
+            
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => trim($msg)
+            ]);
+            
+            $this->editingCustomerId = $customer['id'];
+            $this->showCompleteCustomerModal = true;
+            return;
+        }
+
         $totalConFlete = round(floatval($this->totalAmount));
         $totalConFlete = round($totalConFlete);
 
@@ -3007,10 +3049,20 @@ class ProductQuoter extends Component
         if (empty(trim($this->deliveryPhone))) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'El número de teléfono del cliente/sucursal es requerido para crear la OP.'
+                'message' => 'El número de teléfono de la sucursal es requerido para crear la OP.'
             ]);
             return;
         }
+
+        $cleanPhone = preg_replace('/[^0-9]/', '', trim($this->deliveryPhone));
+        if (strlen($cleanPhone) !== 10) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'El teléfono de envío de la sucursal debe ser un número celular válido de exactamente 10 dígitos numéricos.'
+            ]);
+            return;
+        }
+        $this->deliveryPhone = $cleanPhone;
 
         // Si el teléfono ingresado es válido y difiere de lo que tenemos guardado, lo actualizamos en la base de datos
         if ($this->selectedBranchId) {
