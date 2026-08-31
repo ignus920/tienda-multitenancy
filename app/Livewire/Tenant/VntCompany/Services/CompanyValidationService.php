@@ -53,8 +53,8 @@ class CompanyValidationService
 
             // Persona jurídica
             'businessName.required' => 'La razón social es obligatoria para personas jurídicas.',
-            'regimeId.required' => 'El régimen es obligatorio para personas jurídicas.',
-            'fiscalResponsabilityId.required' => 'La responsabilidad fiscal es obligatoria para personas jurídicas.',
+            'regimeId.required' => 'El régimen es obligatorio.',
+            'fiscalResponsabilityId.required' => 'La responsabilidad fiscal es obligatoria.',
 
             // Persona natural
             'firstName.required' => 'El primer nombre es obligatorio para personas naturales.',
@@ -189,8 +189,8 @@ class CompanyValidationService
             'secondName' => 'nullable|string|max:255',
             'lastName' => 'required|string|max:255',
             'secondLastName' => 'nullable|string|max:255',
-            'fiscalResponsabilityId' => 'nullable|integer',
-            'regimeId' => 'nullable|integer',
+            'fiscalResponsabilityId' => 'required|integer',
+            'regimeId' => 'required|integer',
         ]);
     }
 

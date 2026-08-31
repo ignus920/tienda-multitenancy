@@ -2759,7 +2759,7 @@ class ProductQuoter extends Component
         }
 
         $phone = $customer['phone'] ?? '';
-        $isPhoneValid = preg_match('/^[0-9]{10}$/', trim($phone));
+        $isPhoneValid = preg_match('/^3[0-9]{9}$/', trim($phone));
 
         if (count($missingFields) > 0 || !$isPhoneValid) {
             \Illuminate\Support\Facades\Log::info('⚠️ Cliente incompleto o sin celular válido - solicitando completar datos antes de crear OP', [
