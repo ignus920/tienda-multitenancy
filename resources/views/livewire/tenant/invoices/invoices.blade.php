@@ -62,6 +62,18 @@
                         <span wire:loading.remove wire:target="exportToExcel">Excel</span>
                         <span wire:loading wire:target="exportToExcel">Exportando...</span>
                     </button>
+                    <button wire:click="emitirFacturasMasivamente" wire:loading.attr="disabled" title="Emitir Facturas Seleccionadas"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm">
+                        <svg wire:loading.remove wire:target="emitirFacturasMasivamente" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <svg wire:loading wire:target="emitirFacturasMasivamente" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span wire:loading.remove wire:target="emitirFacturasMasivamente">Emitir Masivo</span>
+                        <span wire:loading wire:target="emitirFacturasMasivamente">Emitiendo...</span>
+                    </button>
                 </div>
             </div>
 
@@ -85,6 +97,9 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-slate-700">
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            <!-- Checkbox general opcional -->
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
                                 <span>FECHA</span>
@@ -226,6 +241,14 @@
                 <tbody>
                     @forelse ($invoices as $invoice)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                            <td class="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                                @if($invoice->status === 'SIN EMITIR' && !empty($invoice->api_data_id))
+                                    <input type="checkbox" wire:model.live="selectedInvoices" value="{{ $invoice->id }}" 
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 cursor-pointer">
+                                @else
+                                    <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300 shadow-sm opacity-50 cursor-not-allowed" title="No se puede emitir">
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                 {{ $invoice->created_at->format('d/m/Y') }}
                             </td>
