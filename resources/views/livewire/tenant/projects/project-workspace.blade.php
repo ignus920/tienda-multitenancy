@@ -89,8 +89,28 @@
                 
                 <div class="space-y-4 text-xs">
                     <div>
-                        <span class="text-gray-400 block">Descripción inicial:</span>
-                        <p class="text-gray-700 dark:text-gray-300 font-medium whitespace-pre-wrap mt-0.5">{{ $project->description }}</p>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-gray-400 block">Descripción inicial:</span>
+                            @if(auth()->id() === $project->created_by && !$isEditingDescription)
+                                <button wire:click="editDescription" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                    Editar
+                                </button>
+                            @endif
+                        </div>
+                        
+                        @if($isEditingDescription)
+                            <div class="mt-2">
+                                <textarea wire:model="editDescriptionText" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="4"></textarea>
+                                @error('editDescriptionText') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                <div class="flex gap-2 mt-2">
+                                    <button wire:click="saveDescription" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-sm transition-colors">Guardar</button>
+                                    <button wire:click="cancelEditDescription" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded shadow-sm transition-colors">Cancelar</button>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-gray-700 dark:text-gray-300 font-medium whitespace-pre-wrap mt-0.5">{{ $project->description }}</p>
+                        @endif
                     </div>
 
                     <!-- Datos de Orden de Producción -->
@@ -1086,7 +1106,7 @@
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-gray-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
                 <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="modal-title">Lista de Tareas del Proyecto</h3>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="modal-title">Lista de Tareas del Proyecto: {{ $project->title }}</h3>
                     <div class="flex gap-2">
                         <button wire:click="$set('showCreateTaskModal', true)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
                             + Nueva Tarea

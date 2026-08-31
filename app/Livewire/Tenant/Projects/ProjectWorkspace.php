@@ -98,13 +98,15 @@ class ProjectWorkspace extends Component
     public $newTaskTitle = '';
     public $newTaskDescription = '';
     public $newTaskAssignedTo = '';
-
     public $reassigningTaskId = null;
     public $reassignToUserId = '';
     public $reassignJustification = '';
-
     public $completingTaskId = null;
     public $completeNote = '';
+
+    // Edición de Descripción
+    public $isEditingDescription = false;
+    public $editDescriptionText = '';
 
     #[On('echo-private:project.{projectId},.NewProjectMessage')]
     public function refreshChat()
@@ -883,6 +885,47 @@ class ProjectWorkspace extends Component
         $this->showCompleteTaskModal = false;
         $this->reset(['completingTaskId', 'completeNote']);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea completada exitosamente']);
+    }
+
+    public function editDescription()
+    {
+        $this->ensureTenantConnection();
+        $project = Project::findOrFail($this->projectId);
+        
+        if (auth()->id() !== $project->created_by) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la descripción.']);
+            return;
+        }
+
+        $this->editDescriptionText = $project->description;
+        $this->isEditingDescription = true;
+    }
+
+    public function saveDescription()
+    {
+        $this->ensureTenantConnection();
+        $project = Project::findOrFail($this->projectId);
+        
+        if (auth()->id() !== $project->created_by) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la descripción.']);
+            return;
+        }
+
+        $this->validate([
+            'editDescriptionText' => 'required|string',
+        ]);
+
+        $project->update([
+            'description' => $this->editDescriptionText
+        ]);
+
+        $this->isEditingDescription = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Descripción actualizada exitosamente']);
+    }
+
+    public function cancelEditDescription()
+    {
+        $this->isEditingDescription = false;
     }
 
     public function render()
