@@ -40,6 +40,28 @@ class ManageDimensions extends Component
 
     public function saveInfoDimensions()
     {
+        $validator = \Illuminate\Support\Facades\Validator::make([
+            'high' => $this->high,
+            'long' => $this->long,
+            'width' => $this->width,
+            'weight' => $this->weight,
+            'quntityxbox' => $this->quntityxbox,
+        ], [
+            'high' => 'required|numeric',
+            'long' => 'required|numeric',
+            'width' => 'required|numeric',
+            'weight' => 'required|numeric',
+            'quntityxbox' => 'required|numeric',
+        ], [
+            'required' => 'Por favor complete todos los campos obligatorios de dimensiones (Alto, Largo, Ancho, Peso, Cant. Caja).',
+            'numeric' => 'Los campos de dimensiones deben ser valores numéricos.'
+        ]);
+
+        if ($validator->fails()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => $validator->errors()->first()]);
+            return;
+        }
+
         $this->ensureTenantConnection();
         $infoItem = [
             'item_id' => $this->itemId,
