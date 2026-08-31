@@ -58,8 +58,20 @@ class VntCompanyForm extends Component
         if ($this->simplified && $this->reusable && empty($this->type)) {
             $this->type = 'CLIENTE';
         }
-        // $this->initializeCompanyConfiguration();
-        // $this->clearConfigurationCache();
+        
+        if ($this->reusable && $this->companyId) {
+            $this->edit($this->companyId);
+            
+            // Forzar validación inicial si estamos en modo simplificado (cotizador) para marcar campos obligatorios
+            if ($this->simplified) {
+                try {
+                    $this->validate();
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    // Solo capturamos la excepción para que no detenga el renderizado, 
+                    // los mensajes de error quedarán cargados en la bolsa de errores de Livewire.
+                }
+            }
+        }
     }
 
     public $search = '';
