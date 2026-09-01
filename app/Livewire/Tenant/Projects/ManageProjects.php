@@ -66,6 +66,14 @@ class ManageProjects extends Component
         $this->ensureTenantConnection();
     }
 
+    public function mount()
+    {
+        if (empty($this->searchDateFrom) && empty($this->searchDateTo)) {
+            $this->searchDateFrom = now()->subMonth()->format('Y-m-d');
+            $this->searchDateTo = now()->format('Y-m-d');
+        }
+    }
+
     // Limpia el buscador y todos los filtros del listado (vencimiento, estado, fechas, participante)
     public function clearFilters()
     {
@@ -75,10 +83,12 @@ class ManageProjects extends Component
             'selectedTab',
             'vencimientoFilter',
             'projectTypeFilter',
-            'searchDateFrom',
-            'searchDateTo',
             'searchParticipantId'
         ]);
+        
+        $this->searchDateFrom = now()->subMonth()->format('Y-m-d');
+        $this->searchDateTo = now()->format('Y-m-d');
+        
         $this->resetPage();
     }
 
