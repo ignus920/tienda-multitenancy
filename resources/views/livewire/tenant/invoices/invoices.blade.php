@@ -78,8 +78,8 @@
                         }
 
                         let chunks = [];
-                        for (let i = 0; i < selected.length; i += 10) {
-                            chunks.push(selected.slice(i, i + 10));
+                        for (let i = 0; i < selected.length; i += 5) {
+                            chunks.push(selected.slice(i, i + 5));
                         }
 
                         let total = selected.length;
