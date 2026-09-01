@@ -8,7 +8,7 @@
 @endphp
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
-    <div class="max-w-[1600px] mx-auto">
+    <div class="w-full">
 
         @if (session()->has('success'))
             <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
