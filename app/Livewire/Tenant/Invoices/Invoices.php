@@ -462,7 +462,35 @@ class Invoices extends Component
             $stampResponse = $facturacionService->stampInvoicesMassive($apiDataIds);
 
             if (isset($stampResponse['success']) && $stampResponse['success'] === false) {
-                return ['success' => 0, 'fails' => count($apiDataIds)];
+                // Si es un error por Timeout (408), lo tomamos como válido transitoriamente (En Proceso)
+                $isTimeout = (isset($stampResponse['status']) && $stampResponse['status'] == 408) ||
+                             (isset($stampResponse['error_details']['error_type']) && $stampResponse['error_details']['error_type'] == 'timeout');
+                             
+                if (!$isTimeout) {
+                    // Fallback curativo: revisar si ya están emitidas en Alegra (Auto-sync)
+                    $actuallySuccess = 0;
+                    foreach ($validInvoices as $invoice) {
+                        try {
+                            $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
+                            if (isset($alegraStatus['status']) && ($alegraStatus['status'] === 'open' || $alegraStatus['status'] === 'stamped')) {
+                                $invoice->update(['status' => 'FACTURADO']);
+                                // Se llama al método para actualizar cotizaciones relacionadas si existe
+                                if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
+                                    $this->updateRelatedQuotesToFacturado($invoice);
+                                }
+                                $actuallySuccess++;
+                            }
+                        } catch (\Exception $ex) {
+                            // Ignorar y continuar con las demás
+                        }
+                    }
+                    
+                    if ($actuallySuccess > 0) {
+                        return ['success' => $actuallySuccess, 'fails' => count($apiDataIds) - $actuallySuccess];
+                    }
+
+                    return ['success' => 0, 'fails' => count($apiDataIds)];
+                }
             }
 
             foreach ($validInvoices as $invoice) {
