@@ -25,6 +25,11 @@ class WarrantyCreate extends Component
     // Almacena temporalmente los archivos subidos. Estructura: [ index => [file1, file2] ]
     public $tempEvidences = [];
 
+    // Chatbot integration
+    public $chatbotRequestId = null;
+    public $chatbotData = null;
+    public $manualSearchConsecutive = '';
+
     // Propiedades para el sub-modal de evidencias
     public $isEvidenceModalOpen = false;
     public $activeItemIndex = null;
@@ -51,8 +56,39 @@ class WarrantyCreate extends Component
     public function mount($id)
     {
         $this->ensureTenantConnection();
-        $this->remissionId = $id;
-        $this->loadRemission($id);
+        
+        if (str_starts_with($id, 'chatbot-')) {
+            $this->chatbotRequestId = str_replace('chatbot-', '', $id);
+            $this->chatbotData = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::find($this->chatbotRequestId);
+            
+            if ($this->chatbotData) {
+                // Auto-buscar OP
+                $remission = InvRemissions::where('consecutive', $this->chatbotData->reference_number)->first();
+                if ($remission) {
+                    $this->remissionId = $remission->id;
+                    $this->loadRemission($this->remissionId);
+                } else {
+                    $this->remissionId = null;
+                    $this->manualSearchConsecutive = $this->chatbotData->reference_number;
+                }
+            } else {
+                return redirect()->route('tenant.warranties.chatbot')->with('error', 'Solicitud no encontrada.');
+            }
+        } else {
+            $this->remissionId = $id;
+            $this->loadRemission($id);
+        }
+    }
+
+    public function searchManualRemission()
+    {
+        $remission = InvRemissions::where('consecutive', $this->manualSearchConsecutive)->first();
+        if ($remission) {
+            $this->remissionId = $remission->id;
+            $this->loadRemission($this->remissionId);
+        } else {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'OP no encontrada en la base de datos.']);
+        }
     }
 
     public function loadRemission($id)
@@ -60,8 +96,7 @@ class WarrantyCreate extends Component
         $this->remission = InvRemissions::with(['details.item', 'quote'])->find($id);
 
         if (!$this->remission) {
-            session()->flash('error', 'OP/Remisión no encontrada');
-            return redirect()->route('tenant.remissions'); // o la ruta de listado de pedidos
+            return redirect()->route('tenant.remissions');
         }
 
         $this->items = [];
@@ -77,6 +112,14 @@ class WarrantyCreate extends Component
 
             $availableQty = $detail->quantity - $alreadyInWarranty;
 
+            $failureText = '';
+            $requestText = '';
+
+            if ($this->chatbotData) {
+                $failureText = $this->chatbotData->description;
+                $requestText = "Autogestión Bot: Solicita por " . $this->chatbotData->product_details;
+            }
+
             $this->items[] = [
                 'item_id' => $detail->itemId,
                 'codigo' => $detail->item->internal_code ?? 'N/A',
@@ -85,8 +128,8 @@ class WarrantyCreate extends Component
                 'previously_returned' => $alreadyInWarranty,
                 'available_qty' => $availableQty,
                 'qty' => 0,
-                'failure' => '',
-                'request' => '',
+                'failure' => $failureText,
+                'request' => $requestText,
                 'isSelected' => false
             ];
             
@@ -205,6 +248,14 @@ class WarrantyCreate extends Component
             }
 
             DB::connection('tenant')->commit();
+
+            // Si venía del chatbot, actualizar el estado
+            if ($this->chatbotData) {
+                $this->chatbotData->update([
+                    'status' => 'processed',
+                    'warranty_id' => $warranty->id
+                ]);
+            }
 
             session()->flash('success', "Garantía {$consecutive} creada con éxito.");
             return redirect()->route('tenant.warranties');
