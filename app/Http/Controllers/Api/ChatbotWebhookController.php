@@ -89,11 +89,18 @@ class ChatbotWebhookController extends Controller
                 return response()->json(['error' => "El producto con código indicado no se encontró dentro de la OP {$opNumber}."], 400);
             }
 
+            // Obtener el nombre del vendedor real desde la OP para mayor precisión
+            $realAdvisorName = $data['advisor_name'] ?? 'Autogestionado';
+            $sellerUser = $remission->getUser();
+            if ($sellerUser) {
+                $realAdvisorName = $sellerUser->name . ' ' . ($sellerUser->last_name ?? '');
+            }
+
             // Si pasa todas las validaciones, procedemos a guardar la solicitud
             $warrantyRequest = VntChatbotWarrantyRequest::create([
                 'company_name' => $companyName,
                 'reference_number' => $opNumber,
-                'advisor_name' => $data['advisor_name'] ?? 'Autogestionado',
+                'advisor_name' => trim($realAdvisorName),
                 'product_details' => $productDetails,
                 'description' => $data['description'] ?? 'Sin descripción',
                 'media_urls' => $data['media_urls'] ?? [],
