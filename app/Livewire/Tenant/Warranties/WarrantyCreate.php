@@ -29,6 +29,7 @@ class WarrantyCreate extends Component
     public $chatbotRequestId = null;
     public $hasChatbotData = false;
     public $chatbotReferenceNumber = '';
+    public $chatbotMediaUrls = [];
     public $manualSearchConsecutive = '';
 
     // Propiedades para el sub-modal de evidencias
@@ -124,6 +125,7 @@ class WarrantyCreate extends Component
                 if ($chatbotRecord) {
                     $failureText = $chatbotRecord->description;
                     $requestText = "Autogestión Bot: Solicita por " . $chatbotRecord->product_details;
+                    $this->chatbotMediaUrls = $chatbotRecord->media_urls ?? [];
                 }
             }
 
@@ -237,7 +239,7 @@ class WarrantyCreate extends Component
                         'client_request' => $item['request'],
                     ]);
 
-                    // Guardar archivos de evidencia
+                    // Guardar archivos de evidencia manuales
                     if (!empty($this->tempEvidences[$index])) {
                         foreach ($this->tempEvidences[$index] as $file) {
                             $path = $file->store('warranties/evidences', 'public');
@@ -247,6 +249,21 @@ class WarrantyCreate extends Component
                             VntWarrantyEvidence::create([
                                 'warranty_item_id' => $warrantyItem->id,
                                 'file_path' => $path,
+                                'file_type' => $fileType,
+                            ]);
+                        }
+                    }
+
+                    // Guardar automáticamente los archivos de evidencia del Chatbot
+                    if ($this->hasChatbotData && !empty($this->chatbotMediaUrls)) {
+                        foreach ($this->chatbotMediaUrls as $url) {
+                            $extension = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION);
+                            $extension = strtolower($extension ?: 'jpg');
+                            $fileType = in_array($extension, ['mp4', 'mov', 'avi', '3gp', 'webm']) ? 'video' : 'image';
+
+                            VntWarrantyEvidence::create([
+                                'warranty_item_id' => $warrantyItem->id,
+                                'file_path' => $url, // Guardamos la URL directa
                                 'file_type' => $fileType,
                             ]);
                         }
