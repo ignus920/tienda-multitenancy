@@ -227,11 +227,11 @@ new class extends Component
         <!-- Devoluciones y Garantías (Menú Agrupado) -->
         <div x-data="{
             tooltip: false,
-            open: {{ request()->routeIs('tenant.returns') || request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') ? 'true' : 'false' }},
+            open: {{ request()->routeIs('tenant.returns') || request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') || request()->routeIs('tenant.warranties.chatbot') ? 'true' : 'false' }},
             _t: null
         }" class="w-full relative">
             <!-- Botón principal -->
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.returns') || request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.returns') || request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') || request()->routeIs('tenant.warranties.chatbot') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
                 @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
@@ -259,6 +259,10 @@ new class extends Component
                 <a href="{{ route('tenant.returns') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.returns') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Devoluciones
+                </a>
+                <a href="{{ route('tenant.warranties.chatbot') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties.chatbot') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Chatbot (Nuevas)
                 </a>
                 <a href="{{ route('tenant.warranties') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
