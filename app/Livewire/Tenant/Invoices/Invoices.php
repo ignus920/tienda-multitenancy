@@ -462,42 +462,39 @@ class Invoices extends Component
             $stampResponse = $facturacionService->stampInvoicesMassive($apiDataIds);
 
             if (isset($stampResponse['success']) && $stampResponse['success'] === false) {
-                // Si es un error por Timeout (408), lo tomamos como válido transitoriamente (En Proceso)
-                $isTimeout = (isset($stampResponse['status']) && $stampResponse['status'] == 408) ||
-                             (isset($stampResponse['error_details']['error_type']) && $stampResponse['error_details']['error_type'] == 'timeout');
-                             
-                if (!$isTimeout) {
-                    // Fallback curativo: revisar si ya están emitidas en Alegra (Auto-sync)
-                    $actuallySuccess = 0;
-                    foreach ($validInvoices as $invoice) {
-                        try {
-                            $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
-                            
-                            $realStatus = $alegraStatus['data']['data']['status'] ?? $alegraStatus['data']['status'] ?? null;
-                            
-                            if ($realStatus === 'open' || $realStatus === 'stamped') {
-                                $invoice->update(['status' => 'FACTURADO']);
-                                // Se llama al método para actualizar cotizaciones relacionadas si existe
-                                if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
-                                    $this->updateRelatedQuotesToFacturado($invoice);
-                                }
-                                $actuallySuccess++;
+                // Fallback curativo unificado: revisar si ya están emitidas en Alegra (Auto-sync)
+                // Se hace siempre que hay un error (timeout, duplicado, etc.)
+                $actuallySuccess = 0;
+                foreach ($validInvoices as $invoice) {
+                    try {
+                        $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
+                        $realStatus = $alegraStatus['data']['data']['status'] ?? $alegraStatus['data']['status'] ?? null;
+                        
+                        if ($realStatus === 'open' || $realStatus === 'stamped') {
+                            $invoice->update(['status' => 'FACTURADO']);
+                            if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
+                                $this->updateRelatedQuotesToFacturado($invoice);
                             }
-                        } catch (\Exception $ex) {
-                            // Ignorar y continuar con las demás
+                            $actuallySuccess++;
                         }
+                    } catch (\Exception $ex) {
+                        // Ignorar y continuar
                     }
-                    
-                    if ($actuallySuccess > 0) {
-                        return ['success' => $actuallySuccess, 'fails' => count($apiDataIds) - $actuallySuccess];
-                    }
-
-                    return ['success' => 0, 'fails' => count($apiDataIds)];
                 }
+                
+                if ($actuallySuccess > 0) {
+                    return ['success' => $actuallySuccess, 'fails' => count($apiDataIds) - $actuallySuccess];
+                }
+
+                return ['success' => 0, 'fails' => count($apiDataIds)];
             }
 
+            // Si llegamos aquí es porque fue éxito rotundo directo de Alegra
             foreach ($validInvoices as $invoice) {
-                $invoice->update(['status' => 'EN PROCESO DIAN']);
+                $invoice->update(['status' => 'FACTURADO']);
+                if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
+                    $this->updateRelatedQuotesToFacturado($invoice);
+                }
             }
 
             return ['success' => count($apiDataIds), 'fails' => count($chunkIds) - count($apiDataIds)];
