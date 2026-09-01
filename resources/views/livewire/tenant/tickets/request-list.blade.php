@@ -66,10 +66,10 @@
                 <div class="flex items-center gap-4">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-                            {{ $isSupplier ? 'Requests Panel' : 'Panel de Solicitudes' }}
+                            {{ $isSupplier ? 'Requests Panel' : ($type === 'supplier' ? 'Tickets de Proveedores' : 'Solicitudes Internas Fervicom') }}
                         </h1>
                         <p class="text-gray-600 dark:text-gray-400 mt-1">
-                            {{ $isSupplier ? 'Management and tracking of requests' : 'Gestión y seguimiento de requerimientos' }}
+                            {{ $isSupplier ? 'Management and tracking of requests' : ($type === 'supplier' ? 'Gestión y seguimiento de solicitudes a proveedores' : 'Gestión y seguimiento de requerimientos internos') }}
                         </p>
                     </div>
                     @if($isSupplier)
@@ -82,7 +82,7 @@
                         </a>
                     @endif
                 </div>
-                @if(!$isSupplier)
+                @if(!$isSupplier && $type !== 'supplier')
                 <div class="flex items-center gap-3">
                     <a href="{{ route('tenant.tickets.departments') }}"
                         class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">

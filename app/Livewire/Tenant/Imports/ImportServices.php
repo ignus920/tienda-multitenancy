@@ -92,6 +92,13 @@ class ImportServices extends Component
         $this->showModalRegisItem = false;
     }
 
+    #[On('clear-item-selection')]
+    public function clearItemSelection()
+    {
+        $this->selectedItemId = null;
+        $this->selectedItemData = [];
+    }
+
     #[Computed]
     public function labels()
     {

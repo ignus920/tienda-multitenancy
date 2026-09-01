@@ -97,10 +97,10 @@
                             <img src="{{ asset('images/logofervi.png') }}" alt="Fervicom" class="h-8 w-auto mr-1">
                         @endif
                         @if (isset($header))
-                            <h1 class="text-xl font-semibold text-gray-900 dark:text-white shrink-0">{{ $header }}</h1>
+                            <h1 class="hidden md:block text-lg md:text-xl font-semibold text-gray-900 dark:text-white truncate" title="{{ strip_tags($header) }}">{{ $header }}</h1>
                         @endif
                         <!-- Contenedor para Teleport del Buscador de Cliente (solo en el cotizador) -->
-                        <div id="customer-header-container" class="flex-1 max-w-4xl ml-4"></div>
+                        <div id="customer-header-container" class="flex-1 max-w-4xl ml-auto flex justify-end"></div>
                         @if (Auth::user()?->profile_id == 17 && request()->routeIs('imports.imports-orders'))
                             <a href="{{ route('tenant.tickets') }}" 
                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg shadow-sm transition-colors ml-2">
@@ -108,7 +108,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                                 </svg>
                                 Requests
-                            </a>
+                             </a>
                         @endif
                         @if (Auth::user()?->profile_id == 17 && request()->routeIs('tenant.tickets'))
                             <a href="{{ route('imports.imports-orders') }}" 
@@ -120,6 +120,12 @@
                             </a>
                         @endif
                     </div>
+
+                    <!-- Contenedor para Teleport de Acciones de Cabecera (ej: Nuevas Solicitudes / Producto Nuevo) -->
+                    <div id="header-actions-container" class="flex items-center gap-3 mr-2"></div>
+
+                    <!-- Campanita de Notificaciones -->
+                    <livewire:layout.notification-bell />
 
                     <!-- Dark mode toggle -->
                     <button @click="darkMode = !darkMode" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">

@@ -24,6 +24,89 @@ use Illuminate\Support\Facades\Auth;
 class Orders extends Component
 {
     use WithPagination;
+    use \Livewire\WithFileUploads;
+
+    // Propiedades para Producto Nuevo (New Product)
+    public $showModalCreateNewProduct = false;
+    public $newProductCode;
+    public $newProductDescription;
+    public $newProductObservations;
+    public $newProductImage; // Para cargar la foto
+    
+    // Propiedades para conversión de Producto Nuevo a Real (Camilo)
+    public $showModalConvertNewProduct = false;
+    public $showModalConvertNewProductExtenso = false;
+    public $selectedRealItemId;
+    
+    // Variables temporales para el nuevo modal visual
+    public $newProductSupplierId;
+    public $newProductFactoryRef;
+    public $newProductStockWordpress;
+    public $newProductMinQtyWordpress;
+
+    public $selectedNewProductId;
+    public $finalInternalCode;
+    public $finalSku;
+    public $finalCategoryId;
+    public $finalType = '';
+    public $finalTaxId = '';
+    public $finalBrandId = '';
+    public $finalHouseId = '';
+    public $finalPurchasingUnit = '';
+    public $finalConsumptionUnit = '';
+    public $finalManageSerial = '0';
+    public $finalInventoriable = '1';
+    public $finalDescription = '';
+    public $finalStockWordpress = null;
+    public $finalMinQtyWordpress = null;
+    public $finalSupplierId = '';
+
+    public $tempValues = [];
+
+    // tipos disponibles
+    public $types = [
+        'COMBO'           => 'Combo',
+        'COMPRA NACIONAL' => 'Compra nacional',
+        'IMPORTADO'       => 'Importado',
+        'PRODUCIDO'       => 'Producido',
+        'INSUMO'          => 'Insumo',
+        'ENSAMBLADO'      => 'Ensamblado',
+        'PROYECTADOS'     => 'Proyectados',
+        'DESCONTINUADOS'  => 'Descontinuados',
+        'CZCL'            => 'CZCL',
+        'SERVICIO'        => 'Servicio',
+    ];
+
+
+
+    public function onCategorySelected($id)
+    {
+        $this->finalCategoryId = $id;
+    }
+
+    public function onBrandSelected($id)
+    {
+        $this->finalBrandId = $id;
+    }
+
+    public function onHouseSelected($id)
+    {
+        $this->finalHouseId = $id;
+    }
+
+    public function onPurchaseUnitSelected($id)
+    {
+        $this->finalPurchasingUnit = $id;
+    }
+
+    public function onConsumptionUnitSelected($id)
+    {
+        $this->finalConsumptionUnit = $id;
+    }
+
+    // Propiedades para ordenar productos convertidos en lote
+    public $selectedConvertedIds = [];
+    public $orderQuantities = [];
 
     public $filterStatus = '';
     public $filterNews = '';
@@ -38,6 +121,7 @@ class Orders extends Component
     public $selectedShipp = 0;
     public $allLabels = [];
     public $showModalHistory = false;
+    public $historyComment = '';
     public $shipmentComment = '';
     public $showModalShipmentHistory = false;
     public $showModalChangeQuantity = false;
@@ -83,9 +167,14 @@ class Orders extends Component
     public $observations;
 
     protected $listeners = [
-        'labelSelected' => 'onLabelSelected',  // Add this line to handle both formats
+        'labelSelected' => 'onLabelSelected',
         'shippmentSelected' => 'onShippmentSelected',
         'testEvent' => 'testEvent',
+        'category-changed' => 'onCategorySelected',
+        'brand-changed' => 'onBrandSelected',
+        'house-changed' => 'onHouseSelected',
+        'purchase-unit-changed' => 'onPurchaseUnitSelected',
+        'consumption-unit-changed' => 'onConsumptionUnitSelected',
     ];
 
     protected $rules = [
@@ -120,12 +209,13 @@ class Orders extends Component
     #[Computed]
     public function status()
     {
-        // Primera consulta: Registros agrupados por estado, filtrados por proveedor si corresponde
+        // Primera consulta: Registros agrupados por estado, filtrados por proveedor si corresponde (excluyendo el estado 13)
         $estados = DB::connection('tenant')
             ->table('imp_imports as i')
             ->leftJoin('imp_items_setup as iis', 'i.item_id', '=', 'iis.item_id')
             ->rightJoin('imp_status as s', 'i.status', '=', 's.id')
             ->where('s.id', '!=', 6)
+            ->where('s.id', '!=', 13)
             ->select('s.name as nombre_estado', 's.translated_name', DB::raw('COUNT(i.id) as cantidad'), 's.id as id')
             ->when(Auth::user()->profile_id == 17, function ($query) {
                 return $query->where(function ($q) {
@@ -156,6 +246,39 @@ class Orders extends Component
             ->unionAll($novedades)
             ->get();
 
+        // Agregar de forma dinámica el estado 13 (New Product) contando la tabla imp_new_products
+        $status13 = DB::connection('tenant')->table('imp_status')->where('id', 13)->first();
+        if ($status13) {
+            $newProductsCount = DB::connection('tenant')
+                ->table('imp_new_products')
+                ->whereNull('deleted_at')
+                ->where('status', '=', 'PENDING')
+                ->count();
+
+            $statuses->push((object)[
+                'nombre_estado' => $status13->name,
+                'translated_name' => $status13->translated_name,
+                'cantidad' => $newProductsCount,
+                'id' => 13
+            ]);
+        }
+
+        // Agregar de forma dinámica el estado 14 (Converted Products) para Camilo/Fervicom
+        if (Auth::user()->profile_id != 17) {
+            $convertedProductsCount = DB::connection('tenant')
+                ->table('imp_new_products')
+                ->whereNull('deleted_at')
+                ->where('status', '=', 'CONVERTED')
+                ->count();
+
+            $statuses->push((object)[
+                'nombre_estado' => 'Producto Nuevo',
+                'translated_name' => 'Converted',
+                'cantidad' => $convertedProductsCount,
+                'id' => 14
+            ]);
+        }
+
         $customOrder = [
             1 => 1,   // Solicitado
             2 => 2,   // Cotizado
@@ -166,12 +289,37 @@ class Orders extends Component
             8 => 7,   // Recibido
             9 => 8,   // Retrasado
             10 => 9,  // Novedades
-            11 => 10  // Eliminado
+            11 => 10, // Eliminado
+            13 => 11  // New Product
         ];
 
         return $statuses->sortBy(function ($item) use ($customOrder) {
             return $customOrder[$item->id] ?? 999;
         })->values();
+    }
+
+    #[Computed]
+    public function taxes()
+    {
+        return DB::connection('tenant')->table('cnf_taxes')->where('status', 1)->get();
+    }
+
+    #[Computed]
+    public function brands()
+    {
+        return DB::connection('tenant')->table('inv_values')->where('type', 'brands')->get();
+    }
+
+    #[Computed]
+    public function houses()
+    {
+        return DB::connection('tenant')->table('inv_values')->where('type', 'houses')->get();
+    }
+
+    #[Computed]
+    public function units()
+    {
+        return DB::connection('tenant')->table('inv_values')->where('type', 'units')->get();
     }
 
     public function putFilter($statusId)
@@ -241,6 +389,106 @@ class Orders extends Component
     public function orders()
     {
         $centralDbName = config('database.connections.central.database');
+
+        if ($this->filterStatus == 13) {
+            return DB::connection('tenant')
+                ->table('imp_new_products as inp')
+                ->select([
+                    'inp.id',
+                    DB::raw('NULL as item_id'),
+                    DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
+                    DB::raw("'N/A' AS label"),
+                    DB::raw("'New Product' AS translated_name"),
+                    DB::raw('13 AS status'),
+                    DB::raw('NULL AS priority'),
+                    DB::raw('NULL as priority_assigned_at'),
+                    DB::raw('0 as qty_shipped'),
+                    DB::raw('0 as news'),
+                    DB::raw('0 as price'),
+                    DB::raw('NULL as delete_justification'),
+                    DB::raw('NULL as packing_number'),
+                    DB::raw('NULL as operation_number'),
+                    DB::raw('NULL as etd'),
+                    DB::raw('NULL as way'),
+                    DB::raw("(SELECT comment 
+                            FROM imp_comments 
+                            WHERE new_product_id = inp.id 
+                            ORDER BY created_at DESC 
+                            LIMIT 1
+                        ) AS ultimo_comentario"),
+                    DB::raw('NULL as received_at'),
+                    DB::raw('NULL as deleted_by_user'),
+                    'inp.image_path'
+                ])
+                ->whereNull('inp.deleted_at')
+                ->where('inp.status', '=', 'PENDING')
+                ->when($this->search, function ($query) {
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inp.description', 'like', '%' . $word . '%')
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
+                        });
+                    }
+                    return $query;
+                })
+                ->paginate($this->perPage);
+        }
+
+        if ($this->filterStatus == 14) {
+            return DB::connection('tenant')
+                ->table('imp_new_products as inp')
+                ->select([
+                    'inp.id',
+                    'inp.real_item_id as item_id',
+                    DB::raw("CONCAT(iv.internal_code, ' - ', iv.name) AS item"),
+                    'iv.sku as sku',
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
+                    DB::raw("'N/A' AS label"),
+                    DB::raw("'Converted' AS translated_name"),
+                    DB::raw('14 AS status'),
+                    DB::raw('NULL AS priority'),
+                    DB::raw('NULL as priority_assigned_at'),
+                    DB::raw('0 as qty_shipped'),
+                    DB::raw('0 as news'),
+                    DB::raw('0 as price'),
+                    DB::raw('NULL as delete_justification'),
+                    DB::raw('NULL as packing_number'),
+                    DB::raw('NULL as operation_number'),
+                    DB::raw('NULL as etd'),
+                    DB::raw('NULL as way'),
+                    DB::raw("(SELECT comment 
+                            FROM imp_comments 
+                            WHERE new_product_id = inp.id 
+                            ORDER BY created_at DESC 
+                            LIMIT 1
+                        ) AS ultimo_comentario"),
+                    DB::raw('NULL as received_at'),
+                    DB::raw('NULL as deleted_by_user'),
+                    'inp.image_path'
+                ])
+                ->leftJoin('inv_items as iv', 'inp.real_item_id', '=', 'iv.id')
+                ->whereNull('inp.deleted_at')
+                ->where('inp.status', '=', 'CONVERTED')
+                ->when($this->search, function ($query) {
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inp.description', 'like', '%' . $word . '%')
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
+                        });
+                    }
+                    return $query;
+                })
+                ->paginate($this->perPage);
+        }
+
+
         return DB::connection('tenant')
             ->table('imp_imports as i')
             ->select([
@@ -373,6 +621,30 @@ class Orders extends Component
     public function saveComment($idImport, $comment, $toastMessage = 'Comentario registrado')
     {
         $this->ensureTenantConnection();
+
+        if ($this->filterStatus == 13) {
+            try {
+                $query = ImpComments::where('new_product_id', $idImport)->where('initiator', 1)->first();
+                $initiatorExists = !is_null($query);
+                
+                ImpComments::create([
+                    'new_product_id' => $idImport,
+                    'comment' => $comment,
+                    'user_id' => Auth::id(),
+                    'initiator' => $initiatorExists ? 0 : 1
+                ]);
+
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => $toastMessage
+                ]);
+                $this->dispatch('$refresh');
+            } catch (\Exception $e) {
+                Log::error('❌ Error al guardar comentario de producto nuevo: ' . $e->getMessage());
+            }
+            return;
+        }
+
         $query = ImpComments::where('import_id', $idImport)->where('initiator', 1)->first();
         $initiatorExists = !is_null($query);
         try {
@@ -597,6 +869,20 @@ class Orders extends Component
 
         $centralDbName = config('database.connections.central.database');
 
+        if ($this->filterStatus == 13) {
+            $comments = ImpComments::query()
+                ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
+                ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
+                ->where('imp_comments.new_product_id', $this->import_id)
+                ->get()
+                ->map(function ($item) {
+                    $item->event_type = 'comment';
+                    return $item;
+                });
+
+            return $comments->sortBy('created_at');
+        }
+
         // 1. Obtener comentarios
         $comments = ImpComments::query()
             ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
@@ -779,7 +1065,7 @@ class Orders extends Component
 
                             if ($principalStore) {
                                 $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $import->item_id)
-                                    ->where('storeId', $principalStore->id)
+                                    ->where('storeId', 2)
                                     ->first();
 
                                 $qtyToAdd = $import->qty_shipped;
@@ -790,7 +1076,7 @@ class Orders extends Component
                                 } else {
                                     \App\Models\Tenant\Items\InvItemsStore::create([
                                         'itemId' => $import->item_id,
-                                        'storeId' => $principalStore->id,
+                                        'storeId' => 2,
                                         'stock_items_store' => $qtyToAdd,
                                         'initial_stock' => 0.00,
                                         'wp_stock_percentage' => 100,
@@ -1046,7 +1332,8 @@ class Orders extends Component
                 // Caso A: Cantidad ingresada es cero - regresa el ítem completo a Producción (status 5)
                 $import->update([
                     'packing_id' => null,
-                    'status' => 5
+                    'status' => 5,
+                    'qty_shipped' => null
                 ]);
 
                 ImpStatusHistory::create([
@@ -1066,7 +1353,8 @@ class Orders extends Component
                 $remainingQty = $qtyRequested - $newQty;
 
                 $import->update([
-                    'qty_requested' => $newQty
+                    'qty_requested' => $newQty,
+                    'qty_shipped' => $newQty
                 ]);
 
                 // Buscar si el producto ya tiene un registro en Producción (status 5 sin packing asignado)
@@ -1120,7 +1408,8 @@ class Orders extends Component
             } elseif ($newQty > $qtyRequested) {
                 // Caso C: Cantidad superior - solo actualiza cantidad
                 $import->update([
-                    'qty_requested' => $newQty
+                    'qty_requested' => $newQty,
+                    'qty_shipped' => $newQty
                 ]);
 
                 $this->dispatch('show-toast', [
@@ -1349,6 +1638,24 @@ class Orders extends Component
     public function updatePriceQ($importId, $price)
     {
         $this->ensureTenantConnection();
+
+        if ($this->filterStatus == 13) {
+            try {
+                DB::connection('tenant')->table('imp_new_products')
+                    ->where('id', $importId)
+                    ->update([
+                        'exw' => (float)$price,
+                        'status' => 'QUOTED',
+                        'updated_at' => now()
+                    ]);
+
+                $this->saveComment($importId, "Proveedor actualizó precio cotizado a $" . number_format($price, 2) . " USD.", "Precio cotizado actualizado correctamente.");
+            } catch (\Exception $e) {
+                Log::error('❌ Error al actualizar precio cotizado del producto nuevo: ' . $e->getMessage());
+            }
+            return;
+        }
+
         try {
             $import = ImpImports::findOrFail($importId);
 
@@ -1703,6 +2010,44 @@ class Orders extends Component
     {
         $this->import_id = $import_id;
         $this->showModalHistory = true;
+    }
+
+    public function saveHistoryComment()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'historyComment' => 'required'
+        ]);
+
+        try {
+            if ($this->filterStatus == 13) {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'new_product_id' => $this->import_id,
+                    'comment' => $this->historyComment,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::connection('tenant')->table('imp_comments')->insert([
+                    'import_id' => $this->import_id,
+                    'comment' => $this->historyComment,
+                    'user_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $this->historyComment = '';
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Comentario agregado correctamente.'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error saving history comment: ' . $e->getMessage());
+        }
     }
 
     /*
@@ -2065,11 +2410,33 @@ class Orders extends Component
     public function render()
     {
         $labels = $this->labels;
+        
+        $suppliers = [];
+        if (Auth::user()?->profile_id != 17) {
+            $suppliers = \App\Models\Auth\User::select('users.id', 'users.name')
+                ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+                ->whereHas('tenants', function ($query) {
+                    $query->where('tenants.id', session('tenant_id'));
+                })
+                ->where('users.profile_id', 17)
+                ->where('vnt_contacts.status', 1)
+                ->whereNull('vnt_contacts.deleted_at')
+                ->distinct()
+                ->get();
+        }
+
+        $categories = [];
+        if ($this->showModalConvertNewProduct) {
+            $categories = \App\Models\Tenant\Items\Category::where('status', 1)->get();
+        }
+
         return view(
             'livewire.tenant.imports.orders',
             [
                 'labels' => $labels,
-                'profileUser' => $this->getProfileUserProperty()
+                'profileUser' => $this->getProfileUserProperty(),
+                'suppliers' => $suppliers,
+                'categories' => $categories
             ]
         )
             ->layout('layouts.app', ['header' => Auth::user()?->profile_id == 17 ? 'Order Management' : 'Gestión de Ordenes']);
@@ -2619,6 +2986,456 @@ class Orders extends Component
             }
         } catch (\Exception $e) {
             Log::error('❌ [Orders] Excepción al sincronizar ajuste con Alegra: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Abrir modal de creación para Producto Nuevo y autogenerar el siguiente código
+     */
+    public function openCreateNewProductModal()
+    {
+        $this->ensureTenantConnection();
+        $this->reset([
+            'newProductCode', 
+            'newProductDescription', 
+            'newProductObservations',
+            'newProductImage'
+        ]);
+        
+        // Obtener el último código secuencial NEW_PRODUCTXX
+        $lastProduct = DB::connection('tenant')
+            ->table('imp_new_products')
+            ->where('code', 'like', 'NEW_PRODUCT%')
+            ->orderByRaw('CAST(SUBSTRING(code, 12) AS UNSIGNED) DESC')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastProduct) {
+            $lastNumber = (int) substr($lastProduct->code, 11);
+            $nextNumber = $lastNumber + 1;
+        }
+
+        // Formato con dos dígitos mínimo (NEW_PRODUCT01, NEW_PRODUCT02...)
+        $this->newProductCode = 'NEW_PRODUCT' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+        $this->showModalCreateNewProduct = true;
+    }
+
+    /**
+     * Guardar el Producto Nuevo temporal a cotizar
+     */
+    public function saveNewProduct()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'newProductCode' => 'required|unique:tenant.imp_new_products,code',
+            'newProductDescription' => 'required|min:3',
+            'newProductObservations' => 'nullable|string',
+            'newProductImage' => 'nullable|image|max:2048'
+        ], [
+            'newProductDescription.required' => 'La descripción es obligatoria'
+        ]);
+
+        $imagePath = null;
+        if ($this->newProductImage) {
+            $tenantId = session('tenant_id', 'default');
+            $imagePath = $this->newProductImage->store("new_products/{$tenantId}", 'public');
+        }
+
+        try {
+            $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
+                'code' => $this->newProductCode,
+                'description' => $this->newProductDescription,
+                'observations' => $this->newProductObservations,
+                'image_path' => $imagePath,
+                'status' => 'PENDING',
+                'created_by' => Auth::id(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Siempre guardamos la información inicial para que el proveedor la vea
+            $commentData = [
+                'type' => 'new_product_info',
+                'code' => $this->newProductCode,
+                'name' => $this->newProductDescription,
+                'note' => $this->newProductObservations,
+                'image' => $imagePath
+            ];
+            
+            DB::connection('tenant')->table('imp_comments')->insert([
+                'new_product_id' => $newProductId,
+                'comment' => json_encode($commentData, JSON_UNESCAPED_UNICODE),
+                'user_id' => Auth::id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->showModalCreateNewProduct = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Producto Nuevo creado con éxito.'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            Log::error('❌ Error al guardar producto nuevo: ' . $e->getMessage());
+            $this->addError('newProductCode', 'Error al registrar el producto: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Abrir modal para la conversión del Producto Nuevo a Producto Real
+     */
+    public function openConvertModal($newProductId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedNewProductId = $newProductId;
+        $this->finalInternalCode = '';
+        $this->finalSku = '';
+        $this->finalCategoryId = '';
+        $this->finalType = '';
+        $this->finalTaxId = '';
+        $this->finalBrandId = '';
+        $this->finalHouseId = '';
+        $this->finalPurchasingUnit = '';
+        $this->finalConsumptionUnit = '';
+        $this->finalManageSerial = '0';
+        $this->finalInventoriable = '1';
+        $this->finalDescription = '';
+        $this->finalStockWordpress = null;
+        $this->finalMinQtyWordpress = null;
+        $this->finalSupplierId = '';
+        $this->tempValues = [];
+        
+        $newProduct = DB::connection('tenant')
+            ->table('imp_new_products')
+            ->where('id', $newProductId)
+            ->first();
+
+        if ($newProduct) {
+            // Pre-llenar datos para el modal extenso (si alguna vez se usa)
+            $this->finalDescription = $newProduct->description;
+            
+            // Pre-llenar datos para el nuevo modal simplificado
+            $this->newProductCode = $newProduct->code;
+            $this->newProductDescription = $newProduct->description;
+            $this->newProductSupplierId = '';
+            $this->newProductFactoryRef = '';
+            $this->newProductStockWordpress = null;
+            $this->newProductMinQtyWordpress = null;
+
+            $this->showModalConvertNewProduct = true;
+        }
+    }
+
+    /**
+     * Ejecutar la conversión del Producto Nuevo a Producto Real en el ERP
+     */
+    public function convertNewProductToReal()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'newProductCode' => 'required|unique:tenant.inv_items,internal_code',
+            'newProductDescription' => 'required|min:3',
+            'newProductSupplierId' => 'required|integer',
+            'newProductStockWordpress' => 'required|numeric|min:0',
+            'newProductMinQtyWordpress' => 'required|numeric|min:0',
+        ], [
+            'newProductCode.required' => 'El código interno es obligatorio.',
+            'newProductCode.unique' => 'Este código interno ya existe en el inventario real.',
+            'newProductDescription.required' => 'La descripción o nombre es obligatorio.',
+            'newProductDescription.min' => 'La descripción debe tener al menos 3 caracteres.',
+            'newProductSupplierId.required' => 'Debe seleccionar un proveedor para este producto.',
+            'newProductStockWordpress.required' => 'El % Stock WordPress es obligatorio.',
+            'newProductStockWordpress.numeric' => 'El % Stock WordPress debe ser un valor numérico.',
+            'newProductStockWordpress.min' => 'El % Stock WordPress no puede ser menor a 0.',
+            'newProductMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
+            'newProductMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser numérico.',
+            'newProductMinQtyWordpress.min' => 'La Cantidad Mínima no puede ser menor a 0.',
+        ]);
+
+        $newProduct = DB::connection('tenant')
+            ->table('imp_new_products')
+            ->where('id', $this->selectedNewProductId)
+            ->first();
+
+        if (!$newProduct) {
+            $this->addError('newProductCode', 'El producto nuevo temporal no existe.');
+            return;
+        }
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            // 1. Crear el ítem en inv_items (ERP Real) con valores por defecto para lo que no está en el modal
+            $itemId = DB::connection('tenant')->table('inv_items')->insertGetId([
+                'categoryId' => 1, // Por defecto
+                'name' => $this->newProductDescription,
+                'internal_code' => $this->newProductCode,
+                'sku' => $this->newProductCode,
+                'description' => $this->newProductDescription,
+                'type' => 'IMPORTADO', // Tipo por defecto
+                'brandId' => null,
+                'houseId' => null,
+                'inventoriable' => 1,
+                'handles_serial' => 0,
+                'purchasing_unit' => 1,
+                'consumption_unit' => 1,
+                'status' => 1,
+                'taxId' => 2,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // 2. Si tiene imagen, guardarla en inv_image_gallery
+            if ($newProduct->image_path) {
+                DB::connection('tenant')->table('inv_image_gallery')->insert([
+                    'itemId' => $itemId,
+                    'img_path' => $newProduct->image_path,
+                    'type' => 'PRINCIPAL',
+                    'type_show' => 'COMERCIAL',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+            // 2.5 Crear el registro de bodega en inv_items_store (storeId quemado a 2 según requerimiento)
+            DB::connection('tenant')->table('inv_items_store')->insert([
+                'itemId'              => $itemId,
+                'storeId'             => 2,
+                'initial_stock'       => 0,
+                'stock_items_store'   => 0,
+                'stock_min'           => 0,
+                'stock_max'           => 0,
+                'wp_stock_percentage' => (float)$this->newProductStockWordpress,
+                'wp_min_stock'        => (float)$this->newProductMinQtyWordpress,
+            ]);
+
+            // 3. Crear setup de importación del item en imp_items_setup
+            DB::connection('tenant')->table('imp_items_setup')->insert([
+                'item_id' => $itemId,
+                'supplier_id' => $this->newProductSupplierId,
+                'factory_ref' => $this->newProductFactoryRef ?: 'N/A',
+                'exw' => 0,
+                'percentage' => 0,
+                'freight_increase' => 0,
+                'pvp_factor' => 0,
+                'pvp_min_factor' => 0,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // 4. Actualizar el estado de imp_new_products a CONVERTED
+            DB::connection('tenant')->table('imp_new_products')
+                ->where('id', $this->selectedNewProductId)
+                ->update([
+                    'status' => 'CONVERTED',
+                    'real_item_id' => $itemId,
+                    'updated_at' => now()
+                ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showModalConvertNewProduct = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Producto convertido y orden de importación creada con éxito!'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error al convertir producto nuevo: ' . $e->getMessage());
+            $this->addError('newProductCode', 'Error durante la conversión: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Abrir modal extenso para editar el Producto Real
+     */
+    public function openExtensiveConvertModal($newProductId, $realItemId)
+    {
+        $this->ensureTenantConnection();
+        $this->selectedNewProductId = $newProductId;
+        $this->selectedRealItemId = $realItemId;
+        
+        $item = DB::connection('tenant')->table('inv_items')->where('id', $realItemId)->first();
+        if ($item) {
+            $this->finalInternalCode = $item->internal_code;
+            $this->finalSku = $item->sku;
+            $this->finalCategoryId = $item->categoryId;
+            $this->finalType = $item->type;
+            $this->finalTaxId = $item->taxId;
+            $this->finalBrandId = $item->brandId;
+            $this->finalHouseId = $item->houseId;
+            $this->finalPurchasingUnit = $item->purchasing_unit;
+            $this->finalConsumptionUnit = $item->consumption_unit;
+            $this->finalManageSerial = $item->handles_serial;
+            $this->finalInventoriable = $item->inventoriable;
+            $this->finalDescription = $item->name;
+        }
+
+        $setup = DB::connection('tenant')->table('imp_items_setup')->where('item_id', $realItemId)->first();
+        if ($setup) {
+            $this->finalSupplierId = $setup->supplier_id;
+        }
+
+        $store = DB::connection('tenant')->table('inv_items_store')->where('itemId', $realItemId)->where('storeId', 2)->first();
+        if ($store) {
+            $this->finalStockWordpress = $store->wp_stock_percentage;
+            $this->finalMinQtyWordpress = $store->wp_min_stock;
+        }
+
+        $this->showModalConvertNewProductExtenso = true;
+    }
+
+    /**
+     * Actualizar los datos del producto real desde el modal extenso
+     */
+    public function updateRealProductExtensive()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'finalInternalCode' => 'required',
+            'finalSku' => 'required',
+            'finalCategoryId' => 'required|integer',
+            'finalType' => 'required',
+            'finalTaxId' => 'required|integer',
+            'finalDescription' => 'required|min:3',
+            'finalStockWordpress' => 'required|numeric|min:0',
+            'finalMinQtyWordpress' => 'required|numeric|min:0',
+            'finalSupplierId' => 'required|integer'
+        ]);
+
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            DB::connection('tenant')->table('inv_items')->where('id', $this->selectedRealItemId)->update([
+                'categoryId' => $this->finalCategoryId,
+                'name' => $this->finalDescription,
+                'internal_code' => $this->finalInternalCode,
+                'sku' => $this->finalSku,
+                'description' => $this->finalDescription,
+                'type' => $this->finalType,
+                'brandId' => $this->finalBrandId ?: null,
+                'houseId' => $this->finalHouseId ?: null,
+                'inventoriable' => $this->finalInventoriable ? 1 : 0,
+                'handles_serial' => $this->finalManageSerial ? 1 : 0,
+                'purchasing_unit' => $this->finalPurchasingUnit,
+                'consumption_unit' => $this->finalConsumptionUnit,
+                'taxId' => $this->finalTaxId,
+                'updated_at' => now()
+            ]);
+
+            DB::connection('tenant')->table('inv_items_store')
+                ->where('itemId', $this->selectedRealItemId)
+                ->where('storeId', 2)
+                ->update([
+                    'wp_stock_percentage' => (float)$this->finalStockWordpress,
+                    'wp_min_stock'        => (float)$this->finalMinQtyWordpress,
+                ]);
+
+            DB::connection('tenant')->table('imp_items_setup')
+                ->where('item_id', $this->selectedRealItemId)
+                ->update([
+                    'supplier_id' => $this->finalSupplierId,
+                    'updated_at' => now()
+                ]);
+
+            DB::connection('tenant')->commit();
+
+            $this->showModalConvertNewProductExtenso = false;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Producto real actualizado correctamente!'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error al actualizar producto real: ' . $e->getMessage());
+            $this->addError('finalInternalCode', 'Error durante la actualización: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Asignar prioridad y registrar pedido en lote de productos convertidos
+     */
+    public function updatedOrderQuantities($value, $key)
+    {
+        $productId = (int)$key;
+        $qty = (int)$value;
+
+        if ($qty > 0) {
+            if (!in_array($productId, $this->selectedConvertedIds)) {
+                $this->selectedConvertedIds[] = $productId;
+            }
+        } else {
+            $this->selectedConvertedIds = array_values(array_filter($this->selectedConvertedIds, fn($id) => $id != $productId));
+        }
+    }
+
+    public function assignPriorityToNewProducts($priority)
+    {
+        try {
+            if (empty($this->selectedConvertedIds)) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No hay productos convertidos seleccionados'
+                ]);
+                return;
+            }
+
+            $this->ensureTenantConnection();
+
+            DB::connection('tenant')->transaction(function () use ($priority) {
+                foreach ($this->selectedConvertedIds as $productId) {
+                    $newProduct = DB::connection('tenant')
+                        ->table('imp_new_products')
+                        ->where('id', $productId)
+                        ->first();
+
+                    if ($newProduct && $newProduct->real_item_id) {
+                        $qty = isset($this->orderQuantities[$productId]) && (int)$this->orderQuantities[$productId] > 0
+                            ? (int)$this->orderQuantities[$productId]
+                            : (int)$newProduct->min_qty_supplier;
+
+                        // Insertar el pedido en imp_imports
+                        DB::connection('tenant')->table('imp_imports')->insert([
+                            'item_id' => $newProduct->real_item_id,
+                            'priority' => $priority,
+                            'priority_assigned_at' => now(),
+                            'qty_requested' => $qty,
+                            'user_id' => Auth::id(),
+                            'status' => 1, // Solicitado
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+
+                        // Cambiar estado en imp_new_products a ORDERED
+                        DB::connection('tenant')
+                            ->table('imp_new_products')
+                            ->where('id', $productId)
+                            ->update([
+                                'status' => 'ORDERED',
+                                'updated_at' => now()
+                            ]);
+                    }
+                }
+            });
+
+            $this->selectedConvertedIds = [];
+            $this->orderQuantities = [];
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Pedidos creados y asignados correctamente en lote.'
+            ]);
+
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            Log::error('❌ Error al registrar pedidos en lote desde Producto Nuevo: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al crear pedidos: ' . $e->getMessage()
+            ]);
         }
     }
 }

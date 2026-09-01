@@ -39,6 +39,7 @@ class Invoices extends Component
     public $showJustificacionModal = false;
     public $justificacionText = '';
     public $selectedInvoiceId = null;
+    public array $selectedInvoices = []; // Para selección múltiple de facturas
 
     // ── Nota Crédito ──────────────────────────────────────────
     public bool  $showCreditNoteModal = false;
@@ -436,6 +437,79 @@ class Invoices extends Component
      * Método para imprimir factura (basado en una factura emitida)
      * Utiliza el api_data_id para obtener el PDF oficial de Alegra.
      */
+
+    public function processEmitChunk(array $chunkIds)
+    {
+        try {
+            $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
+            if (!$tenant || !TenantConfigManager::hasFacturacionConfig($tenant)) {
+                return ['success' => 0, 'fails' => count($chunkIds), 'error' => 'Sin configuración'];
+            }
+
+            $facturacionService = FacturacionService::forTenant($tenant);
+
+            $validInvoices = VntInvoices::whereIn('id', $chunkIds)
+                ->where('status', 'SIN EMITIR')
+                ->whereNotNull('api_data_id')
+                ->where('api_data_id', '!=', '')
+                ->get();
+
+            if ($validInvoices->isEmpty()) {
+                return ['success' => 0, 'fails' => count($chunkIds), 'error' => 'No hay facturas válidas'];
+            }
+
+            $apiDataIds = $validInvoices->pluck('api_data_id')->toArray();
+            $stampResponse = $facturacionService->stampInvoicesMassive($apiDataIds);
+
+            if (isset($stampResponse['success']) && $stampResponse['success'] === false) {
+                // Fallback curativo unificado: revisar si ya están emitidas en Alegra (Auto-sync)
+                // Se hace siempre que hay un error (timeout, duplicado, etc.)
+                $actuallySuccess = 0;
+                foreach ($validInvoices as $invoice) {
+                    try {
+                        $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
+                        $realStatus = $alegraStatus['data']['data']['status'] ?? $alegraStatus['data']['status'] ?? null;
+                        
+                        if ($realStatus === 'open' || $realStatus === 'stamped') {
+                            $invoice->update(['status' => 'FACTURADO']);
+                            if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
+                                $this->updateRelatedQuotesToFacturado($invoice);
+                            }
+                            $actuallySuccess++;
+                        }
+                    } catch (\Exception $ex) {
+                        // Ignorar y continuar
+                    }
+                }
+                
+                if ($actuallySuccess > 0) {
+                    return ['success' => $actuallySuccess, 'fails' => count($apiDataIds) - $actuallySuccess];
+                }
+
+                return ['success' => 0, 'fails' => count($apiDataIds)];
+            }
+
+            // Si llegamos aquí es porque fue éxito rotundo directo de Alegra
+            foreach ($validInvoices as $invoice) {
+                $invoice->update(['status' => 'FACTURADO']);
+                if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
+                    $this->updateRelatedQuotesToFacturado($invoice);
+                }
+            }
+
+            return ['success' => count($apiDataIds), 'fails' => count($chunkIds) - count($apiDataIds)];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error emitiendo chunk masivo', ['error' => $e->getMessage()]);
+            return ['success' => 0, 'fails' => count($chunkIds), 'error' => $e->getMessage()];
+        }
+    }
+
+    public function clearSelection()
+    {
+        $this->selectedInvoices = [];
+    }
+
     public function printInvoice($invoiceId)
     {
         Log::info('🖨️ Invoices.printInvoice llamado', ['invoice_id' => $invoiceId]);

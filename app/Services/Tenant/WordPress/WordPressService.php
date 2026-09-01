@@ -355,12 +355,25 @@ class WordPressService
         Log::info('📤 [WP] Iniciando uploadMedia', ['local_path' => $localPath]);
 
         try {
-            if (!Storage::disk('public')->exists($localPath)) {
-                Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
-                throw new Exception("Archivo local no encontrado: $localPath");
-            }
+            $isUrl = str_starts_with($localPath, 'http');
+            $tempFile = null;
 
-            $absolutePath = Storage::disk('public')->path($localPath);
+            if ($isUrl) {
+                Log::info('📥 [WP] Archivo es una URL, descargando temporalmente...', ['url' => $localPath]);
+                $urlResponse = Http::get($localPath);
+                if (!$urlResponse->successful()) {
+                    throw new Exception("No se pudo descargar la imagen desde la URL: $localPath");
+                }
+                $tempFile = tempnam(sys_get_temp_dir(), 'wp_img_');
+                file_put_contents($tempFile, $urlResponse->body());
+                $absolutePath = $tempFile;
+            } else {
+                if (!Storage::disk('public')->exists($localPath)) {
+                    Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
+                    throw new Exception("Archivo local no encontrado: $localPath");
+                }
+                $absolutePath = Storage::disk('public')->path($localPath);
+            }
             $originalSize = filesize($absolutePath);
 
             Log::info('📁 [WP] Archivo local encontrado', [
@@ -401,6 +414,9 @@ class WordPressService
             if ($finalPath !== $absolutePath && file_exists($finalPath)) {
                 unlink($finalPath);
             }
+            if ($isUrl && $tempFile && file_exists($tempFile)) {
+                unlink($tempFile);
+            }
 
             Log::info('📡 [WP] Respuesta uploadMedia', [
                 'http_status' => $response->status(),
@@ -434,20 +450,24 @@ class WordPressService
         return null;
     }
 
-    public function setFeaturedImage($productId, $mediaId)
+    public function setFeaturedImage($productId, $mediaId, $parentId = null)
     {
         if (!$this->isConfigured()) return false;
 
         Log::info('🖼️ [WP] Asignando imagen principal', [
             'wp_product_id' => $productId,
             'wp_media_id'   => $mediaId,
+            'parent_id'     => $parentId
         ]);
 
         try {
+            $endpoint = $parentId ? "products/$parentId/variations/$productId" : "products/$productId";
+            $payload = $parentId 
+                ? ['image' => ['id' => (int)$mediaId]] 
+                : ['images' => [['id' => (int)$mediaId]]];
+
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", [
-                    'images' => [['id' => (int)$mediaId]]
-                ]);
+                ->put($this->baseUrl . $endpoint, $payload);
 
             Log::info('📡 [WP] Respuesta setFeaturedImage', [
                 'wp_product_id' => $productId,
@@ -473,18 +493,22 @@ class WordPressService
         return false;
     }
 
-    public function addToGallery($productId, $mediaId)
+    public function addToGallery($productId, $mediaId, $parentId = null)
     {
         if (!$this->isConfigured()) return false;
+
+        // En WooCommerce, la galería siempre pertenece al producto Padre
+        $targetId = $parentId ? $parentId : $productId;
 
         Log::info('🖼️ [WP] Agregando imagen a galería', [
             'wp_product_id' => $productId,
             'wp_media_id'   => $mediaId,
+            'target_wp_id'  => $targetId
         ]);
 
         try {
             $currentProduct = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->get($this->baseUrl . "products/$productId")
+                ->get($this->baseUrl . "products/$targetId")
                 ->json();
 
             $images = $currentProduct['images'] ?? [];
@@ -507,7 +531,7 @@ class WordPressService
             $images[] = ['id' => (int)$mediaId];
 
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", ['images' => $images]);
+                ->put($this->baseUrl . "products/$targetId", ['images' => $images]);
 
             Log::info('📡 [WP] Respuesta addToGallery', [
                 'wp_product_id'   => $productId,
@@ -658,8 +682,11 @@ class WordPressService
         }
 
         // 1. Stock en bodega PRINCIPAL (storeId=2)
+        // Orden determinístico por si existiera más de un registro para el mismo item+bodega
+        // (dato heredado/manual): siempre se toma el más reciente, igual que en ManageItems.
         $storeStock = InvItemsStore::where('itemId', $item->id)
             ->where('storeId', 2)
+            ->orderByDesc('id')
             ->first();
 
         if (!$storeStock) {
@@ -669,6 +696,7 @@ class WordPressService
         }
 
         $stockBruto = (float) $storeStock->stock_items_store;
+        $cuarentena = (float) $item->quarantine_stock;
         $stockMin   = (float) ($storeStock->wp_min_stock ?? 0);
 
         // 2. Reservas activas (Omitido: se usa 0 para no restar remisiones registradas globales)
@@ -676,8 +704,8 @@ class WordPressService
 
         $reservas = (float) $reservas;
 
-        // 3. Stock disponible neto (igual al stock bruto del almacén)
-        $stockNeto = max(0, $stockBruto - $reservas);
+        // 3. Stock disponible neto (igual al stock bruto del almacén - cuarentena)
+        $stockNeto = max(0, $stockBruto - $cuarentena - $reservas);
 
         // 4. Gate de mínimo + aplicar porcentaje (igual que sistema anterior)
         $porcentaje = (float) ($storeStock->wp_stock_percentage ?? 100);
@@ -694,6 +722,7 @@ class WordPressService
         Log::info('📊 [WP-Stock] Cálculo de stock', [
             'item_id'     => $item->id,
             'stock_bruto' => $stockBruto,
+            'cuarentena'  => $cuarentena,
             'reservas'    => $reservas,
             'stock_neto'  => $stockNeto,
             'stock_min'   => $stockMin,
@@ -982,10 +1011,10 @@ class WordPressService
 
         if ($image->type === 'PRINCIPAL') {
             Log::info('🌟 [WP] Asignando como imagen PRINCIPAL del producto');
-            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId);
+            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId, $wpProduct['parent_id'] ?? null);
         } else {
             Log::info('📷 [WP] Agregando a GALERÍA del producto');
-            $result = $this->addToGallery($wpProduct['id'], $mediaId);
+            $result = $this->addToGallery($wpProduct['id'], $mediaId, $wpProduct['parent_id'] ?? null);
         }
 
         if (!$result) {

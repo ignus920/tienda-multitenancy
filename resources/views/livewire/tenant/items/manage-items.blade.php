@@ -473,6 +473,7 @@
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection),
                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection)}">
@@ -485,6 +486,7 @@
                                 <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
                                 @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
@@ -498,6 +500,7 @@
                                 <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
                                 @if($type == 'PRODUCIDO')
                                 <button type="button" wire:click="$set('showProductionSection', true)"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
@@ -511,6 +514,7 @@
                                 <!-- Pestaña Accesorios - No visible para items tipo INSUMO -->
                                 @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
@@ -524,6 +528,7 @@
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
                                 @if ($inventoriable === 1)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
@@ -540,6 +545,7 @@
 
                 <!-- Contenido según la pestaña activa -->
                 @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
+                <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -843,8 +849,8 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </button>
-                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0).
+                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0). Para que se publique el 100% del stock (ej: Stock=1, WP=1), se debe dejar en 0 y % Stock WordPress en 100.
                                             </div>
                                         </div>
                                     </label>
@@ -854,6 +860,16 @@
                                         placeholder="0">
                                     @error('wpMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                                 </div>
+                                @if($item_id)
+                                    <div class="col-span-2 flex justify-end">
+                                        <button type="button" wire:click="saveWordPressParams" wire:loading.attr="disabled" wire:target="saveWordPressParams"
+                                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                            <span wire:loading.remove wire:target="saveWordPressParams">Guardar parámetros WordPress</span>
+                                            <span wire:loading wire:target="saveWordPressParams">Guardando...</span>
+                                        </button>
+                                    </div>
+                                    <p class="col-span-2 text-2xs text-gray-400 -mt-2">Este botón guarda y sincroniza solo estos dos campos, sin necesidad de guardar el resto del formulario.</p>
+                                @endif
                             </div>
                             @endif
                         </div>
@@ -934,6 +950,25 @@
                                         <span>{{ session('sync_error') }}</span>
                                     </div>
                                     <button wire:click="cancel" class="ml-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Mensaje de advertencia de sincronización con WordPress -->
+                            @if (session()->has('wp_sync_warning'))
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"></path>
+                                        </svg>
+                                        <span>{{ session('wp_sync_warning') }}</span>
+                                    </div>
+                                    <button wire:click="cancel" class="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -1063,7 +1098,12 @@
                         </div>
                     </div>
                 </form>
+                </div>
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
+                    @php
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : 'acc');
+                    @endphp
+                    <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item -->
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
@@ -1076,6 +1116,7 @@
                     @elseif($showAccesoriosSection)
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @endif
+                    </div>
                 @endif
 
             </div>

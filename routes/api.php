@@ -10,4 +10,5 @@ Route::prefix('sgsst')->group(function () {
 
 Route::prefix('webhooks')->group(function () {
     Route::post('/chatbot/warranties', [\App\Http\Controllers\Api\ChatbotWebhookController::class, 'receiveWarranty']);
+    Route::post('/alegra/{tenantId}/invoices', [\App\Http\Controllers\Api\AlegraWebhookController::class, 'handle']);
 });

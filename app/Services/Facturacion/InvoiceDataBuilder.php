@@ -115,10 +115,8 @@ class InvoiceDataBuilder
             $dataAlegra['paymentMethod'] = $paymentData['paymentMethod'];
         }
 
-        // Agregar seller si existe
-        if ($sellerIdAlegra) {
-            $dataAlegra['seller'] = (string)$sellerIdAlegra;
-        }
+        // El campo seller fue removido según la directriz:
+        // "cuando se dispare la factura desde el ERP, el campo de vendedor viaje vacío o en ceros. Esto para que cuando se esté creando el documento de factura, en ese campo se llame el vendedor asignado que tiene el tercero dentro del ALEGRA."
 
         // Retenciones deshabilitadas: no se envían a Alegra
 
@@ -414,31 +412,51 @@ class InvoiceDataBuilder
         Log::info('💳 Procesando métodos de pago', ['methods_count' => count($methodPayments)]);
 
         foreach ($methodPayments as $detailPayment) {
-            $descriptionFormaPago = $detailPayment['descriptionFormaPago'] ?? '';
-            $nombre = $detailPayment['nombre'] ?? '';
+            $descriptionFormaPago = strtoupper($detailPayment['descriptionFormaPago'] ?? '');
+            $nombre = strtoupper($detailPayment['nombre'] ?? '');
             $valor = floatval($detailPayment['valor'] ?? 0);
 
-            // Verificar si es CASH/EFECTIVO (igual que el JavaScript)
-            $isCash = (
-                stripos($descriptionFormaPago, 'CASH') !== false ||
-                stripos($descriptionFormaPago, 'EFECTIVO') !== false ||
-                stripos($nombre, 'EFECTIVO') !== false ||
-                stripos($nombre, 'CASH') !== false
-            );
+            // Condicionales exactas requeridas por el usuario:
+            $isWompi = str_contains($nombre, 'WOMPI') || str_contains($descriptionFormaPago, 'WOMPI');
+            
+            $isConsignacion = str_contains($nombre, 'BANCOLOMBIA') || str_contains($nombre, 'NEQUI') || 
+                              str_contains($nombre, 'DAVIVIENDA') || str_contains($nombre, 'BOGOTA') ||
+                              str_contains($descriptionFormaPago, 'BANCOLOMBIA') || str_contains($descriptionFormaPago, 'NEQUI') || 
+                              str_contains($descriptionFormaPago, 'DAVIVIENDA') || str_contains($descriptionFormaPago, 'BOGOTA');
+                              
+            $isTarjeta = str_contains($nombre, 'TARJETA') || str_contains($descriptionFormaPago, 'TARJETA');
+            
+            $isEfectivo = str_contains($nombre, 'EFECTIVO') || str_contains($nombre, 'CASH') || 
+                          str_contains($descriptionFormaPago, 'EFECTIVO') || str_contains($descriptionFormaPago, 'CASH');
+                          
+            $isCreditoAlegra = str_contains($nombre, 'CREDITO') || str_contains($descriptionFormaPago, 'CREDITO');
 
-            if ($isCash) {
-                Log::info('💵 Procesando pago en efectivo', ['valor' => $valor]);
-                $totalPayment += $valor;
-                $bankPayment = $detailPayment['bank'] ?? null;
-            } else {
+            // Determinar si es de contado (CASH) o crédito (CREDIT) a plazos
+            // (Si es "tarjeta de crédito" se cuenta como de contado con método CREDIT_CARD)
+            if ($isCreditoAlegra && !$isTarjeta) {
                 Log::info('💳 Procesando pago a crédito', ['valor' => $valor]);
                 $paymentForm = "CREDIT";
                 $partialPayment = $valor;
+            } else {
+                Log::info('💵 Procesando pago de contado', ['valor' => $valor]);
+                $totalPayment += $valor;
+                $bankPayment = $detailPayment['bank'] ?? null;
+                
+                // Mapear el paymentMethod (Medio de Pago) específico para Alegra
+                if ($isWompi) {
+                    $paymentMethod = $detailPayment['method'] ?? null; // WOMPI se deja igual
+                } elseif ($isConsignacion) {
+                    $paymentMethod = 'DEPOSIT'; // Alegra: Consignación bancaria
+                } elseif ($isTarjeta) {
+                    $paymentMethod = 'CREDIT_CARD'; // Alegra: Tarjeta de crédito
+                } elseif ($isEfectivo) {
+                    $paymentMethod = 'CASH'; // Alegra: Efectivo
+                }
             }
         }
 
-        // Determinar paymentMethod si no es CREDIT (igual que el JS)
-        if ($paymentForm !== "CREDIT" && count($methodPayments) > 0) {
+        // Si es de contado y no machó ninguna regla, dejar el método por defecto que traía la OP
+        if ($paymentForm === "CASH" && empty($paymentMethod) && count($methodPayments) > 0) {
             $paymentMethod = $methodPayments[0]['method'] ?? null;
         }
 
