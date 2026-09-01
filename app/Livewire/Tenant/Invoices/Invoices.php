@@ -473,6 +473,8 @@ class Invoices extends Component
                         try {
                             $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
                             
+                            Log::info("🕵️ DEBUG ESTADO FACTURA {$invoice->api_data_id}", ['alegraStatus' => $alegraStatus]);
+
                             $realStatus = $alegraStatus['data']['status'] ?? $alegraStatus['data']['invoice']['status'] ?? null;
                             if ($realStatus === 'open' || $realStatus === 'stamped') {
                                 $invoice->update(['status' => 'FACTURADO']);
