@@ -122,12 +122,21 @@ class RequestList extends Component
                 ->get();
         }
 
-        $totalQuery = TickRequest::query();
-        if ($isSupplier) {
-            $totalQuery->where('supplier_id', $user->id);
-        } else {
-            $totalQuery->when($this->supplierIdFilter, fn($q) => $q->where('supplier_id', $this->supplierIdFilter));
-        }
+        $totalQuery = TickRequest::query()
+            ->when($isSupplier, function($q) use ($user) {
+                return $q->where('supplier_id', $user->id);
+            })
+            ->when(!$isSupplier && $this->type === 'supplier', function($q) {
+                return $q->whereNotNull('supplier_id');
+            })
+            ->when(!$isSupplier && $this->type === 'internal', function($q) {
+                return $q->whereNull('supplier_id');
+            })
+            ->when(!$isSupplier && $this->supplierIdFilter, function($q) {
+                return $q->where('supplier_id', $this->supplierIdFilter);
+            })
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn($q) => $q->whereDate('created_at', '<=', $this->dateTo));
 
         return view('livewire.tenant.tickets.request-list', [
             'requests' => $requests,
