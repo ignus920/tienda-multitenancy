@@ -2,7 +2,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Lista de Materiales</h2>
         <div class="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
-            @if($materials && $materials->count() > 0)
+            @if($materials && $materials->count() > 0 && !$isClosed)
                 <button type="button" 
                         @click="Swal.fire({
                             title: 'Eliminar Lista Completa',
@@ -32,6 +32,7 @@
         </div>
     </div>
 
+    @if(!$isClosed)
     <!-- Buscador de productos ERP -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -109,6 +110,7 @@
             </div>
         @endif
     </div>
+    @endif
 
     <!-- Tabla de materiales -->
     <div class="overflow-x-auto">
@@ -121,7 +123,7 @@
                     <th class="text-right py-2 pr-2">Precio Unit.</th>
                     <th class="text-right py-2 pr-2">Subtotal</th>
                     <th class="text-left py-2 pr-2 w-[15%]">Observaciones</th>
-                    <th class="text-right py-2 w-20">Acciones</th>
+                    @if(!$isClosed)<th class="text-right py-2 w-20">Acciones</th>@endif
                 </tr>
             </thead>
             <tbody>
@@ -176,10 +178,12 @@
                                     </div>
                                 @endif
                             </td>
+                            @if(!$isClosed)
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="saveEdit" class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs mr-2">Guardar</button>
                                 <button wire:click="cancelEdit" class="text-gray-400 hover:text-gray-600 font-semibold text-2xs">Cancelar</button>
                             </td>
+                            @endif
                         @else
                             <td class="py-2 pr-2 text-gray-800 dark:text-gray-200 font-medium">
                                 @if(!$material->is_active)
@@ -214,6 +218,7 @@
                                     </div>
                                 @endif
                             </td>
+                            @if(!$isClosed)
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="editMaterial({{ $material->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
                                 @if($material->is_active)
@@ -247,6 +252,7 @@
                                             class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs">Reactivar</button>
                                 @endif
                             </td>
+                            @endif
                         @endif
                     </tr>
                 @empty
