@@ -1962,7 +1962,40 @@
         @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCustomer['id'], 'isSelectionMode' => true], key('warehouse-modal-' . $selectedCustomer['id']))
     @endif
 
-    <!-- Modal: Completar datos del cliente antes de facturar -->
+    <!-- Modal de Advertencia de Campos Faltantes -->
+    @if($showMissingFieldsModal)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-[70] overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg my-8 overflow-hidden">
+            <div class="bg-amber-500 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Faltan Datos del Cliente
+                </h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 dark:text-gray-300 text-base mb-4">
+                    Para poder continuar, necesitas completar obligatoriamente la siguiente información del cliente:
+                </p>
+                <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-6 border-l-4 border-amber-500">
+                    <p class="font-medium text-gray-800 dark:text-white">
+                        {{ $missingFieldsMessage }}
+                    </p>
+                </div>
+                <div class="flex justify-end gap-3 mt-4">
+                    <button wire:click="$set('showMissingFieldsModal', false)" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    <button wire:click="proceedToCompleteCustomer" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-sm">
+                        Completar Datos
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal: Completar datos del cliente -->
     @if($showCompleteCustomerModal && $editingCustomerId)
     <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-start justify-center p-4 z-[60] overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl my-8">
@@ -1973,7 +2006,11 @@
                         📋 Completar datos del cliente
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Para facturar electrónicamente necesitas completar el régimen y la responsabilidad fiscal del cliente.
+                        @if($pendingInvoiceAfterCustomerCompletion)
+                            Para facturar electrónicamente necesitas completar los datos del cliente.
+                        @else
+                            Ingresa los datos faltantes para poder crear la OP.
+                        @endif
                     </p>
                 </div>
                 <button wire:click="closeCompleteCustomerModal"
@@ -1990,7 +2027,11 @@
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                 </svg>
                 <span class="text-sm text-amber-800 dark:text-amber-200">
-                    Este cliente fue creado de forma rápida. Completa el régimen y responsabilidad fiscal para poder facturar electrónicamente. Los cambios se sincronizarán con Alegra automáticamente.
+                    @if($pendingInvoiceAfterCustomerCompletion)
+                        Este cliente fue creado de forma rápida. Completa el régimen y responsabilidad fiscal para poder facturar electrónicamente. Los cambios se sincronizarán con Alegra automáticamente.
+                    @else
+                        Asegúrate de llenar el teléfono con 10 dígitos numéricos y todos los datos obligatorios marcados con (*).
+                    @endif
                 </span>
             </div>
 

@@ -91,8 +91,10 @@ class ProductQuoter extends Component
     public $isEditingRemission = false;
     public $hasChanges = false;
 
-    // Modal para completar datos del cliente antes de facturar
+    // Modal para completar datos del cliente antes de facturar / crear OP
     public $showCompleteCustomerModal = false;
+    public $showMissingFieldsModal = false;
+    public $missingFieldsMessage = '';
     public $pendingInvoiceAfterCustomerCompletion = false; // Reanudar facturación tras completar cliente
 
     // Propiedades para modal de pagos
@@ -1870,6 +1872,10 @@ class ProductQuoter extends Component
                         'identification' => $customer->identification,
                         'billingEmail' => $customer->billingEmail,
                         'api_data_id' => $customer->api_data_id,
+                        'typeIdentificationId' => $customer->typeIdentificationId,
+                        'regimeId' => $customer->regimeId,
+                        'fiscalResponsabilityId' => $customer->fiscalResponsabilityId,
+                        'typePerson' => $customer->typePerson,
                     ]
                 );
 
@@ -2323,6 +2329,10 @@ class ProductQuoter extends Component
                         'lastName' => $company->lastName,
                         'identification' => $company->identification,
                         'billingEmail' => $company->billingEmail,
+                        'typeIdentificationId' => $company->typeIdentificationId,
+                        'regimeId' => $company->regimeId,
+                        'fiscalResponsabilityId' => $company->fiscalResponsabilityId,
+                        'typePerson' => $company->typePerson,
                     ];
                 } else {
                     // Si no hay empresa asociada, usar datos del contacto
@@ -2713,6 +2723,66 @@ class ProductQuoter extends Component
             return;
         }
 
+        // VALIDACIÓN DE CLIENTE COMPLETO PARA CREAR OP
+        $customer = $this->selectedCustomer;
+        $missingFields = [];
+
+        $identification = $customer['identification'] ?? '';
+        $typeIdentificationId = $customer['typeIdentificationId'] ?? $customer['type_identification_id'] ?? null;
+        $regimeId = $customer['regimeId'] ?? $customer['regime_id'] ?? null;
+        $fiscalResponsabilityId = $customer['fiscalResponsabilityId'] ?? $customer['fiscal_responsability_id'] ?? $customer['fiscalResponsibilityId'] ?? null;
+        $typePerson = $customer['typePerson'] ?? $customer['type_person'] ?? '';
+        $firstName = $customer['firstName'] ?? $customer['first_name'] ?? '';
+        $lastName = $customer['lastName'] ?? $customer['last_name'] ?? '';
+        $businessName = $customer['businessName'] ?? $customer['business_name'] ?? '';
+
+        if (empty($identification)) $missingFields[] = 'Identificación';
+        if (empty($typeIdentificationId)) $missingFields[] = 'Tipo de Identificación';
+        if (empty($regimeId)) $missingFields[] = 'Régimen';
+        if (empty($fiscalResponsabilityId)) $missingFields[] = 'Responsabilidad Fiscal';
+        
+        $typeId = (int) ($typeIdentificationId ?? 0);
+        
+        // Si no tiene typePerson explícito, pero tiene un tipo de identificación diferente a NIT (2), asumimos que es natural.
+        // Si no tiene ni typePerson ni typeIdentificationId, exigiremos 'Nombres o Razón Social'.
+        $isNatural = in_array($typePerson, ['Natural', 'Persona Natural', 'PERSON_ENTITY', '1']);
+        if (!$isNatural && $typeId !== 2 && $typeId !== 0) {
+            $isNatural = true;
+        }
+
+        if ($isNatural) {
+            if (empty($firstName)) $missingFields[] = 'Primer Nombre';
+            if (empty($lastName)) $missingFields[] = 'Primer Apellido';
+        } else if ($typeId === 2 || $typePerson === 'Juridica' || $typePerson === 'LEGAL_ENTITY' || $typePerson === '2') {
+            if (empty($businessName)) $missingFields[] = 'Razón Social';
+        } else {
+            // Si no sabemos qué es (porque está totalmente vacío), pedimos uno de los dos
+            if (empty($firstName) && empty($businessName)) {
+                $missingFields[] = 'Nombres o Razón Social';
+            }
+        }
+
+        $phone = $customer['phone'] ?? '';
+        $isPhoneValid = preg_match('/^3[0-9]{9}$/', trim($phone));
+
+        if (count($missingFields) > 0 || !$isPhoneValid) {
+            \Illuminate\Support\Facades\Log::info('⚠️ Cliente incompleto o sin celular válido - solicitando completar datos antes de crear OP', [
+                'customer_id' => $customer['id'] ?? null,
+                'missing_fields' => $missingFields,
+                'phone_valid' => $isPhoneValid
+            ]);
+            
+            $msg = count($missingFields) > 0 
+                ? 'Faltan datos obligatorios del cliente: ' . implode(', ', $missingFields) . '. ' 
+                : '';
+            $msg .= !$isPhoneValid ? 'El teléfono principal debe ser un celular de 10 dígitos numéricos.' : '';
+            
+            $this->missingFieldsMessage = trim($msg);
+            $this->showMissingFieldsModal = true;
+            $this->editingCustomerId = $customer['id'];
+            return;
+        }
+
         $totalConFlete = round(floatval($this->totalAmount));
         $totalConFlete = round($totalConFlete);
 
@@ -2738,6 +2808,12 @@ class ProductQuoter extends Component
 
         // Mostrar modal de selección de tipo de entrega
         $this->showDeliveryModal = true;
+    }
+
+    public function proceedToCompleteCustomer()
+    {
+        $this->showMissingFieldsModal = false;
+        $this->showCompleteCustomerModal = true;
     }
 
     public function addAdditionalPayment()
@@ -3007,10 +3083,20 @@ class ProductQuoter extends Component
         if (empty(trim($this->deliveryPhone))) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'El número de teléfono del cliente/sucursal es requerido para crear la OP.'
+                'message' => 'El número de teléfono de la sucursal es requerido para crear la OP.'
             ]);
             return;
         }
+
+        $cleanPhone = preg_replace('/[^0-9]/', '', trim($this->deliveryPhone));
+        if (strlen($cleanPhone) !== 10) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'El teléfono de envío de la sucursal debe ser un número celular válido de exactamente 10 dígitos numéricos.'
+            ]);
+            return;
+        }
+        $this->deliveryPhone = $cleanPhone;
 
         // Si el teléfono ingresado es válido y difiere de lo que tenemos guardado, lo actualizamos en la base de datos
         if ($this->selectedBranchId) {
