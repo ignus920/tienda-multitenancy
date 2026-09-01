@@ -5,12 +5,32 @@ namespace App\Livewire\Tenant\Warranties;
 use App\Models\Tenant\Sales\VntChatbotWarrantyRequest;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Auth\Tenant;
+use App\Services\Tenant\TenantManager;
 
 class ChatbotRequestsList extends Component
 {
     use WithPagination;
 
     public $search = '';
+
+    public function boot()
+    {
+        $this->ensureTenantConnection();
+    }
+
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+        if (!$tenantId) return;
+
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant) return;
+
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+        tenancy()->initialize($tenant);
+    }
 
     public function updatingSearch()
     {
@@ -32,6 +52,6 @@ class ChatbotRequestsList extends Component
 
         return view('livewire.tenant.warranties.chatbot-requests-list', [
             'requests' => $requests
-        ])->layout('layouts.tenant');
+        ])->layout('layouts.app');
     }
 }
