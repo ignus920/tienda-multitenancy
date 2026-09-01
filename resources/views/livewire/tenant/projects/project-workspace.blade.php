@@ -90,19 +90,31 @@
                 <div class="space-y-4 text-xs">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="text-gray-400 block">Descripción inicial:</span>
-                            @if(auth()->id() === $project->created_by && !$isEditingDescription)
+                            <span class="text-gray-400 block">Información del proyecto:</span>
+                            @if(auth()->id() === $project->created_by && !in_array($project->status, ['terminado', 'cerrado_entregado']) && !$isEditingDescription)
                                 <button wire:click="editDescription" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center gap-1">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                     Editar
+                                </button>
+                                <button wire:click="$set('showEditHistoryModal', true)" class="ml-2 text-emerald-600 hover:text-emerald-800 text-xs flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    Historial
                                 </button>
                             @endif
                         </div>
                         
                         @if($isEditingDescription)
-                            <div class="mt-2">
-                                <textarea wire:model="editDescriptionText" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="4"></textarea>
-                                @error('editDescriptionText') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <div class="mt-2 space-y-2">
+                                <div>
+                                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Título</label>
+                                    <input type="text" wire:model="editTitleText" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    @error('editTitleText') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Descripción</label>
+                                    <textarea wire:model="editDescriptionText" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="4"></textarea>
+                                    @error('editDescriptionText') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
                                 <div class="flex gap-2 mt-2">
                                     <button wire:click="saveDescription" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-sm transition-colors">Guardar</button>
                                     <button wire:click="cancelEditDescription" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded shadow-sm transition-colors">Cancelar</button>
@@ -110,6 +122,19 @@
                             </div>
                         @else
                             <p class="text-gray-700 dark:text-gray-300 font-medium whitespace-pre-wrap mt-0.5">{{ $project->description }}</p>
+                        @endif
+
+                        @if($project->type === 'internal')
+                            <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                <div>
+                                    <span class="text-gray-400 block text-[10px] uppercase">Fecha Solicitada:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : 'No establecida' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block text-[10px] uppercase">Fecha Sugerida (Área):</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ $project->suggested_delivery_date ? $project->suggested_delivery_date->format('d/m/Y') : 'Pendiente' }}</span>
+                                </div>
+                            </div>
                         @endif
                     </div>
 
@@ -546,7 +571,7 @@
 
                                 <!-- Hora -->
                                 <div class="flex items-center justify-end gap-1.5 mt-1 text-[10px] text-gray-400">
-                                    <span>{{ $msg->created_at->format('h:i a') }}</span>
+                                    <span>{{ $msg->created_at->format('d M, Y h:i a') }}</span>
                                     @if($isMe)
                                         <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
@@ -1003,8 +1028,8 @@
                 </div>
                 <div>
                     <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha de Terminación *</label>
-                    <input wire:model="completion_date" type="date"
-                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    <input wire:model="completion_date" type="date" readonly disabled
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded px-2.5 py-1.5 text-xs cursor-not-allowed focus:outline-none">
                     @error('completion_date') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                 </div>
                 <div>
@@ -1034,8 +1059,8 @@
             <div class="p-6 space-y-4">
                 <div>
                     <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Fecha Real de Entrega *</label>
-                    <input wire:model="real_delivery_date" type="date"
-                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    <input wire:model="real_delivery_date" type="date" readonly disabled
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded px-2.5 py-1.5 text-xs cursor-not-allowed focus:outline-none">
                     @error('real_delivery_date') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                 </div>
                 <div>
@@ -1282,6 +1307,108 @@
                     <button wire:click="$set('showCompleteTaskModal', false)" class="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
                     <button wire:click="completeTask" class="px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">Marcar como Completada</button>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+    <!-- Modal de Historial de Edición -->
+    @if($showEditHistoryModal)
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-900/75 dark:bg-black/80 backdrop-blur-sm transition-opacity" wire:click="$set('showEditHistoryModal', false)"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center shrink-0">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Historial de Cambios
+                </h3>
+                <button wire:click="$set('showEditHistoryModal', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900 flex-1">
+                @if($project->editHistories && $project->editHistories->count() > 0)
+                    <div class="space-y-6">
+                        @foreach($project->editHistories as $history)
+                            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm relative">
+                                
+                                <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                                    <div>
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white">{{ $history->user->name ?? 'Usuario' }}</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 block mt-0.5">Realizó cambios en la información del proyecto</span>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    @if($history->old_title || $history->new_title)
+                                        <div>
+                                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Cambio de Título</h4>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div class="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 rounded-lg p-3 flex flex-col justify-between">
+                                                    <div>
+                                                        <span class="text-xs font-bold text-red-600 dark:text-red-400 block mb-1">Antes:</span>
+                                                        <p class="text-sm text-gray-800 dark:text-gray-200 opacity-80">{{ $history->old_title }}</p>
+                                                    </div>
+                                                    <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400 text-right font-medium">
+                                                        {{ $history->created_at->format('d M, Y h:i A') }}
+                                                    </div>
+                                                </div>
+                                                <div class="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-lg p-3 flex flex-col justify-between">
+                                                    <div>
+                                                        <span class="text-xs font-bold text-green-600 dark:text-green-400 block mb-1">Después:</span>
+                                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium">{{ $history->new_title }}</p>
+                                                    </div>
+                                                    <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400 text-right font-medium">
+                                                        {{ $history->created_at->format('d M, Y h:i A') }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if($history->old_description || $history->new_description)
+                                        <div>
+                                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Cambio de Descripción</h4>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div class="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 rounded-lg p-3 flex flex-col justify-between">
+                                                    <div>
+                                                        <span class="text-xs font-bold text-red-600 dark:text-red-400 block mb-1">Antes:</span>
+                                                        <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap opacity-80">{{ $history->old_description }}</p>
+                                                    </div>
+                                                    <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400 text-right font-medium">
+                                                        {{ $history->created_at->format('d M, Y h:i A') }}
+                                                    </div>
+                                                </div>
+                                                <div class="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-lg p-3 flex flex-col justify-between">
+                                                    <div>
+                                                        <span class="text-xs font-bold text-green-600 dark:text-green-400 block mb-1">Después:</span>
+                                                        <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-medium">{{ $history->new_description }}</p>
+                                                    </div>
+                                                    <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400 text-right font-medium">
+                                                        {{ $history->created_at->format('d M, Y h:i A') }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-10">
+                        <svg class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <p class="text-gray-500 dark:text-gray-400 font-medium text-sm">No hay registros de cambios en la información de este proyecto.</p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end shrink-0">
+                <button wire:click="$set('showEditHistoryModal', false)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-bold rounded-lg shadow-sm transition-colors">
+                    Cerrar
+                </button>
             </div>
         </div>
     </div>

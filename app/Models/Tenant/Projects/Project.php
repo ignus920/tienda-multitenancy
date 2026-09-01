@@ -105,6 +105,11 @@ class Project extends Model
         return $this->hasMany(ProjectOrder::class, 'project_id');
     }
 
+    public function editHistories()
+    {
+        return $this->hasMany(ProjectEditHistory::class, 'project_id')->orderBy('created_at', 'desc');
+    }
+
     public function getVencimientoStatusAttribute()
     {
         if ($this->type !== 'internal') {
