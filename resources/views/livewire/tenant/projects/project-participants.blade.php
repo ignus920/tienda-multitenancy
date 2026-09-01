@@ -1,6 +1,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-6">
     <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Participantes del Proyecto</h2>
 
+    @if(!$isClosed)
     <!-- Agregar participante -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Agregar participante</span>
@@ -18,6 +19,7 @@
             </button>
         </div>
     </div>
+    @endif
 
     <!-- Lista de participantes actuales -->
     <div class="space-y-2">
@@ -32,10 +34,12 @@
                         <p class="text-2xs text-gray-400">{{ $participant->role }}</p>
                     </div>
                 </div>
+                @if(!$isClosed)
                 <button wire:click="removeParticipant({{ $participant->id }})" wire:confirm="¿Quitar a {{ $participant->user->name ?? 'este usuario' }} del proyecto?"
                     class="text-2xs font-semibold text-red-500 hover:text-red-600">
                     Quitar
                 </button>
+                @endif
             </div>
         @empty
             <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-6">Aún no hay participantes en este proyecto.</p>

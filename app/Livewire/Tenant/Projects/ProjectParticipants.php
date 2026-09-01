@@ -43,9 +43,20 @@ class ProjectParticipants extends Component
         config(['database.connections.tenant.database' => $tenant->tenancy_db_name]);
     }
 
+    private function checkNotClosed()
+    {
+        $project = Project::find($this->projectId);
+        if ($project && in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El proyecto está finalizado. No se permiten más modificaciones.']);
+            return true;
+        }
+        return false;
+    }
+
     public function addParticipant()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
 
         if (!$this->selectedUserId) {
             return;
@@ -68,6 +79,7 @@ class ProjectParticipants extends Component
     public function removeParticipant($participantId)
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
 
         $participant = ProjectParticipant::findOrFail($participantId);
         $project = Project::findOrFail($this->projectId);
@@ -105,9 +117,13 @@ class ProjectParticipants extends Component
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $project = Project::find($this->projectId);
+        $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
+
         return view('livewire.tenant.projects.project-participants', [
             'participants' => $participants,
-            'availableUsers' => $availableUsers
+            'availableUsers' => $availableUsers,
+            'isClosed' => $isClosed
         ]);
     }
 }
