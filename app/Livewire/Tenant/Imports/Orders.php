@@ -1332,7 +1332,8 @@ class Orders extends Component
                 // Caso A: Cantidad ingresada es cero - regresa el ítem completo a Producción (status 5)
                 $import->update([
                     'packing_id' => null,
-                    'status' => 5
+                    'status' => 5,
+                    'qty_shipped' => null
                 ]);
 
                 ImpStatusHistory::create([
@@ -1352,7 +1353,8 @@ class Orders extends Component
                 $remainingQty = $qtyRequested - $newQty;
 
                 $import->update([
-                    'qty_requested' => $newQty
+                    'qty_requested' => $newQty,
+                    'qty_shipped' => $newQty
                 ]);
 
                 // Buscar si el producto ya tiene un registro en Producción (status 5 sin packing asignado)
@@ -1406,7 +1408,8 @@ class Orders extends Component
             } elseif ($newQty > $qtyRequested) {
                 // Caso C: Cantidad superior - solo actualiza cantidad
                 $import->update([
-                    'qty_requested' => $newQty
+                    'qty_requested' => $newQty,
+                    'qty_shipped' => $newQty
                 ]);
 
                 $this->dispatch('show-toast', [
