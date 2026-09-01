@@ -1,4 +1,4 @@
-<div class="p-6 bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors">
+<div x-data="{ previewMediaUrl: null, previewMediaType: null }" class="p-6 bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors">
     <!-- Header Card -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -193,11 +193,11 @@
                             <div class="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
                                 <div class="flex items-center gap-2 overflow-hidden">
                                     @if($isVideo)
-                                        <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                                        <div @click="previewMediaUrl = '{{ $url }}'; previewMediaType = 'video'" class="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-bold cursor-pointer hover:bg-emerald-200 transition-colors">
                                             Vid
                                         </div>
                                     @else
-                                        <img src="{{ $url }}" class="w-10 h-10 object-cover rounded-lg">
+                                        <img @click="previewMediaUrl = '{{ $url }}'; previewMediaType = 'image'" src="{{ $url }}" class="w-10 h-10 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity">
                                     @endif
                                     <div class="text-xs truncate max-w-[200px] text-emerald-800 dark:text-emerald-400 font-medium flex flex-col">
                                         <span>Archivo de WhatsApp</span>
@@ -217,11 +217,11 @@
                         <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-2 rounded-xl border border-gray-100 dark:border-gray-700">
                             <div class="flex items-center gap-2 overflow-hidden">
                                 @if(in_array(strtolower($file->getClientOriginalExtension()), ['mp4', 'mov', 'avi', '3gp', 'webm']))
-                                    <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xs font-bold">
+                                    <div @click="previewMediaUrl = '{{ $file->temporaryUrl() }}'; previewMediaType = 'video'" class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xs font-bold cursor-pointer hover:bg-indigo-200 transition-colors">
                                         Vid
                                     </div>
                                 @else
-                                    <img src="{{ $file->temporaryUrl() }}" class="w-10 h-10 object-cover rounded-lg">
+                                    <img @click="previewMediaUrl = '{{ $file->temporaryUrl() }}'; previewMediaType = 'image'" src="{{ $file->temporaryUrl() }}" class="w-10 h-10 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity">
                                 @endif
                                 <div class="text-xs truncate max-w-[200px] text-gray-800 dark:text-gray-200">
                                     {{ $file->getClientOriginalName() }}
@@ -250,4 +250,22 @@
         </div>
     </div>
     @endif
+
+    <!-- Lightbox Pop-out -->
+    <div x-show="previewMediaUrl" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm transition-opacity">
+        <button type="button" @click="previewMediaUrl = null; previewMediaType = null" class="absolute top-6 right-6 text-white hover:text-red-400 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <div class="relative w-full max-w-5xl max-h-[85vh] flex items-center justify-center p-4">
+            <template x-if="previewMediaType === 'video'">
+                <video :src="previewMediaUrl" controls autoplay class="max-w-full max-h-full rounded-xl shadow-2xl object-contain border border-white/20"></video>
+            </template>
+            <template x-if="previewMediaType === 'image'">
+                <img :src="previewMediaUrl" class="max-w-full max-h-full rounded-xl shadow-2xl object-contain border border-white/20" />
+            </template>
+        </div>
+    </div>
 </div>
