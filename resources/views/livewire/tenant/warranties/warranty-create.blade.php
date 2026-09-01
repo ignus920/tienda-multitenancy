@@ -200,7 +200,7 @@
                                         <img @click="previewMediaUrl = '{{ $url }}'; previewMediaType = 'image'" src="{{ $url }}" class="w-10 h-10 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity">
                                     @endif
                                     <div class="text-xs truncate max-w-[200px] text-emerald-800 dark:text-emerald-400 font-medium flex flex-col">
-                                        <span>Archivo de WhatsApp</span>
+                                        <span>Archivo adjunto por el cliente</span>
                                         <span class="text-[9px] opacity-70">Detectado automáticamente</span>
                                     </div>
                                 </div>
