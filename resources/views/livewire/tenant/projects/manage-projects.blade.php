@@ -171,25 +171,40 @@
                         <div>
                             <!-- Header de la tarjeta -->
                             <div class="flex items-start justify-between gap-2 mb-2">
-                                <span class="px-2 py-0.5 text-2xs font-bold rounded-full {{ $statusColors[$project->status] ?? 'bg-gray-50' }}">
-                                    {{ $statusNames[$project->status] ?? $project->status }}
-                                </span>
-                                @if($project->vencimiento_status === 'vencido')
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-red-600 text-white" title="Fecha de entrega vencida">
-                                        Vencido
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="px-2 py-0.5 text-2xs font-bold rounded-full {{ $statusColors[$project->status] ?? 'bg-gray-50' }}">
+                                        {{ $statusNames[$project->status] ?? $project->status }}
                                     </span>
-                                @elseif($project->vencimiento_status === 'proximo_vencer')
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-amber-500 text-white" title="Próximo a vencer">
-                                        Próximo a vencer
-                                    </span>
-                                @endif
-                                @if($project->questions_count > 0)
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-semibold bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400" title="Tiene preguntas pendientes para el cliente">
-                                        <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        {{ $project->questions_count }}
-                                    </span>
+                                    @if($project->vencimiento_status === 'vencido')
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-red-600 text-white" title="Fecha de entrega vencida">
+                                            Vencido
+                                        </span>
+                                    @elseif($project->vencimiento_status === 'proximo_vencer')
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-amber-500 text-white" title="Próximo a vencer">
+                                            Próximo a vencer
+                                        </span>
+                                    @endif
+                                    @if($project->questions_count > 0)
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-semibold bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400" title="Tiene preguntas pendientes para el cliente">
+                                            <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            {{ $project->questions_count }}
+                                        </span>
+                                    @endif
+                                </div>
+                                
+                                @if($project->type === 'internal')
+                                <div class="flex items-center gap-3 text-[9px] text-right shrink-0">
+                                    <div>
+                                        <span class="text-gray-400 block font-bold uppercase leading-none mb-0.5">F. Solicitada</span>
+                                        <span class="text-gray-900 dark:text-gray-200 font-semibold leading-none">{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : '-' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 block font-bold uppercase leading-none mb-0.5">F. Sugerida</span>
+                                        <span class="text-gray-900 dark:text-gray-200 font-semibold leading-none">{{ $project->suggested_delivery_date ? $project->suggested_delivery_date->format('d/m/Y') : '-' }}</span>
+                                    </div>
+                                </div>
                                 @endif
                             </div>
 
@@ -208,18 +223,6 @@
                                 {{ $project->description }}
                             </p>
 
-                            @if($project->type === 'internal')
-                            <div class="mt-2 mb-2 grid grid-cols-2 gap-2 text-[10px] bg-gray-50 dark:bg-gray-750 p-2 rounded-lg border border-gray-100 dark:border-gray-700">
-                                <div>
-                                    <span class="text-gray-400 block font-bold uppercase">F. Solicitada</span>
-                                    <span class="text-gray-900 dark:text-gray-200 font-semibold">{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : '-' }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-400 block font-bold uppercase">F. Sugerida</span>
-                                    <span class="text-gray-900 dark:text-gray-200 font-semibold">{{ $project->suggested_delivery_date ? $project->suggested_delivery_date->format('d/m/Y') : '-' }}</span>
-                                </div>
-                            </div>
-                            @endif
                         </div>
 
                         <!-- Footer de la tarjeta -->
