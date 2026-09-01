@@ -168,8 +168,35 @@
                                         </div>
 
                                         <div>
-                                            <label class="block text-xs font-semibold text-gray-500 mb-1">Resolución / Solución Definitiva (*)</label>
-                                            <textarea wire:model="adminSolution" placeholder="Escriba la solución para el cliente..." 
+                                            <label class="block text-xs font-semibold text-gray-500 mb-1">Concepto de Gerencia (*)</label>
+                                            <select wire:model.live="resolutionType" class="w-full text-xs border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-gray-900 focus:ring-indigo-500 mb-2">
+                                                <option value="">Seleccione una resolución...</option>
+                                                <option value="Mal uso (Garantía denegada)">Mal uso (Garantía denegada)</option>
+                                                <option value="Defecto de fábrica">Defecto de fábrica</option>
+                                                <option value="Generar cobro al cliente">Generar cobro al cliente</option>
+                                                <option value="Reponer por garantía">Reponer por garantía</option>
+                                            </select>
+                                            @error('resolutionType') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Alerta Dinámica -->
+                                        @if($resolutionType === 'Defecto de fábrica')
+                                        <div class="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 text-xs text-indigo-700 dark:text-indigo-400">
+                                            <strong>¡Atención!</strong> Al guardar, se creará un Ticket de Proveedor automático con todas las evidencias adjuntas.
+                                        </div>
+                                        @elseif($resolutionType === 'Generar cobro al cliente')
+                                        <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs text-yellow-700 dark:text-yellow-500">
+                                            Se notificará al área encargada para que proceda a realizar el cobro al cliente.
+                                        </div>
+                                        @elseif($resolutionType === 'Reponer por garantía')
+                                        <div class="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 text-xs text-emerald-700 dark:text-emerald-500">
+                                            Se generará la orden para reposición del artículo o saldo a favor.
+                                        </div>
+                                        @endif
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-500 mb-1">Comentario detallado de la solución (*)</label>
+                                            <textarea wire:model="adminSolution" placeholder="Escriba los detalles de la solución o mensaje para el cliente..." 
                                                       class="w-full text-xs border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-gray-900 focus:ring-indigo-500 h-20" required></textarea>
                                         </div>
 

@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Warranties;
 
 use App\Models\Tenant\Sales\VntWarranty;
 use App\Models\Tenant\Sales\VntWarrantyItem;
+use App\Models\Tenant\Tickets\TickRequest;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use App\Models\Auth\Tenant;
@@ -16,6 +17,7 @@ class WarrantyDetailModal extends Component
     protected $warranty;
 
     // Campos de interacción
+    public $resolutionType = '';
     public $adminConcept = '';
     public $adminSolution = '';
     
@@ -87,23 +89,56 @@ class WarrantyDetailModal extends Component
     public function resolveDefinitively()
     {
         $this->validate([
+            'resolutionType' => 'required|string',
             'adminSolution' => 'required|string|min:5'
         ]);
 
         try {
             $this->ensureTenantConnection();
             $this->loadWarrantyIfNeeded();
+            
+            DB::connection('tenant')->beginTransaction();
+
+            // Formar el concepto final uniendo la decisión con el comentario interno
+            $finalConcept = $this->resolutionType . ' - ' . ($this->adminConcept ?: 'Resuelto');
+
             $this->warranty->update([
-                'admin_concept' => $this->adminConcept ?: 'Caso resuelto directamente.',
+                'admin_concept' => $finalConcept,
                 'admin_solution' => $this->adminSolution,
                 'status' => 4, // Resuelto
                 'resolved_at' => now()
             ]);
 
+            // Si es defecto de fábrica, automatizar la creación del Ticket al Proveedor
+            if ($this->resolutionType === 'Defecto de fábrica') {
+                foreach ($this->warranty->items as $item) {
+                    // Recopilar evidencias si las hay para el ticket
+                    $evidencesText = '';
+                    if ($item->evidences && $item->evidences->count() > 0) {
+                        $evidencesText = "\nAdjuntos/Evidencias:\n";
+                        foreach ($item->evidences as $ev) {
+                            $evidencesText .= "- " . $ev->file_url . "\n";
+                        }
+                    }
+
+                    TickRequest::create([
+                        'department_id' => 1, // Departamento por defecto
+                        'status_id' => 1, // Nuevo
+                        'product_id' => $item->item_id,
+                        'supplier_id' => null, // Se puede asignar luego en el módulo de Tickets
+                        'created_by' => auth()->id(),
+                        'detail' => "Ticket automático desde Garantía #{$this->warranty->consecutive}.\nFalla reportada: {$item->failure}\nNota Gerencia: {$this->adminSolution}{$evidencesText}"
+                    ]);
+                }
+            }
+
+            DB::connection('tenant')->commit();
+
             $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Garantía resuelta y cerrada con éxito.']);
             $this->dispatch('refreshWarranties');
             $this->close();
         } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
