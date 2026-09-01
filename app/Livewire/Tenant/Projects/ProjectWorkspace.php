@@ -14,6 +14,7 @@ use App\Models\Tenant\Projects\ProjectQuestion;
 use App\Models\Tenant\Projects\ProjectAdvance;
 use App\Models\Tenant\Projects\ProjectStatusHistory;
 use App\Models\Tenant\Projects\ProjectFile;
+use App\Models\Tenant\Projects\ProjectEditHistory;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Projects\ProjectTask;
@@ -104,9 +105,11 @@ class ProjectWorkspace extends Component
     public $completingTaskId = null;
     public $completeNote = '';
 
-    // Edición de Descripción
+    // Edición de Información del Proyecto
     public $isEditingDescription = false;
     public $editDescriptionText = '';
+    public $editTitleText = '';
+    public $showEditHistoryModal = false;
 
     #[On('echo-private:project.{projectId},.NewProjectMessage')]
     public function refreshChat()
@@ -893,10 +896,11 @@ class ProjectWorkspace extends Component
         $project = Project::findOrFail($this->projectId);
         
         if (auth()->id() !== $project->created_by) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la descripción.']);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la información.']);
             return;
         }
 
+        $this->editTitleText = $project->title;
         $this->editDescriptionText = $project->description;
         $this->isEditingDescription = true;
     }
@@ -907,20 +911,39 @@ class ProjectWorkspace extends Component
         $project = Project::findOrFail($this->projectId);
         
         if (auth()->id() !== $project->created_by) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la descripción.']);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la información.']);
             return;
         }
 
         $this->validate([
+            'editTitleText' => 'required|string|max:255',
             'editDescriptionText' => 'required|string',
         ]);
 
-        $project->update([
-            'description' => $this->editDescriptionText
-        ]);
+        $titleChanged = $project->title !== $this->editTitleText;
+        $descChanged = $project->description !== $this->editDescriptionText;
+
+        if ($titleChanged || $descChanged) {
+            ProjectEditHistory::create([
+                'project_id' => $project->id,
+                'user_id' => auth()->id(),
+                'old_title' => $titleChanged ? $project->title : null,
+                'new_title' => $titleChanged ? $this->editTitleText : null,
+                'old_description' => $descChanged ? $project->description : null,
+                'new_description' => $descChanged ? $this->editDescriptionText : null,
+            ]);
+
+            $project->update([
+                'title' => $this->editTitleText,
+                'description' => $this->editDescriptionText
+            ]);
+            
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Información actualizada exitosamente']);
+        } else {
+            $this->dispatch('show-toast', ['type' => 'info', 'message' => 'No se detectaron cambios']);
+        }
 
         $this->isEditingDescription = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Descripción actualizada exitosamente']);
     }
 
     public function cancelEditDescription()
