@@ -5,10 +5,26 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Proyectos de Iluminación</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Gestiona tus cotizaciones, órdenes de producción y comunicación técnica desde un solo lugar.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+            <!-- Filtro por tipo de proyecto -->
+            <div class="hidden sm:flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs font-semibold mr-2 border border-gray-200 dark:border-gray-700">
+                <button wire:click="$set('projectTypeFilter', '')" 
+                    class="px-3 py-1.5 rounded-md transition-colors {{ $projectTypeFilter === '' ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Todos
+                </button>
+                <button wire:click="$set('projectTypeFilter', 'internal')" 
+                    class="px-3 py-1.5 rounded-md transition-colors {{ $projectTypeFilter === 'internal' ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Internos
+                </button>
+                <button wire:click="$set('projectTypeFilter', 'external')" 
+                    class="px-3 py-1.5 rounded-md transition-colors {{ $projectTypeFilter === 'external' ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Externos
+                </button>
+            </div>
+
             <!-- Botón Crear Proyecto -->
             <button wire:click="openCreateModal"
-                class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg shadow transition-colors">
+                class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg shadow transition-colors shrink-0">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
