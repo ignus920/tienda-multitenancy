@@ -455,17 +455,31 @@ class Invoices extends Component
                 ->get();
 
             if ($validInvoices->isEmpty()) {
-        } catch (\Exception $e) {
-            Log::error('❌ Error emitiendo facturas masivamente', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+                return ['success' => 0, 'fails' => count($chunkIds), 'error' => 'No hay facturas válidas'];
+            }
 
-            $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'Error al emitir masivamente: ' . $e->getMessage()
-            ]);
+            $apiDataIds = $validInvoices->pluck('api_data_id')->toArray();
+            $stampResponse = $facturacionService->stampInvoicesMassive($apiDataIds);
+
+            if (isset($stampResponse['success']) && $stampResponse['success'] === false) {
+                return ['success' => 0, 'fails' => count($apiDataIds)];
+            }
+
+            foreach ($validInvoices as $invoice) {
+                $invoice->update(['status' => 'EN PROCESO DIAN']);
+            }
+
+            return ['success' => count($apiDataIds), 'fails' => count($chunkIds) - count($apiDataIds)];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error emitiendo chunk masivo', ['error' => $e->getMessage()]);
+            return ['success' => 0, 'fails' => count($chunkIds), 'error' => $e->getMessage()];
         }
+    }
+
+    public function clearSelection()
+    {
+        $this->selectedInvoices = [];
     }
 
     public function printInvoice($invoiceId)
