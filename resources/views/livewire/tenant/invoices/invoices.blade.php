@@ -65,20 +65,73 @@
                     <span wire:loading.remove wire:target="exportToExcel">Excel</span>
                     <span wire:loading wire:target="exportToExcel">Exportando...</span>
                 </button>
-                <button wire:click="emitirFacturasMasivamente" wire:loading.attr="disabled" title="Emitir Facturas Seleccionadas"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm whitespace-nowrap">
-                    <svg wire:loading.remove wire:target="emitirFacturasMasivamente" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <svg wire:loading wire:target="emitirFacturasMasivamente" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span wire:loading.remove wire:target="emitirFacturasMasivamente">
-                        Emitir Masivo @if(count($selectedInvoices) > 0) ({{ count($selectedInvoices) }}) @endif
-                    </span>
-                    <span wire:loading wire:target="emitirFacturasMasivamente">Emitiendo...</span>
-                </button>
+                <div x-data="{
+                    async emitir() {
+                        let selected = $wire.selectedInvoices;
+                        if (!selected || selected.length === 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Atención',
+                                text: 'Por favor, selecciona al menos una factura para emitir.'
+                            });
+                            return;
+                        }
+
+                        let chunks = [];
+                        for (let i = 0; i < selected.length; i += 10) {
+                            chunks.push(selected.slice(i, i + 10));
+                        }
+
+                        let total = selected.length;
+                        let processed = 0;
+                        let successTotal = 0;
+                        let failTotal = 0;
+
+                        Swal.fire({
+                            title: 'Enviando facturas a la DIAN',
+                            html: `
+                                <div class=\'mb-2 text-sm text-gray-600 dark:text-gray-400\' id=\'swal-progress-text\'>Procesando 0 de ${total} facturas</div>
+                                <div class=\'w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700\'>
+                                    <div class=\'bg-indigo-600 h-3 rounded-full transition-all duration-300\' style=\'width: 0%\' id=\'swal-progress-bar\'></div>
+                                </div>
+                            `,
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            didOpen: async () => {
+                                for (let chunk of chunks) {
+                                    let result = await $wire.processEmitChunk(chunk);
+                                    successTotal += result.success || 0;
+                                    failTotal += result.fails || 0;
+                                    processed += chunk.length;
+
+                                    let percent = Math.round((processed / total) * 100);
+                                    document.getElementById('swal-progress-bar').style.width = percent + '%';
+                                    document.getElementById('swal-progress-text').innerText = `Procesando ${processed} de ${total} facturas`;
+                                }
+
+                                await $wire.clearSelection();
+
+                                setTimeout(() => {
+                                    Swal.fire({
+                                        title: 'Proceso finalizado',
+                                        html: `Se enviaron <b>${successTotal}</b> facturas a procesar.<br> ${failTotal > 0 ? `<span class=\'text-red-500\'><b>${failTotal}</b> fallaron o no eran válidas.</span>` : ''}`,
+                                        icon: failTotal > 0 ? 'warning' : 'success'
+                                    });
+                                }, 500);
+                            }
+                        });
+                    }
+                }">
+                    <button @click="emitir" title="Emitir Facturas Seleccionadas"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>
+                            Emitir Masivo @if(count($selectedInvoices) > 0) ({{ count($selectedInvoices) }}) @endif
+                        </span>
+                    </button>
+                </div>
             </div>
 
             <!-- Mostrar -->
@@ -267,7 +320,8 @@
                                     @if($invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                                     @elseif($invoice->status === 'ANULADO') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
                                     @elseif($invoice->status === 'SIN EMITIR') bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
-                                    @else bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @endif">
+                                    @elseif($invoice->status === 'EN PROCESO DIAN') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 animate-pulse
+                                    @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
                                     {{ $invoice->status }}
                                 </span>
                             </td>
