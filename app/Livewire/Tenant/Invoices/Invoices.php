@@ -438,110 +438,76 @@ class Invoices extends Component
      * Utiliza el api_data_id para obtener el PDF oficial de Alegra.
      */
 
-
-    public function emitirFacturasMasivamente()
+    public function processEmitChunk(array $chunkIds)
     {
-        $this->ensureTenantConnection();
-
-        if (empty($this->selectedInvoices)) {
-            $this->dispatch('show-toast', [
-                'type' => 'warning',
-                'message' => 'No hay facturas seleccionadas.'
-            ]);
-            return;
-        }
-
         try {
-            // Obtener configuración del tenant
             $tenant = session('tenant_id') ? Tenant::find(session('tenant_id')) : null;
-            if (!$tenant) {
-                throw new \Exception('No se pudo identificar el tenant');
-            }
-
-            if (!TenantConfigManager::hasFacturacionConfig($tenant)) {
-                throw new \Exception('No hay configuración de facturación para este tenant');
+            if (!$tenant || !TenantConfigManager::hasFacturacionConfig($tenant)) {
+                return ['success' => 0, 'fails' => count($chunkIds), 'error' => 'Sin configuración'];
             }
 
             $facturacionService = FacturacionService::forTenant($tenant);
 
-            // Obtener las facturas válidas (SIN EMITIR y con api_data_id)
-            $validInvoices = VntInvoices::whereIn('id', $this->selectedInvoices)
+            $validInvoices = VntInvoices::whereIn('id', $chunkIds)
                 ->where('status', 'SIN EMITIR')
                 ->whereNotNull('api_data_id')
                 ->where('api_data_id', '!=', '')
                 ->get();
 
             if ($validInvoices->isEmpty()) {
-                $this->dispatch('show-toast', [
-                    'type' => 'error',
-                    'message' => 'Las facturas seleccionadas ya están emitidas o no tienen ID de Alegra válido.'
-                ]);
-                return;
+                return ['success' => 0, 'fails' => count($chunkIds), 'error' => 'No hay facturas válidas'];
             }
 
-            $successCount = 0;
-            $failCount = 0;
+            $apiDataIds = $validInvoices->pluck('api_data_id')->toArray();
+            $stampResponse = $facturacionService->stampInvoicesMassive($apiDataIds);
 
-            // Procesar en lotes de 10 como indica la API de Alegra
-            $chunks = $validInvoices->chunk(10);
-
-            foreach ($chunks as $chunk) {
-                $apiDataIds = $chunk->pluck('api_data_id')->toArray();
+            if (isset($stampResponse['success']) && $stampResponse['success'] === false) {
+                // Fallback curativo unificado: revisar si ya están emitidas en Alegra (Auto-sync)
+                // Se hace siempre que hay un error (timeout, duplicado, etc.)
+                $actuallySuccess = 0;
+                foreach ($validInvoices as $invoice) {
+                    try {
+                        $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
+                        $realStatus = $alegraStatus['data']['data']['status'] ?? $alegraStatus['data']['status'] ?? null;
+                        
+                        if ($realStatus === 'open' || $realStatus === 'stamped') {
+                            $invoice->update(['status' => 'FACTURADO']);
+                            if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
+                                $this->updateRelatedQuotesToFacturado($invoice);
+                            }
+                            $actuallySuccess++;
+                        }
+                    } catch (\Exception $ex) {
+                        // Ignorar y continuar
+                    }
+                }
                 
-                Log::info('📤 Intentando emitir facturas masivamente', [
-                    'count' => count($apiDataIds),
-                    'ids' => $apiDataIds
-                ]);
-
-                $stampResponse = $facturacionService->stampInvoicesMassive($apiDataIds);
-
-                // Si no tiene éxito general
-                if (isset($stampResponse['success']) && $stampResponse['success'] === false) {
-                    $errorMessage = $this->extractStampErrorMessage($stampResponse);
-                    Log::error('❌ Error emitiendo lote masivo', ['error' => $errorMessage]);
-                    $failCount += count($apiDataIds);
-                    continue; // Continuar con el siguiente lote si hay más
+                if ($actuallySuccess > 0) {
+                    return ['success' => $actuallySuccess, 'fails' => count($apiDataIds) - $actuallySuccess];
                 }
 
-                // Asumimos éxito para el lote
-                foreach ($chunk as $invoice) {
-                    $invoice->update(['status' => 'FACTURADO']);
+                return ['success' => 0, 'fails' => count($apiDataIds)];
+            }
+
+            // Si llegamos aquí es porque fue éxito rotundo directo de Alegra
+            foreach ($validInvoices as $invoice) {
+                $invoice->update(['status' => 'FACTURADO']);
+                if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
                     $this->updateRelatedQuotesToFacturado($invoice);
-                    $successCount++;
                 }
             }
 
-            // Limpiar selección
-            $this->selectedInvoices = [];
-
-            if ($failCount > 0 && $successCount > 0) {
-                $this->dispatch('show-toast', [
-                    'type' => 'warning',
-                    'message' => "Se emitieron {$successCount} facturas, pero {$failCount} fallaron."
-                ]);
-            } elseif ($failCount > 0) {
-                $this->dispatch('show-toast', [
-                    'type' => 'error',
-                    'message' => 'Ocurrió un error al emitir las facturas seleccionadas.'
-                ]);
-            } else {
-                $this->dispatch('show-toast', [
-                    'type' => 'success',
-                    'message' => "✅ {$successCount} facturas emitidas masivamente exitosamente."
-                ]);
-            }
+            return ['success' => count($apiDataIds), 'fails' => count($chunkIds) - count($apiDataIds)];
 
         } catch (\Exception $e) {
-            Log::error('❌ Error emitiendo facturas masivamente', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            $this->dispatch('show-toast', [
-                'type' => 'error',
-                'message' => 'Error al emitir masivamente: ' . $e->getMessage()
-            ]);
+            Log::error('❌ Error emitiendo chunk masivo', ['error' => $e->getMessage()]);
+            return ['success' => 0, 'fails' => count($chunkIds), 'error' => $e->getMessage()];
         }
+    }
+
+    public function clearSelection()
+    {
+        $this->selectedInvoices = [];
     }
 
     public function printInvoice($invoiceId)
