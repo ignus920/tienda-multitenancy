@@ -65,6 +65,16 @@ class ProjectMaterials extends Component
         config(['database.connections.tenant.database' => $tenant->tenancy_db_name]);
     }
 
+    private function checkNotClosed()
+    {
+        $project = Project::find($this->projectId);
+        if ($project && in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El proyecto está finalizado. No se permiten más modificaciones.']);
+            return true;
+        }
+        return false;
+    }
+
     public function updatedSearch()
     {
         $this->ensureTenantConnection();
@@ -117,6 +127,8 @@ class ProjectMaterials extends Component
 
     public function addErpMaterial()
     {
+        $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
         if (!$this->selectedErpItem) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Debes seleccionar un producto primero.']);
             return;
@@ -153,6 +165,7 @@ class ProjectMaterials extends Component
     public function addExternalMaterial()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
         $this->validate([
             'externalDescription' => 'required|string|max:255',
             'externalUnitValue' => 'required|numeric|min:0',
@@ -199,6 +212,7 @@ class ProjectMaterials extends Component
     public function saveEdit()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
         $this->validate([
             'editQuantity' => 'required|numeric|min:0.01',
             'editDescription' => 'required|string|max:255',
@@ -249,6 +263,7 @@ class ProjectMaterials extends Component
     public function clearMaterialList($reason)
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
         $materials = ProjectMaterial::where('project_id', $this->projectId)->get();
         
         foreach ($materials as $material) {
@@ -348,11 +363,15 @@ class ProjectMaterials extends Component
         $subtotalErp = $materials->where('origin', 'erp')->where('is_active', true)->sum('line_cost');
         $subtotalExterno = $materials->where('origin', 'externo')->where('is_active', true)->sum('line_cost');
 
+        $project = Project::find($this->projectId);
+        $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
+
         return view('livewire.tenant.projects.project-materials', [
             'materials' => $materials,
             'subtotalErp' => $subtotalErp,
             'subtotalExterno' => $subtotalExterno,
-            'total' => $subtotalErp + $subtotalExterno
+            'total' => $subtotalErp + $subtotalExterno,
+            'isClosed' => $isClosed
         ]);
     }
 }

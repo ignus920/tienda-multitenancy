@@ -6,6 +6,23 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Gestiona tus cotizaciones, órdenes de producción y comunicación técnica desde un solo lugar.</p>
         </div>
         <div class="flex items-center gap-3 flex-wrap">
+            <!-- Filtro por fechas -->
+            <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm mr-2">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </span>
+                    <input wire:model.live="searchDateFrom" type="date" class="block w-[115px] border-none bg-transparent text-gray-700 dark:text-gray-200 rounded-md pl-7 pr-2 py-1 text-[11px] font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer" title="Fecha Desde">
+                </div>
+                <span class="text-gray-400 text-xs font-bold">-</span>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </span>
+                    <input wire:model.live="searchDateTo" type="date" class="block w-[115px] border-none bg-transparent text-gray-700 dark:text-gray-200 rounded-md pl-7 pr-2 py-1 text-[11px] font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer" title="Fecha Hasta">
+                </div>
+            </div>
+
             <!-- Filtro por tipo de proyecto -->
             <div class="hidden sm:flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs font-semibold mr-2 border border-gray-200 dark:border-gray-700">
                 <button wire:click="$set('projectTypeFilter', '')" 
@@ -191,9 +208,22 @@
                                     {{ $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? '')) }}
                                 @endif
                             </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">
                                 {{ $project->description }}
                             </p>
+
+                            @if($project->type === 'internal')
+                            <div class="mt-2 mb-2 grid grid-cols-2 gap-2 text-[10px] bg-gray-50 dark:bg-gray-750 p-2 rounded-lg border border-gray-100 dark:border-gray-700">
+                                <div>
+                                    <span class="text-gray-400 block font-bold uppercase">F. Solicitada</span>
+                                    <span class="text-gray-900 dark:text-gray-200 font-semibold">{{ $project->delivery_date ? $project->delivery_date->format('d/m/Y') : '-' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block font-bold uppercase">F. Sugerida</span>
+                                    <span class="text-gray-900 dark:text-gray-200 font-semibold">{{ $project->suggested_delivery_date ? $project->suggested_delivery_date->format('d/m/Y') : '-' }}</span>
+                                </div>
+                            </div>
+                            @endif
                         </div>
 
                         <!-- Footer de la tarjeta -->

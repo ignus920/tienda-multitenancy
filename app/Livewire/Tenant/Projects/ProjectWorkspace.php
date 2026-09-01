@@ -160,10 +160,21 @@ class ProjectWorkspace extends Component
         config(['database.connections.tenant.database' => $tenant->tenancy_db_name]);
     }
 
+    private function checkNotClosed()
+    {
+        $project = Project::find($this->projectId);
+        if ($project && in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El proyecto está finalizado. No se permiten más modificaciones.']);
+            return true;
+        }
+        return false;
+    }
+
     // Lógica para enviar mensajes y procesar menciones
     public function sendMessage()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
 
         $isParticipant = ProjectParticipant::where('project_id', $this->projectId)
             ->where('user_id', Auth::id())
@@ -429,6 +440,7 @@ class ProjectWorkspace extends Component
     public function saveProductionOrder()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
         $this->validate([
             'orderItems' => 'required|array|min:1',
             'orderItems.*.qty' => 'required|integer|min:1',
@@ -565,6 +577,7 @@ class ProjectWorkspace extends Component
     public function saveAnswer()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
         $this->validate(['answerText' => 'required|string']);
 
         $q = ProjectQuestion::findOrFail($this->answeringQuestionId);
@@ -628,6 +641,7 @@ class ProjectWorkspace extends Component
     public function addAdvance()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
 
         $lastPercentage = $this->getLastAdvancePercentage();
 
@@ -665,6 +679,7 @@ class ProjectWorkspace extends Component
     public function addNovelty()
     {
         $this->ensureTenantConnection();
+        if ($this->checkNotClosed()) return;
 
         $this->validate([
             'noveltyDescription' => 'required|string',
