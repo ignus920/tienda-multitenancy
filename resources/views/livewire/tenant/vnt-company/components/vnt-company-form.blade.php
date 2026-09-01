@@ -1178,6 +1178,47 @@
                         </div>
                         @endif
 
+                        <!-- Selects para configuraciones fiscales -->
+                        <div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <!-- Régimen -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Régimen <span class="text-red-500">*</span>
+                                    </label>
+                                    @livewire('selects.regime-select', [
+                                    'regimeId' => $regimeId,
+                                    'name' => 'regimeId',
+                                    'label' => '',
+                                    'showLabel' => false,
+                                    'placeholder' => 'Seleccionar régimen',
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                    ])
+                                    @error('regimeId')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <!-- Responsabilidad Fiscal -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Responsabilidad Fiscal <span class="text-red-500">*</span>
+                                    </label>
+                                    @livewire('selects.fiscal-responsibility-select', [
+                                    'fiscalResponsibilityId' => $fiscalResponsabilityId,
+                                    'name' => 'fiscalResponsibilityId',
+                                    'label' => '',
+                                    'showLabel' => false,
+                                    'placeholder' => 'Seleccionar responsabilidad fiscal',
+                                    'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                                    ])
+                                    @error('fiscalResponsabilityId')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Email de Facturación -->
                         <div>
                             <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación *</label>
