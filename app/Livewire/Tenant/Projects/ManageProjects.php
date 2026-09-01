@@ -50,11 +50,15 @@ class ManageProjects extends Component
     public $pendientesDateFilter = '';
     public $pendientesPersonFilter = '';
 
+    // Filtro por tipo de proyecto (interno, externo)
+    public $projectTypeFilter = '';
+
     protected $queryString = [
         'search' => ['except' => ''],
         'selectedStatus' => ['except' => ''],
         'selectedTab' => ['except' => 'activos'],
-        'vencimientoFilter' => ['except' => '']
+        'vencimientoFilter' => ['except' => ''],
+        'projectTypeFilter' => ['except' => '']
     ];
 
     public function boot()
@@ -70,6 +74,7 @@ class ManageProjects extends Component
             'selectedStatus',
             'selectedTab',
             'vencimientoFilter',
+            'projectTypeFilter',
             'searchDateFrom',
             'searchDateTo',
             'searchParticipantId'
@@ -280,6 +285,10 @@ class ManageProjects extends Component
             ->withCount(['questions' => function ($q) {
                 $q->where('status', 'pendiente');
             }]);
+
+        if ($this->projectTypeFilter) {
+            $query->where('type', $this->projectTypeFilter);
+        }
 
         // Aplicar filtros por tipo de pestaña
         if ($this->selectedTab === 'archivados') {

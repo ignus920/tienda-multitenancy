@@ -900,6 +900,11 @@ class ProjectWorkspace extends Component
             return;
         }
 
+        if (in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se puede editar la información de un proyecto cerrado o terminado.']);
+            return;
+        }
+
         $this->editTitleText = $project->title;
         $this->editDescriptionText = $project->description;
         $this->isEditingDescription = true;
@@ -912,6 +917,11 @@ class ProjectWorkspace extends Component
         
         if (auth()->id() !== $project->created_by) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador puede editar la información.']);
+            return;
+        }
+
+        if (in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se puede editar la información de un proyecto cerrado o terminado.']);
             return;
         }
 
