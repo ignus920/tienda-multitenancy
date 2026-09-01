@@ -27,7 +27,8 @@ class WarrantyCreate extends Component
 
     // Chatbot integration
     public $chatbotRequestId = null;
-    public $chatbotData = null;
+    public $hasChatbotData = false;
+    public $chatbotReferenceNumber = '';
     public $manualSearchConsecutive = '';
 
     // Propiedades para el sub-modal de evidencias
@@ -59,17 +60,20 @@ class WarrantyCreate extends Component
         
         if (str_starts_with($id, 'chatbot-')) {
             $this->chatbotRequestId = str_replace('chatbot-', '', $id);
-            $this->chatbotData = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::find($this->chatbotRequestId);
+            $chatbotRecord = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::find($this->chatbotRequestId);
             
-            if ($this->chatbotData) {
+            if ($chatbotRecord) {
+                $this->hasChatbotData = true;
+                $this->chatbotReferenceNumber = $chatbotRecord->reference_number;
+
                 // Auto-buscar OP
-                $remission = InvRemissions::where('consecutive', $this->chatbotData->reference_number)->first();
+                $remission = InvRemissions::where('consecutive', $chatbotRecord->reference_number)->first();
                 if ($remission) {
                     $this->remissionId = $remission->id;
                     $this->loadRemission($this->remissionId);
                 } else {
                     $this->remissionId = null;
-                    $this->manualSearchConsecutive = $this->chatbotData->reference_number;
+                    $this->manualSearchConsecutive = $chatbotRecord->reference_number;
                 }
             } else {
                 return redirect()->route('tenant.warranties.chatbot')->with('error', 'Solicitud no encontrada.');
@@ -115,9 +119,12 @@ class WarrantyCreate extends Component
             $failureText = '';
             $requestText = '';
 
-            if ($this->chatbotData) {
-                $failureText = $this->chatbotData->description;
-                $requestText = "Autogestión Bot: Solicita por " . $this->chatbotData->product_details;
+            if ($this->hasChatbotData) {
+                $chatbotRecord = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::find($this->chatbotRequestId);
+                if ($chatbotRecord) {
+                    $failureText = $chatbotRecord->description;
+                    $requestText = "Autogestión Bot: Solicita por " . $chatbotRecord->product_details;
+                }
             }
 
             $this->items[] = [
@@ -250,11 +257,14 @@ class WarrantyCreate extends Component
             DB::connection('tenant')->commit();
 
             // Si venía del chatbot, actualizar el estado
-            if ($this->chatbotData) {
-                $this->chatbotData->update([
-                    'status' => 'processed',
-                    'warranty_id' => $warranty->id
-                ]);
+            if ($this->hasChatbotData) {
+                $chatbotRecord = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::find($this->chatbotRequestId);
+                if ($chatbotRecord) {
+                    $chatbotRecord->update([
+                        'status' => 'processed',
+                        'warranty_id' => $warranty->id
+                    ]);
+                }
             }
 
             session()->flash('success', "Garantía {$consecutive} creada con éxito.");

@@ -24,19 +24,23 @@
     <!-- Main Container -->
     <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 transition-colors shadow-sm p-6">
         
-        @if(!$remission && $chatbotData)
-            <!-- Enlace Manual de OP -->
-            <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-xl p-5 mb-6 shadow-sm">
-                <div class="flex gap-4">
-                    <div class="mt-1">
-                        <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
+        @if(!$remission && $hasChatbotData)
+        <div class="max-w-6xl mx-auto px-4 py-8 relative z-10">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 border-l-4 border-l-amber-500 shadow-xl max-w-2xl mx-auto animate-fade-in relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl"></div>
+
+                <div class="relative z-10 flex gap-6">
+                    <div class="shrink-0">
+                        <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/40 rounded-2xl flex items-center justify-center border border-amber-200 dark:border-amber-800/50">
+                            <svg class="w-7 h-7 text-amber-600 dark:text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
                     </div>
-                    <div class="flex-1">
-                        <h3 class="text-sm font-bold text-yellow-800 dark:text-yellow-400">Atención: No se pudo auto-vincular la OP</h3>
-                        <p class="text-sm text-yellow-700 dark:text-yellow-500 mt-1">
-                            El cliente reportó la referencia: <strong>{{ $chatbotData->reference_number }}</strong>, pero el sistema no encontró ninguna OP exacta con ese número. Por favor, busca manualmente el número correcto de la OP y vincúlalo para continuar.
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">¡OP No Encontrada!</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                            El cliente reportó la referencia: <strong>{{ $chatbotReferenceNumber }}</strong>, pero el sistema no encontró ninguna OP exacta con ese número. Por favor, busca manualmente el número correcto de la OP y vincúlalo para continuar.
                         </p>
                         
                         <div class="mt-4 flex flex-col sm:flex-row gap-3">
