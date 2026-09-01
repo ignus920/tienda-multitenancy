@@ -102,10 +102,13 @@
                                                 <span class="text-[10px] font-bold text-gray-400 uppercase">Archivos de Evidencia ({{ $item->evidences->count() }}):</span>
                                                 <div class="flex flex-wrap gap-2">
                                                     @foreach($item->evidences as $evidence)
+                                                        @php
+                                                            $evidenceUrl = str_starts_with($evidence->file_path, 'http') ? $evidence->file_path : Storage::url($evidence->file_path);
+                                                        @endphp
                                                         @if($evidence->file_type === 'video')
                                                             <div class="relative w-12 h-12 bg-indigo-50 rounded-xl overflow-hidden border border-gray-150 dark:border-slate-600 flex items-center justify-center">
-                                                                <video src="{{ Storage::url($evidence->file_path) }}" class="w-full h-full object-cover"></video>
-                                                                <a href="{{ Storage::url($evidence->file_path) }}" target="_blank" class="absolute inset-0 bg-black bg-opacity-40 hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                                                <video src="{{ $evidenceUrl }}" class="w-full h-full object-cover"></video>
+                                                                <a href="{{ $evidenceUrl }}" target="_blank" class="absolute inset-0 bg-black bg-opacity-40 hover:bg-opacity-20 transition-all flex items-center justify-center">
                                                                     <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
                                                                         <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 11a1 1 0 112 0 1 1 0 01-2 0zm5 0a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" />
@@ -113,8 +116,8 @@
                                                                 </a>
                                                             </div>
                                                         @else
-                                                            <button type="button" @click="activeImage = '{{ Storage::url($evidence->file_path) }}'" class="block w-12 h-12 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600 hover:scale-105 transition-transform focus:outline-none">
-                                                                <img src="{{ Storage::url($evidence->file_path) }}" class="w-full h-full object-cover" />
+                                                            <button type="button" @click="activeImage = '{{ $evidenceUrl }}'" class="block w-12 h-12 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600 hover:scale-105 transition-transform focus:outline-none">
+                                                                <img src="{{ $evidenceUrl }}" class="w-full h-full object-cover" />
                                                             </button>
                                                         @endif
                                                     @endforeach

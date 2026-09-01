@@ -114,7 +114,7 @@
                                     wire:click="openEvidenceUploadModal({{ $index }})"
                                     class="px-4 py-2 text-xs font-bold rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors {{ $item['isSelected'] ? '' : 'opacity-50 cursor-not-allowed' }}"
                                     {{ !$item['isSelected'] ? 'disabled' : '' }}>
-                                Evidencias ({{ count($tempEvidences[$index] ?? []) }})
+                                Evidencias ({{ count($tempEvidences[$index] ?? []) + ($hasChatbotData && !empty($chatbotMediaUrls) ? count($chatbotMediaUrls) : 0) }})
                             </button>
                         </td>
                     </tr>
@@ -182,8 +182,38 @@
 
                 <!-- Lista de archivos cargados temporales con previsualización -->
                 <div class="max-h-60 overflow-y-auto space-y-2">
-                    <span class="text-xs font-bold text-gray-500 block mb-1">Archivos Seleccionados ({{ count($tempEvidences[$activeItemIndex]) }})</span>
-                    @forelse($tempEvidences[$activeItemIndex] as $fileIndex => $file)
+                    <span class="text-xs font-bold text-gray-500 block mb-1">Archivos Seleccionados ({{ count($tempEvidences[$activeItemIndex] ?? []) + ($hasChatbotData && !empty($chatbotMediaUrls) ? count($chatbotMediaUrls) : 0) }})</span>
+                    
+                    @if($hasChatbotData && !empty($chatbotMediaUrls))
+                        @foreach($chatbotMediaUrls as $url)
+                            @php
+                                $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                                $isVideo = in_array($ext, ['mp4', 'mov', 'avi', '3gp', 'webm']);
+                            @endphp
+                            <div class="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+                                <div class="flex items-center gap-2 overflow-hidden">
+                                    @if($isVideo)
+                                        <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                                            Vid
+                                        </div>
+                                    @else
+                                        <img src="{{ $url }}" class="w-10 h-10 object-cover rounded-lg">
+                                    @endif
+                                    <div class="text-xs truncate max-w-[200px] text-emerald-800 dark:text-emerald-400 font-medium flex flex-col">
+                                        <span>Archivo de WhatsApp</span>
+                                        <span class="text-[9px] opacity-70">Detectado automáticamente</span>
+                                    </div>
+                                </div>
+                                <div class="text-emerald-500 p-1" title="Vinculado desde WhatsApp">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
+
+                    @forelse($tempEvidences[$activeItemIndex] ?? [] as $fileIndex => $file)
                         <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-2 rounded-xl border border-gray-100 dark:border-gray-700">
                             <div class="flex items-center gap-2 overflow-hidden">
                                 @if(in_array(strtolower($file->getClientOriginalExtension()), ['mp4', 'mov', 'avi', '3gp', 'webm']))
@@ -204,7 +234,9 @@
                             </button>
                         </div>
                     @empty
-                        <p class="text-xs italic text-gray-400 text-center py-4">No hay evidencias seleccionadas para este producto.</p>
+                        @if(!$hasChatbotData || empty($chatbotMediaUrls))
+                            <p class="text-xs italic text-gray-400 text-center py-4">No hay evidencias seleccionadas para este producto.</p>
+                        @endif
                     @endforelse
                 </div>
             </div>
