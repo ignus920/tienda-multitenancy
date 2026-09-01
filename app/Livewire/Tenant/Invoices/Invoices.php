@@ -472,7 +472,9 @@ class Invoices extends Component
                     foreach ($validInvoices as $invoice) {
                         try {
                             $alegraStatus = $facturacionService->getInvoiceStatus((int)$invoice->api_data_id);
-                            if (isset($alegraStatus['status']) && ($alegraStatus['status'] === 'open' || $alegraStatus['status'] === 'stamped')) {
+                            
+                            $realStatus = $alegraStatus['data']['status'] ?? $alegraStatus['data']['invoice']['status'] ?? null;
+                            if ($realStatus === 'open' || $realStatus === 'stamped') {
                                 $invoice->update(['status' => 'FACTURADO']);
                                 // Se llama al método para actualizar cotizaciones relacionadas si existe
                                 if (method_exists($this, 'updateRelatedQuotesToFacturado')) {
