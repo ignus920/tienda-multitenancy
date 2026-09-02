@@ -147,7 +147,7 @@
                     </label>
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
                         <input type="checkbox" :checked="visibleColumns.porcentaje" @change="toggleColumn('porcentaje')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
-                        <span>Porcentaje</span>
+                        <span>% Stock</span>
                     </label>
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
                         <input type="checkbox" :checked="visibleColumns.salida" @change="toggleColumn('salida')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
@@ -307,7 +307,7 @@
                         <th scope="col" x-show="visibleColumns.porcentaje" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('percentage')">
                             <div class="flex items-center space-x-1">
-                                <span>Porcentaje</span>
+                                <span>% Stock</span>
                                 @if($sortField === 'percentage')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'transform rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -614,7 +614,7 @@
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 0) }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Porcentaje</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">% Stock</p>
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $item->percentage ?? 0 }}%</p>
                 </div>
                 <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2">

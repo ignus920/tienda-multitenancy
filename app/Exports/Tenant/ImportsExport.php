@@ -34,9 +34,9 @@ class ImportsExport implements FromCollection, WithHeadings, WithMapping, WithSt
             'Código SKU',
             'Descripción',
             'Existencias ERP',
-            'Cantidad Solicitada',
-            'Porcentaje Rotación',
-            'Salidas ERP',
+            'Cantidad',
+            '% Stock',
+            'Salidas 7 Meses',
             'Entradas ERP',
             'EXW',
             'Prioridad'
