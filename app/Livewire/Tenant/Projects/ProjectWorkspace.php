@@ -719,8 +719,11 @@ class ProjectWorkspace extends Component
 
         $project = Project::findOrFail($this->projectId);
         
-        if ($project->questions()->where('status', 'pendiente')->exists()) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay mensajes sin contestar en este proyecto. Debes responderlos antes de finalizar.']);
+        $hasPendingQuestions = $project->questions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
+        $hasPendingMentions = $project->mentions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
+
+        if ($hasPendingQuestions || $hasPendingMentions) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay preguntas o menciones sin contestar en este proyecto. Debes responderlas antes de finalizar.']);
             return;
         }
 
@@ -741,6 +744,11 @@ class ProjectWorkspace extends Component
 
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
+        // Limpiar notificaciones atascadas del proyecto
+        \App\Models\Tenant\Projects\ProjectNotification::where('project_id', $this->projectId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
         $this->showLabFinishModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producción marcada como terminada y notificada']);
         $this->dispatch('refresh-component');
@@ -757,8 +765,11 @@ class ProjectWorkspace extends Component
 
         $project = Project::findOrFail($this->projectId);
         
-        if ($project->questions()->where('status', 'pendiente')->exists()) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay mensajes sin contestar en este proyecto. Debes responderlos antes de finalizar.']);
+        $hasPendingQuestions = $project->questions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
+        $hasPendingMentions = $project->mentions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
+
+        if ($hasPendingQuestions || $hasPendingMentions) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay preguntas o menciones sin contestar en este proyecto. Debes responderlas antes de finalizar.']);
             return;
         }
 
@@ -768,6 +779,11 @@ class ProjectWorkspace extends Component
             'close_observations' => $this->close_observations,
             'status' => 'cerrado_entregado'
         ]);
+
+        // Limpiar notificaciones atascadas del proyecto
+        \App\Models\Tenant\Projects\ProjectNotification::where('project_id', $this->projectId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         $this->showCloseModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Proyecto finalizado correctamente']);
