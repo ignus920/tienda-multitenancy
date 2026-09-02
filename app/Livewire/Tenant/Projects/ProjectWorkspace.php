@@ -718,39 +718,6 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
-        
-        $hasPendingQuestions = $project->questions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
-        $pendingMentions = $project->mentions()->with('recipient')->where('status', 'pendiente')->where('project_id', $this->projectId)->get();
-
-        if ($hasPendingQuestions || $pendingMentions->isNotEmpty()) {
-            $messageText = "No se pudo cerrar el proyecto por que:\n";
-            
-            if ($pendingMentions->isNotEmpty()) {
-                $groupedMentions = $pendingMentions->groupBy('mentioned_to');
-                foreach ($groupedMentions as $userId => $mentions) {
-                    $userName = $mentions->first()->recipient->name ?? 'Usuario';
-                    $count = $mentions->count();
-                    $msgWord = $count == 1 ? 'mensaje' : 'mensajes';
-                    $messageText .= "@{$userName} tiene {$count} {$msgWord} sin respuesta\n";
-                }
-            }
-
-            if ($hasPendingQuestions) {
-                $questionCount = $project->questions()->where('status', 'pendiente')->where('project_id', $this->projectId)->count();
-                $msgWord = $questionCount == 1 ? 'pregunta general' : 'preguntas generales';
-                $messageText .= "Hay {$questionCount} {$msgWord} sin responder\n";
-            }
-
-            $chatMessage = \App\Models\Tenant\Projects\ProjectMessage::create([
-                'project_id' => $this->projectId,
-                'user_id' => \Illuminate\Support\Facades\Auth::id(),
-                'message' => trim($messageText)
-            ]);
-            broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($chatMessage));
-
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => "El proyecto tiene mensajes sin contestar. Se ha publicado el detalle en el chat."]);
-            return;
-        }
 
         $this->logStatusChange($project, 'terminado');
         $project->update([
