@@ -718,6 +718,12 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
+        
+        if ($project->questions()->where('status', 'pendiente')->exists()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay mensajes sin contestar en este proyecto. Debes responderlos antes de finalizar.']);
+            return;
+        }
+
         $this->logStatusChange($project, 'terminado');
         $project->update([
             'status' => 'terminado',
@@ -750,6 +756,12 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
+        
+        if ($project->questions()->where('status', 'pendiente')->exists()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay mensajes sin contestar en este proyecto. Debes responderlos antes de finalizar.']);
+            return;
+        }
+
         $this->logStatusChange($project, 'cerrado_entregado');
         $project->update([
             'real_delivery_date' => $this->real_delivery_date,
