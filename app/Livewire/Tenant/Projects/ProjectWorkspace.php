@@ -163,7 +163,7 @@ class ProjectWorkspace extends Component
     private function checkNotClosed()
     {
         $project = Project::find($this->projectId);
-        if ($project && in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+        if ($project && $project->status === 'cerrado_entregado') {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El proyecto está finalizado. No se permiten más modificaciones.']);
             return true;
         }
@@ -718,6 +718,7 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
+
         $this->logStatusChange($project, 'terminado');
         $project->update([
             'status' => 'terminado',
@@ -731,9 +732,31 @@ class ProjectWorkspace extends Component
             'message' => "El área responsable ha terminado la producción/desarrollo." . ($this->lab_observations ? "\nObservaciones: {$this->lab_observations}" : "")
         ]);
         
-        $this->createMentionNotification($this->finishUserId, $message);
+        // En lugar de una mención obligatoria, generamos una notificación normal de tipo cierre_proyecto
+        if ($this->finishUserId) {
+            $notification = \App\Models\Tenant\Projects\ProjectNotification::create([
+                'user_id' => $this->finishUserId,
+                'project_id' => $this->projectId,
+                'message_id' => $message->id,
+                'sender_id' => Auth::id(),
+                'type' => 'cierre_proyecto'
+            ]);
+            $projectTitle = $project->title ?? 'Proyecto';
+            $senderName = Auth::user()->name ?? 'Usuario';
+            $messagePreview = substr($message->message, 0, 50) . '...';
+            
+            broadcast(new \App\Events\Tenant\Projects\NewProjectNotification(
+                $this->finishUserId, $this->projectId, $projectTitle,
+                $senderName, $messagePreview, 'cierre_proyecto', $notification->id
+            ));
+        }
 
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
+
+        // Limpiar notificaciones atascadas del proyecto
+        \App\Models\Tenant\Projects\ProjectNotification::where('project_id', $this->projectId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         $this->showLabFinishModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producción marcada como terminada y notificada']);
@@ -750,12 +773,51 @@ class ProjectWorkspace extends Component
         ]);
 
         $project = Project::findOrFail($this->projectId);
+        
+        $hasPendingQuestions = $project->questions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
+        $pendingMentions = $project->mentions()->with('recipient')->where('status', 'pendiente')->where('project_id', $this->projectId)->get();
+
+        if ($hasPendingQuestions || $pendingMentions->isNotEmpty()) {
+            $messageText = "No se pudo cerrar el proyecto por que:\n";
+            
+            if ($pendingMentions->isNotEmpty()) {
+                $groupedMentions = $pendingMentions->groupBy('mentioned_to');
+                foreach ($groupedMentions as $userId => $mentions) {
+                    $userName = $mentions->first()->recipient->name ?? 'Usuario';
+                    $count = $mentions->count();
+                    $msgWord = $count == 1 ? 'mensaje' : 'mensajes';
+                    $messageText .= "@{$userName} tiene {$count} {$msgWord} sin respuesta\n";
+                }
+            }
+
+            if ($hasPendingQuestions) {
+                $questionCount = $project->questions()->where('status', 'pendiente')->where('project_id', $this->projectId)->count();
+                $msgWord = $questionCount == 1 ? 'pregunta general' : 'preguntas generales';
+                $messageText .= "Hay {$questionCount} {$msgWord} sin responder\n";
+            }
+
+            $chatMessage = \App\Models\Tenant\Projects\ProjectMessage::create([
+                'project_id' => $this->projectId,
+                'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                'message' => trim($messageText)
+            ]);
+            broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($chatMessage));
+
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => "El proyecto tiene mensajes sin contestar. Se ha publicado el detalle en el chat."]);
+            return;
+        }
+
         $this->logStatusChange($project, 'cerrado_entregado');
         $project->update([
             'real_delivery_date' => $this->real_delivery_date,
             'close_observations' => $this->close_observations,
             'status' => 'cerrado_entregado'
         ]);
+
+        // Limpiar notificaciones atascadas del proyecto
+        \App\Models\Tenant\Projects\ProjectNotification::where('project_id', $this->projectId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         $this->showCloseModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Proyecto finalizado correctamente']);
