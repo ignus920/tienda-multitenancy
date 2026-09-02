@@ -13,6 +13,8 @@ use App\Models\Tenant\Imports\ImpImports;
 use App\Models\Tenant\Items\InvStore;
 use App\Models\Tenant\Imports\InvUnconfirmedQty;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
+use Livewire\Attributes\Renderless;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -517,7 +519,6 @@ class ImportList extends Component
             }
 
             $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
-            $this->dispatch('refresh-import-list');
         } catch (\Exception $e) {
             Log::error('Error al actualizar cantidad: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
@@ -529,6 +530,7 @@ class ImportList extends Component
     /**
      * Método que se ejecuta cuando se hace clic en un item
      */
+    #[Renderless]
     public function selectItem($itemId, $quantity)
     {
         try {
