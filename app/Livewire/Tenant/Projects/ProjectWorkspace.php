@@ -163,7 +163,7 @@ class ProjectWorkspace extends Component
     private function checkNotClosed()
     {
         $project = Project::find($this->projectId);
-        if ($project && in_array($project->status, ['terminado', 'cerrado_entregado'])) {
+        if ($project && $project->status === 'cerrado_entregado') {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El proyecto está finalizado. No se permiten más modificaciones.']);
             return true;
         }
