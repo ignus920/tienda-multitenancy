@@ -723,7 +723,7 @@ class ProjectWorkspace extends Component
         $hasPendingMentions = $project->mentions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
 
         if ($hasPendingQuestions || $hasPendingMentions) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay preguntas o menciones sin contestar en este proyecto. Debes responderlas antes de finalizar.']);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => "Hay preguntas o menciones sin contestar en este proyecto ({$project->title}). Debes responderlas antes de finalizar."]);
             return;
         }
 
@@ -740,7 +740,24 @@ class ProjectWorkspace extends Component
             'message' => "El área responsable ha terminado la producción/desarrollo." . ($this->lab_observations ? "\nObservaciones: {$this->lab_observations}" : "")
         ]);
         
-        $this->createMentionNotification($this->finishUserId, $message);
+        // En lugar de una mención obligatoria, generamos una notificación normal de tipo cierre_proyecto
+        if ($this->finishUserId) {
+            $notification = \App\Models\Tenant\Projects\ProjectNotification::create([
+                'user_id' => $this->finishUserId,
+                'project_id' => $this->projectId,
+                'message_id' => $message->id,
+                'sender_id' => Auth::id(),
+                'type' => 'cierre_proyecto'
+            ]);
+            $projectTitle = $project->title ?? 'Proyecto';
+            $senderName = Auth::user()->name ?? 'Usuario';
+            $messagePreview = substr($message->message, 0, 50) . '...';
+            
+            broadcast(new \App\Events\Tenant\Projects\NewProjectNotification(
+                $this->finishUserId, $this->projectId, $projectTitle,
+                $senderName, $messagePreview, 'cierre_proyecto', $notification->id
+            ));
+        }
 
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
@@ -769,7 +786,7 @@ class ProjectWorkspace extends Component
         $hasPendingMentions = $project->mentions()->where('status', 'pendiente')->where('project_id', $this->projectId)->exists();
 
         if ($hasPendingQuestions || $hasPendingMentions) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Hay preguntas o menciones sin contestar en este proyecto. Debes responderlas antes de finalizar.']);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => "Hay preguntas o menciones sin contestar en este proyecto ({$project->title}). Debes responderlas antes de finalizar."]);
             return;
         }
 
