@@ -498,12 +498,7 @@
                                 value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                                 @if($selectedLabelId) disabled @endif
                                 @focus="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
-                                @blur="setTimeout(() => $wire.dispatch('clear-item-selection'), 200)"
-                                @change="
-            $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
-                $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
-            });
-        "
+                                @change="$wire.updateQuantity({{ $item->id }}, $event.target.value)"
                                 title="{{ !empty($item->label_assignments) ? "Cantidades pedidas por etiqueta:\n" . $item->label_assignments : 'Sin etiquetas programadas' }}"
                                 class="block w-24 px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                 placeholder="0">
@@ -655,11 +650,7 @@
                         value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                         @if($selectedLabelId) disabled @endif
                         @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
-                        @change="
-                $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
-                    $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
-                });
-            "
+                        @change="$wire.updateQuantity({{ $item->id }}, $event.target.value)"
                         title="{{ !empty($item->label_assignments) ? "Cantidades pedidas por etiqueta:\n" . $item->label_assignments : 'Sin etiquetas programadas' }}"
                         class="block w-full px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                         placeholder="0">
