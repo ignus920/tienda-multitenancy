@@ -43,6 +43,7 @@ class Orders extends Component
     public $newProductFactoryRef;
     public $newProductStockWordpress;
     public $newProductMinQtyWordpress;
+    public $newProductExw;
 
     public $selectedNewProductId;
     public $finalInternalCode;
@@ -3122,6 +3123,7 @@ class Orders extends Component
             $this->newProductFactoryRef = '';
             $this->newProductStockWordpress = null;
             $this->newProductMinQtyWordpress = null;
+            $this->newProductExw = null;
 
             $this->showModalConvertNewProduct = true;
         }
@@ -3139,6 +3141,7 @@ class Orders extends Component
             'newProductSupplierId' => 'required|integer',
             'newProductStockWordpress' => 'required|numeric|min:0',
             'newProductMinQtyWordpress' => 'required|numeric|min:0',
+            'newProductExw' => 'required|numeric|min:0',
         ], [
             'newProductCode.required' => 'El código interno es obligatorio.',
             'newProductCode.unique' => 'Este código interno ya existe en el inventario real.',
@@ -3151,6 +3154,9 @@ class Orders extends Component
             'newProductMinQtyWordpress.required' => 'La Cantidad Mínima WordPress es obligatoria.',
             'newProductMinQtyWordpress.numeric' => 'La Cantidad Mínima WordPress debe ser numérico.',
             'newProductMinQtyWordpress.min' => 'La Cantidad Mínima no puede ser menor a 0.',
+            'newProductExw.required' => 'El Precio EXW es obligatorio.',
+            'newProductExw.numeric' => 'El Precio EXW debe ser numérico.',
+            'newProductExw.min' => 'El Precio EXW no puede ser menor a 0.',
         ]);
 
         $newProduct = DB::connection('tenant')
@@ -3215,7 +3221,7 @@ class Orders extends Component
                 'item_id' => $itemId,
                 'supplier_id' => $this->newProductSupplierId,
                 'factory_ref' => $this->newProductFactoryRef ?: 'N/A',
-                'exw' => 0,
+                'exw' => $this->newProductExw,
                 'percentage' => 0,
                 'freight_increase' => 0,
                 'pvp_factor' => 0,
@@ -3397,14 +3403,23 @@ class Orders extends Component
                             ? (int)$this->orderQuantities[$productId]
                             : (int)$newProduct->min_qty_supplier;
 
+                        // Recuperar el Precio EXW previamente guardado en el setup
+                        $setup = DB::connection('tenant')
+                            ->table('imp_items_setup')
+                            ->where('item_id', $newProduct->real_item_id)
+                            ->first();
+                            
+                        $exwPrice = $setup ? (float)$setup->exw : 0;
+
                         // Insertar el pedido en imp_imports
                         DB::connection('tenant')->table('imp_imports')->insert([
                             'item_id' => $newProduct->real_item_id,
                             'priority' => $priority,
                             'priority_assigned_at' => now(),
                             'qty_requested' => $qty,
+                            'price' => $exwPrice,
                             'user_id' => Auth::id(),
-                            'status' => 1, // Solicitado
+                            'status' => 2, // 2: Cotizado
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
