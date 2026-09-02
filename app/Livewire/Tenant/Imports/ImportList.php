@@ -213,7 +213,7 @@ class ImportList extends Component
         $this->ensureTenantConnection();
 
         return ImpImports::whereIn('item_id', $this->selectedItems)
-            ->where('status', '<', 8)
+            ->whereNotIn('status', [8, 11])
             ->whereNotNull('priority')
             ->whereNull('deleted_at')
             ->pluck('priority')
@@ -251,9 +251,9 @@ class ImportList extends Component
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "entrada" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS insideMovement'),
                 DB::raw('COALESCE(s7m.salidas_7_meses, 0) AS outsideMovement'),
                 DB::raw('COALESCE(imp_items_setup.exw, 0) AS exw'),
-                DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
-                DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at'),
-                DB::raw("(SELECT GROUP_CONCAT(CONCAT(il.name, ': ', ii.qty_requested, ' uds') SEPARATOR ' \n ') FROM imp_imports ii JOIN imp_labels il ON ii.label_id = il.id WHERE ii.item_id = inv_items.id AND ii.status < 8 AND ii.deleted_at IS NULL) AS label_assignments")
+                DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status NOT IN (8, 11) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
+                DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status NOT IN (8, 11) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at'),
+                DB::raw("(SELECT GROUP_CONCAT(CONCAT(il.name, ': ', ii.qty_requested, ' uds') SEPARATOR ' \n ') FROM imp_imports ii JOIN imp_labels il ON ii.label_id = il.id WHERE ii.item_id = inv_items.id AND ii.status NOT IN (8, 11) AND ii.deleted_at IS NULL) AS label_assignments")
             ])
             ->leftJoin('inv_items_store', function ($join) use ($principalStore) {
                 $join->on('inv_items_store.itemId', '=', 'inv_items.id')
@@ -292,7 +292,7 @@ class ImportList extends Component
                 $query->join('imp_imports', function ($join) {
                     $join->on('imp_imports.item_id', '=', 'inv_items.id')
                         ->where('imp_imports.label_id', '=', $this->selectedLabelId)
-                        ->where('imp_imports.status', '<', 8)
+                        ->whereNotIn('imp_imports.status', [8, 11])
                         ->whereNull('imp_imports.deleted_at');
                 });
                 $query->join('imp_labels', function ($join) {
@@ -335,7 +335,7 @@ class ImportList extends Component
                         $subQuery->select(DB::raw(1))
                             ->from('imp_imports as iim')
                             ->whereColumn('iim.item_id', 'inv_items.id')
-                            ->where('iim.status', '<', 8)
+                            ->whereNotIn('iim.status', [8, 11])
                             ->whereNull('iim.deleted_at')
                             ->whereIn('iim.priority', ['ASAP', 'Second', 'Third']);
                     });
@@ -369,7 +369,7 @@ class ImportList extends Component
             $importsCheck = DB::connection('tenant')
                 ->table('imp_imports')
                 ->where('label_id', $this->selectedLabelId)
-                ->where('status', '<', 8) // Filtrar status < 8
+                ->whereNotIn('status', [8, 11]) // Filtrar excluyendo 8 y 11
                 ->whereNull('deleted_at')
                 ->get(['id', 'item_id', 'qty_requested', 'label_id', 'status']);
 
@@ -409,7 +409,7 @@ class ImportList extends Component
                 ->leftJoin('imp_packing as pk', 'ii.packing_id', '=', 'pk.id')
                 ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
                 ->whereIn('ii.item_id', $itemIds)
-                ->where('ii.status', '<', 8)
+                ->whereNotIn('ii.status', [8, 11])
                 ->whereNull('ii.deleted_at')
                 ->get()
                 ->groupBy('item_id');
@@ -860,7 +860,7 @@ class ImportList extends Component
                 'Descripción', 
                 'Existencias ERP', 
                 'Cantidad Solicitada', 
-                'Porcentaje Rotación', 
+                '% Stock', 
                 'Salidas ERP', 
                 'Entradas ERP', 
                 'EXW', 

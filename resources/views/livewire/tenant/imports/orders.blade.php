@@ -727,6 +727,7 @@
                                 @endif
                                 <td class="px-4 py-4 max-w-[300px]">
                                     <div class="flex items-center gap-3">
+
                                         @php
                                             if ($order->status == 13 || $order->status == 14) {
                                                 $thumbnail = !empty($order->image_path) ? asset('storage/' . $order->image_path) : asset('images/placeholder-item.png');

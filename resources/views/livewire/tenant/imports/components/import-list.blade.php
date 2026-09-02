@@ -147,7 +147,7 @@
                     </label>
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
                         <input type="checkbox" :checked="visibleColumns.porcentaje" @change="toggleColumn('porcentaje')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
-                        <span>Porcentaje</span>
+                        <span>% Stock</span>
                     </label>
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
                         <input type="checkbox" :checked="visibleColumns.salida" @change="toggleColumn('salida')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
@@ -307,7 +307,7 @@
                         <th scope="col" x-show="visibleColumns.porcentaje" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('percentage')">
                             <div class="flex items-center space-x-1">
-                                <span>Porcentaje</span>
+                                <span>% Stock</span>
                                 @if($sortField === 'percentage')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'transform rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -358,7 +358,26 @@
                                 >
                             </td>
                             <td x-show="visibleColumns.codigo" class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-3">
+                                <!-- Menú 3 puntos -->
+                                <div x-data="{ open: false }" class="relative flex-shrink-0">
+                                    <button @click.stop="open = !open"
+                                        class="p-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800">
+                                        <svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                                        </svg>
+                                    </button>
+                                    <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                                        class="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[60] py-1">
+                                        <button @click.stop="$dispatch('openTicketModal', { productId: {{ $item->id ?? 'null' }} }); open = false"
+                                            class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                            <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                            </svg>
+                                            Solicitud Soporte
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
                                      @click.stop="$dispatch('openImageModal', { productId: {{ $item->id }}, context: 'COMERCIAL' })">
                                     @php
@@ -614,7 +633,7 @@
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 0) }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Porcentaje</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">% Stock</p>
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $item->percentage ?? 0 }}%</p>
                 </div>
                 <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
