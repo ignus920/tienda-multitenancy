@@ -727,25 +727,6 @@
                                 @endif
                                 <td class="px-4 py-4 max-w-[300px]">
                                     <div class="flex items-center gap-3">
-                                        <!-- Menú 3 puntos -->
-                                        <div x-data="{ open: false }" class="relative flex-shrink-0">
-                                            <button @click.stop="open = !open"
-                                                class="p-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800">
-                                                <svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                                                    <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                                                </svg>
-                                            </button>
-                                            <div x-show="open" @click.away="open = false" @click.stop x-cloak
-                                                class="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[60] py-1">
-                                                <button @click.stop="$dispatch('openTicketModal', { productId: {{ $order->item_id ?? 'null' }} }); open = false"
-                                                    class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
-                                                    <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                                                    </svg>
-                                                    Solicitud Soporte
-                                                </button>
-                                            </div>
-                                        </div>
 
                                         @php
                                             if ($order->status == 13 || $order->status == 14) {
