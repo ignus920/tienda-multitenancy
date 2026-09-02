@@ -599,36 +599,26 @@ class ManageItems extends Component
 
         try {
             if ($this->item_id) { // Existing item
-                $existsValue = InvValues::where('itemId', $this->item_id)->exists();
+                $item = Items::findOrFail($this->item_id);
+                $wasInventoriable = $item->inventoriable;
+                $item->update($itemData);
 
-                if (!$existsValue) {
-                    $this->messageValues = 'Tiene que registrar al menos un valor.';
-                } else {
-                    $item = Items::findOrFail($this->item_id);
-                    $wasInventoriable = $item->inventoriable;
-                    $item->update($itemData);
-
-                    // Verificar si cambió a inventoriable y crear registro en inv_items_store si es necesario
-                    if ($item->inventoriable == 1 && $wasInventoriable != 1) {
-                        Log::info('Item actualizado a inventoriable - creando registro en inv_items_store', [
-                            'item_id' => $item->id,
-                            'was_inventoriable' => $wasInventoriable,
-                            'now_inventoriable' => $item->inventoriable
+                // Verificar si cambió a inventoriable y crear registro en inv_items_store si es necesario
+                if ($item->inventoriable == 1 && $wasInventoriable != 1) {
+                    Log::info('Item actualizado a inventoriable - creando registro en inv_items_store', [
+                        'item_id' => $item->id,
+                        'was_inventoriable' => $wasInventoriable,
+                        'now_inventoriable' => $item->inventoriable
+                    ]);
+                    $this->createItemStore($item);
+                } elseif ($item->inventoriable == 1) {
+                    // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
+                    $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
+                    if (!$existingRecord) {
+                        Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
+                            'item_id' => $item->id
                         ]);
                         $this->createItemStore($item);
-                    } elseif ($item->inventoriable == 1) {
-                        // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
-                        $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
-                        if (!$existingRecord) {
-                            Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
-                                'item_id' => $item->id
-                            ]);
-                            $this->createItemStore($item);
-                        } else {
-                            // Actualizar wp_stock_percentage y wp_min_stock
-                            $existingRecord->update([
-                                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
-                                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
                             ]);
                         }
                     }
@@ -861,22 +851,10 @@ class ManageItems extends Component
     public function cancel()
     {
         $this->ensureTenantConnection();
-        if ($this->item_id) {
-            $existsValue = InvValues::where('itemId', $this->item_id)->exists();
-            if (!$existsValue) {
-                $this->messageValues = 'Tiene que registrar al menos un valor.';
-            } else {
-                $this->resetValidation();
-                $this->resetForm();
-                $this->showModal = false;
-                $this->confirmingItemDeletion = false;
-            }
-        } else {
-            $this->resetValidation();
-            $this->resetForm();
-            $this->showModal = false;
-            $this->confirmingItemDeletion = false;
-        }
+        $this->resetValidation();
+        $this->resetForm();
+        $this->showModal = false;
+        $this->confirmingItemDeletion = false;
     }
 
     public function onCategorySelected($value)
