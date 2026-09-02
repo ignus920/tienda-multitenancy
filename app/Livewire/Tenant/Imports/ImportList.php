@@ -860,7 +860,7 @@ class ImportList extends Component
                 'Descripción', 
                 'Existencias ERP', 
                 'Cantidad Solicitada', 
-                'Porcentaje Rotación', 
+                '% Stock', 
                 'Salidas ERP', 
                 'Entradas ERP', 
                 'EXW', 
