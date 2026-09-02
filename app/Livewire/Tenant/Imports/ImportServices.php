@@ -311,7 +311,7 @@ class ImportServices extends Component
         // Cargar todas las prioridades activas del ítem para mostrarlas en el banner
         $this->selectedItemPriorities = ImpImports::with('status')
             ->where('item_id', $this->selectedItemId)
-            ->where('status', '<', 8)
+            ->whereNotIn('status', [8, 11])
             ->whereNotNull('priority')
             ->whereNull('deleted_at')
             ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3')")
@@ -409,7 +409,7 @@ class ImportServices extends Component
             // Recargar todas las prioridades activas para el banner
             $this->selectedItemPriorities = ImpImports::with('status')
                 ->where('item_id', $this->selectedItemId)
-                ->where('status', '<', 8)
+                ->whereNotIn('status', [8, 11])
                 ->whereNotNull('priority')
                 ->whereNull('deleted_at')
                 ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3')")
@@ -889,7 +889,7 @@ class ImportServices extends Component
                     // Recargar prioridades activas para el banner
                     $this->selectedItemPriorities = ImpImports::with('status')
                         ->where('item_id', $this->selectedItemId)
-                        ->where('status', '<', 8)
+                        ->whereNotIn('status', [8, 11])
                         ->whereNotNull('priority')
                         ->whereNull('deleted_at')
                         ->orderByRaw("FIELD(priority, 'ASAP', 'Second', 'Third', 'Express', 'Express 2', 'Express 3')")
