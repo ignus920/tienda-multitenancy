@@ -481,6 +481,39 @@ class ImportList extends Component
             // Convertir a entero y asegurar que no sea negativo
             $quantity = max(0, (int) $quantity);
 
+            // Validar que el ítem tenga proveedor si la cantidad es > 0
+            if ($quantity > 0) {
+                $setup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
+                if (!$setup || !$setup->supplier_id) {
+                    // Proveedor faltante, consultar lista de usuarios (perfil 17 = Proveedor) para el Swal
+                    $tenantId = session('tenant_id');
+                    $suppliers = \Illuminate\Support\Facades\DB::table('users')
+                        ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+                        ->join('user_tenants', 'users.id', '=', 'user_tenants.user_id')
+                        ->where('user_tenants.tenant_id', $tenantId)
+                        ->where('users.profile_id', 17)
+                        ->where('vnt_contacts.status', 1)
+                        ->whereNull('vnt_contacts.deleted_at')
+                        ->distinct()
+                        ->select('users.id', 'users.name')
+                        ->get()
+                        ->mapWithKeys(function ($supplier) {
+                            return [$supplier->id => $supplier->name];
+                        })
+                        ->toArray();
+                    
+                    $this->dispatch('show-supplier-select-swal', [
+                        'itemId' => $itemId,
+                        'quantity' => $quantity,
+                        'suppliers' => $suppliers
+                    ]);
+                    
+                    // Refrescar para devolver el input a su valor original mientras selecciona
+                    $this->dispatch('$refresh');
+                    return; 
+                }
+            }
+
             $unconfirmedQty = InvUnconfirmedQty::withTrashed()->where('item_id', $itemId)->first();
 
             if ($unconfirmedQty) {
@@ -518,12 +551,26 @@ class ImportList extends Component
                 $this->selectedItems = array_values(array_filter($this->selectedItems, fn($id) => $id != $itemId));
             }
 
-            $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
+            $this->dispatch('$refresh');
         } catch (\Exception $e) {
-            Log::error('Error al actualizar cantidad: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error actualizando cantidad: ' . $e->getMessage());
+        }
+    }
 
-            session()->flash('error', 'Error al actualizar la cantidad: ' . $e->getMessage());
+    #[On('assign-supplier-and-quantity')]
+    public function assignSupplierAndQuantity($itemId, $quantity, $supplierId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            \App\Models\Tenant\Imports\ImpItemsSetup::updateOrCreate(
+                ['item_id' => $itemId],
+                ['supplier_id' => $supplierId]
+            );
+            
+            // Reintentar la actualización de cantidad ahora que tiene proveedor
+            $this->updateQuantity($itemId, $quantity);
+        } catch (\Exception $e) {
+            Log::error('Error en assignSupplierAndQuantity: ' . $e->getMessage());
         }
     }
 

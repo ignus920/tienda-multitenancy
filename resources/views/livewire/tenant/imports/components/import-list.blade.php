@@ -732,4 +732,37 @@
             background: #2563eb !important;
         }
     </style>
+
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            window.addEventListener('show-supplier-select-swal', event => {
+                const data = event.detail[0];
+                
+                Swal.fire({
+                    title: 'Falta Proveedor',
+                    text: 'Este producto no tiene un proveedor asignado. Por favor selecciona uno para registrar la cantidad:',
+                    input: 'select',
+                    inputOptions: data.suppliers,
+                    inputPlaceholder: '-- Seleccione un proveedor --',
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'Guardar y Continuar',
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'Debes seleccionar un proveedor';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Livewire.dispatch('assign-supplier-and-quantity', { 
+                            itemId: data.itemId, 
+                            quantity: data.quantity, 
+                            supplierId: result.value 
+                        });
+                    }
+                });
+            });
+        });
+    </script>
 </div>
