@@ -485,16 +485,20 @@ class ImportList extends Component
             if ($quantity > 0) {
                 $setup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
                 if (!$setup || !$setup->supplier_id) {
-                    // Proveedor faltante, consultar lista para el Swal
-                    $suppliers = \App\Models\Tenant\Customer\VntContacts::select('vnt_companies.id', 'vnt_contacts.firstName')
-                        ->join('vnt_companies', 'vnt_contacts.email', '=', 'vnt_companies.billingEmail')
-                        ->where('vnt_companies.type', 'PROVEEDOR')
+                    // Proveedor faltante, consultar lista de usuarios (perfil 17 = Proveedor) para el Swal
+                    $tenantId = session('tenant_id');
+                    $suppliers = \Illuminate\Support\Facades\DB::table('users')
+                        ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+                        ->join('user_tenants', 'users.id', '=', 'user_tenants.user_id')
+                        ->where('user_tenants.tenant_id', $tenantId)
+                        ->where('users.profile_id', 17)
                         ->where('vnt_contacts.status', 1)
                         ->whereNull('vnt_contacts.deleted_at')
                         ->distinct()
+                        ->select('users.id', 'users.name')
                         ->get()
                         ->mapWithKeys(function ($supplier) {
-                            return [$supplier->id => $supplier->firstName];
+                            return [$supplier->id => $supplier->name];
                         })
                         ->toArray();
                     
