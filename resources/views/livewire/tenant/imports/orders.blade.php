@@ -14,43 +14,6 @@
     }"
     @notify.window="addNotification($event.detail.message, $event.detail.type)">
 
-    <template x-teleport="#header-actions-container">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('tenant.tickets') }}?type=supplier" 
-                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <span>Tickets</span>
-            </a>
-            @php
-                $newReqs = $this->status->where('id', 13)->first()?->cantidad ?? 0;
-                $isActiveReqs = ($filterStatus == 13);
-                
-                $newProds = $this->status->where('id', 14)->first()?->cantidad ?? 0;
-                $isActiveProds = ($filterStatus == 14);
-
-                $isSupplier = Auth::user()?->profile_id == 17;
-            @endphp
-            <button wire:click="putFilter(13)" 
-                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm
-                @if($newReqs > 0)
-                    {{ $isActiveReqs ? 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-300' : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700' }}
-                @else
-                    {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent' }}
-                @endif
-                ">
-                <span>{{ $isSupplier ? 'New Requests' : 'Nuevas solicitudes' }}</span>
-                <span class="text-sm font-black {{ $newReqs > 0 ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}">{{ $newReqs }}</span>
-            </button>
-            <button wire:click="putFilter(14)" 
-                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveProds ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
-                <span>{{ $isSupplier ? 'New Product' : 'Producto Nuevo' }}</span>
-                <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
-            </button>
-        </div>
-    </template>
-
     <!-- Notification Toast Container -->
     <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3">
         <template x-for="notification in notifications" :key="notification.id">
@@ -93,9 +56,6 @@
     <!-- Status Summary -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
         @foreach($this->status as $stat)
-            @if($stat->{'id'} == 13 || $stat->{'id'} == 14)
-                @continue
-            @endif
             @php
                 $isActive = ($filterStatus == $stat->{'id'}) || ($stat->{'id'} == 10 && $filterNews == 1);
             @endphp
