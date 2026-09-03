@@ -745,6 +745,7 @@
                     inputOptions: data.suppliers,
                     inputPlaceholder: '-- Seleccione un proveedor --',
                     showCancelButton: true,
+                    allowOutsideClick: false,
                     confirmButtonText: 'Guardar y Continuar',
                     cancelButtonText: 'Cancelar',
                     inputValidator: (value) => {
