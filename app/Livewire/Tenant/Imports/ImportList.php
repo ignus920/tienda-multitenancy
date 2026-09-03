@@ -568,13 +568,6 @@ class ImportList extends Component
         } catch (\Exception $e) {
             Log::error('Error en assignSupplierAndQuantity: ' . $e->getMessage());
         }
-    }            $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
-        } catch (\Exception $e) {
-            Log::error('Error al actualizar cantidad: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-
-            session()->flash('error', 'Error al actualizar la cantidad: ' . $e->getMessage());
-        }
     }
 
     /**
