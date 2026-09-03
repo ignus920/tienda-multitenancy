@@ -224,31 +224,63 @@ new class extends Component
         @endif
 
         @if (Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18)
-        <!-- Devoluciones -->
-        <a href="{{ route('tenant.returns') }}" wire:navigate
-            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.returns') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
+        <!-- Devoluciones y Garantías (Menú Agrupado) -->
+        <div x-data="{
+            tooltip: false,
+            open: {{ request()->routeIs('tenant.returns') || request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') || request()->routeIs('tenant.warranties.chatbot') ? 'true' : 'false' }},
+            _t: null
+        }" class="w-full relative">
+            <!-- Botón principal -->
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.returns') || request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') || request()->routeIs('tenant.warranties.chatbot') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
-            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15L12 19L8 15M12 19V5" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5C8.13401 5 5 8.13401 5 12C5 13.933 5.78358 15.683 7.05025 16.9497" />
-            </svg>
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15L12 19L8 15M12 19V5" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5C8.13401 5 5 8.13401 5 12C5 13.933 5.78358 15.683 7.05025 16.9497" />
+                </svg>
 
-            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
-                class="ml-3">
-                Devoluciones
-            </span>
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>
+                     Devoluciones y Gtías.
+                </span>
 
-            <!-- Tooltip -->
-            <div x-show="tooltip" x-transition
-                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
-                Devoluciones
+                <!-- Icono desplegable -->
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
             </div>
-        </a>
+
+            <!-- Submenú -->
+            <div x-show="open && !sidebarCollapsed" x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+               
+                <a href="{{ route('tenant.returns') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.returns') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Devoluciones
+                </a>
+                <a href="{{ route('tenant.warranties.chatbot') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties.chatbot') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Chatbot (Nuevas)
+                </a>
+                <a href="{{ route('tenant.warranties') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Garantías
+                </a>
+            </div>
+
+            <!-- Submenú desplegable (para sidebar colapsado) -->
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Devoluciones y Gtías.</div>
+                <a href="{{ route('tenant.returns') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Devoluciones</a>
+                <a href="{{ route('tenant.warranties') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Garantías</a>
+            </div>
+        </div>
         @endif
 
 
@@ -603,10 +635,10 @@ new class extends Component
         @if(!$isOperario && PermissionHelper::userCan('Mercadeo', 'show'))
         <div x-data="{
             tooltip: false,
-            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') ? 'true' : 'false' }},
+            open: {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') || request()->routeIs('tenant.marketing.videos.*') ? 'true' : 'false' }},
             _t: null
         }" class="w-full relative">
-            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.campaigns.*') || request()->routeIs('tenant.wordpress.*') || request()->routeIs('tenant.catalogs') || request()->routeIs('tenant.marketing.videos.*') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
                 :class="sidebarCollapsed ? 'justify-center' : 'justify-start'"
                 @mouseenter="tooltip = sidebarCollapsed"
                 @mouseleave="_t = setTimeout(() => tooltip = false, 200)"
@@ -641,6 +673,10 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.sliders.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Sliders de Promoción
                 </a>
+                <a href="{{ route('tenant.marketing.videos.index') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('tenant.marketing.videos.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Gestión de Videos
+                </a>
             </div>
 
             <!-- Tooltip colapsado -->
@@ -656,6 +692,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Catálogos</a>
                 <a href="{{ route('tenant.sliders.index') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Sliders de Promoción</a>
+                <a href="{{ route('tenant.marketing.videos.index') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión de Videos</a>
             </div>
         </div>
         @endif

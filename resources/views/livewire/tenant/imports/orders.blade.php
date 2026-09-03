@@ -14,42 +14,51 @@
     }"
     @notify.window="addNotification($event.detail.message, $event.detail.type)">
 
-    @if(Auth::user()?->profile_id != 17)
     <template x-teleport="#header-actions-container">
         <div class="flex items-center gap-3">
-            <a href="{{ route('tenant.tickets') }}?type=supplier" 
-                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <span>Tickets</span>
-            </a>
             @php
                 $newReqs = $this->status->where('id', 13)->first()?->cantidad ?? 0;
                 $isActiveReqs = ($filterStatus == 13);
                 
                 $newProds = $this->status->where('id', 14)->first()?->cantidad ?? 0;
                 $isActiveProds = ($filterStatus == 14);
+
+                $isSupplier = Auth::user()?->profile_id == 17;
             @endphp
-            <button wire:click="putFilter(13)" 
-                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm
-                @if($newReqs > 0)
-                    {{ $isActiveReqs ? 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-300' : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700' }}
-                @else
-                    {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent' }}
-                @endif
-                ">
-                <span>Nuevas solicitudes</span>
-                <span class="text-sm font-black {{ $newReqs > 0 ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}">{{ $newReqs }}</span>
-            </button>
-            <button wire:click="putFilter(14)" 
-                class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer {{ $isActiveProds ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
-                <span>Producto Nuevo</span>
-                <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
-            </button>
+
+            @if(!$isSupplier)
+                <a href="{{ route('tenant.tickets') }}?type=supplier" 
+                    class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>Tickets</span>
+                </a>
+
+                <!-- Botón Nuevas Solicitudes (solo para Fervicom) -->
+                <button wire:click="putFilter(13)" 
+                    class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm {{ $newReqs > 0 ? ($isActiveReqs ? 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-300' : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700') : ($isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent') }}">
+                    <span>Nuevas solicitudes</span>
+                    <span class="text-sm font-black {{ $newReqs > 0 ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}">{{ $newReqs }}</span>
+                </button>
+
+                <!-- Botón Producto Nuevo (solo para Fervicom) -->
+                <button wire:click="putFilter(14)" 
+                    class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm {{ $isActiveProds ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent' }}">
+                    <span>Producto Nuevo</span>
+                    <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newProds }}</span>
+                </button>
+            @else
+                <!-- Botón New Product (solo para Proveedor) -->
+                <button wire:click="putFilter(13)" 
+                    class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent' }}">
+                    <span>New Product</span>
+                    <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ $newReqs }}</span>
+                </button>
+            @endif
         </div>
     </template>
-    @endif
+
 
     <!-- Notification Toast Container -->
     <div class="fixed top-5 right-5 z-[100] flex flex-col gap-3">
@@ -93,7 +102,7 @@
     <!-- Status Summary -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
         @foreach($this->status as $stat)
-            @if(Auth::user()?->profile_id != 17 && ($stat->{'id'} == 13 || $stat->{'id'} == 14))
+            @if($stat->{'id'} == 13 || $stat->{'id'} == 14)
                 @continue
             @endif
             @php
@@ -747,7 +756,7 @@
                                                          background: 'rgba(255, 255, 255, 0.95)'
                                                      })
                                                  @else
-                                                     $dispatch('openImageModal', { productId: {{ $order->item_id }}, context: 'COMERCIAL' })
+                                                     $dispatch('openImageModal', { productId: {{ $order->item_id ?? 'null' }}, context: 'COMERCIAL' })
                                                  @endif
                                              ">
                                             <img src="{{ $thumbnail }}" 
@@ -2489,6 +2498,15 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Can Mínima WordPress <span class="text-red-500">*</span></label>
                             <input type="number" wire:model="newProductMinQtyWordpress" min="0" step="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
                             @error('newProductMinQtyWordpress') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Costos y Setup -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Precio EXW <span class="text-red-500">*</span></label>
+                            <input type="number" wire:model="newProductExw" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 text-center">
+                            @error('newProductExw') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
