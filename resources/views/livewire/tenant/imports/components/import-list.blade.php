@@ -744,10 +744,10 @@
                     input: 'select',
                     inputOptions: data.suppliers,
                     inputPlaceholder: '-- Seleccione un proveedor --',
-                    showCancelButton: true,
+                    showCancelButton: false,
                     allowOutsideClick: false,
+                    allowEscapeKey: false,
                     confirmButtonText: 'Guardar y Continuar',
-                    cancelButtonText: 'Cancelar',
                     inputValidator: (value) => {
                         if (!value) {
                             return 'Debes seleccionar un proveedor';
