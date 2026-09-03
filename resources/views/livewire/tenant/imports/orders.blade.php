@@ -37,13 +37,7 @@
 
                 <!-- Botón Nuevas Solicitudes (solo para Fervicom) -->
                 <button wire:click="putFilter(13)" 
-                    class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm
-                    @if($newReqs > 0)
-                        {{ $isActiveReqs ? 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-300' : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700' }}
-                    @else
-                        {{ $isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent' }}
-                    @endif
-                    ">
+                    class="border rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-sm {{ $newReqs > 0 ? ($isActiveReqs ? 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-300' : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700') : ($isActiveReqs ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-transparent') }}">
                     <span>Nuevas solicitudes</span>
                     <span class="text-sm font-black {{ $newReqs > 0 ? 'text-white' : 'text-indigo-600 dark:text-indigo-400' }}">{{ $newReqs }}</span>
                 </button>
