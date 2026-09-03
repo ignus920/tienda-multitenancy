@@ -364,7 +364,10 @@ class ManageProjects extends Component
         // 3. Usuarios del tenant para asignar proyectos internos
         $assignableUsers = User::whereHas('tenants', function ($q) {
                 $q->where('tenants.id', session('tenant_id'));
-            })->orderBy('name')->get(['id', 'name']);
+            })
+            ->whereNotIn('profile_id', [17, 18]) // Solo personal interno de Fervicom
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return view('livewire.tenant.projects.manage-projects', [
             'projects' => $projects,
