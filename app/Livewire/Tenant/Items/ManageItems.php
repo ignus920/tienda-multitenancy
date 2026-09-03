@@ -674,7 +674,6 @@ class ManageItems extends Component
                     } else {
                         session()->flash('message', 'Item actualizado correctamente.');
                     }
-                }
             } else { // New item
                 // Validar precios según si es inventoriable o no
                 if ($this->inventoriable == 1) {
