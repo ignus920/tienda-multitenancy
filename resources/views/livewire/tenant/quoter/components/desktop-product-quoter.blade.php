@@ -33,7 +33,8 @@
                                 <select 
                                     wire:model.live="selectedBranchId"
                                     wire:change="selectBranch($event.target.value)"
-                                    class="block text-[11px] py-0.5 px-2 max-w-[120px] sm:max-w-[150px] border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                                    class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                                    style="max-width: 150px;"
                                   >
                                     <option value="">-- Seleccionar --</option>
                                     @foreach($branches as $branch)
