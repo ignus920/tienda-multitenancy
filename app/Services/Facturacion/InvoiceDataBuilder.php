@@ -444,13 +444,13 @@ class InvoiceDataBuilder
                 
                 // Mapear el paymentMethod (Medio de Pago) específico para Alegra
                 if ($isConsignacion) {
-                    $paymentMethod = 'BANK_DEPOSIT'; // Alegra: Consignación bancaria
+                    $paymentMethod = 'deposit'; // Alegra: Consignación bancaria
                 } elseif ($isTarjetaCredito || $isTarjetaGen) {
-                    $paymentMethod = 'CREDIT_CARD'; // Alegra: Tarjeta de crédito
+                    $paymentMethod = 'credit-card'; // Alegra: Tarjeta de crédito
                 } elseif ($isTarjetaDebito) {
-                    $paymentMethod = 'DEBIT_CARD'; // Alegra: Tarjeta de débito
+                    $paymentMethod = 'debit-card'; // Alegra: Tarjeta de débito
                 } elseif ($isEfectivo) {
-                    $paymentMethod = 'CASH'; // Alegra: Efectivo
+                    $paymentMethod = 'cash'; // Alegra: Efectivo
                 }
             }
         }
