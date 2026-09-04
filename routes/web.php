@@ -197,6 +197,9 @@ require __DIR__ . '/tenants/gestion.php';
 // Incluir rutas del módulo de proyectos
 require __DIR__ . '/tenants/projects.php';
 
+// Incluir rutas del módulo de planeación de tareas operativas
+require __DIR__ . '/tenants/task_planner.php';
+
 // Incluir rutas del módulo de informes
 require __DIR__ . '/tenants/reports.php';
 
