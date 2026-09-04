@@ -416,24 +416,24 @@ class InvoiceDataBuilder
             $nombre = strtoupper($detailPayment['nombre'] ?? '');
             $valor = floatval($detailPayment['valor'] ?? 0);
 
-            // Condicionales exactas requeridas por el usuario:
-            $isWompi = str_contains($nombre, 'WOMPI') || str_contains($descriptionFormaPago, 'WOMPI');
-            
-            $isConsignacion = str_contains($nombre, 'BANCOLOMBIA') || str_contains($nombre, 'NEQUI') || 
-                              str_contains($nombre, 'DAVIVIENDA') || str_contains($nombre, 'BOGOTA') ||
-                              str_contains($descriptionFormaPago, 'BANCOLOMBIA') || str_contains($descriptionFormaPago, 'NEQUI') || 
-                              str_contains($descriptionFormaPago, 'DAVIVIENDA') || str_contains($descriptionFormaPago, 'BOGOTA');
+            // Condicionales basadas en el cuadro de mapeo proporcionado:
+            $isConsignacion = preg_match('/(BANCOLOMBIA|BOGOTÁ|BOGOTA|DAVIVIENDA|NEQUI|DAVIPLATA|CRUCE DE CUENTAS|WOMPI|MERCADO LIBRE|TRANSFERENCIA)/', $nombre) || 
+                              preg_match('/(BANCOLOMBIA|BOGOTÁ|BOGOTA|DAVIVIENDA|NEQUI|DAVIPLATA|CRUCE DE CUENTAS|WOMPI|MERCADO LIBRE|TRANSFERENCIA)/', $descriptionFormaPago);
                               
-            $isTarjeta = str_contains($nombre, 'TARJETA') || str_contains($descriptionFormaPago, 'TARJETA');
+            $isTarjetaCredito = str_contains($nombre, 'TARJETA CREDITO') || str_contains($nombre, 'TARJETA DE CREDITO');
+            $isTarjetaDebito = str_contains($nombre, 'TARJETA DEBITO') || str_contains($nombre, 'TARJETA DE DEBITO');
             
-            $isEfectivo = str_contains($nombre, 'EFECTIVO') || str_contains($nombre, 'CASH') || 
-                          str_contains($descriptionFormaPago, 'EFECTIVO') || str_contains($descriptionFormaPago, 'CASH');
-                          
-            $isCreditoAlegra = str_contains($nombre, 'CREDITO') || str_contains($descriptionFormaPago, 'CREDITO');
+            // Si tiene la palabra TARJETA pero no se especificó cuál, asume crédito
+            $isTarjetaGen = str_contains($nombre, 'TARJETA') && !$isTarjetaCredito && !$isTarjetaDebito;
+            
+            $isEfectivo = str_contains($nombre, 'EFECTIVO') || str_contains($nombre, 'CASH');
+            
+            $isCreditoAlegra = str_contains($nombre, 'CREDITO') || str_contains($nombre, 'COVINOC') || str_contains($nombre, 'ADDI') || 
+                               str_contains($descriptionFormaPago, 'CREDIT');
 
             // Determinar si es de contado (CASH) o crédito (CREDIT) a plazos
-            // (Si es "tarjeta de crédito" se cuenta como de contado con método CREDIT_CARD)
-            if ($isCreditoAlegra && !$isTarjeta) {
+            // (Si es "tarjeta de crédito/débito" se cuenta como de contado)
+            if ($isCreditoAlegra && !$isTarjetaCredito && !$isTarjetaDebito && !$isTarjetaGen) {
                 Log::info('💳 Procesando pago a crédito', ['valor' => $valor]);
                 $paymentForm = "CREDIT";
                 $partialPayment = $valor;
@@ -443,12 +443,12 @@ class InvoiceDataBuilder
                 $bankPayment = $detailPayment['bank'] ?? null;
                 
                 // Mapear el paymentMethod (Medio de Pago) específico para Alegra
-                if ($isWompi) {
-                    $paymentMethod = $detailPayment['method'] ?? null; // WOMPI se deja igual
-                } elseif ($isConsignacion) {
-                    $paymentMethod = 'DEPOSIT'; // Alegra: Consignación bancaria
-                } elseif ($isTarjeta) {
+                if ($isConsignacion) {
+                    $paymentMethod = 'BANK_DEPOSIT'; // Alegra: Consignación bancaria
+                } elseif ($isTarjetaCredito || $isTarjetaGen) {
                     $paymentMethod = 'CREDIT_CARD'; // Alegra: Tarjeta de crédito
+                } elseif ($isTarjetaDebito) {
+                    $paymentMethod = 'DEBIT_CARD'; // Alegra: Tarjeta de débito
                 } elseif ($isEfectivo) {
                     $paymentMethod = 'CASH'; // Alegra: Efectivo
                 }
