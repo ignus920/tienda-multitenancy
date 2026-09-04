@@ -321,6 +321,58 @@
     @include('livewire.tenant.task-planner.partials.unavailability-modal')
 
     <script>
+        function tpLoadScript(src) {
+            window.__tpScriptPromises = window.__tpScriptPromises || {};
+            if (window.__tpScriptPromises[src]) return window.__tpScriptPromises[src];
+
+            window.__tpScriptPromises[src] = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+
+            return window.__tpScriptPromises[src];
+        }
+
+        function tpLoadCss(href) {
+            if (document.querySelector(`link[href="${href}"]`)) return;
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            document.head.appendChild(link);
+        }
+
+        function taskPlannerChoices() {
+            return {
+                choices: null,
+                init(el) {
+                    tpLoadCss('https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css');
+
+                    const ready = window.Choices
+                        ? Promise.resolve()
+                        : tpLoadScript('https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js');
+
+                    ready.then(() => {
+                        this.choices = new Choices(this.$refs.select, {
+                            removeItemButton: true,
+                            searchEnabled: true,
+                            shouldSort: false,
+                            placeholderValue: 'Selecciona...',
+                            noResultsText: 'Sin resultados',
+                            noChoicesText: 'No hay más opciones',
+                            itemSelectText: '',
+                        });
+                    });
+
+                    this.$el.addEventListener('livewire:navigating', () => {
+                        if (this.choices) this.choices.destroy();
+                    });
+                },
+            };
+        }
+
         function taskPlannerCalendar($wire) {
             return {
                 calendar: null,
@@ -337,22 +389,8 @@
                 loadAssets() {
                     if (window.FullCalendar) return Promise.resolve();
 
-                    return this.loadScript('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js')
-                        .then(() => this.loadScript('https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js'));
-                },
-                loadScript(src) {
-                    window.__tpScriptPromises = window.__tpScriptPromises || {};
-                    if (window.__tpScriptPromises[src]) return window.__tpScriptPromises[src];
-
-                    window.__tpScriptPromises[src] = new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = src;
-                        script.onload = resolve;
-                        script.onerror = reject;
-                        document.head.appendChild(script);
-                    });
-
-                    return window.__tpScriptPromises[src];
+                    return tpLoadScript('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js')
+                        .then(() => tpLoadScript('https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js'));
                 },
                 renderCalendar(el) {
                     const calendarEl = el.querySelector('#task-planner-calendar-el');
