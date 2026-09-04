@@ -130,9 +130,9 @@
         </div>
 
         <!-- Listado -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
             <table class="w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-900/40 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <thead class="bg-gray-50 dark:bg-gray-900/40 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 rounded-t-xl">
                     <tr>
                         <th class="px-4 py-2 text-left">Tarea</th>
                         <th class="px-4 py-2 text-left">Departamento</th>
