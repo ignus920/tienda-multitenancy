@@ -84,7 +84,7 @@ class ReportsList extends Component
     public function updatedActiveReport()
     {
         $this->resetPage();
-        if ($this->activeReport === 'ventas_vendedor') {
+        if ($this->activeReport === 'ventas_vendedor' || $this->activeReport === 'ventas_vendedor_resumido') {
             $this->loadVendedores();
         }
     }
@@ -122,7 +122,7 @@ class ReportsList extends Component
     private function refreshActiveReport()
     {
         $this->resetPage();
-        if ($this->activeReport === 'ventas_vendedor') {
+        if ($this->activeReport === 'ventas_vendedor' || $this->activeReport === 'ventas_vendedor_resumido') {
             $this->loadVendedores();
         }
     }
@@ -137,12 +137,23 @@ class ReportsList extends Component
     }
 
     /**
-     * Informe de ventas por vendedor
+     * Informe detallado por vendedor
      */
     public function loadVentasVendedor()
     {
         $this->activeReport = 'ventas_vendedor';
-        $this->reportTitle = 'Informe de ventas por vendedor y por precio';
+        $this->reportTitle = 'Informe detallado por vendedor';
+        $this->loadVendedores();
+        $this->resetPage();
+    }
+
+    /**
+     * Informe resumido por vendedor
+     */
+    public function loadVentasVendedorResumido()
+    {
+        $this->activeReport = 'ventas_vendedor_resumido';
+        $this->reportTitle = 'Informe resumido por Vendedor';
         $this->loadVendedores();
         $this->resetPage();
     }
@@ -184,6 +195,50 @@ class ReportsList extends Component
                 'dq.price_label as clasificacion',
                 'mp.name as forma_pago'
             ]);
+    }
+
+    private function getVentasVendedorResumidoQuery()
+    {
+        return DB::connection('tenant')->table('inv_remissions as r')
+            ->join('vnt_quotes as q', 'r.quoteId', '=', 'q.id')
+            ->join('vnt_detail_quotes as dq', 'q.id', '=', 'dq.quoteId')
+            ->join('inv_items as i', 'dq.itemId', '=', 'i.id')
+            ->leftJoin(config('database.connections.central.database') . '.users as u', 'q.userId', '=', 'u.id')
+            ->leftJoin('vnt_invoicesXsales as ivs', 'r.id', '=', 'ivs.remissionId')
+            ->leftJoin('vnt_invoices as inv', 'ivs.invoiceId', '=', 'inv.id')
+            ->whereBetween(DB::raw('DATE(r.created_at)'), [$this->dateFrom, $this->dateTo])
+            ->where('i.name', 'not like', '%FLETE%')
+            ->where('i.name', 'not like', '%EMBALAJE%')
+            ->where('i.name', 'not like', '%EMPAQUE%')
+            ->when($this->selectedVendedor, function($query) {
+                return $query->where('q.userId', $this->selectedVendedor);
+            })
+            ->when($this->search, function($query) {
+                return $query->where(function($q) {
+                    $q->where('u.name', 'like', '%' . $this->search . '%')
+                      ->orWhere('r.consecutive', 'like', '%' . $this->search . '%')
+                      ->orWhere('inv.invoiceNumber', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->select([
+                'u.name as vendedor',
+                DB::raw('CASE 
+                    WHEN r.status = 1 THEN "Alistamiento"
+                    WHEN r.status = 2 THEN "Empacado"
+                    WHEN r.status = 3 THEN "En ruta"
+                    WHEN r.status = 4 THEN "Entregado"
+                    WHEN r.status = 5 THEN "Imposibilidad"
+                    WHEN r.status = 6 THEN "Anulado"
+                    WHEN r.status = 7 THEN "Cartera"
+                    ELSE "Otro"
+                END as estado_texto'),
+                'r.consecutive as remission',
+                'inv.invoiceNumber as factura',
+                'r.created_at as fecha',
+                DB::raw('SUM(ROUND(dq.quantity * (dq.value / (1 + dq.tax/100)), 2)) as subtotal')
+            ])
+            ->groupBy('u.name', 'r.status', 'r.consecutive', 'inv.invoiceNumber', 'r.created_at')
+            ->orderBy('r.created_at', 'desc');
     }
 
     /**
@@ -411,7 +466,21 @@ class ReportsList extends Component
 
         $method = 'get' . str_replace('_', '', ucwords($this->activeReport, '_')) . 'Query';
         if (method_exists($this, $method)) {
-            return $this->$method()->get();
+            $data = $this->$method()->get();
+
+            if ($this->activeReport === 'ventas_vendedor_resumido' && $data->isNotEmpty()) {
+                $totalSubtotal = $data->sum('subtotal');
+                $data->push((object)[
+                    'vendedor' => '',
+                    'estado_texto' => '',
+                    'remission' => '',
+                    'factura' => '',
+                    'fecha' => 'Total',
+                    'subtotal' => $totalSubtotal
+                ]);
+            }
+
+            return $data;
         }
 
         return collect();
@@ -422,6 +491,8 @@ class ReportsList extends Component
         switch ($this->activeReport) {
             case 'ventas_vendedor':
                 return ['Vendedor', 'Cotización', 'Estado', 'Remisión', 'Factura', 'Fecha', 'Descripción', 'Subtotal', 'Total', 'Clasif.', 'Pago'];
+            case 'ventas_vendedor_resumido':
+                return ['Vendedor', 'Estado', 'Remisión', 'Factura', 'Fecha', 'Subtotal'];
             case 'cotizaciones_producto':
                 return ['Producto', 'Cotiz.', 'Ped.', '% Efec.', 'Cant. Cotizada', 'Cant. Pedida'];
             case 'productos_cliente':
@@ -455,6 +526,15 @@ class ReportsList extends Component
                     $row->total,
                     $row->clasificacion ?: '---',
                     $row->forma_pago ?: '---',
+                ];
+            case 'ventas_vendedor_resumido':
+                return [
+                    $row->vendedor,
+                    $row->estado_texto,
+                    $row->remission,
+                    $row->factura ?: '---',
+                    $row->fecha === 'Total' ? 'Total' : \Carbon\Carbon::parse($row->fecha)->format('Y-m-d'),
+                    $row->subtotal,
                 ];
             case 'cotizaciones_producto':
                 return [
@@ -492,7 +572,30 @@ class ReportsList extends Component
 
     protected function getExportFilename(): string
     {
-        return 'informe_' . $this->activeReport . '_' . now()->format('Ymd_His');
+        $dates = '';
+        if ($this->dateFrom && $this->dateTo) {
+            $dates = '_Desde_' . $this->dateFrom . '_Hasta_' . $this->dateTo;
+        }
+
+        return 'informe_' . $this->activeReport . $dates . '_' . now()->format('His');
+    }
+
+    public function getExportColumnFormats(): array
+    {
+        if ($this->activeReport === 'ventas_vendedor_resumido') {
+            return [
+                'F' => '"$"#,##0.00', // Columna Subtotal
+            ];
+        }
+        
+        if ($this->activeReport === 'ventas_vendedor') {
+            return [
+                'H' => '"$"#,##0.00',
+                'I' => '"$"#,##0.00',
+            ];
+        }
+
+        return [];
     }
 
     /**
