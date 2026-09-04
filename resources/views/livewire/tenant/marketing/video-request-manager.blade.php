@@ -28,13 +28,22 @@
                     </p>
                 </div>
                 @if ($this->canCreate)
-                    <button wire:click="openCreateModal"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-xs uppercase tracking-widest transition">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Solicitar video
-                    </button>
+                    <div class="flex gap-2">
+                        <button wire:click="openCreateGenericModal"
+                            class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold text-xs uppercase tracking-widest transition">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Video Genérico
+                        </button>
+                        <button wire:click="openCreateModal"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-xs uppercase tracking-widest transition">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Solicitar video
+                        </button>
+                    </div>
                 @endif
             </div>
         </div>
@@ -340,13 +349,25 @@
             <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl mt-10 border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                        {{ $selectedItemId ? 'Nueva solicitud de video' : 'Solicitar video — Buscar producto' }}
+                        @if ($isGenericMode)
+                            Solicitar video genérico
+                        @else
+                            {{ $selectedItemId ? 'Nueva solicitud de video' : 'Solicitar video — Buscar producto' }}
+                        @endif
                     </h3>
                     <button wire:click="closeCreateModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">&times;</button>
                 </div>
 
                 <div class="p-5 space-y-4">
-                    @if (!$selectedItemId)
+                    @if ($isGenericMode)
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Título del Video *</label>
+                            <input wire:model="newTitle" type="text"
+                                placeholder="Ej: Video corporativo Fervicom..."
+                                class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            @error('newTitle') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    @elseif (!$selectedItemId)
                         <div>
                             <input wire:model.live.debounce.300ms="productSearch" type="text" autofocus
                                 placeholder="Buscar por código o descripción (mínimo 2 caracteres)…"
@@ -400,7 +421,9 @@
                             </div>
                             <button type="button" wire:click="clearProduct" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline shrink-0">Cambiar</button>
                         </div>
+                    @endif
 
+                    @if ($isGenericMode || $selectedItemId)
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Gestor de videos (opcional)</label>
                             <select wire:model="newGestorId"
@@ -424,7 +447,7 @@
 
                 <div class="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700">
                     <button wire:click="closeCreateModal" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Cancelar</button>
-                    <button wire:click="generateRequest" wire:loading.attr="disabled" @disabled(!$selectedItemId)
+                    <button wire:click="generateRequest" wire:loading.attr="disabled" @disabled(!$isGenericMode && !$selectedItemId)
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition">
                         Generar solicitud
                     </button>

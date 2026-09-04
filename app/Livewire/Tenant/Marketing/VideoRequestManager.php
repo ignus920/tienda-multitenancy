@@ -50,6 +50,9 @@ class VideoRequestManager extends Component
     public ?string $selectedItemLabel = null;
     public string $newInstructions = '';
     public ?int $newGestorId = null;
+    
+    public bool $isGenericMode = false;
+    public string $newTitle = '';
 
     /* ── Detalle / lista de chequeo (pantalla completa) ─ */
     public bool $showDetail = false;
@@ -156,7 +159,16 @@ class VideoRequestManager extends Component
     /* ── Crear solicitud ─────────────────────────────── */
     public function openCreateModal(): void
     {
-        $this->reset(['productSearch', 'selectedItemId', 'selectedItemLabel', 'newInstructions', 'newGestorId']);
+        $this->reset(['productSearch', 'selectedItemId', 'selectedItemLabel', 'newInstructions', 'newGestorId', 'isGenericMode', 'newTitle']);
+        $this->isGenericMode = false;
+        $this->resetValidation();
+        $this->showCreateModal = true;
+    }
+
+    public function openCreateGenericModal(): void
+    {
+        $this->reset(['productSearch', 'selectedItemId', 'selectedItemLabel', 'newInstructions', 'newGestorId', 'isGenericMode', 'newTitle']);
+        $this->isGenericMode = true;
         $this->resetValidation();
         $this->showCreateModal = true;
     }
@@ -192,18 +204,29 @@ class VideoRequestManager extends Component
 
         abort_unless($this->canCreate, 403);
 
-        $this->validate([
-            'selectedItemId'  => ['required', 'integer'],
-            'newInstructions' => ['nullable', 'string', 'max:5000'],
-            'newGestorId'     => ['nullable', 'integer'],
-        ], [
-            'selectedItemId.required' => 'Debe seleccionar un producto del inventario.',
-        ]);
+        if ($this->isGenericMode) {
+            $this->validate([
+                'newTitle'        => ['required', 'string', 'max:255'],
+                'newInstructions' => ['nullable', 'string', 'max:5000'],
+                'newGestorId'     => ['nullable', 'integer'],
+            ], [
+                'newTitle.required' => 'Debe ingresar un título para el video genérico.',
+            ]);
+        } else {
+            $this->validate([
+                'selectedItemId'  => ['required', 'integer'],
+                'newInstructions' => ['nullable', 'string', 'max:5000'],
+                'newGestorId'     => ['nullable', 'integer'],
+            ], [
+                'selectedItemId.required' => 'Debe seleccionar un producto del inventario.',
+            ]);
+        }
 
         $request = $service->create(
-            (int) $this->selectedItemId,
+            $this->isGenericMode ? null : (int) $this->selectedItemId,
             $this->newInstructions !== '' ? $this->newInstructions : null,
             $this->newGestorId ?: null,
+            $this->isGenericMode ? $this->newTitle : null
         );
 
         $this->closeCreateModal();
