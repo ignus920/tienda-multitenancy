@@ -150,60 +150,65 @@ new class extends Component
         </a>
         @endif
 
-        <!-- Mis Tareas (planeación operativa) - visible para cualquier trabajador interno -->
+        <!-- Planeación de Tareas (menú con subitems: Mis Tareas + panel de Gerencia) -->
         @if(Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18)
-        <a href="{{ route('tenant.task-planner.my-tasks') }}" wire:navigate
-            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.task-planner.my-tasks') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
+        <div x-data="{
+            tooltip: false,
+            open: {{ request()->routeIs('tenant.task-planner.my-tasks') || request()->routeIs('tenant.task-planner') ? 'true' : 'false' }},
+            _t: null
+        }" class="w-full relative">
+            <!-- Botón principal -->
+            <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.task-planner.my-tasks') || request()->routeIs('tenant.task-planner') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }} cursor-pointer"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" @mouseenter="tooltip = sidebarCollapsed"
+                @mouseleave="_t = setTimeout(() => tooltip = false, 200)" @click="open = !open">
 
-            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
 
-            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
-                class="ml-3">
-                Mis Tareas
-            </span>
+                <span x-show="!sidebarCollapsed" class="ml-3 flex-1" x-transition>
+                    Planeación de Tareas
+                </span>
 
-            <!-- Tooltip -->
-            <div x-show="tooltip" x-transition
-                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
-                Mis Tareas
+                <!-- Icono desplegable -->
+                <svg x-show="!sidebarCollapsed" :class="open ? 'rotate-90' : ''"
+                    class="w-4 h-4 ml-auto transition-transform duration-200" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
             </div>
-        </a>
-        @endif
 
-        <!-- Planeación de Tareas (administración, solo Gerencia/Admin) -->
-        @if($isAdmin)
-        <a href="{{ route('tenant.task-planner') }}" wire:navigate
-            class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.task-planner') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
-            :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
-            @mouseenter="tooltip = sidebarCollapsed" @mouseleave="tooltip = false">
+            <!-- Submenú -->
+            <div x-show="open && !sidebarCollapsed" x-transition
+                class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
 
-            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+                <a href="{{ route('tenant.task-planner.my-tasks') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.task-planner.my-tasks') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Mis Tareas
+                </a>
 
-            <span x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-4"
-                class="ml-3">
-                Planeación de Tareas
-            </span>
-
-            <!-- Tooltip -->
-            <div x-show="tooltip" x-transition
-                class="absolute top-0 left-full ml-2 bg-gray-800 text-gray-400 font-semibold uppercase tracking-wide text-xs px-3 py-2 rounded-lg shadow-xl z-[9999] whitespace-nowrap">
-                Planeación de Tareas
+                @if($isAdmin)
+                <a href="{{ route('tenant.task-planner') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.task-planner') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Panel de Gerencia
+                </a>
+                @endif
             </div>
-        </a>
+
+            <!-- Submenú desplegable (para sidebar colapsado) -->
+            <div x-show="sidebarCollapsed && tooltip" x-transition
+                class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
+                @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
+                <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Planeación de Tareas</div>
+                <a href="{{ route('tenant.task-planner.my-tasks') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Mis Tareas</a>
+                @if($isAdmin)
+                <a href="{{ route('tenant.task-planner') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Panel de Gerencia</a>
+                @endif
+            </div>
+        </div>
         @endif
 
         <!-- Ventas (menú con subitems) && !$isAlmacenista  -->

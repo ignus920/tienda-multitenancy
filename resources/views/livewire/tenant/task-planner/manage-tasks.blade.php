@@ -20,36 +20,43 @@
         </div>
     </div>
 
-    <!-- Dashboard rápido -->
+    <!-- Dashboard rápido (clic filtra el listado) -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mt-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        <button wire:click="filterByDashboard('programadas')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboard['programadas'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Programadas</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        </button>
+        <button wire:click="filterByDashboard('en_proceso')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-blue-600">{{ $dashboard['en_proceso'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">En proceso</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        </button>
+        <button wire:click="filterByDashboard('pausadas')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-yellow-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-yellow-600">{{ $dashboard['pausadas'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Pausadas</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        </button>
+        <button wire:click="filterByDashboard('bloqueadas')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-purple-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-purple-600">{{ $dashboard['bloqueadas'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Bloqueadas</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        </button>
+        <button wire:click="filterByDashboard('terminadas_hoy')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-green-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-green-600">{{ $dashboard['terminadas_hoy'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Terminadas hoy</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        </button>
+        <button wire:click="filterByDashboard('atrasadas')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-red-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-red-600">{{ $dashboard['atrasadas'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Atrasadas</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        </button>
+        <button wire:click="filterByDashboard('sin_programar')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-gray-400 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-gray-500">{{ $dashboard['sin_programar'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Sin programar</p>
-        </div>
+        </button>
     </div>
 
     <!-- Pestañas -->
@@ -156,12 +163,49 @@
                         <td class="px-4 py-2.5">
                             @include('livewire.tenant.task-planner.partials.status-badge', ['task' => $task])
                         </td>
-                        <td class="px-4 py-2.5 text-right space-x-1 whitespace-nowrap">
-                            <button wire:click="openScheduleModal({{ $task->id }})" class="text-xs font-semibold text-indigo-600 hover:underline">Programar</button>
-                            <button wire:click="editTask({{ $task->id }})" class="text-xs font-semibold text-gray-500 hover:underline">Editar</button>
-                            @if(!in_array($task->status, ['terminada', 'cancelada']))
-                            <button wire:click="openCancelModal({{ $task->id }})" wire:confirm="¿Cancelar esta tarea?" class="text-xs font-semibold text-red-500 hover:underline">Cancelar</button>
-                            @endif
+                        <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                            <div x-data="{ open: false }" @click.outside="open = false" class="relative inline-block text-left">
+                                <button @click="open = !open" type="button"
+                                    class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                    </svg>
+                                </button>
+                                <div x-show="open" x-cloak
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                    x-transition:leave-end="transform opacity-0 scale-95"
+                                    @click="open = false"
+                                    class="origin-top-right absolute right-0 mt-2 w-44 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
+                                    <div class="py-1">
+                                        <button wire:click="openScheduleModal({{ $task->id }})"
+                                            class="w-full text-left px-4 py-2 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            {{ $task->currentSchedule ? 'Reprogramar' : 'Programar' }}
+                                        </button>
+                                        <button wire:click="openDetailModal({{ $task->id }})"
+                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            Ver detalle
+                                        </button>
+                                        <button wire:click="editTask({{ $task->id }})"
+                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            Editar
+                                        </button>
+                                        @if(!in_array($task->status, ['terminada', 'cancelada']))
+                                        <button wire:click="openCancelModal({{ $task->id }})"
+                                            class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center border-t border-gray-100 dark:border-gray-700">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            Cancelar
+                                        </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     @empty

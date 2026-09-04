@@ -375,6 +375,32 @@ class ManageTasks extends Component
     // Calendario (FullCalendar: eventos por AJAX + drag & drop)
     // ---------------------------------------------------------------
 
+    /**
+     * Filtra el listado de la Bandeja al hacer clic en una tarjeta del dashboard.
+     */
+    public function filterByDashboard($card)
+    {
+        if ($card === 'atrasadas') {
+            $this->activeTab = 'atrasadas';
+            return;
+        }
+
+        $map = [
+            'programadas' => 'programada',
+            'en_proceso' => 'en_proceso',
+            'pausadas' => 'pausada',
+            'bloqueadas' => 'bloqueada',
+            'terminadas_hoy' => 'terminada',
+            'sin_programar' => 'sin_programar',
+        ];
+
+        $this->activeTab = 'bandeja';
+        $this->filterStatus = $map[$card] ?? '';
+        $this->search = '';
+        $this->filterDepartment = '';
+        $this->filterPriority = '';
+    }
+
     public function updatedCalendarDepartmentId()
     {
         $this->dispatch('calendar-refresh');
@@ -640,6 +666,6 @@ class ManageTasks extends Component
             'projectsForOrigin' => $projectsForOrigin,
             'detailTask' => $this->detailTaskId ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'dependencies.dependsOnTask', 'schedules', 'pauses.user', 'timeLogs.user'])->find($this->detailTaskId) : null,
             'allOpenTasksForDependency' => Task::whereIn('status', Task::OPEN_STATUSES)->orderBy('title')->get(['id', 'title']),
-        ])->layout('layouts.app', ['header' => 'Planeación de Tareas Operativas']);
+        ])->layout('layouts.app');
     }
 }
