@@ -413,8 +413,8 @@ class InvoiceDataBuilder
 
         foreach ($methodPayments as $detailPayment) {
             $descriptionFormaPago = strtoupper($detailPayment['descriptionFormaPago'] ?? '');
-            $nombre = strtoupper($detailPayment['nombre'] ?? '');
-            $valor = floatval($detailPayment['valor'] ?? 0);
+            $nombre = strtoupper($detailPayment['nombre'] ?? $detailPayment['method'] ?? '');
+            $valor = floatval($detailPayment['valor'] ?? $detailPayment['value'] ?? 0);
 
             // Condicionales basadas en el cuadro de mapeo proporcionado:
             $isConsignacion = preg_match('/(BANCOLOMBIA|BOGOTÁ|BOGOTA|DAVIVIENDA|NEQUI|DAVIPLATA|CRUCE DE CUENTAS|WOMPI|MERCADO LIBRE|TRANSFERENCIA)/', $nombre) || 
