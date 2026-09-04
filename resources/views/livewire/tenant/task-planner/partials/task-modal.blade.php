@@ -73,13 +73,14 @@
 
             <div>
                 <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Responsables</label>
-                <select wire:model="assignedUserIds" multiple size="5"
-                    class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                    @foreach($assignableUsers as $user)
-                    <option value="{{ $user->id }}">{{ $user->name }}</option>
-                    @endforeach
-                </select>
-                <p class="text-[11px] text-gray-400 mt-1">Mantén Ctrl (o Cmd) presionado para seleccionar varios.</p>
+                <div x-data="taskPlannerChoices()" x-init="init($el)">
+                    <select x-ref="select" wire:model="assignedUserIds" multiple
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm">
+                        @foreach($assignableUsers as $user)
+                        <option value="{{ $user->id }}" @selected(in_array($user->id, $assignedUserIds))>{{ $user->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 @error('assignedUserIds') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
             </div>
 
@@ -137,16 +138,18 @@
             @if(!$editingTaskId)
             <div>
                 <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Depende de (opcional)</label>
-                <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-                    @forelse($allOpenTasksForDependency as $depTask)
-                    <label class="inline-flex items-center gap-1.5 text-xs bg-gray-50 dark:bg-gray-700 rounded-full px-2 py-1 cursor-pointer">
-                        <input type="checkbox" wire:model="dependsOnTaskIds" value="{{ $depTask->id }}" class="rounded border-gray-300 text-indigo-600">
-                        {{ $depTask->title }}
-                    </label>
-                    @empty
-                    <span class="text-xs text-gray-400">No hay otras tareas abiertas.</span>
-                    @endforelse
+                @if($allOpenTasksForDependency->isEmpty())
+                <p class="text-xs text-gray-400">No hay otras tareas abiertas.</p>
+                @else
+                <div x-data="taskPlannerChoices()" x-init="init($el)">
+                    <select x-ref="select" wire:model="dependsOnTaskIds" multiple
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm">
+                        @foreach($allOpenTasksForDependency as $depTask)
+                        <option value="{{ $depTask->id }}" @selected(in_array($depTask->id, $dependsOnTaskIds))>{{ $depTask->title }}</option>
+                        @endforeach
+                    </select>
                 </div>
+                @endif
             </div>
             @endif
         </div>
