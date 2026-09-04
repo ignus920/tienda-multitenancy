@@ -79,7 +79,6 @@ class ManageTasks extends Component
     public $blockReason = '';
 
     // Tab Calendario
-    public $calendarWeekStart = '';
     public $calendarDepartmentId = '';
 
     // Tab Horarios laborales
@@ -105,7 +104,6 @@ class ManageTasks extends Component
 
     public function mount()
     {
-        $this->calendarWeekStart = now()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
         $this->deadlineDate = now()->addDay()->format('Y-m-d');
     }
 
@@ -298,6 +296,7 @@ class ManageTasks extends Component
         $this->showScheduleModal = false;
         $this->scheduleConflicts = [];
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea programada.']);
+        $this->dispatch('calendar-refresh');
     }
 
     public function unschedule($taskId, SchedulingService $schedulingService)
@@ -305,6 +304,7 @@ class ManageTasks extends Component
         $this->ensureTenantConnection();
         $schedulingService->unscheduleTask(Task::findOrFail($taskId), Auth::id());
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'La tarea volvió a la bandeja de sin programar.']);
+        $this->dispatch('calendar-refresh');
     }
 
     // ---------------------------------------------------------------
@@ -345,6 +345,7 @@ class ManageTasks extends Component
         $taskService->cancelTask(Task::findOrFail($this->cancelingTaskId), Auth::id(), $this->cancelReason);
         $this->showCancelModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea cancelada.']);
+        $this->dispatch('calendar-refresh');
     }
 
     public function openBlockModal($taskId)
@@ -371,22 +372,79 @@ class ManageTasks extends Component
     }
 
     // ---------------------------------------------------------------
-    // Calendario
+    // Calendario (FullCalendar: eventos por AJAX + drag & drop)
     // ---------------------------------------------------------------
 
-    public function goToPreviousWeek()
+    public function updatedCalendarDepartmentId()
     {
-        $this->calendarWeekStart = Carbon::parse($this->calendarWeekStart)->subWeek()->format('Y-m-d');
+        $this->dispatch('calendar-refresh');
     }
 
-    public function goToNextWeek()
+    /**
+     * Fuente de eventos para FullCalendar. Se llama vía $wire desde JS
+     * cada vez que el calendario necesita (re)cargar el rango visible.
+     */
+    public function getCalendarEvents($start, $end)
     {
-        $this->calendarWeekStart = Carbon::parse($this->calendarWeekStart)->addWeek()->format('Y-m-d');
+        $this->ensureTenantConnection();
+
+        $colors = [
+            'p1_urgente' => '#ef4444',
+            'p2_alta' => '#f97316',
+            'p3_normal' => '#3b82f6',
+            'p4_baja' => '#9ca3af',
+        ];
+
+        $query = TaskSchedule::with(['task.department', 'user'])
+            ->whereNotIn('schedule_status', ['cancelada'])
+            ->where('scheduled_start', '<', $end)
+            ->where('scheduled_end', '>', $start);
+
+        if ($this->calendarDepartmentId) {
+            $query->whereHas('task', fn($q) => $q->where('department_id', $this->calendarDepartmentId));
+        }
+
+        return $query->get()->map(function ($schedule) use ($colors) {
+            $color = $colors[$schedule->task->priority] ?? '#6366f1';
+
+            return [
+                'id' => $schedule->id,
+                'title' => ($schedule->user->name ?? 'Sin asignar') . ' · ' . $schedule->task->title,
+                'start' => $schedule->scheduled_start->toIso8601String(),
+                'end' => $schedule->scheduled_end->toIso8601String(),
+                'backgroundColor' => $color,
+                'borderColor' => $color,
+                'extendedProps' => [
+                    'taskId' => $schedule->task_id,
+                    'status' => $schedule->task->status,
+                ],
+            ];
+        })->toArray();
     }
 
-    public function goToCurrentWeek()
+    /**
+     * Se llama desde JS al soltar una tarea (arrastrada desde la bandeja
+     * o movida/redimensionada dentro del calendario). En vez de guardar
+     * de inmediato, abre el modal de programación ya prellenado para
+     * que el conflicto (si existe) se revise antes de confirmar.
+     */
+    public function prefillScheduleFromDrop($taskId, $startIso, $endIso = null)
     {
-        $this->calendarWeekStart = now()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
+        $this->ensureTenantConnection();
+
+        $task = Task::findOrFail($taskId);
+        $start = Carbon::parse($startIso);
+        $end = $endIso ? Carbon::parse($endIso) : $start->copy()->addMinutes($task->total_occupied_minutes);
+
+        $this->schedulingTaskId = $task->id;
+        $this->scheduleDate = $start->format('Y-m-d');
+        $this->scheduleStartTime = $start->format('H:i');
+        $this->scheduleEndTime = $end->format('H:i');
+        $this->rescheduleReason = '';
+        $this->scheduleConflicts = [];
+        $this->showScheduleModal = true;
+
+        $this->checkScheduleConflicts(app(SchedulingService::class));
     }
 
     // ---------------------------------------------------------------
@@ -553,22 +611,6 @@ class ManageTasks extends Component
             ->orderBy('deadline_at')
             ->get();
 
-        // Calendario semanal
-        $weekStart = Carbon::parse($this->calendarWeekStart)->startOfDay();
-        $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
-
-        $calendarSchedulesQuery = TaskSchedule::with(['task.department', 'user'])
-            ->whereBetween('scheduled_start', [$weekStart, $weekEnd])
-            ->whereNotIn('schedule_status', ['cancelada']);
-
-        if ($this->calendarDepartmentId) {
-            $calendarSchedulesQuery->whereHas('task', fn($q) => $q->where('department_id', $this->calendarDepartmentId));
-        }
-
-        $calendarSchedules = $calendarSchedulesQuery->orderBy('scheduled_start')->get()->groupBy(function ($s) {
-            return optional($s->user)->name . '|' . $s->user_id;
-        });
-
         // Dashboard
         $dashboard = [
             'programadas' => Task::whereIn('status', ['programada', 'pendiente', 'disponible'])->count(),
@@ -593,9 +635,6 @@ class ManageTasks extends Component
             'tasks' => $tasks,
             'unscheduledTasks' => $unscheduledTasks,
             'overdueTasks' => $overdueTasks,
-            'weekStart' => $weekStart,
-            'weekEnd' => $weekEnd,
-            'calendarSchedules' => $calendarSchedules,
             'dashboard' => $dashboard,
             'unavailabilities' => $unavailabilities,
             'projectsForOrigin' => $projectsForOrigin,

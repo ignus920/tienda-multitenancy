@@ -174,56 +174,49 @@
     </div>
     @endif
 
-    <!-- =================== TAB: CALENDARIO =================== -->
+    <!-- =================== TAB: CALENDARIO (FullCalendar + drag & drop) =================== -->
     @if($activeTab === 'calendario')
-    <div class="mt-4 space-y-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <button wire:click="goToPreviousWeek" class="px-2 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200">←</button>
-                <button wire:click="goToCurrentWeek" class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200">Hoy</button>
-                <button wire:click="goToNextWeek" class="px-2 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200">→</button>
-                <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 ml-2">
-                    {{ $weekStart->format('d M') }} - {{ $weekEnd->format('d M Y') }}
-                </span>
-            </div>
-            <select wire:model.live="calendarDepartmentId" class="block border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs">
+    <div class="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+
+        <!-- Bandeja de tareas arrastrables -->
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Arrastra al calendario</h4>
+            <p class="text-[11px] text-gray-400 mb-3">Tareas sin programar. Suéltalas en el día/hora deseada.</p>
+
+            <select wire:model.live="calendarDepartmentId" class="block w-full mb-3 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs">
                 <option value="">Todos los departamentos</option>
                 @foreach($departments as $dept)
                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                 @endforeach
             </select>
+
+            <div id="unscheduled-tray" class="space-y-2 max-h-[600px] overflow-y-auto">
+                @forelse($unscheduledTasks as $task)
+                @php
+                    $priorityColors = ['p1_urgente' => '#ef4444', 'p2_alta' => '#f97316', 'p3_normal' => '#3b82f6', 'p4_baja' => '#9ca3af'];
+                    $hours = intdiv($task->total_occupied_minutes, 60);
+                    $mins = $task->total_occupied_minutes % 60;
+                @endphp
+                <div class="tray-task cursor-move rounded-lg px-3 py-2 text-white text-xs font-semibold shadow-sm"
+                     style="background-color: {{ $priorityColors[$task->priority] ?? '#6366f1' }}"
+                     data-task-id="{{ $task->id }}"
+                     data-title="{{ $task->title }}"
+                     data-duration="{{ sprintf('%02d:%02d', $hours, $mins) }}"
+                     data-color="{{ $priorityColors[$task->priority] ?? '#6366f1' }}">
+                    {{ $task->title }}
+                    <div class="text-[10px] font-normal opacity-90">{{ $task->department->name ?? '—' }} · {{ $hours }}h {{ $mins }}min</div>
+                </div>
+                @empty
+                <p class="text-xs text-gray-400">No hay tareas sin programar.</p>
+                @endforelse
+            </div>
         </div>
 
-        @forelse($calendarSchedules as $userKey => $schedules)
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700">
-                <h4 class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ explode('|', $userKey)[0] }}</h4>
-            </div>
-            <div class="divide-y divide-gray-100 dark:divide-gray-700">
-                @foreach($schedules as $schedule)
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-2.5">
-                    <div class="flex items-center gap-3">
-                        <div class="text-xs font-mono text-gray-500 dark:text-gray-400 w-36 shrink-0">
-                            {{ $schedule->scheduled_start->format('D d/m H:i') }} - {{ $schedule->scheduled_end->format('H:i') }}
-                        </div>
-                        @include('livewire.tenant.task-planner.partials.priority-badge', ['task' => $schedule->task])
-                        <button wire:click="openDetailModal({{ $schedule->task_id }})" class="text-sm font-medium text-gray-800 dark:text-gray-100 hover:text-indigo-600 text-left">
-                            {{ $schedule->task->title }}
-                        </button>
-                        @include('livewire.tenant.task-planner.partials.status-badge', ['task' => $schedule->task])
-                    </div>
-                    <div>
-                        <button wire:click="openScheduleModal({{ $schedule->task_id }})" class="text-xs font-semibold text-indigo-600 hover:underline">Reprogramar</button>
-                    </div>
-                </div>
-                @endforeach
-            </div>
+        <!-- Calendario -->
+        <div class="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3"
+             x-data="taskPlannerCalendar($wire)" x-init="init($el)" wire:ignore>
+            <div id="task-planner-calendar-el"></div>
         </div>
-        @empty
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400 text-sm">
-            No hay tareas programadas esta semana.
-        </div>
-        @endforelse
     </div>
     @endif
 
@@ -326,4 +319,98 @@
     @include('livewire.tenant.task-planner.partials.cancel-modal')
     @include('livewire.tenant.task-planner.partials.block-modal')
     @include('livewire.tenant.task-planner.partials.unavailability-modal')
+
+    <script>
+        function taskPlannerCalendar($wire) {
+            return {
+                calendar: null,
+                init(el) {
+                    this.loadAssets().then(() => {
+                        this.renderCalendar(el);
+                        this.initDraggableTray();
+                    });
+
+                    $wire.on('calendar-refresh', () => {
+                        if (this.calendar) this.calendar.refetchEvents();
+                    });
+                },
+                loadAssets() {
+                    if (window.FullCalendar) return Promise.resolve();
+
+                    return this.loadScript('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js')
+                        .then(() => this.loadScript('https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js'));
+                },
+                loadScript(src) {
+                    window.__tpScriptPromises = window.__tpScriptPromises || {};
+                    if (window.__tpScriptPromises[src]) return window.__tpScriptPromises[src];
+
+                    window.__tpScriptPromises[src] = new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+
+                    return window.__tpScriptPromises[src];
+                },
+                renderCalendar(el) {
+                    const calendarEl = el.querySelector('#task-planner-calendar-el');
+
+                    this.calendar = new FullCalendar.Calendar(calendarEl, {
+                        locale: 'es',
+                        height: 'auto',
+                        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
+                        initialView: 'timeGridWeek',
+                        slotMinTime: '06:00:00',
+                        slotMaxTime: '20:00:00',
+                        nowIndicator: true,
+                        editable: true,
+                        droppable: true,
+                        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+                        events: (fetchInfo, successCallback, failureCallback) => {
+                            $wire.getCalendarEvents(fetchInfo.startStr, fetchInfo.endStr)
+                                .then(successCallback)
+                                .catch(failureCallback);
+                        },
+                        eventDrop: (info) => {
+                            $wire.prefillScheduleFromDrop(info.event.extendedProps.taskId, info.event.startStr, info.event.endStr);
+                            info.revert();
+                        },
+                        eventResize: (info) => {
+                            $wire.prefillScheduleFromDrop(info.event.extendedProps.taskId, info.event.startStr, info.event.endStr);
+                            info.revert();
+                        },
+                        eventReceive: (info) => {
+                            const taskId = info.event.extendedProps.taskId;
+                            const startStr = info.event.startStr;
+                            info.event.remove();
+                            $wire.prefillScheduleFromDrop(taskId, startStr, null);
+                        },
+                        eventClick: (info) => {
+                            $wire.openDetailModal(info.event.extendedProps.taskId);
+                        },
+                    });
+
+                    this.calendar.render();
+                },
+                initDraggableTray() {
+                    const trayEl = document.getElementById('unscheduled-tray');
+                    if (!trayEl || trayEl.__tpDraggableInit) return;
+                    trayEl.__tpDraggableInit = true;
+
+                    new FullCalendar.Draggable(trayEl, {
+                        itemSelector: '.tray-task',
+                        eventData: (eventEl) => ({
+                            title: eventEl.dataset.title,
+                            duration: eventEl.dataset.duration,
+                            backgroundColor: eventEl.dataset.color,
+                            borderColor: eventEl.dataset.color,
+                            extendedProps: { taskId: eventEl.dataset.taskId },
+                        }),
+                    });
+                },
+            };
+        }
+    </script>
 </div>
