@@ -29,11 +29,11 @@
                     <div class="flex items-center gap-3 shrink-0">
                         @if(!empty($branches) && count($branches) > 1 && !$isEditing)
                             <div class="flex items-center gap-1.5">
-                                <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
+                                <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0 hidden sm:inline">Sucursal:</span>
                                 <select 
                                     wire:model.live="selectedBranchId"
                                     wire:change="selectBranch($event.target.value)"
-                                    class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                                    class="block text-[11px] py-0.5 px-2 max-w-[120px] sm:max-w-[150px] border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
                                   >
                                     <option value="">-- Seleccionar --</option>
                                     @foreach($branches as $branch)
@@ -182,46 +182,48 @@
 
     <!-- Modal flotante para crear o editar cliente -->
     @if($showCreateCustomerForm || $showCreateCustomerButton)
-    <div x-data="{ show: true }" x-show="show" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <h3 class="text-sm font-bold text-gray-900 dark:text-white">
-                    {{ $editingCustomerId ? 'Editar Cliente' : 'Crear Cliente' }}
-                </h3>
-                <button @click="show = false; $wire.cancelCreateCustomer()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Contenedor con cargando / cargado -->
-            <div class="p-6 max-h-[75vh] overflow-y-auto relative">
-                <!-- Indicador de Carga Agradable -->
-                <div wire:loading wire:target="editCustomer, cancelCreateCustomer" class="w-full py-12 flex flex-col items-center justify-center space-y-4">
-                    <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Cargando información del cliente...</p>
-                    
-                    <!-- Esqueleto de Carga Simulado -->
-                    <div class="w-full space-y-3 pt-4">
-                        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
-                        <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
-                        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
-                        <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
-                    </div>
+    <template x-teleport="body">
+        <div x-data="{ show: true }" x-show="show" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                        {{ $editingCustomerId ? 'Editar Cliente' : 'Crear Cliente' }}
+                    </h3>
+                    <button @click="show = false; $wire.cancelCreateCustomer()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
+                
+                <!-- Contenedor con cargando / cargado -->
+                <div class="p-6 max-h-[75vh] overflow-y-auto relative">
+                    <!-- Indicador de Carga Agradable -->
+                    <div wire:loading wire:target="editCustomer, cancelCreateCustomer" class="w-full py-12 flex flex-col items-center justify-center space-y-4">
+                        <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Cargando información del cliente...</p>
+                        
+                        <!-- Esqueleto de Carga Simulado -->
+                        <div class="w-full space-y-3 pt-4">
+                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                    </div>
 
-                <!-- Formulario cuando no está cargando -->
-                <div wire:loading.remove wire:target="editCustomer, cancelCreateCustomer">
-                    <livewire:tenant.vnt-company.vnt-company-form
-                        :reusable="true"
-                        :simplified="true"
-                        :companyId="$editingCustomerId"
-                        key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
+                    <!-- Formulario cuando no está cargando -->
+                    <div wire:loading.remove wire:target="editCustomer, cancelCreateCustomer">
+                        <livewire:tenant.vnt-company.vnt-company-form
+                            :reusable="true"
+                            :simplified="true"
+                            :companyId="$editingCustomerId"
+                            key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
     @endif
     <div class="flex {{ $hideQuoter ? 'flex-col' : 'pr-96' }}" x-data @product-copied.window="
         const data = Array.isArray($event.detail) ? $event.detail[0] : $event.detail;
