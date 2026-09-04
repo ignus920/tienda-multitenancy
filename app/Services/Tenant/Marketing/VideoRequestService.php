@@ -17,28 +17,38 @@ class VideoRequestService
     /**
      * Crea una solicitud de video y su lista de chequeo (5 actividades).
      */
-    public function create(int $itemId, ?string $instructions, ?int $gestorId = null): VideoRequest
+    public function create(?int $itemId, ?string $instructions, ?int $gestorId = null, ?string $genericTitle = null): VideoRequest
     {
-        $item = Items::on('tenant')->findOrFail($itemId);
+        $item = $itemId ? Items::on('tenant')->findOrFail($itemId) : null;
+        
+        $productCode = $item ? ($item->internal_code ?: $item->sku) : 'GENERICO';
+        $productName = $item ? $item->name : $genericTitle;
 
-        return DB::connection('tenant')->transaction(function () use ($item, $instructions, $gestorId) {
+        return DB::connection('tenant')->transaction(function () use ($item, $instructions, $gestorId, $productCode, $productName) {
+            
+            // Si es genérico, filtramos el canal 'web'
+            $channels = VideoRequest::CHANNELS;
+            if (!$item) {
+                unset($channels['web']);
+            }
+
             $request = VideoRequest::create([
                 'request_number'  => $this->nextRequestNumber(),
-                'item_id'         => $item->id,
-                'product_code'    => $item->internal_code ?: $item->sku,
-                'product_name'    => $item->name,
+                'item_id'         => $item ? $item->id : null,
+                'product_code'    => $productCode,
+                'product_name'    => $productName,
                 'requested_by'    => Auth::id(),
                 'gestor_id'       => $gestorId,
                 'instructions'    => $instructions,
                 'status'          => 'pendiente',
                 'progress_done'   => 0,
-                'progress_total'  => count(VideoRequest::CHANNELS),
+                'progress_total'  => count($channels),
                 'progress_percent' => 0,
                 'created_by'      => Auth::id(),
                 'updated_by'      => Auth::id(),
             ]);
 
-            foreach (VideoRequest::CHANNELS as $channel => $cfg) {
+            foreach ($channels as $channel => $cfg) {
                 $request->tasks()->create([
                     'channel'    => $channel,
                     'status'     => 'pendiente',
@@ -46,7 +56,7 @@ class VideoRequestService
                 ]);
             }
 
-            $this->log($request, 'creada', null, null, "Solicitud {$request->request_number} · {$item->name}");
+            $this->log($request, 'creada', null, null, "Solicitud {$request->request_number} · {$productName}");
 
             return $request;
         });
