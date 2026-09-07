@@ -3103,12 +3103,11 @@ class Orders extends Component
             'newProductCode' => 'required|unique:tenant.imp_new_products,code',
             'newProductDescription' => 'required|min:3',
             'newProductObservations' => 'nullable|string',
-            'newProductSupplierId' => 'required|integer',
+            'newProductSupplierId' => 'nullable|integer',
             'newProductImages.*' => 'nullable|image|max:2048' // Validación para múltiples imágenes
         ], [
             'newProductCode.required' => 'El código es obligatorio',
             'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductSupplierId.required' => 'Debe seleccionar un proveedor',
             'newProductImages.*.image' => 'Los archivos deben ser imágenes',
             'newProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
         ]);

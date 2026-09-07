@@ -2484,6 +2484,7 @@
                         @error('newProductObservations') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
+
                     <!-- Imágenes del Producto (Dropzone Native) -->
                     <div class="col-span-1 md:col-span-2 mt-4">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imágenes del Producto / Fotos</label>
