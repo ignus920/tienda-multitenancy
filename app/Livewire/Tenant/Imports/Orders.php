@@ -766,7 +766,11 @@ class Orders extends Component
     {
         try {
             $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" . $from . "&tl=" . $to . "&dt=t&q=" . urlencode($text);
-            $response = \Illuminate\Support\Facades\Http::get($url);
+            
+            // Usar un User-Agent de navegador para evitar bloqueo 429 de Google en VPS
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+            ])->get($url);
             
             if ($response->successful()) {
                 $result = $response->json();
@@ -779,9 +783,11 @@ class Orders extends Component
                     }
                     return $translatedText;
                 }
+            } else {
+                \Illuminate\Support\Facades\Log::error("Traductor falló. HTTP " . $response->status() . " Body: " . $response->body());
             }
         } catch (\Exception $e) {
-            Log::error("Error al traducir comentario automático: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Error crítico al traducir comentario automático: " . $e->getMessage());
         }
         return null;
     }
