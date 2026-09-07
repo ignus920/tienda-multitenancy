@@ -3060,7 +3060,16 @@ class Orders extends Component
             'newProductCode', 
             'newProductDescription', 
             'newProductObservations',
-            'newProductImage'
+            'newProductPorcentaje', 
+            'newProductMinQty', 
+            'newProductFactor', 
+            'newProductSupplierId', 
+            'newProductFactoryRef', 
+            'newProductImages', 
+            'newProductExw', 
+            'newProductIncrFletes', 
+            'newProductPvp1', 
+            'newProductPvpMin'
         ]);
         
         // Obtener el último código secuencial NEW_PRODUCTXX
