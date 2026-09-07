@@ -1437,12 +1437,21 @@ class Remissions extends Component
             $facturacionService = FacturacionService::forTenant($tenant);
 
             // Construir datos de la factura usando el InvoiceDataBuilder
-            // Para remisiones: establecer como CRÉDITO (no CASH)
+            // Se usa el método de pago real registrado en la remisión (vnt_method_payments),
+            // no un valor fijo: el campo `type` (1=Crédito, 2=Contado) define la Forma de Pago
+            // y el `name` (ej. "NEQUI", "EFECTIVO") permite a InvoiceDataBuilder inferir el
+            // Medio de Pago correcto para Alegra.
+            if (!$remission->relationLoaded('methodPayment')) {
+                $remission->load('methodPayment');
+            }
+            $methodPayment = $remission->methodPayment;
+
             $paymentMethods = [
                 [
-                    'descriptionFormaPago' => 'CREDITO',
-                    'nombre' => 'CREDITO',
-                    'valor' => $this->calculateRemissionTotal($remission) // Valor total de la remisión
+                    'descriptionFormaPago' => ($methodPayment && (int) $methodPayment->type === 1) ? 'CREDIT' : 'CASH',
+                    'nombre' => $methodPayment->name ?? 'EFECTIVO',
+                    'valor' => $this->calculateRemissionTotal($remission), // Valor total de la remisión
+                    'method' => $methodPayment->method ?? null,
                 ]
             ];
             $retentions = [];     // Sin retenciones
@@ -1824,12 +1833,21 @@ class Remissions extends Component
             $totalValue += $this->calculateRemissionTotal($remission);
         }
 
-        // Construir array de métodos de pago para CRÉDITO
+        // Construir array de métodos de pago usando el método de pago real de la
+        // primera remisión (igual criterio que ya se usa para los demás datos del
+        // cliente en esta función agrupada). `type` (1=Crédito, 2=Contado) define
+        // la Forma de Pago y `name` el Medio de Pago que infiere InvoiceDataBuilder.
+        if (!$firstRemission->relationLoaded('methodPayment')) {
+            $firstRemission->load('methodPayment');
+        }
+        $methodPayment = $firstRemission->methodPayment;
+
         $paymentMethods = [
             [
-                'descriptionFormaPago' => 'CREDITO',
-                'nombre' => 'CREDITO',
-                'valor' => $totalValue
+                'descriptionFormaPago' => ($methodPayment && (int) $methodPayment->type === 1) ? 'CREDIT' : 'CASH',
+                'nombre' => $methodPayment->name ?? 'EFECTIVO',
+                'valor' => $totalValue,
+                'method' => $methodPayment->method ?? null,
             ]
         ];
 

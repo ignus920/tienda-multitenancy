@@ -443,14 +443,16 @@ class InvoiceDataBuilder
                 $bankPayment = $detailPayment['bank'] ?? null;
                 
                 // Mapear el paymentMethod (Medio de Pago) específico para Alegra
+                // (códigos reales que acepta la API, confirmados contra el catálogo de la DIAN
+                // y contra el rechazo real de Alegra: "El método de pago no es válido" con 'deposit')
                 if ($isConsignacion) {
-                    $paymentMethod = 'deposit'; // Alegra: Consignación bancaria
+                    $paymentMethod = 'DEBIT_TRANSFER'; // Alegra: Consignación bancaria
                 } elseif ($isTarjetaCredito || $isTarjetaGen) {
-                    $paymentMethod = 'credit-card'; // Alegra: Tarjeta de crédito
+                    $paymentMethod = 'CREDIT_CARD'; // Alegra: Tarjeta de crédito
                 } elseif ($isTarjetaDebito) {
-                    $paymentMethod = 'debit-card'; // Alegra: Tarjeta de débito
+                    $paymentMethod = 'DEBIT_CARD'; // Alegra: Tarjeta de débito
                 } elseif ($isEfectivo) {
-                    $paymentMethod = 'cash'; // Alegra: Efectivo
+                    $paymentMethod = 'CASH'; // Alegra: Efectivo
                 }
             }
         }
