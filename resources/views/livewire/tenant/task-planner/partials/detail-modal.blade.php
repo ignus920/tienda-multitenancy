@@ -96,16 +96,7 @@
             <button wire:click="openBlockModal({{ $detailTask->id }})" class="text-xs font-semibold text-purple-600 hover:underline">Marcar como bloqueada</button>
             @endif
 
-            @if($detailTask->dependencies->isNotEmpty())
-            <div>
-                <h4 class="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Depende de</h4>
-                <ul class="text-xs text-gray-500 dark:text-gray-400 list-disc list-inside">
-                    @foreach($detailTask->dependencies as $dep)
-                    <li>{{ $dep->dependsOnTask->title ?? '—' }} — {{ $dep->dependsOnTask->status_label ?? '' }}</li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
+
 
             @if($detailTask->pauses->isNotEmpty())
             <div>
