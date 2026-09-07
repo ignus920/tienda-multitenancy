@@ -39,7 +39,7 @@ class VideoRequestManager extends Component
     #[Url(as: 'vista', history: true)]
     public string $viewMode = 'lista'; // lista (tabla tradicional) | matriz (tipo Excel)
 
-    public int $perPage = 15;
+    public int $perPage = 10;
     public string $sortField = 'smart';
     public string $sortDirection = 'asc';
 
