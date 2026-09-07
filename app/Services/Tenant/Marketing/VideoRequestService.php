@@ -70,10 +70,6 @@ class VideoRequestService
     public function saveTasks(VideoRequest $request, array $taskInput, ?int $gestorId = null): VideoRequest
     {
         return DB::connection('tenant')->transaction(function () use ($request, $taskInput, $gestorId) {
-            if ($gestorId !== null && (int) $gestorId !== (int) $request->gestor_id) {
-                $request->gestor_id = $gestorId ?: null;
-            }
-
             foreach ($request->tasks as $task) {
                 $input = $taskInput[$task->channel] ?? [];
                 $requiresLink = $task->requiresLink();
@@ -123,6 +119,17 @@ class VideoRequestService
             $request->refresh()->load('tasks');
             $this->applyYoutubeUrl($request);
             $this->recalculate($request);
+
+            if ($gestorId !== null && (int) $gestorId !== (int) $request->gestor_id) {
+                $this->log(
+                    $request,
+                    'gestor_actualizado',
+                    null,
+                    $request->gestor_id !== null ? (string) $request->gestor_id : null,
+                    $gestorId ? (string) $gestorId : null
+                );
+                $request->gestor_id = $gestorId ?: null;
+            }
 
             $request->updated_by = Auth::id();
             $request->save();
