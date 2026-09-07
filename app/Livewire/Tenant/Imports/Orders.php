@@ -3116,8 +3116,10 @@ class Orders extends Component
         if (!empty($this->newProductImages)) {
             $tenantId = session('tenant_id', 'default');
             foreach ($this->newProductImages as $image) {
-                $path = $image->store("new_products/{$tenantId}", 'public');
-                $imagePaths[] = $path;
+                if ($image) {
+                    $path = $image->store("new_products/{$tenantId}", 'public');
+                    $imagePaths[] = $path;
+                }
             }
         }
         $jsonImagePaths = !empty($imagePaths) ? json_encode($imagePaths) : null;
