@@ -1191,7 +1191,22 @@
                                         @foreach($historyImages as $index => $img)
                                             <div class="relative group">
                                                 <a href="{{ asset('storage/' . $img) }}" target="_blank" class="block relative aspect-square rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all shadow-sm">
-                                                    <img src="{{ asset('storage/' . $img) }}" class="object-cover w-full h-full">
+                                                    @php
+                                                        $ext = strtolower(pathinfo($img, PATHINFO_EXTENSION));
+                                                    @endphp
+                                                    @if(in_array($ext, ['pdf']))
+                                                        <div class="flex flex-col items-center justify-center p-4 bg-red-50 text-red-600 w-full h-full">
+                                                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                                            <span class="text-xs font-bold mt-2 truncate w-full text-center">PDF</span>
+                                                        </div>
+                                                    @elseif(in_array($ext, ['xls', 'xlsx']))
+                                                        <div class="flex flex-col items-center justify-center p-4 bg-green-50 text-green-600 w-full h-full">
+                                                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                            <span class="text-xs font-bold mt-2 truncate w-full text-center">EXCEL</span>
+                                                        </div>
+                                                    @else
+                                                        <img src="{{ asset('storage/' . $img) }}" class="object-cover w-full h-full">
+                                                    @endif
                                                     <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
                                                     </div>
@@ -1219,7 +1234,7 @@
                                         <div class="flex flex-col items-center justify-center pointer-events-none">
                                             <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold text-indigo-600">Haz clic</span> o arrastra más fotos aquí</p>
                                         </div>
-                                        <input type="file" wire:model="additionalProductImages" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                        <input type="file" wire:model="additionalProductImages" multiple accept=".png,.jpg,.jpeg,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                                     </div>
                                     
                                     <div wire:loading wire:target="additionalProductImages" class="mt-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
@@ -1234,7 +1249,22 @@
                                             @foreach($additionalProductImages as $index => $img)
                                                 @if($img)
                                                     <div class="relative group aspect-square rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
-                                                        <img src="{{ $img->temporaryUrl() }}" class="object-cover w-full h-full">
+                                                        @php
+                                                            $ext = strtolower($img->getClientOriginalExtension());
+                                                        @endphp
+                                                        @if(in_array($ext, ['pdf']))
+                                                            <div class="flex flex-col items-center justify-center p-2 bg-red-50 text-red-600 w-full h-full">
+                                                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                                                <span class="text-[9px] font-bold mt-1 truncate w-full text-center">PDF</span>
+                                                            </div>
+                                                        @elseif(in_array($ext, ['xls', 'xlsx']))
+                                                            <div class="flex flex-col items-center justify-center p-2 bg-green-50 text-green-600 w-full h-full">
+                                                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                                <span class="text-[9px] font-bold mt-1 truncate w-full text-center">EXCEL</span>
+                                                            </div>
+                                                        @else
+                                                            <img src="{{ $img->temporaryUrl() }}" class="object-cover w-full h-full">
+                                                        @endif
                                                         <button type="button" wire:click="$set('additionalProductImages.{{ $index }}', null)" class="absolute top-0 right-0 bg-red-500 text-white p-0.5 m-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity">
                                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                                         </button>
@@ -1326,9 +1356,41 @@
                                                         </div>
                                                     @endif
                                                 @else
-                                                    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                                                        {{ $event->comment }}
-                                                    </p>
+                                                    @if(strpos($event->comment, '[TRANSLATED]') !== false)
+                                                        @php
+                                                            $parts = explode('[TRANSLATED]', $event->comment);
+                                                        @endphp
+                                                        <div class="space-y-3">
+                                                            <!-- Original Español -->
+                                                            <div class="relative pl-3 border-l-2 border-indigo-200 dark:border-indigo-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-indigo-400 bg-white dark:bg-gray-800 px-1">ES</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[0]) }}</p>
+                                                            </div>
+                                                            <!-- Traducción Inglés -->
+                                                            <div class="relative pl-3 border-l-2 border-teal-200 dark:border-teal-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-teal-400 bg-white dark:bg-gray-800 px-1">EN</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[1]) }}</p>
+                                                            </div>
+                                                        </div>
+                                                    @elseif(strpos($event->comment, '--- Translated to English ---') !== false)
+                                                        @php
+                                                            $parts = explode('--- Translated to English ---', $event->comment);
+                                                        @endphp
+                                                        <div class="space-y-3">
+                                                            <div class="relative pl-3 border-l-2 border-indigo-200 dark:border-indigo-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-indigo-400 bg-white dark:bg-gray-800 px-1">ES</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[0]) }}</p>
+                                                            </div>
+                                                            <div class="relative pl-3 border-l-2 border-teal-200 dark:border-teal-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-teal-400 bg-white dark:bg-gray-800 px-1">EN</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[1]) }}</p>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                                            {{ $event->comment }}
+                                                        </p>
+                                                    @endif
                                                 @endif
                                             @else
                                                 <div class="flex items-center gap-4 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded border border-gray-100 dark:border-gray-800 text-sm">
@@ -2495,12 +2557,11 @@
                                 <svg class="w-8 h-8 mb-3 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                                 </svg>
-                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Haz clic para subir</span> o arrastra y suelta múltiples fotos</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, JPEG (Max. 2MB por imagen)</p>
+                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Haz clic para subir</span> o arrastra y suelta múltiples archivos</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, PDF, Excel (Max. 5MB por archivo)</p>
                             </div>
                             
-                            <!-- Input invisible superpuesto -->
-                            <input type="file" wire:model="newProductImages" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                            <input type="file" wire:model="newProductImages" multiple accept=".png,.jpg,.jpeg,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                         </div>
                         
                         <div wire:loading wire:target="newProductImages" class="mt-2 text-sm text-indigo-600 font-semibold flex items-center gap-2">
@@ -2515,7 +2576,22 @@
                                 @foreach($newProductImages as $index => $img)
                                     @if($img)
                                         <div class="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                                            <img src="{{ $img->temporaryUrl() }}" class="object-cover w-full h-full">
+                                            @php
+                                                $ext = strtolower($img->getClientOriginalExtension());
+                                            @endphp
+                                            @if(in_array($ext, ['pdf']))
+                                                <div class="flex flex-col items-center justify-center p-2 bg-red-50 text-red-600 w-full h-full">
+                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                                    <span class="text-[9px] font-bold mt-1 truncate w-full text-center">PDF</span>
+                                                </div>
+                                            @elseif(in_array($ext, ['xls', 'xlsx']))
+                                                <div class="flex flex-col items-center justify-center p-2 bg-green-50 text-green-600 w-full h-full">
+                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                    <span class="text-[9px] font-bold mt-1 truncate w-full text-center">EXCEL</span>
+                                                </div>
+                                            @else
+                                                <img src="{{ $img->temporaryUrl() }}" class="object-cover w-full h-full">
+                                            @endif
                                             <button type="button" wire:click="$set('newProductImages.{{ $index }}', null)" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
