@@ -2057,6 +2057,8 @@ class Orders extends Component
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error saving history comment: ' . $e->getMessage());
         }
+    }
+
     public function deleteGalleryImage($imgPath)
     {
         $this->ensureTenantConnection();
