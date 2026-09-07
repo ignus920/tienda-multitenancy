@@ -446,7 +446,7 @@ class InvoiceDataBuilder
                 // (códigos reales que acepta la API, confirmados contra el catálogo de la DIAN
                 // y contra el rechazo real de Alegra: "El método de pago no es válido" con 'deposit')
                 if ($isConsignacion) {
-                    $paymentMethod = 'DEBIT_TRANSFER'; // Alegra: Consignación bancaria
+                    $paymentMethod = 'BANK_DEPOSIT'; // Alegra: Consignación bancaria
                 } elseif ($isTarjetaCredito || $isTarjetaGen) {
                     $paymentMethod = 'CREDIT_CARD'; // Alegra: Tarjeta de crédito
                 } elseif ($isTarjetaDebito) {
