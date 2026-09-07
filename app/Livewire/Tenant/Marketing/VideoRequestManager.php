@@ -412,7 +412,7 @@ class VideoRequestManager extends Component
 
         if ($this->sortField === 'smart' || !isset($sortMap[$this->sortField])) {
             $query->orderByRaw("FIELD(mkt_video_requests.status, 'pendiente', 'en_proceso', 'terminado')")
-                ->orderBy('mkt_video_requests.created_at', 'asc');
+                ->orderBy('mkt_video_requests.created_at', 'desc');
         } else {
             $query->orderBy($sortMap[$this->sortField], $this->sortDirection);
         }
