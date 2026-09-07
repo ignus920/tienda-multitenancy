@@ -170,20 +170,28 @@ class ProjectWorkspace extends Component
         return false;
     }
 
+    private function isCurrentUserParticipant(): bool
+    {
+        return ProjectParticipant::where('project_id', $this->projectId)
+            ->where('user_id', Auth::id())
+            ->exists();
+    }
+
+    private function checkIsParticipant(): bool
+    {
+        if (!$this->isCurrentUserParticipant()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No eres participante de este proyecto']);
+            return false;
+        }
+        return true;
+    }
+
     // Lógica para enviar mensajes y procesar menciones
     public function sendMessage()
     {
         $this->ensureTenantConnection();
         if ($this->checkNotClosed()) return;
-
-        $isParticipant = ProjectParticipant::where('project_id', $this->projectId)
-            ->where('user_id', Auth::id())
-            ->exists();
-
-        if (!$isParticipant) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No eres participante de este proyecto']);
-            return;
-        }
+        if (!$this->checkIsParticipant()) return;
 
         if (empty(trim((string) $this->newMessageText)) && empty($this->attachments)) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Escribe un mensaje o adjunta un archivo']);
@@ -536,6 +544,7 @@ class ProjectWorkspace extends Component
     public function createQuestion()
     {
         $this->ensureTenantConnection();
+        if (!$this->checkIsParticipant()) return;
         $this->validate([
             'newQuestionText' => 'required|string',
             'questionUserId' => 'required'
@@ -642,6 +651,7 @@ class ProjectWorkspace extends Component
     {
         $this->ensureTenantConnection();
         if ($this->checkNotClosed()) return;
+        if (!$this->checkIsParticipant()) return;
 
         $lastPercentage = $this->getLastAdvancePercentage();
 
@@ -680,6 +690,7 @@ class ProjectWorkspace extends Component
     {
         $this->ensureTenantConnection();
         if ($this->checkNotClosed()) return;
+        if (!$this->checkIsParticipant()) return;
 
         $this->validate([
             'noveltyDescription' => 'required|string',
@@ -711,6 +722,7 @@ class ProjectWorkspace extends Component
     public function finishProduction()
     {
         $this->ensureTenantConnection();
+        if (!$this->checkIsParticipant()) return;
         $this->validate([
             'completion_date' => 'required|date',
             'lab_observations' => 'nullable|string',

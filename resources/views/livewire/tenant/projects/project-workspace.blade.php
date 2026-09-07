@@ -264,29 +264,38 @@
 
                         <!-- Se agregan avances y preguntas durante el desarrollo/producción -->
                         @if($project->status === 'en_produccion')
-                            <div class="flex flex-wrap gap-2">
-                                <button wire:click="openAdvanceModal"
-                                    class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-white rounded-lg font-bold shadow-2xs transition-colors">
-                                    Registrar Avance Técnico
-                                </button>
-
-                                <button wire:click="$set('showNoveltyModal', true)"
-                                    class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                    Novedades del cliente
-                                </button>
-
-                                @if($project->type === 'external')
-                                    <button wire:click="$set('showQuestionModal', true)"
-                                        class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                        Generar Pregunta al Asesor/Cliente
+                            @if($isParticipant)
+                                <div class="flex flex-wrap gap-2">
+                                    <button wire:click="openAdvanceModal"
+                                        class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-white rounded-lg font-bold shadow-2xs transition-colors">
+                                        Registrar Avance Técnico
                                     </button>
-                                @endif
 
-                                <button wire:click="$set('showLabFinishModal', true)"
-                                    class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-colors">
-                                    {{ $project->type === 'internal' ? 'Marcar como Terminado' : 'Terminar Producción' }}
-                                </button>
-                            </div>
+                                    <button wire:click="$set('showNoveltyModal', true)"
+                                        class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                        Novedades del cliente
+                                    </button>
+
+                                    @if($project->type === 'external')
+                                        <button wire:click="$set('showQuestionModal', true)"
+                                            class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                            Generar Pregunta al Asesor/Cliente
+                                        </button>
+                                    @endif
+
+                                    <button wire:click="$set('showLabFinishModal', true)"
+                                        class="flex-1 min-w-[180px] text-center inline-flex items-center justify-center px-3 py-2 text-xs lg:text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                        {{ $project->type === 'internal' ? 'Marcar como Terminado' : 'Terminar Producción' }}
+                                    </button>
+                                </div>
+                            @else
+                                <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    No eres participante de este proyecto. Pide a alguien de la pestaña "Participantes" que te agregue para poder actuar aquí.
+                                </div>
+                            @endif
                         @endif
 
                         <!-- Cierra el caso: entrega (externo) o finalización (interno) -->
