@@ -68,6 +68,17 @@ class MyTasksToday extends Component
         }
     }
 
+    public function toggleChecklistItem($checkId)
+    {
+        $this->ensureTenantConnection();
+        $checklist = \App\Models\Tenant\TaskPlanner\TaskChecklist::findOrFail($checkId);
+        
+        // Solo permitir si la tarea está "En proceso" o "Pausada" (o si el usuario está asignado)
+        if (in_array($checklist->task->status, ['en_proceso', 'pausada', 'programada'])) {
+            $checklist->update(['is_completed' => !$checklist->is_completed]);
+        }
+    }
+
     public function openPauseModal($taskId)
     {
         $this->reset(['pauseReason', 'pauseObservation']);
@@ -170,7 +181,7 @@ class MyTasksToday extends Component
         $todaySchedules = TaskSchedule::where('user_id', $userId)
             ->whereDate('scheduled_start', $today->toDateString())
             ->whereNotIn('schedule_status', ['cancelada'])
-            ->with(['task.department', 'task.comments.user', 'task.pauses'])
+            ->with(['task.department', 'task.comments.user', 'task.pauses', 'task.materials.item', 'task.checklists', 'task.attachments'])
             ->orderBy('scheduled_start')
             ->get();
 
