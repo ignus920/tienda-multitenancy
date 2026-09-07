@@ -1183,13 +1183,18 @@
                                 
                                 @if(count($historyImages) > 0)
                                     <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
-                                        @foreach($historyImages as $img)
-                                            <a href="{{ asset('storage/' . $img) }}" target="_blank" class="block relative group aspect-square rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all shadow-sm">
-                                                <img src="{{ asset('storage/' . $img) }}" class="object-cover w-full h-full">
-                                                <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                                                </div>
-                                            </a>
+                                        @foreach($historyImages as $index => $img)
+                                            <div class="relative group">
+                                                <a href="{{ asset('storage/' . $img) }}" target="_blank" class="block relative aspect-square rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all shadow-sm">
+                                                    <img src="{{ asset('storage/' . $img) }}" class="object-cover w-full h-full">
+                                                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                                                    </div>
+                                                </a>
+                                                <button type="button" wire:click="deleteGalleryImage('{{ $img }}')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow z-10" title="Eliminar imagen">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            </div>
                                         @endforeach
                                     </div>
                                 @else
@@ -1287,21 +1292,6 @@
                                                     @if($data['type'] === 'new_product_info')
                                                         <div class="bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
                                                             <div class="flex flex-col sm:flex-row gap-4 items-start">
-                                                                @if(!empty($data['image']))
-                                                                    <div class="flex-shrink-0" x-data="{ openImage: false }">
-                                                                        <img @click="openImage = true" src="{{ Storage::url($data['image']) }}" alt="Producto" class="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer hover:opacity-75 transition-opacity">
-                                                                        
-                                                                        <!-- Visor de imagen ampliada -->
-                                                                        <div x-show="openImage" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-80 transition-opacity" x-transition.opacity>
-                                                                            <div class="relative max-w-5xl max-h-screen p-4 flex justify-center items-center">
-                                                                                <button @click="openImage = false" class="absolute top-2 right-2 sm:top-6 sm:right-6 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 transition-colors">
-                                                                                    <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                                                </button>
-                                                                                <img @click.away="openImage = false" src="{{ Storage::url($data['image']) }}" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                @endif
                                                                 <div class="flex-1 w-full">
                                                                     <h4 class="font-bold text-indigo-800 dark:text-indigo-400 text-base mb-1">{{ $data['name'] }}</h4>
                                                                     <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Código: {{ $data['code'] }}</p>

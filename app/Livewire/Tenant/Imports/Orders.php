@@ -2057,6 +2057,48 @@ class Orders extends Component
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error saving history comment: ' . $e->getMessage());
         }
+    public function deleteGalleryImage($imgPath)
+    {
+        $this->ensureTenantConnection();
+        $newProduct = DB::connection('tenant')
+            ->table('imp_new_products')
+            ->where('id', $this->import_id)
+            ->first();
+
+        if ($newProduct && !empty($newProduct->image_path)) {
+            $existingImages = [];
+            $decoded = json_decode($newProduct->image_path, true);
+            if (is_array($decoded)) {
+                $existingImages = $decoded;
+            } else {
+                $existingImages = [$newProduct->image_path];
+            }
+
+            // Eliminar de la lista
+            $existingImages = array_filter($existingImages, function($img) use ($imgPath) {
+                return $img !== $imgPath;
+            });
+            $existingImages = array_values($existingImages); // Reindexar
+
+            // Eliminar físicamente del disco
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($imgPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($imgPath);
+            }
+
+            $newJson = !empty($existingImages) ? json_encode($existingImages) : null;
+
+            DB::connection('tenant')
+                ->table('imp_new_products')
+                ->where('id', $this->import_id)
+                ->update(['image_path' => $newJson]);
+
+            $this->historyImages = $existingImages;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Imagen eliminada correctamente.'
+            ]);
+        }
     }
 
     public function saveAdditionalImages()
