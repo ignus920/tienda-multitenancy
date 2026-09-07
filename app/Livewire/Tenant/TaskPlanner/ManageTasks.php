@@ -14,6 +14,10 @@ use App\Models\Tenant\TaskPlanner\EmployeeUnavailability;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
+use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\TaskPlanner\TaskMaterial;
+use App\Models\Tenant\TaskPlanner\TaskChecklist;
+use App\Models\Tenant\TaskPlanner\TaskAttachment;
 use App\Services\Tenant\TenantManager;
 use App\Services\TaskPlanner\TaskService;
 use App\Services\TaskPlanner\SchedulingService;
@@ -21,9 +25,12 @@ use App\Services\TaskPlanner\TimeTrackingService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
+use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+
 class ManageTasks extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public $activeTab = 'bandeja';
 
@@ -53,6 +60,19 @@ class ManageTasks extends Component
     public $originProjectId = '';
     public $assignedUserIds = [];
     public $dependsOnTaskIds = [];
+
+    // Colecciones temporales para crear/editar
+    public $tempMaterials = [];
+    public $tempChecklists = [];
+    public $tempAttachments = []; // Nuevos archivos subidos
+    public $existingAttachments = []; // Archivos que ya tenía la tarea
+
+    // Buscador híbrido de materiales
+    public $searchMaterial = '';
+    public $searchMaterialResults = [];
+    public $materialSearchMode = 'inventory'; // 'inventory' o 'free'
+    public $freeMaterialName = '';
+    public $freeMaterialQty = 1;
 
     // Modal Programar / Reprogramar
     public $showScheduleModal = false;
@@ -142,8 +162,11 @@ class ManageTasks extends Component
         $this->reset([
             'editingTaskId', 'title', 'description', 'departmentId', 'priority', 'estimatedHours',
             'estimatedMinutes', 'suggestedDate', 'locationType', 'location', 'travelBefore', 'travelAfter',
-            'originType', 'originProjectId', 'assignedUserIds', 'dependsOnTaskIds'
+            'originType', 'originProjectId', 'assignedUserIds', 'dependsOnTaskIds',
+            'tempMaterials', 'tempChecklists', 'tempAttachments', 'existingAttachments',
+            'searchMaterial', 'searchMaterialResults', 'freeMaterialName', 'freeMaterialQty'
         ]);
+        $this->materialSearchMode = 'inventory';
         $this->priority = 'p3_normal';
         $this->estimatedMinutes = 30;
         $this->locationType = 'empresa';
@@ -194,8 +217,40 @@ class ManageTasks extends Component
             $task->update($data);
             $taskService->updateAssignedUsers($task, $this->assignedUserIds, Auth::id());
             TaskHistory::log($task->id, Auth::id(), 'editada');
-        } else {
-            $taskService->createTask($data, $this->assignedUserIds, Auth::id(), $this->dependsOnTaskIds ?: []);
+            $task = $taskService->createTask($data, $this->assignedUserIds, Auth::id());
+        }
+
+        // Guardar Materiales
+        $task->materials()->delete();
+        foreach ($this->tempMaterials as $mat) {
+            $task->materials()->create([
+                'item_id' => $mat['item_id'],
+                'name' => $mat['name'],
+                'estimated_quantity' => $mat['estimated_quantity']
+            ]);
+        }
+
+        // Guardar Checklists
+        $task->checklists()->delete();
+        foreach ($this->tempChecklists as $idx => $chk) {
+            $task->checklists()->create([
+                'description' => $chk['description'],
+                'order' => $idx + 1,
+                'is_completed' => $chk['is_completed'] ?? false
+            ]);
+        }
+
+        // Guardar Archivos adjuntos
+        if (!empty($this->tempAttachments)) {
+            foreach ($this->tempAttachments as $file) {
+                $path = $file->store('task_attachments', 'public');
+                $task->attachments()->create([
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'file_size' => $file->getSize()
+                ]);
+            }
         }
 
         $this->showTaskModal = false;
@@ -226,7 +281,97 @@ class ManageTasks extends Component
         $this->assignedUserIds = $task->assignments->pluck('user_id')->toArray();
         $this->dependsOnTaskIds = $task->dependencies->pluck('depends_on_task_id')->toArray();
 
+        $this->tempMaterials = $task->materials->map(function($m) {
+            return [
+                'id' => $m->id,
+                'item_id' => $m->item_id,
+                'name' => $m->name,
+                'estimated_quantity' => $m->estimated_quantity,
+                'inventory_name' => $m->item_id ? ($m->item->name ?? 'Ítem eliminado') : null
+            ];
+        })->toArray();
+
+        $this->tempChecklists = $task->checklists->map(function($c) {
+            return [
+                'id' => $c->id,
+                'description' => $c->description,
+                'is_completed' => $c->is_completed
+            ];
+        })->toArray();
+
+        $this->existingAttachments = $task->attachments->toArray();
+        $this->tempAttachments = [];
+
         $this->showTaskModal = true;
+    }
+
+    // --- Lógica de Checklists en Modal ---
+    public function addChecklistItem()
+    {
+        $this->tempChecklists[] = ['description' => '', 'is_completed' => false];
+    }
+
+    public function removeChecklistItem($index)
+    {
+        unset($this->tempChecklists[$index]);
+        $this->tempChecklists = array_values($this->tempChecklists);
+    }
+
+    // --- Lógica de Materiales en Modal ---
+    public function updatedSearchMaterial()
+    {
+        if (strlen($this->searchMaterial) >= 2) {
+            $this->searchMaterialResults = Items::where('name', 'like', '%' . $this->searchMaterial . '%')
+                ->orWhere('internal_code', 'like', '%' . $this->searchMaterial . '%')
+                ->limit(8)
+                ->get(['id', 'name', 'internal_code'])
+                ->toArray();
+        } else {
+            $this->searchMaterialResults = [];
+        }
+    }
+
+    public function addInventoryMaterial($itemId, $name)
+    {
+        $this->tempMaterials[] = [
+            'item_id' => $itemId,
+            'name' => null,
+            'estimated_quantity' => 1,
+            'inventory_name' => $name
+        ];
+        $this->searchMaterial = '';
+        $this->searchMaterialResults = [];
+    }
+
+    public function addFreeMaterial()
+    {
+        if (trim($this->freeMaterialName) === '') return;
+        
+        $this->tempMaterials[] = [
+            'item_id' => null,
+            'name' => $this->freeMaterialName,
+            'estimated_quantity' => $this->freeMaterialQty ?: 1,
+            'inventory_name' => null
+        ];
+        $this->freeMaterialName = '';
+        $this->freeMaterialQty = 1;
+    }
+
+    public function removeMaterial($index)
+    {
+        unset($this->tempMaterials[$index]);
+        $this->tempMaterials = array_values($this->tempMaterials);
+    }
+
+    public function deleteExistingAttachment($id)
+    {
+        $this->ensureTenantConnection();
+        $attachment = TaskAttachment::findOrFail($id);
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($attachment->file_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($attachment->file_path);
+        }
+        $attachment->delete();
+        $this->existingAttachments = array_filter($this->existingAttachments, fn($a) => $a['id'] != $id);
     }
 
     // ---------------------------------------------------------------
@@ -664,7 +809,7 @@ class ManageTasks extends Component
             'dashboard' => $dashboard,
             'unavailabilities' => $unavailabilities,
             'projectsForOrigin' => $projectsForOrigin,
-            'detailTask' => $this->detailTaskId ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'dependencies.dependsOnTask', 'schedules', 'pauses.user', 'timeLogs.user'])->find($this->detailTaskId) : null,
+            'detailTask' => $this->detailTaskId ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'dependencies.dependsOnTask', 'schedules', 'pauses.user', 'timeLogs.user', 'materials.item', 'checklists', 'attachments'])->find($this->detailTaskId) : null,
             'allOpenTasksForDependency' => Task::whereIn('status', Task::OPEN_STATUSES)->orderBy('title')->get(['id', 'title']),
         ])->layout('layouts.app');
     }

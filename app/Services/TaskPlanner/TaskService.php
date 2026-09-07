@@ -4,15 +4,14 @@ namespace App\Services\TaskPlanner;
 
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskAssignment;
-use App\Models\Tenant\TaskPlanner\TaskDependency;
 use App\Models\Tenant\TaskPlanner\TaskHistory;
 use Illuminate\Support\Facades\DB;
 
 class TaskService
 {
-    public function createTask(array $data, array $assignedUserIds, $actingUserId, array $dependsOnTaskIds = []): Task
+    public function createTask(array $data, array $assignedUserIds, $actingUserId): Task
     {
-        return DB::connection('tenant')->transaction(function () use ($data, $assignedUserIds, $actingUserId, $dependsOnTaskIds) {
+        return DB::connection('tenant')->transaction(function () use ($data, $assignedUserIds, $actingUserId) {
             $task = Task::create(array_merge($data, [
                 'created_by' => $actingUserId,
                 'status' => 'sin_programar',
@@ -20,16 +19,6 @@ class TaskService
 
             foreach (array_unique($assignedUserIds) as $userId) {
                 TaskAssignment::create(['task_id' => $task->id, 'user_id' => $userId]);
-            }
-
-            foreach ($dependsOnTaskIds as $dependsOnId) {
-                if ($dependsOnId != $task->id) {
-                    TaskDependency::create(['task_id' => $task->id, 'depends_on_task_id' => $dependsOnId]);
-                }
-            }
-
-            if ($task->has_pending_dependencies) {
-                $task->update(['status' => 'bloqueada']);
             }
 
             TaskHistory::log($task->id, $actingUserId, 'creada', null, $task->title);

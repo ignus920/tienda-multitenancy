@@ -14,9 +14,7 @@ class TimeTrackingService
 {
     public function start(Task $task, $userId): TaskTimeLog
     {
-        if ($task->has_pending_dependencies) {
-            throw new Exception('Esta tarea depende de otra que aún no ha sido terminada.');
-        }
+        // Control de dependencias eliminado según reglas del MVP
 
         return DB::connection('tenant')->transaction(function () use ($task, $userId) {
             $previousStatus = $task->status;
@@ -142,8 +140,6 @@ class TimeTrackingService
 
             TaskHistory::log($task->id, $userId, 'terminada', $previousStatus, 'terminada', $note);
 
-            $this->unblockDependentTasks($task);
-
             return $log;
         });
     }
@@ -192,22 +188,10 @@ class TimeTrackingService
 
     public function unblock(Task $task, $userId): void
     {
-        $newStatus = $task->currentSchedule ? 'programada' : 'sin_programar';
+        $newStatus = $task->currentSchedule ? 'pendiente' : 'sin_programar';
         $task->update(['status' => $newStatus, 'blocked_reason' => null]);
         TaskHistory::log($task->id, $userId, 'desbloqueada', 'bloqueada', $newStatus);
     }
 
-    protected function unblockDependentTasks(Task $task): void
-    {
-        $dependentTaskIds = $task->dependentTasks()->pluck('task_id');
-
-        foreach ($dependentTaskIds as $taskId) {
-            $dependent = Task::find($taskId);
-            if ($dependent && $dependent->status === 'bloqueada' && !$dependent->has_pending_dependencies) {
-                $newStatus = $dependent->currentSchedule ? 'programada' : 'sin_programar';
-                $dependent->update(['status' => $newStatus, 'blocked_reason' => null]);
-                TaskHistory::log($dependent->id, null, 'desbloqueada_automaticamente', 'bloqueada', $newStatus, 'Se terminó la tarea de la cual dependía');
-            }
-        }
-    }
+    // Método unblockDependentTasks eliminado
 }

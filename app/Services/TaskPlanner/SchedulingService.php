@@ -53,7 +53,7 @@ class SchedulingService
                 [
                     'scheduled_start' => $start,
                     'scheduled_end' => $end,
-                    'schedule_status' => 'programada',
+                    'schedule_status' => 'pendiente',
                     'reschedule_reason' => $wasScheduled ? $rescheduleReason : null,
                 ]
             );
@@ -64,7 +64,7 @@ class SchedulingService
             ->whereNotIn('user_id', $userIds)
             ->delete();
 
-        $newStatus = $task->has_pending_dependencies ? 'bloqueada' : ($start->isFuture() ? 'programada' : 'disponible');
+        $newStatus = 'pendiente';
 
         TaskHistory::log(
             $task->id,

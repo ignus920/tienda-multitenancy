@@ -20,11 +20,45 @@
         @if($task->description)
         <p class="text-sm text-indigo-100 mb-2">{{ $task->description }}</p>
         @endif
-        <div class="flex items-center gap-3 text-xs text-indigo-100 mb-4">
+        <div class="flex items-center gap-3 text-xs text-indigo-100 mb-3">
             <span>⏱ {{ intdiv($task->estimated_minutes, 60) }}h {{ $task->estimated_minutes % 60 }}min</span>
             <span>Hasta las {{ $currentSchedule->scheduled_end->format('H:i') }}</span>
             <span class="uppercase font-bold">{{ $task->priority_label }}</span>
         </div>
+
+        @if($task->materials->isNotEmpty())
+        <div class="bg-indigo-700/50 rounded-xl p-3 mb-3 border border-indigo-500/30">
+            <h4 class="text-[10px] font-bold uppercase tracking-wider text-indigo-200 mb-2">📍 Llevar Insumos</h4>
+            <ul class="text-xs space-y-1">
+                @foreach($task->materials as $mat)
+                <li class="flex justify-between items-center text-indigo-50">
+                    <span>{{ $mat->item_id ? ($mat->item->name ?? 'Ítem') : $mat->name }}</span>
+                    <span class="font-bold text-white bg-indigo-500/50 px-2 py-0.5 rounded">{{ (float) $mat->estimated_quantity }}</span>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
+        @if($task->checklists->isNotEmpty())
+        <div class="bg-white/10 rounded-xl p-3 mb-4">
+            <h4 class="text-[10px] font-bold uppercase tracking-wider text-indigo-200 mb-2">📋 Checklist (Paso a paso)</h4>
+            <ul class="text-sm space-y-2">
+                @foreach($task->checklists as $chk)
+                <li>
+                    <label class="flex items-start gap-2 cursor-pointer group">
+                        <input wire:click="toggleChecklistItem({{ $chk->id }})" type="checkbox" @checked($chk->is_completed) 
+                            class="mt-0.5 w-4 h-4 text-green-500 bg-white/20 border-white/30 rounded focus:ring-green-500 focus:ring-2 cursor-pointer transition-colors"
+                            @if(!in_array($task->status, ['en_proceso', 'pausada'])) disabled @endif>
+                        <span class="text-indigo-50 leading-tight select-none {{ $chk->is_completed ? 'line-through opacity-60' : 'group-hover:text-white transition-colors' }}">
+                            {{ $chk->description }}
+                        </span>
+                    </label>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
 
         <div class="grid grid-cols-2 gap-2">
             @if($task->status === 'programada' || $task->status === 'disponible' || $task->status === 'pendiente')
