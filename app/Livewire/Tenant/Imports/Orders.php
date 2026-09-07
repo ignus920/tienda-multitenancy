@@ -2029,10 +2029,24 @@ class Orders extends Component
         ]);
 
         try {
+            $originalComment = $this->historyComment;
+            $finalComment = $originalComment;
+            if (Auth::user()->profile_id == 17) {
+                $translated = $this->translateText($originalComment, 'en', 'es');
+                if ($translated) {
+                    $finalComment = $originalComment . "[TRANSLATED]" . $translated;
+                }
+            } else {
+                $translated = $this->translateText($originalComment, 'es', 'en');
+                if ($translated) {
+                    $finalComment = $originalComment . "[TRANSLATED]" . $translated;
+                }
+            }
+
             if ($this->filterStatus == 13) {
                 DB::connection('tenant')->table('imp_comments')->insert([
                     'new_product_id' => $this->import_id,
-                    'comment' => $this->historyComment,
+                    'comment' => $finalComment,
                     'user_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -2040,7 +2054,7 @@ class Orders extends Component
             } else {
                 DB::connection('tenant')->table('imp_comments')->insert([
                     'import_id' => $this->import_id,
-                    'comment' => $this->historyComment,
+                    'comment' => $finalComment,
                     'user_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now(),
