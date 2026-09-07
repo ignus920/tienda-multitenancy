@@ -25,7 +25,6 @@ use App\Services\TaskPlanner\TimeTrackingService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 
 class ManageTasks extends Component
