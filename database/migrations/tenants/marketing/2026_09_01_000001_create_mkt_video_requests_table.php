@@ -12,7 +12,7 @@ return new class extends Migration
             Schema::create('mkt_video_requests', function (Blueprint $table) {
                 $table->increments('id');
                 $table->string('request_number', 30)->unique();
-                $table->unsignedInteger('item_id')->comment('ref inv_items.id, sin FK (módulo externo)');
+                $table->unsignedInteger('item_id')->nullable()->comment('ref inv_items.id, sin FK (módulo externo)');
                 $table->string('product_code', 100)->nullable()->comment('snapshot informativo al crear');
                 $table->string('product_name', 255)->nullable()->comment('snapshot informativo al crear');
                 $table->unsignedBigInteger('requested_by')->comment('ref users.id (central)');

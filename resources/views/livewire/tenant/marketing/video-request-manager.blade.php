@@ -504,8 +504,29 @@
 
                     <!-- Instrucciones -->
                     <div>
-                        <div class="text-xs text-gray-400 uppercase font-bold mb-1">Instrucciones de Gerencia</div>
-                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 border border-gray-100 dark:border-gray-700">{{ $detail->instructions ?: 'Sin instrucciones registradas.' }}</p>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="text-xs text-gray-400 uppercase font-bold">Instrucciones de Gerencia</div>
+                            @if($this->canEdit && !$isEditingInstructions)
+                                <button type="button" wire:click="editInstructions" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1 text-xs font-semibold transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                    Editar
+                                </button>
+                            @endif
+                        </div>
+                        
+                        @if($isEditingInstructions)
+                            <div class="mt-2 space-y-2">
+                                <textarea wire:model="editInstructionsText" rows="4" 
+                                    class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                                @error('editInstructionsText') <span class="text-2xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" wire:click="cancelEditInstructions" class="px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Cancelar</button>
+                                    <button type="button" wire:click="saveInstructions" class="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow-sm">Guardar Cambios</button>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 border border-gray-100 dark:border-gray-700">{{ $detail->instructions ?: 'Sin instrucciones registradas.' }}</p>
+                        @endif
                     </div>
 
                     <!-- Gestor -->
