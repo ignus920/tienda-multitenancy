@@ -622,6 +622,33 @@
                     triggerChar: '@',
                     searchQuery: '',
                     
+                    handlePaste(e) {
+                        const items = (e.clipboardData || window.clipboardData).items;
+                        for (let index in items) {
+                            const item = items[index];
+                            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                                const file = item.getAsFile();
+                                if (file) {
+                                    const extension = file.type.split('/')[1] || 'png';
+                                    const timestamp = new Date().getTime();
+                                    const newFile = new File([file], 'imagen_pegada_' + timestamp + '.' + extension, { type: file.type });
+                                    
+                                    @this.uploadMultiple('attachments', [newFile], 
+                                        (uploadedFilename) => {
+                                            // Éxito: Livewire actualizará la interfaz automáticamente
+                                        },
+                                        () => {
+                                            console.error('Error al subir la imagen pegada.');
+                                        },
+                                        (event) => {
+                                            // Progreso
+                                        }
+                                    );
+                                }
+                            }
+                        }
+                    },
+
                     checkTrigger(e) {
                         const text = e.target.value || '';
                         const selectionEnd = e.target.selectionEnd;
@@ -746,6 +773,7 @@
                                 wire:loading.attr="disabled" wire:target="attachments"
                                 @keyup="checkTrigger" @input="checkTrigger"
                                 @keydown="handleKeydown($event)"
+                                @paste="handlePaste($event)"
                                 rows="1"
                                 placeholder="Escribe un mensaje..."
                                 class="block w-full border-0 bg-transparent text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-0 focus:outline-none resize-none disabled:opacity-30 disabled:cursor-wait"
