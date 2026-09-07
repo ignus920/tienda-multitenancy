@@ -58,6 +58,9 @@ class VideoRequestManager extends Component
     public bool $showDetail = false;
     public ?int $currentRequestId = null;
     public ?int $detailGestorId = null;
+    public bool $isEditingInstructions = false;
+    public string $editInstructionsText = '';
+
     /** @var array<string,array{status:string,link:?string}> */
     public array $taskInput = [];
 
@@ -300,9 +303,51 @@ class VideoRequestManager extends Component
         $service->saveTasks($request, $this->taskInput, $this->detailGestorId ?: null);
 
         $this->openDetail($request->id);
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Cambios guardados.']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Lista de chequeo guardada correctamente.']);
     }
 
+    /* ── Edición de Instrucciones de Gerencia ────────── */
+    public function editInstructions(): void
+    {
+        $this->ensureTenantConnection();
+        $request = VideoRequest::on('tenant')->find($this->currentRequestId);
+        if ($request) {
+            $this->editInstructionsText = $request->instructions ?? '';
+            $this->isEditingInstructions = true;
+        }
+    }
+
+    public function cancelEditInstructions(): void
+    {
+        $this->isEditingInstructions = false;
+        $this->editInstructionsText = '';
+    }
+
+    public function saveInstructions(VideoRequestService $service): void
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->canEdit, 403);
+
+        $this->validate([
+            'editInstructionsText' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $request = VideoRequest::on('tenant')->findOrFail($this->currentRequestId);
+        
+        $oldText = $request->instructions;
+        $newText = $this->editInstructionsText !== '' ? $this->editInstructionsText : null;
+
+        if ($oldText !== $newText) {
+            $request->instructions = $newText;
+            $request->save();
+            $service->log($request, 'instrucciones_actualizadas', null, null, 'Instrucciones modificadas');
+        }
+
+        $this->isEditingInstructions = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Instrucciones actualizadas.']);
+    }
+
+    /* ── Eliminar ────────────────────────────────────── */
     private function linkAttributeNames(): array
     {
         $names = [];
