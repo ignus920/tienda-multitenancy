@@ -31,7 +31,13 @@ class Orders extends Component
     public $newProductCode;
     public $newProductDescription;
     public $newProductObservations;
-    public $newProductImage; // Para cargar la foto
+    public $newProductPorcentaje = 0;
+    public $newProductMinQty = 1;
+    public $newProductFactor = 0;
+    public $newProductSupplierId;
+    public $newProductFactoryRef;
+    public $newProductImages = []; // Para cargar múltiples fotos
+    public $additionalProductImages = []; // Para añadir más fotos en el historial
     
     // Propiedades para conversión de Producto Nuevo a Real (Camilo)
     public $showModalConvertNewProduct = false;
@@ -39,11 +45,12 @@ class Orders extends Component
     public $selectedRealItemId;
     
     // Variables temporales para el nuevo modal visual
-    public $newProductSupplierId;
-    public $newProductFactoryRef;
     public $newProductStockWordpress;
     public $newProductMinQtyWordpress;
     public $newProductExw;
+    public $newProductIncrFletes = 0;
+    public $newProductPvp1 = 0;
+    public $newProductPvpMin = 0;
 
     public $selectedNewProductId;
     public $finalInternalCode;
@@ -870,7 +877,7 @@ class Orders extends Component
 
         $centralDbName = config('database.connections.central.database');
 
-        if ($this->filterStatus == 13) {
+        if ($this->filterStatus == 13 || $this->filterStatus == 14) {
             $comments = ImpComments::query()
                 ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
                 ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
@@ -2010,6 +2017,7 @@ class Orders extends Component
     public function openModalHistory($import_id)
     {
         $this->import_id = $import_id;
+        $this->reset('additionalProductImages'); // Limpiamos cada vez que se abre
         $this->showModalHistory = true;
     }
 
@@ -2048,6 +2056,105 @@ class Orders extends Component
             $this->dispatch('$refresh');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error saving history comment: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteGalleryImage($imgPath)
+    {
+        $this->ensureTenantConnection();
+        $newProduct = DB::connection('tenant')
+            ->table('imp_new_products')
+            ->where('id', $this->import_id)
+            ->first();
+
+        if ($newProduct && !empty($newProduct->image_path)) {
+            $existingImages = [];
+            $decoded = json_decode($newProduct->image_path, true);
+            if (is_array($decoded)) {
+                $existingImages = $decoded;
+            } else {
+                $existingImages = [$newProduct->image_path];
+            }
+
+            // Eliminar de la lista
+            $existingImages = array_filter($existingImages, function($img) use ($imgPath) {
+                return $img !== $imgPath;
+            });
+            $existingImages = array_values($existingImages); // Reindexar
+
+            // Eliminar físicamente del disco
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($imgPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($imgPath);
+            }
+
+            $newJson = !empty($existingImages) ? json_encode($existingImages) : null;
+
+            DB::connection('tenant')
+                ->table('imp_new_products')
+                ->where('id', $this->import_id)
+                ->update(['image_path' => $newJson]);
+
+            $this->historyImages = $existingImages;
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Imagen eliminada correctamente.'
+            ]);
+        }
+    }
+
+    public function saveAdditionalImages()
+    {
+        $this->ensureTenantConnection();
+        $this->validate([
+            'additionalProductImages.*' => 'nullable|image|max:2048'
+        ], [
+            'additionalProductImages.*.image' => 'Los archivos deben ser imágenes',
+            'additionalProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
+        ]);
+
+        if (empty($this->additionalProductImages)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No has seleccionado ninguna imagen nueva.'
+            ]);
+            return;
+        }
+
+        $newProduct = DB::connection('tenant')
+            ->table('imp_new_products')
+            ->where('id', $this->import_id)
+            ->first();
+
+        if ($newProduct) {
+            $existingImages = [];
+            if (!empty($newProduct->image_path)) {
+                $decoded = json_decode($newProduct->image_path, true);
+                if (is_array($decoded)) {
+                    $existingImages = $decoded;
+                } else {
+                    $existingImages = [$newProduct->image_path];
+                }
+            }
+
+            $tenantId = session('tenant_id', 'default');
+            foreach ($this->additionalProductImages as $image) {
+                $path = $image->store("new_products/{$tenantId}", 'public');
+                $existingImages[] = $path;
+            }
+
+            DB::connection('tenant')
+                ->table('imp_new_products')
+                ->where('id', $this->import_id)
+                ->update(['image_path' => json_encode(array_values(array_filter($existingImages)))]);
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Nuevas imágenes agregadas correctamente.'
+            ]);
+            
+            $this->reset('additionalProductImages');
+            $this->dispatch('$refresh');
         }
     }
 
@@ -3000,7 +3107,16 @@ class Orders extends Component
             'newProductCode', 
             'newProductDescription', 
             'newProductObservations',
-            'newProductImage'
+            'newProductPorcentaje', 
+            'newProductMinQty', 
+            'newProductFactor', 
+            'newProductSupplierId', 
+            'newProductFactoryRef', 
+            'newProductImages', 
+            'newProductExw', 
+            'newProductIncrFletes', 
+            'newProductPvp1', 
+            'newProductPvpMin'
         ]);
         
         // Obtener el último código secuencial NEW_PRODUCTXX
@@ -3031,23 +3147,33 @@ class Orders extends Component
             'newProductCode' => 'required|unique:tenant.imp_new_products,code',
             'newProductDescription' => 'required|min:3',
             'newProductObservations' => 'nullable|string',
-            'newProductImage' => 'nullable|image|max:2048'
+            'newProductSupplierId' => 'nullable|integer',
+            'newProductImages.*' => 'nullable|image|max:2048' // Validación para múltiples imágenes
         ], [
-            'newProductDescription.required' => 'La descripción es obligatoria'
+            'newProductCode.required' => 'El código es obligatorio',
+            'newProductDescription.required' => 'La descripción es obligatoria',
+            'newProductImages.*.image' => 'Los archivos deben ser imágenes',
+            'newProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
         ]);
 
-        $imagePath = null;
-        if ($this->newProductImage) {
+        $imagePaths = [];
+        if (!empty($this->newProductImages)) {
             $tenantId = session('tenant_id', 'default');
-            $imagePath = $this->newProductImage->store("new_products/{$tenantId}", 'public');
+            foreach ($this->newProductImages as $image) {
+                if ($image) {
+                    $path = $image->store("new_products/{$tenantId}", 'public');
+                    $imagePaths[] = $path;
+                }
+            }
         }
+        $jsonImagePaths = !empty($imagePaths) ? json_encode($imagePaths) : null;
 
         try {
             $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
                 'observations' => $this->newProductObservations,
-                'image_path' => $imagePath,
+                'image_path' => $jsonImagePaths,
                 'status' => 'PENDING',
                 'created_by' => Auth::id(),
                 'created_at' => now(),
@@ -3060,7 +3186,7 @@ class Orders extends Component
                 'code' => $this->newProductCode,
                 'name' => $this->newProductDescription,
                 'note' => $this->newProductObservations,
-                'image' => $imagePath
+                'image' => $jsonImagePaths
             ];
             
             DB::connection('tenant')->table('imp_comments')->insert([
@@ -3076,6 +3202,10 @@ class Orders extends Component
                 'type' => 'success',
                 'message' => 'Producto Nuevo creado con éxito.'
             ]);
+            
+            // Limpiar variables
+            $this->reset(['newProductCode', 'newProductDescription', 'newProductSupplierId', 'newProductFactoryRef', 'newProductImages']);
+            
             $this->dispatch('$refresh');
         } catch (\Exception $e) {
             Log::error('❌ Error al guardar producto nuevo: ' . $e->getMessage());
