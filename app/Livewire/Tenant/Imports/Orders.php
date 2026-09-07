@@ -48,6 +48,9 @@ class Orders extends Component
     public $newProductStockWordpress;
     public $newProductMinQtyWordpress;
     public $newProductExw;
+    public $newProductIncrFletes = 0;
+    public $newProductPvp1 = 0;
+    public $newProductPvpMin = 0;
 
     public $selectedNewProductId;
     public $finalInternalCode;
