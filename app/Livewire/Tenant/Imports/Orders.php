@@ -2107,10 +2107,10 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'additionalProductImages.*' => 'nullable|image|max:2048'
+            'additionalProductImages.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf,xlsx,xls|max:5120'
         ], [
-            'additionalProductImages.*.image' => 'Los archivos deben ser imágenes',
-            'additionalProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
+            'additionalProductImages.*.mimes' => 'Los archivos deben ser imágenes, PDF o Excel',
+            'additionalProductImages.*.max' => 'Los archivos no deben pesar más de 5MB'
         ]);
 
         if (empty($this->additionalProductImages)) {
@@ -3148,12 +3148,12 @@ class Orders extends Component
             'newProductDescription' => 'required|min:3',
             'newProductObservations' => 'nullable|string',
             'newProductSupplierId' => 'nullable|integer',
-            'newProductImages.*' => 'nullable|image|max:2048' // Validación para múltiples imágenes
+            'newProductImages.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf,xlsx,xls|max:5120' // Validación para múltiples archivos
         ], [
             'newProductCode.required' => 'El código es obligatorio',
             'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductImages.*.image' => 'Los archivos deben ser imágenes',
-            'newProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
+            'newProductImages.*.mimes' => 'Los archivos deben ser imágenes, PDF o Excel',
+            'newProductImages.*.max' => 'Los archivos no deben pesar más de 5MB'
         ]);
 
         $imagePaths = [];
