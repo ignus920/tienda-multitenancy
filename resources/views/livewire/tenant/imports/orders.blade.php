@@ -1356,9 +1356,41 @@
                                                         </div>
                                                     @endif
                                                 @else
-                                                    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                                                        {{ $event->comment }}
-                                                    </p>
+                                                    @if(strpos($event->comment, '[TRANSLATED]') !== false)
+                                                        @php
+                                                            $parts = explode('[TRANSLATED]', $event->comment);
+                                                        @endphp
+                                                        <div class="space-y-3">
+                                                            <!-- Original Español -->
+                                                            <div class="relative pl-3 border-l-2 border-indigo-200 dark:border-indigo-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-indigo-400 bg-white dark:bg-gray-800 px-1">ES</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[0]) }}</p>
+                                                            </div>
+                                                            <!-- Traducción Inglés -->
+                                                            <div class="relative pl-3 border-l-2 border-teal-200 dark:border-teal-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-teal-400 bg-white dark:bg-gray-800 px-1">EN</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[1]) }}</p>
+                                                            </div>
+                                                        </div>
+                                                    @elseif(strpos($event->comment, '--- Translated to English ---') !== false)
+                                                        @php
+                                                            $parts = explode('--- Translated to English ---', $event->comment);
+                                                        @endphp
+                                                        <div class="space-y-3">
+                                                            <div class="relative pl-3 border-l-2 border-indigo-200 dark:border-indigo-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-indigo-400 bg-white dark:bg-gray-800 px-1">ES</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[0]) }}</p>
+                                                            </div>
+                                                            <div class="relative pl-3 border-l-2 border-teal-200 dark:border-teal-800">
+                                                                <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-teal-400 bg-white dark:bg-gray-800 px-1">EN</span>
+                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[1]) }}</p>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                                            {{ $event->comment }}
+                                                        </p>
+                                                    @endif
                                                 @endif
                                             @else
                                                 <div class="flex items-center gap-4 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded border border-gray-100 dark:border-gray-800 text-sm">
