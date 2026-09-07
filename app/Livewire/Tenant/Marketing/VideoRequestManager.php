@@ -72,6 +72,11 @@ class VideoRequestManager extends Component
             PermissionHelper::userCan(self::PERMISSION, 'show') || PermissionHelper::userCan('Mercadeo', 'show'),
             403
         );
+
+        if ($this->dateFrom === '' && $this->dateTo === '') {
+            $this->dateFrom = now()->subMonth()->format('Y-m-d');
+            $this->dateTo = now()->format('Y-m-d');
+        }
     }
 
     protected function ensureTenantConnection()
@@ -128,6 +133,11 @@ class VideoRequestManager extends Component
     }
 
     public function updatingDateTo(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPerPage(): void
     {
         $this->resetPage();
     }
