@@ -765,7 +765,7 @@ class Orders extends Component
     private function translateText($text, $from, $to)
     {
         try {
-            $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" . $from . "&tl=" . $to . "&dt=t&q=" . urlencode($text);
+            $url = "https://translate.googleapis.com/translate_a/single?client=dict-chrome-ex&sl=" . $from . "&tl=" . $to . "&dt=t&q=" . urlencode($text);
             
             // Usar un User-Agent de navegador para evitar bloqueo 429 de Google en VPS
             $response = \Illuminate\Support\Facades\Http::withHeaders([
