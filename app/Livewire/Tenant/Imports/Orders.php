@@ -877,7 +877,7 @@ class Orders extends Component
 
         $centralDbName = config('database.connections.central.database');
 
-        if ($this->filterStatus == 13) {
+        if ($this->filterStatus == 13 || $this->filterStatus == 14) {
             $comments = ImpComments::query()
                 ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
                 ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
