@@ -3142,7 +3142,7 @@ class Orders extends Component
                 'code' => $this->newProductCode,
                 'name' => $this->newProductDescription,
                 'note' => $this->newProductObservations,
-                'image' => $imagePath
+                'image' => $jsonImagePaths
             ];
             
             DB::connection('tenant')->table('imp_comments')->insert([
