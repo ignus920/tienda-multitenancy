@@ -917,18 +917,23 @@
                                             $isUpdated = !str_starts_with($order->sku, 'NEW_PRODUCT');
                                         @endphp
                                         @if($profileUser != '17')
-                                            @if(!$isUpdated)
-                                                <button wire:click="openExtensiveConvertModal({{ $order->id }}, {{ $order->item_id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span>Actualizar</span>
+                                            <div class="flex items-center justify-center gap-1.5">
+                                                @if(!$isUpdated)
+                                                    <button wire:click="openExtensiveConvertModal({{ $order->id }}, {{ $order->item_id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span>Actualizar</span>
+                                                    </button>
+                                                @else
+                                                    <span class="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-800 text-[11px] font-bold rounded-lg dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap border border-green-200 dark:border-green-800">
+                                                        <x-heroicon-s-check-circle class="w-3.5 h-3.5 mr-1"/> Listo para Pedir
+                                                    </span>
+                                                @endif
+                                                <button @click="$wire.openModalHistory({{ $order->id }})" class="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" title="Ver historial">
+                                                    <x-heroicon-o-eye class="w-4 h-4" />
                                                 </button>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-800 text-[11px] font-bold rounded-lg dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap border border-green-200 dark:border-green-800">
-                                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5 mr-1"/> Listo para Pedir
-                                                </span>
-                                            @endif
+                                            </div>
                                         @endif
                                     @else
                                         <div class="flex items-center justify-center gap-1.5">
@@ -2620,51 +2625,7 @@
                             @error('newProductExw') <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <!-- Imágenes del Producto (Dropzone Native) -->
-                    <div class="col-span-2 mt-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imágenes del Producto / Fotos</label>
-                        
-                        <div x-data="{ isDropping: false }"
-                             x-on:dragover.prevent="isDropping = true"
-                             x-on:dragleave.prevent="isDropping = false"
-                             x-on:drop.prevent="isDropping = false; if($event.dataTransfer.files.length) { @this.uploadMultiple('newProductImages', $event.dataTransfer.files) }"
-                             :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30': isDropping, 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800': !isDropping }"
-                             class="flex flex-col items-center justify-center w-full h-32 px-4 py-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 relative">
-                             
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
-                                <svg class="w-8 h-8 mb-3 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                                </svg>
-                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Haz clic para subir</span> o arrastra y suelta múltiples fotos</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, JPEG (Max. 2MB por imagen)</p>
-                            </div>
-                            
-                            <!-- Input invisible superpuesto -->
-                            <input type="file" wire:model="newProductImages" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        </div>
-                        
-                        <div wire:loading wire:target="newProductImages" class="mt-2 text-sm text-indigo-600 font-semibold flex items-center gap-2">
-                            <svg class="animate-spin h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Cargando imágenes...
-                        </div>
-                        
-                        @error('newProductImages.*') <span class="text-red-600 text-xs mt-1 block font-semibold">{{ $message }}</span> @enderror
 
-                        @if ($newProductImages && count($newProductImages) > 0)
-                            <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                                @foreach($newProductImages as $index => $img)
-                                    @if($img)
-                                        <div class="relative group aspect-square rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                                            <img src="{{ $img->temporaryUrl() }}" class="object-cover w-full h-full">
-                                            <button type="button" wire:click="$set('newProductImages.{{ $index }}', null)" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                            </button>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
 
                     {{-- Sección de Factores de Precios (Ocultada por no ser necesaria inicialmente) --}}
                     {{--
