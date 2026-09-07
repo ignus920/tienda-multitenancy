@@ -45,8 +45,6 @@ class Orders extends Component
     public $selectedRealItemId;
     
     // Variables temporales para el nuevo modal visual
-    public $newProductSupplierId;
-    public $newProductFactoryRef;
     public $newProductStockWordpress;
     public $newProductMinQtyWordpress;
     public $newProductExw;
