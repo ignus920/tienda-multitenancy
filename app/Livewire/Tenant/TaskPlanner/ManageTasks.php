@@ -58,7 +58,6 @@ class ManageTasks extends Component
     public $originType = '';
     public $originProjectId = '';
     public $assignedUserIds = [];
-    public $dependsOnTaskIds = [];
 
     // Colecciones temporales para crear/editar
     public $tempMaterials = [];
@@ -161,7 +160,7 @@ class ManageTasks extends Component
         $this->reset([
             'editingTaskId', 'title', 'description', 'departmentId', 'priority', 'estimatedHours',
             'estimatedMinutes', 'suggestedDate', 'locationType', 'location', 'travelBefore', 'travelAfter',
-            'originType', 'originProjectId', 'assignedUserIds', 'dependsOnTaskIds',
+            'originType', 'originProjectId', 'assignedUserIds',
             'tempMaterials', 'tempChecklists', 'tempAttachments', 'existingAttachments',
             'searchMaterial', 'searchMaterialResults', 'freeMaterialName', 'freeMaterialQty'
         ]);
@@ -259,7 +258,7 @@ class ManageTasks extends Component
     public function editTask($taskId)
     {
         $this->ensureTenantConnection();
-        $task = Task::with('assignments', 'dependencies')->findOrFail($taskId);
+        $task = Task::with('assignments')->findOrFail($taskId);
 
         $this->editingTaskId = $task->id;
         $this->title = $task->title;
@@ -278,7 +277,6 @@ class ManageTasks extends Component
         $this->originType = $task->origin_type;
         $this->originProjectId = $task->origin_project_id;
         $this->assignedUserIds = $task->assignments->pluck('user_id')->toArray();
-        $this->dependsOnTaskIds = $task->dependencies->pluck('depends_on_task_id')->toArray();
 
         $this->tempMaterials = $task->materials->map(function($m) {
             return [
@@ -808,8 +806,7 @@ class ManageTasks extends Component
             'dashboard' => $dashboard,
             'unavailabilities' => $unavailabilities,
             'projectsForOrigin' => $projectsForOrigin,
-            'detailTask' => $this->detailTaskId ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'dependencies.dependsOnTask', 'schedules', 'pauses.user', 'timeLogs.user', 'materials.item', 'checklists', 'attachments'])->find($this->detailTaskId) : null,
-            'allOpenTasksForDependency' => Task::whereIn('status', Task::OPEN_STATUSES)->orderBy('title')->get(['id', 'title']),
+            'detailTask' => $this->detailTaskId ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'schedules', 'pauses.user', 'timeLogs.user', 'materials.item', 'checklists', 'attachments'])->find($this->detailTaskId) : null,
         ])->layout('layouts.app');
     }
 }
