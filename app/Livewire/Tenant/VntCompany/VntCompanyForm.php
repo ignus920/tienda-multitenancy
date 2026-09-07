@@ -2089,7 +2089,9 @@ class VntCompanyForm extends Component
         if ($kindOfPersonValue !== 'LEGAL_ENTITY') {
             $nameObject = [
                 'firstName' => $this->firstName ?: '',
-                'lastName' => $this->lastName ?: ''
+                'secondName' => $this->secondName ?: '',
+                'lastName' => $this->lastName ?: '',
+                'secondLastName' => $this->secondLastName ?: ''
             ];
         }
 
