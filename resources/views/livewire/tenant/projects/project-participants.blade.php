@@ -1,7 +1,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-6">
     <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Participantes del Proyecto</h2>
 
-    @if(!$isClosed)
+    @if(!$isClosed && $isCreator)
     <!-- Agregar participante -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Agregar participante</span>
@@ -19,6 +19,13 @@
             </button>
         </div>
     </div>
+    @elseif(!$isClosed)
+    <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        Solo el creador del proyecto puede agregar o quitar participantes.
+    </div>
     @endif
 
     <!-- Lista de participantes actuales -->
@@ -34,7 +41,7 @@
                         <p class="text-2xs text-gray-400">{{ $participant->role }}</p>
                     </div>
                 </div>
-                @if(!$isClosed)
+                @if(!$isClosed && $isCreator)
                 <button wire:click="removeParticipant({{ $participant->id }})" wire:confirm="¿Quitar a {{ $participant->user->name ?? 'este usuario' }} del proyecto?"
                     class="text-2xs font-semibold text-red-500 hover:text-red-600">
                     Quitar

@@ -53,10 +53,26 @@ class ProjectParticipants extends Component
         return false;
     }
 
+    private function isProjectCreator(): bool
+    {
+        $project = Project::find($this->projectId);
+        return $project && (int) $project->created_by === (int) Auth::id();
+    }
+
+    private function checkIsCreator(): bool
+    {
+        if (!$this->isProjectCreator()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador del proyecto puede gestionar los participantes']);
+            return false;
+        }
+        return true;
+    }
+
     public function addParticipant()
     {
         $this->ensureTenantConnection();
         if ($this->checkNotClosed()) return;
+        if (!$this->checkIsCreator()) return;
 
         if (!$this->selectedUserId) {
             return;
@@ -80,6 +96,7 @@ class ProjectParticipants extends Component
     {
         $this->ensureTenantConnection();
         if ($this->checkNotClosed()) return;
+        if (!$this->checkIsCreator()) return;
 
         $participant = ProjectParticipant::findOrFail($participantId);
         $project = Project::findOrFail($this->projectId);
@@ -119,11 +136,13 @@ class ProjectParticipants extends Component
 
         $project = Project::find($this->projectId);
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
+        $isCreator = $project && (int) $project->created_by === (int) Auth::id();
 
         return view('livewire.tenant.projects.project-participants', [
             'participants' => $participants,
             'availableUsers' => $availableUsers,
-            'isClosed' => $isClosed
+            'isClosed' => $isClosed,
+            'isCreator' => $isCreator
         ]);
     }
 }
