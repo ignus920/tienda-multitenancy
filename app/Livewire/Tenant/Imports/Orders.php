@@ -2944,7 +2944,7 @@ class Orders extends Component
             'newProductFactor', 
             'newProductSupplierId', 
             'newProductFactoryRef', 
-            'newProductImage', 
+            'newProductImages', 
             'newProductExw', 
             'newProductIncrFletes', 
             'newProductPvp1', 
