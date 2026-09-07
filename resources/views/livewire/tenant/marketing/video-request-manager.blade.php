@@ -127,6 +127,17 @@
                     </button>
                 @endif
 
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Mostrar</label>
+                    <select wire:model.live="perPage"
+                        class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white py-2 px-3 focus:ring-2 focus:ring-indigo-500">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
                 <div class="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 p-1 lg:ml-auto">
                     <button wire:click="setView('matriz')"
                         class="px-3 py-1.5 text-xs font-bold rounded-md transition {{ $viewMode === 'matriz' ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400' }}">
@@ -251,7 +262,14 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        @if ($requests->total() > 0)
+                            Mostrando {{ $requests->firstItem() }}–{{ $requests->lastItem() }} de {{ $requests->total() }}
+                        @else
+                            Sin resultados
+                        @endif
+                    </p>
                     {{ $requests->links() }}
                 </div>
             </div>
@@ -333,7 +351,14 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        @if ($requests->total() > 0)
+                            Mostrando {{ $requests->firstItem() }}–{{ $requests->lastItem() }} de {{ $requests->total() }}
+                        @else
+                            Sin resultados
+                        @endif
+                    </p>
                     {{ $requests->links() }}
                 </div>
             </div>
